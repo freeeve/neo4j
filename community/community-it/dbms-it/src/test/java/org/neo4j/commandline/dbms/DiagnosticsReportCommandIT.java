@@ -302,7 +302,8 @@ class DiagnosticsReportCommandIT {
     @Test
     void includeLog4jConfigs() throws IOException {
         // Special location for one of the logging configuration files.
-        String neo4jConfContents = GraphDatabaseSettings.server_logging_config_path.name() + "=customLogDir/name.xml";
+        String neo4jConfContents = GraphDatabaseSettings.server_logging_config_path.name() + "="
+                + homeDir.resolve("customLogDir/name.xml").toAbsolutePath();
         Files.write(configDir.resolve("neo4j.conf"), singletonList(neo4jConfContents));
         Files.createDirectories(homeDir.resolve("customLogDir"));
         Files.write(homeDir.resolve("customLogDir/name.xml"), singletonList("Config1"));

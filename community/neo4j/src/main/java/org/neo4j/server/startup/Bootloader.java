@@ -226,6 +226,7 @@ public abstract class Bootloader implements AutoCloseable {
                     .commandExpansion(expandCommands)
                     .setDefaults(overriddenDefaultsValues())
                     .set(GraphDatabaseSettings.neo4j_home, home())
+                    .set(GraphDatabaseSettings.configuration_directory, confDir())
                     .fromFile(mainConfFile, allowThrow, filter);
 
             Collections.reverse(additionalConfigs);
@@ -289,6 +290,7 @@ public abstract class Bootloader implements AutoCloseable {
         // here.
         return Set.of(
                 GraphDatabaseSettings.neo4j_home.name(),
+                GraphDatabaseSettings.configuration_directory.name(),
                 GraphDatabaseSettings.logs_directory.name(),
                 GraphDatabaseSettings.plugin_dir.name(),
                 GraphDatabaseSettings.strict_config_validation.name(),

@@ -121,6 +121,27 @@ abstract class ServerCommandIT extends ServerProcessTestBase {
     }
 
     @Test
+    void startShouldFindLog4jConfigWithConfiguredConfDir() throws IOException {
+        Path customLog4jPath = home.resolve("customconf");
+        fs.mkdirs(customLog4jPath);
+
+        // Lets write a broken conf, because its easy to verify that we found it
+        FileSystemUtils.writeString(
+                fs,
+                customLog4jPath.resolve(GraphDatabaseSettings.user_logging_config_path
+                        .defaultValue()
+                        .getFileName()),
+                "<Configuration></Cunfigoratzion>",
+                EmptyMemoryTracker.INSTANCE);
+        int exitCode = execute(List.of("start"), Map.of(Bootloader.ENV_NEO4J_CONF, customLog4jPath.toString()));
+        assertThat(exitCode).isEqualTo(ExitCode.FAIL);
+        assertThat(err.toString())
+                .contains(
+                        "Error at 1:18: The element type \"Configuration\" must be terminated by the matching end-tag \"</Configuration>\".",
+                        "Configuration contains errors.");
+    }
+
+    @Test
     @DisabledOnOs(OS.WINDOWS)
     void startShouldBeAllowedWithWarningsOnInvalidServerLog4jConfig() throws IOException {
         Path log4jConfig = config.get(GraphDatabaseSettings.server_logging_config_path);

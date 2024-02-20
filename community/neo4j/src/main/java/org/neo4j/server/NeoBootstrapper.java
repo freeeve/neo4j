@@ -125,13 +125,18 @@ public abstract class NeoBootstrapper implements Bootstrapper {
         installSignalHandlers();
         SystemLogger.installErrorListener();
 
-        Config config = Config.newBuilder()
+        Config.Builder configBuilder = Config.newBuilder()
                 .commandExpansion(expandCommands)
                 .setDefaults(GraphDatabaseSettings.SERVER_DEFAULTS)
                 .fromFileNoThrow(configFile)
                 .setRaw(configOverrides)
-                .set(GraphDatabaseSettings.neo4j_home, homeDir.toAbsolutePath())
-                .build();
+                .set(GraphDatabaseSettings.neo4j_home, homeDir.toAbsolutePath());
+        if (configFile != null && configFile.getParent() != null) {
+            configBuilder.set(
+                    GraphDatabaseSettings.configuration_directory,
+                    configFile.getParent().toAbsolutePath());
+        }
+        Config config = configBuilder.build();
 
         HeapDumpDiagnostics.INSTANCE.START_TIME = Instant.now().toString();
         HeapDumpDiagnostics.INSTANCE.NEO4J_VERSION = Version.getNeo4jVersion();

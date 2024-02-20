@@ -144,6 +144,13 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
             .immutable()
             .build();
 
+    @Description("Root location of the configuration directory.")
+    public static final Setting<Path> configuration_directory = newBuilder(
+                    "server.directories.configuration", PATH, Path.of(DEFAULT_CONFIG_DIR_NAME))
+            .setDependency(neo4j_home)
+            .immutable()
+            .build();
+
     @Description(
             "Whether or not any database on this instance are read_only by default. If false, individual databases may be marked as read_only using "
                     + "server.database.read_only. If true, individual databases may be marked as writable using server.databases.writable.")
@@ -746,15 +753,15 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
 
     @Description("Path to the logging configuration for debug, query, http and security logs.")
     public static final Setting<Path> server_logging_config_path = newBuilder(
-                    "server.logs.config", PATH, Path.of(DEFAULT_CONFIG_DIR_NAME, "server-logs.xml"))
-            .setDependency(neo4j_home)
+                    "server.logs.config", PATH, Path.of("server-logs.xml"))
+            .setDependency(configuration_directory)
             .immutable()
             .build();
 
     @Description("Path to the logging configuration of user logs.")
     public static final Setting<Path> user_logging_config_path = newBuilder(
-                    "server.logs.user.config", PATH, Path.of(DEFAULT_CONFIG_DIR_NAME, "user-logs.xml"))
-            .setDependency(neo4j_home)
+                    "server.logs.user.config", PATH, Path.of("user-logs.xml"))
+            .setDependency(configuration_directory)
             .immutable()
             .build();
 
