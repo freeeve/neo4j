@@ -34,6 +34,8 @@ case class PrettyString private[plandescription] (prettifiedString: String) {
 
   def repeat(count: Int): PrettyString = PrettyString(prettifiedString.repeat(count))
   def stripMargin: PrettyString = PrettyString(prettifiedString.stripMargin)
+
+  def append(other: PrettyString): PrettyString = PrettyString(prettifiedString + other.prettifiedString)
 }
 
 object PrettyString {

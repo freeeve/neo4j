@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.bottomUp
 
 case object AddVarLengthPredicates extends AddRelationshipPredicates[RelationshipPattern] {
@@ -85,5 +86,11 @@ case object AddVarLengthPredicates extends AddRelationshipPredicates[Relationshi
       VarLengthUpperBound(relNameVar, max)(pos)
     }
     Seq.empty ++ lowerBound ++ upperBound
+  }
+
+  override def preConditions: Set[StepSequencer.Condition] = {
+    // we do not really need a dependency here but this is to deflake tests which assert on the order of predicates
+    // generated in the WHERE clause.
+    super.preConditions + AddUniquenessPredicates.completed
   }
 }

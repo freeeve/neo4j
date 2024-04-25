@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.plandescription.Arguments.Rows
 import org.neo4j.cypher.internal.plandescription.Arguments.Time
 import org.neo4j.cypher.internal.plandescription.PlanDescriptionArgumentSerializer.serialize
 import org.neo4j.cypher.internal.plandescription.renderAsTreeTable.splitDetails
+import org.neo4j.cypher.internal.util.attribution.Id
 
 import scala.annotation.tailrec
 import scala.collection.Map
@@ -317,13 +318,13 @@ private object TreeTableBuilder {
 
       override def next(): LevelledPlan = {
         val levelledPlan = stack.pop()
-        levelledPlan.plan.children match {
-          case SingleChild(inner) =>
-            stack.push(LevelledPlan(compactPlan(inner), levelledPlan.level.child))
-          case TwoChildren(lhs, rhs) =>
-            stack.push(LevelledPlan(compactPlan(lhs), levelledPlan.level.child))
-            stack.push(LevelledPlan(compactPlan(rhs), levelledPlan.level.fork))
-          case NoChildren =>
+        val children = levelledPlan.plan.children
+        children.headOption.foreach { child =>
+          stack.push(LevelledPlan(compactPlan(child), levelledPlan.level.child))
+          // only call tail if head exists
+          children.tail.foreach { child =>
+            stack.push(LevelledPlan(compactPlan(child), levelledPlan.level.fork))
+          }
         }
         levelledPlan.copy(childLevel = stack.headOption.map(_.level))
       }
@@ -336,7 +337,7 @@ private object TreeTableBuilder {
       plan: InternalPlanDescription
     ): Seq[InternalPlanDescription] = {
       plan.children match {
-        case SingleChild(inner)
+        case Seq(inner)
           if !plan.arguments.exists(a => a.isInstanceOf[Details] || a.isInstanceOf[PipelineInfo]) &&
             !inner.arguments.exists(a => a.isInstanceOf[Details] || a.isInstanceOf[PipelineInfo]) &&
             inner.name == plan.name => compactPlanAcc(acc :+ plan, inner)
@@ -430,7 +431,12 @@ private class TreeTableBuilder private (
       case pipeline: PipelineInfo => Header.PIPELINE -> Cell.left(serialize(pipeline).toString)
     }
 
-    val idColumn = Header.ID -> Cell.right(plan.id.x.toString)
+    val idString = Option(plan.id)
+      .filter(_ != Id.INVALID_ID)
+      .map(_.x.toString)
+      .getOrElse("")
+
+    val idColumn = Header.ID -> Cell.right(idString)
 
     val operatorColumn = Header.OPERATOR -> Cell.left(levelledPlan.level.line + "+" + levelledPlan.plan.name)
 

@@ -64,11 +64,11 @@ sealed trait InternalPlanDescription extends org.neo4j.graphdb.ExecutionPlanDesc
 
   def name: String
 
-  def children: Children
+  def children: Seq[InternalPlanDescription]
 
   def variables: Set[PrettyString]
 
-  def cd(name: String): InternalPlanDescription = children.find(name).head
+  def cd(name: String): InternalPlanDescription = children.flatMap(_.find(name)).head
 
   def map(f: InternalPlanDescription => InternalPlanDescription): InternalPlanDescription
 
@@ -83,14 +83,7 @@ sealed trait InternalPlanDescription extends org.neo4j.graphdb.ExecutionPlanDesc
     while (stack.nonEmpty) {
       val plan = stack.pop()
       flatten += plan
-      plan.children match {
-        case NoChildren =>
-        case SingleChild(child) =>
-          stack.push(child)
-        case TwoChildren(l, r) =>
-          stack.push(r)
-          stack.push(l)
-      }
+      plan.children.reverse.foreach(stack.push)
     }
     flatten
   }.toSeq
@@ -172,57 +165,17 @@ sealed trait InternalPlanDescription extends org.neo4j.graphdb.ExecutionPlanDesc
 object InternalPlanDescription {
 
   case class TotalHits(hits: Long, uncertain: Boolean) {
-    def +(other: TotalHits) = TotalHits(this.hits + other.hits, this.uncertain || other.uncertain)
+    def +(other: TotalHits): TotalHits = TotalHits(this.hits + other.hits, this.uncertain || other.uncertain)
   }
 
   def error(msg: String): InternalPlanDescription =
-    PlanDescriptionImpl(Id.INVALID_ID, msg, NoChildren, Nil, Set.empty)
-}
-
-sealed trait Children {
-
-  def isEmpty: Boolean = toIndexedSeq.isEmpty
-
-  def tail: Seq[InternalPlanDescription] = toIndexedSeq.tail
-
-  def head: InternalPlanDescription = toIndexedSeq.head
-
-  def toIndexedSeq: Seq[InternalPlanDescription]
-
-  def find(name: String): Seq[InternalPlanDescription] = toIndexedSeq.flatMap(_.find(name))
-
-  def map(f: InternalPlanDescription => InternalPlanDescription): Children
-
-  def foreach[U](f: InternalPlanDescription => U): Unit = {
-    toIndexedSeq.foreach(f)
-  }
-}
-
-case object NoChildren extends Children {
-
-  def toIndexedSeq = Seq.empty
-
-  def map(f: InternalPlanDescription => InternalPlanDescription) = NoChildren
-}
-
-final case class SingleChild(child: InternalPlanDescription) extends Children {
-
-  val toIndexedSeq = Seq(child)
-
-  def map(f: InternalPlanDescription => InternalPlanDescription) = SingleChild(child = child.map(f))
-}
-
-final case class TwoChildren(lhs: InternalPlanDescription, rhs: InternalPlanDescription) extends Children {
-
-  val toIndexedSeq = Seq(lhs, rhs)
-
-  def map(f: InternalPlanDescription => InternalPlanDescription) = TwoChildren(lhs = lhs.map(f), rhs = rhs.map(f))
+    PlanDescriptionImpl(Id.INVALID_ID, msg, Seq.empty, Nil, Set.empty)
 }
 
 final case class PlanDescriptionImpl(
   id: Id,
   name: String,
-  children: Children,
+  children: Seq[InternalPlanDescription],
   arguments: Seq[Argument],
   variables: Set[PrettyString],
   withRawCardinalities: Boolean = false,
@@ -232,16 +185,17 @@ final case class PlanDescriptionImpl(
   checkOnlyWhenAssertionsAreEnabled(arguments.count(_.isInstanceOf[Details]) < 2)
 
   def find(name: String): Seq[InternalPlanDescription] =
-    children.find(name) ++ (if (this.name == name)
-                              Some(this)
-                            else {
-                              None
-                            })
+    children.flatMap(_.find(name)) ++
+      (if (this.name == name)
+         Some(this)
+       else {
+         None
+       })
 
   def addArgument(argument: Argument): InternalPlanDescription = copy(arguments = arguments :+ argument)
 
   def map(f: InternalPlanDescription => InternalPlanDescription): InternalPlanDescription = f(
-    copy(children = children.map(f))
+    copy(children = children.map(_.map(f)))
   )
 
   def toIndexedSeq: Seq[InternalPlanDescription] = this +: children.toIndexedSeq
@@ -289,7 +243,7 @@ final case class PlanDescriptionImpl(
         // TODO Better way to achieve this!
         if (id.isInstanceOf[java.lang.Integer]) Id(id.asInstanceOf[java.lang.Integer]) else id.asInstanceOf[Id],
         children(1).asInstanceOf[String],
-        children(2).asInstanceOf[Children],
+        children(2).asInstanceOf[Seq[InternalPlanDescription]],
         children(3).asInstanceOf[Seq[Argument]],
         children(4).asInstanceOf[Set[PrettyString]]
       ).asInstanceOf[this.type]
@@ -311,7 +265,7 @@ final case class CompactedPlanDescription(similar: Seq[InternalPlanDescription])
     acc ++ plan.variables
   }
 
-  override def children: Children = similar.last.children
+  override def children: Seq[InternalPlanDescription] = similar.last.children
 
   override val arguments: Seq[Argument] = {
     var dbHits: Option[Long] = None
@@ -361,9 +315,9 @@ final case class CompactedPlanDescription(similar: Seq[InternalPlanDescription])
 final case class ArgumentPlanDescription(id: Id, arguments: Seq[Argument] = Seq.empty, variables: Set[PrettyString])
     extends InternalPlanDescription {
 
-  def children = NoChildren
+  def children: Seq[InternalPlanDescription] = Seq.empty
 
-  def find(searchedName: String) = if (searchedName == name) Seq(this) else Seq.empty
+  def find(searchedName: String): Seq[InternalPlanDescription] = if (searchedName == name) Seq(this) else Seq.empty
 
   def name = "EmptyRow"
 

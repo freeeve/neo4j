@@ -34,7 +34,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class InternalPlanDescriptionTest extends CypherFunSuite {
 
-  private val ID = Id.INVALID_ID
+  private val ID = Id(0)
 
   test("arguments are read as expected") {
     val arguments = Seq(
@@ -44,7 +44,7 @@ class InternalPlanDescriptionTest extends CypherFunSuite {
       Time(4),
       Rows(5)
     )
-    val plan = PlanDescriptionImpl(ID, "plan", NoChildren, arguments, Set())
+    val plan = PlanDescriptionImpl(ID, "plan", Seq.empty, arguments, Set())
     plan.hasProfilerStatistics should equal(true)
     plan.getProfilerStatistics.getDbHits should equal(1)
     plan.getProfilerStatistics.getPageCacheHits should equal(2)
@@ -54,24 +54,24 @@ class InternalPlanDescriptionTest extends CypherFunSuite {
   }
 
   test("flatten behaves like expected for plan with two children") {
-    val child1 = PlanDescriptionImpl(ID, "child1", NoChildren, Seq.empty, Set())
-    val child2 = PlanDescriptionImpl(ID, "child2", NoChildren, Seq.empty, Set())
-    val top = PlanDescriptionImpl(ID, "top", TwoChildren(child1, child2), Seq.empty, Set())
+    val child1 = PlanDescriptionImpl(ID, "child1", Seq.empty, Seq.empty, Set())
+    val child2 = PlanDescriptionImpl(ID, "child2", Seq.empty, Seq.empty, Set())
+    val top = PlanDescriptionImpl(ID, "top", Seq(child1, child2), Seq.empty, Set())
 
     top.flatten should equal(Seq(top, child1, child2))
   }
 
   test("single plan flattened stays single") {
-    val single = PlanDescriptionImpl(ID, "single", NoChildren, Seq.empty, Set())
+    val single = PlanDescriptionImpl(ID, "single", Seq.empty, Seq.empty, Set())
 
     single.flatten should equal(Seq(single))
   }
 
   test("left leaning plan should also flatten out nicely") {
-    val leaf = PlanDescriptionImpl(ID, "leaf", NoChildren, Seq.empty, Set())
-    val lvl1 = PlanDescriptionImpl(ID, "lvl1", SingleChild(leaf), Seq.empty, Set())
-    val lvl2 = PlanDescriptionImpl(ID, "lvl2", SingleChild(lvl1), Seq.empty, Set())
-    val root = PlanDescriptionImpl(ID, "root", SingleChild(lvl2), Seq.empty, Set())
+    val leaf = PlanDescriptionImpl(ID, "leaf", Seq.empty, Seq.empty, Set())
+    val lvl1 = PlanDescriptionImpl(ID, "lvl1", Seq(leaf), Seq.empty, Set())
+    val lvl2 = PlanDescriptionImpl(ID, "lvl2", Seq(lvl1), Seq.empty, Set())
+    val root = PlanDescriptionImpl(ID, "root", Seq(lvl2), Seq.empty, Set())
 
     root.flatten should equal(Seq(root, lvl2, lvl1, leaf))
   }
@@ -82,20 +82,20 @@ class InternalPlanDescriptionTest extends CypherFunSuite {
              B1      B2
            C1  C2  C3  C4
      */
-    val C4 = PlanDescriptionImpl(ID, "C4", NoChildren, Seq.empty, Set())
-    val C3 = PlanDescriptionImpl(ID, "C3", NoChildren, Seq.empty, Set())
-    val C2 = PlanDescriptionImpl(ID, "C2", NoChildren, Seq.empty, Set())
-    val C1 = PlanDescriptionImpl(ID, "C1", NoChildren, Seq.empty, Set())
-    val B2 = PlanDescriptionImpl(ID, "B2", TwoChildren(C3, C4), Seq.empty, Set())
-    val B1 = PlanDescriptionImpl(ID, "B1", TwoChildren(C1, C2), Seq.empty, Set())
-    val A = PlanDescriptionImpl(ID, "A", TwoChildren(B1, B2), Seq.empty, Set())
+    val C4 = PlanDescriptionImpl(ID, "C4", Seq.empty, Seq.empty, Set())
+    val C3 = PlanDescriptionImpl(ID, "C3", Seq.empty, Seq.empty, Set())
+    val C2 = PlanDescriptionImpl(ID, "C2", Seq.empty, Seq.empty, Set())
+    val C1 = PlanDescriptionImpl(ID, "C1", Seq.empty, Seq.empty, Set())
+    val B2 = PlanDescriptionImpl(ID, "B2", Seq(C3, C4), Seq.empty, Set())
+    val B1 = PlanDescriptionImpl(ID, "B1", Seq(C1, C2), Seq.empty, Set())
+    val A = PlanDescriptionImpl(ID, "A", Seq(B1, B2), Seq.empty, Set())
 
     A.flatten should equal(Seq(A, B1, C1, C2, B2, C3, C4))
   }
 
   test("toString should render nicely") {
     val version = "5.0"
-    val planDescription = PlanDescriptionImpl(ID, "Leaf", NoChildren, Seq.empty, Set())
+    val planDescription = PlanDescriptionImpl(ID, "Leaf", Seq.empty, Seq.empty, Set())
       .addArgument(Version(version))
       .addArgument(Planner("COST"))
       .addArgument(RuntimeVersion(version))
@@ -116,7 +116,7 @@ class InternalPlanDescriptionTest extends CypherFunSuite {
                            |+----------+----+
                            || Operator | Id |
                            |+----------+----+
-                           || +Leaf    | -1 |
+                           || +Leaf    |  0 |
                            |+----------+----+
                            |
                            |Total database accesses: ?

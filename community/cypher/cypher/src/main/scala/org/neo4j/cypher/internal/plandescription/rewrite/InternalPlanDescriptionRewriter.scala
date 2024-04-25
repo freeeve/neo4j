@@ -27,10 +27,7 @@ import org.neo4j.cypher.internal.plandescription.Arguments.PipelineInfo
 import org.neo4j.cypher.internal.plandescription.Arguments.Time
 import org.neo4j.cypher.internal.plandescription.CompactedPlanDescription
 import org.neo4j.cypher.internal.plandescription.InternalPlanDescription
-import org.neo4j.cypher.internal.plandescription.NoChildren
 import org.neo4j.cypher.internal.plandescription.PlanDescriptionImpl
-import org.neo4j.cypher.internal.plandescription.SingleChild
-import org.neo4j.cypher.internal.plandescription.TwoChildren
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.bottomUp
@@ -146,15 +143,7 @@ class FusedPlanDescriptionArgumentRewriter extends InternalPlanDescriptionRewrit
     stack.push(root)
     while (stack.nonEmpty) {
       val plan = stack.pop()
-      plan.children match {
-        case NoChildren =>
-        // do nothing
-        case SingleChild(child) =>
-          stack.push(child)
-        case TwoChildren(lhs, rhs) =>
-          stack.push(lhs)
-          stack.push(rhs)
-      }
+      plan.children.foreach(stack.push)
 
       pipelineInfo(plan) match {
         case Some(newInfo) =>

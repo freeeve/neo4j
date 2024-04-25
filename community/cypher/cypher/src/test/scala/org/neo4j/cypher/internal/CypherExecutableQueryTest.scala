@@ -70,6 +70,7 @@ class CypherExecutableQueryTest extends CypherFunSuite {
       effectiveCardinalities = mock[ImmutablePlanningAttributes.EffectiveCardinalities],
       rawCardinalitiesInPlanDescription = false,
       distinctnessInPlanDescription = false,
+      nestedPlanExpressionsInPlanDescription = false,
       providedOrders = mock[ImmutablePlanningAttributes.ProvidedOrders],
       reusabilityState = FineToReuse,
       paramNames = Array.empty,

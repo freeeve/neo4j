@@ -62,6 +62,7 @@ import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
+import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.expressions.functions.Labels
 import org.neo4j.cypher.internal.expressions.functions.Point
 import org.neo4j.cypher.internal.expressions.functions.Type
@@ -170,6 +171,7 @@ import org.neo4j.cypher.internal.logical.plans.ManyQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ManySeekableArgs
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
+import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
 import org.neo4j.cypher.internal.logical.plans.NodeByElementIdSeek
 import org.neo4j.cypher.internal.logical.plans.NodeByIdSeek
 import org.neo4j.cypher.internal.logical.plans.NodeByLabelScan
@@ -303,14 +305,18 @@ import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescription.pre
 import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescription.prettyUpdateLabelString
 import org.neo4j.cypher.internal.plandescription.asPrettyString.PrettyStringInterpolator
 import org.neo4j.cypher.internal.plandescription.asPrettyString.PrettyStringMaker
+import org.neo4j.cypher.internal.plandescription.asPrettyString.raw
 import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttributes
 import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Repetition
+import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
+import org.neo4j.cypher.internal.util.topDown
 import org.neo4j.exceptions.InternalException
 import org.neo4j.graphdb.schema.IndexType
 
@@ -323,6 +329,7 @@ object LogicalPlan2PlanDescription {
     effectiveCardinalities: ImmutablePlanningAttributes.EffectiveCardinalities,
     withRawCardinalities: Boolean,
     withDistinctness: Boolean,
+    renderNestedPlanExpressions: Boolean,
     providedOrders: ImmutablePlanningAttributes.ProvidedOrders,
     runtimeOperatorMetadata: Id => Seq[Argument],
     cypherVersion: CypherVersion
@@ -332,6 +339,7 @@ object LogicalPlan2PlanDescription {
       effectiveCardinalities,
       withRawCardinalities,
       withDistinctness,
+      renderNestedPlanExpressions,
       providedOrders,
       runtimeOperatorMetadata
     )
@@ -370,6 +378,7 @@ case class LogicalPlan2PlanDescription(
   effectiveCardinalities: ImmutablePlanningAttributes.EffectiveCardinalities,
   withRawCardinalities: Boolean,
   withDistinctness: Boolean = false,
+  renderNestedPlanExpressions: Boolean = false,
   providedOrders: ImmutablePlanningAttributes.ProvidedOrders,
   runtimeOperatorMetadata: Id => Seq[Argument]
 ) extends LogicalPlans.Mapper[InternalPlanDescription] {
@@ -386,13 +395,14 @@ case class LogicalPlan2PlanDescription(
 
     val id = plan.id
     val variables = plan.availableSymbols.map(asPrettyString(_))
+    val children = describeNestedPlans(plan)
 
-    val result: InternalPlanDescription = plan match {
+    val result: InternalPlanDescription = replaceNestedPlansWithPlaceholder(plan) match {
       case _: AdministrationCommandLogicalPlan =>
         PlanDescriptionImpl(
           id,
           "AdministrationCommand",
-          NoChildren,
+          children,
           Seq.empty,
           Set.empty,
           withRawCardinalities,
@@ -403,7 +413,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "AllNodesScan",
-          NoChildren,
+          children,
           Seq(Details(asPrettyString(idName))),
           variables,
           withRawCardinalities,
@@ -414,7 +424,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "PartitionedAllNodesScan",
-          NoChildren,
+          children,
           Seq(Details(asPrettyString(idName))),
           variables,
           withRawCardinalities,
@@ -426,7 +436,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "NodeByLabelScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -438,7 +448,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "PartitionedNodeByLabelScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -451,7 +461,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "UnionNodeByLabelsScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -464,7 +474,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "PartitionedUnionNodeByLabelsScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -477,7 +487,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "IntersectionNodeByLabelsScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -490,7 +500,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "PartitionedIntersectionNodeByLabelsScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -507,7 +517,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "SubtractionNodeByLabelsScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -524,7 +534,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "PartitionedSubtractionNodeByLabelsScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -541,7 +551,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "DirectedUnionRelationshipTypesScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -558,7 +568,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "UndirectedUnionRelationshipTypesScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -575,7 +585,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "PartitionedDirectedUnionRelationshipTypesScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -592,7 +602,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "PartitionedUndirectedUnionRelationshipTypesScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -605,7 +615,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "NodeByIdSeek",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -618,7 +628,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "NodeByElementIdSeek",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -639,7 +649,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           indexMode,
-          NoChildren,
+          Seq.empty,
           Seq(Details(indexDesc)),
           variables,
           withRawCardinalities,
@@ -660,7 +670,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "Partitioned" + indexMode,
-          NoChildren,
+          Seq.empty,
           Seq(Details(indexDesc)),
           variables,
           withRawCardinalities,
@@ -681,7 +691,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           indexMode,
-          NoChildren,
+          Seq.empty,
           Seq(Details(indexDesc)),
           variables,
           withRawCardinalities,
@@ -704,7 +714,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id = plan.id,
           "MultiNodeIndexSeek",
-          NoChildren,
+          children,
           Seq(Details(indexDescs)),
           variables,
           withRawCardinalities,
@@ -727,7 +737,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id = plan.id,
           "AssertingMultiNodeIndexSeek",
-          NoChildren,
+          children,
           Seq(Details(indexDescs)),
           variables,
           withRawCardinalities,
@@ -753,7 +763,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id = plan.id,
           "AssertingMultiRelationshipIndexSeek",
-          NoChildren,
+          children,
           Seq(Details(indexDescs)),
           variables,
           withRawCardinalities,
@@ -773,7 +783,7 @@ case class LogicalPlan2PlanDescription(
           readOnly = readOnly,
           p.cachedProperties
         )
-        PlanDescriptionImpl(id, indexMode, NoChildren, Seq(Details(indexDesc)), variables)
+        PlanDescriptionImpl(id, indexMode, Seq.empty, Seq(Details(indexDesc)), variables)
       case p @ UndirectedRelationshipIndexSeek(idName, start, end, typ, properties, valueExpr, _, _, indexType, _) =>
         val (indexMode, indexDesc) = getRelIndexDescriptions(
           idName.name,
@@ -791,7 +801,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           indexMode,
-          NoChildren,
+          Seq.empty,
           Seq(Details(indexDesc)),
           variables,
           withRawCardinalities,
@@ -811,7 +821,7 @@ case class LogicalPlan2PlanDescription(
           readOnly = readOnly,
           p.cachedProperties
         )
-        PlanDescriptionImpl(id, "Partitioned" + indexMode, NoChildren, Seq(Details(indexDesc)), variables)
+        PlanDescriptionImpl(id, "Partitioned" + indexMode, Seq.empty, Seq(Details(indexDesc)), variables)
       case p @ PartitionedUndirectedRelationshipIndexSeek(
           idName,
           start,
@@ -838,7 +848,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "Partitioned" + indexMode,
-          NoChildren,
+          Seq.empty,
           Seq(Details(indexDesc)),
           variables,
           withRawCardinalities,
@@ -858,7 +868,7 @@ case class LogicalPlan2PlanDescription(
           readOnly = readOnly,
           p.cachedProperties
         )
-        PlanDescriptionImpl(id, indexMode, NoChildren, Seq(Details(indexDesc)), variables)
+        PlanDescriptionImpl(id, indexMode, Seq.empty, Seq(Details(indexDesc)), variables)
       case p @ UndirectedRelationshipUniqueIndexSeek(idName, start, end, typ, properties, valueExpr, _, _, indexType) =>
         val (indexMode, indexDesc) = getRelIndexDescriptions(
           idName.name,
@@ -876,7 +886,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           indexMode,
-          NoChildren,
+          Seq.empty,
           Seq(Details(indexDesc)),
           variables,
           withRawCardinalities,
@@ -900,7 +910,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "DirectedRelationshipIndexScan",
-          NoChildren,
+          children,
           Seq(Details(info)),
           variables,
           withRawCardinalities,
@@ -924,7 +934,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "UndirectedRelationshipIndexScan",
-          NoChildren,
+          children,
           Seq(Details(info)),
           variables,
           withRawCardinalities,
@@ -948,7 +958,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "PartitionedDirectedRelationshipIndexScan",
-          NoChildren,
+          children,
           Seq(Details(info)),
           variables,
           withRawCardinalities,
@@ -972,7 +982,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "PartitionedUndirectedRelationshipIndexScan",
-          NoChildren,
+          children,
           Seq(Details(info)),
           variables,
           withRawCardinalities,
@@ -991,7 +1001,7 @@ case class LogicalPlan2PlanDescription(
           predicate,
           p.cachedProperties
         )
-        PlanDescriptionImpl(id, "DirectedRelationshipIndexContainsScan", NoChildren, Seq(Details(info)), variables)
+        PlanDescriptionImpl(id, "DirectedRelationshipIndexContainsScan", Seq.empty, Seq(Details(info)), variables)
       case p @ UndirectedRelationshipIndexContainsScan(idName, start, end, typ, property, valueExpr, _, _, indexType) =>
         val predicate = pretty"${asPrettyString(property.propertyKeyToken.name)} CONTAINS ${asPrettyString(valueExpr)}"
         val info = relIndexInfoString(
@@ -1008,7 +1018,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "UndirectedRelationshipIndexContainsScan",
-          NoChildren,
+          children,
           Seq(Details(info)),
           variables,
           withRawCardinalities,
@@ -1030,7 +1040,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "DirectedRelationshipIndexEndsWithScan",
-          NoChildren,
+          children,
           Seq(Details(info)),
           variables,
           withRawCardinalities,
@@ -1052,7 +1062,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "UndirectedRelationshipIndexEndsWithScan",
-          NoChildren,
+          children,
           Seq(Details(info)),
           variables,
           withRawCardinalities,
@@ -1063,7 +1073,7 @@ case class LogicalPlan2PlanDescription(
         val details =
           if (argumentIds.nonEmpty) Seq(Details(argumentIds.map(asPrettyString(_)).mkPrettyString(SEPARATOR)))
           else Seq.empty
-        PlanDescriptionImpl(id, "Argument", NoChildren, details, variables, withRawCardinalities, withDistinctness)
+        PlanDescriptionImpl(id, "Argument", Seq.empty, details, variables, withRawCardinalities, withDistinctness)
 
       case _: plans.Argument =>
         ArgumentPlanDescription(id, Seq.empty, variables)
@@ -1073,7 +1083,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "DirectedRelationshipByIdSeek",
-          NoChildren,
+          children,
           Seq(details),
           variables,
           withRawCardinalities,
@@ -1086,7 +1096,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "DirectedRelationshipByElementIdSeek",
-          NoChildren,
+          children,
           Seq(details),
           variables,
           withRawCardinalities,
@@ -1098,7 +1108,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "UndirectedRelationshipByIdSeek",
-          NoChildren,
+          children,
           Seq(details),
           variables,
           withRawCardinalities,
@@ -1111,7 +1121,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "UndirectedRelationshipByElementIdSeek",
-          NoChildren,
+          children,
           Seq(details),
           variables,
           withRawCardinalities,
@@ -1124,7 +1134,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "DirectedAllRelationshipsScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -1137,7 +1147,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "PartitionedDirectedAllRelationshipsScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -1150,7 +1160,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "UndirectedAllRelationshipsScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -1163,7 +1173,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "PartitionedUndirectedAllRelationshipsScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -1176,7 +1186,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "DirectedRelationshipTypeScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -1189,7 +1199,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "UndirectedRelationshipTypeScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -1202,7 +1212,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "PartitionedDirectedRelationshipTypeScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -1215,7 +1225,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "PartitionedUndirectedRelationshipTypeScan",
-          NoChildren,
+          children,
           Seq(Details(prettyDetails)),
           variables,
           withRawCardinalities,
@@ -1226,7 +1236,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "Input",
-          NoChildren,
+          children,
           Seq(Details((nodes ++ rels ++ inputVars).map(asPrettyString(_)))),
           variables,
           withRawCardinalities,
@@ -1238,7 +1248,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "NodeCountFromCountStore",
-          NoChildren,
+          children,
           Seq(Details(info)),
           variables,
           withRawCardinalities,
@@ -1259,7 +1269,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "NodeIndexContainsScan",
-          NoChildren,
+          children,
           Seq(Details(info)),
           variables,
           withRawCardinalities,
@@ -1280,7 +1290,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "NodeIndexEndsWithScan",
-          NoChildren,
+          children,
           Seq(Details(info)),
           variables,
           withRawCardinalities,
@@ -1296,7 +1306,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "NodeIndexScan",
-          NoChildren,
+          children,
           Seq(Details(info)),
           variables,
           withRawCardinalities,
@@ -1312,7 +1322,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "PartitionedNodeIndexScan",
-          NoChildren,
+          children,
           Seq(Details(info)),
           variables,
           withRawCardinalities,
@@ -1327,7 +1337,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "SimulatedNodeScan",
-          NoChildren,
+          children,
           Seq(details),
           variables,
           withRawCardinalities,
@@ -1338,7 +1348,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "ProcedureCall",
-          NoChildren,
+          children,
           Seq(Details(signatureInfo(call))),
           variables,
           withRawCardinalities,
@@ -1350,7 +1360,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "RelationshipCountFromCountStore",
-          NoChildren,
+          children,
           Seq(Details(info)),
           variables,
           withRawCardinalities,
@@ -1361,7 +1371,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           s"DoNothingIfExists(INDEX)",
-          NoChildren,
+          children,
           Seq(Details(indexInfo(indexType.name(), nameOption, entityName, propertyKeyNames, NoOptions))),
           variables,
           withRawCardinalities,
@@ -1372,7 +1382,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           s"DoNothingIfExists(INDEX)",
-          NoChildren,
+          children,
           Seq(Details(lookupIndexInfo(nameOption, entityType, NoOptions))),
           variables,
           withRawCardinalities,
@@ -1383,7 +1393,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           s"DoNothingIfExists(INDEX)",
-          NoChildren,
+          children,
           Seq(Details(fulltextIndexInfo(nameOption, entityNames, propertyKeyNames, NoOptions))),
           variables,
           withRawCardinalities,
@@ -1401,7 +1411,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "CreateIndex",
-          NoChildren,
+          children,
           Seq(Details(indexInfo(indexType.name(), nameOption, entityName, propertyKeyNames, options))),
           variables,
           withRawCardinalities,
@@ -1417,7 +1427,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "CreateIndex",
-          NoChildren,
+          children,
           Seq(Details(lookupIndexInfo(nameOption, entityType, options))),
           variables,
           withRawCardinalities,
@@ -1434,7 +1444,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "CreateIndex",
-          NoChildren,
+          children,
           Seq(Details(fulltextIndexInfo(nameOption, entityNames, propertyKeyNames, options))),
           variables,
           withRawCardinalities,
@@ -1446,7 +1456,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "DropIndex",
-          NoChildren,
+          children,
           Seq(Details(pretty"INDEX ${PrettyString(Prettifier.escapeName(name))}$ifExistsString")),
           variables,
           withRawCardinalities,
@@ -1459,7 +1469,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "ShowIndexes",
-          NoChildren,
+          children,
           Seq(Details(pretty"$typeDescription, $colsDescription")),
           variables,
           withRawCardinalities,
@@ -1471,7 +1481,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           s"DoNothingIfExists(CONSTRAINT)",
-          NoChildren,
+          children,
           Seq(Details(constraintInfo(name, entity, entityName, props, assertion))),
           variables,
           withRawCardinalities,
@@ -1498,7 +1508,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "CreateConstraint",
-          NoChildren,
+          children,
           Seq(details),
           variables,
           withRawCardinalities,
@@ -1511,7 +1521,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "DropConstraint",
-          NoChildren,
+          children,
           Seq(constraintDetails),
           variables,
           withRawCardinalities,
@@ -1524,7 +1534,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "ShowConstraints",
-          NoChildren,
+          children,
           Seq(Details(pretty"$typeDescription, $colsDescription")),
           variables,
           withRawCardinalities,
@@ -1539,7 +1549,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "ShowProcedures",
-          NoChildren,
+          children,
           Seq(Details(pretty"$executableDescription, $colsDescription")),
           variables,
           withRawCardinalities,
@@ -1555,7 +1565,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "ShowFunctions",
-          NoChildren,
+          children,
           Seq(Details(pretty"$typeDescription, $executableDescription, $colsDescription")),
           variables,
           withRawCardinalities,
@@ -1572,7 +1582,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "ShowTransactions",
-          NoChildren,
+          children,
           Seq(Details(pretty"$colsDescription, $idsDescription")),
           variables,
           withRawCardinalities,
@@ -1588,7 +1598,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "TerminateTransactions",
-          NoChildren,
+          children,
           Seq(Details(pretty"$colsDescription, transactions($idsDescription)")),
           variables,
           withRawCardinalities,
@@ -1605,7 +1615,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "ShowSettings",
-          NoChildren,
+          children,
           Seq(Details(pretty"$namesDescription, $colsDescription")),
           variables,
           withRawCardinalities,
@@ -1613,7 +1623,7 @@ case class LogicalPlan2PlanDescription(
         )
 
       case SystemProcedureCall(procedureName, _, _, _, _) =>
-        PlanDescriptionImpl(id, procedureName, NoChildren, Seq.empty, variables, withRawCardinalities, withDistinctness)
+        PlanDescriptionImpl(id, procedureName, Seq.empty, Seq.empty, variables, withRawCardinalities, withDistinctness)
 
       case x => throw new InternalException(s"Unknown plan type: ${x.getClass.getSimpleName}. Missing a case?")
     }
@@ -1627,14 +1637,18 @@ case class LogicalPlan2PlanDescription(
 
     val id = plan.id
     val variables = plan.availableSymbols.map(asPrettyString(_))
-    val children = if (source.isInstanceOf[ArgumentPlanDescription]) NoChildren else SingleChild(source)
+    val nestedPlanDescriptions = describeNestedPlans(plan)
+    val children: Seq[InternalPlanDescription] = source match {
+      case _: ArgumentPlanDescription => Seq.empty
+      case _                          => Seq(source) ++ nestedPlanDescriptions
+    }
 
-    val result: InternalPlanDescription = plan match {
+    val result: InternalPlanDescription = replaceNestedPlansWithPlaceholder(plan) match {
       case _: AdministrationCommandLogicalPlan =>
         PlanDescriptionImpl(
           id,
           "AdministrationCommand",
-          NoChildren,
+          nestedPlanDescriptions,
           Seq.empty,
           Set.empty,
           withRawCardinalities,
@@ -1804,7 +1818,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "NodeCountFromCountStore",
-          NoChildren,
+          nestedPlanDescriptions,
           Seq(Details(info)),
           variables,
           withRawCardinalities,
@@ -1816,7 +1830,7 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "RelationshipCountFromCountStore",
-          NoChildren,
+          nestedPlanDescriptions,
           Seq(Details(info)),
           variables,
           withRawCardinalities,
@@ -2753,6 +2767,67 @@ case class LogicalPlan2PlanDescription(
     addRuntimeAttributes(addPlanningAttributes(result, plan), plan)
   }
 
+  private def replaceNestedPlansWithPlaceholder(plan: LogicalPlan) = {
+    if (renderNestedPlanExpressions) {
+      val nestedPlansToVariables =
+        nestedPlanExpressionsMap(plan)
+          .view
+          .mapValues(varFor)
+      plan.endoRewrite(topDown(
+        Rewriter.lift({
+          case expression: NestedPlanExpression if nestedPlansToVariables.contains(expression) =>
+            nestedPlansToVariables(expression)
+        }),
+        stopper = elem => elem != plan && elem.isInstanceOf[LogicalPlan]
+      ))
+    } else {
+      plan
+    }
+  }
+
+  /**
+   * Nested plan expressions mapped to a Cypher-esque identifier
+   */
+  def nestedPlanExpressionsMap(plan: LogicalPlan): Map[NestedPlanExpression, String] =
+    plan.folder.treeFold(Seq.empty[NestedPlanExpression]) {
+      case e: NestedPlanExpression =>
+        acc => SkipChildren(acc :+ e)
+      case childPlan: LogicalPlan if childPlan != plan =>
+        acc => SkipChildren(acc)
+    }
+      .zipWithIndex
+      .map { case (nestedPlanExpression, index) =>
+        nestedPlanExpression -> s"nested_plan_$index"
+      }
+      .toMap
+
+  private def describeNestedPlans(plan: LogicalPlan): Seq[InternalPlanDescription] = {
+    val nestedPlanDescriptions: Seq[InternalPlanDescription] = if (renderNestedPlanExpressions) {
+      nestedPlanExpressionsMap(plan)
+        .map { case (expression, expressionIdentifier) =>
+          // We don't use an actual CancellationChecker here,
+          // because it is possible to get here even after the transaction has been closed.
+          val nestedPlanDescription: InternalPlanDescription =
+            LogicalPlans.map(expression.plan, this)(CancellationChecker.neverCancelled())
+          val details: PrettyString = asPrettyString(expression) append pretty" AS ${raw(expressionIdentifier)}"
+          val description = PlanDescriptionImpl(
+            Id.INVALID_ID,
+            expression.getClass.getSimpleName,
+            Seq(nestedPlanDescription),
+            Seq(Details(details)),
+            Set.empty,
+            withRawCardinalities,
+            withDistinctness
+          )
+          addPlanningAttributes(description, expression.plan)
+        }
+        .toSeq
+    } else {
+      Seq.empty
+    }
+    nestedPlanDescriptions
+  }
+
   private def expandModeDescription(mode: Expand.ExpansionMode) = {
     mode match {
       case ExpandAll  => "All"
@@ -2803,9 +2878,9 @@ case class LogicalPlan2PlanDescription(
 
     val id = plan.id
     val variables = plan.availableSymbols.map(asPrettyString(_))
-    val children = TwoChildren(lhs, rhs)
+    val children = Seq(lhs, rhs) ++ describeNestedPlans(plan)
 
-    val result: InternalPlanDescription = plan match {
+    val result: InternalPlanDescription = replaceNestedPlansWithPlaceholder(plan) match {
       case _: AntiConditionalApply =>
         PlanDescriptionImpl(
           id,

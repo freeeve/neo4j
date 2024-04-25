@@ -32,11 +32,8 @@ import org.neo4j.cypher.internal.plandescription.Arguments.PageCacheMisses
 import org.neo4j.cypher.internal.plandescription.Arguments.Rows
 import org.neo4j.cypher.internal.plandescription.Arguments.Time
 import org.neo4j.cypher.internal.plandescription.InternalPlanDescription
-import org.neo4j.cypher.internal.plandescription.NoChildren
 import org.neo4j.cypher.internal.plandescription.PlanDescriptionImpl
 import org.neo4j.cypher.internal.plandescription.PrettyString
-import org.neo4j.cypher.internal.plandescription.SingleChild
-import org.neo4j.cypher.internal.plandescription.TwoChildren
 import org.neo4j.cypher.internal.plandescription.asPrettyString
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.attribution.Id
@@ -181,7 +178,7 @@ case class PlanInTree(inner: PlanMatcher) extends PlanMatcher {
 
   override def toPlanDescription: InternalPlanDescription = {
     val innerDesc = inner.toPlanDescription
-    PlanDescriptionImpl(Id(0), "*", SingleChild(innerDesc), Seq.empty, Set.empty)
+    PlanDescriptionImpl(Id(0), "*", Seq(innerDesc), Seq.empty, Set.empty)
   }
 
   override def withName(name: String): PlanMatcher = copy(inner = inner.withName(name))
@@ -267,7 +264,7 @@ case class CountInTree(expectedCount: Int, inner: PlanMatcher, atLeast: Boolean 
     PlanDescriptionImpl(
       Id(0),
       s"* (${if (atLeast) "at least " else ""}$expectedCount times)",
-      SingleChild(innerDesc),
+      Seq(innerDesc),
       Seq.empty,
       Set.empty
     )
@@ -372,8 +369,8 @@ case class ExactPlan(
       }
     }
     val maybeRhsPlan = plan.children match {
-      case TwoChildren(_, rhsPlan) => Some(rhsPlan)
-      case _                       => None
+      case Seq(_, rhsPlan) => Some(rhsPlan)
+      case _               => None
     }
 
     val lhsResult = lhs.map { matcher =>
@@ -480,10 +477,10 @@ case class ExactPlan(
       .getOrElse(Seq.empty)
 
     val children = (lhsDesc, rhsDesc) match {
-      case (None, None)       => NoChildren
-      case (Some(l), None)    => SingleChild(l)
-      case (Some(l), Some(r)) => TwoChildren(l, r)
-      case (None, Some(r))    => TwoChildren(PlanDescriptionImpl(Id(0), "???", NoChildren, Seq.empty, Set.empty), r)
+      case (None, None)       => Seq.empty
+      case (Some(l), None)    => Seq(l)
+      case (Some(l), Some(r)) => Seq(l, r)
+      case (None, Some(r))    => Seq(PlanDescriptionImpl(Id(0), "???", Seq.empty, Seq.empty, Set.empty), r)
     }
 
     PlanDescriptionImpl(

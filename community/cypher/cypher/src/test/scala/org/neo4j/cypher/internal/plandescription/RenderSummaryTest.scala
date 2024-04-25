@@ -37,7 +37,7 @@ class RenderSummaryTest extends CypherFunSuite {
       DbHits(33)
     )
 
-    val plan = PlanDescriptionImpl(id, "NAME", NoChildren, arguments, Set())
+    val plan = PlanDescriptionImpl(id, "NAME", Seq.empty, arguments, Set())
 
     renderSummary(plan) should equal("Total database accesses: 33")
   }
@@ -48,7 +48,7 @@ class RenderSummaryTest extends CypherFunSuite {
       DbHits(0)
     )
 
-    val plan = PlanDescriptionImpl(id, "NAME", NoChildren, arguments, Set())
+    val plan = PlanDescriptionImpl(id, "NAME", Seq.empty, arguments, Set())
 
     renderSummary(plan) should equal("Total database accesses: 0")
   }
@@ -64,8 +64,8 @@ class RenderSummaryTest extends CypherFunSuite {
       DbHits(22)
     )
 
-    val child = PlanDescriptionImpl(Id(0), "NAME1", NoChildren, arguments1, Set())
-    val parent = PlanDescriptionImpl(Id(1), "NAME2", SingleChild(child), arguments2, Set())
+    val child = PlanDescriptionImpl(Id(0), "NAME1", Seq.empty, arguments1, Set())
+    val parent = PlanDescriptionImpl(Id(1), "NAME2", Seq(child), arguments2, Set())
 
     renderSummary(parent) should equal("Total database accesses: 55")
   }
@@ -80,8 +80,8 @@ class RenderSummaryTest extends CypherFunSuite {
       Rows(42)
     )
 
-    val child = PlanDescriptionImpl(Id(0), "NAME1", NoChildren, arguments1, Set())
-    val parent = PlanDescriptionImpl(Id(1), "NAME2", SingleChild(child), arguments2, Set())
+    val child = PlanDescriptionImpl(Id(0), "NAME1", Seq.empty, arguments1, Set())
+    val parent = PlanDescriptionImpl(Id(1), "NAME2", Seq(child), arguments2, Set())
 
     renderSummary(parent) should equal("Total database accesses: 33 + ?")
   }
@@ -89,7 +89,7 @@ class RenderSummaryTest extends CypherFunSuite {
   test("execution plan without profiler stats uses question marks") {
     val arguments = Seq()
 
-    val plan = PlanDescriptionImpl(id, "NAME", NoChildren, arguments, Set())
+    val plan = PlanDescriptionImpl(id, "NAME", Seq.empty, arguments, Set())
 
     renderSummary(plan) should equal("Total database accesses: ?")
   }
@@ -101,7 +101,7 @@ class RenderSummaryTest extends CypherFunSuite {
       GlobalMemory(1234L)
     )
 
-    val plan = PlanDescriptionImpl(id, "NAME", NoChildren, arguments, Set())
+    val plan = PlanDescriptionImpl(id, "NAME", Seq.empty, arguments, Set())
 
     renderSummary(plan) should equal("Total database accesses: 33, total allocated memory: 1234")
   }
@@ -113,7 +113,7 @@ class RenderSummaryTest extends CypherFunSuite {
       AvailableWorkers(32)
     )
 
-    val plan = PlanDescriptionImpl(id, "NAME", NoChildren, arguments, Set())
+    val plan = PlanDescriptionImpl(id, "NAME", Seq.empty, arguments, Set())
 
     renderSummary(plan) should equal("Total database accesses: 33, number of available workers: 32")
   }
@@ -125,7 +125,7 @@ class RenderSummaryTest extends CypherFunSuite {
       AvailableProcessors(16)
     )
 
-    val plan = PlanDescriptionImpl(id, "NAME", NoChildren, arguments, Set())
+    val plan = PlanDescriptionImpl(id, "NAME", Seq.empty, arguments, Set())
 
     renderSummary(plan) should equal("Total database accesses: 33, number of available processors: 16")
   }

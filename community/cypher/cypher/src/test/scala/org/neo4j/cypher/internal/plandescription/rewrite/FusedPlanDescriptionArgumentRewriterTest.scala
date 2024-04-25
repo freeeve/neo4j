@@ -29,9 +29,6 @@ import org.neo4j.cypher.internal.plandescription.Arguments.Rows
 import org.neo4j.cypher.internal.plandescription.Arguments.Time
 import org.neo4j.cypher.internal.plandescription.InternalPlanDescription
 import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescriptionTest.planDescription
-import org.neo4j.cypher.internal.plandescription.NoChildren
-import org.neo4j.cypher.internal.plandescription.SingleChild
-import org.neo4j.cypher.internal.plandescription.TwoChildren
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -42,9 +39,9 @@ class FusedPlanDescriptionArgumentRewriterTest extends CypherFunSuite {
     val argsLeaf2 = Seq(PageCacheHits(2), PageCacheMisses(11), Time(2000000), PipelineInfo(1, fused = true))
     val argsPlan = Seq(PageCacheHits(3), PageCacheMisses(12), Time(3000000), PipelineInfo(1, fused = true))
 
-    val leaf1 = planDescription(Id(0), "LEAF1", NoChildren, argsLeaf1, Set())
-    val leaf2 = planDescription(Id(1), "LEAF2", NoChildren, argsLeaf2, Set())
-    val plan = planDescription(Id(2), "ROOT", TwoChildren(leaf1, leaf2), argsPlan, Set())
+    val leaf1 = planDescription(Id(0), "LEAF1", Seq.empty, argsLeaf1, Set())
+    val leaf2 = planDescription(Id(1), "LEAF2", Seq.empty, argsLeaf2, Set())
+    val plan = planDescription(Id(2), "ROOT", Seq(leaf1, leaf2), argsPlan, Set())
 
     val result = new FusedPlanDescriptionArgumentRewriter().rewrite(plan)
 
@@ -69,11 +66,11 @@ class FusedPlanDescriptionArgumentRewriterTest extends CypherFunSuite {
     val limitArgs = Seq(PageCacheHits(4), PageCacheMisses(13), Time(4000000), PipelineInfo(1, fused = true))
     val produceResultArgs = Seq(Time(1000000), PipelineInfo(2, fused = false))
 
-    val allNodeScan = planDescription(Id(0), "ALLNODESCAN", NoChildren, allNodeScanArgs, Set())
-    val filter = planDescription(Id(1), "FILTER", SingleChild(allNodeScan), filterArgs, Set())
-    val skip = planDescription(Id(2), "SKIP", SingleChild(filter), skipArgs, Set())
-    val limit = planDescription(Id(3), "LIMIT", SingleChild(skip), limitArgs, Set())
-    val produceResult = planDescription(Id(4), "PRODUCERESULT", SingleChild(limit), produceResultArgs, Set())
+    val allNodeScan = planDescription(Id(0), "ALLNODESCAN", Seq.empty, allNodeScanArgs, Set())
+    val filter = planDescription(Id(1), "FILTER", Seq(allNodeScan), filterArgs, Set())
+    val skip = planDescription(Id(2), "SKIP", Seq(filter), skipArgs, Set())
+    val limit = planDescription(Id(3), "LIMIT", Seq(skip), limitArgs, Set())
+    val produceResult = planDescription(Id(4), "PRODUCERESULT", Seq(limit), produceResultArgs, Set())
 
     val result = new FusedPlanDescriptionArgumentRewriter().rewrite(produceResult)
 
@@ -103,9 +100,9 @@ class FusedPlanDescriptionArgumentRewriterTest extends CypherFunSuite {
     val projectArgs = Seq()
     val allNodesScanArgs = Seq(PageCacheHits(1), PageCacheMisses(2), Time(1000000), PipelineInfo(1, fused = true))
 
-    val allNodesScan = planDescription(Id(0), "ALLNODESSCAN", NoChildren, allNodesScanArgs, Set.empty)
-    val project = planDescription(Id(1), "PROJECT", SingleChild(allNodesScan), projectArgs, Set.empty)
-    val produceResults = planDescription(Id(2), "PRODUCERESULTS", SingleChild(project), produceResultsArgs, Set.empty)
+    val allNodesScan = planDescription(Id(0), "ALLNODESSCAN", Seq.empty, allNodesScanArgs, Set.empty)
+    val project = planDescription(Id(1), "PROJECT", Seq(allNodesScan), projectArgs, Set.empty)
+    val produceResults = planDescription(Id(2), "PRODUCERESULTS", Seq(project), produceResultsArgs, Set.empty)
 
     new FusedPlanDescriptionArgumentRewriter().rewrite(produceResults) shouldBe produceResults
   }
@@ -145,13 +142,13 @@ class FusedPlanDescriptionArgumentRewriterTest extends CypherFunSuite {
       PipelineInfo(2, fused = false)
     )
 
-    val indexSeek = planDescription(Id(0), "INDEXSEEK", NoChildren, indexSeekArgs, Set())
-    val filter = planDescription(Id(1), "FILTER", SingleChild(indexSeek), filterArgs, Set())
-    val allNodeScan = planDescription(Id(2), "ALLNODESCAN", NoChildren, allNodeScanArgs, Set())
-    val project = planDescription(Id(3), "PROJECT", SingleChild(allNodeScan), projectArgs, Set())
-    val apply = planDescription(Id(4), "APPLY", TwoChildren(project, filter), applyArgs, Set())
-    val aggregation = planDescription(Id(5), "AGGREGATION", SingleChild(apply), aggregationArgs, Set())
-    val produceResult = planDescription(Id(6), "PRODUCERESULT", SingleChild(aggregation), produceResultArgs, Set())
+    val indexSeek = planDescription(Id(0), "INDEXSEEK", Seq.empty, indexSeekArgs, Set())
+    val filter = planDescription(Id(1), "FILTER", Seq(indexSeek), filterArgs, Set())
+    val allNodeScan = planDescription(Id(2), "ALLNODESCAN", Seq.empty, allNodeScanArgs, Set())
+    val project = planDescription(Id(3), "PROJECT", Seq(allNodeScan), projectArgs, Set())
+    val apply = planDescription(Id(4), "APPLY", Seq(project, filter), applyArgs, Set())
+    val aggregation = planDescription(Id(5), "AGGREGATION", Seq(apply), aggregationArgs, Set())
+    val produceResult = planDescription(Id(6), "PRODUCERESULT", Seq(aggregation), produceResultArgs, Set())
 
     val result = new FusedPlanDescriptionArgumentRewriter().rewrite(produceResult)
 
@@ -180,81 +177,81 @@ class FusedPlanDescriptionArgumentRewriterTest extends CypherFunSuite {
     val nodeUniqueIndexSeek1 = planDescription(
       Id(0),
       "NodeUniqueIndexSeek",
-      NoChildren,
+      Seq.empty,
       Seq(PipelineInfo(0, fused = false), PageCacheHits(2), PageCacheMisses(0), Time(8850000))
     )
 
     val nodeUniqueIndexSeek2 = planDescription(
       Id(1),
       "NodeUniqueIndexSeek",
-      NoChildren,
+      Seq.empty,
       Seq(PipelineInfo(1, fused = true), PageCacheHits(1537), PageCacheMisses(0), Time(21756000))
     )
     val varLengthExpand = planDescription(
       Id(2),
       "VarLengthExpand(All)",
-      SingleChild(nodeUniqueIndexSeek2),
+      Seq(nodeUniqueIndexSeek2),
       Seq(PipelineInfo(1, fused = true))
     )
-    val filter1 = planDescription(Id(3), "Filter", SingleChild(varLengthExpand), Seq(PipelineInfo(1, fused = true)))
+    val filter1 = planDescription(Id(3), "Filter", Seq(varLengthExpand), Seq(PipelineInfo(1, fused = true)))
 
     val cartesianProduct = planDescription(
       Id(4),
       "CartesianProduct",
-      TwoChildren(nodeUniqueIndexSeek1, filter1),
+      Seq(nodeUniqueIndexSeek1, filter1),
       Seq(PipelineInfo(2, fused = false), Time(5483000))
     )
 
     val distinct = planDescription(
       Id(5),
       "Distinct",
-      SingleChild(cartesianProduct),
+      Seq(cartesianProduct),
       Seq(PipelineInfo(2, fused = false), PageCacheHits(0), PageCacheMisses(0), Time(15565000))
     )
 
     val argument1 = planDescription(
       Id(6),
       "Argument",
-      NoChildren,
+      Seq.empty,
       Seq(PipelineInfo(3, fused = true), PageCacheHits(10957), PageCacheMisses(0), Time(65466000))
     )
-    val expandAll1 = planDescription(Id(7), "Expand(All)", SingleChild(argument1), Seq(PipelineInfo(3, fused = true)))
+    val expandAll1 = planDescription(Id(7), "Expand(All)", Seq(argument1), Seq(PipelineInfo(3, fused = true)))
 
     val argument2 = planDescription(
       Id(8),
       "Argument",
-      NoChildren,
+      Seq.empty,
       Seq(PipelineInfo(4, fused = true), PageCacheHits(1211031), PageCacheMisses(0), Time(577688000))
     )
-    val expandInto = planDescription(Id(9), "Expand(Into)", SingleChild(argument2), Seq(PipelineInfo(4, fused = true)))
-    val limit = planDescription(Id(10), "Limit", SingleChild(expandInto), Seq(PipelineInfo(4, fused = true)))
+    val expandInto = planDescription(Id(9), "Expand(Into)", Seq(argument2), Seq(PipelineInfo(4, fused = true)))
+    val limit = planDescription(Id(10), "Limit", Seq(expandInto), Seq(PipelineInfo(4, fused = true)))
 
     val apply1 =
-      planDescription(Id(11), "Apply", TwoChildren(expandAll1, limit), Seq(PageCacheHits(0), PageCacheMisses(0)))
+      planDescription(Id(11), "Apply", Seq(expandAll1, limit), Seq(PageCacheHits(0), PageCacheMisses(0)))
 
     val apply2 =
-      planDescription(Id(12), "Apply", TwoChildren(distinct, apply1), Seq(PageCacheHits(0), PageCacheMisses(0)))
+      planDescription(Id(12), "Apply", Seq(distinct, apply1), Seq(PageCacheHits(0), PageCacheMisses(0)))
 
-    val expandAll2 = planDescription(Id(13), "Expand(All)", SingleChild(apply2), Seq(PipelineInfo(4, fused = true)))
-    val filter2 = planDescription(Id(14), "Filter", SingleChild(expandAll2), Seq(PipelineInfo(4, fused = true)))
+    val expandAll2 = planDescription(Id(13), "Expand(All)", Seq(apply2), Seq(PipelineInfo(4, fused = true)))
+    val filter2 = planDescription(Id(14), "Filter", Seq(expandAll2), Seq(PipelineInfo(4, fused = true)))
     val eagerAggregation =
-      planDescription(Id(15), "EagerAggregation", SingleChild(filter2), Seq(PipelineInfo(4, fused = true)))
+      planDescription(Id(15), "EagerAggregation", Seq(filter2), Seq(PipelineInfo(4, fused = true)))
     val projection = planDescription(
       Id(16),
       "Projection",
-      SingleChild(eagerAggregation),
+      Seq(eagerAggregation),
       Seq(PipelineInfo(5, fused = false), PageCacheHits(29), PageCacheMisses(0), Time(1492000))
     )
     val top = planDescription(
       Id(17),
       "Top",
-      SingleChild(projection),
+      Seq(projection),
       Seq(PipelineInfo(6, fused = false), PageCacheHits(0), PageCacheMisses(0), Time(1726000))
     )
     val produceResult = planDescription(
       Id(18),
       "ProduceResults",
-      SingleChild(top),
+      Seq(top),
       Seq(PipelineInfo(6, fused = false), PageCacheHits(0), PageCacheMisses(0), Time(1143000))
     )
 

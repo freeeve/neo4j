@@ -782,6 +782,7 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
           ImmutablePlanningAttributes.EffectiveCardinalities(logicalQuery.effectiveCardinalities),
           debugOptions.rawCardinalitiesEnabled,
           debugOptions.renderDistinctnessEnabled,
+          debugOptions.renderNestedPlanExpressions,
           ImmutablePlanningAttributes.ProvidedOrders(logicalQuery.providedOrders),
           executionPlan,
           renderPlanDescription = false,
