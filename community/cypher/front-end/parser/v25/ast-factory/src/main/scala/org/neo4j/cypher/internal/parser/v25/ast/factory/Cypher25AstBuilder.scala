@@ -41,6 +41,7 @@ final class Cypher25AstBuilder(
     with DdlCreateBuilder
     with DdlShowBuilder
     with DdlPrivilegeBuilder
+    with GraphTypeBuilder
     with ExpressionBuilder
     with StatementBuilder {
   override def visitTerminal(node: TerminalNode): Unit = {}

@@ -243,6 +243,7 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
                 exitVectorCoordinateType((Cypher25Parser.VectorCoordinateTypeContext) ctx);
             case Cypher25Parser.RULE_command -> exitCommand((Cypher25Parser.CommandContext) ctx);
             case Cypher25Parser.RULE_createCommand -> exitCreateCommand((Cypher25Parser.CreateCommandContext) ctx);
+            case Cypher25Parser.RULE_alterCommand -> exitAlterCommand((Cypher25Parser.AlterCommandContext) ctx);
             case Cypher25Parser.RULE_dropCommand -> exitDropCommand((Cypher25Parser.DropCommandContext) ctx);
             case Cypher25Parser.RULE_showCommand -> exitShowCommand((Cypher25Parser.ShowCommandContext) ctx);
             case Cypher25Parser.RULE_showCommandYield ->
@@ -312,7 +313,57 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_propertyList -> exitPropertyList((Cypher25Parser.PropertyListContext) ctx);
             case Cypher25Parser.RULE_enclosedPropertyList ->
                 exitEnclosedPropertyList((Cypher25Parser.EnclosedPropertyListContext) ctx);
-            case Cypher25Parser.RULE_alterCommand -> exitAlterCommand((Cypher25Parser.AlterCommandContext) ctx);
+            case Cypher25Parser.RULE_alterCurrentGraphType ->
+                exitAlterCurrentGraphType((Cypher25Parser.AlterCurrentGraphTypeContext) ctx);
+            case Cypher25Parser.RULE_graphTypeSpecification ->
+                exitGraphTypeSpecification((Cypher25Parser.GraphTypeSpecificationContext) ctx);
+            case Cypher25Parser.RULE_graphTypeDropSpecification ->
+                exitGraphTypeDropSpecification((Cypher25Parser.GraphTypeDropSpecificationContext) ctx);
+            case Cypher25Parser.RULE_graphTypeSpecificationBody ->
+                exitGraphTypeSpecificationBody((Cypher25Parser.GraphTypeSpecificationBodyContext) ctx);
+            case Cypher25Parser.RULE_graphTypeDropSpecificationBody ->
+                exitGraphTypeDropSpecificationBody((Cypher25Parser.GraphTypeDropSpecificationBodyContext) ctx);
+            case Cypher25Parser.RULE_graphTypeElement ->
+                exitGraphTypeElement((Cypher25Parser.GraphTypeElementContext) ctx);
+            case Cypher25Parser.RULE_graphTypeDropElement ->
+                exitGraphTypeDropElement((Cypher25Parser.GraphTypeDropElementContext) ctx);
+            case Cypher25Parser.RULE_nodeTypeInlineConstraintList ->
+                exitNodeTypeInlineConstraintList((Cypher25Parser.NodeTypeInlineConstraintListContext) ctx);
+            case Cypher25Parser.RULE_edgeTypeInlineConstraintList ->
+                exitEdgeTypeInlineConstraintList((Cypher25Parser.EdgeTypeInlineConstraintListContext) ctx);
+            case Cypher25Parser.RULE_implies -> exitImplies((Cypher25Parser.ImpliesContext) ctx);
+            case Cypher25Parser.RULE_nodeTypeSpecification ->
+                exitNodeTypeSpecification((Cypher25Parser.NodeTypeSpecificationContext) ctx);
+            case Cypher25Parser.RULE_impliedLabelSet ->
+                exitImpliedLabelSet((Cypher25Parser.ImpliedLabelSetContext) ctx);
+            case Cypher25Parser.RULE_identifyingLabel ->
+                exitIdentifyingLabel((Cypher25Parser.IdentifyingLabelContext) ctx);
+            case Cypher25Parser.RULE_nodeTypeReference ->
+                exitNodeTypeReference((Cypher25Parser.NodeTypeReferenceContext) ctx);
+            case Cypher25Parser.RULE_nodeTypeAliasReference ->
+                exitNodeTypeAliasReference((Cypher25Parser.NodeTypeAliasReferenceContext) ctx);
+            case Cypher25Parser.RULE_nodeTypeInSituReference ->
+                exitNodeTypeInSituReference((Cypher25Parser.NodeTypeInSituReferenceContext) ctx);
+            case Cypher25Parser.RULE_edgeTypeSpecification ->
+                exitEdgeTypeSpecification((Cypher25Parser.EdgeTypeSpecificationContext) ctx);
+            case Cypher25Parser.RULE_arcTypePointingRight ->
+                exitArcTypePointingRight((Cypher25Parser.ArcTypePointingRightContext) ctx);
+            case Cypher25Parser.RULE_identifyingRelationship ->
+                exitIdentifyingRelationship((Cypher25Parser.IdentifyingRelationshipContext) ctx);
+            case Cypher25Parser.RULE_edgeTypeReference ->
+                exitEdgeTypeReference((Cypher25Parser.EdgeTypeReferenceContext) ctx);
+            case Cypher25Parser.RULE_edgeTypeAliasReference ->
+                exitEdgeTypeAliasReference((Cypher25Parser.EdgeTypeAliasReferenceContext) ctx);
+            case Cypher25Parser.RULE_edgeTypeInSituReference ->
+                exitEdgeTypeInSituReference((Cypher25Parser.EdgeTypeInSituReferenceContext) ctx);
+            case Cypher25Parser.RULE_propertyTypeList ->
+                exitPropertyTypeList((Cypher25Parser.PropertyTypeListContext) ctx);
+            case Cypher25Parser.RULE_propertyType -> exitPropertyType((Cypher25Parser.PropertyTypeContext) ctx);
+            case Cypher25Parser.RULE_propertyTypeInlineConstraint ->
+                exitPropertyTypeInlineConstraint((Cypher25Parser.PropertyTypeInlineConstraintContext) ctx);
+            case Cypher25Parser.RULE_typed -> exitTyped((Cypher25Parser.TypedContext) ctx);
+            case Cypher25Parser.RULE_constraintSpecification ->
+                exitConstraintSpecification((Cypher25Parser.ConstraintSpecificationContext) ctx);
             case Cypher25Parser.RULE_renameCommand -> exitRenameCommand((Cypher25Parser.RenameCommandContext) ctx);
             case Cypher25Parser.RULE_grantCommand -> exitGrantCommand((Cypher25Parser.GrantCommandContext) ctx);
             case Cypher25Parser.RULE_denyCommand -> exitDenyCommand((Cypher25Parser.DenyCommandContext) ctx);

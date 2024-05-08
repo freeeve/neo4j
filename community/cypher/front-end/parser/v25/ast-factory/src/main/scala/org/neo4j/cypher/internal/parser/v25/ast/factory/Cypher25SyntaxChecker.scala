@@ -21,6 +21,7 @@ import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.ErrorNode
 import org.antlr.v4.runtime.tree.TerminalNode
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.PropertyType
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.parser.AstRuleCtx
@@ -45,6 +46,7 @@ import org.neo4j.cypher.internal.parser.v25.ast.factory.Cypher25SyntaxChecker.MA
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
+import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.internal.helpers.NameUtil
 
 import scala.collection.mutable
@@ -82,6 +84,12 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
       case Cypher25Parser.RULE_typePart                         => checkTypePart(cast(ctx))
       case Cypher25Parser.RULE_symbolicAliasNameOrParameter     => checkSymbolicAliasNameOrParameter(cast(ctx))
       case Cypher25Parser.RULE_defaultLanguageSpecification     => checkDefaultLanguageSpecification(cast(ctx))
+      case Cypher25Parser.RULE_propertyTypeList                 => checkPropertyTypeList(cast(ctx))
+      case Cypher25Parser.RULE_nodeTypeSpecification            => checkNodeTypeSpecification(cast(ctx))
+      case Cypher25Parser.RULE_edgeTypeSpecification            => checkEdgeTypeSpecification(cast(ctx))
+      case Cypher25Parser.RULE_constraintSpecification          => checkConstraintSpecification(cast(ctx))
+      case Cypher25Parser.RULE_nodeTypeInlineConstraintList     => checkNodeTypeInlineConstraintList(cast(ctx))
+      case Cypher25Parser.RULE_edgeTypeInlineConstraintList     => checkEdgeTypeInlineConstraintList(cast(ctx))
       case _                                                    =>
     }
   }
@@ -312,49 +320,7 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
     }
 
   private def checkCreateConstraint(ctx: Cypher25Parser.CreateConstraintContext): Unit = {
-
-    ctx.constraintType() match {
-      case c: ConstraintIsUniqueContext =>
-        if (ctx.commandNodePattern() != null && (c.RELATIONSHIP() != null || c.REL() != null)) {
-          _errors :+= exceptionFactory.invalidInputException(
-            "node pattern",
-            ConstraintType.REL_UNIQUE.description(),
-            List("relationship patterns"),
-            s"'${ConstraintType.REL_UNIQUE.description()}' does not allow node patterns",
-            inputPosition(ctx.commandNodePattern().getStart)
-          )
-        }
-        if (ctx.commandRelPattern() != null && c.NODE() != null) {
-          _errors :+= exceptionFactory.invalidInputException(
-            "relationship pattern",
-            ConstraintType.NODE_UNIQUE.description(),
-            List("node patterns"),
-            s"'${ConstraintType.NODE_UNIQUE.description()}' does not allow relationship patterns",
-            inputPosition(ctx.commandRelPattern().getStart)
-          )
-        }
-      case c: ConstraintKeyContext =>
-        if (ctx.commandNodePattern() != null && (c.RELATIONSHIP() != null || c.REL() != null)) {
-          _errors :+= exceptionFactory.invalidInputException(
-            "node pattern",
-            ConstraintType.REL_KEY.description(),
-            List("relationship patterns"),
-            s"'${ConstraintType.REL_KEY.description()}' does not allow node patterns",
-            inputPosition(ctx.commandNodePattern().getStart)
-          )
-        }
-        if (ctx.commandRelPattern() != null && c.NODE() != null) {
-          _errors :+= exceptionFactory.invalidInputException(
-            "relationship pattern",
-            ConstraintType.NODE_KEY.description(),
-            List("node patterns"),
-            s"'${ConstraintType.NODE_KEY.description()}' does not allow relationship patterns",
-            inputPosition(ctx.commandRelPattern().getStart)
-          )
-        }
-      case _: ConstraintTypedContext | _: ConstraintIsNotNullContext =>
-      case _ => throw exceptionFactory.internalError("Constraint type is not recognized", pos(ctx))
-    }
+    checkConstraintTypeMatchesElementType(ctx.constraintType(), ctx.commandNodePattern(), ctx.commandRelPattern())
   }
 
   private def checkEnclosedPropertyList(ctx: Cypher25Parser.EnclosedPropertyListContext): Unit = {
@@ -505,6 +471,232 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
           s"Invalid Cypher version '$versionNumberStr'. Valid Cypher versions are: ${CypherVersion.values().map(_.versionName).mkString(", ")}",
           pos(ctx.UNSIGNED_DECIMAL_INTEGER())
         )
+    }
+  }
+
+  private def checkPropertyTypeList(ctx: Cypher25Parser.PropertyTypeListContext): Unit = {
+    // check for duplicates
+    astSeq[PropertyType](ctx.propertyType()).groupBy(_.name).values.find(_.size > 1).foreach(prop =>
+      _errors :+= exceptionFactory.syntaxException(
+        GqlHelper.getDefaultObject,
+        s"Duplicate property key `${prop.head.name.name}`",
+        prop(1).position
+      )
+    )
+  }
+
+  private def checkNodeTypeSpecification(ctx: Cypher25Parser.NodeTypeSpecificationContext): Unit = {
+    // Node level constraint
+    if (ctx.nodeTypeInlineConstraintList() != null) {
+      ctx.nodeTypeInlineConstraintList().constraintType().forEach {
+        case c: ConstraintIsUniqueContext if c.RELATIONSHIP() != null || c.REL() != null =>
+          _errors :+= exceptionFactory.invalidInputException(
+            ConstraintType.REL_UNIQUE.description(),
+            "node element type",
+            List(ConstraintType.NODE_UNIQUE.description()),
+            s"node element type does not allow '${ConstraintType.REL_UNIQUE.description()}'",
+            inputPosition(Option(c.RELATIONSHIP()).getOrElse(c.REL()).getSymbol)
+          )
+        case c: ConstraintKeyContext if c.RELATIONSHIP() != null || c.REL() != null =>
+          _errors :+= exceptionFactory.invalidInputException(
+            ConstraintType.REL_KEY.description(),
+            "node element type",
+            List(ConstraintType.NODE_KEY.description()),
+            s"node element type does not allow '${ConstraintType.REL_KEY.description()}'",
+            inputPosition(Option(c.RELATIONSHIP()).getOrElse(c.REL()).getSymbol)
+          )
+        case _ => ()
+      }
+    }
+    // Property level constraint
+    if (ctx.propertyTypeList() != null) {
+      ctx.propertyTypeList().propertyType().asScala.collect {
+        case c
+          if c.propertyTypeInlineConstraint() != null && (c.propertyTypeInlineConstraint().REL() != null || c.propertyTypeInlineConstraint().RELATIONSHIP() != null) =>
+          if (c.propertyTypeInlineConstraint().UNIQUE() != null) {
+            _errors :+= exceptionFactory.invalidInputException(
+              ConstraintType.REL_UNIQUE.description(),
+              "node element type property",
+              List(ConstraintType.NODE_UNIQUE.description()),
+              s"node element type property does not allow '${ConstraintType.REL_UNIQUE.description()}'",
+              inputPosition(Option(
+                c.propertyTypeInlineConstraint().RELATIONSHIP()
+              ).getOrElse(c.propertyTypeInlineConstraint().REL()).getSymbol)
+            )
+          } else if (c.propertyTypeInlineConstraint().KEY() != null) {
+            _errors :+= exceptionFactory.invalidInputException(
+              ConstraintType.REL_KEY.description(),
+              "node element type property",
+              List(ConstraintType.NODE_KEY.description()),
+              s"node element type property does not allow '${ConstraintType.REL_KEY.description()}'",
+              inputPosition(Option(
+                c.propertyTypeInlineConstraint().RELATIONSHIP()
+              ).getOrElse(c.propertyTypeInlineConstraint().REL()).getSymbol)
+            )
+          }
+      }
+    }
+  }
+
+  private def checkEdgeTypeSpecification(ctx: Cypher25Parser.EdgeTypeSpecificationContext): Unit = {
+    // Edge level constraint
+    if (ctx.edgeTypeInlineConstraintList() != null) {
+      ctx.edgeTypeInlineConstraintList().constraintType().forEach {
+        case c: ConstraintIsUniqueContext if c.NODE() != null =>
+          _errors :+= exceptionFactory.invalidInputException(
+            ConstraintType.NODE_UNIQUE.description(),
+            "edge element type",
+            List(ConstraintType.REL_UNIQUE.description()),
+            s"edge element type does not allow '${ConstraintType.NODE_UNIQUE.description()}'",
+            inputPosition(c.NODE().getSymbol)
+          )
+        case c: ConstraintKeyContext if c.NODE() != null =>
+          _errors :+= exceptionFactory.invalidInputException(
+            ConstraintType.NODE_KEY.description(),
+            "edge element type",
+            List(ConstraintType.REL_KEY.description()),
+            s"edge element type does not allow '${ConstraintType.NODE_KEY.description()}'",
+            inputPosition(c.NODE().getSymbol)
+          )
+        case _ => ()
+      }
+    }
+    // Property level constraint
+    if (ctx.arcTypePointingRight().propertyTypeList() != null) {
+      ctx.arcTypePointingRight().propertyTypeList().propertyType().asScala.collect {
+        case c
+          if c.propertyTypeInlineConstraint() != null && c.propertyTypeInlineConstraint().NODE() != null =>
+          if (c.propertyTypeInlineConstraint().UNIQUE() != null) {
+            _errors :+= exceptionFactory.invalidInputException(
+              ConstraintType.NODE_UNIQUE.description(),
+              "edge element type property",
+              List(ConstraintType.REL_UNIQUE.description()),
+              s"edge element type property does not allow '${ConstraintType.NODE_UNIQUE.description()}'",
+              inputPosition(c.propertyTypeInlineConstraint().NODE().getSymbol)
+            )
+          } else if (c.propertyTypeInlineConstraint().KEY() != null) {
+            _errors :+= exceptionFactory.invalidInputException(
+              ConstraintType.NODE_KEY.description(),
+              "edge element type property",
+              List(ConstraintType.REL_KEY.description()),
+              s"edge element type property does not allow '${ConstraintType.NODE_KEY.description()}'",
+              inputPosition(c.propertyTypeInlineConstraint().NODE().getSymbol)
+            )
+          }
+      }
+    }
+  }
+
+  private def checkConstraintSpecification(ctx: Cypher25Parser.ConstraintSpecificationContext): Unit = {
+
+    // check for incorrect NODE and REL/RELATIONSHIP
+    checkConstraintTypeMatchesElementType(ctx.constraintType(), ctx.nodeTypeReference(), ctx.edgeTypeReference())
+
+    // Check for missing variables
+    if (ctx.nodeTypeReference() != null && ctx.nodeTypeReference().nodeTypeInSituReference() != null) {
+      val reference = ctx.nodeTypeReference().nodeTypeInSituReference()
+      if (reference.labelType() != null && reference.variable() == null) {
+        _errors :+= exceptionFactory.syntaxException(
+          GqlHelper.getDefaultObject,
+          "Graph type constraint definitions require an alias",
+          inputPosition(reference.getStart)
+        )
+      }
+    }
+    if (ctx.edgeTypeReference() != null && ctx.edgeTypeReference().edgeTypeInSituReference() != null) {
+      val reference = ctx.edgeTypeReference().edgeTypeInSituReference()
+      if (reference.relType() != null && reference.variable() == null) {
+        _errors :+= exceptionFactory.syntaxException(
+          GqlHelper.getDefaultObject,
+          "Graph type constraint definitions require an alias",
+          inputPosition(reference.getStart)
+        )
+      }
+    }
+  }
+
+  private def checkNodeTypeInlineConstraintList(ctx: Cypher25Parser.NodeTypeInlineConstraintListContext): Unit = {
+    ctx.constraintType().forEach {
+      case c: Cypher25Parser.ConstraintTypedContext =>
+        _errors :+= exceptionFactory.syntaxException(
+          GqlHelper.getDefaultObject,
+          "Node type property type constraints cannot be specified inline of a node type",
+          inputPosition(c.getStart)
+        )
+      case c: Cypher25Parser.ConstraintIsNotNullContext =>
+        _errors :+= exceptionFactory.syntaxException(
+          GqlHelper.getDefaultObject,
+          "Node type property existence constraints cannot be specified inline of a node type",
+          inputPosition(c.getStart)
+        )
+      case _ => ()
+    }
+  }
+
+  private def checkEdgeTypeInlineConstraintList(ctx: Cypher25Parser.EdgeTypeInlineConstraintListContext): Unit = {
+    ctx.constraintType().forEach {
+      case c: Cypher25Parser.ConstraintTypedContext =>
+        _errors :+= exceptionFactory.syntaxException(
+          GqlHelper.getDefaultObject,
+          "Edge type property type constraints cannot be specified inline of an edge type",
+          inputPosition(c.getStart)
+        )
+      case c: Cypher25Parser.ConstraintIsNotNullContext =>
+        _errors :+= exceptionFactory.syntaxException(
+          GqlHelper.getDefaultObject,
+          "Edge type property existence constraints cannot be specified inline of an edge type",
+          inputPosition(c.getStart)
+        )
+      case _ => ()
+    }
+  }
+
+  private def checkConstraintTypeMatchesElementType(
+    constraintTypeContext: Cypher25Parser.ConstraintTypeContext,
+    nodePattern: AstRuleCtx,
+    relPattern: AstRuleCtx
+  ): Unit = {
+    constraintTypeContext match {
+      case c: ConstraintIsUniqueContext =>
+        if (nodePattern != null && (c.RELATIONSHIP() != null || c.REL() != null)) {
+          _errors :+= exceptionFactory.invalidInputException(
+            "node pattern",
+            ConstraintType.REL_UNIQUE.description(),
+            List("relationship patterns"),
+            s"'${ConstraintType.REL_UNIQUE.description()}' does not allow node patterns",
+            inputPosition(nodePattern.getStart)
+          )
+        }
+        if (relPattern != null && c.NODE() != null) {
+          _errors :+= exceptionFactory.invalidInputException(
+            "relationship pattern",
+            ConstraintType.NODE_UNIQUE.description(),
+            List("node patterns"),
+            s"'${ConstraintType.NODE_UNIQUE.description()}' does not allow relationship patterns",
+            inputPosition(relPattern.getStart)
+          )
+        }
+      case c: ConstraintKeyContext =>
+        if (nodePattern != null && (c.RELATIONSHIP() != null || c.REL() != null)) {
+          _errors :+= exceptionFactory.invalidInputException(
+            "node pattern",
+            ConstraintType.REL_KEY.description(),
+            List("relationship patterns"),
+            s"'${ConstraintType.REL_KEY.description()}' does not allow node patterns",
+            inputPosition(nodePattern.getStart)
+          )
+        }
+        if (relPattern != null && c.NODE() != null) {
+          _errors :+= exceptionFactory.invalidInputException(
+            "relationship pattern",
+            ConstraintType.NODE_KEY.description(),
+            List("node patterns"),
+            s"'${ConstraintType.NODE_KEY.description()}' does not allow relationship patterns",
+            inputPosition(relPattern.getStart)
+          )
+        }
+      case _: ConstraintTypedContext | _: ConstraintIsNotNullContext =>
+      case _ => throw exceptionFactory.internalError("Constraint type is not recognized", pos(constraintTypeContext))
     }
   }
 }

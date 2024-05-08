@@ -800,11 +800,18 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
 
   // ALTER OR REPLACE
   test("ALTER OR REPLACE DATABASE foo SET ACCESS READ WRITE") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'OR': expected 'ALIAS', 'DATABASE', 'CURRENT USER SET PASSWORD FROM', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
-        |"ALTER OR REPLACE DATABASE foo SET ACCESS READ WRITE"
-        |       ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'OR': expected 'ALIAS', 'DATABASE', 'CURRENT USER SET PASSWORD FROM', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
+            |"ALTER OR REPLACE DATABASE foo SET ACCESS READ WRITE"
+            |       ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'OR': expected 'ALIAS', 'CURRENT', 'DATABASE', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
+            |"ALTER OR REPLACE DATABASE foo SET ACCESS READ WRITE"
+            |       ^""".stripMargin
+        )
+    }
   }
 
   test("ALTER DATABASE foo SET TOPOLOGY 2 PRIMARIES 1 PRIMARY") {

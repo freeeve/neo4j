@@ -511,11 +511,18 @@ class RoleAdministrationCommandParserTest extends AdministrationAndSchemaCommand
   }
 
   test("ALTER ROLE foo SET NAME bar") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'ROLE': expected 'ALIAS', 'DATABASE', 'CURRENT USER SET PASSWORD FROM', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
-        |"ALTER ROLE foo SET NAME bar"
-        |       ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'ROLE': expected 'ALIAS', 'DATABASE', 'CURRENT USER SET PASSWORD FROM', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
+            |"ALTER ROLE foo SET NAME bar"
+            |       ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'ROLE': expected 'ALIAS', 'CURRENT', 'DATABASE', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
+            |"ALTER ROLE foo SET NAME bar"
+            |       ^""".stripMargin
+        )
+    }
   }
 
   test("RENAME ROLE foo IF EXIST TO bar") {

@@ -1,0 +1,897 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.neo4j.cypher.internal.ast.factory.ddl
+
+import org.neo4j.cypher.internal.ast.AstGraphTypeConstructionTestSupport
+import org.neo4j.cypher.internal.ast.EdgeType
+import org.neo4j.cypher.internal.ast.EmptyNodeTypeReference
+import org.neo4j.cypher.internal.ast.GraphTypeConstraint.KeyConstraint
+import org.neo4j.cypher.internal.ast.GraphTypeConstraint.UniquenessConstraint
+import org.neo4j.cypher.internal.ast.GraphTypeConstraintDefinition
+import org.neo4j.cypher.internal.ast.NoOptions
+import org.neo4j.cypher.internal.ast.NodeType
+import org.neo4j.cypher.internal.ast.OptionsMap
+import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineKeyConstraint
+import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineUniquenessConstraint
+import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.factory.ddl.GraphTypeParserTest.cypher5Error
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
+import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
+import org.neo4j.cypher.internal.ast.test.util.Parses
+import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.graphtype.GraphTypeTestCase
+import org.neo4j.cypher.internal.util.symbols.DateType
+import org.neo4j.cypher.internal.util.symbols.IntegerType
+import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
+
+import scala.collection.immutable.ArraySeq
+
+class GraphTypeParserTest extends AstParsingTestBase with AstGraphTypeConstructionTestSupport {
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET { }""".stripMargin
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(graphType())
+        )
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET { (:Person IMPLIES { name :: STRING } ) }""".stripMargin
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(graphType(nodeType(
+            "Person",
+            propertyType(
+              "name",
+              StringType(isNullable = true)
+            )
+          )))
+        )
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET { (:Person => :Student&Happy {name :: STRING NOT NULL, age :: INT, studentID :: STRING}) }"""
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(alterCurrentGraphTypeSet(
+          graphType(nodeType(
+            "Person",
+            Set("Student", "Happy"),
+            propertyType("name", StringType(isNullable = false)),
+            propertyType("age", IntegerType(isNullable = true)),
+            propertyType("studentID", StringType(isNullable = true))
+          ))
+        ))
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET {(p :Person => {name :: STRING IS KEY }) }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(alterCurrentGraphTypeSet(
+          graphType(
+            nodeType(
+              "Person",
+              "p",
+              propertyType(
+                "name",
+                StringType(isNullable = true),
+                PropertyInlineKeyConstraint()(defaultPos)
+              )
+            )
+          )
+        ))
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET {(p :Person => {name :: STRING}) REQUIRE p.name IS KEY}""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(alterCurrentGraphTypeSet(
+          graphType(
+            Seq(nodeTypeWithConstraints(
+              "Person",
+              "p",
+              Set(KeyConstraint(
+                ArraySeq(prop("p", "name", defaultPos))
+              )(defaultPos)),
+              propertyType("name", StringType(isNullable = true))
+            )),
+            Seq()
+          )
+        ))
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET {(  :Person => {name :: STRING IS UNIQUE})}""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(alterCurrentGraphTypeSet(
+          graphType(
+            nodeType(
+              "Person",
+              propertyType(
+                "name",
+                StringType(isNullable = true),
+                PropertyInlineUniquenessConstraint()(defaultPos)
+              )
+            )
+          )
+        ))
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET { (:Person)-[r: RELATED IMPLIES{}]->() }""".stripMargin
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(graphType(edgeType(
+            nodeTypeRefByLabel("Person"),
+            "RELATED",
+            "r",
+            EmptyNodeTypeReference()(defaultPos)
+          )))
+        )
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET { ()-[r :RELATED => {reason :: STRING}]->(),
+      |CONSTRAINT FOR ()-[r]->() REQUIRE r.reason IS KEY}""".stripMargin
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(alterCurrentGraphTypeSet(
+          graphType(
+            Seq(edgeType(
+              EmptyNodeTypeReference()(defaultPos),
+              "RELATED",
+              "r",
+              EmptyNodeTypeReference()(defaultPos),
+              propertyType("reason", StringType(isNullable = true))
+            )),
+            Seq(keyConstraint(edgeTypeRefByVar("r"), ArraySeq(prop("r", "reason"))))
+          )
+        ))
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET { (p :Person => {name :: STRING, age :: INT}),
+      |(c :City => {name :: STRING}),
+      |(p)-[l:LIVES_IN => {since :: DATE}]->(c),
+      |CONSTRAINT KnowsSinceExist FOR ()-[k:KNOWS]->() REQUIRE k.since IS NOT NULL,
+      |CONSTRAINT KnowsSinceType FOR ()-[k:KNOWS]->() REQUIRE k.since :: DATE }""".stripMargin
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(alterCurrentGraphTypeSet(
+          graphType(
+            Seq(
+              nodeType(
+                "Person",
+                "p",
+                propertyType("name", StringType(isNullable = true)),
+                propertyType("age", IntegerType(isNullable = true))
+              ),
+              nodeType(
+                "City",
+                "c",
+                propertyType("name", StringType(isNullable = true))
+              ),
+              edgeType(
+                nodeTypeRefByVar("p"),
+                "LIVES_IN",
+                "l",
+                nodeTypeRefByVar("c"),
+                propertyType("since", DateType(isNullable = true))
+              )
+            ),
+            Seq(
+              existsConstraint(
+                "KnowsSinceExist",
+                edgeTypeRefByLabel("KNOWS", "k"),
+                ArraySeq(prop("k", "since"))
+              ),
+              propertyTypeConstraint(
+                "KnowsSinceType",
+                edgeTypeRefByLabel("KNOWS", "k"),
+                ArraySeq(prop("k", "since")),
+                DateType(isNullable = true)(defaultPos)
+              )
+            )
+          )
+        ))
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET {
+      |(p :Person => {name :: STRING, age :: INT}),
+      |(c :City => {name :: STRING}),
+      |(p)-[l:LIVES_IN => {since :: DATE}]->(c),
+      |CONSTRAINT PersonKeyName FOR (p) REQUIRE p.name IS KEY
+      |}
+      |""".stripMargin
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              Seq(
+                nodeType(
+                  "Person",
+                  "p",
+                  propertyType("name", StringType(isNullable = true)),
+                  propertyType("age", IntegerType(isNullable = true))
+                ),
+                nodeType("City", "c", propertyType("name", StringType(isNullable = true))),
+                edgeType(
+                  nodeTypeRefByVar("p"),
+                  "LIVES_IN",
+                  "l",
+                  nodeTypeRefByVar("c"),
+                  propertyType("since", DateType(isNullable = true))
+                )
+              ),
+              Seq(
+                keyConstraint("PersonKeyName", nodeTypeRefByVar("p"), ArraySeq(prop("p", "name")))
+              )
+            )
+          )
+        )
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET {
+      |(p :Person => {name :: STRING, age :: INT}),
+      |(c :City => {name :: STRING}),
+      |(:Person)-[:LIVES_IN => {since :: DATE}]->(:City),
+      |CONSTRAINT PersonKeyName FOR (p) REQUIRE p.name IS KEY
+      |}
+      |""".stripMargin
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              Seq(
+                nodeType(
+                  "Person",
+                  "p",
+                  propertyType("name", StringType(isNullable = true)),
+                  propertyType("age", IntegerType(isNullable = true))
+                ),
+                nodeType("City", "c", propertyType("name", StringType(isNullable = true))),
+                edgeType(
+                  nodeTypeRefByLabel("Person"),
+                  "LIVES_IN",
+                  nodeTypeRefByLabel("City"),
+                  propertyType("since", DateType(isNullable = true))
+                )
+              ),
+              Seq(
+                keyConstraint("PersonKeyName", nodeTypeRefByVar("p"), ArraySeq(prop("p", "name")))
+              )
+            )
+          )
+        )
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET {
+      |(p :Person => {name :: STRING, age :: INT}),
+      |(c :City => {name :: STRING}),
+      |(:Person)-[r:LIVES_IN => {since :: DATE}]->(:City) REQUIRE r.since IS UNIQUE OPTIONS {indexProvider : 'range-1.0'}
+      |}
+      |""".stripMargin
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              Seq(
+                nodeType(
+                  "Person",
+                  "p",
+                  propertyType("name", StringType(isNullable = true)),
+                  propertyType("age", IntegerType(isNullable = true))
+                ),
+                nodeType("City", "c", propertyType("name", StringType(isNullable = true))),
+                EdgeType(
+                  nodeTypeRefByLabel("Person"),
+                  Some(varFor("r")),
+                  RelTypeName("LIVES_IN")(defaultPos),
+                  Set(propertyType("since", DateType(isNullable = true))),
+                  nodeTypeRefByLabel("City"),
+                  Set((
+                    UniquenessConstraint(ArraySeq(prop("r", "since")))(defaultPos),
+                    OptionsMap(Map("indexProvider" -> literalString("range-1.0")))(pos)
+                  ))
+                )(defaultPos)
+              ),
+              Seq()
+            )
+          )
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET {(p1 :Person => {name :: STRING}) REQUIRE p2.name IS KEY}""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              nodeTypeWithConstraints(
+                "Person",
+                "p1",
+                Set(KeyConstraint(ArraySeq(prop("p2", "name")))(defaultPos)),
+                propertyType("name", StringType(isNullable = true))
+              )
+            )
+          )
+        )
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET {
+      |  (p1:Person => :Student) REQUIRE p2.name IS KEY,
+      |  (p3)-[k1:KNOWS =>]->(c1) REQUIRE  k2.since IS UNIQUE,
+      |  CONSTRAINT FOR (c2) REQUIRE c3.name IS UNIQUE,
+      |  CONSTRAINT FOR ()-[k3]->() REQUIRE k4.name IS KEY
+      |}""".stripMargin
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              Seq(
+                nodeTypeWithLabelsAndConstraints(
+                  "Person",
+                  "p1",
+                  Set("Student"),
+                  Set((KeyConstraint(ArraySeq(prop("p2", "name")))(defaultPos), NoOptions))
+                ),
+                edgeTypeWithConstraints(
+                  nodeTypeRefByVar("p3"),
+                  "KNOWS",
+                  "k1",
+                  nodeTypeRefByVar("c1"),
+                  Set(UniquenessConstraint(ArraySeq(prop("k2", "since")))(defaultPos))
+                )
+              ),
+              Seq(
+                uniquenessConstraint(nodeTypeRefByVar("c2"), ArraySeq(prop("c3", "name"))),
+                keyConstraint(edgeTypeRefByVar("k3"), ArraySeq(prop("k4", "name")))
+              )
+            )
+          )
+        )
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET { (:Node => :Node2),
+      |(:Node =>)-[:REL =>]->(:Node =>) }""".stripMargin
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              nodeType("Node", Set("Node2")),
+              edgeType(identifyingNodeTypeRef("Node"), "REL", identifyingNodeTypeRef("Node"))
+            )
+          )
+        )
+    }
+  }
+
+  // Options map
+
+  test("""ALTER CURRENT GRAPH TYPE SET {(p :Person => {name :: STRING}) REQUIRE p.name IS KEY OPTIONS {} }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              NodeType(
+                Some(varFor("p")),
+                labelName("Person"),
+                Set.empty,
+                Set(propertyType("name", StringType(isNullable = true))),
+                Set((KeyConstraint(ArraySeq(prop("p", "name")))(pos), OptionsMap(Map.empty)(pos)))
+              )(pos)
+            )
+          )
+        )
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET {(p :Person => {name :: STRING}) REQUIRE p.name IS KEY OPTIONS { indexConfig: {} } }"""
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              NodeType(
+                Some(varFor("p")),
+                labelName("Person"),
+                Set.empty,
+                Set(propertyType("name", StringType(isNullable = true))),
+                Set((KeyConstraint(ArraySeq(prop("p", "name")))(pos), OptionsMap(Map("indexConfig" -> mapOf()))(pos)))
+              )(pos)
+            )
+          )
+        )
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET {(p :Person => {name :: STRING}), CONSTRAINT FOR (p) REQUIRE p.name IS KEY OPTIONS {} }"""
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              Seq(
+                nodeType(
+                  "Person",
+                  "p",
+                  propertyType("name", StringType(isNullable = true))
+                )
+              ),
+              Seq(
+                GraphTypeConstraintDefinition(
+                  None,
+                  nodeTypeRefByVar("p"),
+                  KeyConstraint(ArraySeq(prop("p", "name")))(pos),
+                  OptionsMap(Map.empty)(pos)
+                )(pos)
+              )
+            )
+          )
+        )
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET {(p :Person => {name :: STRING}), CONSTRAINT FOR (p) REQUIRE p.name IS KEY OPTIONS { indexConfig: {} } }"""
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              Seq(
+                nodeType(
+                  "Person",
+                  "p",
+                  propertyType("name", StringType(isNullable = true))
+                )
+              ),
+              Seq(
+                GraphTypeConstraintDefinition(
+                  None,
+                  nodeTypeRefByVar("p"),
+                  KeyConstraint(ArraySeq(prop("p", "name")))(pos),
+                  OptionsMap(Map("indexConfig" -> mapOf()))(pos)
+                )(pos)
+              )
+            )
+          )
+        )
+    }
+  }
+
+  // parses but invalid
+
+  test("""ALTER CURRENT GRAPH TYPE SET {(p:Person => :Human), CONSTRAINT FOR (p) REQUIRE p.prop IS NOT NULL }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              Seq(nodeType("Person", "p", Set("Human"))),
+              Seq(
+                existsConstraint(
+                  nodeTypeRefByVar("p"),
+                  ArraySeq(prop("p", "prop"))
+                )
+              )
+            )
+          )
+        )
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET {(:Person => :Human), CONSTRAINT FOR (p:Person) REQUIRE p.prop IS NOT NULL }"""
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              Seq(nodeType("Person", Set("Human"))),
+              Seq(
+                existsConstraint(
+                  nodeTypeRefByLabel("Person", "p"),
+                  ArraySeq(prop("p", "prop"))
+                )
+              )
+            )
+          )
+        )
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET {(:Person => :Human), CONSTRAINT FOR (p:Person =>) REQUIRE p.prop IS :: INTEGER }"""
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              Seq(nodeType("Person", Set("Human"))),
+              Seq(
+                propertyTypeConstraint(
+                  identifyingNodeTypeRef("Person", "p"),
+                  ArraySeq(prop("p", "prop")),
+                  IntegerType(isNullable = true)(pos)
+                )
+              )
+            )
+          )
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT FOR (p:Person =>) REQUIRE p.prop IS :: DATE}""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              Seq(),
+              Seq(
+                propertyTypeConstraint(
+                  identifyingNodeTypeRef("Person", "p"),
+                  ArraySeq(prop("p", "prop")),
+                  DateType(isNullable = true)(pos)
+                )
+              )
+            )
+          )
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { (:Node =>)-[:REL =>]->() }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              edgeType(identifyingNodeTypeRef("Node"), "REL", EmptyNodeTypeReference()(pos))
+            )
+          )
+        )
+    }
+  }
+
+  // Generated testcases from examples, see org.neo4j.cypher.internal.graphtype.GraphTypeTestCase
+  GraphTypeTestCase.testcases.foreach { case GraphTypeTestCase(name, cypher, ast, _) =>
+    test(name) {
+      Parses(parseAst[Statements](cypher)).in {
+        case Cypher5 => cypher5Error
+        case _       => _.toAst(alterCurrentGraphTypeSet(ast))
+      }
+    }
+  }
+
+  // Negative tests
+
+  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT PersonKeyName }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '}', expected: 'FOR'."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { (:Person => {name :: STRING IS REL KEY}) }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "node element type property does not allow 'IS RELATIONSHIP KEY'",
+          GqlStatusInfoCodes.STATUS_22N04,
+          "error: data exception - invalid input value. Invalid input 'IS RELATIONSHIP KEY' for node element type property. Expected 'IS NODE KEY'."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { ()-[:PERSON => {name :: STRING IS NODE KEY}]->() }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "edge element type property does not allow 'IS NODE KEY'",
+          GqlStatusInfoCodes.STATUS_22N04,
+          "error: data exception - invalid input value. Invalid input 'IS NODE KEY' for edge element type property. Expected 'IS RELATIONSHIP KEY'."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { ()-[p:PERSON => {name :: STRING}]->() REQUIRE p.name IS NODE UNIQUE }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "edge element type does not allow 'IS NODE UNIQUE'",
+          GqlStatusInfoCodes.STATUS_22N04,
+          "error: data exception - invalid input value. Invalid input 'IS NODE UNIQUE' for edge element type. Expected 'IS RELATIONSHIP UNIQUE'."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { (p:Person => { name :: STRING} ) REQUIRE p.name IS REL UNIQUE }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "node element type does not allow 'IS RELATIONSHIP UNIQUE'",
+          GqlStatusInfoCodes.STATUS_22N04,
+          "error: data exception - invalid input value. Invalid input 'IS RELATIONSHIP UNIQUE' for node element type. Expected 'IS NODE UNIQUE'."
+        )
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET {
+      | CONSTRAINT FOR (n:Node) REQUIRE (n.prop) IS RELATIONSHIP KEY
+      | }""".stripMargin
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "'IS RELATIONSHIP KEY' does not allow node patterns",
+          GqlStatusInfoCodes.STATUS_22N04,
+          "error: data exception - invalid input value. Invalid input 'node pattern' for IS RELATIONSHIP KEY. Expected 'relationship patterns'."
+        )
+    }
+  }
+
+  test(
+    """ALTER CURRENT GRAPH TYPE SET {
+      | CONSTRAINT FOR ()-[r:REL]->() REQUIRE (r.prop) IS NODE UNIQUE
+      | }""".stripMargin
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "'IS NODE UNIQUE' does not allow relationship patterns",
+          GqlStatusInfoCodes.STATUS_22N04,
+          "error: data exception - invalid input value. Invalid input 'relationship pattern' for IS NODE UNIQUE. Expected 'node patterns'."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { (p:Person => {name :: STRING}) REQUIRE p.name IS NOT NULL }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ =>
+        _.withMessageContaining("Node type property existence constraints cannot be specified inline of a node type")
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { ()-[r:REL => {name :: STRING}]->() REQUIRE r.name IS :: INTEGER }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ =>
+        _.withMessageContaining("Edge type property type constraints cannot be specified inline of an edge type")
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT FOR (:Label) REQUIRE (x.prop) IS NOT NULL }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _       => _.withMessageContaining("Graph type constraint definitions require an alias")
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT FOR ()-[:REL]->() REQUIRE (x.prop) IS NOT NULL }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _       => _.withMessageContaining("Graph type constraint definitions require an alias")
+    }
+  }
+
+  // negative example SNT-NE-NEIL-1-1
+  test("ALTER CURRENT GRAPH TYPE SET { (:Person {name :: STRING}) }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '{', expected: ')', '=' or 'IMPLIES'."
+        )
+    }
+  }
+
+  // negative example SNT-NE-NEIL-2-1
+  test("ALTER CURRENT GRAPH TYPE SET { ({name :: STRING, age :: INT}) }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '{', expected: a variable name, ')' or ':'."
+        )
+    }
+  }
+
+  // negative example SET-NE-NEIL-3-1
+  test("ALTER CURRENT GRAPH TYPE SET { (:Person)-[:LIVES_IN {since :: DATE}]->(:City) }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '{', expected: '=' or 'IMPLIES'."
+        )
+    }
+  }
+
+  // negative example SET-NE-NEOL-1-1
+  test("ALTER CURRENT GRAPH TYPE SET { ()-[{since :: DATE}]->() }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '{', expected: ':'."
+        )
+    }
+  }
+
+  // negative example SET-NE-NEOL-2-1
+  test("""ALTER CURRENT GRAPH TYPE SET { (p :Person => {name STRING, age INT}),
+         | (c :City => {name STRING, population INT}),
+         | (p)-[{since :: DATE}]->(c) }""".stripMargin) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '{', expected: ':'."
+        )
+    }
+  }
+
+  // negative example SET-NE-NEOL-3-1"
+  test(s"""ALTER CURRENT GRAPH TYPE SET { (p :Person => {name :: STRING, age :: INT}),
+          | (c :City => {name :: STRING, population :: INT}),
+          | (p)-[:LIVES_IN&DATED => {since :: DATE}]->(c) }""".stripMargin) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '&', expected: '=' or 'IMPLIES'."
+        )
+    }
+  }
+
+  // negative example SET-NE-NEOL-3-2
+  test("""ALTER CURRENT GRAPH TYPE SET { (p :Person => {name :: STRING, age :: INT}),
+         | (c :City => {name :: STRING, population :: INT}),
+         | (p)-[:LIVES_IN => :DATED {since :: DATE}]->(c) }""".stripMargin) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input ':', expected: ']' or '{'."
+        )
+    }
+  }
+
+  // negative example SET-NE-AEML-1-1
+  test("""ALTER CURRENT GRAPH TYPE SET { (:Person => {name :: STRING, age :: INT}),
+         | (:City => {name :: STRING, population :: INT}),
+         | (:Person)-[:LIVES_IN =>]->(:City {name :: STRING}) }""".stripMargin) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '{', expected: ')', '=' or 'IMPLIES'."
+        )
+    }
+  }
+
+  // negative example SET-NE-AEML-2-1
+  test(
+    "ALTER CURRENT GRAPH TYPE SET { (:Person => {name :: STRING, age :: INT}), (:Person)-[:LIVES_IN =>]->(:City&Named) }"
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '&', expected: ')', '=' or 'IMPLIES'."
+        )
+    }
+  }
+
+  // negative example UDC-NE-CWOS-1-1
+  test("ALTER CURRENT GRAPH TYPE SET { CONSTRAINT myConstraint }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '}', expected: 'FOR'."
+        )
+    }
+  }
+
+  // negative example UDC-NE-CWOS-2-1
+  test("ALTER CURRENT GRAPH TYPE SET { (:City => {name :: STRING}), CONSTRAINT myConstraint, CONSTRAINT xyz123 }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input ',', expected: 'FOR'."
+        )
+    }
+  }
+}
+
+object GraphTypeParserTest {
+
+  val cypher5Error: Parses[Statements] => Parses[Statements] = _.withSyntaxErrorContaining(
+    "Invalid input ",
+    GqlStatusInfoCodes.STATUS_42I06,
+    "error: syntax error or access rule violation - invalid input. Invalid input 'GRAPH', expected: 'USER SET PASSWORD FROM'."
+  )
+}

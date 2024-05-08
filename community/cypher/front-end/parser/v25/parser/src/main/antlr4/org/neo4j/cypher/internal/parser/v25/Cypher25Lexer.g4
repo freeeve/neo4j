@@ -107,6 +107,10 @@ ACTIVE
    : A C T I V E
    ;
 
+ADD
+   : A D D
+   ;
+
 ADMIN
    : A D M I N
    ;
@@ -739,6 +743,10 @@ MINUS
 PERCENT
    : '%'
    ;
+
+IMPLIES
+  : I M P L I E S
+  ;
 
 INVALID_NEQ
    : '!='

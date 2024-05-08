@@ -380,7 +380,13 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
   test("enable server 'a' options") { invalid("", "a parameter or '{'", 25) }
   test("enable server 'a' options {") { invalid("", "an identifier or '}'", 27) }
   test("rename") { invalid("", "'ROLE', 'SERVER' or 'USER'", 6) }
-  test("alter") { invalid("", "'ALIAS', 'DATABASE', 'CURRENT USER SET PASSWORD FROM', 'SERVER' or 'USER'", 5) }
+
+  test("alter") {
+    invalid({
+      case Cypher5 => ("", "'ALIAS', 'DATABASE', 'CURRENT USER SET PASSWORD FROM', 'SERVER' or 'USER'", 5)
+      case _       => ("", "'ALIAS', 'CURRENT', 'DATABASE', 'SERVER' or 'USER'", 5)
+    })
+  }
 
   test("drop") {
     invalid("", "'ALIAS', 'COMPOSITE', 'CONSTRAINT', 'DATABASE', 'INDEX', 'ROLE', 'SERVER' or 'USER'", 4)

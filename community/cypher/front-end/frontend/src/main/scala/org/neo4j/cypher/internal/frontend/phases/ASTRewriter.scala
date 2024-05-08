@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ExpandStar
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.FixedLengthShortestToAllRewriter
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.FoldConstants
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.GQLAliasFunctionNameRewriter
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.GraphTypeCanonicalizer
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.LabelExpressionPredicateNormalizer
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.MoveWithPastMatch
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NameAllPatternElements
@@ -77,6 +78,7 @@ object ASTRewriter {
         FixedLengthShortestToAllRewriter,
         FoldConstants,
         GQLAliasFunctionNameRewriter,
+        GraphTypeCanonicalizer,
         LabelExpressionPredicateNormalizer,
         MoveWithPastMatch,
         NameAllPatternElements,

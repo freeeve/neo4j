@@ -1226,11 +1226,18 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("ALTER RANDOM name") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'RANDOM': expected 'ALIAS', 'DATABASE', 'CURRENT USER SET PASSWORD FROM', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
-        |"ALTER RANDOM name"
-        |       ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'RANDOM': expected 'ALIAS', 'DATABASE', 'CURRENT USER SET PASSWORD FROM', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
+            |"ALTER RANDOM name"
+            |       ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'RANDOM': expected 'ALIAS', 'CURRENT', 'DATABASE', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
+            |"ALTER RANDOM name"
+            |       ^""".stripMargin
+        )
+    }
   }
 
   test("ALTER ALIAS `a`.`b`.`c` SET DATABASE TARGET db") {

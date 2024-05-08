@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.MergeI
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NullIfFunctionRewriter
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RemoveSyntaxTracking
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RewriteGraphTypeReferences
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RewriteShortestPathWithFixedLengthRelationship
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RewriteShowQuery
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.TimestampRewriter
@@ -62,6 +63,7 @@ case object PreparatoryRewriting extends Phase[BaseContext, BaseState, BaseState
         RemoveSyntaxTracking,
         TimestampRewriter,
         WrapOptionalCallProcedure,
+        RewriteGraphTypeReferences,
         RewriteShortestPathWithFixedLengthRelationship,
         RewriteShowQuery
       )

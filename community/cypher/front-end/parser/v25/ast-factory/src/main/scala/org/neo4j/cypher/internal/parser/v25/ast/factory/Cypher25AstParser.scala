@@ -117,6 +117,16 @@ final protected class CypherAstBuildingAntlrParser(
     case Cypher25Parser.RULE_symbolicNameString           => false
     case Cypher25Parser.RULE_unescapedSymbolicNameString  => false
     case Cypher25Parser.RULE_unescapedSymbolicNameString_ => false
+    case Cypher25Parser.RULE_propertyType                 => false
+    case Cypher25Parser.RULE_propertyTypeList             => false
+    case Cypher25Parser.RULE_propertyTypeInlineConstraint => false
+    case Cypher25Parser.RULE_nodeTypeInlineConstraintList => false
+    case Cypher25Parser.RULE_edgeTypeInlineConstraintList => false
+    case Cypher25Parser.RULE_nodeTypeReference            => false
+    case Cypher25Parser.RULE_nodeTypeInSituReference      => false
+    case Cypher25Parser.RULE_edgeTypeReference            => false
+    case Cypher25Parser.RULE_edgeTypeInSituReference      => false
+    case Cypher25Parser.RULE_arcTypePointingRight         => false
     case _                                                => !keepCst
   }
 }

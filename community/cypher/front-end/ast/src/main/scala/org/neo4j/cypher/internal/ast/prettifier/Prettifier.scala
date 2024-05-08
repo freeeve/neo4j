@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.ast.AllGraphsScope
 import org.neo4j.cypher.internal.ast.AllLabelResource
 import org.neo4j.cypher.internal.ast.AllPropertyResource
 import org.neo4j.cypher.internal.ast.AllQualifier
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType
 import org.neo4j.cypher.internal.ast.AlterDatabase
 import org.neo4j.cypher.internal.ast.AlterLocalDatabaseAlias
 import org.neo4j.cypher.internal.ast.AlterRemoteDatabaseAlias
@@ -233,6 +234,7 @@ import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.ast.YieldOrWhere
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.escapeName
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.stringifyOptions
 import org.neo4j.cypher.internal.expressions.CoerceTo
 import org.neo4j.cypher.internal.expressions.DynamicLabelExpression
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
@@ -390,7 +392,7 @@ case class Prettifier(
           case DynamicRelTypeExpression(expression, all) =>
             s"()-[${backtick(variable)}:${anyAll(all)}$$(${expr(expression)})]-()"
         }
-        s"${startOfCommand}FOR $pattern ON ${propertiesToString(properties)}${asString(options)}"
+        s"${startOfCommand}FOR $pattern ON ${propertiesToString(properties)}${stringifyOptions(options)(expr)}"
 
       case CreateLookupIndex(Variable(variable), isNodeIndex, function, name, indexType, ifExistsDo, options) =>
         val startOfCommand = getStartOfCommand(name, ifExistsDo, indexType.command)
@@ -398,7 +400,7 @@ case class Prettifier(
         // can't use `expr(functions)` since that might add extra () we can't parse: labels((n))
         val functionString =
           function.name + "(" + function.args.map(e => backtick(e.asCanonicalStringVal)).mkString(", ") + ")"
-        s"${startOfCommand}FOR $pattern ON EACH $functionString${asString(options)}"
+        s"${startOfCommand}FOR $pattern ON EACH $functionString${stringifyOptions(options)(expr)}"
 
       case CreateFulltextIndex(Variable(variable), entityNames, properties, name, indexType, ifExistsDo, options) =>
         val startOfCommand = getStartOfCommand(name, ifExistsDo, indexType.command)
@@ -411,7 +413,7 @@ case class Prettifier(
             s"()-[${backtick(variable)}$relTypePattern]-()"
         }
         val propertiesString = properties.map(propertyToString).mkString("[", ", ", "]")
-        s"${startOfCommand}FOR $pattern ON EACH $propertiesString${asString(options)}"
+        s"${startOfCommand}FOR $pattern ON EACH $propertiesString${stringifyOptions(options)(expr)}"
 
       case DropIndexOnName(name, ifExists, _) =>
         val ifExistsString = if (ifExists) " IF EXISTS" else ""
@@ -428,11 +430,14 @@ case class Prettifier(
           case DynamicRelTypeExpression(expression, all) =>
             s"()-[${backtick(variable)}:${anyAll(all)}$$(${expr(expression)})]-()"
         }
-        s"${startOfCommand}FOR $pattern REQUIRE ${propertiesToString(properties)} ${constraintType.predicate}${asString(options)}"
+        s"${startOfCommand}FOR $pattern REQUIRE ${propertiesToString(properties)} ${constraintType.predicate}${stringifyOptions(options)(expr)}"
 
       case DropConstraintOnName(name, ifExists, _) =>
         val ifExistsString = if (ifExists) " IF EXISTS" else ""
         s"DROP CONSTRAINT ${Prettifier.escapeName(name)}$ifExistsString"
+
+      case AlterCurrentGraphType(graphType, operation, _) =>
+        s"ALTER CURRENT GRAPH TYPE ${operation.name()} ${GraphTypeStringifier.apply(graphType)}"
 
       case _ => throw new IllegalStateException(s"Unknown command: $command")
     }
@@ -695,7 +700,7 @@ case class Prettifier(
           defaultCypherVersion,
           shardDef
         ) =>
-        val formattedOptions = asString(options)
+        val formattedOptions = stringifyOptions(options)(expr)
         val withoutNamespace = dbName match {
           case n: NamespacedName => Left(n.toString)
           case ParameterName(p)  => Right(p)
@@ -711,7 +716,7 @@ case class Prettifier(
         }
 
       case x @ CreateCompositeDatabase(name, ifExistsDo, options, waitUntilComplete, defaultCypherVersion) =>
-        val formattedOptions = asString(options)
+        val formattedOptions = stringifyOptions(options)(expr)
         val maybeCypherVersion = defaultCypherVersion.map(cv => s" DEFAULT LANGUAGE ${cv.description}").getOrElse("")
         val ifExists = ifExistsDo match {
           case IfExistsInvalidSyntax | IfExistsDoNothing => " IF NOT EXISTS"
@@ -852,7 +857,7 @@ case class Prettifier(
           case Left(s)          => expr.quote(s)
           case Right(parameter) => expr(parameter)
         }
-        val optionString = asString(options)
+        val optionString = stringifyOptions(options)(expr)
         s"${x.name} $name$optionString"
 
       case x @ AlterServer(serverName, options) =>
@@ -860,7 +865,7 @@ case class Prettifier(
           case Left(s)          => expr.quote(s)
           case Right(parameter) => expr(parameter)
         }
-        val optionString = asString(options)
+        val optionString = stringifyOptions(options)(expr)
         s"${x.name} $name SET$optionString"
 
       case x @ RenameServer(serverName, newName) =>
@@ -906,19 +911,6 @@ case class Prettifier(
   private def asString(use: Option[GraphSelection]) = {
     use.filter(_ => useInCommands).map(u => base.dispatch(u) + NL).getOrElse("")
   }
-
-  private def asString(options: Options) = options match {
-    case NoOptions               => ""
-    case OptionsParam(parameter) => s" OPTIONS ${expr(parameter)}"
-    case OptionsMap(map)         => optionsToString(map)
-  }
-
-  private def optionsToString(options: Map[String, Expression]): String =
-    if (options.nonEmpty)
-      s" OPTIONS ${options.map({ case (s, e) => s"${backtick(s)}: ${expr(e)}" }).mkString("{", ", ", "}")}"
-    else {
-      " OPTIONS {}"
-    }
 
   private def asIndividualOptions(options: Options) = options match {
     case NoOptions => ""
@@ -1680,6 +1672,19 @@ object Prettifier {
     val replicaString = extractShardTopology(shardDefinition.propertyShardReplicaCount)
     s" ${graphTopology}PROPERTY SHARD {COUNT ${shardDefinition.propertyShardCount}$replicaString}"
   }
+
+  private[prettifier] def stringifyOptions(options: Options)(implicit expr: ExpressionStringifier) = options match {
+    case NoOptions               => ""
+    case OptionsParam(parameter) => s" OPTIONS ${expr(parameter)}"
+    case OptionsMap(map)         => optionsToString(map)
+  }
+
+  private def optionsToString(options: Map[String, Expression])(implicit expr: ExpressionStringifier): String =
+    if (options.nonEmpty)
+      s" OPTIONS ${options.map({ case (s, e) => s"${expr.backtick(s)}: ${expr(e)}" }).mkString("{", ", ", "}")}"
+    else {
+      " OPTIONS {}"
+    }
 
   def maybeImmutable(immutable: Boolean): String = if (immutable) " IMMUTABLE" else ""
 

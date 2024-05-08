@@ -329,6 +329,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitCreateCommand(Cypher25Parser.CreateCommandContext ctx);
 
+    void exitAlterCommand(Cypher25Parser.AlterCommandContext ctx);
+
     void exitDropCommand(Cypher25Parser.DropCommandContext ctx);
 
     void exitShowCommand(Cypher25Parser.ShowCommandContext ctx);
@@ -419,7 +421,59 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitEnclosedPropertyList(Cypher25Parser.EnclosedPropertyListContext ctx);
 
-    void exitAlterCommand(Cypher25Parser.AlterCommandContext ctx);
+    void exitAlterCurrentGraphType(Cypher25Parser.AlterCurrentGraphTypeContext ctx);
+
+    void exitGraphTypeSpecification(Cypher25Parser.GraphTypeSpecificationContext ctx);
+
+    void exitGraphTypeDropSpecification(Cypher25Parser.GraphTypeDropSpecificationContext ctx);
+
+    void exitGraphTypeSpecificationBody(Cypher25Parser.GraphTypeSpecificationBodyContext ctx);
+
+    void exitGraphTypeDropSpecificationBody(Cypher25Parser.GraphTypeDropSpecificationBodyContext ctx);
+
+    void exitGraphTypeElement(Cypher25Parser.GraphTypeElementContext ctx);
+
+    void exitGraphTypeDropElement(Cypher25Parser.GraphTypeDropElementContext ctx);
+
+    void exitNodeTypeInlineConstraintList(Cypher25Parser.NodeTypeInlineConstraintListContext ctx);
+
+    void exitEdgeTypeInlineConstraintList(Cypher25Parser.EdgeTypeInlineConstraintListContext ctx);
+
+    void exitImplies(Cypher25Parser.ImpliesContext ctx);
+
+    void exitNodeTypeSpecification(Cypher25Parser.NodeTypeSpecificationContext ctx);
+
+    void exitImpliedLabelSet(Cypher25Parser.ImpliedLabelSetContext ctx);
+
+    void exitIdentifyingLabel(Cypher25Parser.IdentifyingLabelContext ctx);
+
+    void exitNodeTypeReference(Cypher25Parser.NodeTypeReferenceContext ctx);
+
+    void exitNodeTypeAliasReference(Cypher25Parser.NodeTypeAliasReferenceContext ctx);
+
+    void exitNodeTypeInSituReference(Cypher25Parser.NodeTypeInSituReferenceContext ctx);
+
+    void exitEdgeTypeSpecification(Cypher25Parser.EdgeTypeSpecificationContext ctx);
+
+    void exitArcTypePointingRight(Cypher25Parser.ArcTypePointingRightContext ctx);
+
+    void exitIdentifyingRelationship(Cypher25Parser.IdentifyingRelationshipContext ctx);
+
+    void exitEdgeTypeReference(Cypher25Parser.EdgeTypeReferenceContext ctx);
+
+    void exitEdgeTypeAliasReference(Cypher25Parser.EdgeTypeAliasReferenceContext ctx);
+
+    void exitEdgeTypeInSituReference(Cypher25Parser.EdgeTypeInSituReferenceContext ctx);
+
+    void exitPropertyTypeList(Cypher25Parser.PropertyTypeListContext ctx);
+
+    void exitPropertyType(Cypher25Parser.PropertyTypeContext ctx);
+
+    void exitPropertyTypeInlineConstraint(Cypher25Parser.PropertyTypeInlineConstraintContext ctx);
+
+    void exitTyped(Cypher25Parser.TypedContext ctx);
+
+    void exitConstraintSpecification(Cypher25Parser.ConstraintSpecificationContext ctx);
 
     void exitRenameCommand(Cypher25Parser.RenameCommandContext ctx);
 

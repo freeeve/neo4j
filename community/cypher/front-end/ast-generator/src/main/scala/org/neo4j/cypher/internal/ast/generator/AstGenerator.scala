@@ -47,6 +47,7 @@ import org.neo4j.cypher.internal.ast.AllTransactionActions
 import org.neo4j.cypher.internal.ast.AllUserActions
 import org.neo4j.cypher.internal.ast.AlterAliasAction
 import org.neo4j.cypher.internal.ast.AlterCompositeDatabaseAction
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType
 import org.neo4j.cypher.internal.ast.AlterDatabase
 import org.neo4j.cypher.internal.ast.AlterDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterLocalDatabaseAlias
@@ -119,8 +120,13 @@ import org.neo4j.cypher.internal.ast.DropServer
 import org.neo4j.cypher.internal.ast.DropUser
 import org.neo4j.cypher.internal.ast.DropUserAction
 import org.neo4j.cypher.internal.ast.DumpData
+import org.neo4j.cypher.internal.ast.EdgeType
+import org.neo4j.cypher.internal.ast.EdgeTypeReferenceByIdentifyingLabel
+import org.neo4j.cypher.internal.ast.EdgeTypeReferenceByLabel
+import org.neo4j.cypher.internal.ast.EdgeTypeReferenceByVariable
 import org.neo4j.cypher.internal.ast.ElementQualifier
 import org.neo4j.cypher.internal.ast.ElementsAllQualifier
+import org.neo4j.cypher.internal.ast.EmptyNodeTypeReference
 import org.neo4j.cypher.internal.ast.EnableServer
 import org.neo4j.cypher.internal.ast.ExecuteAdminProcedureAction
 import org.neo4j.cypher.internal.ast.ExecuteBoostedFunctionAction
@@ -140,6 +146,15 @@ import org.neo4j.cypher.internal.ast.GraphDirectReference
 import org.neo4j.cypher.internal.ast.GraphFunctionReference
 import org.neo4j.cypher.internal.ast.GraphPrivilege
 import org.neo4j.cypher.internal.ast.GraphPrivilegeQualifier
+import org.neo4j.cypher.internal.ast.GraphType
+import org.neo4j.cypher.internal.ast.GraphTypeConstraint.ExistenceConstraint
+import org.neo4j.cypher.internal.ast.GraphTypeConstraint.GraphTypeConstraintBody
+import org.neo4j.cypher.internal.ast.GraphTypeConstraint.KeyConstraint
+import org.neo4j.cypher.internal.ast.GraphTypeConstraint.PropertyTypeConstraint
+import org.neo4j.cypher.internal.ast.GraphTypeConstraint.UniquenessConstraint
+import org.neo4j.cypher.internal.ast.GraphTypeConstraintDefinition
+import org.neo4j.cypher.internal.ast.GraphTypeConstraintName
+import org.neo4j.cypher.internal.ast.GraphTypeElementReference
 import org.neo4j.cypher.internal.ast.Hint
 import org.neo4j.cypher.internal.ast.HomeDatabaseScope
 import org.neo4j.cypher.internal.ast.HomeGraphScope
@@ -187,6 +202,11 @@ import org.neo4j.cypher.internal.ast.NodeAllExistsConstraints
 import org.neo4j.cypher.internal.ast.NodeKeyConstraints
 import org.neo4j.cypher.internal.ast.NodePropExistsConstraints
 import org.neo4j.cypher.internal.ast.NodePropTypeConstraints
+import org.neo4j.cypher.internal.ast.NodeType
+import org.neo4j.cypher.internal.ast.NodeTypeReference
+import org.neo4j.cypher.internal.ast.NodeTypeReferenceByIdentifyingLabel
+import org.neo4j.cypher.internal.ast.NodeTypeReferenceByLabel
+import org.neo4j.cypher.internal.ast.NodeTypeReferenceByVariable
 import org.neo4j.cypher.internal.ast.NodeUniqueConstraints
 import org.neo4j.cypher.internal.ast.OnCreate
 import org.neo4j.cypher.internal.ast.OnMatch
@@ -209,6 +229,10 @@ import org.neo4j.cypher.internal.ast.ProcedureResultItem
 import org.neo4j.cypher.internal.ast.PropExistsConstraints
 import org.neo4j.cypher.internal.ast.PropTypeConstraints
 import org.neo4j.cypher.internal.ast.PropertiesResource
+import org.neo4j.cypher.internal.ast.PropertyType
+import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineConstraintBody
+import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineKeyConstraint
+import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineUniquenessConstraint
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.RangeIndexes
 import org.neo4j.cypher.internal.ast.ReadAction
@@ -558,6 +582,7 @@ import org.scalacheck.util.Buildable
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicLong
 
+import scala.collection.immutable.ArraySeq
 import scala.jdk.CollectionConverters.SetHasAsScala
 import scala.util.Random
 
@@ -2258,6 +2283,8 @@ class AstGenerator(
   // Schema commands
   // ----------------------------------
 
+  // Index and constraint
+
   def _variableProperty: Gen[Property] = for {
     map <- _variable
     key <- _propertyKeyName
@@ -2657,7 +2684,120 @@ class AstGenerator(
 
   def _constraintCommand: Gen[SchemaCommand] = oneOf(_createConstraint, _dropConstraint)
 
-  def _schemaCommand: Gen[SchemaCommand] = oneOf(_indexCommand, _constraintCommand)
+  // Graph Type
+
+  def _inlineConstraintBody: Gen[PropertyInlineConstraintBody] = for {
+    const <- oneOf(PropertyInlineKeyConstraint()(pos), PropertyInlineUniquenessConstraint()(pos))
+  } yield const
+
+  def _propertyType: Gen[PropertyType] = for {
+    keyName <- _propertyKeyName
+    propType <- _cypherTypeName
+    constraint <- option(_inlineConstraintBody)
+  } yield PropertyType(keyName, propType, constraint)(pos)
+
+  def _edgeNode: Gen[NodeTypeReference] = for {
+    ref <- _variable
+    label <- _labelName
+    optRef <- option(ref)
+    labelOrVar <- oneOf(
+      NodeTypeReferenceByVariable(ref)(pos),
+      NodeTypeReferenceByLabel(label)(pos),
+      NodeTypeReferenceByIdentifyingLabel(label, optRef)(pos),
+      EmptyNodeTypeReference()(pos)
+    )
+  } yield labelOrVar
+
+  def _edgeType: Gen[EdgeType] = for {
+    src <- _edgeNode
+    dest <- _edgeNode
+    variable <- option(_variable)
+    relType <- _relTypeName
+    propTypes <- zeroOrMore(_propertyType).map(_.distinctBy(_.name))
+    constraints <- variable.map(v => zeroOrMore(_graphTypeConstraintBody(v, inline = true))).getOrElse(const(Seq()))
+    options <- _optionsMapAsEitherOrNone
+    constraintsWithOptions = constraints.map((_, options)).toSet
+  } yield EdgeType(src, variable, relType, propTypes.toSet, dest, constraintsWithOptions)(pos)
+
+  def _nodeType: Gen[NodeType] = for {
+    label <- _labelName
+    variable <- option(_variable)
+    additionalLabels <- zeroOrMore(_labelName)
+    propTypes <- zeroOrMore(_propertyType).map(_.distinctBy(_.name))
+    constraints <- variable.map(v => zeroOrMore(_graphTypeConstraintBody(v, inline = true))).getOrElse(const(Seq()))
+    options <- _optionsMapAsEitherOrNone
+    constraintsWithOptions = constraints.map((_, options)).toSet
+  } yield NodeType(variable, label, additionalLabels.toSet, propTypes.toSet, constraintsWithOptions)(pos)
+
+  def _graphTypeElementReference(variable: Variable): Gen[GraphTypeElementReference] = for {
+    label <- _labelName
+    nodeLabRef = NodeTypeReferenceByLabel(label, Some(variable))(pos)
+    nodeLabIdentRef = NodeTypeReferenceByIdentifyingLabel(label, Some(variable))(pos)
+    nodeVarRef = NodeTypeReferenceByVariable(variable)(pos)
+    edgeVarRef = EdgeTypeReferenceByVariable(variable)(pos)
+    relType <- _relTypeName
+    relTypeRef = EdgeTypeReferenceByLabel(relType, Some(variable))(pos)
+    relTypeIdentRef = EdgeTypeReferenceByIdentifyingLabel(relType, Some(variable))(pos)
+    ref <- oneOf(nodeLabRef, nodeLabIdentRef, nodeVarRef, edgeVarRef, relTypeRef, relTypeIdentRef)
+  } yield ref
+
+  def _graphTypeConstraintProperty(alias: Variable): Gen[Property] = for {
+    pkn <- _propertyKeyName
+  } yield Property(alias, pkn)(pos)
+
+  def _graphTypeConstraintBody(alias: Variable, inline: Boolean): Gen[GraphTypeConstraintBody] = for {
+    props <- oneOrMore(_graphTypeConstraintProperty(alias))
+    oneProp <- _graphTypeConstraintProperty(alias)
+    ct <- _cypherTypeName
+    key = KeyConstraint(ArraySeq.from(props))(pos)
+    exists = ExistenceConstraint(ArraySeq(oneProp))(pos)
+    unique = UniquenessConstraint(ArraySeq.from(props))(pos)
+    typeConst = PropertyTypeConstraint(ArraySeq(oneProp), ct)(pos)
+    body <- oneOf(key, exists, unique, typeConst)
+    restrictedBody <- oneOf(key, unique)
+  } yield if (inline) restrictedBody else body
+
+  def _graphTypeConstraintDef: Gen[GraphTypeConstraintDefinition] = for {
+    name <- option(_identifier)
+    variable <- _variable
+    ref <- _graphTypeElementReference(variable)
+    options <- _optionsMapAsEitherOrNone
+    body <- _graphTypeConstraintBody(variable, inline = false)
+  } yield GraphTypeConstraintDefinition(name, ref, body, options)(pos)
+
+  def _graphTypeConstraintName: Gen[GraphTypeConstraintName] = for {
+    name <- _identifier
+  } yield GraphTypeConstraintName(name)(pos)
+
+  def _graphType(isDrop: Boolean): Gen[GraphType] = for {
+    nodeTypes <- oneOrMore(_nodeType).map(_.toSet)
+    edgeTypes <- oneOrMore(_edgeType).map(_.toSet)
+    constraintDefs <- zeroOrMore(_graphTypeConstraintDef)
+    constraintNames <- zeroOrMore(_graphTypeConstraintName)
+    constraints = if (isDrop) constraintNames else constraintDefs
+  } yield GraphType(nodeTypes ++ edgeTypes, constraints.toSet)(pos)
+
+  def _alterCurrentGraphTypeCommand: Gen[AlterCurrentGraphType] = for {
+    graphType <- _graphType(false)
+    graphTypeWithConstriantNames <- _graphType(true)
+    operation <- oneOf(
+      AlterCurrentGraphType.Set,
+      AlterCurrentGraphType.Add,
+      AlterCurrentGraphType.Alter,
+      AlterCurrentGraphType.Drop
+    )
+    gt = if (operation == AlterCurrentGraphType.Drop) graphTypeWithConstriantNames else graphType
+  } yield AlterCurrentGraphType(gt, operation)(pos)
+
+  // Top level schema command method
+
+  def _schemaCommand: Gen[SchemaCommand] = {
+    if (whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)) {
+      oneOf(_indexCommand, _constraintCommand)
+    } else {
+      oneOf(_indexCommand, _constraintCommand, _alterCurrentGraphTypeCommand)
+    }
+  }
 
   // Administration commands
   // ----------------------------------

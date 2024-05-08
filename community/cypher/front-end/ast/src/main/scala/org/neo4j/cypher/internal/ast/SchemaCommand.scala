@@ -16,12 +16,14 @@
  */
 package org.neo4j.cypher.internal.ast
 
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType.AlterOperation
 import org.neo4j.cypher.internal.ast.semantics.CypherTypeChecking
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.DynamicLabelExpression
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
 import org.neo4j.cypher.internal.expressions.ElementTypeName
@@ -790,4 +792,44 @@ case class DropConstraintOnName(
 )(val position: InputPosition) extends SchemaCommand {
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
   override def semanticCheck: SemanticCheck = Seq()
+}
+
+case class AlterCurrentGraphType(
+  graphType: GraphType,
+  operation: AlterOperation,
+  useGraph: Option[GraphSelection] = None
+)(
+  val position: InputPosition
+) extends SchemaCommand {
+
+  override def semanticCheck: SemanticCheck =
+    requireFeatureSupport(
+      "`ALTER CURRENT GRAPH TYPE`",
+      SemanticFeature.GraphTypes,
+      position
+    ) chain graphType.semanticCheck
+  override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
+}
+
+object AlterCurrentGraphType {
+
+  sealed trait AlterOperation {
+    def name(): String
+  }
+
+  case object Set extends AlterOperation {
+    override def name(): String = "SET"
+  }
+
+  case object Add extends AlterOperation {
+    override def name(): String = "ADD"
+  }
+
+  case object Drop extends AlterOperation {
+    override def name(): String = "DROP"
+  }
+
+  case object Alter extends AlterOperation {
+    override def name(): String = "ALTER"
+  }
 }

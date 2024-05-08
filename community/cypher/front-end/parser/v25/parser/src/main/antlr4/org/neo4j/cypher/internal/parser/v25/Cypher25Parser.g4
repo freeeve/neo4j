@@ -856,6 +856,17 @@ createCommand
    )
    ;
 
+alterCommand
+   : ALTER (
+      alterAlias
+      | alterCurrentUser
+      | alterCurrentGraphType
+      | alterDatabase
+      | alterUser
+      | alterServer
+   )
+   ;
+
 dropCommand
    : DROP (
       dropAlias
@@ -1100,17 +1111,137 @@ enclosedPropertyList
    : variable property (COMMA variable property)*
    ;
 
-// Admin commands
+// Graph Type Specification
 
-alterCommand
-   : ALTER (
-      alterAlias
-      | alterCurrentUser
-      | alterDatabase
-      | alterUser
-      | alterServer
-   )
+alterCurrentGraphType
+   : CURRENT GRAPH TYPE ( (SET | ADD | ALTER) graphTypeSpecification | DROP graphTypeDropSpecification )
    ;
+
+graphTypeSpecification
+   : LCURLY graphTypeSpecificationBody? RCURLY
+   ;
+
+graphTypeDropSpecification
+   : LCURLY graphTypeDropSpecificationBody? RCURLY
+   ;
+
+graphTypeSpecificationBody
+   : graphTypeElement (COMMA graphTypeElement)*
+   ;
+
+graphTypeDropSpecificationBody
+   : graphTypeDropElement (COMMA graphTypeDropElement)*
+   ;
+
+graphTypeElement
+  : edgeTypeSpecification
+  | nodeTypeSpecification
+  | constraintSpecification
+  ;
+
+graphTypeDropElement
+  : edgeTypeSpecification
+  | nodeTypeSpecification
+  | CONSTRAINT symbolicNameString
+  ;
+
+nodeTypeInlineConstraintList
+   : (constraintType commandOptions?)+
+   ;
+
+edgeTypeInlineConstraintList
+   : (constraintType commandOptions?)+
+   ;
+
+implies
+  : EQ rightArrow
+  | IMPLIES
+  ;
+
+// Node type specification
+
+nodeTypeSpecification
+  : LPAREN variable? identifyingLabel impliedLabelSet? propertyTypeList? RPAREN nodeTypeInlineConstraintList?
+  ;
+
+impliedLabelSet
+  : labelType ( AMPERSAND symbolicNameString )*
+  ;
+
+identifyingLabel
+  : labelType implies
+  ;
+
+// Node type reference
+
+nodeTypeReference
+  : nodeTypeAliasReference
+  | nodeTypeInSituReference
+  ;
+
+nodeTypeAliasReference
+  : LPAREN variable RPAREN
+  ;
+
+nodeTypeInSituReference
+  : LPAREN ( variable? labelType implies? )? RPAREN
+  ;
+
+// Edge type specifcation
+
+edgeTypeSpecification
+  : nodeTypeReference arcTypePointingRight nodeTypeReference edgeTypeInlineConstraintList?
+  ;
+
+arcTypePointingRight
+  : arrowLine LBRACKET variable? identifyingRelationship propertyTypeList? RBRACKET arrowLine rightArrow
+  ;
+
+identifyingRelationship
+  : relType implies
+  ;
+
+// Edge type reference
+
+edgeTypeReference
+  : edgeTypeAliasReference
+  | edgeTypeInSituReference
+  ;
+
+edgeTypeAliasReference
+  : LPAREN RPAREN arrowLine LBRACKET variable RBRACKET arrowLine rightArrow LPAREN RPAREN
+  ;
+
+edgeTypeInSituReference
+  : LPAREN RPAREN arrowLine LBRACKET variable? relType implies? RBRACKET arrowLine rightArrow LPAREN RPAREN
+  ;
+
+// Property Types
+
+propertyTypeList
+  : LCURLY (propertyType ( COMMA propertyType )* )? RCURLY
+  ;
+
+propertyType
+  : propertyKeyName typed? type propertyTypeInlineConstraint?
+  ;
+
+propertyTypeInlineConstraint
+  : IS  ( NODE | RELATIONSHIP | REL )? (KEY | UNIQUE)
+  ;
+
+typed
+  : COLONCOLON
+  | TYPED
+  ;
+
+// Graph Type constraint specification
+
+constraintSpecification
+  : CONSTRAINT symbolicNameString? FOR (nodeTypeReference | edgeTypeReference) constraintType commandOptions?
+  ;
+
+// Admin commands
 
 renameCommand
    : RENAME (renameRole | renameServer | renameUser)
@@ -1839,6 +1970,7 @@ unescapedSymbolicNameString_
    : IDENTIFIER
    | ACCESS
    | ACTIVE
+   | ADD
    | ADMIN
    | ADMINISTRATOR
    | ALIAS
@@ -1945,6 +2077,7 @@ unescapedSymbolicNameString_
    | IF
    | IMMUTABLE
    | IMPERSONATE
+   | IMPLIES
    | IN
    | INDEX
    | INDEXES

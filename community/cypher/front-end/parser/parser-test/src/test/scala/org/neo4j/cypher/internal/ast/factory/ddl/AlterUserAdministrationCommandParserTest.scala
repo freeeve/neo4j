@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.SetHomeDatabaseAction
 import org.neo4j.cypher.internal.ast.SetOwnPassword
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.UserOptions
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.util.symbols.CTAny
 
 import scala.util.Random
@@ -1630,19 +1631,33 @@ class AlterUserAdministrationCommandParserTest extends UserAdministrationCommand
   }
 
   test("ALTER PASSWORD FROM 'current' TO 'new'") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'PASSWORD': expected 'ALIAS', 'DATABASE', 'CURRENT USER SET PASSWORD FROM', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
-        |"ALTER PASSWORD FROM 'current' TO 'new'"
-        |       ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'PASSWORD': expected 'ALIAS', 'DATABASE', 'CURRENT USER SET PASSWORD FROM', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
+            |"ALTER PASSWORD FROM 'current' TO 'new'"
+            |       ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'PASSWORD': expected 'ALIAS', 'CURRENT', 'DATABASE', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
+            |"ALTER PASSWORD FROM 'current' TO 'new'"
+            |       ^""".stripMargin
+        )
+    }
   }
 
   test("ALTER CURRENT PASSWORD FROM 'current' TO 'new'") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'PASSWORD': expected 'USER SET PASSWORD FROM' (line 1, column 15 (offset: 14))
-        |"ALTER CURRENT PASSWORD FROM 'current' TO 'new'"
-        |               ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'PASSWORD': expected 'USER SET PASSWORD FROM' (line 1, column 15 (offset: 14))
+            |"ALTER CURRENT PASSWORD FROM 'current' TO 'new'"
+            |               ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'PASSWORD': expected 'USER SET PASSWORD FROM' or 'GRAPH TYPE' (line 1, column 15 (offset: 14))
+            |"ALTER CURRENT PASSWORD FROM 'current' TO 'new'"
+            |               ^""".stripMargin
+        )
+    }
 
   }
 
