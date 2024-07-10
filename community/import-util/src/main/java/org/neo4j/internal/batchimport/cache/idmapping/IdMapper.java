@@ -46,6 +46,14 @@ public interface IdMapper extends MemoryStatsVisitor.Visitable, AutoCloseable {
     void put(Object inputId, long actualId, Group group);
 
     /**
+     * Removes an existing mapping from {@code inputId} to {@code actualId}.
+     * @param inputId an id of an unknown type, coming from input.
+     * @param actualId the actual node id that the inputId maps to.
+     * @param group the group that the {@code inputId} exists in.
+     */
+    void remove(Object inputId, long actualId, Group group);
+
+    /**
      * @return whether a call to {@link #prepare(PropertyValueLookup, Collector, ProgressMonitorFactory)} needs to commence after all calls to
      * {@link #put(Object, long, Group)} and before any call to {@link Getter#get(Object, Group)}. I.e. whether all ids
      * need to be put before making any call to {@link Getter#get(Object, Group)}.

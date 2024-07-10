@@ -236,6 +236,11 @@ public class EncodingIdMapper implements IdMapper {
         radix.preRegisterRadixOf(eId);
     }
 
+    @Override
+    public void remove(Object inputId, long actualId, Group group) {
+        throw new UnsupportedOperationException();
+    }
+
     private long encode(Object inputId) {
         long eId = encoder.encode(inputId);
         if (eId == GAP_VALUE) {

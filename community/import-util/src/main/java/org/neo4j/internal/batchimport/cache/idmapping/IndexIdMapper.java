@@ -67,6 +67,7 @@ import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
+import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
@@ -152,6 +153,17 @@ public class IndexIdMapper implements IdMapper {
             populator.populator.add(Collections.singleton(update), CursorContext.NULL_CONTEXT);
             populator.populator.includeSample(update);
             numAdded.increment();
+        } catch (IndexEntryConflictException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void remove(Object inputId, long actualId, Group group) {
+        var accessor = accessors.get(group.name());
+        try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, true)) {
+            updater.process(
+                    IndexEntryUpdate.remove(actualId, populators.get(group.name()).descriptor, Values.of(inputId)));
         } catch (IndexEntryConflictException e) {
             throw new RuntimeException(e);
         }

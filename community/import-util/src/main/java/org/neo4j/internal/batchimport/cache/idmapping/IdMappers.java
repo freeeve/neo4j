@@ -53,6 +53,11 @@ public class IdMappers {
         }
 
         @Override
+        public void remove(Object inputId, long actualId, Group group) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public boolean needsPreparation() {
             return false;
         }
