@@ -856,6 +856,16 @@ object SemanticError {
     val gql = GqlHelper.getGql42001_42I45(action, position.line, position.column, position.offset)
     SemanticError(gql, baseMessage + action, position)
   }
+
+  def invalidFieldTerminator(position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.line, position.column, position.offset)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I05)
+        .atPosition(position.line, position.column, position.offset)
+        .build())
+      .build()
+    SemanticError(gql, "CSV field terminator can only be one character wide", position)
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

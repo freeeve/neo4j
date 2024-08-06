@@ -26,6 +26,8 @@ import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class LoadCSVTest extends CypherFunSuite {
 
@@ -71,7 +73,15 @@ class LoadCSVTest extends CypherFunSuite {
         DummyPosition(6)
       )
     val result = loadCSV.semanticCheck.run(SemanticState.clean)
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(0, 0, 0)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I05)
+        .atPosition(0, 0, 0)
+        .build())
+      .build()
+
     assert(result.errors === Vector(SemanticError(
+      gql,
       "CSV field terminator can only be one character wide",
       DummyPosition(0).withInputLength(2)
     )))

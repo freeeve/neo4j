@@ -406,7 +406,7 @@ case class LoadCSV(
   private def checkFieldTerminator: SemanticCheck = {
     fieldTerminator match {
       case Some(literal) if literal.value.length != 1 =>
-        error("CSV field terminator can only be one character wide", literal.position)
+        error(SemanticError.invalidFieldTerminator(literal.position))
       case _ => success
     }
   }
