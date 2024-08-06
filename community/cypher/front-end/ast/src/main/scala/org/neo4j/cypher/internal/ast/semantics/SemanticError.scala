@@ -832,6 +832,11 @@ object SemanticError {
       pos
     )
   }
+  def invalidSubqueryInMerge(position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42I48(position.line, position.column, position.offset)
+    SemanticError(gql, "Subquery expressions are not allowed in a MERGE clause.", position)
+  }
+
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

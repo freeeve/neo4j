@@ -1194,7 +1194,7 @@ case class Merge(pattern: NonPrefixedPatternPart, actions: Seq[MergeAction], whe
 
     hasSubqueryExpression match {
       case subquery +: _ =>
-        SemanticCheck.error(SemanticError("Subquery expressions are not allowed in a MERGE clause.", subquery.position))
+        SemanticCheck.error(SemanticError.invalidSubqueryInMerge(subquery.position))
       case _ => success
     }
   }

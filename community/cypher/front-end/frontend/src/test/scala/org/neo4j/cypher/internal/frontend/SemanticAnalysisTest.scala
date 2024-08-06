@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.util.RepeatedRelationshipReference
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation.from
+import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlHelper.getGql22003
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N39
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N71
@@ -1358,17 +1359,29 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("should not allow subquery expressions in MERGE ON CREATE") {
     run("MERGE (n) ON CREATE SET n.prop = EXISTS { MATCH () } RETURN 1")
-      .hasError("Subquery expressions are not allowed in a MERGE clause.", p(33, 1, 34))
+      .hasError(
+        GqlHelper.getGql42001_42I48(1, 34, 33),
+        "Subquery expressions are not allowed in a MERGE clause.",
+        p(33, 1, 34)
+      )
   }
 
   test("should not allow subquery expressions in MERGE") {
     run("MERGE (n {prop: EXISTS {MATCH ()}}) RETURN n.prop")
-      .hasError("Subquery expressions are not allowed in a MERGE clause.", p(16, 1, 17))
+      .hasError(
+        GqlHelper.getGql42001_42I48(1, 17, 16),
+        "Subquery expressions are not allowed in a MERGE clause.",
+        p(16, 1, 17)
+      )
   }
 
   test("should not allow subquery expressions in MERGE ON SET") {
     run("MERGE (n) ON CREATE SET n.prop = COUNT { MATCH () } RETURN 1")
-      .hasError("Subquery expressions are not allowed in a MERGE clause.", p(33, 1, 34))
+      .hasError(
+        GqlHelper.getGql42001_42I48(1, 34, 33),
+        "Subquery expressions are not allowed in a MERGE clause.",
+        p(33, 1, 34)
+      )
   }
 
   test("should allow index hint with negated predicate") {
