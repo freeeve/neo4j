@@ -166,8 +166,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
                     x.position
                   )
               }
-            case _ =>
-              SemanticError(s"${x.name}(...) requires a pattern containing a single relationship", x.position)
+            case _ => SemanticError.singleRelationshipPatternRequired(x.name, x.position)
           }
 
         def checkKnownEnds: SemanticCheck =

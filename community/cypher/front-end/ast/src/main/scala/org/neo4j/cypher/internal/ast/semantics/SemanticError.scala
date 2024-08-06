@@ -837,6 +837,7 @@ object SemanticError {
       pos
     )
   }
+
   def invalidSubqueryInMerge(position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42I48(position.line, position.column, position.offset)
     SemanticError(gql, "Subquery expressions are not allowed in a MERGE clause.", position)
@@ -865,6 +866,18 @@ object SemanticError {
         .build())
       .build()
     SemanticError(gql, "CSV field terminator can only be one character wide", position)
+  }
+
+  def singleRelationshipPatternRequired(name: String, position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.line, position.column, position.offset)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N40)
+        .atPosition(position.line, position.column, position.offset)
+        .withParam(GqlParams.StringParam.fun, name)
+        .build())
+      .build()
+
+    SemanticError(gql, s"$name(...) requires a pattern containing a single relationship", position)
   }
 }
 
