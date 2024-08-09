@@ -2822,7 +2822,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42I45(
             new GqlStatus("42I45"),
             """
-                    Multiple path patterns cannot be used in the same clause in combination with a selective path selector. { %s }""",
+                    Multiple path patterns cannot be used in the same clause in combination with a selective path selector.{ %s }""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.action},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,

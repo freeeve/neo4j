@@ -883,20 +883,12 @@ case class Match(
    * that there is no other path pattern beside it.
    */
   private def checkDifferentRelationships(state: SemanticState): SemanticCheckResult = {
-    // Let's only mention match modes when that is an available feature
-    def errorMessage: String = if (state.features.contains(SemanticFeature.MatchModes)) {
-      "Multiple path patterns cannot be used in the same clause in combination with a selective path selector. " +
-        "You may want to use multiple MATCH clauses, or you might want to consider using the REPEATABLE ELEMENTS match mode."
-    } else {
-      "Multiple path patterns cannot be used in the same clause in combination with a selective path selector."
-    }
-
     val errors = if (pattern.patternParts.size > 1) {
       pattern.patternParts
         .find(_.isSelective)
         .map(selectivePattern =>
-          SemanticError(
-            errorMessage,
+          SemanticError.invalidUseOfMultiplePathPatterns(
+            state.features.contains(SemanticFeature.MatchModes),
             selectivePattern.position
           )
         )

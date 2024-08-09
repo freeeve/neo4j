@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
+import org.neo4j.gqlstatus.GqlHelper
 
 class MatchModesSemanticAnalysisTest extends CypherFunSuite with SemanticAnalysisTestSuiteWithDefaultQuery
     with TestName {
@@ -45,6 +46,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite with SemanticAnalysi
     }
 
     SemanticError(
+      GqlHelper.getGql42001_42I45(matchModeTip, pos.line, pos.column, pos.offset),
       "Multiple path patterns cannot be used in the same clause in combination with a selective path selector." + matchModeTip,
       pos
     )

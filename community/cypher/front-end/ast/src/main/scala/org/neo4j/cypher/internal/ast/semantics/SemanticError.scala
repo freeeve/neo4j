@@ -837,6 +837,20 @@ object SemanticError {
     SemanticError(gql, "Subquery expressions are not allowed in a MERGE clause.", position)
   }
 
+  def invalidUseOfMultiplePathPatterns(matchModeAvailable: Boolean, position: InputPosition): SemanticError = {
+    val baseMessage =
+      "Multiple path patterns cannot be used in the same clause in combination with a selective path selector."
+
+    // Let's only mention match modes when that is an available feature
+    val action = if (matchModeAvailable) {
+      " You may want to use multiple MATCH clauses, or you might want to consider using the REPEATABLE ELEMENTS match mode."
+    } else {
+      ""
+    }
+
+    val gql = GqlHelper.getGql42001_42I45(action, position.line, position.column, position.offset)
+    SemanticError(gql, baseMessage + action, position)
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef
