@@ -369,7 +369,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
           }
 
       case ParenthesizedPath(NamedPatternPart(variable, _), _) =>
-        error("Sub-path assignment is currently not supported.", variable.position)
+        error(SemanticError.subPathAssignmentNotSupported(variable.position))
       case p @ ParenthesizedPath(patternPart, where) =>
         def checkContainedPatterns: SemanticCheck =
           // patternPart at this point is known to be an AnonymousPatternPart, as we have matched NamedPatternPart above

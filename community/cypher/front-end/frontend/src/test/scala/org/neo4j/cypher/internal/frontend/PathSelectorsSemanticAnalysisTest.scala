@@ -16,6 +16,9 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.gqlstatus.GqlHelper
+
 class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
 
   case class SelectorSyntax(
@@ -178,14 +181,18 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
   }
 
   test(s"MATCH ALL (path = (a)-[r]->+(b)<-[s]-+(c) WHERE length(path) > 3) RETURN path") {
-    run().hasErrorMessages(
-      "Sub-path assignment is currently not supported."
+    run().hasError(
+      GqlHelper.getGql42001_42N42(1, 12, 11),
+      "Sub-path assignment is currently not supported.",
+      InputPosition(11, 1, 12)
     )
   }
 
   test(s"MATCH p = (q = (a)-[r]->+(b)<-[s]-+(c) WHERE length(q) > 3) RETURN p, q") {
-    run().hasErrorMessages(
-      "Sub-path assignment is currently not supported."
+    run().hasError(
+      GqlHelper.getGql42001_42N42(1, 12, 11),
+      "Sub-path assignment is currently not supported.",
+      InputPosition(11, 1, 12)
     )
   }
 

@@ -374,21 +374,7 @@ trait SemanticAnalysisTooling {
   def error(gqlStatusObject: ErrorGqlStatusObject, msg: String, position: InputPosition): SemanticCheck =
     SemanticCheck.error(SemanticError(gqlStatusObject, msg, position))
 
-  def unsupportedRequestErrorOnSystemDatabase(
-    invalidInput: String,
-    legacyMessage: String,
-    position: InputPosition
-  ): SemanticCheck =
-    SemanticCheck.error(SemanticError.unsupportedRequestOnSystemDatabase(invalidInput, legacyMessage, position))
-
-  def invalidInputError(
-    wrongInput: String,
-    forField: String,
-    expectedInput: List[String],
-    legacyMessage: String,
-    position: InputPosition
-  ): SemanticCheck =
-    SemanticCheck.error(SemanticError.invalidInput(wrongInput, forField, expectedInput, legacyMessage, position))
+  def error(semanticError: SemanticError): SemanticCheck = SemanticCheck.error(semanticError)
 
   def specifiedNumberOutOfRangeError(
     component: String,

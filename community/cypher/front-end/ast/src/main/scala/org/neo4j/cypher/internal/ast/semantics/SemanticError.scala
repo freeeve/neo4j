@@ -265,6 +265,11 @@ object SemanticError {
     )
   }
 
+  def subPathAssignmentNotSupported(position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N42(position.line, position.column, position.offset)
+    SemanticError(gql, "Sub-path assignment is currently not supported.", position)
+  }
+
   def unsupportedRequestOnSystemDatabase(
     invalidInput: String,
     legacyMessage: String,
