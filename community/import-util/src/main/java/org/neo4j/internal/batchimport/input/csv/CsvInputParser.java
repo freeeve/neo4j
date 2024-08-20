@@ -111,9 +111,8 @@ public class CsvInputParser implements Closeable {
                     };
                     case TYPE -> visitor.type((String) value);
                     case PROPERTY -> !isEmptyArray(value) && visitor.property(entry.name(), value);
-                    case LABEL -> value.getClass().isArray()
-                            ? visitor.labels((String[]) value)
-                            : visitor.labels(new String[] {(String) value});
+                    case LABEL -> visitor.labels(toStringArray(value));
+                    case REMOVE_LABEL -> visitor.removedLabels(toStringArray(value));
                     case ACTION -> visitor.applicationMode(ApplicationMode.valueOfLenient(value.toString()));
                     default -> throw new IllegalArgumentException(entry.type().toString());
                 };
@@ -161,6 +160,10 @@ public class CsvInputParser implements Closeable {
 
             throw new InputException(message, e);
         }
+    }
+
+    private String[] toStringArray(Object value) {
+        return value.getClass().isArray() ? (String[]) value : new String[] {(String) value};
     }
 
     private static boolean isEmptyArray(Object value) {

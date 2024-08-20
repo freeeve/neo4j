@@ -35,7 +35,6 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -282,7 +281,7 @@ public class DataFactories {
 
         static boolean isRecognizedType(String typeSpec) {
             for (Type type : Type.values()) {
-                if (type.name().equalsIgnoreCase(typeSpec)) {
+                if (type.matches(typeSpec)) {
                     return true;
                 }
             }
@@ -413,14 +412,17 @@ public class DataFactories {
                 type = Type.PROPERTY;
                 extractor = extractors.string();
             } else {
-                if (spec.type().equalsIgnoreCase(Type.ID.name())) {
+                if (Type.ID.matches(spec.type())) {
                     type = Type.ID;
                     group = groups.getOrCreate(spec.group(), spec.options().get("id-type"));
                     extractor = group.specificIdType() != null
                             ? parsePropertyType(group.specificIdType(), extractors)
                             : defaultIdExtractor;
-                } else if (spec.type().equalsIgnoreCase(Type.LABEL.name())) {
+                } else if (Type.LABEL.matches(spec.type())) {
                     type = Type.LABEL;
+                    extractor = extractors.stringArray();
+                } else if (Type.REMOVE_LABEL.matches(spec.type())) {
+                    type = Type.REMOVE_LABEL;
                     extractor = extractors.stringArray();
                 } else if (isRecognizedType(spec.type())) {
                     throw new HeaderException("Unexpected node header type '" + spec.type() + "'");
@@ -458,14 +460,13 @@ public class DataFactories {
                 type = Type.PROPERTY;
                 extractor = extractors.string();
             } else {
-                if (spec.type().equalsIgnoreCase(Type.START_ID.name())
-                        || spec.type().equalsIgnoreCase(Type.END_ID.name())) {
-                    type = Type.valueOf(spec.type().toUpperCase(Locale.ROOT));
+                if (Type.START_ID.matches(spec.type()) || Type.END_ID.matches(spec.type())) {
+                    type = Type.START_ID.matches(spec.type()) ? Type.START_ID : Type.END_ID;
                     group = groups.get(spec.group());
                     extractor = group.specificIdType() != null
                             ? parsePropertyType(group.specificIdType(), extractors)
                             : defaultIdExtractor;
-                } else if (spec.type().equalsIgnoreCase(Type.TYPE.name())) {
+                } else if (Type.TYPE.matches(spec.type())) {
                     type = Type.TYPE;
                     extractor = extractors.string();
                 } else if (isRecognizedType(spec.type())) {

@@ -71,6 +71,7 @@ public class InputEntity implements InputEntityVisitor {
     public Group idGroup;
 
     public final List<String> labels = new ArrayList<>();
+    public final List<String> removedLabels = new ArrayList<>();
     public boolean hasLabelField;
     public long labelField;
 
@@ -154,6 +155,13 @@ public class InputEntity implements InputEntityVisitor {
         checkClear();
         Collections.addAll(this.labels, labels);
         return delegate.labels(labels);
+    }
+
+    @Override
+    public boolean removedLabels(String[] labels) {
+        checkClear();
+        Collections.addAll(this.removedLabels, labels);
+        return delegate.removedLabels(labels);
     }
 
     @Override
@@ -317,6 +325,7 @@ public class InputEntity implements InputEntityVisitor {
         objectId = null;
         idGroup = null;
         labels.clear();
+        removedLabels.clear();
         hasLabelField = false;
         labelField = NULL_ID;
         hasLongStartId = false;
@@ -379,8 +388,13 @@ public class InputEntity implements InputEntityVisitor {
         // labels
         if (hasLabelField) {
             visitor.labelField(labelField);
-        } else if (!labels.isEmpty()) {
-            visitor.labels(labels.toArray(new String[0]));
+        } else {
+            if (!labels.isEmpty()) {
+                visitor.labels(labels.toArray(new String[0]));
+            }
+            if (!removedLabels.isEmpty()) {
+                visitor.removedLabels(removedLabels.toArray(new String[0]));
+            }
         }
 
         // start id

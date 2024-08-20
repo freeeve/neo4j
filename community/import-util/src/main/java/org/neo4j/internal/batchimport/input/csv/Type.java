@@ -25,10 +25,25 @@ package org.neo4j.internal.batchimport.input.csv;
 public enum Type {
     ID,
     PROPERTY,
-    LABEL,
+    LABEL("+LABEL"),
+    REMOVE_LABEL("-LABEL"),
     TYPE,
     START_ID,
     END_ID,
     IGNORE,
-    ACTION
+    ACTION;
+
+    private final String alternativeName;
+
+    Type(String alternativeName) {
+        this.alternativeName = alternativeName;
+    }
+
+    Type() {
+        this.alternativeName = null;
+    }
+
+    public boolean matches(String type) {
+        return type.equalsIgnoreCase(name()) || type.equalsIgnoreCase(alternativeName);
+    }
 }

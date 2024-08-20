@@ -445,6 +445,30 @@ public class DataFactoriesTest {
                         entry("http://example.com/property/name", Type.PROPERTY, extractors.stringArray())));
     }
 
+    @Test
+    void shouldParseRemoveLabelHeader() {
+        // GIVEN
+        var alt1 = seeker(":ID,:LABEL,:REMOVE_LABEL");
+        var alt2 = seeker(":ID,:+LABEL,:-LABEL");
+
+        // WHEN
+        var header1 = defaultFormatNodeFileHeader().create(alt1, COMMAS, IdType.STRING, groups);
+        var header2 = defaultFormatNodeFileHeader().create(alt2, COMMAS, IdType.STRING, groups);
+
+        // THEN
+        var extractors = new Extractors();
+        assertThat(header1.entries())
+                .isEqualTo(array(
+                        entry(null, Type.ID, globalGroup, extractors.string()),
+                        entry(null, Type.LABEL, extractors.stringArray()),
+                        entry(null, Type.REMOVE_LABEL, extractors.stringArray())));
+        assertThat(header2.entries())
+                .isEqualTo(array(
+                        entry(null, Type.ID, globalGroup, extractors.string()),
+                        entry(null, Type.LABEL, extractors.stringArray()),
+                        entry(null, Type.REMOVE_LABEL, extractors.stringArray())));
+    }
+
     private static final Configuration SEEKER_CONFIG =
             Configuration.TABS.toBuilder().withBufferSize(1000).build();
 

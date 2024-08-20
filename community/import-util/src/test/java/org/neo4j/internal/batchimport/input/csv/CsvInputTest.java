@@ -2190,6 +2190,33 @@ class CsvInputTest {
         }
     }
 
+    @Test
+    void shouldParseRemoveLabel() throws IOException {
+        // given
+        var file = writeFile("nodes", ":ID,:ACTION,:-LABEL", "a,U,Label1", "b,U,Label2;Label3");
+
+        // when
+        try (var input = new CsvInput(
+                datas(DataFactories.data(NO_DECORATOR, defaultCharset(), file)),
+                defaultFormatNodeFileHeader(),
+                datas(),
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                INSTANCE)) {
+            try (var nodes = input.nodes(Collector.STRICT).iterator()) {
+                // then
+                assertThat(readNext(nodes)).isTrue();
+                assertThat(visitor.removedLabels).isEqualTo(List.of("Label1"));
+                assertThat(readNext(nodes)).isTrue();
+                assertThat(visitor.removedLabels).isEqualTo(List.of("Label2", "Label3"));
+                assertThat(readNext(nodes)).isFalse();
+            }
+        }
+    }
+
     private Path writeFile(String name, String... lines) throws FileNotFoundException {
         Path file = directory.file(name);
         try (PrintWriter writer = new PrintWriter(file.toFile())) {

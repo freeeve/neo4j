@@ -46,6 +46,8 @@ public interface InputEntityVisitor extends Closeable {
 
     boolean labels(String[] labels);
 
+    boolean removedLabels(String[] labels);
+
     boolean labelField(long labelField);
 
     // For relationships
@@ -105,6 +107,11 @@ public interface InputEntityVisitor extends Closeable {
 
         @Override
         public boolean labels(String[] labels) {
+            return true;
+        }
+
+        @Override
+        public boolean removedLabels(String[] labels) {
             return true;
         }
 
@@ -203,6 +210,11 @@ public interface InputEntityVisitor extends Closeable {
         @Override
         public boolean labels(String[] labels) {
             return actual.labels(labels);
+        }
+
+        @Override
+        public boolean removedLabels(String[] labels) {
+            return actual.removedLabels(labels);
         }
 
         @Override
