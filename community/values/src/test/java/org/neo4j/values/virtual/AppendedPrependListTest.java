@@ -178,6 +178,34 @@ class AppendedPrependListTest {
     }
 
     @Test
+    void shouldReverseAppendToList() {
+        // Given
+        ListValue inner = list(
+                longValue(5L),
+                longValue(6L),
+                longValue(7L),
+                longValue(8L),
+                longValue(9L),
+                longValue(10L),
+                longValue(11L));
+
+        // When
+        ListValue appended = inner.append(longValue(12L)).reverse();
+
+        // Then
+        ListValue expected = list(
+                longValue(12L),
+                longValue(11L),
+                longValue(10L),
+                longValue(9L),
+                longValue(8L),
+                longValue(7L),
+                longValue(6L),
+                longValue(5L));
+        assertListValuesEquals(appended, expected);
+    }
+
+    @Test
     void shouldPrependToList() {
         // Given
         ListValue inner = list(

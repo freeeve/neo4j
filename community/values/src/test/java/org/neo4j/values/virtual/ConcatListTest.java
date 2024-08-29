@@ -101,6 +101,32 @@ class ConcatListTest {
         assertArrayEquals(expected.asArray(), concat.asArray());
     }
 
+    // NOTE: iterating though a reversed set list will be very slow (O(N^2)). At the moment of writing
+    // this, no production code should never do this but we should improve this at some point.
+    @Test
+    void shouldReverseConcatList() {
+        // Given
+        ListValue inner1 = list(stringValue("foo"), longValue(42), booleanValue(true));
+        ListValue inner2 = list(list(stringValue("bar"), intValue(42)));
+        ListValue inner3 = list(map("foo", 1337L, "bar", 42), stringValue("baz"));
+
+        // When
+        ListValue concat = concat(inner1, inner2, inner3).reverse();
+
+        // Then
+        ListValue expected = list(
+                        stringValue("foo"),
+                        longValue(42),
+                        booleanValue(true),
+                        list(stringValue("bar"), intValue(42)),
+                        map("foo", 1337L, "bar", 42),
+                        stringValue("baz"))
+                .reverse();
+        assertEquals(expected, concat);
+        assertEquals(expected.hashCode(), concat.hashCode());
+        assertArrayEquals(expected.asArray(), concat.asArray());
+    }
+
     @Test
     void heapUsageShouldNotOverflow() {
         // Given
