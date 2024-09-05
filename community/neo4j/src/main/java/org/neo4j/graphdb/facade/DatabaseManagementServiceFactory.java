@@ -173,11 +173,12 @@ public class DatabaseManagementServiceFactory {
         edition.createDefaultDatabaseResolver(systemDatabaseProvider);
         globalDependencies.satisfyDependency(edition.getDefaultDatabaseResolver());
 
+        // the clientRoutingDomainChecker is also used by the webserver (resolved via global dependencies)
+        // therefore shall not be moved into the edition module
         var clientRoutingDomainChecker = tryResolveOrCreate(
                 ClientRoutingDomainChecker.class,
                 globalModule.getGlobalDependencies(),
                 () -> edition.createClientRoutingDomainChecker(globalModule));
-
         var routingService = edition.createRoutingService(databaseContextProvider, clientRoutingDomainChecker);
         globalDependencies.satisfyDependency(routingService);
 

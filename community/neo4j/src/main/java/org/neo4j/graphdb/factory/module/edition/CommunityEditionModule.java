@@ -29,6 +29,7 @@ import org.neo4j.bolt.dbapi.BoltGraphDatabaseManagementServiceSPI;
 import org.neo4j.bolt.tx.TransactionManager;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.CommunityDatabaseStateService;
 import org.neo4j.dbms.CommunityKernelPanicListener;
@@ -59,6 +60,7 @@ import org.neo4j.dbms.identity.DefaultIdentityModule;
 import org.neo4j.dbms.identity.ServerIdentity;
 import org.neo4j.dbms.identity.ServerIdentityFactory;
 import org.neo4j.dbms.routing.ClientRoutingDomainChecker;
+import org.neo4j.dbms.routing.CommunityRoutingService;
 import org.neo4j.dbms.routing.DefaultDatabaseAvailabilityChecker;
 import org.neo4j.dbms.routing.DefaultRoutingService;
 import org.neo4j.dbms.routing.LocalRoutingTableServiceValidator;
@@ -239,9 +241,16 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
     @Override
     public RoutingService createRoutingService(
             DatabaseContextProvider<?> databaseContextProvider, ClientRoutingDomainChecker clientRoutingDomainChecker) {
+        var config = globalModule.getGlobalConfig();
+        if (config.get(GraphDatabaseInternalSettings.use_new_routing_stack)) {
+            return new CommunityRoutingService(
+                    databaseContextProvider,
+                    defaultDatabaseResolver,
+                    globalModule.getConnectorPortRegister(),
+                    globalModule.getGlobalConfig());
+        }
         var logService = globalModule.getLogService();
         var portRegister = globalModule.getConnectorPortRegister();
-        var config = globalModule.getGlobalConfig();
         var logProvider = globalModule.getLogService().getInternalLogProvider();
         var databaseAvailabilityChecker = new DefaultDatabaseAvailabilityChecker(databaseContextProvider);
 

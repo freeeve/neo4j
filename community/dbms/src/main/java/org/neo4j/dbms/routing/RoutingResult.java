@@ -33,6 +33,11 @@ public class RoutingResult {
     private final List<SocketAddress> readEndpoints;
     private final long timeToLiveMillis;
 
+    public static RoutingResult single(SocketAddress singleEndpoint, long ttlMillis) {
+        var list = List.of(singleEndpoint);
+        return new RoutingResult(list, list, list, ttlMillis);
+    }
+
     public RoutingResult(
             List<SocketAddress> routeEndpoints,
             List<SocketAddress> writeEndpoints,

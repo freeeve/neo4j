@@ -31,7 +31,6 @@ import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
-import org.neo4j.kernel.database.NormalizedDatabaseName;
 
 public class RoutingException extends GqlException implements Status.HasStatus {
     private final Status status;
@@ -75,9 +74,9 @@ public class RoutingException extends GqlException implements Status.HasStatus {
                         + "GetRoutingTableProcedure, but its value could not be parsed.");
     }
 
-    public static RoutingException boltNotEnabled(NormalizedDatabaseName dbName) {
+    public static RoutingException boltNotEnabled(String dbName) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N70)
-                .withParam(GqlParams.StringParam.db, dbName.name())
+                .withParam(GqlParams.StringParam.db, dbName)
                 .build();
         return new RoutingException(
                 gql,

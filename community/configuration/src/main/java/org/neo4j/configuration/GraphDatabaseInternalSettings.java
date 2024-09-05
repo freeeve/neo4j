@@ -1636,4 +1636,9 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
                     ofEnum(ProcedureClassPreloading.class),
                     ProcedureClassPreloading.ANNOTATED)
             .build();
+
+    @Internal
+    @Description("Use new routing stack")
+    public static final Setting<Boolean> use_new_routing_stack =
+            newBuilder("internal.dbms.routing.new_stack_enabled", BOOL, false).build();
 }

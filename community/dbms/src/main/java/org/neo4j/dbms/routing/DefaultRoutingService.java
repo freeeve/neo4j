@@ -180,7 +180,7 @@ public class DefaultRoutingService implements RoutingService, PanicEventHandler 
 
     private void assertBoltConnectorEnabled(DatabaseReference databaseReference) throws RoutingException {
         if (!boltEnabled.get()) {
-            throw RoutingException.boltNotEnabled(databaseReference.alias());
+            throw RoutingException.boltNotEnabled(databaseReference.alias().name());
         }
     }
 
