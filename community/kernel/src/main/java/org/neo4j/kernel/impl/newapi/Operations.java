@@ -1692,7 +1692,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         unsupportedMessage.append('.');
                     }
 
-                    supported &= checkSupportedInVerson(unsupportedMessage, KernelVersion.VERSION_VECTOR_2_INTRODUCED);
+                    supported &= checkSupportedInVersion(unsupportedMessage, KernelVersion.VERSION_VECTOR_2_INTRODUCED);
                     if (!supported) {
                         throw new UnsupportedOperationException(unsupportedMessage.toString());
                     }
@@ -2031,12 +2031,12 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     private void assertSupportedInVersion(KernelVersion minimumVersionForSupport, String message, Object... args) {
         final var unsupportedMessage = new StringBuilder().append(message.formatted(args));
-        if (!checkSupportedInVerson(unsupportedMessage, minimumVersionForSupport)) {
+        if (!checkSupportedInVersion(unsupportedMessage, minimumVersionForSupport)) {
             throw new UnsupportedOperationException(unsupportedMessage.toString());
         }
     }
 
-    private boolean checkSupportedInVerson(StringBuilder sb, KernelVersion minimumVersionForSupport) {
+    private boolean checkSupportedInVersion(StringBuilder sb, KernelVersion minimumVersionForSupport) {
         final var currentStoreVersion = kernelVersionProvider.kernelVersion();
         if (currentStoreVersion.isAtLeast(minimumVersionForSupport)) {
             // New or upgraded store, good to go
@@ -2332,12 +2332,13 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             throws KernelException {
 
         if (!relationshipEndpointLabelAndNodeLabelExistenceConstraintsEnabled) {
-            throw new UnsupportedOperationException("Relationship endpoint constraints are not enabled, setting: "
-                    + GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints
-                            .name());
+            // To be able to test rolling upgrades we allow relationship endpoint label constraint even when the flag is
+            // off
+            // But the supported version is glorious future which effectively blocks the creation except for in tests
+            assertSupportedInVersion(
+                    KernelVersion.VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED,
+                    "Failed to create relationship endpoint constraint.");
         }
-
-        // TODO: Add assertSupportedInVersion check
 
         RelationshipEndpointLabelConstraintDescriptor constraint =
                 lockAndValidateRelationshipEndpointLabelConstraint(schema, name, endpointLabelId, endpointType);
@@ -2421,12 +2422,12 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             NodeLabelExistenceSchemaDescriptor schema, String name, int requiredLabelId) throws KernelException {
 
         if (!relationshipEndpointLabelAndNodeLabelExistenceConstraintsEnabled) {
-            throw new UnsupportedOperationException("Node label existence constraints are not enabled, setting: "
-                    + GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints
-                            .name());
+            // To be able to test rolling upgrades we allow node label existence constraint even when the flag is off
+            // But the supported version is glorious future which effectively blocks the creation except for in tests
+            assertSupportedInVersion(
+                    KernelVersion.VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED,
+                    "Failed to create label existence constraint.");
         }
-
-        // TODO: Add assertSupportedInVersion check
 
         NodeLabelExistenceConstraintDescriptor constraint =
                 lockAndValidateNodeLabelExistenceConstraint(schema, name, requiredLabelId);

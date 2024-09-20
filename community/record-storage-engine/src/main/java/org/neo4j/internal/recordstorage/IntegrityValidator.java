@@ -21,6 +21,7 @@ package org.neo4j.internal.recordstorage;
 
 import static org.neo4j.kernel.KernelVersion.LATEST_SCHEMA_CHANGE;
 import static org.neo4j.kernel.KernelVersion.VERSION_NODE_VECTOR_INDEX_INTRODUCED;
+import static org.neo4j.kernel.KernelVersion.VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED;
 import static org.neo4j.kernel.KernelVersion.VERSION_REL_UNIQUE_CONSTRAINTS_INTRODUCED;
 import static org.neo4j.kernel.KernelVersion.VERSION_TYPE_CONSTRAINTS_INTRODUCED;
 import static org.neo4j.kernel.KernelVersion.VERSION_UNIONS_AND_LIST_TYPE_CONSTRAINTS_INTRODUCED;
@@ -101,6 +102,20 @@ class IntegrityValidator {
                         && kernelVersion.isLessThan(VERSION_UNIONS_AND_LIST_TYPE_CONSTRAINTS_INTRODUCED)) {
                     throw upgradeNeededForSchemaRule(
                             schemaType, constraint, kernelVersion, VERSION_UNIONS_AND_LIST_TYPE_CONSTRAINTS_INTRODUCED);
+                }
+            }
+
+            // TODO turn check on at a later time,
+            //  leaving like this for now so we don't have to do excessive hacking in tests
+            if (false && constraint.isRelationshipEndpointLabelConstraint()
+                    || constraint.isNodeLabelExistenceConstraint()) {
+                if (kernelVersion.isLessThan(
+                        VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED)) {
+                    throw upgradeNeededForSchemaRule(
+                            schemaType,
+                            constraint,
+                            kernelVersion,
+                            VERSION_RELATIONSHIP_ENDPOINT_LABEL_AND_LABEL_EXISTENCE_CONSTRAINTS_INTRODUCED);
                 }
             }
 
