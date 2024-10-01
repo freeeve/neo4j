@@ -78,11 +78,11 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
                 // again if possible
                 // and we report that we reach end of record stream from our point of view.
                 // Let's double-check that it isn't a corrupt byte by checking part of the tail first
-                checkSmallChunkOfTail(channel, channel.getCurrentLogPosition(), null);
+                checkSmallChunkOfTail(channel, channel.getCurrentLogPosition());
                 rewindToEntryStartPosition(channel, positionMarker, entryStartPosition);
                 return null;
             }
-            updateParserSet(channel, versionCode, entryStartPosition);
+            updateParserSet(channel, versionCode);
 
             byte typeCode = channel.get();
             LogEntry entry = readEntry(channel, versionCode, typeCode);
@@ -111,9 +111,9 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
         checkTail(channel, currentLogPosition, (int) kibiBytes(16), true, e);
     }
 
-    private static void checkSmallChunkOfTail(
-            ReadableLogPositionAwareChannel channel, LogPosition currentLogPosition, Exception e) throws IOException {
-        checkTail(channel, currentLogPosition, (int) kibiBytes(1), false, e);
+    private static void checkSmallChunkOfTail(ReadableLogPositionAwareChannel channel, LogPosition currentLogPosition)
+            throws IOException {
+        checkTail(channel, currentLogPosition, (int) kibiBytes(1), false, null);
     }
 
     private static void checkTail(
@@ -146,8 +146,7 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
         }
     }
 
-    private void updateParserSet(ReadableLogPositionAwareChannel channel, byte versionCode, long entryStartPosition)
-            throws IOException {
+    private void updateParserSet(ReadableLogPositionAwareChannel channel, byte versionCode) throws IOException {
         if (parserSet != null && parserSet.getIntroductionVersion().version() == versionCode) {
             return; // We already have the correct parser set
         }

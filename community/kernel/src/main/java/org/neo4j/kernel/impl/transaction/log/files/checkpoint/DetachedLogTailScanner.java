@@ -59,7 +59,6 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
-import org.neo4j.kernel.impl.transaction.log.entry.UnsupportedLogVersionException;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkEnd;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
@@ -118,7 +117,6 @@ public class DetachedLogTailScanner {
                 return noCheckpointLogTail(logFile, highestLogVersion, lowestLogVersion);
             }
             var checkpoint = lastAccessibleCheckpoint.get();
-            verifyKernelVersion(checkpoint.kernelVersionByte());
             verifyCheckpointPosition(checkpoint.channelPositionAfterCheckpoint());
             // found checkpoint pointing to existing position in existing log file
             if (isValidCheckpoint(logFile, checkpoint)) {
@@ -141,23 +139,10 @@ public class DetachedLogTailScanner {
                     return validCheckpointLogTail(logFile, highestLogVersion, lowestLogVersion, previousCheckpoint);
                 }
             }
-            // we did not found any valid, we need to restore from the start if possible
+            // we did not find any valid, we need to restore from the start if possible
             return noCheckpointLogTail(logFile, highestLogVersion, lowestLogVersion);
         } catch (Throwable t) {
             throw new RuntimeException(t);
-        }
-    }
-
-    private void verifyKernelVersion(byte kernelVersionByte) {
-        KernelVersion kernelVersion;
-        try {
-            kernelVersion = KernelVersion.getForVersion(kernelVersionByte);
-        } catch (IllegalArgumentException e) {
-            throw UnsupportedLogVersionException.unsupported(binarySupportedKernelVersions, kernelVersionByte);
-        }
-
-        if (!binarySupportedKernelVersions.latestSupportedIsAtLeast(kernelVersion)) {
-            throw UnsupportedLogVersionException.unsupported(binarySupportedKernelVersions, kernelVersionByte);
         }
     }
 

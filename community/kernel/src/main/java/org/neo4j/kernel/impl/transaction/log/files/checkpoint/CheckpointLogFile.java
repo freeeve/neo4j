@@ -24,7 +24,6 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.BIGGEST_HEAD
 import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
 import static org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointInfoFactory.ofLogEntry;
 import static org.neo4j.kernel.impl.transaction.log.rotation.FileLogRotation.checkpointLogRotation;
-import static org.neo4j.storageengine.AppendIndexProvider.BASE_APPEND_INDEX;
 import static org.neo4j.storageengine.api.CommandReaderFactory.NO_COMMANDS;
 
 import java.io.IOException;
@@ -135,8 +134,6 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
             return Optional.empty();
         }
 
-        byte lastObservedKernelVersion = 0;
-        LogPosition lastCheckpointLocation = null;
         long lowestVersion = versionVisitor.getLowestVersion();
         long currentVersion = highestVersion;
 
@@ -153,11 +150,9 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
                         var logEntryCursor = new LogEntryCursor(checkpointReader, reader)) {
                     log.info("Scanning log file with version %d for checkpoint entries", currentVersion);
                     try {
-                        lastCheckpointLocation = reader.getCurrentLogPosition();
+                        LogPosition lastCheckpointLocation = reader.getCurrentLogPosition();
                         while (logEntryCursor.next()) {
                             var checkpoint = (AbstractVersionAwareLogEntry) logEntryCursor.get();
-                            lastObservedKernelVersion =
-                                    checkpoint.kernelVersion().version();
                             checkpointEntry = new CheckpointEntryInfo(
                                     checkpoint, lastCheckpointLocation, reader.getCurrentLogPosition());
                             lastCheckpointLocation = checkpointEntry.channelPositionAfterCheckpoint;
@@ -165,12 +160,9 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
                         if (checkpointEntry != null) {
                             return Optional.of(createCheckpointInfo(checkpointEntry, reader));
                         }
-                    } catch (Error | ClosedByInterruptException e) {
+                    } catch (Error | ClosedByInterruptException | UnsupportedLogVersionException e) {
                         throw e;
                     } catch (Throwable t) {
-                        if (t instanceof UnsupportedLogVersionException e) {
-                            lastObservedKernelVersion = e.getKernelVersion();
-                        }
                         monitor.corruptedCheckpointFile(currentVersion, t);
                         if (checkpointEntry != null) {
                             return Optional.of(createCheckpointInfo(checkpointEntry, reader));
@@ -210,20 +202,6 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
                 }
             }
             currentVersion--;
-        }
-        if (lastObservedKernelVersion != 0) {
-            return Optional.of(new CheckpointInfo(
-                    LogPosition.UNSPECIFIED,
-                    LogPosition.UNSPECIFIED,
-                    null,
-                    lastCheckpointLocation,
-                    lastCheckpointLocation,
-                    LogPosition.UNSPECIFIED,
-                    null,
-                    lastObservedKernelVersion,
-                    null,
-                    BASE_APPEND_INDEX,
-                    "Corrupt checkpoint file"));
         }
         return Optional.empty();
     }
