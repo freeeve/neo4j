@@ -23,6 +23,8 @@ import static org.neo4j.index.internal.gbptree.ValueMerger.MergeResult.MERGED;
 import static org.neo4j.index.internal.gbptree.ValueMerger.MergeResult.REMOVED;
 
 import java.util.Arrays;
+import java.util.List;
+import org.eclipse.collections.impl.list.mutable.FastList;
 import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.index.internal.gbptree.ValueMerger;
 import org.neo4j.index.internal.gbptree.Writer;
@@ -180,24 +182,38 @@ class TokenIndexUpdater implements IndexUpdater {
         int currentTokenId = lowestTokenId;
         value.clear();
         key.clear();
+        List<Change> changes = parallel ? FastList.newList() : null;
         while (currentTokenId != Integer.MAX_VALUE) {
             int nextTokenId = Integer.MAX_VALUE;
             for (int i = 0; i < pendingUpdatesCursor; i++) {
                 LogicalTokenUpdates update = pendingUpdates[i];
                 long entityId = update.entityId();
-                nextTokenId = extractChange(update.additions(), currentTokenId, entityId, nextTokenId, true);
-                nextTokenId = extractChange(update.removals(), currentTokenId, entityId, nextTokenId, false);
+                nextTokenId = extractChange(update.additions(), currentTokenId, entityId, nextTokenId, true, changes);
+                nextTokenId = extractChange(update.removals(), currentTokenId, entityId, nextTokenId, false, changes);
             }
             currentTokenId = nextTokenId;
         }
-        flushPendingRange();
+        flushPendingRange(changes);
         pendingUpdatesCursor = 0;
+
         if (parallel) {
+            for (Change change : changes) {
+                writeChange(change.key, change.value, change.addition);
+            }
             writer.yield();
         }
     }
 
-    private int extractChange(int[] tokens, int currentTokenId, long entityId, int nextTokenId, boolean addition) {
+    private void writeChange(TokenScanKey key, TokenScanValue value, boolean addition) {
+        if (addition) {
+            writer.merge(key, value, ADD_MERGER);
+        } else {
+            writer.mergeIfExists(key, value, REMOVE_MERGER);
+        }
+    }
+
+    private int extractChange(
+            int[] tokens, int currentTokenId, long entityId, int nextTokenId, boolean addition, List<Change> changes) {
         int foundNextTokenId = nextTokenId;
         for (int li = 0; li < tokens.length; li++) {
             int tokenId = tokens[li];
@@ -207,7 +223,7 @@ class TokenIndexUpdater implements IndexUpdater {
 
             // Have this check here so that we can pick up the next tokenId in our change set
             if (tokenId == currentTokenId) {
-                change(currentTokenId, entityId, addition);
+                change(currentTokenId, entityId, addition, changes);
 
                 // We can do a little shorter check for next tokenId here straight away,
                 // we just check the next if it's less than what we currently think is next tokenId
@@ -230,10 +246,10 @@ class TokenIndexUpdater implements IndexUpdater {
         return foundNextTokenId;
     }
 
-    private void change(int tokenId, long entityId, boolean add) {
+    private void change(int tokenId, long entityId, boolean add, List<Change> changes) {
         long idRange = idLayout.rangeOf(entityId);
         if (tokenId != key.tokenId || idRange != key.idRange || addition != add) {
-            flushPendingRange();
+            flushPendingRange(changes);
 
             // Set key to current and reset value
             key.tokenId = tokenId;
@@ -245,13 +261,14 @@ class TokenIndexUpdater implements IndexUpdater {
         value.set(offset);
     }
 
-    private void flushPendingRange() {
+    private void flushPendingRange(List<Change> changes) {
         if (value.bits != 0) {
             // There are changes in the current range, flush them
-            if (addition) {
-                writer.merge(key, value, ADD_MERGER);
+            if (parallel) {
+                changes.add(new Change(
+                        new TokenScanKey(key.tokenId, key.idRange), new TokenScanValue(value.bits), addition));
             } else {
-                writer.mergeIfExists(key, value, REMOVE_MERGER);
+                writeChange(key, value, addition);
             }
             value.clear();
         }
@@ -276,4 +293,6 @@ class TokenIndexUpdater implements IndexUpdater {
             throw new IllegalStateException("Updater has been closed");
         }
     }
+
+    record Change(TokenScanKey key, TokenScanValue value, boolean addition) {}
 }

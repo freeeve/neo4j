@@ -31,6 +31,12 @@ class TokenScanValue {
      */
     long bits;
 
+    TokenScanValue() {}
+
+    TokenScanValue(long bits) {
+        this.bits = bits;
+    }
+
     /**
      * Sets bit at given {@code index}, where {@code index=0} is the lowest index, {@code index=63} the highest.
      *
