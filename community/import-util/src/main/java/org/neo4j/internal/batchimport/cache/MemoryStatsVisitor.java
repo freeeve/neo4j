@@ -30,7 +30,7 @@ public interface MemoryStatsVisitor {
         void acceptMemoryStatsVisitor(MemoryStatsVisitor visitor);
     }
 
-    void heapUsage(long bytes);
+    default void heapUsage(long bytes) {}
 
-    void offHeapUsage(long bytes);
+    default void offHeapUsage(long bytes) {}
 }
