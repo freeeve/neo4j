@@ -166,6 +166,7 @@ public class RelationshipImporter extends EntityImporter {
             relationshipRecord.setId(relationshipIds.nextId(cursorContext));
             if (schemaMonitor.endOfEntity(
                     relationshipRecord.getId(),
+                    SchemaMonitor.NO_EXISTING_PROPERTY_KEYS_LOOKUP,
                     (entityId, tokens, properties, constraintDescription) ->
                             badCollector.collectRelationshipViolatingConstraint(
                                     namedProperties(properties),

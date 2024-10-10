@@ -207,7 +207,7 @@ class NodeImporterTest {
         verify(schemaMonitor).property(keyIds("key2")[0], "value2");
         verify(schemaMonitor).property(keyIds("key3")[0], "value3");
         verify(schemaMonitor).entityTokens(labelIds("label1", "label2"));
-        verify(schemaMonitor).endOfEntity(anyLong(), any());
+        verify(schemaMonitor).endOfEntity(anyLong(), any(), any());
     }
 
     private int[] labelIds(String... labels) throws KernelException {

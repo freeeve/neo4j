@@ -19,46 +19,83 @@
  */
 package org.neo4j.internal.batchimport;
 
-import java.util.HashMap;
 import org.eclipse.collections.api.factory.primitive.IntSets;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
+import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
+import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.impl.factory.primitive.IntObjectMaps;
 import org.neo4j.common.EntityType;
 import org.neo4j.internal.schema.SchemaCache;
 
 public class ImportPropertyConstraintEnforcer {
-    private final IntObjectMap<int[]> propertyExistenceConstraints;
+    private final IntObjectMap<MutableIntSet> entityTokenToPropertyKeys;
+    private final IntObjectMap<MutableIntSet> propertyKeyToEntityTokens;
 
     public ImportPropertyConstraintEnforcer(SchemaCache schemaCache, EntityType entityType) {
-        this.propertyExistenceConstraints = buildPropertyExistenceConstraintsMap(schemaCache, entityType);
+        this.entityTokenToPropertyKeys = buildPropertyExistenceConstraintsMap(schemaCache, entityType);
+        this.propertyKeyToEntityTokens = entityTokenToPropertyKeys != null ? reverse(entityTokenToPropertyKeys) : null;
     }
 
-    private static IntObjectMap<int[]> buildPropertyExistenceConstraintsMap(
+    private static IntObjectMap<MutableIntSet> buildPropertyExistenceConstraintsMap(
             SchemaCache schemaCache, EntityType entityType) {
-        var builder = new HashMap<Integer, MutableIntSet>();
+        MutableIntObjectMap<MutableIntSet> map = IntObjectMaps.mutable.empty();
         for (var constraint : schemaCache.constraints()) {
             if (constraint.enforcesPropertyExistence() && constraint.schema().entityType() == entityType) {
                 var schema = constraint.schema();
                 for (var entityToken : schema.getEntityTokenIds()) {
-                    builder.computeIfAbsent(entityToken, t -> IntSets.mutable.empty())
-                            .addAll(schema.getPropertyIds());
+                    map.getIfAbsentPut(entityToken, IntSets.mutable.empty()).addAll(schema.getPropertyIds());
                 }
             }
         }
-        if (builder.isEmpty()) {
-            return null;
+        return map.isEmpty() ? null : map;
+    }
+
+    private IntObjectMap<MutableIntSet> reverse(IntObjectMap<MutableIntSet> entityTokenToPropertyKeys) {
+        MutableIntObjectMap<MutableIntSet> reversed = IntObjectMaps.mutable.empty();
+        entityTokenToPropertyKeys.forEachKeyValue((entityToken, propertyKeys) -> propertyKeys.forEach(
+                key -> reversed.getIfAbsentPut(key, IntSets.mutable::empty).add(entityToken)));
+        return reversed;
+    }
+
+    public boolean hasPropertyExistenceConstraints() {
+        return entityTokenToPropertyKeys != null;
+    }
+
+    public IntSet mandatoryPropertyKeys(int entityToken) {
+        return !hasPropertyExistenceConstraints()
+                ? IntSets.immutable.empty()
+                : entityTokenToPropertyKeys.get(entityToken);
+    }
+
+    public IntSet mandatoryPropertyKeys(int[] entityTokens) {
+        return buildTokenIds(entityTokens, entityTokenToPropertyKeys);
+    }
+
+    public IntSet entityTokensRelatedToPropertyKeys(int[] propertyKeys) {
+        return buildTokenIds(propertyKeys, propertyKeyToEntityTokens);
+    }
+
+    private IntSet buildTokenIds(int[] tokens, IntObjectMap<MutableIntSet> mapping) {
+        if (!hasPropertyExistenceConstraints()) {
+            return IntSets.immutable.empty();
         }
-        var propertyExistenceConstraints = IntObjectMaps.mutable.<int[]>empty();
-        builder.forEach((key, value) -> propertyExistenceConstraints.put(key, value.toSortedArray()));
-        return propertyExistenceConstraints;
+        var result = IntSets.mutable.empty();
+        for (int entityToken : tokens) {
+            var mapped = mapping.get(entityToken);
+            if (mapped != null) {
+                result.addAll(mapped);
+            }
+        }
+        return result;
     }
 
-    public boolean isEmpty() {
-        return propertyExistenceConstraints == null;
+    public boolean hasPropertyTypeConstraints() {
+        return false;
     }
 
-    public int[] mandatoryPropertyKeys(int entityToken) {
-        return isEmpty() ? null : propertyExistenceConstraints.get(entityToken);
+    public boolean validatePropertyType(int propertyKeyId, Object value) {
+        // TODO implement property value type checking
+        return true;
     }
 }

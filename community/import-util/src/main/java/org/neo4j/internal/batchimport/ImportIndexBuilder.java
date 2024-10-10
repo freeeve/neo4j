@@ -27,10 +27,13 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.OpenOption;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -47,21 +50,25 @@ import org.neo4j.configuration.Config;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
+import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.io.memory.UnsafeDirectByteBufferAllocator;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
+import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexEntryConflictHandler;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
+import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
+import org.neo4j.storageengine.api.UpdateMode;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Value;
@@ -82,13 +89,17 @@ public class ImportIndexBuilder implements Closeable {
     private final LongToLongFunction entityIdFromIndexIdConverter;
     private final Configuration configuration;
     private final IndexStatisticsStore indexStatisticsStore;
-    private final Map<IndexDescriptor, IndexPopulator> indexPopulators = new ConcurrentHashMap<>();
-    private final Lock populatorConstructionLock = new ReentrantLock();
+    private final Map<IndexDescriptor, IndexBuilder> indexBuilders = new ConcurrentHashMap<>();
+    private final Lock builderConstructionLock = new ReentrantLock();
     private final ByteBufferFactory bufferFactory;
     private final MutableLongSet violatingEntities = LongSets.mutable.empty().asSynchronized();
     private final StorageEngineIndexingBehaviour indexingBehaviour;
     private final boolean incrementalIndexing;
+    private final Set<IndexDescriptor> excludedIndexes;
 
+    /**
+     * @param incrementalIndexing {@code true} if build/merge is split and right now we're doing build.
+     */
     public ImportIndexBuilder(
             FileSystemAbstraction fileSystem,
             IndexProviderMap indexProviderMap,
@@ -101,7 +112,8 @@ public class ImportIndexBuilder implements Closeable {
             Configuration configuration,
             IndexStatisticsStore indexStatisticsStore,
             StorageEngineIndexingBehaviour indexingBehaviour,
-            boolean incrementalIndexing) {
+            boolean incrementalIndexing,
+            Set<IndexDescriptor> excludedIndexes) {
         this.fileSystem = fileSystem;
         this.indexProviderMap = indexProviderMap;
         this.tempIndexes = tempIndexes;
@@ -114,20 +126,30 @@ public class ImportIndexBuilder implements Closeable {
         this.indexStatisticsStore = indexStatisticsStore;
         this.indexingBehaviour = indexingBehaviour;
         this.incrementalIndexing = incrementalIndexing;
+        this.excludedIndexes = excludedIndexes;
         this.bufferFactory = new ByteBufferFactory(
                 UnsafeDirectByteBufferAllocator::new,
                 Config.defaults().get(index_populator_block_size).intValue());
     }
 
     public void add(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
-        var populator = getIndexPopulator(indexUpdate.indexKey());
-        try {
-            var update = convertEntityId(indexUpdate);
-            populator.add(List.of(update), NULL_CONTEXT);
-            populator.includeSample(update);
-        } catch (IndexEntryConflictException e) {
-            throw new RuntimeException(e);
+        if (!excludedIndexes.contains(indexUpdate.indexKey())) {
+            var builder = getIndexBuilder(indexUpdate.indexKey());
+            builder.add(convertEntityId(indexUpdate));
         }
+    }
+
+    /**
+     * Used to update uniqueness indexes and must be applied directly because the result
+     * (whether conflicting or not) must be known as a result.
+     * @return {@code true} if the index update was applied w/o problems, otherwise {@code false}.
+     */
+    public boolean addDirect(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
+        if (!excludedIndexes.contains(indexUpdate.indexKey())) {
+            var builder = getIndexBuilder(indexUpdate.indexKey());
+            return builder.addDirect(convertEntityId(indexUpdate));
+        }
+        return true;
     }
 
     private IndexEntryUpdate<IndexDescriptor> convertEntityId(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
@@ -150,21 +172,38 @@ public class ImportIndexBuilder implements Closeable {
         return indexUpdate;
     }
 
-    private IndexPopulator getIndexPopulator(IndexDescriptor index) {
-        var populator = indexPopulators.get(index);
-        if (populator == null) {
-            populatorConstructionLock.lock();
+    private IndexBuilder getIndexBuilder(IndexDescriptor index) {
+        var builder = indexBuilders.get(index);
+        if (builder == null) {
+            builderConstructionLock.lock();
             try {
-                populator = indexPopulators.get(index);
-                if (populator == null) {
-                    populator = constructIndexPopulator(index);
-                    indexPopulators.put(index, populator);
+                builder = indexBuilders.get(index);
+                if (builder == null) {
+                    var populator = constructIndexPopulator(index);
+                    var accessor = constructIndexAccessor(index);
+                    builder = new IndexBuilder(populator, accessor);
+                    indexBuilders.put(index, builder);
                 }
             } finally {
-                populatorConstructionLock.unlock();
+                builderConstructionLock.unlock();
             }
         }
-        return populator;
+        return builder;
+    }
+
+    private IndexAccessor constructIndexAccessor(IndexDescriptor index) {
+        var indexProvider = indexProviderMap.lookup(index.getIndexProvider());
+        try {
+            return indexProvider.getOnlineAccessor(
+                    index,
+                    new IndexSamplingConfig(Config.defaults()),
+                    tokenNameLookup,
+                    ElementIdMapper.PLACEHOLDER,
+                    openOptions,
+                    indexingBehaviour);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private IndexPopulator constructIndexPopulator(IndexDescriptor index) {
@@ -191,9 +230,11 @@ public class ImportIndexBuilder implements Closeable {
      * such that they can be scheduled with "scanCompleted" calls to other index populations.
      */
     public void completeBuild(Collector collector, Consumer<Runnable> scheduler) {
-        for (var population : indexPopulators.entrySet()) {
+        for (var population : indexBuilders.entrySet()) {
             // Complete the population of the increment index
-            var populator = population.getValue();
+            var builder = population.getValue();
+            builder.flush();
+            var populator = builder.populator;
             scheduler.accept(() -> {
                 var conflictHandler = new RecordingIndexEntryConflictHandler(
                         collector,
@@ -221,32 +262,24 @@ public class ImportIndexBuilder implements Closeable {
         // Merge increments into copied-target-indexes and skip (and remember) those that violate constraints
         var indexSamplingConfig = new IndexSamplingConfig(Config.defaults());
         try {
-            for (var population : indexPopulators.entrySet()) {
+            for (var population : indexBuilders.entrySet()) {
                 var descriptor = population.getKey();
+                var builder = population.getValue();
                 var conflictHandler = new RecordingIndexEntryConflictHandler(
                         collector, violatingEntities, descriptor, tokenNameLookup, entityIdFromIndexIdConverter);
                 // For constraint indexes checking violations
                 if (descriptor.isUnique()) {
                     // Validate uniqueness, since it's a constraint index
-                    try (var copiedIncrementIndex = indexProviderMap
-                                    .lookup(descriptor.getIndexProvider())
-                                    .getOnlineAccessor(
-                                            descriptor,
-                                            indexSamplingConfig,
-                                            tokenNameLookup,
-                                            ElementIdMapper.PLACEHOLDER,
-                                            openOptions,
-                                            indexingBehaviour);
-                            var builtIncrementIndex = tempIndexes
-                                    .lookup(descriptor.getIndexProvider())
-                                    .getOnlineAccessor(
-                                            descriptor,
-                                            indexSamplingConfig,
-                                            tokenNameLookup,
-                                            ElementIdMapper.PLACEHOLDER,
-                                            openOptions,
-                                            indexingBehaviour)) {
-                        copiedIncrementIndex.validate(
+                    try (var builtIncrementIndex = tempIndexes
+                            .lookup(descriptor.getIndexProvider())
+                            .getOnlineAccessor(
+                                    descriptor,
+                                    indexSamplingConfig,
+                                    tokenNameLookup,
+                                    ElementIdMapper.PLACEHOLDER,
+                                    openOptions,
+                                    indexingBehaviour)) {
+                        builder.accessor.validate(
                                 builtIncrementIndex,
                                 true,
                                 conflictHandler,
@@ -262,31 +295,25 @@ public class ImportIndexBuilder implements Closeable {
                     ? null
                     : indexEntityId -> !skippedEntityIds.contains(indexEntityId)
                             && !violatingEntities.contains(entityIdFromIndexIdConverter.applyAsLong(indexEntityId));
-            for (var descriptor : indexPopulators.keySet()) {
+            for (var population : indexBuilders.entrySet()) {
+                var descriptor = population.getKey();
+                var builder = population.getValue();
                 if (!descriptor.isUnique() && filter == null && incrementalIndexing) {
                     // For non-constraint indexes we can simply move the increment index into place
                     // if there are no violations.
+                    builder.close();
                     moveIndex(fileSystem, tempIndexes, indexProviderMap, descriptor);
                 } else {
-                    try (var copiedIncrementIndex = indexProviderMap
-                                    .lookup(descriptor.getIndexProvider())
-                                    .getOnlineAccessor(
-                                            descriptor,
-                                            indexSamplingConfig,
-                                            tokenNameLookup,
-                                            ElementIdMapper.PLACEHOLDER,
-                                            openOptions,
-                                            indexingBehaviour);
-                            var builtIncrementIndex = tempIndexes
-                                    .lookup(descriptor.getIndexProvider())
-                                    .getOnlineAccessor(
-                                            descriptor,
-                                            indexSamplingConfig,
-                                            tokenNameLookup,
-                                            ElementIdMapper.PLACEHOLDER,
-                                            openOptions,
-                                            indexingBehaviour)) {
-                        copiedIncrementIndex.insertFrom(
+                    try (var builtIncrementIndex = tempIndexes
+                            .lookup(descriptor.getIndexProvider())
+                            .getOnlineAccessor(
+                                    descriptor,
+                                    indexSamplingConfig,
+                                    tokenNameLookup,
+                                    ElementIdMapper.PLACEHOLDER,
+                                    openOptions,
+                                    indexingBehaviour)) {
+                        builder.accessor.insertFrom(
                                 builtIncrementIndex,
                                 null,
                                 false,
@@ -295,7 +322,7 @@ public class ImportIndexBuilder implements Closeable {
                                 configuration.maxNumberOfWorkerThreads(),
                                 workScheduler.jobScheduler(),
                                 ProgressListener.NONE);
-                        copiedIncrementIndex.force(FileFlushEvent.NULL, NULL_CONTEXT);
+                        builder.accessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
                     }
                 }
             }
@@ -311,13 +338,15 @@ public class ImportIndexBuilder implements Closeable {
 
     public LongSet affectedIndexes() {
         var ids = LongSets.mutable.empty();
-        indexPopulators.keySet().stream().map(IndexDescriptor::getId).forEach(ids::add);
+        indexBuilders.keySet().stream().map(IndexDescriptor::getId).forEach(ids::add);
         return ids;
     }
 
     @Override
     public void close() throws IOException {
-        bufferFactory.close();
+        List<AutoCloseable> toClose = new ArrayList<>(indexBuilders.values());
+        toClose.add(bufferFactory);
+        IOUtils.closeAll(toClose);
     }
 
     private record RecordingIndexEntryConflictHandler(
@@ -348,6 +377,86 @@ public class ImportIndexBuilder implements Closeable {
                 properties.put(tokenNameLookup.propertyKeyGetName(propertyIds[i]), values[i].asObjectCopy());
             }
             return properties;
+        }
+    }
+
+    private static class IndexBuilder implements AutoCloseable {
+        private final IndexPopulator populator;
+        private final List<IndexUpdatesBatch> allChanges = new CopyOnWriteArrayList<>();
+        private final ThreadLocal<IndexUpdatesBatch> changes;
+        private final IndexAccessor accessor;
+
+        IndexBuilder(IndexPopulator populator, IndexAccessor accessor) {
+            this.populator = populator;
+            this.changes = ThreadLocal.withInitial(() -> {
+                var indexUpdatesBatch = new IndexUpdatesBatch(accessor);
+                allChanges.add(indexUpdatesBatch);
+                return indexUpdatesBatch;
+            });
+            this.accessor = accessor;
+        }
+
+        void add(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
+            if (indexUpdate.updateMode() == UpdateMode.ADDED) {
+                try {
+                    populator.add(List.of(indexUpdate), NULL_CONTEXT);
+                    populator.includeSample(indexUpdate);
+                } catch (IndexEntryConflictException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                changes.get().add(indexUpdate);
+            }
+        }
+
+        boolean addDirect(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
+            assert indexUpdate.updateMode() == UpdateMode.ADDED || indexUpdate.updateMode() == UpdateMode.REMOVED;
+            try (var updater = accessor.newUpdater(IndexUpdateMode.DIRECT, NULL_CONTEXT, true)) {
+                updater.process(indexUpdate);
+            } catch (IndexEntryConflictException e) {
+                return false;
+            }
+            return true;
+        }
+
+        void flush() {
+            for (IndexUpdatesBatch batch : allChanges) {
+                batch.flushChanges();
+            }
+        }
+
+        @Override
+        public void close() {
+            accessor.close();
+        }
+    }
+
+    private static class IndexUpdatesBatch {
+        private static final int BATCH_SIZE = 100;
+
+        private final List<IndexEntryUpdate<IndexDescriptor>> changes = new ArrayList<>();
+        private final IndexAccessor accessor;
+
+        IndexUpdatesBatch(IndexAccessor accessor) {
+            this.accessor = accessor;
+        }
+
+        void add(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
+            changes.add(indexUpdate);
+            if (changes.size() == BATCH_SIZE) {
+                flushChanges();
+            }
+        }
+
+        private void flushChanges() {
+            try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, true)) {
+                for (var change : changes) {
+                    updater.process(change);
+                }
+                changes.clear();
+            } catch (IndexEntryConflictException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 }

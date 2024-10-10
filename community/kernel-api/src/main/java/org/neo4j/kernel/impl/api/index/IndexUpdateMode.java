@@ -23,24 +23,28 @@ public enum IndexUpdateMode {
     /**
      * Used when the db is online
      */
-    ONLINE(false, true),
+    ONLINE(false, true, true),
 
     /**
      * Used when flipping from populating to online
      */
-    ONLINE_IDEMPOTENT(true, true),
+    ONLINE_IDEMPOTENT(true, true, true),
 
     /**
      * Used when the db is recovering
      */
-    RECOVERY(true, false);
+    RECOVERY(true, false, true),
+
+    DIRECT(false, false, false);
 
     private final boolean idempotency;
     private final boolean refresh;
+    private final boolean includeEntityIdInUniqueness;
 
-    IndexUpdateMode(boolean idempotency, boolean refresh) {
+    IndexUpdateMode(boolean idempotency, boolean refresh, boolean includeEntityIdInUniqueness) {
         this.idempotency = idempotency;
         this.refresh = refresh;
+        this.includeEntityIdInUniqueness = includeEntityIdInUniqueness;
     }
 
     public boolean requiresIdempotency() {
@@ -49,5 +53,9 @@ public enum IndexUpdateMode {
 
     public boolean requiresRefresh() {
         return refresh;
+    }
+
+    public boolean includeEntityIdInUniqueness() {
+        return includeEntityIdInUniqueness;
     }
 }

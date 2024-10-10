@@ -189,6 +189,7 @@ public class NodeImporter extends EntityImporter {
         // Write data to stores
         if (schemaMonitor.endOfEntity(
                 nodeRecord.getId(),
+                SchemaMonitor.NO_EXISTING_PROPERTY_KEYS_LOOKUP,
                 (entityId, tokens, properties, constraintDescription) -> badCollector.collectEntityViolatingConstraint(
                         inputId, entityId, namedProperties(properties), constraintDescription, EntityType.NODE))) {
             nodeRecord.setNextProp(createAndWritePropertyChain(cursorContext));

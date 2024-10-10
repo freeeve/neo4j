@@ -96,9 +96,12 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
                 return new NativeIndexUpdater<>(
                                 layout.newKey(),
                                 indexUpdateIgnoreStrategy(),
-                                new ThrowingConflictDetector<>(true, descriptor.schema()))
+                                new ThrowingConflictDetector<>(
+                                        !descriptor.isUnique() || mode.includeEntityIdInUniqueness(),
+                                        descriptor.schema()))
                         .initialize(tree.writer(cursorContext));
             } else {
+                assert mode.includeEntityIdInUniqueness();
                 return singleUpdater.initialize(tree.writer(W_BATCHED_SINGLE_THREADED, cursorContext));
             }
         } catch (IOException e) {

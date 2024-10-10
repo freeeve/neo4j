@@ -31,8 +31,10 @@ import java.io.UncheckedIOException;
 import java.nio.file.OpenOption;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
@@ -349,6 +351,10 @@ public class IndexIdMapper implements IdMapper {
 
     @Override
     public void acceptMemoryStatsVisitor(MemoryStatsVisitor visitor) {}
+
+    public Set<IndexDescriptor> indexDescriptors() {
+        return new HashSet<>(indexDescriptors.values());
+    }
 
     private record Index(ValueIndexReader reader, SchemaDescriptor schemaDescriptor) implements Closeable {
         @Override

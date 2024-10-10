@@ -19,14 +19,30 @@
  */
 package org.neo4j.internal.batchimport;
 
+import org.eclipse.collections.api.factory.primitive.IntSets;
 import org.eclipse.collections.api.list.primitive.IntList;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
+import org.eclipse.collections.api.set.primitive.IntSet;
+import org.neo4j.batchimport.api.input.ApplicationMode;
+import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.values.storable.Value;
 
 public interface SchemaMonitor {
+    ExistingPropertyKeysLookup NO_EXISTING_PROPERTY_KEYS_LOOKUP = (entityId, keysToLookup) -> IntSets.immutable.empty();
+
     SchemaMonitor NO_MONITOR = new SchemaMonitor() {
         @Override
+        public void applicationMode(ApplicationMode mode) {}
+
+        @Override
         public void property(int propertyKeyId, Object value) {}
+
+        @Override
+        public void removedProperty(int propertyKeyId) {}
+
+        @Override
+        public void existingEntityTokens(int[] entityTokens) {}
 
         @Override
         public void entityToken(int entityTokenId) {}
@@ -35,20 +51,54 @@ public interface SchemaMonitor {
         public void entityTokens(int[] entityTokenIds) {}
 
         @Override
-        public boolean endOfEntity(long entityId, ViolationVisitor violationVisitor) {
+        public void removedEntityTokens(int[] entityTokens) {}
+
+        @Override
+        public boolean endOfEntity(
+                long entityId,
+                ExistingPropertyKeysLookup existingPropertyKeysLookup,
+                ViolationVisitor violationVisitor) {
             return true;
         }
+
+        @Override
+        public void indexUpdate(IndexEntryUpdate<IndexDescriptor> indexUpdate) {}
+
+        @Override
+        public void reset() {}
     };
 
+    void applicationMode(ApplicationMode mode);
+
     void property(int propertyKeyId, Object value);
+
+    void removedProperty(int propertyKeyId);
+
+    void existingEntityTokens(int[] entityTokens);
 
     void entityToken(int entityTokenId);
 
     void entityTokens(int[] entityTokenIds);
 
-    boolean endOfEntity(long entityId, ViolationVisitor violationVisitor);
+    void removedEntityTokens(int[] entityTokens);
+
+    boolean endOfEntity(
+            long entityId, ExistingPropertyKeysLookup existingPropertyKeysLookup, ViolationVisitor violationVisitor);
+
+    /**
+     * Used when there's something figuring out relevant index updates for an updated entity,
+     * for updated entities where existing data is also read
+     * @param indexUpdate index update to apply.
+     */
+    void indexUpdate(IndexEntryUpdate<IndexDescriptor> indexUpdate);
+
+    void reset();
 
     interface ViolationVisitor {
         void accept(long entityId, IntList tokens, IntObjectMap<Value> properties, String constraintDescription);
+    }
+
+    interface ExistingPropertyKeysLookup {
+        IntSet lookup(long entityId, IntSet keysToLookup);
     }
 }
