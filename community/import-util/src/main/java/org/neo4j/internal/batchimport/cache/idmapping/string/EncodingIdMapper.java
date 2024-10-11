@@ -205,6 +205,17 @@ public class EncodingIdMapper implements IdMapper {
 
     @Override
     public Getter newGetter() {
+        if (inputIdLookup == null) {
+            return new Getter() {
+                @Override
+                public long get(Object inputId, Group group) {
+                    return ID_NOT_FOUND;
+                }
+
+                @Override
+                public void close() {}
+            };
+        }
         return new LocalGetter();
     }
 
