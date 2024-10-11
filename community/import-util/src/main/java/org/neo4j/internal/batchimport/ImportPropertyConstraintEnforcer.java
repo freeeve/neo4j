@@ -19,6 +19,11 @@
  */
 package org.neo4j.internal.batchimport;
 
+import static java.util.Collections.emptyList;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import org.eclipse.collections.api.factory.primitive.IntSets;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
@@ -27,13 +32,16 @@ import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.impl.factory.primitive.IntObjectMaps;
 import org.neo4j.common.EntityType;
 import org.neo4j.internal.schema.SchemaCache;
+import org.neo4j.internal.schema.constraints.PropertyTypeSet;
 
 public class ImportPropertyConstraintEnforcer {
     private final IntObjectMap<MutableIntSet> entityTokenToPropertyKeys;
     private final IntObjectMap<MutableIntSet> propertyKeyToEntityTokens;
+    private final IntObjectMap<List<PropertyAndType>> typeConstraints;
 
     public ImportPropertyConstraintEnforcer(SchemaCache schemaCache, EntityType entityType) {
         this.entityTokenToPropertyKeys = buildPropertyExistenceConstraintsMap(schemaCache, entityType);
+        this.typeConstraints = buildPropertyTypeConstraintsMap(schemaCache, entityType);
         this.propertyKeyToEntityTokens = entityTokenToPropertyKeys != null ? reverse(entityTokenToPropertyKeys) : null;
     }
 
@@ -49,6 +57,22 @@ public class ImportPropertyConstraintEnforcer {
             }
         }
         return map.isEmpty() ? null : map;
+    }
+
+    private static IntObjectMap<List<PropertyAndType>> buildPropertyTypeConstraintsMap(
+            SchemaCache schemaCache, EntityType entityType) {
+        MutableIntObjectMap<List<PropertyAndType>> map = IntObjectMaps.mutable.empty();
+        for (var constraint : schemaCache.constraints()) {
+            if (constraint.enforcesPropertyType() && constraint.schema().entityType() == entityType) {
+                final var typeConstraint = constraint.asPropertyTypeConstraint();
+                var schema = constraint.schema();
+                for (var entityToken : schema.getEntityTokenIds()) {
+                    map.getIfAbsentPut(entityToken, ArrayList::new)
+                            .add(new PropertyAndType(schema.getPropertyId(), typeConstraint.propertyType()));
+                }
+            }
+        }
+        return map;
     }
 
     private IntObjectMap<MutableIntSet> reverse(IntObjectMap<MutableIntSet> entityTokenToPropertyKeys) {
@@ -91,11 +115,15 @@ public class ImportPropertyConstraintEnforcer {
     }
 
     public boolean hasPropertyTypeConstraints() {
-        return false;
+        return typeConstraints != null;
     }
 
-    public boolean validatePropertyType(int propertyKeyId, Object value) {
-        // TODO implement property value type checking
-        return true;
+    public Iterable<PropertyAndType> propertyTypeConstraints(int entityToken) {
+        if (!hasPropertyTypeConstraints()) {
+            return emptyList();
+        }
+        return typeConstraints.getIfAbsent(entityToken, Collections::emptyList);
     }
+
+    record PropertyAndType(int propertyKeyId, PropertyTypeSet type) {}
 }

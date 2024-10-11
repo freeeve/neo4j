@@ -31,6 +31,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.eclipse.collections.api.block.function.primitive.LongToLongFunction;
 import org.eclipse.collections.api.factory.primitive.IntSets;
+import org.eclipse.collections.api.list.primitive.IntList;
 import org.eclipse.collections.api.list.primitive.MutableIntList;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.api.set.ImmutableSet;
@@ -46,6 +47,7 @@ import org.neo4j.common.TokenNameLookup;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaCache;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
+import org.neo4j.internal.schema.constraints.TypeRepresentation;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
@@ -387,9 +389,21 @@ public class OtherAffectedSchemaMonitors implements Supplier<SchemaMonitor>, Clo
 
         private boolean checkPropertyTypeConstraints(long entityId, ViolationVisitor violationVisitor) {
             if (propertyConstraints.hasPropertyTypeConstraints()) {
-                for (var property : properties.keyValuesView()) {
-                    if (!propertyConstraints.validatePropertyType(property.getOne(), property.getTwo())) {
-                        violationVisitor.accept(entityId, entityTokens, properties, "a property type constraint");
+                return checkPropertyTypeConstraints(entityId, violationVisitor, entityTokens)
+                        && checkPropertyTypeConstraints(entityId, violationVisitor, existingEntityTokens);
+            }
+            return true;
+        }
+
+        private boolean checkPropertyTypeConstraints(long entityId, ViolationVisitor violationVisitor, IntList tokens) {
+            var tokenIterator = tokens.intIterator();
+            while (tokenIterator.hasNext()) {
+                int token = tokenIterator.next();
+                for (var typeConstraint : propertyConstraints.propertyTypeConstraints(token)) {
+                    var value = properties.get(typeConstraint.propertyKeyId());
+                    if (TypeRepresentation.disallows(typeConstraint.type(), value)) {
+                        violationVisitor.accept(
+                                entityId, entityTokens, properties, "a property type constraint " + value);
                         return false;
                     }
                 }
