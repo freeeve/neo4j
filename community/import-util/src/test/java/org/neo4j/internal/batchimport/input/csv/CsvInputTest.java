@@ -2217,6 +2217,58 @@ class CsvInputTest {
         }
     }
 
+    @Test
+    void shouldParseRemoveProperty() throws IOException {
+        // given
+        var file = writeFile("nodes", ":ID,:ACTION,unwantedProp:-PROPERTY,wantedProp", "a,U,x,val");
+
+        // when
+        try (var input = new CsvInput(
+                datas(DataFactories.data(NO_DECORATOR, defaultCharset(), file)),
+                defaultFormatNodeFileHeader(),
+                datas(),
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                INSTANCE)) {
+            try (var nodes = input.nodes(Collector.STRICT).iterator()) {
+                // then
+                assertThat(readNext(nodes)).isTrue();
+                assertThat(visitor.propertiesAsMap()).isEqualTo(Map.of("wantedProp", "val"));
+                assertThat(visitor.removedProperties).isEqualTo(List.of("unwantedProp"));
+                assertThat(readNext(nodes)).isFalse();
+            }
+        }
+    }
+
+    @Test
+    void shouldParseRemoveProperties() throws IOException {
+        // given
+        var file = writeFile("nodes", ":ID,:ACTION,:-PROPERTY,wantedProp", "a,U,unwanted1;unwanted2,val");
+
+        // when
+        try (var input = new CsvInput(
+                datas(DataFactories.data(NO_DECORATOR, defaultCharset(), file)),
+                defaultFormatNodeFileHeader(),
+                datas(),
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                INSTANCE)) {
+            try (var nodes = input.nodes(Collector.STRICT).iterator()) {
+                // then
+                assertThat(readNext(nodes)).isTrue();
+                assertThat(visitor.propertiesAsMap()).isEqualTo(Map.of("wantedProp", "val"));
+                assertThat(visitor.removedProperties).isEqualTo(List.of("unwanted1", "unwanted2"));
+                assertThat(readNext(nodes)).isFalse();
+            }
+        }
+    }
+
     private Path writeFile(String name, String... lines) throws FileNotFoundException {
         Path file = directory.file(name);
         try (PrintWriter writer = new PrintWriter(file.toFile())) {

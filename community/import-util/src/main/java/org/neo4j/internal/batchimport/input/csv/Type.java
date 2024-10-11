@@ -25,6 +25,7 @@ package org.neo4j.internal.batchimport.input.csv;
 public enum Type {
     ID,
     PROPERTY,
+    REMOVE_PROPERTY("-PROPERTY"),
     LABEL("+LABEL"),
     REMOVE_LABEL("-LABEL"),
     TYPE,

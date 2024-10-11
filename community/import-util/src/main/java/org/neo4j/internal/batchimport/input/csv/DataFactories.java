@@ -230,6 +230,56 @@ public class DataFactories {
             return new Header(entries);
         }
 
+        @Override
+        public Entry create(
+                String sourceDescription,
+                int entryIndex,
+                HeaderEntrySpec spec,
+                Extractors extractors,
+                Extractor<?> idExtractor,
+                Groups groups,
+                Monitor monitor) {
+            if (spec.type() == null) {
+                return new Header.Entry(spec.rawEntry(), spec.name(), Type.PROPERTY, null, extractors.string());
+            }
+
+            var specificEntry =
+                    createSpecific(sourceDescription, entryIndex, spec, extractors, idExtractor, groups, monitor);
+            if (specificEntry != null) {
+                return specificEntry;
+            }
+
+            Type type;
+            Extractor<?> extractor;
+            CSVHeaderInformation optionalParameter = null;
+            Group group = null;
+            if (Type.REMOVE_PROPERTY.matches(spec.type())) {
+                type = Type.REMOVE_PROPERTY;
+                if (spec.name() != null) {
+                    extractor = extractors.string();
+                } else {
+                    extractor = extractors.stringArray();
+                }
+            } else if (isRecognizedType(spec.type())) {
+                throw new HeaderException("Unexpected header type '" + spec.type() + "'");
+            } else {
+                type = Type.PROPERTY;
+                extractor = propertyExtractor(sourceDescription, spec.name(), spec.type(), extractors, monitor);
+                optionalParameter = parseOptionalParameter(extractor, spec.options());
+            }
+            return new Header.Entry(
+                    spec.rawEntry(), spec.name(), type, group, extractor, spec.options(), optionalParameter);
+        }
+
+        protected abstract Entry createSpecific(
+                String sourceDescription,
+                int entryIndex,
+                HeaderEntrySpec spec,
+                Extractors extractors,
+                Extractor<?> idExtractor,
+                Groups groups,
+                Monitor monitor);
+
         private void validateHeader(Entry[] entries, CharSeeker dataSeeker) {
             // This specific map exists to give a more specific exception for some cases
             Map<String, Entry> idProperties = new HashMap<>();
@@ -394,7 +444,7 @@ public class DataFactories {
         }
 
         @Override
-        public Entry create(
+        public Entry createSpecific(
                 String sourceDescription,
                 int entryIndex,
                 HeaderEntrySpec spec,
@@ -408,29 +458,20 @@ public class DataFactories {
             Extractor<?> extractor;
             CSVHeaderInformation optionalParameter = null;
             Group group = null;
-            if (spec.type() == null) {
-                type = Type.PROPERTY;
-                extractor = extractors.string();
+            if (Type.ID.matches(spec.type())) {
+                type = Type.ID;
+                group = groups.getOrCreate(spec.group(), spec.options().get("id-type"));
+                extractor = group.specificIdType() != null
+                        ? parsePropertyType(group.specificIdType(), extractors)
+                        : defaultIdExtractor;
+            } else if (Type.LABEL.matches(spec.type())) {
+                type = Type.LABEL;
+                extractor = extractors.stringArray();
+            } else if (Type.REMOVE_LABEL.matches(spec.type())) {
+                type = Type.REMOVE_LABEL;
+                extractor = extractors.stringArray();
             } else {
-                if (Type.ID.matches(spec.type())) {
-                    type = Type.ID;
-                    group = groups.getOrCreate(spec.group(), spec.options().get("id-type"));
-                    extractor = group.specificIdType() != null
-                            ? parsePropertyType(group.specificIdType(), extractors)
-                            : defaultIdExtractor;
-                } else if (Type.LABEL.matches(spec.type())) {
-                    type = Type.LABEL;
-                    extractor = extractors.stringArray();
-                } else if (Type.REMOVE_LABEL.matches(spec.type())) {
-                    type = Type.REMOVE_LABEL;
-                    extractor = extractors.stringArray();
-                } else if (isRecognizedType(spec.type())) {
-                    throw new HeaderException("Unexpected node header type '" + spec.type() + "'");
-                } else {
-                    type = Type.PROPERTY;
-                    extractor = propertyExtractor(sourceDescription, spec.name(), spec.type(), extractors, monitor);
-                    optionalParameter = parseOptionalParameter(extractor, spec.options());
-                }
+                return null;
             }
             return new Header.Entry(
                     spec.rawEntry(), spec.name(), type, group, extractor, spec.options(), optionalParameter);
@@ -444,7 +485,7 @@ public class DataFactories {
         }
 
         @Override
-        public Entry create(
+        public Entry createSpecific(
                 String sourceDescription,
                 int entryIndex,
                 HeaderEntrySpec spec,
@@ -456,26 +497,17 @@ public class DataFactories {
             Extractor<?> extractor;
             CSVHeaderInformation optionalParameter = null;
             Group group = null;
-            if (spec.type() == null) { // Property
-                type = Type.PROPERTY;
+            if (Type.START_ID.matches(spec.type()) || Type.END_ID.matches(spec.type())) {
+                type = Type.START_ID.matches(spec.type()) ? Type.START_ID : Type.END_ID;
+                group = groups.get(spec.group());
+                extractor = group.specificIdType() != null
+                        ? parsePropertyType(group.specificIdType(), extractors)
+                        : defaultIdExtractor;
+            } else if (Type.TYPE.matches(spec.type())) {
+                type = Type.TYPE;
                 extractor = extractors.string();
             } else {
-                if (Type.START_ID.matches(spec.type()) || Type.END_ID.matches(spec.type())) {
-                    type = Type.START_ID.matches(spec.type()) ? Type.START_ID : Type.END_ID;
-                    group = groups.get(spec.group());
-                    extractor = group.specificIdType() != null
-                            ? parsePropertyType(group.specificIdType(), extractors)
-                            : defaultIdExtractor;
-                } else if (Type.TYPE.matches(spec.type())) {
-                    type = Type.TYPE;
-                    extractor = extractors.string();
-                } else if (isRecognizedType(spec.type())) {
-                    throw new HeaderException("Unexpected relationship header type '" + spec.type() + "'");
-                } else {
-                    type = Type.PROPERTY;
-                    extractor = propertyExtractor(sourceDescription, spec.name(), spec.type(), extractors, monitor);
-                    optionalParameter = parseOptionalParameter(extractor, spec.options());
-                }
+                return null;
             }
             return new Header.Entry(
                     spec.rawEntry(), spec.name(), type, group, extractor, spec.options(), optionalParameter);

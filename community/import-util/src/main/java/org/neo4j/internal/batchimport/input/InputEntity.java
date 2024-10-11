@@ -62,6 +62,7 @@ public class InputEntity implements InputEntityVisitor {
     public long propertyId;
     public boolean hasIntPropertyKeyIds;
     public final List<Object> properties = new ArrayList<>();
+    public final List<String> removedProperties = new ArrayList<>();
     public ByteBuffer encodedProperties;
     public boolean propertiesOffloaded;
 
@@ -111,6 +112,7 @@ public class InputEntity implements InputEntityVisitor {
 
     @Override
     public boolean property(String key, Object value) {
+        assert value != Values.NO_VALUE;
         checkClear();
         properties.add(key);
         properties.add(value);
@@ -119,11 +121,19 @@ public class InputEntity implements InputEntityVisitor {
 
     @Override
     public boolean property(int propertyKeyId, Object value) {
+        assert value != Values.NO_VALUE;
         checkClear();
         hasIntPropertyKeyIds = true;
         properties.add(propertyKeyId);
         properties.add(value);
         return delegate.property(propertyKeyId, value);
+    }
+
+    @Override
+    public boolean removedProperties(String[] keys) {
+        checkClear();
+        Collections.addAll(removedProperties, keys);
+        return delegate.removedProperties(keys);
     }
 
     @Override
@@ -318,6 +328,7 @@ public class InputEntity implements InputEntityVisitor {
         propertyId = NULL_ID;
         hasIntPropertyKeyIds = false;
         properties.clear();
+        removedProperties.clear();
         encodedProperties = null;
         propertiesOffloaded = false;
         hasLongId = false;

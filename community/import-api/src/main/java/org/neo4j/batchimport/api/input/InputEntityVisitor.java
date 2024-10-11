@@ -37,6 +37,8 @@ public interface InputEntityVisitor extends Closeable {
 
     boolean property(int propertyKeyId, Object value);
 
+    boolean removedProperties(String[] keys);
+
     // For nodes
     boolean id(long id);
 
@@ -87,6 +89,11 @@ public interface InputEntityVisitor extends Closeable {
 
         @Override
         public boolean propertyId(long nextProp) {
+            return true;
+        }
+
+        @Override
+        public boolean removedProperties(String[] keys) {
             return true;
         }
 
@@ -190,6 +197,11 @@ public interface InputEntityVisitor extends Closeable {
         @Override
         public boolean property(int propertyKeyId, Object value) {
             return actual.property(propertyKeyId, value);
+        }
+
+        @Override
+        public boolean removedProperties(String[] keys) {
+            return actual.removedProperties(keys);
         }
 
         @Override

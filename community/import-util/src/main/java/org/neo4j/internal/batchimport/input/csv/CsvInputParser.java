@@ -111,6 +111,10 @@ public class CsvInputParser implements Closeable {
                     };
                     case TYPE -> visitor.type((String) value);
                     case PROPERTY -> !isEmptyArray(value) && visitor.property(entry.name(), value);
+                    case REMOVE_PROPERTY -> {
+                        var keys = entry.name() == null ? toStringArray(value) : new String[] {entry.name()};
+                        yield visitor.removedProperties(keys);
+                    }
                     case LABEL -> visitor.labels(toStringArray(value));
                     case REMOVE_LABEL -> visitor.removedLabels(toStringArray(value));
                     case ACTION -> visitor.applicationMode(ApplicationMode.valueOfLenient(value.toString()));
