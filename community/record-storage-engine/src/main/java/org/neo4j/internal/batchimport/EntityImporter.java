@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
+import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.batchimport.api.input.InputEntityVisitor;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.batchimport.DataImporter.Monitor;
@@ -221,6 +222,14 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter {
         primitiveRecord().setIdTo(propertyRecord);
         propertyRecord.setCreated();
         return propertyRecord;
+    }
+
+    @Override
+    public boolean applicationMode(ApplicationMode mode) {
+        if (mode != ApplicationMode.CREATE) {
+            throw new UnsupportedOperationException("Only supports creating new entities");
+        }
+        return true;
     }
 
     @Override

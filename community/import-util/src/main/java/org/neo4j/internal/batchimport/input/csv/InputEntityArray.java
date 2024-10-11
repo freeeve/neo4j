@@ -22,6 +22,7 @@ package org.neo4j.internal.batchimport.input.csv;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.InputEntityVisitor;
 import org.neo4j.internal.batchimport.input.InputEntity;
@@ -114,6 +115,11 @@ public class InputEntityArray implements InputEntityVisitor {
     @Override
     public boolean type(String type) {
         return currentEntity().type(type);
+    }
+
+    @Override
+    public boolean applicationMode(ApplicationMode mode) {
+        return currentEntity().applicationMode(mode);
     }
 
     @Override

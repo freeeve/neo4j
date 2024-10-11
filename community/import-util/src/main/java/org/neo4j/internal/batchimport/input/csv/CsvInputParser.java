@@ -24,6 +24,7 @@ import static java.lang.String.format;
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.InputEntityVisitor;
@@ -113,6 +114,7 @@ public class CsvInputParser implements Closeable {
                     case LABEL -> value.getClass().isArray()
                             ? visitor.labels((String[]) value)
                             : visitor.labels(new String[] {(String) value});
+                    case ACTION -> visitor.applicationMode(ApplicationMode.valueOfLenient(value.toString()));
                     default -> throw new IllegalArgumentException(entry.type().toString());
                 };
 

@@ -198,6 +198,8 @@ public class DataFactories {
                 HeaderEntrySpec spec = !extractors.string().isEmpty(rawEntry) ? parseHeaderEntrySpec(rawEntry) : null;
                 if (spec == null || Type.IGNORE.name().equals(spec.type())) {
                     columns.add(new Entry(rawEntry, null, Type.IGNORE, null, null));
+                } else if (Type.ACTION.name().equals(spec.type())) {
+                    columns.add(new Entry(rawEntry, null, Type.ACTION, null, extractors.string()));
                 } else {
                     columns.add(entryFactory.create(
                             dataSeeker.sourceDescription(), i, spec, extractors, idExtractor, groups, monitor));

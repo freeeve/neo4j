@@ -61,6 +61,8 @@ public interface InputEntityVisitor extends Closeable {
 
     boolean type(String type);
 
+    boolean applicationMode(ApplicationMode mode);
+
     void endOfEntity() throws IOException;
 
     void reset();
@@ -138,6 +140,11 @@ public interface InputEntityVisitor extends Closeable {
 
         @Override
         public boolean labelField(long labelField) {
+            return true;
+        }
+
+        @Override
+        public boolean applicationMode(ApplicationMode mode) {
             return true;
         }
 
@@ -231,6 +238,11 @@ public interface InputEntityVisitor extends Closeable {
         @Override
         public boolean type(String type) {
             return actual.type(type);
+        }
+
+        @Override
+        public boolean applicationMode(ApplicationMode mode) {
+            return actual.applicationMode(mode);
         }
 
         @Override

@@ -38,6 +38,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.neo4j.batchimport.api.input.ApplicationMode.CREATE;
+import static org.neo4j.batchimport.api.input.ApplicationMode.DELETE;
+import static org.neo4j.batchimport.api.input.ApplicationMode.UPDATE;
 import static org.neo4j.batchimport.api.input.Collector.EMPTY;
 import static org.neo4j.batchimport.api.input.IdType.ACTUAL;
 import static org.neo4j.batchimport.api.input.IdType.INTEGER;
@@ -93,6 +96,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.batchimport.api.InputIterator;
+import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.IdType;
@@ -152,7 +156,7 @@ class CsvInputTest {
 
     private final Extractors extractors = new Extractors(',');
 
-    private final InputEntity visitor = new InputEntity();
+    private InputEntity visitor = new InputEntity();
     private final Groups groups = new Groups();
     private final Group globalGroup = groups.getOrCreate(null);
     private InputChunk chunk;
@@ -2147,6 +2151,45 @@ class CsvInputTest {
                 .hasMessageContaining("referring to different groups");
     }
 
+    @Test
+    void shouldParseAction() throws IOException {
+        // given
+        var file = writeFile(
+                "nodes",
+                ":ID,p1,:LABEL,:ACTION",
+                "A,abc,Test,",
+                "B,def,Test,CREATE",
+                "C,ghi,Test,UPDATE",
+                "D,jkl,Test,DELETE",
+                "E,aaa,Test,C",
+                "F,bbb,Test,U",
+                "G,ccc,Test,D");
+
+        // when
+        try (var input = new CsvInput(
+                datas(DataFactories.data(NO_DECORATOR, defaultCharset(), file)),
+                defaultFormatNodeFileHeader(),
+                datas(),
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                INSTANCE)) {
+            try (var nodes = input.nodes(Collector.STRICT).iterator()) {
+                // then
+                assertNextNode(nodes, globalGroup, "A", properties("p1", "abc"), Set.of("Test"), null);
+                assertNextNode(nodes, globalGroup, "B", properties("p1", "def"), Set.of("Test"), CREATE);
+                assertNextNode(nodes, globalGroup, "C", properties("p1", "ghi"), Set.of("Test"), UPDATE);
+                assertNextNode(nodes, globalGroup, "D", properties("p1", "jkl"), Set.of("Test"), DELETE);
+                assertNextNode(nodes, globalGroup, "E", properties("p1", "aaa"), Set.of("Test"), CREATE);
+                assertNextNode(nodes, globalGroup, "F", properties("p1", "bbb"), Set.of("Test"), UPDATE);
+                assertNextNode(nodes, globalGroup, "G", properties("p1", "ccc"), Set.of("Test"), DELETE);
+                assertFalse(readNext(nodes));
+            }
+        }
+    }
+
     private Path writeFile(String name, String... lines) throws FileNotFoundException {
         Path file = directory.file(name);
         try (PrintWriter writer = new PrintWriter(file.toFile())) {
@@ -2287,11 +2330,23 @@ class CsvInputTest {
     private void assertNextNode(
             InputIterator data, Group group, Object id, Map<String, Object> properties, Set<String> labels)
             throws IOException {
+        assertNextNode(data, group, id, properties, labels, null);
+    }
+
+    private void assertNextNode(
+            InputIterator data,
+            Group group,
+            Object id,
+            Map<String, Object> properties,
+            Set<String> labels,
+            ApplicationMode action)
+            throws IOException {
         assertTrue(readNext(data));
         assertEquals(group, visitor.idGroup);
         assertEquals(id, visitor.id());
         assertEquals(labels, asSet(visitor.labels()));
         assertPropertiesEquals(properties, visitor.propertiesAsMap());
+        assertEquals(action, visitor.applicationMode);
     }
 
     private void assertPropertiesEquals(Map<String, Object> expected, Map<String, Object> actual) {

@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.InputEntityVisitor;
 import org.neo4j.internal.batchimport.cache.idmapping.IdMapper;
@@ -86,6 +87,8 @@ public class InputEntity implements InputEntityVisitor {
     public boolean hasIntType;
     public int intType;
     public String stringType;
+
+    public ApplicationMode applicationMode;
 
     private boolean end;
 
@@ -209,6 +212,17 @@ public class InputEntity implements InputEntityVisitor {
     }
 
     @Override
+    public boolean applicationMode(ApplicationMode mode) {
+        checkClear();
+        applicationMode = mode;
+        return delegate.applicationMode(mode);
+    }
+
+    public ApplicationMode applicationMode() {
+        return applicationMode != null ? applicationMode : ApplicationMode.CREATE;
+    }
+
+    @Override
     public void endOfEntity() throws IOException {
         // Mark that the next call to any data method should clear the state
         end = true;
@@ -316,6 +330,7 @@ public class InputEntity implements InputEntityVisitor {
         hasIntType = false;
         intType = NULL_ID;
         stringType = null;
+        applicationMode = null;
     }
 
     @Override
@@ -336,6 +351,10 @@ public class InputEntity implements InputEntityVisitor {
     }
 
     public void replayOnto(InputEntityVisitor visitor) throws IOException {
+        if (applicationMode != null) {
+            visitor.applicationMode(applicationMode);
+        }
+
         // properties
         if (hasPropertyId) {
             visitor.propertyId(propertyId);
