@@ -29,14 +29,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.ToIntFunction;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.InputEntityVisitor;
 import org.neo4j.internal.batchimport.cache.idmapping.IdMapper;
-import org.neo4j.internal.helpers.collection.PrefetchingIterator;
 import org.neo4j.internal.id.IdSequence;
-import org.neo4j.storageengine.api.PropertyKeyValue;
-import org.neo4j.storageengine.api.StorageProperty;
 import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
@@ -252,25 +248,6 @@ public class InputEntity implements InputEntityVisitor {
         return map;
     }
 
-    public Iterable<StorageProperty> asStorageProperties(ToIntFunction<String> propertyKeyIdLookup) {
-        return () -> new PrefetchingIterator<>() {
-            private final int count = propertyCount();
-            private int cursor;
-
-            @Override
-            protected StorageProperty fetchNextOrNull() {
-                if (cursor < count) {
-                    int propertyKeyId = propertyKeyIdLookup.applyAsInt((String) propertyKey(cursor));
-                    Object valueObject = propertyValue(cursor);
-                    cursor++;
-                    return new PropertyKeyValue(
-                            propertyKeyId, valueObject instanceof Value value ? value : Values.of(valueObject));
-                }
-                return null;
-            }
-        };
-    }
-
     public Object id() {
         return hasLongId ? longId : objectId;
     }
@@ -293,16 +270,6 @@ public class InputEntity implements InputEntityVisitor {
 
     public long longEndId(IdMapper.Getter idLookup) {
         return extractNodeId(hasLongEndId, longEndId, objectEndId, endIdGroup, idLookup);
-    }
-
-    public int intType(ToIntFunction<String> idLookup) {
-        if (hasIntType) {
-            return intType;
-        }
-        if (stringType != null) {
-            return idLookup.applyAsInt(stringType);
-        }
-        return NULL_ID;
     }
 
     private long extractNodeId(
