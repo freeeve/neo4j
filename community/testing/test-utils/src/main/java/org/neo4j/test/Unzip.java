@@ -22,7 +22,6 @@ package org.neo4j.test;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -34,24 +33,32 @@ public final class Unzip {
     private Unzip() {}
 
     public static Path unzip(Class<?> testClass, String resource, Path targetDirectory) throws IOException {
-        InputStream source = testClass.getResourceAsStream(resource);
-        if (source == null) {
-            var path = Path.of(resource);
-            if (Files.exists(path)) {
-                source = Files.newInputStream(path, StandardOpenOption.READ);
-            } else {
-                throw new NoSuchFileException("Could not find resource '" + resource + "' to unzip");
-            }
+        return unzip(getResourceAsStream(testClass, resource), targetDirectory);
+    }
+
+    private static InputStream getResourceAsStream(Class<?> testClass, String resource) throws IOException {
+        final var stream = testClass.getResourceAsStream(resource);
+        if (stream != null) {
+            return stream;
         }
 
-        try (ZipInputStream zipStream = new ZipInputStream(source)) {
+        final var path = Path.of(resource);
+        if (Files.exists(path)) {
+            return Files.newInputStream(path, StandardOpenOption.READ);
+        }
+
+        throw new NoSuchFileException("Could not find resource '" + resource + "' to unzip");
+    }
+
+    public static Path unzip(InputStream source, Path targetDirectory) throws IOException {
+        try (final var zipStream = new ZipInputStream(source)) {
             ZipEntry entry;
             byte[] scratch = new byte[8096];
             while ((entry = zipStream.getNextEntry()) != null) {
                 if (entry.isDirectory()) {
                     Files.createDirectories(targetDirectory.resolve(entry.getName()));
                 } else {
-                    try (OutputStream file =
+                    try (final var file =
                             new BufferedOutputStream(Files.newOutputStream(targetDirectory.resolve(entry.getName())))) {
                         int read;
                         while ((read = zipStream.read(scratch)) != -1) {
@@ -61,8 +68,6 @@ public final class Unzip {
                 }
                 zipStream.closeEntry();
             }
-        } finally {
-            source.close();
         }
         return targetDirectory;
     }
