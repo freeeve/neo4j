@@ -378,7 +378,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             LogFilesInitializer logFilesInitializer,
             IndexImporterFactory indexImporterFactory,
             MemoryTracker memoryTracker,
-            CursorContextFactory contextFactory) {
+            CursorContextFactory contextFactory,
+            IndexProvidersAccess indexProvidersAccess) {
         return delegate.batchImporter(
                 databaseLayout,
                 fileSystem,
@@ -395,7 +396,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 logFilesInitializer,
                 indexImporterFactory,
                 memoryTracker,
-                contextFactory);
+                contextFactory,
+                indexProvidersAccess);
     }
 
     @Override

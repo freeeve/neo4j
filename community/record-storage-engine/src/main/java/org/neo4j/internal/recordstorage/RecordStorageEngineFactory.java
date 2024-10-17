@@ -719,7 +719,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             LogFilesInitializer logFilesInitializer,
             IndexImporterFactory indexImporterFactory,
             MemoryTracker memoryTracker,
-            CursorContextFactory contextFactory) {
+            CursorContextFactory contextFactory,
+            IndexProvidersAccess indexProvidersAccess) {
         ExecutionMonitor executionMonitor = progressOutput != null
                 ? verboseProgressOutput
                         ? new SpectrumExecutionMonitor(progressOutput)

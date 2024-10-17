@@ -87,18 +87,16 @@ import org.neo4j.io.pagecache.context.FixedVersionContextSupplier;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
+import org.neo4j.kernel.api.index.IndexProvidersAccess;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
-import org.neo4j.kernel.impl.index.schema.DefaultIndexProvidersAccess;
 import org.neo4j.kernel.impl.index.schema.IndexImporterFactoryImpl;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogInitializer;
 import org.neo4j.kernel.impl.util.Converters;
-import org.neo4j.kernel.lifecycle.Lifespan;
 import org.neo4j.kernel.recovery.LogTailExtractor;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.internal.LogService;
-import org.neo4j.logging.internal.SimpleLogService;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
@@ -570,6 +568,9 @@ public class ImportCommand {
         protected abstract SchemaCommandReader.ReaderConfig schemaCommandsReaderConfig(
                 VectorIndexVersion latestVectorIndexVersion);
 
+        protected abstract StorageEngineFactory selectStorageEngineFactory(
+                FileSystemAbstraction fileSystem, DatabaseLayout databaseLayout, Config databaseConfig);
+
         protected abstract void doImport(
                 FileSystemAbstraction fileSystem,
                 DatabaseLayout databaseLayout,
@@ -585,7 +586,8 @@ public class ImportCommand {
                 boolean verbose,
                 Collector badCollector,
                 MemoryTracker memoryTracker,
-                Input input)
+                Input input,
+                IndexProvidersAccess indexProvidersAccess)
                 throws IOException;
 
         private List<SchemaCommand> parseSchemaCommands(FileSystemAbstraction fileSystem, Config config) {
@@ -843,6 +845,12 @@ public class ImportCommand {
         }
 
         @Override
+        protected StorageEngineFactory selectStorageEngineFactory(
+                FileSystemAbstraction fileSystem, DatabaseLayout databaseLayout, Config databaseConfig) {
+            return StorageEngineFactory.selectStorageEngine(databaseConfig);
+        }
+
+        @Override
         protected void doImport(
                 FileSystemAbstraction fileSystem,
                 DatabaseLayout databaseLayout,
@@ -858,9 +866,11 @@ public class ImportCommand {
                 boolean verbose,
                 Collector badCollector,
                 MemoryTracker memoryTracker,
-                Input input)
+                Input input,
+                IndexProvidersAccess indexProvidersAccess)
                 throws IOException {
-            StorageEngineFactory storageEngineFactory = StorageEngineFactory.selectStorageEngine(databaseConfig);
+            StorageEngineFactory storageEngineFactory =
+                    selectStorageEngineFactory(fileSystem, databaseLayout, databaseConfig);
             BatchImporter importer = storageEngineFactory.batchImporter(
                     databaseLayout,
                     fileSystem,
@@ -877,7 +887,8 @@ public class ImportCommand {
                     TransactionLogInitializer.getLogFilesInitializer(),
                     new IndexImporterFactoryImpl(),
                     memoryTracker,
-                    contextFactory);
+                    contextFactory,
+                    indexProvidersAccess);
 
             importer.doImport(input);
         }
@@ -928,6 +939,13 @@ public class ImportCommand {
         }
 
         @Override
+        protected StorageEngineFactory selectStorageEngineFactory(
+                FileSystemAbstraction fileSystem, DatabaseLayout databaseLayout, Config databaseConfig) {
+            return StorageEngineFactory.selectStorageEngine(fileSystem, databaseLayout)
+                    .orElseThrow();
+        }
+
+        @Override
         protected void doImport(
                 FileSystemAbstraction fileSystem,
                 DatabaseLayout databaseLayout,
@@ -943,46 +961,35 @@ public class ImportCommand {
                 boolean verbose,
                 Collector badCollector,
                 MemoryTracker memoryTracker,
-                Input input)
+                Input input,
+                IndexProvidersAccess indexProvidersAccess)
                 throws IOException {
-            StorageEngineFactory storageEngineFactory = StorageEngineFactory.selectStorageEngine(
-                            fileSystem, databaseLayout)
-                    .orElseThrow();
-            try (Lifespan life = new Lifespan()) {
-                var indexProviders = life.add(new DefaultIndexProvidersAccess(
-                        storageEngineFactory,
-                        fileSystem,
-                        databaseConfig,
-                        jobScheduler,
-                        new SimpleLogService(logProvider),
-                        pageCacheTracer,
-                        contextFactory));
-                var importer = storageEngineFactory.incrementalBatchImporter(
-                        databaseLayout,
-                        fileSystem,
-                        pageCacheTracer,
-                        withSpecificConfig(importConfig),
-                        logService,
-                        stdOut,
-                        verbose,
-                        DefaultAdditionalIds.EMPTY,
-                        () -> readLogTailMetaData(fileSystem, databaseLayout, storageEngineFactory),
-                        databaseConfig,
-                        new PrintingImportLogicMonitor(stdOut, stdErr),
-                        jobScheduler,
-                        badCollector,
-                        TransactionLogInitializer.getLogFilesInitializer(),
-                        new IndexImporterFactoryImpl(),
-                        memoryTracker,
-                        contextFactory,
-                        indexProviders);
-                switch (stage) {
-                    case prepare -> importer.prepare(input);
-                    case build -> importer.build(input);
-                    case merge -> importer.merge();
-                    case all -> importer.doImport(input);
-                    default -> throw new IllegalArgumentException("Unknown import mode " + stage);
-                }
+            var storageEngineFactory = selectStorageEngineFactory(fileSystem, databaseLayout, databaseConfig);
+            var importer = storageEngineFactory.incrementalBatchImporter(
+                    databaseLayout,
+                    fileSystem,
+                    pageCacheTracer,
+                    withSpecificConfig(importConfig),
+                    logService,
+                    stdOut,
+                    verbose,
+                    DefaultAdditionalIds.EMPTY,
+                    () -> readLogTailMetaData(fileSystem, databaseLayout, storageEngineFactory),
+                    databaseConfig,
+                    new PrintingImportLogicMonitor(stdOut, stdErr),
+                    jobScheduler,
+                    badCollector,
+                    TransactionLogInitializer.getLogFilesInitializer(),
+                    new IndexImporterFactoryImpl(),
+                    memoryTracker,
+                    contextFactory,
+                    indexProvidersAccess);
+            switch (stage) {
+                case prepare -> importer.prepare(input);
+                case build -> importer.build(input);
+                case merge -> importer.merge();
+                case all -> importer.doImport(input);
+                default -> throw new IllegalArgumentException("Unknown import mode " + stage);
             }
         }
 

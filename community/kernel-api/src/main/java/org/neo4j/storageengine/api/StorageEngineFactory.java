@@ -396,7 +396,8 @@ public interface StorageEngineFactory {
             LogFilesInitializer logFilesInitializer,
             IndexImporterFactory indexImporterFactory,
             MemoryTracker memoryTracker,
-            CursorContextFactory contextFactory);
+            CursorContextFactory contextFactory,
+            IndexProvidersAccess indexProvidersAccess);
 
     Input asBatchImporterInput(
             DatabaseLayout databaseLayout,

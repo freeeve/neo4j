@@ -84,7 +84,9 @@ import org.neo4j.io.os.OsBeanUtil;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.context.FixedVersionContextSupplier;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.impl.index.schema.DefaultIndexProvidersAccess;
 import org.neo4j.kernel.internal.Version;
+import org.neo4j.kernel.lifecycle.Lifespan;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.logging.internal.PrefixedLogProvider;
@@ -215,12 +217,21 @@ class FileImporter {
 
         printOverview();
 
-        try (JobScheduler jobScheduler = createInitialisedScheduler()) {
+        try (JobScheduler jobScheduler = createInitialisedScheduler();
+                Lifespan life = new Lifespan()) {
             // Let the storage engine factory be configurable in the tool later on...
             var logService = new SimpleLogService(
                     NullLogProvider.getInstance(),
                     new PrefixedLogProvider(logProvider, databaseLayout.getDatabaseName()),
                     databaseConfig.get(duplication_user_messages));
+            var indexProviders = life.add(new DefaultIndexProvidersAccess(
+                    type.selectStorageEngineFactory(fileSystem, databaseLayout, databaseConfig),
+                    fileSystem,
+                    databaseConfig,
+                    jobScheduler,
+                    new SimpleLogService(logProvider),
+                    pageCacheTracer,
+                    contextFactory));
             type.doImport(
                     fileSystem,
                     databaseLayout,
@@ -236,7 +247,8 @@ class FileImporter {
                     verbose,
                     badCollector,
                     memoryTracker,
-                    input);
+                    input,
+                    indexProviders);
             success = true;
         } catch (Exception ex) {
             throw andPrintError(databaseLayout.getDatabaseName(), ex, incremental, stdErr);

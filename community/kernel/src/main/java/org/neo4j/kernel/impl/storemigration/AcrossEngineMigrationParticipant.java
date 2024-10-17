@@ -49,8 +49,10 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
+import org.neo4j.kernel.impl.index.schema.DefaultIndexProvidersAccess;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogInitializer;
+import org.neo4j.kernel.lifecycle.Lifespan;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
@@ -123,10 +125,13 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
                 .fromConfig(config)
                 .set(GraphDatabaseSettings.db_format, toVersion.formatName())
                 .build();
+        var life = new Lifespan();
 
         // Use the ids from the old logTail. This means that the importer will end up on the
         // same tx id as the logs migration
         AdditionalInitialIds additionalInitialIds = getInitialIds(tailMetadata);
+        var indexProviders = life.add(new DefaultIndexProvidersAccess(
+                targetStorageEngine, fileSystem, config, jobScheduler, logService, pageCacheTracer, contextFactory));
 
         BatchImporter importer = targetStorageEngine.batchImporter(
                 migrationLayoutArg,
@@ -158,20 +163,22 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
                 TransactionLogInitializer.getLogFilesInitializer(),
                 indexImporterFactory,
                 memoryTracker,
-                contextFactory);
+                contextFactory,
+                indexProviders);
 
         // Do the copy
         try (Input fromInput = srcStorageEngine.asBatchImporterInput(
-                directoryLayoutArg,
-                fileSystem,
-                pageCache,
-                pageCacheTracer,
-                localConfig,
-                memoryTracker,
-                ReadBehaviour.INCLUSIVE_STRICT,
-                !keepNodeIds,
-                contextFactory,
-                tailMetadata)) {
+                        directoryLayoutArg,
+                        fileSystem,
+                        pageCache,
+                        pageCacheTracer,
+                        localConfig,
+                        memoryTracker,
+                        ReadBehaviour.INCLUSIVE_STRICT,
+                        !keepNodeIds,
+                        contextFactory,
+                        tailMetadata);
+                life) {
             importer.doImport(fromInput);
         }
 
