@@ -70,4 +70,14 @@ public class PageCacheLongArray extends PageCacheNumberArray<LongArray> implemen
             throw new UncheckedIOException(e);
         }
     }
+
+    @Override
+    public boolean compareAndSet(long index, long expected, long value) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long compareAndExchange(long index, long expected, long value) {
+        throw new UnsupportedOperationException();
+    }
 }

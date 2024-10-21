@@ -46,8 +46,16 @@ public class OffHeapLongArray extends OffHeapRegularNumberArray<LongArray> imple
     }
 
     @Override
-    public boolean compareAndSwap(long index, long expectedValue, long updatedValue) {
+    public boolean compareAndSet(long index, long expectedValue, long updatedValue) {
         return UnsafeUtil.compareAndSwapLong(null, addressOf(index), expectedValue, updatedValue);
+    }
+
+    @Override
+    public long compareAndExchange(long index, long expected, long value) {
+        // Unsafe does not have exchange functionality so we cannot get back the witness value
+        // without doing an additional read.
+        boolean success = UnsafeUtil.compareAndSwapLong(null, addressOf(index), expected, value);
+        return success ? value : UnsafeUtil.getLong(addressOf(index));
     }
 
     @Override

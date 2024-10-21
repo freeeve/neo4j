@@ -749,6 +749,16 @@ public class EncodingIdMapper implements IdMapper {
             }
 
             @Override
+            public boolean compareAndSet(long index, long expected, long value) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public long compareAndExchange(long index, long expected, long value) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
             public long get(long index) {
                 return byteArray.get5ByteLong(index, 0);
             }

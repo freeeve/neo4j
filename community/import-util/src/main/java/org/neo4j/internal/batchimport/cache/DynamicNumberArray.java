@@ -20,6 +20,7 @@
 package org.neo4j.internal.batchimport.cache;
 
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.neo4j.memory.MemoryTracker;
 
 /**
@@ -33,6 +34,7 @@ abstract class DynamicNumberArray<N extends NumberArray<N>> implements NumberArr
     protected final NumberArrayFactory factory;
     protected final long chunkSize;
     protected N[] chunks;
+    protected final AtomicInteger numberOfChunks = new AtomicInteger(0);
 
     DynamicNumberArray(NumberArrayFactory factory, long chunkSize, N[] initialChunks) {
         this.factory = factory;
@@ -42,7 +44,7 @@ abstract class DynamicNumberArray<N extends NumberArray<N>> implements NumberArr
 
     @Override
     public long length() {
-        return chunks.length * chunkSize;
+        return numberOfChunks.getAcquire() * chunkSize;
     }
 
     @Override
@@ -61,7 +63,7 @@ abstract class DynamicNumberArray<N extends NumberArray<N>> implements NumberArr
 
     protected N chunkOrNullAt(long index) {
         int chunkIndex = chunkIndex(index);
-        return chunkIndex < chunks.length ? chunks[chunkIndex] : null;
+        return chunkIndex < numberOfChunks.getAcquire() ? chunks[chunkIndex] : null;
     }
 
     protected int chunkIndex(long index) {
@@ -80,11 +82,13 @@ abstract class DynamicNumberArray<N extends NumberArray<N>> implements NumberArr
 
     private synchronized void synchronizedAddChunk(long index) {
         if (index >= length()) {
-            N[] newChunks = Arrays.copyOf(chunks, chunkIndex(index) + 1);
-            for (int i = chunks.length; i < newChunks.length; i++) {
+            int newLength = chunkIndex(index) + 1;
+            N[] newChunks = Arrays.copyOf(chunks, newLength);
+            for (int i = chunks.length; i < newLength; i++) {
                 newChunks[i] = addChunk(chunkSize, chunkSize * i);
             }
             chunks = newChunks;
+            numberOfChunks.setPlain(newLength);
         }
     }
 

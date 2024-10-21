@@ -50,8 +50,13 @@ public class DynamicLongArray extends DynamicNumberArray<LongArray> implements L
     }
 
     @Override
-    public boolean compareAndSwap(long index, long expectedValue, long updatedValue) {
-        return at(index).compareAndSwap(index, expectedValue, updatedValue);
+    public boolean compareAndSet(long index, long expectedValue, long updatedValue) {
+        return at(index).compareAndSet(index, expectedValue, updatedValue);
+    }
+
+    @Override
+    public long compareAndExchange(long index, long expected, long value) {
+        return at(index).compareAndExchange(index, expected, value);
     }
 
     @Override

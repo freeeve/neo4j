@@ -226,9 +226,9 @@ class NumberArrayTest extends NumberArrayPageCacheTestSupport {
         return result;
     }
 
-    private static <N extends NumberArray<N>> NumberArrayTestData arrayData(
+    private static <N extends NumberArray<N>> NumberArrayTestData<N> arrayData(
             String name, N array, Function<RandomSupport, Object> valueGenerator, Writer<N> writer, Reader<N> reader) {
-        return new NumberArrayTestData(name, array, valueGenerator, writer, reader);
+        return new NumberArrayTestData<>(name, array, valueGenerator, writer, reader);
     }
 
     private static void assertAllValues(
