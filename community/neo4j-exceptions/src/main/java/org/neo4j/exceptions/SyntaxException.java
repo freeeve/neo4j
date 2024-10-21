@@ -22,7 +22,6 @@ package org.neo4j.exceptions;
 import static java.lang.System.lineSeparator;
 
 import java.util.Optional;
-import org.neo4j.gqlstatus.ErrorClassification;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlParams;
@@ -104,22 +103,24 @@ public class SyntaxException extends Neo4jException {
 
     public static SyntaxException wrongNumberOfArguments(
             int expectedCount, int actualCount, String name, String signature) {
+        var msg = String.format(
+                "The procedure or function call does not provide the required number of arguments; expected %s but got %s. "
+                        + "The procedure or function `%s` has the signature: `%s`.",
+                expectedCount, actualCount, name, signature);
+        return wrongNumberOfArguments(expectedCount, actualCount, name, signature, msg);
+    }
+
+    public static SyntaxException wrongNumberOfArguments(
+            int expectedCount, int actualCount, String name, String signature, String legacyMessage) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .withClassification(ErrorClassification.CLIENT_ERROR)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I13)
                         .withParam(GqlParams.NumberParam.count1, expectedCount)
                         .withParam(GqlParams.NumberParam.count2, actualCount)
                         .withParam(GqlParams.StringParam.procFun, name)
                         .withParam(GqlParams.StringParam.sig, signature)
-                        .withClassification(ErrorClassification.CLIENT_ERROR)
                         .build())
                 .build();
-        return new SyntaxException(
-                gql,
-                String.format(
-                        "The procedure or function call does not provide the required number of arguments; expected %s but got %s. "
-                                + "The procedure or function `%s` has the signature: `%s`.",
-                        expectedCount, actualCount, name, signature));
+        return new SyntaxException(gql, legacyMessage);
     }
 
     public static SyntaxException variableAlreadyBound(String variable, String clause) {

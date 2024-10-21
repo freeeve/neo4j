@@ -794,6 +794,44 @@ object SemanticError {
     SemanticError(gql, s"WITH is required between $clause1 and $clause2", position)
   }
 
+  def invalidType(
+    value: String,
+    correctTypes: List[String],
+    actualType: String,
+    legacyMessage: String,
+    pos: InputPosition
+  ): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G12)
+      .atPosition(pos.line, pos.column, pos.offset)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
+        .atPosition(pos.line, pos.column, pos.offset)
+        .withParam(GqlParams.StringParam.value, value)
+        .withParam(GqlParams.ListParam.valueTypeList, correctTypes.asJava)
+        .withParam(GqlParams.StringParam.valueType, actualType)
+        .build())
+      .build()
+
+    new SemanticError(
+      gql,
+      legacyMessage,
+      pos
+    )
+  }
+
+  def invalidPlacementOfUseClause(pos: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(pos.line, pos.column, pos.offset)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N73)
+        .atPosition(pos.line, pos.column, pos.offset)
+        .build())
+      .build()
+
+    new SemanticError(
+      gql,
+      "USE clause must be the first clause in a (sub-)query.",
+      pos
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

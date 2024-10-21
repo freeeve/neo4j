@@ -398,6 +398,9 @@ trait SemanticAnalysisTooling {
       position
     ))
 
+  def invalidPlacementOfUseClauseError(position: InputPosition): SemanticCheck =
+    SemanticCheck.error(SemanticError.invalidPlacementOfUseClause(position))
+
   def warn(notification: InternalNotification): SemanticCheck = SemanticCheck.warn(notification)
 
   def possibleTypes(expression: Expression): TypeGenerator =

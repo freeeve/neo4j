@@ -78,7 +78,9 @@ object Catalog {
     def eval(args: Seq[AnyValue], catalog: Catalog, sessionDb: DatabaseReference): Graph
 
     def checkArity(args: Seq[AnyValue]): Unit =
-      if (args.size != arity) Errors.wrongArity(arity, args.size)
+      if (args.size != arity) wrongArity(args)
+
+    def wrongArity(args: Seq[AnyValue]): Unit
 
     def cast[T <: AnyValue](a: Arg[T], v: AnyValue, args: Seq[AnyValue]): T =
       try a.tpe.cast(v)
@@ -136,6 +138,14 @@ object Catalog {
 
     override def eval(arg: StringValue, catalog: Catalog, sessionDb: DatabaseReference): Graph =
       catalog.resolveGraphByNameString(arg.stringValue())
+
+    override def wrongArity(args: Seq[AnyValue]): Unit =
+      Errors.wrongArity(
+        arity,
+        args.size,
+        "byName",
+        "(" + this.signature.map[String](arg => show(arg)).mkString(",") + ")"
+      )
   }
 
   private val graphByElementIdView: Catalog = {
@@ -159,6 +169,14 @@ object Catalog {
 
       catalog.resolveGraphByNameString(aliases.head)
     }
+
+    override def wrongArity(args: Seq[AnyValue]): Unit =
+      Errors.wrongArity(
+        arity,
+        args.size,
+        "byElementId",
+        "(" + this.signature.map[String](arg => show(arg)).mkString(",") + ")"
+      )
   }
 
   private def normalize(graphName: String): String =

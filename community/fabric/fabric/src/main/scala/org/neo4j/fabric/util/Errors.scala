@@ -64,10 +64,14 @@ object Errors {
     throw CypherTypeException.invalidType(value, expectedTypeList, actualType, signature)
   }
 
-  def wrongArity(exp: Int, got: Int): Nothing =
-    syntax(s"Wrong arity. Expected $exp argument(s), got $got argument(s)")
-
-  def syntax(msg: String): Nothing = throw new SyntaxException(msg)
+  def wrongArity(exp: Int, got: Int, procFunc: String, signature: String): Nothing =
+    throw SyntaxException.wrongNumberOfArguments(
+      exp,
+      got,
+      procFunc,
+      signature,
+      s"Wrong arity. Expected $exp argument(s), got $got argument(s)"
+    )
 
   def syntax(msg: String, query: String, pos: InputPosition): Nothing =
     throw new SyntaxException(msg, query, pos.offset)

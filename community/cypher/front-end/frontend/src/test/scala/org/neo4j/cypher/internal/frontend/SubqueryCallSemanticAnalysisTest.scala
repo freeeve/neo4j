@@ -723,6 +723,9 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN n
         |""".stripMargin
     run(query, withSingleGraph).hasError(
+      SemanticError.invalidPlacementOfUseClause(
+        p(37, 5, 3)
+      ).gqlStatusObject,
       "USE clause must be the first clause in a (sub-)query.",
       p(37, 5, 3)
     )

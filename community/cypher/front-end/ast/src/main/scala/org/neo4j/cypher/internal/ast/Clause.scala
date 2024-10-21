@@ -649,8 +649,16 @@ final case class GraphFunctionReference(functionInvocation: FunctionInvocation)(
     functionInvocation.function match {
       case GraphByName      => success
       case GraphByElementId => success
-      case _ =>
-        SemanticCheck.error(SemanticError(
+      case wrong =>
+        SemanticCheck.error(SemanticError.invalidType(
+          "`USE clause`",
+          List(
+            "name of a database",
+            "alias of a database",
+            "graph function `graph.byName`",
+            "graph function `graph.byElementId`"
+          ),
+          wrong.name,
           s"Type mismatch: USE clause must be given a ${CTGraphRef.toString}. Use either the name or alias of a database or the graph functions `graph.byName` and `graph.byElementId`.",
           functionInvocation.position
         ))
