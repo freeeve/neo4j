@@ -85,6 +85,7 @@ trait CypherRuntime[-CONTEXT <: RuntimeContext] {
  * @param leveragedOrders leveragedOrder of all operators in the logical plan tree
  * @param hasLoadCSV a flag showing if the query contains a load csv, used for tracking line numbers
  * @param doProfile `true` if a profiling query otherwise `false`
+ * @param executionPlanCacheKeyHash The 32-bit hash of the cache key used to cache the execution plan
  */
 case class LogicalQuery(
   logicalPlan: LogicalPlan,
@@ -97,7 +98,8 @@ case class LogicalQuery(
   leveragedOrders: LeveragedOrders,
   hasLoadCSV: Boolean,
   idGen: IdGen,
-  doProfile: Boolean
+  doProfile: Boolean,
+  executionPlanCacheKeyHash: Int
 )
 
 /**

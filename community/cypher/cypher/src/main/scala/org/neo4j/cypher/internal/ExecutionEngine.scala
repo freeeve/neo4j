@@ -265,7 +265,8 @@ abstract class ExecutionEngine(
       context.executingQuery().onCompilationCompleted(
         executableQuery.compilerInfo,
         executableQuery.planDescriptionSupplier(),
-        executableQuery.deprecationNotificationsProvider(query.options.offset)
+        executableQuery.deprecationNotificationsProvider(query.options.offset),
+        executableQuery.executionPlanCacheKeyHash
       )
     }
 

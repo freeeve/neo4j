@@ -161,16 +161,26 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
     val planState = logicalPlanResult.logicalPlanState
     val logicalPlan = planState.logicalPlan
     val queryType = getQueryType(planState)
+    val executionPlanCacheKey = ExecutionPlanCacheKey(
+      query.options.executionPlanCacheKey,
+      logicalPlan,
+      planState.planningAttributes.cacheKey
+    )
+    val executionPlanCacheKeyHash = executionPlanCacheKey.hashCode()
     val cachedExecutionPlan =
       queryCaches.executionPlanCache.computeIfAbsent(
         cacheWhen = logicalPlanResult.shouldBeCached,
-        key = ExecutionPlanCacheKey(
-          query.options.executionPlanCacheKey,
-          logicalPlan,
-          planState.planningAttributes.cacheKey
-        ),
+        key = executionPlanCacheKey,
         compute =
-          computeExecutionPlan(query, transactionalContext, logicalPlanResult, planState, logicalPlan, queryType)
+          computeExecutionPlan(
+            query,
+            transactionalContext,
+            logicalPlanResult,
+            planState,
+            logicalPlan,
+            queryType,
+            executionPlanCacheKeyHash
+          )
       )
 
     new CypherExecutableQuery(
@@ -193,7 +203,8 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
       logicalPlanResult.queryObfuscator,
       contextManager.config.renderPlanDescription,
       kernelMonitors,
-      query.options.queryOptions.cypherVersion.actualVersion
+      query.options.queryOptions.cypherVersion.actualVersion,
+      executionPlanCacheKeyHash
     )
   }
 
@@ -203,7 +214,8 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
     logicalPlanResult: LogicalPlanResult,
     planState: CachableLogicalPlanState,
     logicalPlan: LogicalPlan,
-    queryType: InternalQueryType
+    queryType: InternalQueryType,
+    executionPlanCacheKeyHash: Int
   ): CachedExecutionPlan = {
     val runtimeContext = contextManager.create(
       query.options.queryOptions.cypherVersion.actualVersion,
@@ -238,7 +250,8 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
       planningAttributesCopy.leveragedOrders.toMutable,
       planState.hasLoadCSV,
       new SequentialIdGen(planningAttributesCopy.effectiveCardinalities.size),
-      query.options.queryOptions.executionMode == CypherExecutionMode.profile
+      query.options.queryOptions.executionMode == CypherExecutionMode.profile,
+      executionPlanCacheKeyHash
     )
 
     try {
@@ -387,7 +400,8 @@ object CypherCurrentCompiler {
     override val queryObfuscator: QueryObfuscator,
     renderPlanDescription: Boolean,
     kernelMonitors: Monitors,
-    cypherVersion: CypherVersion
+    cypherVersion: CypherVersion,
+    override val executionPlanCacheKeyHash: Int
   ) extends ExecutableQuery {
 
     // Monitors are implemented via dynamic proxies which are slow compared to NOOP which is why we want to able to completely disable

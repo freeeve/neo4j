@@ -83,7 +83,8 @@ class LogicalQueryBuilder(
       leveragedOrders,
       hasLoadCsv,
       idGen,
-      doProfile = false
+      doProfile = false,
+      executionPlanCacheKeyHash = 0
     )
   }
 }

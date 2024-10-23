@@ -225,7 +225,7 @@ public class QueryStatementLifecycles {
             void startExecution(Boolean shouldLogIfSingleQuery) {
                 if (!shouldLogIfSingleQuery) {
                     getQueryExecutionMonitor().startExecution(executingQuery);
-                    executingQuery.onCompilationCompleted(null, null, null);
+                    executingQuery.onCompilationCompleted(null, null, null, 0);
                     executingQuery.onExecutionStarted(HeapHighWaterMarkTracker.NONE);
                 }
             }

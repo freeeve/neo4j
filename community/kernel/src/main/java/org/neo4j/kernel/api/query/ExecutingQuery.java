@@ -85,6 +85,7 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
     private Supplier<ExecutionPlanDescription> planDescriptionSupplier;
     private DeprecationNotificationsProvider deprecationNotificationsProvider;
     private DeprecationNotificationsProvider fabricDeprecationNotificationsProvider;
+    private int executionPlanCacheKeyHash;
     private volatile ExecutingQueryStatus status = SimpleState.parsing();
     private volatile ExecutingQuery previousQuery;
 
@@ -313,13 +314,15 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
     public void onCompilationCompleted(
             CompilerInfo compilerInfo,
             Supplier<ExecutionPlanDescription> planDescriptionSupplier,
-            DeprecationNotificationsProvider deprecationNotificationsProvider) {
+            DeprecationNotificationsProvider deprecationNotificationsProvider,
+            int executionPlanCacheKeyHash) {
         assertExpectedStatus(SimpleState.planning());
 
         this.compilerInfo = compilerInfo;
         this.compilationCompletedNanos = clock.nanos();
         this.planDescriptionSupplier = planDescriptionSupplier;
         this.deprecationNotificationsProvider = deprecationNotificationsProvider;
+        this.executionPlanCacheKeyHash = executionPlanCacheKeyHash;
         this.status = SimpleState.planned(); // write barrier - must be last
     }
 
@@ -421,7 +424,8 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
                 parentDbName,
                 parentTransactionSequenceNumber,
                 executableQueryCacheUsage,
-                logicalPlanCacheUsage);
+                logicalPlanCacheUsage,
+                executionPlanCacheKeyHash);
     }
 
     public String cypherRuntime() {

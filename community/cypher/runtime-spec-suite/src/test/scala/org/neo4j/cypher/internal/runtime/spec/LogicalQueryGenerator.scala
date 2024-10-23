@@ -89,7 +89,8 @@ object LogicalQueryGenerator {
             leveragedOrders,
             hasLoadCSV = false,
             state.idGen,
-            doProfile = false
+            doProfile = false,
+            executionPlanCacheKeyHash = 0
           ),
           planContext
         ),

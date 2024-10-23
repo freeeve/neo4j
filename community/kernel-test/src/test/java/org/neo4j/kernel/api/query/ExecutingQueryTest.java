@@ -80,7 +80,7 @@ class ExecutingQueryTest {
         assertEquals("planning", query.snapshot().status());
 
         // when
-        query.onCompilationCompleted(new CompilerInfo("the-planner", "the-runtime", emptyList()), null, null);
+        query.onCompilationCompleted(new CompilerInfo("the-planner", "the-runtime", emptyList()), null, null, 0);
 
         // then
         assertEquals("planned", query.snapshot().status());
@@ -112,7 +112,7 @@ class ExecutingQueryTest {
 
         // when
         clock.forward(16, TimeUnit.MICROSECONDS);
-        query.onCompilationCompleted(new CompilerInfo("the-planner", "the-runtime", emptyList()), null, null);
+        query.onCompilationCompleted(new CompilerInfo("the-planner", "the-runtime", emptyList()), null, null, 0);
         clock.forward(200, TimeUnit.MICROSECONDS);
 
         // then
@@ -125,7 +125,7 @@ class ExecutingQueryTest {
     void shouldReportWaitTime() {
         // given
         query.onObfuscatorReady(null, 0);
-        query.onCompilationCompleted(new CompilerInfo("the-planner", "the-runtime", emptyList()), null, null);
+        query.onCompilationCompleted(new CompilerInfo("the-planner", "the-runtime", emptyList()), null, null, 0);
         query.onExecutionStarted(new FakeMemoryTracker());
 
         // then
@@ -291,8 +291,8 @@ class ExecutingQueryTest {
     @Test
     void shouldNotAllowCompletingCompilationMultipleTimes() {
         query.onObfuscatorReady(null, 0);
-        query.onCompilationCompleted(null, null, null);
-        assertThatIllegalStateException().isThrownBy(() -> query.onCompilationCompleted(null, null, null));
+        query.onCompilationCompleted(null, null, null, 0);
+        assertThatIllegalStateException().isThrownBy(() -> query.onCompilationCompleted(null, null, null, 0));
     }
 
     @Test
@@ -307,7 +307,7 @@ class ExecutingQueryTest {
         query.onObfuscatorReady(null, 0);
         assertEquals("planning", query.snapshot().status());
 
-        query.onCompilationCompleted(null, null, null);
+        query.onCompilationCompleted(null, null, null, 0);
         assertEquals("planned", query.snapshot().status());
 
         query.onExecutionStarted(new FakeMemoryTracker());
@@ -320,7 +320,7 @@ class ExecutingQueryTest {
     @Test
     void shouldNotAllowRetryingWithoutStartingExecuting() {
         query.onObfuscatorReady(null, 0);
-        query.onCompilationCompleted(null, null, null);
+        query.onCompilationCompleted(null, null, null, 0);
         assertThatIllegalStateException().isThrownBy(query::onRetryAttempted);
     }
 

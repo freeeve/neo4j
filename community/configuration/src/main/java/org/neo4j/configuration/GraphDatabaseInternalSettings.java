@@ -1348,6 +1348,23 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Description("Log whether the query plan served from one of the query caches.")
     public static final Setting<Boolean> log_query_cache_usage = newBuilder(
                     "internal.dbms.logs.query.query_cache_usage", BOOL, false)
+            .dynamic()
+            .build();
+
+    @Internal
+    @Description("Log the hash of query cache key.")
+    public static final Setting<Boolean> log_query_cache_key = newBuilder(
+                    "internal.dbms.logs.query.query_cache_key", BOOL, true)
+            .dynamic()
+            .build();
+
+    @Internal
+    @Description("Log the hash of query cache key also in the plain text query log. "
+            + "The parent setting `internal.dbms.logs.query.query_cache_key` also has to be enabled for "
+            + "this setting to have effect.")
+    public static final Setting<Boolean> log_query_cache_key_plain_text = newBuilder(
+                    "internal.dbms.logs.query.query_cache_key_plain_text", BOOL, false)
+            .dynamic()
             .build();
 
     @Internal

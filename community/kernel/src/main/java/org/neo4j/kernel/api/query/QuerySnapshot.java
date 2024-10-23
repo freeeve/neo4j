@@ -56,6 +56,7 @@ public class QuerySnapshot {
     private final String parentDbName;
     private final QueryCacheUsage executableQueryCacheUsage;
     private final QueryCacheUsage logicalPlanCacheUsage;
+    private final int executionPlanCacheKeyHash;
 
     QuerySnapshot(
             ExecutingQuery query,
@@ -78,7 +79,8 @@ public class QuerySnapshot {
             String parentDbName,
             long parentTransactionSequenceNumber,
             QueryCacheUsage executableQueryCacheUsage,
-            QueryCacheUsage logicalPlanCacheUsage) {
+            QueryCacheUsage logicalPlanCacheUsage,
+            int executionPlanCacheKeyHash) {
         this.query = query;
         this.compilerInfo = compilerInfo;
         this.pageHits = pageHits;
@@ -100,6 +102,7 @@ public class QuerySnapshot {
         this.parentTransactionSequenceNumber = parentTransactionSequenceNumber;
         this.executableQueryCacheUsage = executableQueryCacheUsage;
         this.logicalPlanCacheUsage = logicalPlanCacheUsage;
+        this.executionPlanCacheKeyHash = executionPlanCacheKeyHash;
     }
 
     public long internalQueryId() {
@@ -291,5 +294,9 @@ public class QuerySnapshot {
 
     public Optional<QueryCacheUsage> logicalPlanCacheUsage() {
         return Optional.ofNullable(logicalPlanCacheUsage);
+    }
+
+    public int executionPlanCacheKeyHash() {
+        return executionPlanCacheKeyHash;
     }
 }

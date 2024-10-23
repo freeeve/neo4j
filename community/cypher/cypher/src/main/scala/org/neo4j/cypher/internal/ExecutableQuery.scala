@@ -122,4 +122,9 @@ trait ExecutableQuery extends CacheabilityInfo {
    * Obfuscator to be used on this query's raw text and parameters before logging.
    */
   def queryObfuscator: QueryObfuscator
+
+  /**
+   * The hash code of the execution plan query cache key.
+   */
+  def executionPlanCacheKeyHash: Int
 }
