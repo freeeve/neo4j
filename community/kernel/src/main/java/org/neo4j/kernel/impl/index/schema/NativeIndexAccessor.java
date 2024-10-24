@@ -184,7 +184,6 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
             IndexAccessor other,
             boolean valueUniqueness,
             IndexEntryConflictHandler conflictHandler,
-            LongPredicate entityFilter,
             int threads,
             JobScheduler jobScheduler) {
         var o = (NativeIndexAccessor<KEY>) other;

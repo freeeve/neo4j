@@ -102,7 +102,6 @@ public class TokenIndexAccessor extends TokenIndex implements IndexAccessor {
             IndexAccessor other,
             boolean valueUniqueness,
             IndexEntryConflictHandler conflictHandler,
-            LongPredicate entityFilter,
             int threads,
             JobScheduler jobScheduler) {
         throw new UnsupportedOperationException();

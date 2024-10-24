@@ -128,7 +128,6 @@ public abstract class AbstractLuceneIndexAccessor<READER extends ValueIndexReade
             IndexAccessor other,
             boolean valueUniqueness,
             IndexEntryConflictHandler conflictHandler,
-            LongPredicate entityFilter,
             int threads,
             JobScheduler jobScheduler) {
         throw new UnsupportedOperationException();

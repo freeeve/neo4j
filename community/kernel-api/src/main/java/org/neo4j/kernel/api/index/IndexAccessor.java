@@ -223,7 +223,6 @@ public interface IndexAccessor extends Closeable, ConsistencyCheckable, MinimalI
      * @param other other index to validate contents from.
      * @param valueUniqueness whether to include the values into uniqueness checks.
      * @param conflictHandler handling violations between these indexes.
-     * @param entityFilter filter for which entities to include in the validation.
      * @param threads number of threads to use for this validation.
      * @param jobScheduler to run the jobs for this validation.
      */
@@ -231,7 +230,6 @@ public interface IndexAccessor extends Closeable, ConsistencyCheckable, MinimalI
             IndexAccessor other,
             boolean valueUniqueness,
             IndexEntryConflictHandler conflictHandler,
-            LongPredicate entityFilter,
             int threads,
             JobScheduler jobScheduler);
 
@@ -320,7 +318,6 @@ public interface IndexAccessor extends Closeable, ConsistencyCheckable, MinimalI
                 IndexAccessor other,
                 boolean valueUniqueness,
                 IndexEntryConflictHandler conflictHandler,
-                LongPredicate entityFilter,
                 int threads,
                 JobScheduler jobScheduler) {}
     }
@@ -444,10 +441,9 @@ public interface IndexAccessor extends Closeable, ConsistencyCheckable, MinimalI
                 IndexAccessor other,
                 boolean valueUniqueness,
                 IndexEntryConflictHandler conflictHandler,
-                LongPredicate entityFilter,
                 int threads,
                 JobScheduler jobScheduler) {
-            delegate.validate(other, valueUniqueness, conflictHandler, entityFilter, threads, jobScheduler);
+            delegate.validate(other, valueUniqueness, conflictHandler, threads, jobScheduler);
         }
 
         @Override
