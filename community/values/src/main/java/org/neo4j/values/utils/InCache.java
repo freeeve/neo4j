@@ -33,6 +33,7 @@ import org.neo4j.values.SequenceValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.MapValue;
+import org.neo4j.values.virtual.SetListValue;
 
 public class InCache implements AutoCloseable {
     private final SimpleIdentityCache<ListValue, InCache.DelayedInCacheChecker> seen;
@@ -46,7 +47,7 @@ public class InCache implements AutoCloseable {
     }
 
     public Value check(AnyValue value, ListValue list, MemoryTracker memoryTracker) {
-        if (list.actualSize() < 128 || value == NO_VALUE) {
+        if (list instanceof SetListValue || list.actualSize() < 128 || value == NO_VALUE) {
             return ValueBooleanLogic.in(value, list);
         } else {
             return seen.getOrCache(list, (oldValue) -> {
