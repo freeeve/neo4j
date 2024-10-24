@@ -166,7 +166,8 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
       Some(groupPercentileFunctions(
         anonymousVariableNameGenerator,
         otherAttributes.withAlso(solveds, cardinalities, effectiveCardinalities, providedOrders)
-      ))
+      )),
+      Some(collectDistinctRewriter)
     ).flatten
 
     val (bottomUps, topDowns, others) = rewritersAfterUnnestApply.foldLeft((
