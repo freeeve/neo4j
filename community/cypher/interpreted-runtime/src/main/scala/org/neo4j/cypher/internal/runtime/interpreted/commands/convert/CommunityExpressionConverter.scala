@@ -471,6 +471,9 @@ case class CommunityExpressionConverter(
       case CoerceToPredicate(inner) => predicates.CoercedPredicate(self.toCommandExpression(id, inner))
       case e: internal.expressions.CollectAll =>
         commands.expressions.CollectAll(self.toCommandExpression(id, e.arguments.head))
+      case e: internal.expressions.CollectDistinct =>
+        commands.expressions.CollectDistinct(self.toCommandExpression(id, e.arguments.head))
+
       case e: DefaultValueLiteral => commands.expressions.Literal(e.value)
       case e: RuntimeConstant =>
         commands.expressions.RuntimeConstant(
@@ -539,6 +542,7 @@ case class CommunityExpressionConverter(
           commands.expressions.Distinct(command, inner, invocation.isOrdered)
         else
           command
+
       case Cos => commands.expressions.CosFunction(self.toCommandExpression(id, invocation.arguments.head))
       case Cot => commands.expressions.CotFunction(self.toCommandExpression(id, invocation.arguments.head))
       case Count =>
