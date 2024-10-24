@@ -33,10 +33,13 @@ import java.util.HashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 import java.util.function.LongFunction;
+import java.util.function.LongPredicate;
 import java.util.stream.LongStream;
 import org.eclipse.collections.api.iterator.LongIterator;
+import org.eclipse.collections.api.set.primitive.LongSet;
 import org.eclipse.collections.api.tuple.primitive.LongLongPair;
 import org.eclipse.collections.impl.iterator.ImmutableEmptyLongIterator;
 import org.neo4j.batchimport.api.PropertyValueLookup;
@@ -65,11 +68,11 @@ import org.neo4j.util.concurrent.IdSpaceParallelExecution.Partition;
 
 /**
  * Maps arbitrary values to long ids. The values can be {@link #put(Object, long, Group) added} in any order,
- * but {@link #needsPreparation() needs} {@link IdMapper#prepare(PropertyValueLookup, Collector, ProgressMonitorFactory) preparation}
+ * but {@link #needsPreparation() needs} {@link IdMapper#prepare(PropertyValueLookup, Collector, ProgressMonitorFactory, LongSet) preparation}
  *
  * in order to {@link Getter#get(Object, Group) get} ids back later.
  *
- * In the {@link IdMapper#prepare(PropertyValueLookup, Collector, ProgressMonitorFactory) preparation phase} the added entries are
+ * In the {@link IdMapper#prepare(PropertyValueLookup, Collector, ProgressMonitorFactory, LongSet) preparation phase} the added entries are
  * sorted according to a number representation of each input value and {@link Getter#get(Object, Group)} does simple
  * binary search to find the correct one.
  *
@@ -173,6 +176,7 @@ public class EncodingIdMapper implements IdMapper {
     private long numberOfCollisions;
     private final LongFunction<CollisionValues> collisionValuesFactory;
     private CollisionValues collisionValues;
+    private long numberOfDuplicates;
 
     public EncodingIdMapper(
             NumberArrayFactory cacheFactory,
@@ -279,7 +283,12 @@ public class EncodingIdMapper implements IdMapper {
      */
     @Override
     public void prepare(
-            PropertyValueLookup inputIdLookup, Collector collector, ProgressMonitorFactory progressMonitorFactory) {
+            PropertyValueLookup inputIdLookup,
+            Collector collector,
+            ProgressMonitorFactory progressMonitorFactory,
+            LongSet otherViolatingNodes) {
+        otherViolatingNodes.forEach(violatingNodeId -> dataCache.set(violatingNodeId, GAP_VALUE));
+
         highestSetIndex = candidateHighestSetIndex.get();
         updateRadix(dataCache, radix, highestSetIndex);
         highestSetTrackerIndex = highestSetIndex - radix.getNullCount();
@@ -665,6 +674,7 @@ public class EncodingIdMapper implements IdMapper {
 
         // Here we have a populated C
         // We want to detect duplicate input ids within it
+        var numDuplicates = new LongAdder();
         var detectionTasks = partitionDuplicateCheck().stream()
                 .map(partition -> (Callable<Void>) () -> {
                     try (var localProgress = progress.threadLocalReporter()) {
@@ -689,6 +699,7 @@ public class EncodingIdMapper implements IdMapper {
                             if (nonDuplicateNodeId != -1) { // Duplicate
                                 collector.collectDuplicateNode(inputId, nodeId, groups.get(groupId));
                                 trackerCache.markAsDuplicate(nodeId);
+                                numDuplicates.add(1);
                                 unmarkAsCollision(nonDuplicateNodeId);
                             }
 
@@ -709,6 +720,7 @@ public class EncodingIdMapper implements IdMapper {
         } finally {
             executor.shutdown();
         }
+        this.numberOfDuplicates = numDuplicates.sum();
     }
 
     private Collection<LongLongPair> partitionDuplicateCheck() {
@@ -994,6 +1006,11 @@ public class EncodingIdMapper implements IdMapper {
                 return false;
             }
         };
+    }
+
+    @Override
+    public LongPredicate leftOverDuplicateNodesIdsPredicate() {
+        return numberOfDuplicates == 0 ? null : value -> trackerCache.isMarkedAsDuplicate(value);
     }
 
     public static int defaultNumberOfSortWorkers() {

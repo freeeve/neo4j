@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.batchimport;
 
+import org.eclipse.collections.api.set.primitive.LongSet;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.batchimport.api.PropertyValueLookup;
 import org.neo4j.batchimport.api.input.Collector;
@@ -32,7 +33,7 @@ import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 
 /**
- * Preparation of an {@link IdMapper}, {@link IdMapper#prepare(PropertyValueLookup, Collector, ProgressMonitorFactory)}
+ * Preparation of an {@link IdMapper}, {@link IdMapper#prepare(PropertyValueLookup, Collector, ProgressMonitorFactory, LongSet)}
  * under running as a normal {@link Step} so that normal execution monitoring can be applied.
  * Useful since preparing an {@link IdMapper} can take a significant amount of time.
  */
@@ -40,6 +41,7 @@ public class IdMapperPreparationStep extends LonelyProcessingStep {
     private final IdMapper idMapper;
     private final PropertyValueLookup allIds;
     private final Collector collector;
+    private final LongSet otherViolatingNodes;
 
     public IdMapperPreparationStep(
             StageControl control,
@@ -47,36 +49,42 @@ public class IdMapperPreparationStep extends LonelyProcessingStep {
             IdMapper idMapper,
             PropertyValueLookup allIds,
             Collector collector,
+            LongSet otherViolatingNodes,
             StatsProvider... additionalStatsProviders) {
         super(control, "" /*named later in the progress listener*/, config, additionalStatsProviders);
         this.idMapper = idMapper;
         this.allIds = allIds;
         this.collector = collector;
+        this.otherViolatingNodes = otherViolatingNodes;
     }
 
     @Override
     protected void process() {
-        idMapper.prepare(allIds, collector, new ProgressMonitorFactory() {
-            private long totalCount;
+        idMapper.prepare(
+                allIds,
+                collector,
+                new ProgressMonitorFactory() {
+                    private long totalCount;
 
-            @Override
-            protected Indicator newIndicator(String process) {
-                int reportResolution = 100;
-                return new Indicator(reportResolution) {
                     @Override
-                    protected void progress(int from, int to) {
-                        int steps = to - from;
-                        IdMapperPreparationStep.this.progress(
-                                (long) (totalCount * (steps / (double) reportResolution)));
+                    protected Indicator newIndicator(String process) {
+                        int reportResolution = 100;
+                        return new Indicator(reportResolution) {
+                            @Override
+                            protected void progress(int from, int to) {
+                                int steps = to - from;
+                                IdMapperPreparationStep.this.progress(
+                                        (long) (totalCount * (steps / (double) reportResolution)));
+                            }
+                        };
                     }
-                };
-            }
 
-            @Override
-            public ProgressListener singlePart(String process, long totalCount) {
-                this.totalCount = totalCount;
-                return super.singlePart(process, totalCount);
-            }
-        });
+                    @Override
+                    public ProgressListener singlePart(String process, long totalCount) {
+                        this.totalCount = totalCount;
+                        return super.singlePart(process, totalCount);
+                    }
+                },
+                otherViolatingNodes);
     }
 }

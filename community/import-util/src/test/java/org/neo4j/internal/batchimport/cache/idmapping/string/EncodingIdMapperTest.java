@@ -53,6 +53,7 @@ import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableLong;
+import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -126,7 +127,7 @@ public class EncodingIdMapperTest {
                 setter.put(lookup.lookupProperty(nodeId, INSTANCE), nodeId, globalGroup);
             }
         }
-        idMapper.prepare(inputIdLookup, mock(Collector.class), NONE);
+        idMapper.prepare(inputIdLookup, mock(Collector.class), NONE, LongSets.immutable.empty());
 
         // THEN
         try (var getter = idMapper.newGetter();
@@ -146,7 +147,7 @@ public class EncodingIdMapperTest {
     public void shouldReturnExpectedValueForNotFound(int processors) {
         // GIVEN
         IdMapper idMapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors);
-        idMapper.prepare(values(), mock(Collector.class), NONE);
+        idMapper.prepare(values(), mock(Collector.class), NONE, LongSets.immutable.empty());
 
         // WHEN
         long id;
@@ -165,7 +166,7 @@ public class EncodingIdMapperTest {
         IdMapper idMapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors);
         ProgressMonitorFactory progressMonitorFactory = mock(ProgressMonitorFactory.class);
         when(progressMonitorFactory.singlePart(anyString(), anyLong())).thenReturn(mock(ProgressListener.class));
-        idMapper.prepare(values(), mock(Collector.class), progressMonitorFactory);
+        idMapper.prepare(values(), mock(Collector.class), progressMonitorFactory, LongSets.immutable.empty());
 
         // WHEN
         long id;
@@ -188,7 +189,7 @@ public class EncodingIdMapperTest {
         IdMapper.Setter setter = mapper.newSetter();
         setter.put("123", 0, globalGroup);
         setter.put("456", 1, globalGroup);
-        mapper.prepare(values("123", "456"), mock(Collector.class), NONE);
+        mapper.prepare(values("123", "456"), mock(Collector.class), NONE, LongSets.immutable.empty());
 
         // THEN
         try (var getter = mapper.newGetter()) {
@@ -204,7 +205,7 @@ public class EncodingIdMapperTest {
 
         // WHEN
         mapper.newSetter().put("1", 1, globalGroup);
-        mapper.prepare(values(null, "1"), mock(Collector.class), NONE);
+        mapper.prepare(values(null, "1"), mock(Collector.class), NONE, LongSets.immutable.empty());
 
         // THEN
         try (var getter = mapper.newGetter()) {
@@ -228,7 +229,7 @@ public class EncodingIdMapperTest {
         final var nodeId = 7L;
         mapper.newSetter().put(existingInputId, nodeId, globalGroup);
         Collector collector = mock(Collector.class);
-        mapper.prepare(alwaysReturn(existingInputId), collector, NONE);
+        mapper.prepare(alwaysReturn(existingInputId), collector, NONE, LongSets.immutable.empty());
 
         try (var getter = mapper.newGetter()) {
             assertEquals(nodeId, getter.get(existingInputId, globalGroup));
@@ -247,7 +248,7 @@ public class EncodingIdMapperTest {
         IdMapper.Setter setter = mapper.newSetter();
         setter.put(v1, 0, globalGroup);
         setter.put(v2, 1, globalGroup);
-        mapper.prepare(values(v1, v2), mock(Collector.class), NONE);
+        mapper.prepare(values(v1, v2), mock(Collector.class), NONE, LongSets.immutable.empty());
 
         // THEN
         try (var getter = mapper.newGetter()) {
@@ -270,7 +271,7 @@ public class EncodingIdMapperTest {
         for (int nodeId = 0; nodeId < size; nodeId++) {
             setter.put(values.lookupProperty(nodeId, INSTANCE), nodeId, globalGroup);
         }
-        mapper.prepare(values, mock(Collector.class), NONE);
+        mapper.prepare(values, mock(Collector.class), NONE, LongSets.immutable.empty());
 
         // THEN
         try (var getter = mapper.newGetter()) {
@@ -296,7 +297,7 @@ public class EncodingIdMapperTest {
 
         // WHEN
         Collector collector = mock(Collector.class);
-        mapper.prepare(values, collector, NONE);
+        mapper.prepare(values, collector, NONE, LongSets.immutable.empty());
 
         // THEN
         verify(collector).collectDuplicateNode("10", 2, globalGroup);
@@ -321,7 +322,7 @@ public class EncodingIdMapperTest {
 
         // WHEN
         Collector collector = mock(Collector.class);
-        mapper.prepare(ids, collector, NONE);
+        mapper.prepare(ids, collector, NONE, LongSets.immutable.empty());
 
         // THEN
         verifyNoMoreInteractions(collector);
@@ -372,7 +373,7 @@ public class EncodingIdMapperTest {
             }
         }
         Collector collector = mock(Collector.class);
-        mapper.prepare(ids, collector, NONE);
+        mapper.prepare(ids, collector, NONE, LongSets.immutable.empty());
 
         // THEN
         verify(monitor).numberOfCollisions(4);
@@ -405,7 +406,7 @@ public class EncodingIdMapperTest {
             setter.put(lookup.lookupProperty(id, INSTANCE), id, secondGroup);
         }
         Collector collector = mock(Collector.class);
-        mapper.prepare(ids, collector, NONE);
+        mapper.prepare(ids, collector, NONE, LongSets.immutable.empty());
 
         // WHEN/THEN
         verifyNoMoreInteractions(collector);
@@ -434,7 +435,7 @@ public class EncodingIdMapperTest {
             setter.put(lookup.lookupProperty(id, INSTANCE), id++, secondGroup);
             setter.put(lookup.lookupProperty(id, INSTANCE), id, thirdGroup);
         }
-        mapper.prepare(ids, mock(Collector.class), NONE);
+        mapper.prepare(ids, mock(Collector.class), NONE, LongSets.immutable.empty());
 
         // WHEN/THEN
         try (var getter = mapper.newGetter()) {
@@ -470,7 +471,7 @@ public class EncodingIdMapperTest {
             setter.put(i, i, groups.get("" + i));
         }
         // null since this test should have been set up to not run into collisions
-        mapper.prepare(values(values), mock(Collector.class), NONE);
+        mapper.prepare(values(values), mock(Collector.class), NONE, LongSets.immutable.empty());
 
         // THEN
         try (var getter = mapper.newGetter()) {
@@ -531,7 +532,7 @@ public class EncodingIdMapperTest {
         }
         Collector collector = mock(Collector.class);
 
-        mapper.prepare(ids, collector, NONE);
+        mapper.prepare(ids, collector, NONE, LongSets.immutable.empty());
 
         // THEN
         verifyNoMoreInteractions(collector);
@@ -564,7 +565,7 @@ public class EncodingIdMapperTest {
         }
 
         // WHEN
-        mapper.prepare(values(ids.toArray()), mock(Collector.class), NONE);
+        mapper.prepare(values(ids.toArray()), mock(Collector.class), NONE, LongSets.immutable.empty());
 
         // THEN
         try (var getter = mapper.newGetter()) {
@@ -597,7 +598,7 @@ public class EncodingIdMapperTest {
 
         // WHEN
         Collector collector = mock(Collector.class);
-        mapper.prepare(values(ids.toArray()), collector, NONE);
+        mapper.prepare(values(ids.toArray()), collector, NONE, LongSets.immutable.empty());
 
         // THEN
         verify(collector, times(high)).collectDuplicateNode(any(Object.class), anyLong(), any());
@@ -632,7 +633,7 @@ public class EncodingIdMapperTest {
                 })
                 .when(collector)
                 .collectDuplicateNode(any(Object.class), anyLong(), any());
-        mapper.prepare(values(ids.toArray()), collector, NONE);
+        mapper.prepare(values(ids.toArray()), collector, NONE, LongSets.immutable.empty());
 
         // THEN
         assertEquals(count, reportedCount.intValue());
@@ -670,7 +671,7 @@ public class EncodingIdMapperTest {
 
         // WHEN
         race.go();
-        idMapper.prepare(inputIdLookup, mock(Collector.class), NONE);
+        idMapper.prepare(inputIdLookup, mock(Collector.class), NONE, LongSets.immutable.empty());
 
         // THEN
         int count = processors * countPerThread;
@@ -710,7 +711,7 @@ public class EncodingIdMapperTest {
         }
 
         // WHEN
-        idMapper.prepare(FAILING_LOOKUP, Collector.EMPTY, NONE);
+        idMapper.prepare(FAILING_LOOKUP, Collector.EMPTY, NONE, LongSets.immutable.empty());
 
         // THEN
         assertEquals((count - 1) * 2, highDataIndex.longValue());
@@ -750,7 +751,7 @@ public class EncodingIdMapperTest {
         }
 
         // when
-        idMapper.prepare(FAILING_LOOKUP, Collector.EMPTY, NONE);
+        idMapper.prepare(FAILING_LOOKUP, Collector.EMPTY, NONE, LongSets.immutable.empty());
 
         // then before making the fix where the IdMapper would skip "null" values this test would have taken multiple
         // weeks. We can also assert this by checking how many comparisons have been made when sorting
@@ -774,7 +775,7 @@ public class EncodingIdMapperTest {
                 throw new RuntimeException(e);
             }
         });
-        idMapper.prepare(mapValues(data), Collector.EMPTY, NONE);
+        idMapper.prepare(mapValues(data), Collector.EMPTY, NONE, LongSets.immutable.empty());
 
         // then
         try (var getter = idMapper.newGetter()) {

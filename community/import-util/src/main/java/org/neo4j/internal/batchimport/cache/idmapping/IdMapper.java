@@ -19,7 +19,9 @@
  */
 package org.neo4j.internal.batchimport.cache.idmapping;
 
+import java.util.function.LongPredicate;
 import org.eclipse.collections.api.iterator.LongIterator;
+import org.eclipse.collections.api.set.primitive.LongSet;
 import org.neo4j.batchimport.api.PropertyValueLookup;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Group;
@@ -43,7 +45,7 @@ public interface IdMapper extends MemoryStatsVisitor.Visitable, AutoCloseable {
     void remove(Object inputId, long actualId, Group group);
 
     /**
-     * @return whether a call to {@link #prepare(PropertyValueLookup, Collector, ProgressMonitorFactory)} needs to commence after all calls to
+     * @return whether a call to {@link #prepare(PropertyValueLookup, Collector, ProgressMonitorFactory, LongSet)} needs to commence after all calls to
      * {@link Setter#put(Object, long, Group)} and before any call to {@link Getter#get(Object, Group)}. I.e. whether all ids
      * need to be put before making any call to {@link Getter#get(Object, Group)}.
      */
@@ -52,13 +54,19 @@ public interface IdMapper extends MemoryStatsVisitor.Visitable, AutoCloseable {
     /**
      * After all mappings have been {@link Setter#put(Object, long, Group)} call this method to prepare for
      * {@link Getter#get(Object, Group)}.
+     *
      * @param inputIdLookup can return input id of supplied node id. Used in the event of difficult collisions
      * so that more information have to be read from the input data again, data that normally isn't necessary
      * and hence discarded.
      * @param collector {@link Collector} for bad entries, such as duplicate node ids.
      * @param progressMonitorFactory reports preparation progress.
+     * @param otherViolatingNodes entity IDs from other sources that are known to violate constraints.
      */
-    void prepare(PropertyValueLookup inputIdLookup, Collector collector, ProgressMonitorFactory progressMonitorFactory);
+    void prepare(
+            PropertyValueLookup inputIdLookup,
+            Collector collector,
+            ProgressMonitorFactory progressMonitorFactory,
+            LongSet otherViolatingNodes);
 
     /**
      * @return a {@link Getter} for the current thread to do lookups in.
@@ -83,10 +91,12 @@ public interface IdMapper extends MemoryStatsVisitor.Visitable, AutoCloseable {
 
     LongIterator leftOverDuplicateNodesIds();
 
+    LongPredicate leftOverDuplicateNodesIdsPredicate();
+
     interface Getter extends AutoCloseable {
         /**
          * Returns an actual node id representing {@code inputId}.
-         * For this call to work {@link #prepare(PropertyValueLookup, Collector, ProgressMonitorFactory)} must have
+         * For this call to work {@link #prepare(PropertyValueLookup, Collector, ProgressMonitorFactory, LongSet)} must have
          * been called after all calls to {@link Setter#put(Object, long, Group)} have been made,
          * iff {@link #needsPreparation()} returns {@code true}. Otherwise ids can be retrieved right after
          * {@link Setter#put(Object, long, Group) being put}

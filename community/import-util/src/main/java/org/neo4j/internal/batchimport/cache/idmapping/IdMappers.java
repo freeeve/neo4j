@@ -25,7 +25,9 @@ import static org.neo4j.internal.batchimport.cache.idmapping.string.TrackerFacto
 import static org.neo4j.io.ByteUnit.gibiBytes;
 import static org.neo4j.util.FeatureToggles.flag;
 
+import java.util.function.LongPredicate;
 import org.eclipse.collections.api.iterator.LongIterator;
+import org.eclipse.collections.api.set.primitive.LongSet;
 import org.eclipse.collections.impl.iterator.ImmutableEmptyLongIterator;
 import org.neo4j.batchimport.api.PropertyValueLookup;
 import org.neo4j.batchimport.api.input.Collector;
@@ -72,7 +74,8 @@ public final class IdMappers {
         public void prepare(
                 PropertyValueLookup inputIdLookup,
                 Collector collector,
-                ProgressMonitorFactory progressMonitorFactory) { // No need to prepare anything
+                ProgressMonitorFactory progressMonitorFactory,
+                LongSet otherViolatingNodes) { // No need to prepare anything
         }
 
         @Override
@@ -106,6 +109,11 @@ public final class IdMappers {
         @Override
         public LongIterator leftOverDuplicateNodesIds() {
             return ImmutableEmptyLongIterator.INSTANCE;
+        }
+
+        @Override
+        public LongPredicate leftOverDuplicateNodesIdsPredicate() {
+            return id -> false;
         }
     }
 

@@ -350,6 +350,11 @@ public class IndexIdMapper implements IdMapper {
     }
 
     @Override
+    public LongPredicate leftOverDuplicateNodesIdsPredicate() {
+        return duplicateNodeIds.isEmpty() ? null : duplicateNodeIds::contains;
+    }
+
+    @Override
     public MemoryStatsVisitor.Visitable memoryEstimation(long numberOfNodes) {
         return visitor -> {};
     }

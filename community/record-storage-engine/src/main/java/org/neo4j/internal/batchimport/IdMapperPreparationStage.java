@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.batchimport;
 
+import org.eclipse.collections.api.set.primitive.LongSet;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.batchimport.api.PropertyValueLookup;
 import org.neo4j.batchimport.api.input.Collector;
@@ -28,7 +29,7 @@ import org.neo4j.internal.batchimport.stats.StatsProvider;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 
 /**
- * Performs {@link IdMapper#prepare(PropertyValueLookup, Collector, ProgressMonitorFactory)}
+ * Performs {@link IdMapper#prepare(PropertyValueLookup, Collector, ProgressMonitorFactory,LongSet)}
  * embedded in a {@link Stage} as to take advantage of statistics and monitoring provided by that framework.
  */
 public class IdMapperPreparationStage extends Stage {
@@ -39,8 +40,10 @@ public class IdMapperPreparationStage extends Stage {
             IdMapper idMapper,
             PropertyValueLookup inputIdLookup,
             Collector collector,
+            LongSet otherViolatingNodes,
             StatsProvider memoryUsageStats) {
         super(NAME, null, config, 0);
-        add(new IdMapperPreparationStep(control(), config, idMapper, inputIdLookup, collector, memoryUsageStats));
+        add(new IdMapperPreparationStep(
+                control(), config, idMapper, inputIdLookup, collector, otherViolatingNodes, memoryUsageStats));
     }
 }
