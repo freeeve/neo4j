@@ -295,9 +295,7 @@ class IndexIdMapperIT {
     }
 
     private void prepare(Collector collector) {
-        idMapper.completeBuild(collector, Runnable::run);
-        idMapper.validate(collector);
-        idMapper.prepare(ID_LOOKUP, collector, ProgressMonitorFactory.NONE);
+        idMapper.prepare(ID_LOOKUP, collector, ProgressMonitorFactory.NONE, LongSets.immutable.empty());
     }
 
     private void put(long nodeId, Group group) throws KeyCollisionException {

@@ -213,7 +213,7 @@ public class ImportIndexBuilder implements Closeable {
      * Schedules "scanCompleted" calls to any index populations that are part of this ID mapper,
      * such that they can be scheduled with "scanCompleted" calls to other index populations.
      */
-    public void completeBuild(Collector collector, Consumer<Runnable> scheduler) {
+    private void completeBuild(Collector collector, Consumer<Runnable> scheduler) {
         for (var population : indexBuilders.entrySet()) {
             // Complete the population of the increment index
             var builder = population.getValue();
@@ -245,43 +245,50 @@ public class ImportIndexBuilder implements Closeable {
     /**
      * @return a list of entity IDs that violated constraints during complete (e.g. merging of indexes).
      */
-    public LongSet validate(LongSet skippedEntityIds, Collector collector) {
+    public LongSet validate(Collector collector) throws IOException {
         // Merge increments into copied-target-indexes and skip (and remember) those that violate constraints
+        try (var scheduler = new BuildCompletionScheduler(workScheduler.jobScheduler())) {
+            completeBuild(collector, scheduler);
+        }
+
         var indexSamplingConfig = new IndexSamplingConfig(Config.defaults());
-        try {
-            for (var population : indexBuilders.entrySet()) {
-                var descriptor = population.getKey();
-                var builder = population.getValue();
-                var conflictHandler = new RecordingIndexEntryConflictHandler(
-                        collector, violatingEntities, descriptor, tokenNameLookup, entityIdFromIndexIdConverter);
-                // For constraint indexes checking violations
-                if (descriptor.isUnique()) {
-                    // Validate uniqueness, since it's a constraint index
-                    try (var builtIncrementIndex = tempIndexes
-                            .lookup(descriptor.getIndexProvider())
-                            .getOnlineAccessor(
-                                    descriptor,
-                                    indexSamplingConfig,
-                                    tokenNameLookup,
-                                    ElementIdMapper.PLACEHOLDER,
-                                    openOptions,
-                                    indexingBehaviour)) {
-                        builder.accessor.validate(
-                                builtIncrementIndex,
-                                true,
-                                conflictHandler,
-                                skippedEntityIds::contains,
-                                configuration.maxNumberOfWorkerThreads(),
-                                workScheduler.jobScheduler());
-                    }
+        for (var population : indexBuilders.entrySet()) {
+            var descriptor = population.getKey();
+            var builder = population.getValue();
+            var conflictHandler = new RecordingIndexEntryConflictHandler(
+                    collector, violatingEntities, descriptor, tokenNameLookup, entityIdFromIndexIdConverter);
+            // For constraint indexes checking violations
+            if (descriptor.isUnique()) {
+                // Validate uniqueness, since it's a constraint index
+                try (var builtIncrementIndex = tempIndexes
+                        .lookup(descriptor.getIndexProvider())
+                        .getOnlineAccessor(
+                                descriptor,
+                                indexSamplingConfig,
+                                tokenNameLookup,
+                                ElementIdMapper.PLACEHOLDER,
+                                openOptions,
+                                indexingBehaviour)) {
+                    builder.accessor.validate(
+                            builtIncrementIndex,
+                            true,
+                            conflictHandler,
+                            configuration.maxNumberOfWorkerThreads(),
+                            workScheduler.jobScheduler());
                 }
             }
+        }
+        return violatingEntities;
+    }
 
+    public void writeToTarget(LongPredicate skippedEntityIds) {
+        try {
             // When all violations are known then merge all increment indexes
-            LongPredicate filter = skippedEntityIds.isEmpty() && violatingEntities.isEmpty()
+            LongPredicate filter = skippedEntityIds == null && violatingEntities.isEmpty()
                     ? null
-                    : indexEntityId -> !skippedEntityIds.contains(indexEntityId)
+                    : indexEntityId -> (skippedEntityIds == null || !skippedEntityIds.test(indexEntityId))
                             && !violatingEntities.contains(entityIdFromIndexIdConverter.applyAsLong(indexEntityId));
+            var indexSamplingConfig = new IndexSamplingConfig(Config.defaults());
             for (var population : indexBuilders.entrySet()) {
                 var descriptor = population.getKey();
                 var builder = population.getValue();
@@ -319,8 +326,6 @@ public class ImportIndexBuilder implements Closeable {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-
-        return violatingEntities;
     }
 
     public LongSet affectedIndexes() {

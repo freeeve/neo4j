@@ -21,14 +21,12 @@ package org.neo4j.internal.batchimport;
 
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_INT_ARRAY;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.OpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.LongPredicate;
 import org.eclipse.collections.api.block.function.primitive.LongToLongFunction;
 import org.eclipse.collections.api.factory.primitive.IntSets;
 import org.eclipse.collections.api.list.primitive.IntList;
@@ -76,7 +74,7 @@ import org.neo4j.values.storable.Values;
  * generated updates can be made based on the new data (delta for updates), and for the rest there's
  * {@link SchemaMonitor#indexUpdate(IndexEntryUpdate)}.
  */
-public class OtherAffectedSchemaMonitors implements Supplier<SchemaMonitor>, Closeable {
+public class OtherAffectedSchemaMonitors implements SchemaMonitors {
     private final SchemaCache schemaCache;
     private final EntityType entityType;
     private final LongToLongFunction indexedEntityIdConverter;
@@ -132,18 +130,16 @@ public class OtherAffectedSchemaMonitors implements Supplier<SchemaMonitor>, Clo
     }
 
     /**
-     * Schedules "scanCompleted" calls to any index populations that are part of this ID mapper,
-     * such that they can be scheduled with "scanCompleted" calls to other index populations.
-     */
-    public void completeBuild(Collector collector, Consumer<Runnable> scheduler) {
-        indexBuilder.completeBuild(collector, scheduler);
-    }
-
-    /**
      * @return a list of entity IDs that violated constraints during complete (e.g. merging of indexes).
      */
-    public LongSet validate(LongSet skippedEntityIds, Collector collector) {
-        return indexBuilder.validate(skippedEntityIds, collector);
+    @Override
+    public LongSet validate(Collector collector) throws IOException {
+        return indexBuilder.validate(collector);
+    }
+
+    @Override
+    public void writeToTarget(LongPredicate skippedEntityIds) throws IOException {
+        indexBuilder.writeToTarget(skippedEntityIds);
     }
 
     @Override
@@ -151,6 +147,7 @@ public class OtherAffectedSchemaMonitors implements Supplier<SchemaMonitor>, Clo
         indexBuilder.close();
     }
 
+    @Override
     public LongSet affectedIndexes() {
         return indexBuilder.affectedIndexes();
     }

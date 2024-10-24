@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import org.eclipse.collections.api.iterator.LongIterator;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.api.set.primitive.LongSet;
@@ -94,7 +93,6 @@ import org.neo4j.storageengine.migration.MigrationProgressMonitor;
  */
 public class ImportLogic implements Closeable {
     private static final String ID_MAPPER_PREPARATION_TAG = "Id mapper preparation.";
-    public static final Supplier<SchemaMonitor> NO_SCHEMA_MONITORING = () -> SchemaMonitor.NO_MONITOR;
     private static final RelationshipLinkingMonitor NO_LINKING_MONITOR = new RelationshipLinkingMonitor() {};
 
     private final Path databaseDirectory;
@@ -250,17 +248,17 @@ public class ImportLogic implements Closeable {
     }
 
     public void importNodes() throws IOException {
-        importNodes(NO_SCHEMA_MONITORING);
+        importNodes(SchemaMonitors.NO_SCHEMA);
     }
 
     /**
      * Imports nodes w/ their properties and labels from {@link Input#nodes(Collector)}. This will as a side-effect populate the {@link IdMapper},
      * to later be used for looking up ID --> nodeId in {@link #importRelationships()}. After a completed node import,
-     * {@link #prepareIdMapper()} must be called.
+     * {@link #prepareIdMapper(LongSet)} must be called.
      *
      * @throws IOException on I/O error.
      */
-    public void importNodes(Supplier<SchemaMonitor> schemaMonitors) throws IOException {
+    public void importNodes(SchemaMonitors schemaMonitors) throws IOException {
         // Import nodes, properties, labels
         neoStore.startFlushingPageCache();
         DataImporter.importNodes(
@@ -280,15 +278,21 @@ public class ImportLogic implements Closeable {
         if (storeUpdateMonitor.hasExternallyChosenNodeIds()) {
             neoStore.needsRebuildNodeStoreIdFile();
         }
+
+        // Compare notes with schema monitors
+        var otherViolatingNodes = schemaMonitors.validate(badCollector);
+        prepareIdMapper(otherViolatingNodes);
+        schemaMonitors.writeToTarget(idMapper.leftOverDuplicateNodesIdsPredicate());
     }
 
     /**
      * Prepares {@link IdMapper} to be queried for ID --> nodeId lookups. This is required for running {@link #importRelationships()}.
      */
-    public void prepareIdMapper() {
+    private void prepareIdMapper(LongSet otherViolatingNodes) {
         if (idMapper.needsPreparation()) {
             MemoryUsageStatsProvider memoryUsageStats = new MemoryUsageStatsProvider(neoStore, idMapper);
-            executeStage(new IdMapperPreparationStage(config, idMapper, inputIdLookup, badCollector, memoryUsageStats));
+            executeStage(new IdMapperPreparationStage(
+                    config, idMapper, inputIdLookup, badCollector, otherViolatingNodes, memoryUsageStats));
             final LongIterator duplicateNodeIds = idMapper.leftOverDuplicateNodesIds();
             if (duplicateNodeIds.hasNext()) {
                 executeStage(new DeleteDuplicateNodesStage(
@@ -299,7 +303,7 @@ public class ImportLogic implements Closeable {
     }
 
     public void importRelationships() throws IOException {
-        importRelationships(NO_SCHEMA_MONITORING);
+        importRelationships(SchemaMonitors.NO_SCHEMA);
     }
 
     public void removeViolatingRelationships(LongSet violatingRelationships) {
@@ -325,7 +329,7 @@ public class ImportLogic implements Closeable {
      *
      * @throws IOException on I/O error.
      */
-    public void importRelationships(Supplier<SchemaMonitor> schemaMonitors) throws IOException {
+    public void importRelationships(SchemaMonitors schemaMonitors) throws IOException {
         // Import relationships (unlinked), properties
         neoStore.startFlushingPageCache();
         DataStatistics typeDistribution = DataImporter.importRelationships(
@@ -345,6 +349,11 @@ public class ImportLogic implements Closeable {
         idMapper.close();
         idMapper = null;
         putState(typeDistribution);
+
+        // Compare notes with schema monitors
+        var otherViolatingRelationships = schemaMonitors.validate(badCollector);
+        schemaMonitors.writeToTarget(id -> false);
+        removeViolatingRelationships(otherViolatingRelationships);
     }
 
     /**

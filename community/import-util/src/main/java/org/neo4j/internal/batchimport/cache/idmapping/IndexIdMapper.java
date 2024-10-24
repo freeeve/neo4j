@@ -38,6 +38,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
+import java.util.function.LongPredicate;
 import org.eclipse.collections.api.iterator.LongIterator;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.eclipse.collections.api.set.primitive.LongSet;
@@ -50,6 +51,7 @@ import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.ReadableGroups;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
+import org.neo4j.internal.batchimport.BuildCompletionScheduler;
 import org.neo4j.internal.batchimport.PopulationWorkJobScheduler;
 import org.neo4j.internal.batchimport.cache.MemoryStatsVisitor;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
@@ -193,7 +195,7 @@ public class IndexIdMapper implements IdMapper {
      * Schedules "scanCompleted" calls to any index populations that are part of this ID mapper,
      * such that they can be scheduled with "scanCompleted" calls to other index populations.
      */
-    public void completeBuild(Collector collector, Consumer<Runnable> scheduler) {
+    private void completeBuild(Collector collector, Consumer<Runnable> scheduler) {
         for (var entry : populators.entrySet()) {
             scheduler.accept(() -> {
                 var conflictHandler = conflictHandler(collector, entry);
@@ -225,12 +227,12 @@ public class IndexIdMapper implements IdMapper {
     /**
      * Validates all added entries from {@link #put(Object, long, Group)} and collects duplicates into
      * the {@code collector}, also returning the IDs of violating nodes.
-     * Must be run before {@link IdMapper#prepare(PropertyValueLookup, Collector, ProgressMonitorFactory)}.
+     * Must be run before {@link IdMapper#prepare(PropertyValueLookup, Collector, ProgressMonitorFactory, LongSet)}.
      *
      * @param collector {@link Collector} to report violations into.
      * @return the IDs of the violating nodes.
      */
-    public LongSet validate(Collector collector) {
+    private LongSet validate(Collector collector) {
         for (var entry : populators.entrySet()) {
             var conflictHandler = conflictHandler(collector, entry);
 
@@ -249,7 +251,6 @@ public class IndexIdMapper implements IdMapper {
                             newNodesIndex,
                             true,
                             conflictHandler,
-                            null,
                             configuration.maxNumberOfWorkerThreads(),
                             workScheduler.jobScheduler());
                 }
@@ -264,7 +265,13 @@ public class IndexIdMapper implements IdMapper {
     public void prepare(
             PropertyValueLookup propertyValueLookup,
             Collector collector,
-            ProgressMonitorFactory progressMonitorFactory) {
+            ProgressMonitorFactory progressMonitorFactory,
+            LongSet otherViolatingNodes) {
+        try (var scheduler = new BuildCompletionScheduler(workScheduler.jobScheduler())) {
+            completeBuild(collector, scheduler);
+        }
+        validate(collector);
+        duplicateNodeIds.addAll(otherViolatingNodes);
         for (var entry : populators.entrySet()) {
             try {
                 var descriptor = entry.getValue().descriptor;
@@ -283,7 +290,7 @@ public class IndexIdMapper implements IdMapper {
                             null,
                             true,
                             IndexEntryConflictHandler.THROW,
-                            id -> !duplicateNodeIds.contains(id),
+                            id -> (!duplicateNodeIds.contains(id) && !otherViolatingNodes.contains(id)),
                             configuration.maxNumberOfWorkerThreads(),
                             workScheduler.jobScheduler(),
                             progress);
@@ -335,12 +342,6 @@ public class IndexIdMapper implements IdMapper {
                 },
                 () -> closeAllUnchecked(accessors.values()),
                 bufferFactory);
-    }
-
-    public void additionalViolatingNodes(LongSet violatingNodes) {
-        synchronized (duplicateNodeIds) {
-            duplicateNodeIds.addAll(violatingNodes);
-        }
     }
 
     @Override
