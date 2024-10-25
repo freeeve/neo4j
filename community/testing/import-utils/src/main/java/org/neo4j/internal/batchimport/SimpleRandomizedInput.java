@@ -20,6 +20,7 @@
 package org.neo4j.internal.batchimport;
 
 import static java.lang.String.format;
+import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -72,6 +73,7 @@ import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.token.TokenHolders;
+import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
@@ -115,10 +117,12 @@ public class SimpleRandomizedInput implements Input {
                 dataDistribution,
                 idType,
                 seed,
+                RandomValues.DEFAULT_CONFIGURATION,
                 nodeHeader,
                 DataGeneratorInput.bareboneRelationshipHeader(
                         idType, group, extractors, additionalRelationshipEntries.toArray(new Entry[0])),
-                groups);
+                groups,
+                emptyList());
     }
 
     private Entry[] additionalPropertyEntries(int count, Group group, Extractors extractors, long seed) {

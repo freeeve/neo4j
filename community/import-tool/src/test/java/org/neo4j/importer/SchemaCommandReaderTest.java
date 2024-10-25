@@ -105,7 +105,7 @@ class SchemaCommandReaderTest {
     @Test
     void requiresValidCypherPath() throws IOException {
         final var changeReader = new SchemaCommandReader(fs, Config.defaults(), ReaderConfig.defaults());
-        assertThatThrownBy(() -> changeReader.parse(null))
+        assertThatThrownBy(() -> changeReader.parse((Path) null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("The path to the Cypher schema commands must exist");
 

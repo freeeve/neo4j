@@ -50,6 +50,7 @@ import org.neo4j.internal.batchimport.input.csv.Header;
 import org.neo4j.internal.batchimport.input.csv.Header.Entry;
 import org.neo4j.internal.batchimport.input.csv.Type;
 import org.neo4j.internal.helpers.ArrayUtil;
+import org.neo4j.internal.schema.SchemaCommand;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.values.storable.RandomValues;
@@ -87,23 +88,7 @@ public class DataGeneratorInput implements Input {
     private final Header nodeHeader;
     private final Header relationshipHeader;
     private final Groups groups;
-
-    public DataGeneratorInput(
-            DataDistribution dataDistribution,
-            IdType idType,
-            long seed,
-            Header nodeHeader,
-            Header relationshipHeader,
-            Groups groups) {
-        this(
-                dataDistribution,
-                idType,
-                seed,
-                RandomValues.DEFAULT_CONFIGURATION,
-                nodeHeader,
-                relationshipHeader,
-                groups);
-    }
+    private final List<SchemaCommand> schemaCommands;
 
     public DataGeneratorInput(
             DataDistribution dataDistribution,
@@ -112,7 +97,8 @@ public class DataGeneratorInput implements Input {
             RandomValues.Configuration randomConfig,
             Header nodeHeader,
             Header relationshipHeader,
-            Groups groups) {
+            Groups groups,
+            List<SchemaCommand> schemaCommands) {
         this.dataDistribution = dataDistribution;
         this.idType = idType;
         this.seed = seed;
@@ -120,6 +106,7 @@ public class DataGeneratorInput implements Input {
         this.nodeHeader = nodeHeader;
         this.relationshipHeader = relationshipHeader;
         this.groups = groups;
+        this.schemaCommands = schemaCommands;
     }
 
     public static DataDistribution data(long nodeCount, long relationshipCount) {
@@ -146,6 +133,11 @@ public class DataGeneratorInput implements Input {
     public InputIterable relationships(Collector badCollector) {
         return () -> new RandomEntityDataGenerator(
                 dataDistribution, dataDistribution.relationshipCount, 10_000, seed, randomConfig, relationshipHeader);
+    }
+
+    @Override
+    public List<SchemaCommand> schemaCommands() {
+        return schemaCommands;
     }
 
     @Override

@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.batchimport.staging;
 
+import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -70,6 +71,7 @@ import org.neo4j.test.extension.Neo4jLayoutExtension;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectorySupportExtension;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
+import org.neo4j.values.storable.RandomValues;
 
 @Neo4jLayoutExtension
 @ExtendWith({RandomExtension.class, DefaultFileSystemExtension.class, TestDirectorySupportExtension.class})
@@ -102,9 +104,11 @@ class HumanUnderstandableExecutionMonitorIT {
                 dataDistribution,
                 idType,
                 random.seed(),
+                RandomValues.DEFAULT_CONFIGURATION,
                 bareboneNodeHeader(idType, group, extractors),
                 bareboneRelationshipHeader(idType, group, extractors),
-                groups);
+                groups,
+                emptyList());
 
         // when
         try (JobScheduler jobScheduler = new ThreadPoolJobScheduler()) {

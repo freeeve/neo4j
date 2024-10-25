@@ -77,6 +77,12 @@ public class SchemaCommandReader {
             return List.of();
         }
 
+        return parse(cypherText);
+    }
+
+    public List<SchemaCommand> parse(String cypherText) {
+        var semanticState = SemanticState.clean();
+
         final var preParsedQuery = preParser.preParse(cypherText);
         final var cypherVersion =
                 preParsedQuery.options().queryOptions().cypherVersion().actualVersion();
