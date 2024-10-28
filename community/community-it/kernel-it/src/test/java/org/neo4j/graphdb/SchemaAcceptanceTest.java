@@ -19,12 +19,14 @@
  */
 package org.neo4j.graphdb;
 
+import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.graphdb.schema.IndexType.FULLTEXT;
 import static org.neo4j.graphdb.schema.IndexType.POINT;
 import static org.neo4j.graphdb.schema.IndexType.RANGE;
@@ -2467,6 +2469,147 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
                 .withName(name)
                 .create();
         dropIndexBackedConstraintAndCreateSlightlyDifferentInSameTxMustSucceed(db, initial, similar);
+    }
+
+    @Test
+    void createIndexBackedConstraintAndDropSimilarIndexInSameTxMustThrow() {
+        // Given
+        String nameA = "nameA";
+        String nameB = "nameB";
+        try (Transaction tx = db.beginTx()) {
+            tx.createNode(label).setProperty(propertyKey, "hej");
+            tx.commit();
+        }
+        try (Transaction tx = db.beginTx()) {
+            tx.schema().indexFor(label).on(propertyKey).withName(nameA).create();
+            tx.commit();
+        }
+
+        // When
+        try (Transaction tx = db.beginTx()) {
+            tx.schema().getIndexByName(nameA).drop();
+            assertThatThrownBy(() -> tx.schema()
+                            .constraintFor(label)
+                            .assertPropertyIsUnique(propertyKey)
+                            .withName(nameB)
+                            .create())
+                    .isInstanceOf(UnsupportedOperationException.class)
+                    .hasMessageContaining(format(
+                            "Trying to create constraint '%s' in same transaction as dropping '%s'. "
+                                    + "This is not supported because the constraint is backed by an index similar to the dropped index. "
+                                    + "Please drop index in a separate transaction before creating the index backed constraint.",
+                            nameB, nameA));
+            // rollback
+        }
+    }
+
+    @Test
+    void createDropIndexBackConstraintAndCreateIndexInSameTxMustSucceedAfterRollback() {
+        // Given
+        String nameA = "nameA";
+        String nameB = "nameB";
+        try (Transaction tx = db.beginTx()) {
+            tx.createNode(label).setProperty(propertyKey, "hej");
+            tx.commit();
+        }
+
+        try (Transaction tx = db.beginTx()) {
+            tx.schema()
+                    .constraintFor(label)
+                    .assertPropertyIsUnique(propertyKey)
+                    .withName(nameB)
+                    .create();
+            tx.commit();
+        }
+
+        try (Transaction tx = db.beginTx()) {
+            tx.schema().getConstraintByName(nameB).drop();
+            tx.schema().indexFor(label).on(propertyKey).withName(nameA).create();
+            // rollback
+        }
+
+        // Then
+        try (Transaction tx = db.beginTx()) {
+            assertThrows(IllegalArgumentException.class, () -> tx.schema().getIndexByName(nameA));
+
+            // Constraint should exist (doesn't throw)
+            tx.schema().getConstraintByName(nameB);
+            // Check that we can reach the constraint
+            tx.execute("MATCH (n:" + label + ") WHERE n." + propertyKey + "='hej' RETURN count(n)")
+                    .resultAsString();
+            tx.commit();
+        }
+    }
+
+    @Test
+    void createIndexAndDropSimilarIndexInSameTxMustSucceedAfterRollback() {
+        // Given
+        String nameA = "nameA";
+        String nameB = "nameB";
+        try (Transaction tx = db.beginTx()) {
+            tx.createNode(label).setProperty(propertyKey, "hej");
+            tx.commit();
+        }
+
+        try (Transaction tx = db.beginTx()) {
+            tx.schema().indexFor(label).on(propertyKey).withName(nameA).create();
+            tx.commit();
+        }
+
+        try (Transaction tx = db.beginTx()) {
+            tx.schema().getIndexByName(nameA).drop();
+            tx.schema().indexFor(label).on(propertyKey).withName(nameB).create();
+            // Rollback
+        }
+        // Then
+        try (Transaction tx = db.beginTx()) {
+            assertThrows(IllegalArgumentException.class, () -> tx.schema().getIndexByName(nameB));
+
+            // Index should exist (doesn't throw)
+            tx.schema().getIndexByName(nameA);
+            // Check that we can reach the index
+            tx.execute("MATCH (n:" + label + ") WHERE n." + propertyKey + "='hej' RETURN count(n)")
+                    .resultAsString();
+            tx.commit();
+        }
+    }
+
+    @Test
+    void createIndexBackedConstraintAndDropSlightlyDifferentIndexInSameTxMustSucceed() {
+        // Given
+        String nameA = "nameA";
+        String nameB = "nameB";
+        String constrainedPropKey = "constrainedPropKey";
+        try (Transaction tx = db.beginTx()) {
+            Node node = tx.createNode(label);
+            node.setProperty(propertyKey, "indexed");
+            node.setProperty(constrainedPropKey, "constrained");
+            tx.commit();
+        }
+        try (Transaction tx = db.beginTx()) {
+            tx.schema().indexFor(label).on(propertyKey).withName(nameA).create();
+            tx.commit();
+        }
+
+        // When
+        try (Transaction tx = db.beginTx()) {
+            tx.schema().getIndexByName(nameA).drop();
+            tx.schema()
+                    .constraintFor(label)
+                    .assertPropertyIsUnique(constrainedPropKey)
+                    .withName(nameB)
+                    .create();
+            tx.commit();
+        }
+
+        // Then
+        try (Transaction tx = db.beginTx()) {
+            // Index should be dropped
+            assertThatThrownBy(() -> tx.schema().getIndexByName(nameA)).isInstanceOf(IllegalArgumentException.class);
+            // Constraint should exist (doesn't throw)
+            tx.schema().getConstraintByName(nameB);
+            tx.commit();
+        }
     }
 
     @Test

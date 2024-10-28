@@ -1913,6 +1913,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         assertNoConflictingConstraints(constraint, constraintsWithSameSchema);
         assertNotAlreadyIndexed(constraint);
         assertConstraintNotBackedBySimilarIndexDroppedInThisTx(constraint);
+        assertNoIndexSimilarToBackingIndexDroppedInSameTx(constraint);
         assertNoConflictingGraphTypeDependence(constraint);
     }
 
@@ -2002,6 +2003,28 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                                     + "This is not supported because they are both backed by similar indexes. "
                                     + "Please drop constraint in a separate transaction before creating the new one.",
                             constraint.getName(), droppedConstraint.getName()));
+                }
+            }
+        }
+    }
+
+    private void assertNoIndexSimilarToBackingIndexDroppedInSameTx(ConstraintDescriptor constraint) {
+        // We cannot allow this because the internal transaction for the constraint index breaks the schema cache state
+        // - the cache assumes there can only be one index per schema and index type. If the outer tx succeeds it would
+        // be temporarily invalid, but if it rollbacks the schema cache is left in an invalid state and will fail any
+        // queries trying to use the index that still exist
+
+        if (constraint.isIndexBackedConstraint() && ktx.hasTxStateWithChanges()) {
+            for (IndexDescriptor droppedIndex : ktx.txState().indexChanges().getRemoved()) {
+                // If dropped index is similar to backing constraint index we cannot allow this constraint creation
+                if (droppedIndex.getIndexType()
+                                == constraint.asIndexBackedConstraint().indexType()
+                        && droppedIndex.schema().equals(constraint.schema())) {
+                    throw new UnsupportedOperationException(format(
+                            "Trying to create constraint '%s' in same transaction as dropping '%s'. "
+                                    + "This is not supported because the constraint is backed by an index similar to the dropped index. "
+                                    + "Please drop index in a separate transaction before creating the index backed constraint.",
+                            constraint.getName(), droppedIndex.getName()));
                 }
             }
         }

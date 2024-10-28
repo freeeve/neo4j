@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
-import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.ConstraintDefinition;
 import org.neo4j.graphdb.schema.IndexDefinition;
@@ -57,54 +56,6 @@ class IndexConstraintsTest {
     }
 
     // The following tests verify that multiple interacting schema commands can be applied in the same transaction.
-
-    @Test
-    void convertIndexToConstraint() {
-        try (Transaction tx = graphDb.beginTx()) {
-            tx.schema().indexFor(LABEL).on(PROPERTY_KEY).create();
-            tx.commit();
-        }
-
-        try (Transaction tx = graphDb.beginTx()) {
-            IndexDefinition index = firstOrNull(tx.schema().getIndexes(LABEL));
-            index.drop();
-
-            tx.schema()
-                    .constraintFor(LABEL)
-                    .assertPropertyIsUnique(PROPERTY_KEY)
-                    .create();
-            tx.commit();
-        }
-        // assert no exception is thrown
-    }
-
-    @Test
-    void convertIndexToConstraintWithExistingData() {
-        try (Transaction tx = graphDb.beginTx()) {
-            for (int i = 0; i < 2000; i++) {
-                Node node = tx.createNode(LABEL);
-                node.setProperty(PROPERTY_KEY, i);
-            }
-            tx.commit();
-        }
-
-        try (Transaction tx = graphDb.beginTx()) {
-            tx.schema().indexFor(LABEL).on(PROPERTY_KEY).create();
-            tx.commit();
-        }
-
-        try (Transaction tx = graphDb.beginTx()) {
-            IndexDefinition index = firstOrNull(tx.schema().getIndexes(LABEL));
-            index.drop();
-
-            tx.schema()
-                    .constraintFor(LABEL)
-                    .assertPropertyIsUnique(PROPERTY_KEY)
-                    .create();
-            tx.commit();
-        }
-        // assert no exception is thrown
-    }
 
     @Test
     void convertConstraintToIndex() {
