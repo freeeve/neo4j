@@ -232,10 +232,9 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         "Invalid input. '1.5' is not a valid value. Must be a positive integer.",
         p(40, 3, 22)
       ),
-      SemanticError.invalidEntityType(
-        "Float",
-        "1.5",
+      SemanticError.typeMismatch(
         List("Integer"),
+        "Float",
         "Type mismatch: expected Integer but was Float",
         p(40, 3, 22)
       )
@@ -258,10 +257,9 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         "Invalid input. 'foo' is not a valid value. Must be a positive integer.",
         p(40, 3, 22).withInputLength(5)
       ),
-      SemanticError.invalidEntityType(
-        "String",
-        "foo",
+      SemanticError.typeMismatch(
         List("Integer"),
+        "String",
         "Type mismatch: expected Integer but was String",
         p(40, 3, 22).withInputLength(5)
       )
@@ -333,10 +331,9 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         "It is not allowed to use patterns in the expression for OF ... ROWS, so that the value for OF ... ROWS can be statically calculated.",
         p(40, 3, 22)
       ),
-      SemanticError.invalidEntityType(
-        "List<Integer>",
-        "ListComprehension(ExtractSc...",
+      SemanticError.typeMismatch(
         List("Integer"),
+        "List<Integer>",
         "Type mismatch: expected Integer but was List<Integer>",
         p(40, 3, 22)
       )
@@ -418,10 +415,9 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         "Invalid input. '1.5' is not a valid value. Must be a positive integer.",
         p(24, 3, 6)
       ),
-      SemanticError.invalidEntityType(
-        "Float",
-        "1.5",
+      SemanticError.typeMismatch(
         List("Integer"),
+        "Float",
         "Type mismatch: expected Integer but was Float",
         p(24, 3, 6)
       )
@@ -444,10 +440,9 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         "Invalid input. 'foo' is not a valid value. Must be a positive integer.",
         p(24, 3, 6).withInputLength(5)
       ),
-      SemanticError.invalidEntityType(
-        "String",
-        "foo",
+      SemanticError.typeMismatch(
         List("Integer"),
+        "String",
         "Type mismatch: expected Integer but was String",
         p(24, 3, 6).withInputLength(5)
       )
@@ -519,10 +514,9 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         "It is not allowed to use patterns in the expression for IN ... CONCURRENT, so that the value for IN ... CONCURRENT can be statically calculated.",
         p(24, 3, 6)
       ),
-      SemanticError.invalidEntityType(
-        "List<Integer>",
-        "ListComprehension(ExtractSc...",
+      SemanticError.typeMismatch(
         List("Integer"),
+        "List<Integer>",
         "Type mismatch: expected Integer but was List<Integer>",
         p(24, 3, 6)
       )

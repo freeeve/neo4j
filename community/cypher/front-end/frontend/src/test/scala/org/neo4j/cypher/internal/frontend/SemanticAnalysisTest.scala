@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.literal
+import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidEntityType
 import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidNumberOfProcedureOrFunctionArguments
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
@@ -1168,7 +1169,14 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
     )
     queries.foreach { case (query, pos) =>
       val msg = "Type mismatch: expected Boolean but was Integer"
-      run(query).hasErrors(invalidEntityType("Integer", "42", Seq("Boolean"), msg, pos))
+      run(query).hasErrors(
+        SemanticError.typeMismatch(
+          List("Boolean"),
+          "Integer",
+          msg,
+          pos
+        )
+      )
     }
   }
 
@@ -1330,11 +1338,22 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   test("should fail for size(COUNT{...})") {
     run("RETURN size(COUNT{ (n) }) AS foo").hasErrors(invalidEntityType(
       "Integer",
-      "CountExpression(SingleQuery...",
+      "argument at index 0 of function size()",
       List("String", "List<T>"),
       "Type mismatch: expected String or List<T> but was Integer",
       InputPosition(12, 1, 13)
     ))
+  }
+
+  test("should fail for percentileCont(0.5, n) where n is a node variable") {
+    run("MATCH (n) RETURN percentileCont(0.5, n) AS foo")
+      .hasErrors(SemanticError.invalidEntityType(
+        "Node",
+        "argument at index 1 of function percentileCont()",
+        List("Float"),
+        "Type mismatch: expected Float but was Node",
+        InputPosition(37, 1, 38)
+      ))
   }
 
   test("should not allow subquery expressions in MERGE ON CREATE") {
@@ -1370,7 +1389,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   test("should fail for normalize() with incorrect arguments") {
     run("RETURN normalize(1) AS normalize").hasErrors(invalidEntityType(
       "Integer",
-      "1",
+      "argument at index 0 of function normalize()",
       List("String"),
       "Type mismatch: expected String but was Integer",
       InputPosition(17, 1, 18)

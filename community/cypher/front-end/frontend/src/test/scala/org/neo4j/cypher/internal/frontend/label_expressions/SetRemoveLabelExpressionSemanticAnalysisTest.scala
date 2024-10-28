@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.frontend.label_expressions
 
 import org.neo4j.cypher.internal.ast.Ast.p
+import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidEntityType
 import org.neo4j.cypher.internal.frontend.SemanticAnalysisTestSuiteWithDefaultQuery
 import org.neo4j.cypher.internal.util.InputPosition
@@ -124,30 +125,27 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithChangeStatement(state
   }
 
   test("n:$(1)") {
-    run().hasErrors(invalidEntityType(
-      "Integer",
-      "1",
+    run().hasErrors(SemanticError.typeMismatch(
       List("String", "List<String>"),
+      "Integer",
       "Type mismatch: expected String or List<String> but was Integer",
       if (statement == ChangeStatement.SET) InputPosition(23, 1, 24) else InputPosition(26, 1, 27)
     ))
   }
 
   test("n:$([1])") {
-    run().hasErrors(invalidEntityType(
-      "List<Integer>",
-      "[1]",
+    run().hasErrors(SemanticError.typeMismatch(
       List("String", "List<String>"),
+      "List<Integer>",
       "Type mismatch: expected String or List<String> but was List<Integer>",
       if (statement == ChangeStatement.SET) InputPosition(23, 1, 24) else InputPosition(26, 1, 27)
     ))
   }
 
   test("n:$(point({x : 1, y: 1}))") {
-    run().hasErrors(invalidEntityType(
-      "Point",
-      "point({x: 1, y: 1})",
+    run().hasErrors(SemanticError.typeMismatch(
       List("String", "List<String>"),
+      "Point",
       "Type mismatch: expected String or List<String> but was Point",
       if (statement == ChangeStatement.SET) p(23, 1, 24) else p(26, 1, 27)
     ))

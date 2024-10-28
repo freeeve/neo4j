@@ -387,7 +387,7 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
               s,
               SemanticError.invalidEntityType(
                 specifiedType.mkString(", "),
-                "toString",
+                "argument to function toString()",
                 List(
                   "Boolean",
                   "Float",
@@ -410,7 +410,7 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
               s,
               SemanticError.invalidEntityType(
                 specifiedType.mkString(", "),
-                "toBoolean",
+                "argument of function toBoolean()",
                 List("Boolean", "Integer", "String"),
                 s"Type mismatch: expected Boolean, Integer or String but was ${specifiedType.mkString(", ")}",
                 argument.position

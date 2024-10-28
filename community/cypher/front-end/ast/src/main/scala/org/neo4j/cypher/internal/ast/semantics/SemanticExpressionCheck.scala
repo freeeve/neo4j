@@ -169,16 +169,23 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
    */
   def simple(expression: Expression): SemanticCheck = check(SemanticContext.Simple, expression)
 
-  object TypeMismatch extends Enumeration {
+  object TypeMismatchContext extends Enumeration {
 
-    case class TypeMismatchVal(txt: String) extends super.Val {
+    case class TypeMismatchContextVal(txt: String) {
       def getText: String = txt
     }
-    val ACCUMULATOR: TypeMismatchVal = TypeMismatchVal("accumulator")
-    val LIST_INDEX: TypeMismatchVal = TypeMismatchVal("list index")
-    val MAP_KEY: TypeMismatchVal = TypeMismatchVal("map key")
-    val NODE_OR_RELATIONSHIP_PROPERTY_KEY: TypeMismatchVal = TypeMismatchVal("node or relationship property key")
-    val EMPTY: TypeMismatchVal = TypeMismatchVal("")
+    val ACCUMULATOR: TypeMismatchContextVal = TypeMismatchContextVal("accumulator")
+    val LIST_INDEX: TypeMismatchContextVal = TypeMismatchContextVal("list index")
+    val MAP_KEY: TypeMismatchContextVal = TypeMismatchContextVal("map key")
+
+    val NODE_OR_RELATIONSHIP_PROPERTY_KEY: TypeMismatchContextVal =
+      TypeMismatchContextVal("node or relationship property key")
+    val EMPTY: TypeMismatchContextVal = TypeMismatchContextVal("")
+    // Note: EMPTY will lead to
+    //   GQL code 22NB1:  Type mismatch: expected to be one of { %s } but was { %s }.
+    // All other TypeMismatchContextVal's will lead to
+    //   GQL code 22N27: Invalid input { %s } for { %s }. Expected to be one of { %s }.
+    // TypeMismatchContextVal.txt will be used here ^
   }
 
   /**
@@ -584,7 +591,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           expectType(
             s => types(x.init)(s) coerceOrConvert types(x.expression)(s),
             x.expression,
-            TypeMismatch.ACCUMULATOR,
+            TypeMismatchContext.ACCUMULATOR,
             AccumulatorExpressionTypeMismatchMessageGenerator
           ) chain
           specifyType(s => types(x.init)(s) leastUpperBounds types(x.expression)(s), x) chain
@@ -636,21 +643,21 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
                       expectType(
                         CTInteger.covariant,
                         x.idx,
-                        TypeMismatch.LIST_INDEX,
+                        TypeMismatchContext.LIST_INDEX,
                         (_: String, actual: String) => s"list index must be given as Integer, but was $actual"
                       )
                   } else if (exprIsMap) {
                     expectType(
                       CTString.covariant,
                       x.idx,
-                      TypeMismatch.MAP_KEY,
+                      TypeMismatchContext.MAP_KEY,
                       (_: String, actual: String) => s"map key must be given as String, but was $actual"
                     )
                   } else if (exprIsNodeOrRel) {
                     expectType(
                       CTString.covariant,
                       x.idx,
-                      TypeMismatch.NODE_OR_RELATIONSHIP_PROPERTY_KEY,
+                      TypeMismatchContext.NODE_OR_RELATIONSHIP_PROPERTY_KEY,
                       (_: String, actual: String) =>
                         s"node or relationship property key must be given as String, but was $actual"
                     )

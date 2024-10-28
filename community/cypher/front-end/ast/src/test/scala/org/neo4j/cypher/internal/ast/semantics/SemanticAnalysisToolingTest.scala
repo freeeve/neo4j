@@ -18,7 +18,7 @@ package org.neo4j.cypher.internal.ast.semantics
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaultContext
-import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck.TypeMismatch
+import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck.TypeMismatchContext
 import org.neo4j.cypher.internal.expressions.DummyExpression
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Expression.SemanticContext
@@ -68,7 +68,7 @@ class SemanticAnalysisToolingTest extends CypherFunSuite with AstConstructionTes
         toTest.expectType(
           CTString.covariant,
           expression,
-          TypeMismatch.EMPTY,
+          TypeMismatchContext.EMPTY,
           (expected: String, existing: String) => s"lhs was $expected yet rhs was $existing"
         )
     ).run(SemanticState.clean)

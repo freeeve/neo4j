@@ -2025,6 +2025,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "invalid property based access control rule involving WHERE and IS NULL",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NB1(
+            new GqlStatus("22NB1"),
+            """
+                    Type mismatch: expected to be { %s } but was { %s }.""",
+            new GqlParams.GqlParam[] {GqlParams.ListParam.valueTypeList, GqlParams.StringParam.input},
+            Map.of(GqlParams.ListParam.valueTypeList, GqlParams.JoinStyle.ORED),
+            Condition.DATA_EXCEPTION,
+            "type mismatch",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_25000(
             new GqlStatus("25000"),
             """

@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.frontend.label_expressions
 
 import org.neo4j.cypher.internal.ast.Ast.p
+import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidEntityType
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DynamicLabelsAndTypes
 import org.neo4j.cypher.internal.frontend.NameBasedSemanticAnalysisTestSuite
@@ -699,10 +700,9 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   }
 
   test("MATCH (n:$(1)) RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasErrors(invalidEntityType(
-      "Integer",
-      "1",
+    runWith(DynamicLabelsAndTypes).hasErrors(SemanticError.typeMismatch(
       List("String", "List<String>"),
+      "Integer",
       "Type mismatch: expected String or List<String> but was Integer",
       p(11, 1, 12)
     ))
@@ -723,20 +723,18 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   }
 
   test("MATCH (n)-[:$(point({x:22, y:44}))]-() RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasErrors(invalidEntityType(
-      "Point",
-      "point({x: 22, y: 44})",
+    runWith(DynamicLabelsAndTypes).hasErrors(SemanticError.typeMismatch(
       List("String", "List<String>"),
+      "Point",
       "Type mismatch: expected String or List<String> but was Point",
       p(14, 1, 15)
     ))
   }
 
   test("MATCH (n:$([1])) RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasErrors(invalidEntityType(
-      "List<Integer>",
-      "[1]",
+    runWith(DynamicLabelsAndTypes).hasErrors(SemanticError.typeMismatch(
       List("String", "List<String>"),
+      "List<Integer>",
       "Type mismatch: expected String or List<String> but was List<Integer>",
       p(11, 1, 12)
     ))

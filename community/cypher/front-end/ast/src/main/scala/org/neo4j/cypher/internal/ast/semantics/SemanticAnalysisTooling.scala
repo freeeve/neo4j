@@ -16,11 +16,12 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
-import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck.TypeMismatch
+import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck.TypeMismatchContext
 import org.neo4j.cypher.internal.expressions.DoubleLiteral
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Expression.DefaultTypeMismatchMessageGenerator
 import org.neo4j.cypher.internal.expressions.Expression.SemanticContext
+import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.IntegerLiteral
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Parameter
@@ -84,7 +85,7 @@ trait SemanticAnalysisTooling {
     _.specifyType(expression, possibleTypes)
 
   def expectType(typeGen: TypeGenerator, expression: Expression): SemanticCheck =
-    (s: SemanticState) => expectType(s, typeGen(s), expression, TypeMismatch.EMPTY)
+    (s: SemanticState) => expectType(s, typeGen(s), expression, TypeMismatchContext.EMPTY)
 
   def expectType(possibleTypes: TypeSpec, opt: Option[Expression]): SemanticCheck =
     opt.foldSemanticCheck(expectType(possibleTypes, _))
@@ -92,7 +93,7 @@ trait SemanticAnalysisTooling {
   def expectType(
     typeGen: TypeGenerator,
     expression: Expression,
-    typeMismatch: TypeMismatch.TypeMismatchVal,
+    typeMismatch: TypeMismatchContext.TypeMismatchContextVal,
     messageGen: (String, String) => String
   ): SemanticCheck =
     (s: SemanticState) => expectType(s, typeGen(s), expression, typeMismatch, messageGen)
@@ -102,7 +103,11 @@ trait SemanticAnalysisTooling {
       expressions.foldLeft(SemanticCheckResult.success(state)) {
         (r1: SemanticCheckResult, o: Exp) =>
           {
-            val r2 = expectType(r1.state, possibleTypes, o, TypeMismatch.EMPTY)
+            val r2 = o match {
+              case v: LogicalVariable =>
+                expectType(r1.state, possibleTypes, o, TypeMismatchContext.TypeMismatchContextVal(v.name))
+              case _ => expectType(r1.state, possibleTypes, o, TypeMismatchContext.EMPTY)
+            }
             SemanticCheckResult(r2.state, r1.errors ++ r2.errors)
           }
       }
@@ -118,13 +123,17 @@ trait SemanticAnalysisTooling {
     possibleTypes: => TypeSpec,
     expression: Expression
   ): SemanticCheck = (s: SemanticState) => {
-    expectType(s, possibleTypes, expression, TypeMismatch.EMPTY)
+    expression match {
+      case v: LogicalVariable =>
+        expectType(s, possibleTypes, expression, TypeMismatchContext.TypeMismatchContextVal(v.name))
+      case _ => expectType(s, possibleTypes, expression, TypeMismatchContext.EMPTY)
+    }
   }
 
   def expectType(
     possibleTypes: => TypeSpec,
     expression: Expression,
-    typeMismatchVal: TypeMismatch.TypeMismatchVal,
+    typeMismatchVal: TypeMismatchContext.TypeMismatchContextVal,
     messageGen: (String, String) => String
   ): SemanticCheck = (s: SemanticState) => {
     expectType(s, possibleTypes, expression, typeMismatchVal, messageGen)
@@ -134,7 +143,7 @@ trait SemanticAnalysisTooling {
     s: SemanticState,
     possibleTypes: => TypeSpec,
     expression: Expression,
-    typeMismatchVal: TypeMismatch.TypeMismatchVal,
+    typeMismatchVal: TypeMismatchContext.TypeMismatchContextVal,
     messageGen: (String, String) => String = DefaultTypeMismatchMessageGenerator
   ): SemanticCheckResult = {
     s.expectType(expression, possibleTypes) match {
@@ -157,23 +166,31 @@ trait SemanticAnalysisTooling {
               )
             )
           case _ =>
-            val context =
-              if (typeMismatchVal != TypeMismatch.EMPTY)
-                typeMismatchVal.txt
-              else if (expression.asCanonicalStringVal.length < 30)
-                expression.asCanonicalStringVal
-              else
-                expression.asCanonicalStringVal.substring(0, 27) + "..."
+            val semanticError =
+              if (typeMismatchVal == TypeMismatchContext.EMPTY) {
+                // No information is available about the context, so fall back to GQL code 22NB1:
+                //   Type mismatch: expected to be one of { $s } but was { $s }."
+                SemanticError.typeMismatch(
+                  possibleTypes.toStrings.toList,
+                  existingTypesString,
+                  "Type mismatch: " + messageGen(expectedTypesString, existingTypesString),
+                  expression.position
+                )
+              } else {
+                // Information about the context is available, so use it using GQL code 22N27:
+                //   Invalid input { %s } for { %s }. Expected to be one of { %s }.
+                SemanticError.invalidEntityType(
+                  existingTypesString,
+                  typeMismatchVal.txt,
+                  possibleTypes.toStrings.toList,
+                  "Type mismatch: " + messageGen(expectedTypesString, existingTypesString),
+                  expression.position
+                )
+              }
 
             SemanticCheckResult.error(
               ss,
-              SemanticError.invalidEntityType(
-                existingTypesString,
-                context,
-                possibleTypes.toStrings,
-                "Type mismatch: " + messageGen(expectedTypesString, existingTypesString),
-                expression.position
-              )
+              semanticError
             )
         }
       case (ss, _) =>
@@ -184,13 +201,22 @@ trait SemanticAnalysisTooling {
   def checkTypes(expression: Expression, signatures: Seq[TypeSignature]): SemanticCheck = (s: SemanticState) => {
     val initSignatures = signatures.filter(_.argumentTypes.length == expression.arguments.length)
 
-    val (remainingSignatures: Seq[TypeSignature], result) =
-      expression.arguments.foldLeft((initSignatures, SemanticCheckResult.success(s))) {
-        case (accumulator @ (Seq(), _), _) =>
+    val (remainingSignatures: Seq[TypeSignature], argIdx, result) =
+      expression.arguments.foldLeft((initSignatures, 0, SemanticCheckResult.success(s))) {
+        case (accumulator @ (Seq(), _, _), _) =>
           accumulator
-        case ((possibilities, r1), arg) =>
+        case ((possibilities, argIdx, r1), arg) =>
           val argTypes = possibilities.foldLeft(TypeSpec.none) { _ | _.argumentTypes.head.covariant }
-          val r2 = expectType(r1.state, argTypes, arg, TypeMismatch.EMPTY)
+
+          val info = expression match {
+            case FunctionInvocation(functionName, _, _, _, _) =>
+              TypeMismatchContext.TypeMismatchContextVal(
+                s"argument at index $argIdx of function ${functionName.name}()"
+              )
+            case _ => TypeMismatchContext.EMPTY
+          }
+
+          val r2 = expectType(r1.state, argTypes, arg, info)
 
           val actualTypes = types(arg)(r2.state)
           val remainingPossibilities = possibilities.filter {
@@ -198,7 +224,7 @@ trait SemanticAnalysisTooling {
           } map {
             sig => sig.removeFirstArgumentType
           }
-          (remainingPossibilities, SemanticCheckResult(r2.state, r1.errors ++ r2.errors))
+          (remainingPossibilities, argIdx + 1, SemanticCheckResult(r2.state, r1.errors ++ r2.errors))
       }
 
     val outputType = remainingSignatures match {

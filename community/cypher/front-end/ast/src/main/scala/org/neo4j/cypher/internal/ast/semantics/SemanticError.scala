@@ -335,6 +335,28 @@ object SemanticError {
     )
   }
 
+  def typeMismatch(
+    expectedValueList: List[String],
+    wrongType: String,
+    legacyMessage: String,
+    pos: InputPosition
+  ): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(pos.line, pos.column, pos.offset)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB1)
+        .atPosition(pos.line, pos.column, pos.offset)
+        .withParam(GqlParams.ListParam.valueTypeList, expectedValueList.asJava)
+        .withParam(GqlParams.StringParam.input, wrongType)
+        .build())
+      .build()
+
+    SemanticError(
+      gql,
+      legacyMessage,
+      pos
+    )
+  }
+
   def invalidCoercion(
     cannotCoerceFrom: String,
     cannotCoerceTo: String,

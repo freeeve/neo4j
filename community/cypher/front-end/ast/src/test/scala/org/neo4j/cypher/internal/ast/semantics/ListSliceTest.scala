@@ -69,10 +69,9 @@ class ListSliceTest extends SemanticFunSuite {
     val slice = ListSlice(dummyList, None, Some(to))(DummyPosition(4))
 
     val result = SemanticExpressionCheck.simple(slice).run(SemanticState.clean)
-    result.errors should equal(Seq(SemanticError.invalidEntityType(
-      "Float",
-      "1.3",
+    result.errors should equal(Seq(SemanticError.typeMismatch(
       List("Integer"),
+      "Float",
       "Type mismatch: expected Integer but was Float",
       to.position
     )))
