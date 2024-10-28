@@ -86,7 +86,15 @@ public interface InputEntityVisitor extends Closeable {
         return true;
     }
 
+    default boolean labels(int[] labels) {
+        return true;
+    }
+
     default boolean removedLabels(String[] labels) {
+        return true;
+    }
+
+    default boolean removedLabels(int[] labels) {
         return true;
     }
 
@@ -177,7 +185,17 @@ public interface InputEntityVisitor extends Closeable {
         }
 
         @Override
+        public boolean labels(int[] labels) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public boolean removedLabels(String[] labels) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean removedLabels(int[] labels) {
             throw new UnsupportedOperationException();
         }
 
@@ -288,7 +306,17 @@ public interface InputEntityVisitor extends Closeable {
         }
 
         @Override
+        public boolean labels(int[] labels) {
+            return actual.labels(labels);
+        }
+
+        @Override
         public boolean removedLabels(String[] labels) {
+            return actual.removedLabels(labels);
+        }
+
+        @Override
+        public boolean removedLabels(int[] labels) {
             return actual.removedLabels(labels);
         }
 

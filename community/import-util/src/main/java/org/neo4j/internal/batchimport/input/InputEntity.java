@@ -28,6 +28,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.eclipse.collections.api.factory.primitive.IntLists;
+import org.eclipse.collections.api.list.primitive.MutableIntList;
 import org.eclipse.collections.impl.list.mutable.FastList;
 import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.batchimport.api.input.Group;
@@ -72,6 +74,8 @@ public class InputEntity implements InputEntityVisitor {
 
     public final List<String> labels = new ArrayList<>();
     public final List<String> removedLabels = new ArrayList<>();
+    public final MutableIntList intLabels = IntLists.mutable.empty();
+    public final MutableIntList intRemovedLabels = IntLists.mutable.empty();
     public boolean hasLabelField;
     public long labelField;
 
@@ -165,9 +169,23 @@ public class InputEntity implements InputEntityVisitor {
     }
 
     @Override
+    public boolean labels(int[] labels) {
+        checkClear();
+        intLabels.addAll(labels);
+        return delegate.labels(labels);
+    }
+
+    @Override
     public boolean removedLabels(String[] labels) {
         checkClear();
         Collections.addAll(this.removedLabels, labels);
+        return delegate.removedLabels(labels);
+    }
+
+    @Override
+    public boolean removedLabels(int[] labels) {
+        checkClear();
+        intRemovedLabels.addAll(labels);
         return delegate.removedLabels(labels);
     }
 
@@ -350,6 +368,8 @@ public class InputEntity implements InputEntityVisitor {
         intType = NULL_ID;
         stringType = null;
         applicationMode = null;
+        intLabels.clear();
+        intRemovedLabels.clear();
     }
 
     @Override
@@ -394,6 +414,12 @@ public class InputEntity implements InputEntityVisitor {
             }
             if (!removedLabels.isEmpty()) {
                 visitor.removedLabels(removedLabels.toArray(new String[0]));
+            }
+            if (!intLabels.isEmpty()) {
+                visitor.labels(intLabels.toArray());
+            }
+            if (!intRemovedLabels.isEmpty()) {
+                visitor.removedLabels(intRemovedLabels.toArray());
             }
         }
 

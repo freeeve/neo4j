@@ -88,7 +88,17 @@ public class InputEntityArray implements InputEntityVisitor {
     }
 
     @Override
+    public boolean labels(int[] labels) {
+        return currentEntity().labels(labels);
+    }
+
+    @Override
     public boolean removedLabels(String[] labels) {
+        return currentEntity().removedLabels(labels);
+    }
+
+    @Override
+    public boolean removedLabels(int[] labels) {
         return currentEntity().removedLabels(labels);
     }
 

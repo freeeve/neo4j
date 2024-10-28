@@ -111,11 +111,6 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter {
     }
 
     @Override
-    public boolean removedLabels(String[] labels) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public boolean property(String key, Object value, boolean identifier) {
         assert !hasPropertyId;
         try {
