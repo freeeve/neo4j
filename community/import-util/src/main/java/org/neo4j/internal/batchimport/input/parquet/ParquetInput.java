@@ -397,7 +397,7 @@ public class ParquetInput implements Input {
             }
         }
 
-        return new Estimates(
+        return Input.knownEstimates(
                 numberOfNodes,
                 numberOfRelationships,
                 numberOfNodeProperties,

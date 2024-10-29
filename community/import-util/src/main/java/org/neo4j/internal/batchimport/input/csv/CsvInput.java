@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.ToIntFunction;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.neo4j.batchimport.api.InputIterable;
 import org.neo4j.batchimport.api.InputIterator;
@@ -259,12 +260,17 @@ public class CsvInput implements Input {
     public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator) throws IOException {
         final var seenSourceFiles = new HashSet<String>();
         // parse all node headers and remember all ID spaces
+        final MutableBoolean nodesHasAction = new MutableBoolean();
+        final MutableBoolean relationshipsHasAction = new MutableBoolean();
         final var nodeSample = validateAndEstimate(
                 nodeDataFactory,
                 nodeHeaderFactory,
                 (header, source, noDecorator) -> {
                     if (Arrays.stream(header.entries()).noneMatch(entry -> entry.type() == Type.LABEL) && noDecorator) {
                         monitor.noNodeLabelsSpecified(source);
+                    }
+                    if (Arrays.stream(header.entries()).anyMatch(e -> e.type() == Type.ACTION)) {
+                        nodesHasAction.setTrue();
                     }
 
                     var numIdColumns = Arrays.stream(header.entries())
@@ -298,6 +304,9 @@ public class CsvInput implements Input {
                     if (Arrays.stream(header.entries()).noneMatch(entry -> entry.type() == Type.TYPE) && noDecorator) {
                         monitor.noRelationshipTypeSpecified(source);
                     }
+                    if (Arrays.stream(header.entries()).anyMatch(e -> e.type() == Type.ACTION)) {
+                        relationshipsHasAction.setTrue();
+                    }
                 },
                 valueSizeCalculator,
                 entity -> 0,
@@ -311,7 +320,9 @@ public class CsvInput implements Input {
                 relationshipSample[1],
                 nodeSample[2] + propPreAllocAdditional,
                 relationshipSample[2] + propPreAllocAdditional,
-                nodeSample[3]);
+                nodeSample[3],
+                nodesHasAction.isTrue(),
+                relationshipsHasAction.isTrue());
     }
 
     private long[] validateAndEstimate(

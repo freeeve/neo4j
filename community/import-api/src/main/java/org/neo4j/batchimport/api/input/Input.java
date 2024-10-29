@@ -59,7 +59,9 @@ public interface Input extends AutoCloseable {
             long numberOfRelationshipProperties,
             long sizeOfNodeProperties,
             long sizeOfRelationshipProperties,
-            long numberOfNodeLabels) {}
+            long numberOfNodeLabels,
+            boolean containsNodeUpdates,
+            boolean containsRelationshipUpdates) {}
 
     /**
      * Provides all node data for an import.
@@ -172,6 +174,28 @@ public interface Input extends AutoCloseable {
             long sizeOfNodeProperties,
             long sizeOfRelationshipProperties,
             long numberOfNodeLabels) {
+        return knownEstimates(
+                numberOfNodes,
+                numberOfRelationships,
+                numberOfNodeProperties,
+                numberOfRelationshipProperties,
+                sizeOfNodeProperties,
+                sizeOfRelationshipProperties,
+                numberOfNodeLabels,
+                false,
+                false);
+    }
+
+    static Estimates knownEstimates(
+            long numberOfNodes,
+            long numberOfRelationships,
+            long numberOfNodeProperties,
+            long numberOfRelationshipProperties,
+            long sizeOfNodeProperties,
+            long sizeOfRelationshipProperties,
+            long numberOfNodeLabels,
+            boolean containsNodeUpdates,
+            boolean containsRelationshipUpdates) {
         return new Estimates(
                 numberOfNodes,
                 numberOfRelationships,
@@ -179,7 +203,9 @@ public interface Input extends AutoCloseable {
                 numberOfRelationshipProperties,
                 sizeOfNodeProperties,
                 sizeOfRelationshipProperties,
-                numberOfNodeLabels);
+                numberOfNodeLabels,
+                containsNodeUpdates,
+                containsRelationshipUpdates);
     }
 
     class Delegate implements Input {
