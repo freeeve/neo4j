@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -403,6 +404,7 @@ public class TextIndexQueryTest extends KernelAPIReadTestBase<ReadTestSupport> {
         Monitors monitors = new Monitors();
         monitors.addMonitorListener(MONITOR);
         ReadTestSupport support = new ReadTestSupport();
+        support.addSetting(GraphDatabaseInternalSettings.always_use_latest_index_provider, false);
         support.setMonitors(monitors);
         return support;
     }

@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.cypher.internal.javacompat.ResultRowImpl;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Result;
@@ -45,6 +46,13 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
 class DbIndexesFailureMessageIT extends KernelIntegrationTest {
+    @Override
+    protected TestDatabaseManagementServiceBuilder configure(
+            TestDatabaseManagementServiceBuilder databaseManagementServiceBuilder) {
+        return super.configure(databaseManagementServiceBuilder.setConfig(
+                GraphDatabaseInternalSettings.always_use_latest_index_provider, false));
+    }
+
     @Test
     void listAllIndexesWithFailedIndex() throws Throwable {
         // Given

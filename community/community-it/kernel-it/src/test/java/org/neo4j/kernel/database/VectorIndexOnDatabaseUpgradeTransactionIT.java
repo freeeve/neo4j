@@ -287,6 +287,7 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
                 .setConfig(GraphDatabaseInternalSettings.automatic_upgrade_enabled, false)
                 .setConfig(GraphDatabaseInternalSettings.latest_runtime_version, LATEST_RUNTIME_VERSION.getVersion())
                 .setConfig(GraphDatabaseInternalSettings.latest_kernel_version, LATEST_KERNEL_VERSION.version())
+                .setConfig(GraphDatabaseInternalSettings.always_use_latest_index_provider, false)
                 .build();
         database = (GraphDatabaseAPI) dbms.database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
         assertKernelVersion(database, snapshot.statistics().kernelVersion());

@@ -31,6 +31,7 @@ import static org.neo4j.kernel.impl.api.index.SchemaIndexTestHelper.singleInstan
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -71,6 +72,7 @@ class IndexRestartIT {
         factory = new TestDatabaseManagementServiceBuilder(directory.homePath());
         factory.setFileSystem(new UncloseableDelegatingFileSystemAbstraction(fs));
         factory.addExtension(singleInstanceIndexProviderFactory("test", provider));
+        factory.setConfig(GraphDatabaseInternalSettings.always_use_latest_index_provider, false);
     }
 
     @AfterEach

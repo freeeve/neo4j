@@ -27,6 +27,7 @@ import static org.neo4j.graphdb.Label.label;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.TokenWrite;
@@ -60,7 +61,9 @@ public class TextIndexCreationTest {
      * To be overridden by subclass
      */
     @ExtensionCallback
-    void configuration(TestDatabaseManagementServiceBuilder builder) {}
+    void configuration(TestDatabaseManagementServiceBuilder builder) {
+        builder.setConfig(GraphDatabaseInternalSettings.always_use_latest_index_provider, false);
+    }
 
     /**
      * To be overridden ny subclass

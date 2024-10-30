@@ -42,6 +42,7 @@ import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
@@ -64,7 +65,9 @@ import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.coreapi.schema.IndexDefinitionImpl;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.LatestVersions;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.Tokens;
+import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.values.storable.BooleanValue;
@@ -844,7 +847,7 @@ public class VectorIndexCreationTest {
         }
     }
 
-    @ImpermanentDbmsExtension
+    @ImpermanentDbmsExtension(configurationCallback = "configure")
     @TestInstance(Lifecycle.PER_CLASS)
     abstract static class TestBase {
         protected static final List<String> PROP_KEYS =
@@ -862,6 +865,11 @@ public class VectorIndexCreationTest {
         TestBase(Factory factory, SetIterable<VectorIndexVersion> validVersions) {
             this.factory = factory;
             this.validVersions = validVersions;
+        }
+
+        @ExtensionCallback
+        void configure(TestDatabaseManagementServiceBuilder builder) {
+            builder.setConfig(GraphDatabaseInternalSettings.always_use_latest_index_provider, false);
         }
 
         @BeforeAll

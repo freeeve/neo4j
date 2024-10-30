@@ -26,6 +26,7 @@ import static org.neo4j.kernel.impl.api.index.SchemaIndexTestHelper.singleInstan
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.internal.helpers.collection.Iterables;
@@ -48,6 +49,7 @@ public class SchemaIndexWaitingAcceptanceTest {
     void configure(TestDatabaseManagementServiceBuilder builder) {
         builder.addExtension(singleInstanceIndexProviderFactory("test", provider))
                 .noOpSystemGraphInitializer();
+        builder.setConfig(GraphDatabaseInternalSettings.always_use_latest_index_provider, false);
     }
 
     @BeforeEach

@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.inOrder;
@@ -579,7 +580,8 @@ public class PlainOperationsTest extends OperationsTest {
                 .withName("constraint name")
                 .withIndexProvider(AllIndexProviderDescriptors.RANGE_DESCRIPTOR);
         IndexDescriptor constraintIndex = prototype.materialise(42);
-        when(constraintIndexCreator.createUniquenessConstraintIndex(any(), any(), eq(prototype), any()))
+        when(constraintIndexCreator.createUniquenessConstraintIndex(
+                        any(), any(), argThat(proto -> proto.getName().get().equals("constraint name")), any()))
                 .thenReturn(constraintIndex);
         IndexProxy indexProxy = mock(IndexProxy.class);
         when(indexProxy.getDescriptor()).thenReturn(constraintIndex);

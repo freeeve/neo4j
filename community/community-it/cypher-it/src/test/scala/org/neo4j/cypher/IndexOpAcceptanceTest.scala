@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher
 
+import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.cypher.ExecutionEngineHelper.createEngine
 import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
@@ -125,6 +126,7 @@ class IndexOpAcceptanceTest extends ExecutionEngineFunSuite with QueryStatistics
     testDirectory.prepareDirectory(getClass, "createDbWithFailedIndex")
     managementService.shutdown()
     val dbFactory = new TestDatabaseManagementServiceBuilder(testDirectory.homePath())
+    dbFactory.setConfig(GraphDatabaseInternalSettings.always_use_latest_index_provider, java.lang.Boolean.FALSE)
     dbFactory.noOpSystemGraphInitializer()
     // Build a properly failing index provider which is a wrapper around the default provider, but which throws exception
     // in its populator when trying to add updates to it

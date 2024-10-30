@@ -35,7 +35,6 @@ import static org.neo4j.test.mockito.mock.Property.set;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -49,6 +48,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.common.EntityType;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.consistency.ConsistencyCheckService;
 import org.neo4j.consistency.RecordType;
@@ -113,7 +113,8 @@ class SpecialisedIndexFullCheckTest {
 
         protected final List<Long> indexedNodes = new ArrayList<>();
         private final List<Long> indexedRelationships = new ArrayList<>();
-        protected final Map<Setting<?>, Object> settings = new HashMap<>();
+        protected final Map<Setting<?>, Object> settings =
+                Map.of(GraphDatabaseInternalSettings.always_use_latest_index_provider, false);
 
         abstract IndexType type();
 

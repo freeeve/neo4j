@@ -67,7 +67,7 @@ import org.neo4j.values.ElementIdMapper;
 @TestDirectoryExtension
 class LuceneIndexProviderTest {
     private static final IndexDescriptor descriptor = forSchema(
-                    forLabel(1, 1), AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR)
+                    forLabel(1, 1), AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR)
             .withName("index_1")
             .materialise(1);
 

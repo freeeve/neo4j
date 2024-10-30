@@ -52,6 +52,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.common.TokenNameLookup;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.exceptions.KernelException;
@@ -468,6 +469,7 @@ class IndexRecoveryIT {
                 .setMonitors(monitors)
                 .setConfig(GraphDatabaseSettings.check_point_interval_time, Duration.ofDays(1))
                 .setConfig(GraphDatabaseSettings.check_point_interval_tx, Integer.MAX_VALUE)
+                .setConfig(GraphDatabaseInternalSettings.always_use_latest_index_provider, false)
                 .build();
 
         db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);

@@ -195,6 +195,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     private final boolean additionLockVerification;
     private final boolean dependentConstraintsEnabled;
     private final boolean relationshipEndpointLabelAndNodeLabelExistenceConstraintsEnabled;
+    private final boolean alwaysUseLatestIndexProvider;
     private final TransactionStateBehaviour transactionStateBehaviour;
     private DefaultNodeCursor nodeCursor;
     private DefaultNodeCursor restrictedNodeCursor;
@@ -243,6 +244,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         this.dependentConstraintsEnabled = config.get(GraphDatabaseInternalSettings.dependent_constraints_enabled);
         this.relationshipEndpointLabelAndNodeLabelExistenceConstraintsEnabled = config.get(
                 GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints);
+        this.alwaysUseLatestIndexProvider = config.get(GraphDatabaseInternalSettings.always_use_latest_index_provider);
         this.transactionStateBehaviour = transactionStateBehaviour;
     }
 
@@ -1653,14 +1655,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     @Override
     public IndexDescriptor indexCreate(IndexPrototype prototype) throws KernelException {
         // can use index provider
-        prototype = ensureIndexPrototypeHasIndexProvider(prototype);
-
-        final var indexProviderDescriptor = prototype.getIndexProvider();
-        final var indexProvider = indexProviders.getIndexProvider(indexProviderDescriptor);
-        assertSupportedInVersion(
-                indexProvider.getMinimumRequiredVersion(),
-                "Failed to create index with provider '%s'.",
-                indexProviderDescriptor.name());
+        prototype = useLatestIndexProviderVersion(prototype);
 
         // valid schema checks
         final var indexType = prototype.getIndexType();
@@ -1760,18 +1755,28 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         return prototype.getName().isEmpty() ? prototype.withName(generateNameFrom(prototype)) : prototype;
     }
 
-    private IndexPrototype ensureIndexPrototypeHasIndexProvider(IndexPrototype prototype) {
-        return prototype.getIndexProvider() == AllIndexProviderDescriptors.UNDECIDED
-                ? prototype.withIndexProvider(
-                        switch (prototype.getIndexType()) {
+    private IndexPrototype useLatestIndexProviderVersion(IndexPrototype prototype) {
+        IndexProviderDescriptor indexProviderDescriptor =
+                alwaysUseLatestIndexProvider || prototype.getIndexProvider() == AllIndexProviderDescriptors.UNDECIDED
+                        ? switch (prototype.getIndexType()) {
                             case LOOKUP -> indexProviders.getTokenIndexProvider();
                             case FULLTEXT -> indexProviders.getFulltextProvider();
                             case TEXT -> indexProviders.getTextIndexProvider();
                             case RANGE -> indexProviders.getDefaultProvider();
                             case POINT -> indexProviders.getPointIndexProvider();
                             case VECTOR -> indexProviders.getVectorIndexProvider();
-                        })
-                : prototype;
+                        }
+                        : prototype.getIndexProvider();
+        final var indexProvider = indexProviders.getIndexProvider(indexProviderDescriptor);
+
+        // Technically this can fail when trying to create with the latest provider before upgrade.
+        // This was the same behaviour for a user not providing a descriptor since forever and no one has complained
+        assertSupportedInVersion(
+                indexProvider.getMinimumRequiredVersion(),
+                "Failed to create index with provider '%s'.",
+                indexProviderDescriptor.name());
+
+        return prototype.withIndexProvider(indexProviderDescriptor);
     }
 
     @Override
@@ -1826,7 +1831,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         exclusiveSchemaLock(schema);
         ktx.assertOpen();
-        prototype = ensureIndexPrototypeHasIndexProvider(prototype);
+        prototype = useLatestIndexProviderVersion(prototype);
 
         UniquenessConstraintDescriptor constraint =
                 ConstraintDescriptorFactory.uniqueForSchema(schema, prototype.getIndexType());
@@ -2063,7 +2068,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         exclusiveSchemaLock(schema);
         ktx.assertOpen();
-        prototype = ensureIndexPrototypeHasIndexProvider(prototype);
+        prototype = useLatestIndexProviderVersion(prototype);
         KeyConstraintDescriptor constraint = ConstraintDescriptorFactory.keyForSchema(schema, prototype.getIndexType());
 
         try {

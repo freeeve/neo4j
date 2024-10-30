@@ -685,6 +685,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description(
+            "If sent in index-provider in index create should be respected. Only for tests, latest should always be used")
+    public static final Setting<Boolean> always_use_latest_index_provider = newBuilder(
+                    "internal.dbms.index.always_use_latest_index_provider", BOOL, true)
+            .build();
+
+    @Internal
     @Description("If `true`, Neo4j will abort recovery if any errors are encountered in the logical log. Setting "
             + "this to `false` will allow Neo4j to restore as much as possible from the corrupted log files and ignore "
             + "the rest, but, the integrity of the database might be compromised.")

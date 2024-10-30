@@ -43,6 +43,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.common.TokenNameLookup;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.IndexingTestUtil;
@@ -181,6 +182,7 @@ class IndexCRUDIT {
                 .addExtension(mockedIndexProviderFactory)
                 .noOpSystemGraphInitializer()
                 .impermanent()
+                .setConfig(GraphDatabaseInternalSettings.always_use_latest_index_provider, false)
                 .build();
 
         db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);

@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.IndexingTestUtil;
@@ -123,6 +124,7 @@ class UniqueIndexSeekIT {
     private GraphDatabaseAPI createDatabase(TrackingIndexExtensionFactory indexExtensionFactory) {
         managementService = new TestDatabaseManagementServiceBuilder(directory.homePath())
                 .addExtension(indexExtensionFactory)
+                .setConfig(GraphDatabaseInternalSettings.always_use_latest_index_provider, false)
                 .build();
         return (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
     }

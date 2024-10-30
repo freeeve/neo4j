@@ -91,6 +91,7 @@ public class IndexPopulationMissConcurrentUpdateIT {
     void configure(TestDatabaseManagementServiceBuilder builder) {
         builder.noOpSystemGraphInitializer().addExtension(index);
         builder.setConfig(GraphDatabaseInternalSettings.index_population_queue_threshold, 1);
+        builder.setConfig(GraphDatabaseInternalSettings.always_use_latest_index_provider, false);
     }
 
     /**
