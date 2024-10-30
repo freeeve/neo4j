@@ -242,14 +242,17 @@ public class ImportIndexBuilder implements Closeable {
                         population.getKey(),
                         tokenNameLookup,
                         entityIdFromIndexIdConverter);
+                boolean successful = false;
                 try {
                     populator.scanCompleted(
                             PhaseTracker.nullInstance, workScheduler, conflictHandler, CursorContext.NULL_CONTEXT);
                     indexStatisticsStore.setSampleStats(population.getKey().getId(), populator.sample(NULL_CONTEXT));
-                    populator.close(true, CursorContext.NULL_CONTEXT);
+                    successful = true;
                 } catch (IndexEntryConflictException e) {
                     // Should not happen
                     throw new RuntimeException(e);
+                } finally {
+                    populator.close(successful, NULL_CONTEXT);
                 }
             });
         }
