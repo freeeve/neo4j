@@ -87,6 +87,15 @@ public class ValueIndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplier> e
                 + ", values=" + Arrays.toString(values) + ", updateMode=" + updateMode() + '}';
     }
 
+    @Override
+    public IndexEntryUpdate<INDEX_KEY> withEntityId(long entityId) {
+        return switch (updateMode()) {
+            case ADDED -> IndexEntryUpdate.add(entityId, indexKey(), values);
+            case CHANGED -> IndexEntryUpdate.change(entityId, indexKey(), before, values);
+            case REMOVED -> IndexEntryUpdate.remove(entityId, indexKey(), values);
+        };
+    }
+
     private static void validateValuesLength(SchemaDescriptorSupplier indexKey, Value[] before, Value[] values) {
         // we do not support partial index entries
         assert indexKey.schema().getPropertyIds().length == values.length

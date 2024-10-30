@@ -120,6 +120,12 @@ public abstract class IndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplie
      */
     protected abstract String valueToString();
 
+    /**
+     * @param entityId new entity ID.
+     * @return an instance just like this one, but with a different entity ID.
+     */
+    public abstract IndexEntryUpdate<INDEX_KEY> withEntityId(long entityId);
+
     @Override
     public String toString() {
         return describe(TOKEN_ID_NAME_LOOKUP);

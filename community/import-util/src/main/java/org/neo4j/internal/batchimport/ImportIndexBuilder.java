@@ -67,9 +67,7 @@ import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
-import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 import org.neo4j.storageengine.api.UpdateMode;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Value;
 
@@ -155,21 +153,7 @@ public class ImportIndexBuilder implements Closeable {
     private IndexEntryUpdate<IndexDescriptor> convertEntityId(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
         long entityId = indexUpdate.getEntityId();
         long convertedEntityId = indexedEntityIdConverter.applyAsLong(entityId);
-        if (entityId != convertedEntityId) {
-            var index = indexUpdate.indexKey();
-            if (indexUpdate instanceof ValueIndexEntryUpdate<IndexDescriptor> valueIndexUpdate) {
-                return switch (indexUpdate.updateMode()) {
-                    case ADDED -> IndexEntryUpdate.add(convertedEntityId, index, valueIndexUpdate.values());
-                    case CHANGED -> IndexEntryUpdate.change(
-                            convertedEntityId, index, valueIndexUpdate.beforeValues(), valueIndexUpdate.values());
-                    case REMOVED -> IndexEntryUpdate.remove(convertedEntityId, index, valueIndexUpdate.values());
-                };
-            } else if (indexUpdate instanceof TokenIndexEntryUpdate<IndexDescriptor> tokenIndexUpdate) {
-                return IndexEntryUpdate.change(
-                        convertedEntityId, index, tokenIndexUpdate.beforeValues(), tokenIndexUpdate.values());
-            }
-        }
-        return indexUpdate;
+        return entityId != convertedEntityId ? indexUpdate.withEntityId(convertedEntityId) : indexUpdate;
     }
 
     private IndexBuilder getIndexBuilder(IndexDescriptor index) {

@@ -77,4 +77,9 @@ public class TokenIndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplier> e
     protected String valueToString() {
         return String.format("beforeValues=%s, values=%s", Arrays.toString(before), Arrays.toString(values));
     }
+
+    @Override
+    public IndexEntryUpdate<INDEX_KEY> withEntityId(long entityId) {
+        return IndexEntryUpdate.change(entityId, indexKey(), before, values);
+    }
 }
