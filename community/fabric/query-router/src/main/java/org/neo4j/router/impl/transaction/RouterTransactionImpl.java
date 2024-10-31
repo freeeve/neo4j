@@ -43,6 +43,9 @@ import org.neo4j.fabric.executor.Location;
 import org.neo4j.fabric.transaction.ErrorReporter;
 import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.fabric.transaction.parent.CompoundTransaction;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.TransactionTerminatedException;
 import org.neo4j.kernel.api.TerminationMark;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -100,7 +103,7 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
         TERMINATED
     }
 
-    private record ErrorRecord(String message, Throwable error) {}
+    private record ErrorRecord(ErrorGqlStatusObject gqlStatusObject, String message, Throwable error) {}
 
     public RouterTransactionImpl(
             TransactionInfo transactionInfo,
@@ -233,6 +236,8 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
                 null,
                 allFailures,
                 DatabaseTransaction::commit,
+                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN02)
+                        .build(),
                 () -> "Failed to commit a child read transaction");
 
         if (!allFailures.isEmpty()) {
@@ -241,6 +246,8 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
                     writingTransaction,
                     allFailures,
                     DatabaseTransaction::rollback,
+                    ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_40N02)
+                            .build(),
                     () -> "Failed to rollback a child write transaction");
         } else {
             doOnChildren(
@@ -248,6 +255,8 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
                     writingTransaction,
                     allFailures,
                     DatabaseTransaction::commit,
+                    ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN02)
+                            .build(),
                     () -> "Failed to commit a child write transaction");
         }
         closeContextsAndRemoveTransaction();
@@ -275,6 +284,8 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
                 writingTransaction,
                 allFailures,
                 DatabaseTransaction::rollback,
+                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_40N02)
+                        .build(),
                 () -> "Failed to rollback a child transaction");
         closeContextsAndRemoveTransaction();
 
@@ -288,6 +299,7 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
                     writingTransaction,
                     new ArrayList<>(),
                     DatabaseTransaction::rollback,
+                    null, // None error is thrown, so no need for a GQL status object
                     () -> "");
         } finally {
             closeContextsAndRemoveTransaction();
@@ -309,6 +321,8 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
                 writingTransaction,
                 allFailures,
                 tx -> tx.terminate(reason),
+                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN04)
+                        .build(),
                 () -> "Failed to terminate a child transaction");
         throwIfNonEmpty(allFailures, TransactionTerminationFailed);
         return true;
@@ -319,12 +333,13 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
             DatabaseTransaction writingTransaction,
             List<ErrorRecord> errors,
             Consumer<DatabaseTransaction> operation,
+            ErrorGqlStatusObject gqlStatusObject,
             Supplier<String> errorMessage) {
         for (var readingTransaction : readingTransactions) {
             try {
                 operation.accept(readingTransaction.inner);
             } catch (RuntimeException e) {
-                errors.add(new ErrorRecord(errorMessage.get(), e));
+                errors.add(new ErrorRecord(gqlStatusObject, errorMessage.get(), e));
             }
         }
 
@@ -333,7 +348,7 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
                 operation.accept(writingTransaction);
             }
         } catch (RuntimeException e) {
-            errors.add(new ErrorRecord(errorMessage.get(), e));
+            errors.add(new ErrorRecord(gqlStatusObject, errorMessage.get(), e));
         }
     }
 
@@ -432,7 +447,7 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
         if (!failures.isEmpty()) {
             // The main exception is not logged, because it will be logged by Bolt
             // and the log would contain two lines reporting the same thing without any additional info.
-            var mainException = transform(defaultStatusCode, failures.get(0).error);
+            var mainException = transform(failures.get(0).gqlStatusObject, defaultStatusCode, failures.get(0).error);
             for (int i = 1; i < failures.size(); i++) {
                 var errorRecord = failures.get(i);
                 mainException.addSuppressed(errorRecord.error);
@@ -478,7 +493,8 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
         }
     }
 
-    private RuntimeException transform(Status defaultStatus, Throwable t) {
+    private RuntimeException transform(
+            ErrorGqlStatusObject fallbackGqlStatusObject, Status defaultStatus, Throwable t) {
         String message = t.getMessage();
 
         // preserve the original exception if possible
@@ -487,11 +503,13 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
             if (t instanceof RuntimeException) {
                 return (RuntimeException) t;
             }
-
+            if (t instanceof ErrorGqlStatusObject gqlStatusObjectOfT) {
+                return new QueryRouterException(gqlStatusObjectOfT, ((Status.HasStatus) t).status(), message, t);
+            }
             return new QueryRouterException(((Status.HasStatus) t).status(), message, t);
         }
 
-        return new QueryRouterException(defaultStatus, message, t);
+        return new QueryRouterException(fallbackGqlStatusObject, defaultStatus, message, t);
     }
 
     Set<InternalTransaction> getInternalTransactions() {
