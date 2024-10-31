@@ -20,10 +20,13 @@
 package org.neo4j.gqlstatus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ErrorGqlStatusObjectTest {
@@ -94,6 +97,175 @@ class ErrorGqlStatusObjectTest {
         assertEquals(
                 "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.",
                 errorWithoutGql.statusDescription());
+    }
+
+    @Test
+    void testAdjustPosition() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N00)
+                .atPosition(1, 2, 3)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N15)
+                        .atPosition(1, 2, 3)
+                        .withParam(GqlParams.StringParam.valueType, "test")
+                        .build())
+                .build();
+        ((ErrorGqlStatusObjectImplementation) gql).adjustPosition(1, 2, 3, 4, 5, 6);
+
+        assertEquals(gql.gqlStatus(), "51N00");
+        assertTrue(gql.diagnosticRecord().containsKey("_position"));
+        var pos = (Map<String, Integer>) gql.diagnosticRecord().get("_position");
+        assertEquals(pos.get("line"), 4);
+        assertEquals(pos.get("column"), 5);
+        assertEquals(pos.get("offset"), 6);
+
+        assertTrue(gql.cause().isPresent());
+        var cause = gql.cause().get();
+
+        assertEquals(cause.gqlStatus(), "51N15");
+        assertTrue(cause.diagnosticRecord().containsKey("_position"));
+        var posInCause = (Map<String, Integer>) cause.diagnosticRecord().get("_position");
+        assertEquals(posInCause.get("line"), 4);
+        assertEquals(posInCause.get("column"), 5);
+        assertEquals(posInCause.get("offset"), 6);
+
+        assertFalse(cause.cause().isPresent());
+    }
+
+    @Test
+    void testAdjustPositionChainOf3() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N00)
+                .atPosition(1, 2, 3)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N15)
+                        .atPosition(1, 2, 3)
+                        .withParam(GqlParams.StringParam.valueType, "test")
+                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
+                                .atPosition(1, 2, 3)
+                                .build())
+                        .build())
+                .build();
+        ((ErrorGqlStatusObjectImplementation) gql).adjustPosition(1, 2, 3, 4, 5, 6);
+
+        assertEquals(gql.gqlStatus(), "51N00");
+        assertTrue(gql.diagnosticRecord().containsKey("_position"));
+        var pos = (Map<String, Integer>) gql.diagnosticRecord().get("_position");
+        assertEquals(pos.get("line"), 4);
+        assertEquals(pos.get("column"), 5);
+        assertEquals(pos.get("offset"), 6);
+
+        assertTrue(gql.cause().isPresent());
+        var cause = gql.cause().get();
+
+        assertEquals(cause.gqlStatus(), "51N15");
+        assertTrue(cause.diagnosticRecord().containsKey("_position"));
+        var posInCause = (Map<String, Integer>) cause.diagnosticRecord().get("_position");
+        assertEquals(posInCause.get("line"), 4);
+        assertEquals(posInCause.get("column"), 5);
+        assertEquals(posInCause.get("offset"), 6);
+
+        assertTrue(cause.cause().isPresent());
+        var causeCause = cause.cause().get();
+
+        assertEquals(causeCause.gqlStatus(), "50N42");
+        assertTrue(causeCause.diagnosticRecord().containsKey("_position"));
+        var posInCauseCause =
+                (Map<String, Integer>) causeCause.diagnosticRecord().get("_position");
+        assertEquals(posInCauseCause.get("line"), 4);
+        assertEquals(posInCauseCause.get("column"), 5);
+        assertEquals(posInCauseCause.get("offset"), 6);
+
+        assertFalse(causeCause.cause().isPresent());
+    }
+
+    @Test
+    void testAdjustPositionNotInCause() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N00)
+                .atPosition(1, 2, 3)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N15)
+                        .atPosition(1, 2, 4)
+                        .withParam(GqlParams.StringParam.valueType, "test")
+                        .build())
+                .build();
+        ((ErrorGqlStatusObjectImplementation) gql).adjustPosition(1, 2, 3, 4, 5, 6);
+
+        assertEquals(gql.gqlStatus(), "51N00");
+        assertTrue(gql.diagnosticRecord().containsKey("_position"));
+        var pos = (Map<String, Integer>) gql.diagnosticRecord().get("_position");
+        assertEquals(pos.get("line"), 4);
+        assertEquals(pos.get("column"), 5);
+        assertEquals(pos.get("offset"), 6);
+
+        assertTrue(gql.cause().isPresent());
+        var cause = gql.cause().get();
+
+        assertEquals(cause.gqlStatus(), "51N15");
+        assertTrue(cause.diagnosticRecord().containsKey("_position"));
+        var posInCause = (Map<String, Integer>) cause.diagnosticRecord().get("_position");
+        assertEquals(posInCause.get("line"), 1);
+        assertEquals(posInCause.get("column"), 2);
+        assertEquals(posInCause.get("offset"), 4);
+
+        assertFalse(cause.cause().isPresent());
+    }
+
+    @Test
+    void testAdjustPositionOnlyInCause() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N00)
+                .atPosition(1, 1, 3)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N15)
+                        .atPosition(1, 2, 3)
+                        .withParam(GqlParams.StringParam.valueType, "test")
+                        .build())
+                .build();
+        ((ErrorGqlStatusObjectImplementation) gql).adjustPosition(1, 2, 3, 4, 5, 6);
+
+        assertEquals(gql.gqlStatus(), "51N00");
+        assertTrue(gql.diagnosticRecord().containsKey("_position"));
+        var pos = (Map<String, Integer>) gql.diagnosticRecord().get("_position");
+        assertEquals(pos.get("line"), 1);
+        assertEquals(pos.get("column"), 1);
+        assertEquals(pos.get("offset"), 3);
+
+        assertTrue(gql.cause().isPresent());
+        var cause = gql.cause().get();
+
+        assertEquals(cause.gqlStatus(), "51N15");
+        assertTrue(cause.diagnosticRecord().containsKey("_position"));
+        var posInCause = (Map<String, Integer>) cause.diagnosticRecord().get("_position");
+        assertEquals(posInCause.get("line"), 4);
+        assertEquals(posInCause.get("column"), 5);
+        assertEquals(posInCause.get("offset"), 6);
+
+        assertFalse(cause.cause().isPresent());
+    }
+
+    @Test
+    void testAdjustPositionUpdateNone() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N00)
+                .atPosition(1, 1, 3)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N15)
+                        .atPosition(1, 1, 4)
+                        .withParam(GqlParams.StringParam.valueType, "test")
+                        .build())
+                .build();
+        ((ErrorGqlStatusObjectImplementation) gql).adjustPosition(1, 2, 3, 4, 5, 6);
+
+        assertEquals(gql.gqlStatus(), "51N00");
+        assertTrue(gql.diagnosticRecord().containsKey("_position"));
+        var pos = (Map<String, Integer>) gql.diagnosticRecord().get("_position");
+        assertEquals(pos.get("line"), 1);
+        assertEquals(pos.get("column"), 1);
+        assertEquals(pos.get("offset"), 3);
+
+        assertTrue(gql.cause().isPresent());
+        var cause = gql.cause().get();
+
+        assertEquals(cause.gqlStatus(), "51N15");
+        assertTrue(cause.diagnosticRecord().containsKey("_position"));
+        var posInCause = (Map<String, Integer>) cause.diagnosticRecord().get("_position");
+        assertEquals(posInCause.get("line"), 1);
+        assertEquals(posInCause.get("column"), 1);
+        assertEquals(posInCause.get("offset"), 4);
+
+        assertFalse(cause.cause().isPresent());
     }
 
     static class ExceptionWithoutCause extends GqlException {

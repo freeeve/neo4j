@@ -107,6 +107,18 @@ public class DiagnosticRecord {
         // innerDiagnosticRecord.put("_status_parameters", statusParameters);
     }
 
+    boolean hasPosition() {
+        return innerDiagnosticRecord.containsKey("_position");
+    }
+
+    Map<String, Integer> getPositionMap() {
+        return (Map<String, Integer>) innerDiagnosticRecord.get("_position");
+    }
+
+    public void updatePosition(int line, int column, int offset) {
+        innerDiagnosticRecord.put("_position", Map.of("offset", offset, "line", line, "column", column));
+    }
+
     @Override
     public int hashCode() {
         return innerDiagnosticRecord.hashCode();

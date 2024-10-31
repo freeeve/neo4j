@@ -110,6 +110,20 @@ public class CommonGqlStatusObjectImplementation implements CommonGqlStatusObjec
         return gqlStatusInfo.getCondition();
     }
 
+    /*
+     * If the current specified positions is (oldLine, oldColumn, oldOffset), then change it to (newLine, newColumn, newOffset)
+     */
+    public void adjustPosition(int oldLine, int oldColumn, int oldOffset, int newLine, int newColumn, int newOffset) {
+        if (this.diagnosticRecord.hasPosition()) {
+            var positionMap = this.diagnosticRecord.getPositionMap();
+            if (positionMap.get("line") == oldLine
+                    && positionMap.get("column") == oldColumn
+                    && positionMap.get("offset") == oldOffset) {
+                this.diagnosticRecord.updatePosition(newLine, newColumn, newOffset);
+            }
+        }
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

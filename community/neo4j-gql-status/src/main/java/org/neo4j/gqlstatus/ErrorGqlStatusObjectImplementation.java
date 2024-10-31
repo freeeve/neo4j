@@ -83,6 +83,18 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
     }
 
     @Override
+    public void adjustPosition(int oldLine, int oldColumn, int oldOffset, int newLine, int newCol, int newOffset) {
+        super.adjustPosition(oldLine, oldColumn, oldOffset, newLine, newCol, newOffset);
+        cause.ifPresent(gqlStatusObjectCause -> {
+            if (gqlStatusObjectCause instanceof ErrorGqlStatusObjectImplementation errorGqlStatusObjectImplementation) {
+                // Recursive call for the chain of causes
+                errorGqlStatusObjectImplementation.adjustPosition(
+                        oldLine, oldColumn, oldOffset, newLine, newCol, newOffset);
+            }
+        });
+    }
+
+    @Override
     public String getMessage() {
         String gqlMessagePart = this.gqlStatusInfoCode.getMessage(paramMap);
         if (!gqlMessagePart.isEmpty()) {
