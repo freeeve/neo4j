@@ -839,9 +839,8 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
         val sanitizedLabelExpression = stringifier.stringifyLabelExpression(labelExpression.replaceColonSyntax)
         SemanticCheckResult.error(
           state,
-          SemanticError.legacyRelationShipDisjunction(
+          SemanticError.legacyDisjunction(
             sanitizedLabelExpression,
-            stringifier.stringifyLabelExpression(labelExpression),
             labelExpression.containsIs,
             isNode,
             disjunction.position
@@ -854,18 +853,10 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
     lazy val colonDisjunctions = labelExpression.folder.findAllByClass[LabelExpression.ColonDisjunction]
     lazy val legacySymbols = colonConjunctions ++ colonDisjunctions
     when(entityType.contains(NODE_TYPE) && colonDisjunctions.nonEmpty) {
-      SemanticCheck.error(SemanticError.relationShipDisjunction(
-        stringifier.stringifyLabelExpression(labelExpression),
-        isNode = true,
-        colonDisjunctions.head.position
-      ))
+      SemanticCheck.error(SemanticError.invalidDisjunction(isNode = true, colonDisjunctions.head.position))
     } chain
       when(entityType.contains(RELATIONSHIP_TYPE) && colonConjunctions.nonEmpty) {
-        SemanticCheck.error(SemanticError.relationShipDisjunction(
-          stringifier.stringifyLabelExpression(labelExpression),
-          isNode = false,
-          colonConjunctions.head.position
-        ))
+        SemanticCheck.error(SemanticError.invalidDisjunction(isNode = false, colonConjunctions.head.position))
       } ifOkChain
       when(
         // if we have a colon conjunction, this implies a node, so we can search the label expression with that in mind

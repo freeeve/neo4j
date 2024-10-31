@@ -41,12 +41,20 @@ import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
+import org.scalatest.Assertions.fail
 
 import scala.util.Random
 
 case class SemanticAnalysisResult(context: ErrorCollectingContext, state: BaseState) {
 
   def errors: Seq[SemanticErrorDef] = context.errors
+
+  def error: SemanticError = {
+    if (errors.length != 1) {
+      fail("Expected exactly 1 error but got " + errors.length)
+    }
+    errors.head.asInstanceOf[SemanticError]
+  }
 
   def errorMessages: Seq[String] = errors.map(_.msg)
 
@@ -228,6 +236,19 @@ trait NameBasedSemanticAnalysisTestSuite extends SemanticAnalysisTestSuiteWithDe
 
   override def defaultQuery: String = testName
 
+  def checkGqlDisjunctionError(error: SemanticError, invalidSymbol: String): Unit = {
+    val gqlError = error.gqlStatusObject
+    gqlError.gqlStatus() shouldBe "42001"
+
+    gqlError.cause() should not be empty
+    val cause = gqlError.cause().get()
+    cause.gqlStatus() shouldBe "42I20"
+    cause.statusDescription() shouldBe
+      s"""
+         |error: syntax error or access rule violation - invalid symbol in expression.
+         | Label expressions and relationship type expressions cannot contain '$invalidSymbol'.
+         | To express a label disjunction use '|' instead.""".stripMargin.linesIterator.mkString
+  }
 }
 
 trait ErrorMessageProviderAdapter extends ErrorMessageProvider {

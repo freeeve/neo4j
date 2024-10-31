@@ -220,9 +220,8 @@ object SemanticError {
     )
   }
 
-  def legacyRelationShipDisjunction(
+  def legacyDisjunction(
     sanitizedLabelExpression: String,
-    labelExpression: String,
     containsIs: Boolean,
     isNode: Boolean = false,
     position: InputPosition
@@ -237,8 +236,8 @@ object SemanticError {
          |Please separate the relationships types using `$isOrColon$sanitizedLabelExpression` instead.""".stripMargin
     }
     val gql = GqlHelper.getGql42001_42I20(
-      if (isNode) "|:" else ":",
-      labelExpression,
+      "|:",
+      "|",
       position.line,
       position.column,
       position.offset
@@ -246,10 +245,10 @@ object SemanticError {
     SemanticError(gql, msg, position)
   }
 
-  def relationShipDisjunction(labelExpression: String, isNode: Boolean, position: InputPosition): SemanticError = {
+  def invalidDisjunction(isNode: Boolean, position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42I20(
       if (isNode) "|:" else ":",
-      labelExpression,
+      "|",
       position.line,
       position.column,
       position.offset

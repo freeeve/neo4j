@@ -511,9 +511,8 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
       maybeOffendingLabelExpression.foldSemanticCheck { illegalColonDisjunction =>
         val sanitizedLabelExpression = stringifier.stringifyLabelExpression(maybeLabelExpression.get
           .replaceColonSyntax)
-        SemanticCheck.error(SemanticError.legacyRelationShipDisjunction(
+        SemanticCheck.error(SemanticError.legacyDisjunction(
           sanitizedLabelExpression,
-          stringifier.stringifyLabelExpression(maybeLabelExpression.get),
           maybeLabelExpression.get.containsIs,
           isNode = false,
           illegalColonDisjunction.position

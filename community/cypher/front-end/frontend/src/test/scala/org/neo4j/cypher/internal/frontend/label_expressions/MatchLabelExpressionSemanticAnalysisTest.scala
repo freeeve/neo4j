@@ -54,16 +54,16 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
 
   test("MATCH (n:A|:B) RETURN n") {
     // should not allow colon disjunctions on nodes
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
-      "Label expressions are not allowed to contain '|:'."
-    )
+    val error = runSemanticAnalysis().error
+    error.msg shouldBe "Label expressions are not allowed to contain '|:'."
+    checkGqlDisjunctionError(error, "|:")
   }
 
   test("MATCH (n IS A|:B) RETURN n") {
     // should not allow colon disjunctions on nodes
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
-      "Label expressions are not allowed to contain '|:'."
-    )
+    val error = runSemanticAnalysis().error
+    error.msg shouldBe "Label expressions are not allowed to contain '|:'."
+    checkGqlDisjunctionError(error, "|:")
   }
 
   test("MATCH (:(A|B)&!C) RETURN count(*)") {
@@ -286,41 +286,56 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
 
   test("MATCH ()-[r:A:B]->() RETURN r") {
     // should not allow colon conjunctions on relationships
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    val error = runSemanticAnalysis().error
+
+    error.msg shouldBe
       "Relationship types in a relationship type expressions may not be combined using ':'"
-    )
+
+    checkGqlDisjunctionError(error, ":")
   }
 
   test("MATCH ()-[r IS A:B]->() RETURN r") {
     // should not allow colon conjunctions on relationships
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    val error = runSemanticAnalysis().error
+
+    error.msg shouldBe
       "Relationship types in a relationship type expressions may not be combined using ':'"
-    )
+
+    checkGqlDisjunctionError(error, ":")
   }
 
   test("MATCH (n)-[:A|:B&!C]->() RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    val error = runSemanticAnalysis().error
+
+    error.msg shouldBe
       """The semantics of using colon in the separation of alternative relationship types in conjunction with
         |the use of variable binding, inlined property predicates, or variable length is no longer supported.
         |Please separate the relationships types using `:A|(B&!C)` instead.""".stripMargin
-    )
+
+    checkGqlDisjunctionError(error, "|:")
   }
 
   test("MATCH (n)-[IS A|:B&!C]->() RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    val error = runSemanticAnalysis().error
+
+    error.msg shouldBe
       """The semantics of using colon in the separation of alternative relationship types in conjunction with
         |the use of variable binding, inlined property predicates, or variable length is no longer supported.
         |Please separate the relationships types using `IS A|(B&!C)` instead.""".stripMargin
-    )
+
+    checkGqlDisjunctionError(error, "|:")
   }
 
   test("MATCH (n)-[:(A&!B)|:C]->() RETURN n") {
     // should not allow mixing colon disjunction symbol with GPM label expression symbols in relationship type expression
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    val error = runSemanticAnalysis().error
+
+    error.msg shouldBe
       """The semantics of using colon in the separation of alternative relationship types in conjunction with
         |the use of variable binding, inlined property predicates, or variable length is no longer supported.
         |Please separate the relationships types using `:(A&!B)|C` instead.""".stripMargin
-    )
+
+    checkGqlDisjunctionError(error, "|:")
   }
 
   test("MATCH ()-[:!A*]->() RETURN count(*)") {
@@ -346,18 +361,21 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
 
   test("MATCH (n) WHERE n:A|:B RETURN n") {
     // should not allow colon disjunctions on node label predicate
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    val error = runSemanticAnalysis().error
+    error.msg shouldBe
       """Label expressions are not allowed to contain '|:'.
         |If you want to express a disjunction of labels, please use `:A|B` instead""".stripMargin
-    )
+
+    checkGqlDisjunctionError(error, "|:")
   }
 
   test("MATCH (n) WHERE n IS A|:B RETURN n") {
     // should not allow colon disjunctions on node label predicate
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    val error = runSemanticAnalysis().error
+    error.msg shouldBe
       """Label expressions are not allowed to contain '|:'.
         |If you want to express a disjunction of labels, please use `IS A|B` instead""".stripMargin
-    )
+    checkGqlDisjunctionError(error, "|:")
   }
 
   test("MATCH (n) WHERE n:(A|B)&!C RETURN count(*)") {
@@ -414,28 +432,37 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
 
   test("MATCH (n)-[r]->() WHERE r:(A&!B)|:C RETURN n") {
     // should not allow mixing colon disjunction symbol with GPM label expression symbols in relationship type expression – separate error
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    val error = runSemanticAnalysis().error
+
+    error.msg shouldBe
       """The semantics of using colon in the separation of alternative relationship types in conjunction with
         |the use of variable binding, inlined property predicates, or variable length is no longer supported.
         |Please separate the relationships types using `:(A&!B)|C` instead.""".stripMargin
-    )
+
+    checkGqlDisjunctionError(error, "|:")
   }
 
   test("MATCH (n)-[r]->() WHERE r IS (A&!B)|:C RETURN n") {
     // should not allow mixing colon disjunction symbol with IS keyword in relationship type expression – separate error
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    val error = runSemanticAnalysis().error
+
+    error.msg shouldBe
       """The semantics of using colon in the separation of alternative relationship types in conjunction with
         |the use of variable binding, inlined property predicates, or variable length is no longer supported.
         |Please separate the relationships types using `IS (A&!B)|C` instead.""".stripMargin
-    )
+
+    checkGqlDisjunctionError(error, "|:")
   }
 
   test("MATCH (n)-[r]->() WHERE r:B|:C RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    val error = runSemanticAnalysis().error
+
+    error.msg shouldBe
       """The semantics of using colon in the separation of alternative relationship types in conjunction with
         |the use of variable binding, inlined property predicates, or variable length is no longer supported.
         |Please separate the relationships types using `:B|C` instead.""".stripMargin
-    )
+
+    checkGqlDisjunctionError(error, "|:")
   }
 
   test("MATCH ()-[r]->() WHERE r:% RETURN r") {

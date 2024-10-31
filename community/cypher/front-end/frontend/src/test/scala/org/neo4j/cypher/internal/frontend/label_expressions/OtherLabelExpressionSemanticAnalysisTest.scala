@@ -79,11 +79,14 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   }
 
   test("RETURN $param:A|:B") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    val error = runSemanticAnalysis().error
+
+    error.msg shouldBe
       """The semantics of using colon in the separation of alternative relationship types in conjunction with
         |the use of variable binding, inlined property predicates, or variable length is no longer supported.
         |Please separate the relationships types using `:A|B` instead.""".stripMargin
-    )
+
+    checkGqlDisjunctionError(error, "|:")
   }
 
   test("RETURN $param:A:B&C") {
