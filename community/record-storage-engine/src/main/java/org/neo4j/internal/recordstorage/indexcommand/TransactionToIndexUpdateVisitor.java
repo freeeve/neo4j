@@ -95,13 +95,17 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
         }
         nodeCursor.single(id);
 
-        if (nodeCursor.next()) {
-            int[] labelsBefore = nodeCursor.labels();
-            if (labelsBefore.length > 1) {
-                Arrays.sort(labelsBefore);
-            }
-            indexRecordState.addTokenUpdate(change(id, labelIndex, labelsBefore, NO_TOKENS));
+        if (!nodeCursor.next()) {
+            return;
         }
+        int[] labelsBefore = nodeCursor.labels();
+        if (labelsBefore.length == 0) {
+            return;
+        }
+        if (labelsBefore.length > 1) {
+            Arrays.sort(labelsBefore);
+        }
+        indexRecordState.addTokenUpdate(change(id, labelIndex, labelsBefore, NO_TOKENS));
     }
 
     @Override
