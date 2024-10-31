@@ -42,8 +42,9 @@ class ExceptionsTest {
                 new FabricException(Status.General.UnknownError, "msg-5"));
 
         var reactorException = reactor.core.Exceptions.multiple(primary1, primary2, secondary);
-        var transformedException = Exceptions.transform(Status.General.UnknownError, reactorException);
+        var transformedException = Exceptions.transformUnexpectedError(Status.General.UnknownError, reactorException);
         assertThat(unpackExceptionMessages(transformedException)).contains("msg-1", "msg-2");
+        // TODO test gql
     }
 
     @Test
@@ -61,7 +62,7 @@ class ExceptionsTest {
                 Status.General.UnknownError, "msg-7", new IllegalStateException("msg-8"), sharedPrimary);
 
         var reactorException = reactor.core.Exceptions.multiple(secondary1, secondary2, secondary3);
-        var transformedException = Exceptions.transform(Status.General.UnknownError, reactorException);
+        var transformedException = Exceptions.transformUnexpectedError(Status.General.UnknownError, reactorException);
         assertThat(unpackExceptionMessages(transformedException)).contains("msg-1", "msg-6");
     }
 

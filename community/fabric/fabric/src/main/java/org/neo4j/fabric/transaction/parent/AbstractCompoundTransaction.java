@@ -362,7 +362,7 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
         if (!failures.isEmpty()) {
             // The main exception is not logged, because it will be logged by Bolt
             // and the log would contain two lines reporting the same thing without any additional info.
-            var mainException = Exceptions.transform(defaultStatusCode, failures.get(0).error);
+            var mainException = Exceptions.transformUnexpectedError(defaultStatusCode, failures.get(0).error);
             for (int i = 1; i < failures.size(); i++) {
                 var errorRecord = failures.get(i);
                 mainException.addSuppressed(errorRecord.error);

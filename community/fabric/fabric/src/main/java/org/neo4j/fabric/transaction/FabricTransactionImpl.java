@@ -107,7 +107,7 @@ public class FabricTransactionImpl extends AbstractCompoundTransaction<SingleDbT
             }
         } catch (RuntimeException e) {
             // the exception with stack trace will be logged by Bolt's ErrorReporter
-            throw Exceptions.transform(Status.Transaction.TransactionStartFailed, e);
+            throw Exceptions.transformTransactionStartFailure(Status.Transaction.TransactionStartFailed, e);
         }
     }
 
@@ -209,7 +209,7 @@ public class FabricTransactionImpl extends AbstractCompoundTransaction<SingleDbT
             return runLogic.apply(this);
         } catch (RuntimeException e) {
             // the exception with stack trace will be logged by Bolt's ErrorReporter
-            RuntimeException transformed = Exceptions.transform(Status.Statement.ExecutionFailed, e);
+            RuntimeException transformed = Exceptions.transformUnexpectedError(Status.Statement.ExecutionFailed, e);
             try {
                 rollback();
             } catch (Exception rollbackException) {

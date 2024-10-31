@@ -175,7 +175,7 @@ public class BoltQueryExecutionImpl implements BoltQueryExecution {
                     subscriber.onResultCompleted(getSummary().getQueryStatistics());
                 }
             } catch (Exception e) {
-                throw Exceptions.transform(Status.Statement.ExecutionFailed, e);
+                throw Exceptions.transformUnexpectedError(Status.Statement.ExecutionFailed, e);
             }
         }
 

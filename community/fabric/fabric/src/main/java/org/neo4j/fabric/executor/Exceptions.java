@@ -24,15 +24,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.HasQuery;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class Exceptions {
-    public static RuntimeException transform(Status defaultStatus, Throwable t) {
-        return Exceptions.transform(defaultStatus, t, null);
+    public static RuntimeException transform(ErrorGqlStatusObject gqlStatusObject, Status defaultStatus, Throwable t) {
+        return Exceptions.transform(gqlStatusObject, defaultStatus, t, null);
     }
 
-    public static RuntimeException transform(Status defaultStatus, Throwable t, Long queryId) {
+    public static RuntimeException transform(
+            ErrorGqlStatusObject gqlStatusObject, Status defaultStatus, Throwable t, Long queryId) {
         var unwrapped = reactor.core.Exceptions.unwrap(t);
         unwrapped = transformComposite(unwrapped);
 
@@ -50,10 +54,29 @@ public class Exceptions {
                 }
             }
 
-            return new FabricException(((Status.HasStatus) unwrapped).status(), message, unwrapped, queryId);
+            return new FabricException(
+                    gqlStatusObject, ((Status.HasStatus) unwrapped).status(), message, unwrapped, queryId);
         }
 
-        return new FabricException(defaultStatus, message, unwrapped, queryId);
+        return new FabricException(gqlStatusObject, defaultStatus, message, unwrapped, queryId);
+    }
+
+    public static RuntimeException transformTransactionStartFailure(Status defaultStatus, Throwable t) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N06)
+                .build();
+        return transform(gql, defaultStatus, t);
+    }
+
+    public static RuntimeException transformUnexpectedError(Status defaultStatus, Throwable t) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
+                .build();
+        return transform(gql, defaultStatus, t);
+    }
+
+    public static RuntimeException transformUnexpectedError(Status defaultStatus, Throwable t, long queryId) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
+                .build();
+        return transform(gql, defaultStatus, t, queryId);
     }
 
     private static Throwable transformComposite(Throwable potentialComposite) {

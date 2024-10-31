@@ -105,7 +105,7 @@ public class FabricKernelTransaction {
                 // all exception thrown from execution engine are wrapped in QueryExecutionKernelException,
                 // let's see if there is something better hidden in it
                 Throwable cause = e.getCause() == null ? e : e.getCause();
-                throw Exceptions.transform(
+                throw Exceptions.transformUnexpectedError(
                         Status.Statement.ExecutionFailed,
                         cause,
                         executionContext.executingQuery().internalQueryId());
