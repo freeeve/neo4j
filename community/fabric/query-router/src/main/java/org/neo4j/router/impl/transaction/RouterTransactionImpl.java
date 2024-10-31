@@ -54,6 +54,7 @@ import org.neo4j.router.QueryRouterException;
 import org.neo4j.router.impl.query.StatementType;
 import org.neo4j.router.impl.transaction.database.LocalDatabaseTransaction;
 import org.neo4j.router.location.LocationService;
+import org.neo4j.router.query.Query;
 import org.neo4j.router.transaction.DatabaseTransaction;
 import org.neo4j.router.transaction.DatabaseTransactionFactory;
 import org.neo4j.router.transaction.RouterTransaction;
@@ -169,7 +170,7 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
     }
 
     @Override
-    public void verifyStatementType(StatementType type) {
+    public void verifyStatementType(Query query, StatementType type) {
         if (statementType == null) {
             statementType = type;
         } else {
@@ -187,11 +188,12 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
                         statementType = type;
                     }
                 } else {
-                    throw new QueryRouterException(
-                            Status.Transaction.ForbiddenDueToTransactionType,
-                            "Tried to execute %s after executing %s",
-                            type,
-                            oldType);
+                    int maxLength = 40;
+                    var queryText = query.text().length() > maxLength
+                            ? query.text().substring(0, maxLength - 3) + "..."
+                            : query.text();
+                    throw QueryRouterException.invalidCombinationOfStatementTypes(
+                            queryText, String.format("Tried to execute %s after executing %s", type, oldType));
                 }
             }
         }

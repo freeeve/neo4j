@@ -22,6 +22,7 @@ package org.neo4j.fabric.transaction;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import org.neo4j.cypher.internal.ast.Statement;
 import org.neo4j.cypher.internal.util.CancellationChecker;
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
 import org.neo4j.fabric.eval.Catalog;
@@ -65,7 +66,7 @@ public interface FabricTransaction {
 
         FabricLocalExecutor.LocalTransactionContext getLocal();
 
-        void validateStatementType(StatementType type);
+        void validateStatementType(Statement statement, StatementType type);
 
         DatabaseReference getSessionDatabaseReference();
 

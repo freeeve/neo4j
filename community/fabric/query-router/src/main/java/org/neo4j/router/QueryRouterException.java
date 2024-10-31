@@ -23,6 +23,7 @@ import org.neo4j.fabric.executor.Location;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.ErrorMessageHolder;
+import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlRuntimeException;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.HasQuery;
@@ -91,6 +92,13 @@ public class QueryRouterException extends GqlRuntimeException implements Status.
                         + "Previous leader: %s, Current leader: %s.",
                 current,
                 attempt);
+    }
+
+    public static QueryRouterException invalidCombinationOfStatementTypes(String query, String message) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N01)
+                .withParam(GqlParams.StringParam.query, query)
+                .build();
+        return new QueryRouterException(gql, Status.Transaction.ForbiddenDueToTransactionType, message);
     }
 
     @Override

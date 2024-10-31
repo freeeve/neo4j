@@ -29,13 +29,14 @@ import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.query.ConstituentTransactionFactory;
 import org.neo4j.router.impl.query.StatementType;
 import org.neo4j.router.location.LocationService;
+import org.neo4j.router.query.Query;
 
 public interface RouterTransaction extends CompoundTransaction<DatabaseTransaction> {
     Optional<Status> getReasonIfTerminated();
 
     DatabaseTransaction transactionFor(Location location, TransactionMode mode, LocationService locationService);
 
-    void verifyStatementType(StatementType type);
+    void verifyStatementType(Query query, StatementType type);
 
     void setMetaData(Map<String, Object> txMeta);
 

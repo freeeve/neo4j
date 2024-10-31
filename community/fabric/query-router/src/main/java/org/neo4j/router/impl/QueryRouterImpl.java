@@ -236,7 +236,7 @@ public class QueryRouterImpl implements QueryRouter {
             QueryOptions queryOptions = processedQueryInfo.queryOptions();
             CypherExecutionMode executionMode = executionMode(queryOptions, transactionInfo.isComposite());
             AccessMode accessMode = transactionInfo.accessMode();
-            context.verifyStatementType(statementType);
+            context.verifyStatementType(query, statementType);
             var target = processedQueryInfo.target();
             verifyAccessModeWithStatementType(executionMode, accessMode, statementType, target);
             var location = locationService.locationOf(target);

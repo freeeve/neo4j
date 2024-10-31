@@ -25,6 +25,7 @@ import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.router.impl.query.StatementType;
 import org.neo4j.router.location.LocationService;
+import org.neo4j.router.query.Query;
 import org.neo4j.router.query.TargetService;
 import org.neo4j.router.transaction.DatabaseTransaction;
 import org.neo4j.router.transaction.RouterTransaction;
@@ -74,8 +75,8 @@ public record RouterTransactionContextImpl(
     }
 
     @Override
-    public void verifyStatementType(StatementType type) {
-        routerTransaction.verifyStatementType(type);
+    public void verifyStatementType(Query query, StatementType type) {
+        routerTransaction.verifyStatementType(query, type);
     }
 
     @Override

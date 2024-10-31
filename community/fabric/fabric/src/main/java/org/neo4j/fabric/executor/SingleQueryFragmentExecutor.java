@@ -134,7 +134,7 @@ abstract class SingleQueryFragmentExecutor {
     }
 
     PrepareResult prepare(Fragment.Exec fragment, Record argument) {
-        ctx.validateStatementType(fragment.statementType());
+        ctx.validateStatementType(fragment.query(), fragment.statementType());
         Map<String, AnyValue> argumentValues = argumentValues(fragment, argument);
 
         Catalog.Graph graph =

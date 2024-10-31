@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import org.neo4j.cypher.internal.ast.Statement;
 import org.neo4j.cypher.internal.util.CancellationChecker;
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
 import org.neo4j.fabric.eval.Catalog;
@@ -131,7 +132,7 @@ public class FabricTransactionImpl extends AbstractCompoundTransaction<SingleDbT
     }
 
     @Override
-    public void validateStatementType(StatementType type) {
+    public void validateStatementType(Statement statement, StatementType type) {
         boolean wasNull = statementType.compareAndSet(null, type);
         if (!wasNull) {
             var oldType = statementType.get();
@@ -147,11 +148,12 @@ public class FabricTransactionImpl extends AbstractCompoundTransaction<SingleDbT
                         statementType.set(type);
                     }
                 } else {
-                    throw new FabricException(
-                            Status.Transaction.ForbiddenDueToTransactionType,
-                            "Tried to execute %s after executing %s",
-                            type,
-                            oldType);
+                    int maxLength = 40;
+                    var statementText = statement.asCanonicalStringVal().length() > maxLength
+                            ? statement.asCanonicalStringVal().substring(0, maxLength - 3) + "..."
+                            : statement.asCanonicalStringVal();
+                    throw FabricException.invalidCombinationOfStatementTypes(
+                            statementText, String.format("Tried to execute %s after executing %s", type, oldType));
                 }
             }
         }

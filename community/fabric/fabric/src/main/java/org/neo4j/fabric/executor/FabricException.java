@@ -191,6 +191,13 @@ public class FabricException extends GqlRuntimeException implements Status.HasSt
                 gql, Status.Statement.ExecutionFailed, "Trying to execute query in a closed transaction");
     }
 
+    public static FabricException invalidCombinationOfStatementTypes(String query, String message) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N01)
+                .withParam(GqlParams.StringParam.query, query)
+                .build();
+        return new FabricException(gql, Status.Transaction.ForbiddenDueToTransactionType, message);
+    }
+
     @Override
     public Status status() {
         return statusCode;
