@@ -89,7 +89,10 @@ public class TransactionManager extends LifecycleAdapter {
     public FabricTransaction begin(
             FabricTransactionInfo transactionInfo, TransactionBookmarkManager transactionBookmarkManager) {
         if (availabilityGuard.isShutdown()) {
-            throw new DatabaseShutdownException();
+            throw DatabaseShutdownException.databaseUnavailable(
+                    transactionInfo != null
+                            ? transactionInfo.getSessionDatabaseReference().name()
+                            : GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
         }
 
         var sessionDb = transactionInfo.getSessionDatabaseReference();

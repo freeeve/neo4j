@@ -90,6 +90,10 @@ public class Error {
         return queryId;
     }
 
+    public Throwable wrappedThrowable() {
+        return wrappedThrowable;
+    }
+
     /**
      * Generates the Protocol with all fields expected.
      *

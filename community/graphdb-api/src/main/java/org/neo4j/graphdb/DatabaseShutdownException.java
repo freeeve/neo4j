@@ -20,12 +20,16 @@
 package org.neo4j.graphdb;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlRuntimeException;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class DatabaseShutdownException extends GqlRuntimeException implements Status.HasStatus {
     private static final String MESSAGE = "This database is shutdown.";
 
+    @Deprecated
     public DatabaseShutdownException() {
         super(MESSAGE);
     }
@@ -34,12 +38,27 @@ public class DatabaseShutdownException extends GqlRuntimeException implements St
         super(gqlStatusObject, MESSAGE);
     }
 
+    @Deprecated
     public DatabaseShutdownException(Throwable cause) {
         super(MESSAGE, cause);
     }
 
     public DatabaseShutdownException(ErrorGqlStatusObject gqlStatusObject, Throwable cause) {
         super(gqlStatusObject, MESSAGE, cause);
+    }
+
+    public static DatabaseShutdownException databaseUnavailable(String dbName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N09)
+                .withParam(GqlParams.StringParam.db, dbName)
+                .build();
+        return new DatabaseShutdownException(gql);
+    }
+
+    public static DatabaseShutdownException databaseUnavailable(String dbName, Throwable cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N09)
+                .withParam(GqlParams.StringParam.db, dbName)
+                .build();
+        return new DatabaseShutdownException(gql, cause);
     }
 
     @Override

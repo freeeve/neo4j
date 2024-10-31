@@ -21,9 +21,11 @@ package org.neo4j.bolt.protocol.common.message;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.gqlstatus.DiagnosticRecord;
 import org.neo4j.gqlstatus.ErrorClassification;
@@ -58,7 +60,8 @@ class ErrorTest {
     @Test
     void shouldSetStatusToDatabaseUnavailableOnDatabaseShutdownException() {
         // Given
-        DatabaseShutdownException ex = new DatabaseShutdownException();
+        DatabaseShutdownException ex =
+                DatabaseShutdownException.databaseUnavailable(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
 
         // When
         Error error = Error.from(ex);
@@ -66,6 +69,13 @@ class ErrorTest {
         // Then
         assertThat(error.status()).isEqualTo(Status.General.DatabaseUnavailable);
         assertThat(error.cause()).isEqualTo(ex);
+        // GQL info
+        assertInstanceOf(ErrorGqlStatusObject.class, error.wrappedThrowable());
+        var gqlError = (ErrorGqlStatusObject) error.wrappedThrowable();
+        assertEquals(gqlError.gqlStatus(), "08N09");
+        assertEquals(
+                gqlError.statusDescription(),
+                "error: connection exception - database unavailable. The database `neo4j` is currently unavailable. Check the database status. Retry your request at a later time.");
     }
 
     @Nested
@@ -114,7 +124,7 @@ class ErrorTest {
         @Test
         void shouldSetStatusToDatabaseUnavailableOnDatabaseShutdownException() {
             // Given
-            DatabaseShutdownException ex = new DatabaseShutdownException();
+            DatabaseShutdownException ex = DatabaseShutdownException.databaseUnavailable("MyDb");
 
             // When
             Error error = Error.from(ex);
@@ -125,11 +135,16 @@ class ErrorTest {
             assertThat(metadata.status()).isEqualTo(Status.General.DatabaseUnavailable);
             assertThat(metadata.message())
                     .isEqualTo(Status.General.DatabaseUnavailable.code().description());
-            assertThat(metadata.gqlStatus()).isEqualTo(ErrorGqlStatusObject.DEFAULT_STATUS_CODE);
-            assertThat(metadata.description()).isEqualTo(ErrorGqlStatusObject.DEFAULT_STATUS_DESCRIPTION);
-            assertThat(metadata.diagnosticRecord())
-                    .isEqualTo(DiagnosticRecord.from().build().asMap());
             assertThat(metadata.cause()).isNull();
+            assertThat(metadata.gqlStatus()).isEqualTo("08N09");
+            assertThat(metadata.description())
+                    .isEqualTo(
+                            "error: connection exception - database unavailable. The database `MyDb` is currently unavailable. Check the database status. Retry your request at a later time.");
+            assertThat(metadata.diagnosticRecord())
+                    .isEqualTo(DiagnosticRecord.from()
+                            .withClassification(ErrorClassification.TRANSIENT_ERROR)
+                            .build()
+                            .asMap());
         }
 
         @Test
