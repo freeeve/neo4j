@@ -647,6 +647,33 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.CONNECTION_EXCEPTION,
             "no such routing policy",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_08N16(
+            new GqlStatus("08N16"),
+            """
+                    Remote execution failed with message { %s }.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
+            emptyMap(),
+            Condition.CONNECTION_EXCEPTION,
+            "general driver client error",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_08N17(
+            new GqlStatus("08N17"),
+            """
+                    Remote execution failed with message { %s }.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
+            emptyMap(),
+            Condition.CONNECTION_EXCEPTION,
+            "general driver transient error",
+            ErrorClassification.TRANSIENT_ERROR),
+    STATUS_08N18(
+            new GqlStatus("08N18"),
+            """
+                    Remote execution failed with message { %s }.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
+            emptyMap(),
+            Condition.CONNECTION_EXCEPTION,
+            "general driver database error",
+            ErrorClassification.DATABASE_ERROR),
     STATUS_22000(
             new GqlStatus("22000"),
             """
@@ -3830,6 +3857,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.GENERAL_PROCESSING_EXCEPTION,
             "deadlock detected",
             ErrorClassification.TRANSIENT_ERROR),
+    STATUS_50N06(
+            new GqlStatus("50N06"),
+            """
+                    Remote execution failed. See cause for more details.""",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.GENERAL_PROCESSING_EXCEPTION,
+            "remote execution client error",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_50N07(
             new GqlStatus("50N07"),
             """
@@ -3902,6 +3938,24 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.GENERAL_PROCESSING_EXCEPTION,
             "unsupported index operation",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_50N16(
+            new GqlStatus("50N16"),
+            """
+                    Remote execution failed. See cause for more details.""",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.GENERAL_PROCESSING_EXCEPTION,
+            "remote execution transient error",
+            ErrorClassification.TRANSIENT_ERROR),
+    STATUS_50N17(
+            new GqlStatus("50N17"),
+            """
+                    Remote execution failed. See cause for more details.""",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.GENERAL_PROCESSING_EXCEPTION,
+            "remote execution database error",
+            ErrorClassification.DATABASE_ERROR),
     STATUS_50N21(
             new GqlStatus("50N21"),
             """
