@@ -83,7 +83,8 @@ object Catalog {
     def cast[T <: AnyValue](a: Arg[T], v: AnyValue, args: Seq[AnyValue]): T =
       try a.tpe.cast(v)
       catch {
-        case _: ClassCastException => Errors.wrongType(show(signature), show(args))
+        case _: ClassCastException =>
+          Errors.invalidType(show(args), a.tpe.getSimpleName, v.getTypeName, show(signature))
       }
   }
 

@@ -59,8 +59,10 @@ object Errors {
 
   def openCypherFailure(error: SemanticErrorDef): Nothing = openCypherFailure(Seq(error))
 
-  def wrongType(exp: String, got: String): Nothing =
-    throw new CypherTypeException(s"Wrong type. Expected $exp, got $got")
+  def invalidType(value: String, expectedType: String, actualType: String, signature: String): Nothing = {
+    val expectedTypeList: java.util.List[String] = java.util.List.of(expectedType)
+    throw CypherTypeException.invalidType(value, expectedTypeList, actualType, signature)
+  }
 
   def wrongArity(exp: Int, got: Int): Nothing =
     syntax(s"Wrong arity. Expected $exp argument(s), got $got argument(s)")

@@ -19,7 +19,11 @@
  */
 package org.neo4j.exceptions;
 
+import java.util.List;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class CypherTypeException extends Neo4jException {
@@ -37,6 +41,19 @@ public class CypherTypeException extends Neo4jException {
 
     public CypherTypeException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
+    }
+
+    public static CypherTypeException invalidType(
+            String value, List<String> expectedTypes, String actualType, String signature) {
+        return new CypherTypeException(
+                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G12)
+                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
+                                .withParam(GqlParams.StringParam.value, value)
+                                .withParam(GqlParams.ListParam.valueTypeList, expectedTypes)
+                                .withParam(GqlParams.StringParam.valueType, actualType)
+                                .build())
+                        .build(),
+                String.format("Wrong type. Expected %s, got %s", signature, actualType));
     }
 
     @Override
