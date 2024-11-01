@@ -84,7 +84,7 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
     protected Dependencies databaseDependencies;
     protected LifeSupport life;
     protected SettingChangeListener<Boolean> cpuChangeListener;
-    protected Monitors databaseMonitors;
+    protected DatabaseMonitors databaseMonitors;
 
     protected AbstractDatabase(
             DependencyResolver globalDependencies,
@@ -126,7 +126,8 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
         try {
             databaseDependencies = new Dependencies(globalDependencies);
             life = new LifeSupport();
-            databaseMonitors = new Monitors(parentMonitors, internalLogProvider);
+            databaseMonitors = new DatabaseMonitors(parentMonitors, internalLogProvider);
+            life.add(databaseMonitors);
             databaseHealth = databaseHealthFactory.newInstance();
 
             databaseDependencies.satisfyDependency(this);
