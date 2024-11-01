@@ -46,7 +46,6 @@ import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.optionsmap.CreateFulltextIndexOptionsConverter
-import org.neo4j.cypher.internal.optionsmap.CreateIndexProviderOnlyOptions
 import org.neo4j.cypher.internal.optionsmap.CreateIndexWithFullOptions
 import org.neo4j.cypher.internal.optionsmap.CreateLookupIndexOptionsConverter
 import org.neo4j.cypher.internal.optionsmap.CreatePointIndexOptionsConverter
@@ -61,7 +60,6 @@ import org.neo4j.cypher.internal.runtime.IndexProviderContext
 import org.neo4j.internal.helpers.collection.Iterables
 import org.neo4j.internal.schema.AllIndexProviderDescriptors.providerDescriptorDetails
 import org.neo4j.internal.schema.IndexConfig
-import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.SchemaCommand
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand
@@ -93,7 +91,6 @@ import org.neo4j.values.virtual.MapValue
 
 import java.util
 
-import scala.collection.Seq
 import scala.jdk.CollectionConverters.IterableHasAsJava
 
 class SchemaCommandConverter(
@@ -127,9 +124,9 @@ class SchemaCommandConverter(
       val desc = if (isNodeIndex) indexType.nodeDescription else indexType.relDescription
       val name = indexName.map(n => checkName(n, desc + " name")).orNull
       val notExists = ifNotExists(ifExistsDo)
-      val config = providerOnly(validateOptions(options, CreateLookupIndexOptionsConverter(providerContext)))
-      if (isNodeIndex) new NodeLookup(name, notExists, config)
-      else new RelationshipLookup(name, notExists, config)
+      validateOptions(options, CreateLookupIndexOptionsConverter(providerContext))
+      if (isNodeIndex) new NodeLookup(name, notExists)
+      else new RelationshipLookup(name, notExists)
     case index @ CreateFulltextIndex(_, entityNames, properties, indexName, _, ifExistsDo, options) =>
       val config = validateOptions(options, CreateFulltextIndexOptionsConverter(providerContext))
       val desc = index.entityIndexDescription
@@ -142,7 +139,6 @@ class SchemaCommandConverter(
             setLikeList(labels.map(l => l.name), desc, "label"),
             props,
             ifNotExists(ifExistsDo),
-            providerWithConfig(config),
             indexConfig(config)
           )
         case Right(types) => new RelationshipFulltext(
@@ -150,7 +146,6 @@ class SchemaCommandConverter(
             setLikeList(types.map(t => t.name), desc, "relationship"),
             props,
             ifNotExists(ifExistsDo),
-            providerWithConfig(config),
             indexConfig(config)
           )
       }
@@ -170,41 +165,37 @@ class SchemaCommandConverter(
       indexType match {
         case _: RangeCreateIndex =>
           val props = setLikeList(properties.map((p: Property) => p.propertyKey.name), desc, "property")
-          val config = validateOptions(options, CreateRangeIndexOptionsConverter(desc, providerContext))
+          validateOptions(options, CreateRangeIndexOptionsConverter(desc, providerContext))
           if (isNode) {
             new NodeRange(
               name,
               entityName,
               props,
-              ifNotExists(ifExistsDo),
-              providerOnly(config)
+              ifNotExists(ifExistsDo)
             )
           } else {
             new RelationshipRange(
               name,
               entityName,
               props,
-              ifNotExists(ifExistsDo),
-              providerOnly(config)
+              ifNotExists(ifExistsDo)
             )
           }
         case TextCreateIndex =>
-          val config = validateOptions(options, CreateTextIndexOptionsConverter(providerContext))
+          validateOptions(options, CreateTextIndexOptionsConverter(providerContext))
           if (isNode) {
             new NodeText(
               name,
               entityName,
               singleProperty(properties),
-              ifNotExists(ifExistsDo),
-              providerOnly(config)
+              ifNotExists(ifExistsDo)
             )
           } else {
             new RelationshipText(
               name,
               entityName,
               singleProperty(properties),
-              ifNotExists(ifExistsDo),
-              providerOnly(config)
+              ifNotExists(ifExistsDo)
             )
           }
         case PointCreateIndex =>
@@ -215,7 +206,6 @@ class SchemaCommandConverter(
               entityName,
               singleProperty(properties),
               ifNotExists(ifExistsDo),
-              providerWithConfig(config),
               indexConfig(config)
             )
           } else {
@@ -224,7 +214,6 @@ class SchemaCommandConverter(
               entityName,
               singleProperty(properties),
               ifNotExists(ifExistsDo),
-              providerWithConfig(config),
               indexConfig(config)
             )
           }
@@ -237,7 +226,6 @@ class SchemaCommandConverter(
               entityName,
               singleProperty(properties),
               ifNotExists(ifExistsDo),
-              providerWithConfig(config),
               indexConfig(config)
             )
           } else {
@@ -246,7 +234,6 @@ class SchemaCommandConverter(
               entityName,
               singleProperty(properties),
               ifNotExists(ifExistsDo),
-              providerWithConfig(config),
               indexConfig(config)
             )
           }
@@ -259,40 +246,36 @@ class SchemaCommandConverter(
       val entityName = tokenName(elementName)
       constraintType match {
         case _: org.neo4j.cypher.internal.ast.NodeKey =>
-          val config = validateOptions(options, IndexBackedConstraintsOptionsConverter("range index", providerContext))
+          validateOptions(options, IndexBackedConstraintsOptionsConverter("range index", providerContext))
           new NodeKey(
             name,
             entityName,
             asList(properties.map(p => p.propertyKey.name)),
-            ifNotExists(ifExistsDo),
-            providerOnly(config)
+            ifNotExists(ifExistsDo)
           )
         case _: org.neo4j.cypher.internal.ast.RelationshipKey =>
-          val config = validateOptions(options, IndexBackedConstraintsOptionsConverter("range index", providerContext))
+          validateOptions(options, IndexBackedConstraintsOptionsConverter("range index", providerContext))
           new RelationshipKey(
             name,
             entityName,
             asList(properties.map(p => p.propertyKey.name)),
-            ifNotExists(ifExistsDo),
-            providerOnly(config)
+            ifNotExists(ifExistsDo)
           )
         case NodePropertyUniqueness =>
-          val config = validateOptions(options, IndexBackedConstraintsOptionsConverter("range index", providerContext))
+          validateOptions(options, IndexBackedConstraintsOptionsConverter("range index", providerContext))
           new NodeUniqueness(
             name,
             entityName,
             asList(properties.map(p => p.propertyKey.name)),
-            ifNotExists(ifExistsDo),
-            providerOnly(config)
+            ifNotExists(ifExistsDo)
           )
         case RelationshipPropertyUniqueness =>
-          val config = validateOptions(options, IndexBackedConstraintsOptionsConverter("range index", providerContext))
+          validateOptions(options, IndexBackedConstraintsOptionsConverter("range index", providerContext))
           new RelationshipUniqueness(
             name,
             entityName,
             asList(properties.map(p => p.propertyKey.name)),
-            ifNotExists(ifExistsDo),
-            providerOnly(config)
+            ifNotExists(ifExistsDo)
           )
         case NodePropertyExistence =>
           validateOptions(
@@ -349,14 +332,6 @@ class SchemaCommandConverter(
     }
 
   private def ifNotExists(ifExistsDo: IfExistsDo) = ifExistsDo eq IfExistsDoNothing
-
-  private def providerOnly(providerOptions: Option[CreateIndexProviderOnlyOptions])
-    : util.Optional[IndexProviderDescriptor] =
-    util.Optional.ofNullable(providerOptions.flatMap(opts => opts.provider).orNull)
-
-  private def providerWithConfig(providerOptions: Option[CreateIndexWithFullOptions])
-    : util.Optional[IndexProviderDescriptor] =
-    util.Optional.ofNullable(providerOptions.flatMap(opts => opts.provider).orNull)
 
   private def indexConfig(providerOptions: Option[CreateIndexWithFullOptions]): IndexConfig =
     providerOptions.map(opts => opts.config).orElse(Option.apply(IndexConfig.empty())).get

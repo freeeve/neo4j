@@ -47,14 +47,6 @@ import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.ConstraintType
-import org.neo4j.internal.schema.AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR
-import org.neo4j.internal.schema.AllIndexProviderDescriptors.POINT_DESCRIPTOR
-import org.neo4j.internal.schema.AllIndexProviderDescriptors.RANGE_DESCRIPTOR
-import org.neo4j.internal.schema.AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR
-import org.neo4j.internal.schema.AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR
-import org.neo4j.internal.schema.AllIndexProviderDescriptors.TOKEN_DESCRIPTOR
-import org.neo4j.internal.schema.AllIndexProviderDescriptors.VECTOR_V1_DESCRIPTOR
-import org.neo4j.internal.schema.AllIndexProviderDescriptors.VECTOR_V2_DESCRIPTOR
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeExistence
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeKey
@@ -146,7 +138,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.NoOptions
-        )) == new NodeRange(commandName(ixName), label.name, asList("name"), false, util.Optional.empty()))
+        )) == new NodeRange(commandName(ixName), label.name, asList("name"), false))
       }
 
       test(s"CREATE INDEX $ixName IF NOT EXISTS FOR (v:L) ON (v.name)") {
@@ -155,7 +147,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsDoNothing,
           ast.NoOptions
-        )) == new NodeRange(commandName(ixName), label.name, asList("name"), true, util.Optional.empty()))
+        )) == new NodeRange(commandName(ixName), label.name, asList("name"), true))
       }
 
       test(s"CREATE INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {}") {
@@ -164,7 +156,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map.empty)
-        )) == new NodeRange(commandName(ixName), label.name, asList("name"), false, util.Optional.empty()))
+        )) == new NodeRange(commandName(ixName), label.name, asList("name"), false))
       }
 
       test(s"CREATE INDEX $ixName FOR (v:L) ON (v.name1, v.name2)") {
@@ -173,7 +165,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.NoOptions
-        )) == new NodeRange(commandName(ixName), label.name, asList("name1", "name2"), false, util.Optional.empty()))
+        )) == new NodeRange(commandName(ixName), label.name, asList("name1", "name2"), false))
       }
 
       test(s"CREATE INDEX $ixName IF NOT EXISTS FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'range-1.0'}") {
@@ -182,7 +174,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsDoNothing,
           ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0")))
-        )) == new NodeRange(commandName(ixName), label.name, asList("name"), true, util.Optional.of(RANGE_DESCRIPTOR)))
+        )) == new NodeRange(commandName(ixName), label.name, asList("name"), true))
       }
 
       test(s"CREATE LOOKUP INDEX $ixName FOR (v) ON EACH labels(v)") {
@@ -190,7 +182,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.NoOptions
-        )) == new NodeLookup(commandName(ixName), false, util.Optional.empty()))
+        )) == new NodeLookup(commandName(ixName), false))
       }
 
       test(s"CREATE LOOKUP INDEX $ixName IF NOT EXISTS FOR (v) ON EACH labels(v)") {
@@ -198,7 +190,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsDoNothing,
           ast.NoOptions
-        )) == new NodeLookup(commandName(ixName), true, util.Optional.empty()))
+        )) == new NodeLookup(commandName(ixName), true))
       }
 
       test(s"CREATE LOOKUP INDEX $ixName FOR (v) ON EACH labels(v) OPTIONS {}") {
@@ -206,7 +198,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map.empty)
-        )) == new NodeLookup(commandName(ixName), false, util.Optional.empty()))
+        )) == new NodeLookup(commandName(ixName), false))
       }
 
       test(s"CREATE LOOKUP INDEX $ixName FOR (v) ON EACH labels(v) OPTIONS {indexProvider : 'token-lookup-1.0'}") {
@@ -214,7 +206,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map("indexProvider" -> literalString("token-lookup-1.0")))
-        )) == new NodeLookup(commandName(ixName), false, util.Optional.of(TOKEN_DESCRIPTOR)))
+        )) == new NodeLookup(commandName(ixName), false))
       }
 
       test(s"CREATE TEXT INDEX $ixName FOR (v:L) ON (v.name)") {
@@ -223,7 +215,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.NoOptions
-        )) == new NodeText(commandName(ixName), label.name, "name", false, util.Optional.empty()))
+        )) == new NodeText(commandName(ixName), label.name, "name", false))
       }
 
       test(s"CREATE TEXT INDEX $ixName IF NOT EXISTS FOR (v:L) ON (v.name)") {
@@ -232,7 +224,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsDoNothing,
           ast.NoOptions
-        )) == new NodeText(commandName(ixName), label.name, "name", true, util.Optional.empty()))
+        )) == new NodeText(commandName(ixName), label.name, "name", true))
       }
 
       test(s"CREATE TEXT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {}") {
@@ -241,7 +233,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map.empty)
-        )) == new NodeText(commandName(ixName), label.name, "name", false, util.Optional.empty()))
+        )) == new NodeText(commandName(ixName), label.name, "name", false))
       }
 
       test(s"CREATE TEXT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'text-1.0'}") {
@@ -250,7 +242,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map("indexProvider" -> literalString("text-1.0")))
-        )) == new NodeText(commandName(ixName), label.name, "name", false, util.Optional.of(TEXT_V1_DESCRIPTOR)))
+        )) == new NodeText(commandName(ixName), label.name, "name", false))
       }
 
       test(s"CREATE TEXT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'text-2.0'}") {
@@ -259,7 +251,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map("indexProvider" -> literalString("text-2.0")))
-        )) == new NodeText(commandName(ixName), label.name, "name", false, util.Optional.of(TEXT_V2_DESCRIPTOR)))
+        )) == new NodeText(commandName(ixName), label.name, "name", false))
       }
 
       test(s"CREATE POINT INDEX $ixName FOR (v:L) ON (v.name)") {
@@ -268,7 +260,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.NoOptions
-        )) == new NodePoint(commandName(ixName), label.name, "name", false, util.Optional.empty(), IndexConfig.empty()))
+        )) == new NodePoint(commandName(ixName), label.name, "name", false, IndexConfig.empty()))
       }
 
       test(s"CREATE POINT INDEX $ixName IF NOT EXISTS FOR (v:L) ON (v.name)") {
@@ -277,7 +269,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsDoNothing,
           ast.NoOptions
-        )) == new NodePoint(commandName(ixName), label.name, "name", true, util.Optional.empty(), IndexConfig.empty()))
+        )) == new NodePoint(commandName(ixName), label.name, "name", true, IndexConfig.empty()))
       }
 
       test(s"CREATE POINT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {}") {
@@ -286,7 +278,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map.empty)
-        )) == new NodePoint(commandName(ixName), label.name, "name", false, util.Optional.empty(), IndexConfig.empty()))
+        )) == new NodePoint(commandName(ixName), label.name, "name", false, IndexConfig.empty()))
       }
 
       test(s"CREATE POINT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'point-1.0'}") {
@@ -300,7 +292,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           label.name,
           "name",
           false,
-          util.Optional.of(POINT_DESCRIPTOR),
           IndexConfig.empty()
         ))
       }
@@ -321,7 +312,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           label.name,
           "name",
           false,
-          util.Optional.empty(),
           IndexConfig.`with`(util.Map.of("spatial.wgs-84.max", array60, "spatial.wgs-84.min", array40))
         ))
       }
@@ -345,7 +335,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           label.name,
           "name",
           false,
-          util.Optional.of(POINT_DESCRIPTOR),
           IndexConfig.`with`(util.Map.of("spatial.wgs-84.max", array60, "spatial.wgs-84.min", array40))
         ))
       }
@@ -356,7 +345,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.NoOptions
-        )) == new NodeVector(commandName(ixName), label.name, "name", false, util.Optional.empty(), VECTOR_CONFIG_V2))
+        )) == new NodeVector(commandName(ixName), label.name, "name", false, VECTOR_CONFIG_V2))
       }
 
       test(s"CREATE VECTOR INDEX $ixName IF NOT EXISTS FOR (v:L) ON (v.name)") {
@@ -365,7 +354,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsDoNothing,
           ast.NoOptions
-        )) == new NodeVector(commandName(ixName), label.name, "name", true, util.Optional.empty(), VECTOR_CONFIG_V2))
+        )) == new NodeVector(commandName(ixName), label.name, "name", true, VECTOR_CONFIG_V2))
       }
 
       test(s"CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {}") {
@@ -374,7 +363,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map.empty)
-        )) == new NodeVector(commandName(ixName), label.name, "name", false, util.Optional.empty(), VECTOR_CONFIG_V2))
+        )) == new NodeVector(commandName(ixName), label.name, "name", false, VECTOR_CONFIG_V2))
       }
 
       test(s"CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexConfig : {`vector.dimensions`: 1536}}") {
@@ -390,7 +379,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           label.name,
           "name",
           false,
-          util.Optional.empty(),
           VECTOR_CONFIG_V2.withIfAbsent("vector.dimensions", Values.intValue(1536))
         ))
       }
@@ -411,7 +399,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           label.name,
           "name",
           false,
-          util.Optional.empty(),
           VECTOR_CONFIG_V2_ALT
         ))
       }
@@ -435,7 +422,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           label.name,
           "v1name",
           false,
-          util.Optional.of(VECTOR_V1_DESCRIPTOR),
           VECTOR_CONFIG_V1
         ))
       }
@@ -459,7 +445,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           label.name,
           "v2name",
           false,
-          util.Optional.of(VECTOR_V1_DESCRIPTOR),
           VECTOR_CONFIG_V1
         ))
       }
@@ -475,7 +460,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           label.name,
           "name",
           false,
-          util.Optional.of(VECTOR_V2_DESCRIPTOR),
           VECTOR_CONFIG_V2
         ))
       }
@@ -492,7 +476,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList(label.name),
           asList("name"),
           false,
-          util.Optional.empty(),
           IndexConfig.empty()
         ))
       }
@@ -509,7 +492,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList(label.name),
           asList("name"),
           true,
-          util.Optional.empty(),
           IndexConfig.empty()
         ))
       }
@@ -526,7 +508,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList("L1", "L2"),
           asList("name"),
           true,
-          util.Optional.empty(),
           IndexConfig.empty()
         ))
       }
@@ -543,7 +524,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList(label.name),
           asList("name1", "name2"),
           false,
-          util.Optional.empty(),
           IndexConfig.empty()
         ))
       }
@@ -560,7 +540,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList("L1", "L2"),
           asList("name1", "name2"),
           true,
-          util.Optional.empty(),
           IndexConfig.empty()
         ))
       }
@@ -577,7 +556,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList(label.name),
           asList("name"),
           false,
-          util.Optional.empty(),
           IndexConfig.empty()
         ))
       }
@@ -598,7 +576,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList(label.name),
           asList("name"),
           false,
-          util.Optional.empty(),
           IndexConfig.empty().withIfAbsent("fulltext.eventually_consistent", Values.booleanValue(false))
         ))
       }
@@ -622,7 +599,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList(label.name),
           asList("name"),
           false,
-          util.Optional.of(FULLTEXT_DESCRIPTOR),
           IndexConfig.empty().withIfAbsent("fulltext.eventually_consistent", Values.booleanValue(true))
         ))
       }
@@ -663,7 +639,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.NoOptions
-        )) == new RelationshipRange(commandName(ixName), relType.name, asList("name"), false, util.Optional.empty()))
+        )) == new RelationshipRange(commandName(ixName), relType.name, asList("name"), false))
       }
 
       test(s"CREATE INDEX $ixName IF NOT EXISTS FOR ()-[v:R]-() ON (v.name)") {
@@ -672,7 +648,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsDoNothing,
           ast.NoOptions
-        )) == new RelationshipRange(commandName(ixName), relType.name, asList("name"), true, util.Optional.empty()))
+        )) == new RelationshipRange(commandName(ixName), relType.name, asList("name"), true))
       }
 
       test(s"CREATE INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {}") {
@@ -681,7 +657,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map.empty)
-        )) == new RelationshipRange(commandName(ixName), relType.name, asList("name"), false, util.Optional.empty()))
+        )) == new RelationshipRange(commandName(ixName), relType.name, asList("name"), false))
       }
 
       test(s"CREATE INDEX $ixName FOR ()-[v:R]-() ON (v.name1, v.nam2)") {
@@ -694,8 +670,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           commandName(ixName),
           relType.name,
           asList("name1", "name2"),
-          false,
-          util.Optional.empty()
+          false
         ))
       }
 
@@ -709,8 +684,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           commandName(ixName),
           relType.name,
           asList("name"),
-          false,
-          util.Optional.of(RANGE_DESCRIPTOR)
+          false
         ))
       }
 
@@ -720,7 +694,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.NoOptions
-        )) == new RelationshipText(commandName(ixName), relType.name, "name", false, util.Optional.empty()))
+        )) == new RelationshipText(commandName(ixName), relType.name, "name", false))
       }
 
       test(s"CREATE TEXT INDEX $ixName IF NOT EXISTS FOR ()-[v:R]-() ON (v.name)") {
@@ -729,7 +703,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsDoNothing,
           ast.NoOptions
-        )) == new RelationshipText(commandName(ixName), relType.name, "name", true, util.Optional.empty()))
+        )) == new RelationshipText(commandName(ixName), relType.name, "name", true))
       }
 
       test(s"CREATE TEXT INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {}") {
@@ -738,7 +712,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map.empty)
-        )) == new RelationshipText(commandName(ixName), relType.name, "name", false, util.Optional.empty()))
+        )) == new RelationshipText(commandName(ixName), relType.name, "name", false))
       }
 
       test(s"CREATE TEXT INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {indexProvider : 'text-1.0'}") {
@@ -751,8 +725,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           commandName(ixName),
           relType.name,
           "name",
-          false,
-          util.Optional.of(TEXT_V1_DESCRIPTOR)
+          false
         ))
       }
 
@@ -766,8 +739,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           commandName(ixName),
           relType.name,
           "name",
-          false,
-          util.Optional.of(TEXT_V2_DESCRIPTOR)
+          false
         ))
       }
 
@@ -782,7 +754,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           relType.name,
           "name",
           false,
-          util.Optional.empty(),
           IndexConfig.empty()
         ))
       }
@@ -798,7 +769,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           relType.name,
           "name",
           true,
-          util.Optional.empty(),
           IndexConfig.empty()
         ))
       }
@@ -814,7 +784,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           relType.name,
           "name",
           false,
-          util.Optional.empty(),
           IndexConfig.empty()
         ))
       }
@@ -830,7 +799,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           relType.name,
           "name",
           false,
-          util.Optional.of(POINT_DESCRIPTOR),
           IndexConfig.empty()
         ))
       }
@@ -851,7 +819,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           relType.name,
           "name",
           false,
-          util.Optional.empty(),
           IndexConfig.`with`(util.Map.of("spatial.wgs-84.max", array60, "spatial.wgs-84.min", array40))
         ))
       }
@@ -875,7 +842,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           relType.name,
           "name",
           false,
-          util.Optional.of(POINT_DESCRIPTOR),
           IndexConfig.`with`(util.Map.of("spatial.wgs-84.max", array60, "spatial.wgs-84.min", array40))
         ))
       }
@@ -891,7 +857,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           relType.name,
           "name",
           false,
-          util.Optional.empty(),
           VECTOR_CONFIG_V2
         ))
       }
@@ -907,7 +872,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           relType.name,
           "name",
           true,
-          util.Optional.empty(),
           VECTOR_CONFIG_V2
         ))
       }
@@ -923,7 +887,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           relType.name,
           "name",
           false,
-          util.Optional.empty(),
           VECTOR_CONFIG_V2
         ))
       }
@@ -943,7 +906,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           relType.name,
           "name",
           false,
-          util.Optional.empty(),
           VECTOR_CONFIG_V2.withIfAbsent("vector.dimensions", Values.intValue(1536))
         ))
       }
@@ -967,7 +929,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           relType.name,
           "v1name",
           false,
-          util.Optional.of(VECTOR_V1_DESCRIPTOR),
           VECTOR_CONFIG_V1
         ))
       }
@@ -991,7 +952,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           relType.name,
           "v2name",
           false,
-          util.Optional.of(VECTOR_V1_DESCRIPTOR),
           VECTOR_CONFIG_V1
         ))
       }
@@ -1008,7 +968,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList(relType.name),
           asList("name"),
           false,
-          util.Optional.empty(),
           IndexConfig.empty()
         ))
       }
@@ -1025,7 +984,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList(relType.name),
           asList("name"),
           true,
-          util.Optional.empty(),
           IndexConfig.empty()
         ))
       }
@@ -1042,7 +1000,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList(relType.name),
           asList("name1", "name2"),
           false,
-          util.Optional.empty(),
           IndexConfig.empty()
         ))
       }
@@ -1059,7 +1016,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList(relType.name),
           asList("name"),
           false,
-          util.Optional.empty(),
           IndexConfig.empty()
         ))
       }
@@ -1080,7 +1036,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList(relType.name),
           asList("name"),
           false,
-          util.Optional.empty(),
           IndexConfig.empty().withIfAbsent("fulltext.eventually_consistent", Values.booleanValue(false))
         ))
       }
@@ -1104,7 +1059,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList(relType.name),
           asList("name"),
           false,
-          util.Optional.of(FULLTEXT_DESCRIPTOR),
           IndexConfig.empty().withIfAbsent("fulltext.eventually_consistent", Values.booleanValue(true))
         ))
       }
@@ -1121,7 +1075,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList("R1", "R2"),
           asList("name"),
           false,
-          util.Optional.of(FULLTEXT_DESCRIPTOR),
           IndexConfig.empty()
         )
       }
@@ -1138,7 +1091,6 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           asList("R1", "R2"),
           asList("name1", "name2"),
           false,
-          util.Optional.of(FULLTEXT_DESCRIPTOR),
           IndexConfig.empty()
         )
       }
@@ -1178,7 +1130,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.NoOptions
-        )) == new RelationshipLookup(commandName(ixName), false, util.Optional.empty()))
+        )) == new RelationshipLookup(commandName(ixName), false))
       }
 
       test(s"CREATE LOOKUP INDEX $ixName IF NOT EXISTS FOR ()-[v:R]-() ON EACH type(v)") {
@@ -1186,7 +1138,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsDoNothing,
           ast.NoOptions
-        )) == new RelationshipLookup(commandName(ixName), true, util.Optional.empty()))
+        )) == new RelationshipLookup(commandName(ixName), true))
       }
 
       test(s"CREATE LOOKUP INDEX $ixName FOR ()-[v:R]-() ON EACH type(v) OPTIONS {}") {
@@ -1194,7 +1146,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map.empty)
-        )) == new RelationshipLookup(commandName(ixName), false, util.Optional.empty()))
+        )) == new RelationshipLookup(commandName(ixName), false))
       }
 
       test(
@@ -1204,7 +1156,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map("indexProvider" -> literalString("token-lookup-1.0")))
-        )) == new RelationshipLookup(commandName(ixName), false, util.Optional.of(TOKEN_DESCRIPTOR)))
+        )) == new RelationshipLookup(commandName(ixName), false))
       }
   }
 
@@ -2004,8 +1956,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               commandName(ixName),
               label.name,
               asList("name"),
-              false,
-              util.Optional.empty()
+              false
             )
           case ConstraintType.NODE_PROPERTY_EXISTENCE => new NodeExistence(
               commandName(ixName),
@@ -2024,15 +1975,13 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               commandName(ixName),
               label.name,
               asList("name"),
-              false,
-              util.Optional.empty()
+              false
             )
           case ConstraintType.RELATIONSHIP_UNIQUENESS => new RelationshipUniqueness(
               commandName(ixName),
               relType.name,
               asList("name"),
-              false,
-              util.Optional.empty()
+              false
             )
           case ConstraintType.RELATIONSHIP_PROPERTY_EXISTENCE => new RelationshipExistence(
               commandName(ixName),
@@ -2051,8 +2000,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               commandName(ixName),
               relType.name,
               asList("name"),
-              false,
-              util.Optional.empty()
+              false
             )
           case ConstraintType.RELATIONSHIP_SOURCE_LABEL => fail("Not yet supported - waiting for graph type syntax")
           case ConstraintType.RELATIONSHIP_TARGET_LABEL => fail("Not yet supported - waiting for graph type syntax")
@@ -2071,8 +2019,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               commandName(ixName),
               label.name,
               asList("name"),
-              true,
-              util.Optional.empty()
+              true
             )
           case ConstraintType.NODE_PROPERTY_EXISTENCE => new NodeExistence(
               commandName(ixName),
@@ -2091,15 +2038,13 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               commandName(ixName),
               label.name,
               asList("name"),
-              true,
-              util.Optional.empty()
+              true
             )
           case ConstraintType.RELATIONSHIP_UNIQUENESS => new RelationshipUniqueness(
               commandName(ixName),
               relType.name,
               asList("name"),
-              true,
-              util.Optional.empty()
+              true
             )
           case ConstraintType.RELATIONSHIP_PROPERTY_EXISTENCE => new RelationshipExistence(
               commandName(ixName),
@@ -2118,8 +2063,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               commandName(ixName),
               relType.name,
               asList("name"),
-              true,
-              util.Optional.empty()
+              true
             )
           case ConstraintType.RELATIONSHIP_SOURCE_LABEL => fail("Not yet supported - waiting for graph type syntax")
           case ConstraintType.RELATIONSHIP_TARGET_LABEL => fail("Not yet supported - waiting for graph type syntax")

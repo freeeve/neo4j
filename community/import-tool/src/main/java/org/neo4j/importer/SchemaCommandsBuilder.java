@@ -23,7 +23,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.factory.Lists;
@@ -33,7 +32,6 @@ import org.neo4j.common.EntityType;
 import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.schema.SchemaCommandConverter;
 import org.neo4j.importer.SchemaCommandReader.ReaderConfig;
-import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.ConstraintType;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.SchemaCommand;
@@ -251,26 +249,7 @@ class SchemaCommandsBuilder {
 
     private static Optional<IndexType> backingIndexType(ConstraintCommand.Create constraint) {
         if (constraint.hasBackingIndex()) {
-            final Supplier<Optional<? extends IndexType>> rangeSupplier = () -> Optional.of(IndexType.RANGE);
-            if (constraint instanceof NodeUniqueness command) {
-                return command.provider()
-                        .map(AllIndexProviderDescriptors.INDEX_TYPES::get)
-                        .or(rangeSupplier);
-            } else if (constraint instanceof RelationshipUniqueness command) {
-                return command.provider()
-                        .map(AllIndexProviderDescriptors.INDEX_TYPES::get)
-                        .or(rangeSupplier);
-            } else if (constraint instanceof NodeKey command) {
-                return command.provider()
-                        .map(AllIndexProviderDescriptors.INDEX_TYPES::get)
-                        .or(rangeSupplier);
-            } else if (constraint instanceof RelationshipKey command) {
-                return command.provider()
-                        .map(AllIndexProviderDescriptors.INDEX_TYPES::get)
-                        .or(rangeSupplier);
-            } else {
-                throw new IllegalStateException("Unknown backing index constraint: " + constraint);
-            }
+            return Optional.of(IndexType.RANGE);
         }
         return Optional.empty();
     }

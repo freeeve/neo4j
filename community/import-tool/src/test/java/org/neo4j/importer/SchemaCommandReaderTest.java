@@ -28,7 +28,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,7 +37,6 @@ import org.neo4j.configuration.Config;
 import org.neo4j.exceptions.SyntaxException;
 import org.neo4j.importer.SchemaCommandReader.ReaderConfig;
 import org.neo4j.internal.schema.IndexConfig;
-import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.SchemaCommand;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeExistence;
@@ -97,14 +95,6 @@ class SchemaCommandReaderTest {
 
     private static final VectorIndexVersion VECTOR_INDEX_VERSION =
             VectorIndexVersion.latestSupportedVersion(KernelVersion.getLatestVersion(Config.defaults()));
-
-    private static final IndexProviderDescriptor LOOKUP = new IndexProviderDescriptor("token-lookup", "1.0");
-    private static final IndexProviderDescriptor RANGE = new IndexProviderDescriptor("range", "1.0");
-    private static final IndexProviderDescriptor TEXT = new IndexProviderDescriptor("text", "2.0");
-    private static final IndexProviderDescriptor POINT = new IndexProviderDescriptor("point", "1.0");
-    private static final IndexProviderDescriptor FULLTEXT = new IndexProviderDescriptor("fulltext", "1.0");
-    private static final IndexProviderDescriptor VECTOR_V1 = new IndexProviderDescriptor("vector", "1.0");
-    private static final IndexProviderDescriptor VECTOR_V2 = new IndexProviderDescriptor("vector", "2.0");
 
     @Inject
     private TestDirectory directory;
@@ -233,14 +223,14 @@ class SchemaCommandReaderTest {
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     """,
-                        new NodeRange(null, "LabelName", List.of("propertyName"), false, Optional.empty())),
+                        new NodeRange(null, "LabelName", List.of("propertyName"), false)),
                 arguments(
                         """
                     CREATE INDEX testing
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     """,
-                        new NodeRange("testing", "LabelName", List.of("propertyName"), false, Optional.empty())),
+                        new NodeRange("testing", "LabelName", List.of("propertyName"), false)),
                 arguments(
                         """
                     CREATE INDEX testing
@@ -248,21 +238,21 @@ class SchemaCommandReaderTest {
                     ON (n.propertyName)
                     OPTIONS {}
                     """,
-                        new NodeRange("testing", "LabelName", List.of("propertyName"), false, Optional.empty())),
+                        new NodeRange("testing", "LabelName", List.of("propertyName"), false)),
                 arguments(
                         """
                     CREATE RANGE INDEX testing
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     """,
-                        new NodeRange("testing", "LabelName", List.of("propertyName"), false, Optional.empty())),
+                        new NodeRange("testing", "LabelName", List.of("propertyName"), false)),
                 arguments(
                         """
                     CREATE INDEX testing IF NOT EXISTS
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     """,
-                        new NodeRange("testing", "LabelName", List.of("propertyName"), true, Optional.empty())),
+                        new NodeRange("testing", "LabelName", List.of("propertyName"), true)),
                 arguments(
                         """
                     CREATE INDEX testing IF NOT EXISTS
@@ -270,7 +260,7 @@ class SchemaCommandReaderTest {
                     ON (n.propertyName)
                     OPTIONS {}
                     """,
-                        new NodeRange("testing", "LabelName", List.of("propertyName"), true, Optional.empty())),
+                        new NodeRange("testing", "LabelName", List.of("propertyName"), true)),
                 arguments(
                         """
                     CREATE INDEX testing
@@ -278,15 +268,14 @@ class SchemaCommandReaderTest {
                     ON (n.propertyName)
                     OPTIONS { indexProvider: 'range-1.0' }
                     """,
-                        new NodeRange("testing", "LabelName", List.of("propertyName"), false, Optional.of(RANGE))),
+                        new NodeRange("testing", "LabelName", List.of("propertyName"), false)),
                 arguments(
                         """
                     CREATE INDEX testing
                     FOR (n:LabelName)
                     ON (n.property1, n.property2)
                     """,
-                        new NodeRange(
-                                "testing", "LabelName", List.of("property1", "property2"), false, Optional.empty())),
+                        new NodeRange("testing", "LabelName", List.of("property1", "property2"), false)),
                 // REL RANGE INDEX
                 arguments(
                         """
@@ -294,35 +283,35 @@ class SchemaCommandReaderTest {
                     FOR ()-[r:RelName]-()
                     ON (r.propertyName)
                     """,
-                        new RelationshipRange("testing", "RelName", List.of("propertyName"), false, Optional.empty())),
+                        new RelationshipRange("testing", "RelName", List.of("propertyName"), false)),
                 arguments(
                         """
                     CREATE INDEX
                     FOR ()-[r:RelName]-()
                     ON (r.propertyName)
                     """,
-                        new RelationshipRange(null, "RelName", List.of("propertyName"), false, Optional.empty())),
+                        new RelationshipRange(null, "RelName", List.of("propertyName"), false)),
                 arguments(
                         """
                     CREATE INDEX testing
                     FOR ()-[r:RelName]->()
                     ON (r.propertyName)
                     """,
-                        new RelationshipRange("testing", "RelName", List.of("propertyName"), false, Optional.empty())),
+                        new RelationshipRange("testing", "RelName", List.of("propertyName"), false)),
                 arguments(
                         """
                     CREATE INDEX testing
                     FOR ()<-[r:RelName]-()
                     ON (r.propertyName)
                     """,
-                        new RelationshipRange("testing", "RelName", List.of("propertyName"), false, Optional.empty())),
+                        new RelationshipRange("testing", "RelName", List.of("propertyName"), false)),
                 arguments(
                         """
                     CREATE INDEX testing
                     FOR ()<-[r:RelName]->()
                     ON (r.propertyName)
                     """,
-                        new RelationshipRange("testing", "RelName", List.of("propertyName"), false, Optional.empty())),
+                        new RelationshipRange("testing", "RelName", List.of("propertyName"), false)),
                 arguments(
                         """
                     CREATE INDEX testing
@@ -330,21 +319,21 @@ class SchemaCommandReaderTest {
                     ON (r.propertyName)
                     OPTIONS {}
                     """,
-                        new RelationshipRange("testing", "RelName", List.of("propertyName"), false, Optional.empty())),
+                        new RelationshipRange("testing", "RelName", List.of("propertyName"), false)),
                 arguments(
                         """
                     CREATE RANGE INDEX testing
                     FOR ()-[r:RelName]-()
                     ON (r.propertyName)
                     """,
-                        new RelationshipRange("testing", "RelName", List.of("propertyName"), false, Optional.empty())),
+                        new RelationshipRange("testing", "RelName", List.of("propertyName"), false)),
                 arguments(
                         """
                     CREATE INDEX testing IF NOT EXISTS
                     FOR ()-[r:RelName]-()
                     ON (r.propertyName)
                     """,
-                        new RelationshipRange("testing", "RelName", List.of("propertyName"), true, Optional.empty())),
+                        new RelationshipRange("testing", "RelName", List.of("propertyName"), true)),
                 arguments(
                         """
                     CREATE INDEX testing IF NOT EXISTS
@@ -352,7 +341,7 @@ class SchemaCommandReaderTest {
                     ON (r.propertyName)
                     OPTIONS {}
                     """,
-                        new RelationshipRange("testing", "RelName", List.of("propertyName"), true, Optional.empty())),
+                        new RelationshipRange("testing", "RelName", List.of("propertyName"), true)),
                 arguments(
                         """
                     CREATE INDEX testing
@@ -360,16 +349,14 @@ class SchemaCommandReaderTest {
                     ON (r.propertyName)
                     OPTIONS { indexProvider: 'range-1.0' }
                     """,
-                        new RelationshipRange(
-                                "testing", "RelName", List.of("propertyName"), false, Optional.of(RANGE))),
+                        new RelationshipRange("testing", "RelName", List.of("propertyName"), false)),
                 arguments(
                         """
                     CREATE INDEX testing
                     FOR ()-[r:RelName]-()
                     ON (r.property1, r.property2)
                     """,
-                        new RelationshipRange(
-                                "testing", "RelName", List.of("property1", "property2"), false, Optional.empty())),
+                        new RelationshipRange("testing", "RelName", List.of("property1", "property2"), false)),
                 // NODE TEXT INDEX
                 arguments(
                         """
@@ -377,14 +364,14 @@ class SchemaCommandReaderTest {
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     """,
-                        new NodeText("testing", "LabelName", "propertyName", false, Optional.empty())),
+                        new NodeText("testing", "LabelName", "propertyName", false)),
                 arguments(
                         """
                     CREATE TEXT INDEX
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     """,
-                        new NodeText(null, "LabelName", "propertyName", false, Optional.empty())),
+                        new NodeText(null, "LabelName", "propertyName", false)),
                 arguments(
                         """
                     CREATE TEXT INDEX testing
@@ -392,14 +379,14 @@ class SchemaCommandReaderTest {
                     ON (n.propertyName)
                     OPTIONS {}
                     """,
-                        new NodeText("testing", "LabelName", "propertyName", false, Optional.empty())),
+                        new NodeText("testing", "LabelName", "propertyName", false)),
                 arguments(
                         """
                     CREATE TEXT INDEX testing IF NOT EXISTS
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     """,
-                        new NodeText("testing", "LabelName", "propertyName", true, Optional.empty())),
+                        new NodeText("testing", "LabelName", "propertyName", true)),
                 arguments(
                         """
                     CREATE TEXT INDEX testing IF NOT EXISTS
@@ -407,7 +394,7 @@ class SchemaCommandReaderTest {
                     ON (n.propertyName)
                     OPTIONS {}
                     """,
-                        new NodeText("testing", "LabelName", "propertyName", true, Optional.empty())),
+                        new NodeText("testing", "LabelName", "propertyName", true)),
                 arguments(
                         """
                     CREATE TEXT INDEX testing
@@ -415,7 +402,7 @@ class SchemaCommandReaderTest {
                     ON (n.propertyName)
                     OPTIONS { indexProvider: 'text-2.0' }
                     """,
-                        new NodeText("testing", "LabelName", "propertyName", false, Optional.of(TEXT))),
+                        new NodeText("testing", "LabelName", "propertyName", false)),
                 // REL TEXT INDEX
                 arguments(
                         """
@@ -423,14 +410,14 @@ class SchemaCommandReaderTest {
                     FOR ()-[r:RelName]-()
                     ON (r.propertyName)
                     """,
-                        new RelationshipText("testing", "RelName", "propertyName", false, Optional.empty())),
+                        new RelationshipText("testing", "RelName", "propertyName", false)),
                 arguments(
                         """
                     CREATE TEXT INDEX
                     FOR ()-[r:RelName]-()
                     ON (r.propertyName)
                     """,
-                        new RelationshipText(null, "RelName", "propertyName", false, Optional.empty())),
+                        new RelationshipText(null, "RelName", "propertyName", false)),
                 arguments(
                         """
                     CREATE TEXT INDEX testing
@@ -438,14 +425,14 @@ class SchemaCommandReaderTest {
                     ON (r.propertyName)
                     OPTIONS {}
                     """,
-                        new RelationshipText("testing", "RelName", "propertyName", false, Optional.empty())),
+                        new RelationshipText("testing", "RelName", "propertyName", false)),
                 arguments(
                         """
                     CREATE TEXT INDEX testing IF NOT EXISTS
                     FOR ()-[r:RelName]-()
                     ON (r.propertyName)
                     """,
-                        new RelationshipText("testing", "RelName", "propertyName", true, Optional.empty())),
+                        new RelationshipText("testing", "RelName", "propertyName", true)),
                 arguments(
                         """
                     CREATE TEXT INDEX testing IF NOT EXISTS
@@ -453,7 +440,7 @@ class SchemaCommandReaderTest {
                     ON (r.propertyName)
                     OPTIONS {}
                     """,
-                        new RelationshipText("testing", "RelName", "propertyName", true, Optional.empty())),
+                        new RelationshipText("testing", "RelName", "propertyName", true)),
                 arguments(
                         """
                     CREATE TEXT INDEX testing
@@ -461,7 +448,7 @@ class SchemaCommandReaderTest {
                     ON (r.propertyName)
                     OPTIONS { indexProvider: 'text-2.0' }
                     """,
-                        new RelationshipText("testing", "RelName", "propertyName", false, Optional.of(TEXT))),
+                        new RelationshipText("testing", "RelName", "propertyName", false)),
                 // NODE POINT INDEX
                 arguments(
                         """
@@ -469,15 +456,14 @@ class SchemaCommandReaderTest {
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     """,
-                        new NodePoint(null, "LabelName", "propertyName", false, Optional.empty(), IndexConfig.empty())),
+                        new NodePoint(null, "LabelName", "propertyName", false, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE POINT INDEX testing
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     """,
-                        new NodePoint(
-                                "testing", "LabelName", "propertyName", false, Optional.empty(), IndexConfig.empty())),
+                        new NodePoint("testing", "LabelName", "propertyName", false, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE POINT INDEX testing
@@ -485,16 +471,14 @@ class SchemaCommandReaderTest {
                     ON (n.propertyName)
                     OPTIONS {}
                     """,
-                        new NodePoint(
-                                "testing", "LabelName", "propertyName", false, Optional.empty(), IndexConfig.empty())),
+                        new NodePoint("testing", "LabelName", "propertyName", false, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE POINT INDEX testing IF NOT EXISTS
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     """,
-                        new NodePoint(
-                                "testing", "LabelName", "propertyName", true, Optional.empty(), IndexConfig.empty())),
+                        new NodePoint("testing", "LabelName", "propertyName", true, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE POINT INDEX testing IF NOT EXISTS
@@ -502,8 +486,7 @@ class SchemaCommandReaderTest {
                     ON (n.propertyName)
                     OPTIONS {}
                     """,
-                        new NodePoint(
-                                "testing", "LabelName", "propertyName", true, Optional.empty(), IndexConfig.empty())),
+                        new NodePoint("testing", "LabelName", "propertyName", true, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE POINT INDEX testing
@@ -511,13 +494,7 @@ class SchemaCommandReaderTest {
                     ON (n.propertyName)
                     OPTIONS { indexProvider: 'point-1.0' }
                     """,
-                        new NodePoint(
-                                "testing",
-                                "LabelName",
-                                "propertyName",
-                                false,
-                                Optional.of(POINT),
-                                IndexConfig.empty())),
+                        new NodePoint("testing", "LabelName", "propertyName", false, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE POINT INDEX testing
@@ -525,7 +502,7 @@ class SchemaCommandReaderTest {
                     ON (n.propertyName)
                     OPTIONS { indexConfig: {`spatial.cartesian.min`:[0.0, 0.0]} }
                     """,
-                        new NodePoint("testing", "LabelName", "propertyName", false, Optional.empty(), POINT_CONFIG)),
+                        new NodePoint("testing", "LabelName", "propertyName", false, POINT_CONFIG)),
                 // REL POINT INDEX
                 arguments(
                         """
@@ -533,16 +510,14 @@ class SchemaCommandReaderTest {
                     FOR ()-[r:RelName]-()
                     ON (r.propertyName)
                     """,
-                        new RelationshipPoint(
-                                "testing", "RelName", "propertyName", false, Optional.empty(), IndexConfig.empty())),
+                        new RelationshipPoint("testing", "RelName", "propertyName", false, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE POINT INDEX
                     FOR ()-[r:RelName]-()
                     ON (r.propertyName)
                     """,
-                        new RelationshipPoint(
-                                null, "RelName", "propertyName", false, Optional.empty(), IndexConfig.empty())),
+                        new RelationshipPoint(null, "RelName", "propertyName", false, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE POINT INDEX testing
@@ -550,16 +525,14 @@ class SchemaCommandReaderTest {
                     ON (r.propertyName)
                     OPTIONS {}
                     """,
-                        new RelationshipPoint(
-                                "testing", "RelName", "propertyName", false, Optional.empty(), IndexConfig.empty())),
+                        new RelationshipPoint("testing", "RelName", "propertyName", false, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE POINT INDEX testing IF NOT EXISTS
                     FOR ()-[r:RelName]-()
                     ON (r.propertyName)
                     """,
-                        new RelationshipPoint(
-                                "testing", "RelName", "propertyName", true, Optional.empty(), IndexConfig.empty())),
+                        new RelationshipPoint("testing", "RelName", "propertyName", true, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE POINT INDEX testing IF NOT EXISTS
@@ -567,8 +540,7 @@ class SchemaCommandReaderTest {
                     ON (r.propertyName)
                     OPTIONS {}
                     """,
-                        new RelationshipPoint(
-                                "testing", "RelName", "propertyName", true, Optional.empty(), IndexConfig.empty())),
+                        new RelationshipPoint("testing", "RelName", "propertyName", true, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE POINT INDEX testing
@@ -576,8 +548,7 @@ class SchemaCommandReaderTest {
                     ON (r.propertyName)
                     OPTIONS { indexProvider: 'point-1.0' }
                     """,
-                        new RelationshipPoint(
-                                "testing", "RelName", "propertyName", false, Optional.of(POINT), IndexConfig.empty())),
+                        new RelationshipPoint("testing", "RelName", "propertyName", false, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE POINT INDEX testing
@@ -585,8 +556,7 @@ class SchemaCommandReaderTest {
                     ON (r.propertyName)
                     OPTIONS { indexConfig: {`spatial.cartesian.min`:[0.0, 0.0]} }
                     """,
-                        new RelationshipPoint(
-                                "testing", "RelName", "propertyName", false, Optional.empty(), POINT_CONFIG)),
+                        new RelationshipPoint("testing", "RelName", "propertyName", false, POINT_CONFIG)),
                 // NODE LOOKUP INDEX
                 arguments(
                         """
@@ -594,21 +564,21 @@ class SchemaCommandReaderTest {
                     FOR (n)
                     ON EACH labels(n)
                     """,
-                        new NodeLookup("testing", false, Optional.empty())),
+                        new NodeLookup("testing", false)),
                 arguments(
                         """
                     CREATE LOOKUP INDEX
                     FOR (n)
                     ON EACH labels(n)
                     """,
-                        new NodeLookup(null, false, Optional.empty())),
+                        new NodeLookup(null, false)),
                 arguments(
                         """
                     CREATE LOOKUP INDEX testing IF NOT EXISTS
                     FOR (n)
                     ON EACH labels(n)
                     """,
-                        new NodeLookup("testing", true, Optional.empty())),
+                        new NodeLookup("testing", true)),
                 arguments(
                         """
                     CREATE LOOKUP INDEX testing
@@ -616,7 +586,7 @@ class SchemaCommandReaderTest {
                     ON EACH labels(n)
                     OPTIONS { indexProvider: 'token-lookup-1.0' }
                     """,
-                        new NodeLookup("testing", false, Optional.of(LOOKUP))),
+                        new NodeLookup("testing", false)),
                 // REL LOOKUP INDEX
                 arguments(
                         """
@@ -624,21 +594,21 @@ class SchemaCommandReaderTest {
                     FOR ()-[r]-()
                     ON EACH type(r)
                     """,
-                        new RelationshipLookup("testing", false, Optional.empty())),
+                        new RelationshipLookup("testing", false)),
                 arguments(
                         """
                     CREATE LOOKUP INDEX
                     FOR ()-[r]-()
                     ON EACH type(r)
                     """,
-                        new RelationshipLookup(null, false, Optional.empty())),
+                        new RelationshipLookup(null, false)),
                 arguments(
                         """
                     CREATE LOOKUP INDEX testing IF NOT EXISTS
                     FOR ()-[r]-()
                     ON EACH type(r)
                     """,
-                        new RelationshipLookup("testing", true, Optional.empty())),
+                        new RelationshipLookup("testing", true)),
                 arguments(
                         """
                     CREATE LOOKUP INDEX testing
@@ -646,7 +616,7 @@ class SchemaCommandReaderTest {
                     ON EACH type(r)
                     OPTIONS { indexProvider: 'token-lookup-1.0' }
                     """,
-                        new RelationshipLookup("testing", false, Optional.of(LOOKUP))),
+                        new RelationshipLookup("testing", false)),
                 // NODE FULLTEXT INDEX
                 arguments(
                         """
@@ -655,12 +625,7 @@ class SchemaCommandReaderTest {
                     ON EACH [n.propertyName]
                     """,
                         new NodeFulltext(
-                                null,
-                                List.of("LabelName"),
-                                List.of("propertyName"),
-                                false,
-                                Optional.empty(),
-                                IndexConfig.empty())),
+                                null, List.of("LabelName"), List.of("propertyName"), false, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE FULLTEXT INDEX testing
@@ -668,12 +633,7 @@ class SchemaCommandReaderTest {
                     ON EACH [n.propertyName]
                     """,
                         new NodeFulltext(
-                                "testing",
-                                List.of("LabelName"),
-                                List.of("propertyName"),
-                                false,
-                                Optional.empty(),
-                                IndexConfig.empty())),
+                                "testing", List.of("LabelName"), List.of("propertyName"), false, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE FULLTEXT INDEX testing IF NOT EXISTS
@@ -681,12 +641,7 @@ class SchemaCommandReaderTest {
                     ON EACH [n.propertyName]
                     """,
                         new NodeFulltext(
-                                "testing",
-                                List.of("LabelName"),
-                                List.of("propertyName"),
-                                true,
-                                Optional.empty(),
-                                IndexConfig.empty())),
+                                "testing", List.of("LabelName"), List.of("propertyName"), true, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE FULLTEXT INDEX testing
@@ -698,7 +653,6 @@ class SchemaCommandReaderTest {
                                 List.of("LabelName1", "LabelName2"),
                                 List.of("propertyName"),
                                 false,
-                                Optional.empty(),
                                 IndexConfig.empty())),
                 arguments(
                         """
@@ -711,7 +665,6 @@ class SchemaCommandReaderTest {
                                 List.of("LabelName"),
                                 List.of("property1", "property2"),
                                 false,
-                                Optional.empty(),
                                 IndexConfig.empty())),
                 arguments(
                         """
@@ -724,7 +677,6 @@ class SchemaCommandReaderTest {
                                 List.of("LabelName1", "LabelName2"),
                                 List.of("property1", "property2"),
                                 false,
-                                Optional.empty(),
                                 IndexConfig.empty())),
                 arguments(
                         """
@@ -734,12 +686,7 @@ class SchemaCommandReaderTest {
                     OPTIONS { indexConfig: {`fulltext.eventually_consistent`:true} }
                     """,
                         new NodeFulltext(
-                                "testing",
-                                List.of("LabelName"),
-                                List.of("propertyName"),
-                                false,
-                                Optional.empty(),
-                                FULLTEXT_CONFIG)),
+                                "testing", List.of("LabelName"), List.of("propertyName"), false, FULLTEXT_CONFIG)),
                 arguments(
                         """
                     CREATE FULLTEXT INDEX testing
@@ -748,12 +695,7 @@ class SchemaCommandReaderTest {
                     OPTIONS { indexProvider: 'fulltext-1.0' }
                     """,
                         new NodeFulltext(
-                                "testing",
-                                List.of("LabelName"),
-                                List.of("propertyName"),
-                                false,
-                                Optional.of(FULLTEXT),
-                                IndexConfig.empty())),
+                                "testing", List.of("LabelName"), List.of("propertyName"), false, IndexConfig.empty())),
                 // REL FULLTEXT INDEX
                 arguments(
                         """
@@ -762,12 +704,7 @@ class SchemaCommandReaderTest {
                     ON EACH [r.propertyName]
                     """,
                         new RelationshipFulltext(
-                                "testing",
-                                List.of("RelType"),
-                                List.of("propertyName"),
-                                false,
-                                Optional.empty(),
-                                IndexConfig.empty())),
+                                "testing", List.of("RelType"), List.of("propertyName"), false, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE FULLTEXT INDEX
@@ -775,12 +712,7 @@ class SchemaCommandReaderTest {
                     ON EACH [r.propertyName]
                     """,
                         new RelationshipFulltext(
-                                null,
-                                List.of("RelType"),
-                                List.of("propertyName"),
-                                false,
-                                Optional.empty(),
-                                IndexConfig.empty())),
+                                null, List.of("RelType"), List.of("propertyName"), false, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE FULLTEXT INDEX testing IF NOT EXISTS
@@ -788,12 +720,7 @@ class SchemaCommandReaderTest {
                     ON EACH [r.propertyName]
                     """,
                         new RelationshipFulltext(
-                                "testing",
-                                List.of("RelType"),
-                                List.of("propertyName"),
-                                true,
-                                Optional.empty(),
-                                IndexConfig.empty())),
+                                "testing", List.of("RelType"), List.of("propertyName"), true, IndexConfig.empty())),
                 arguments(
                         """
                     CREATE FULLTEXT INDEX testing
@@ -805,7 +732,6 @@ class SchemaCommandReaderTest {
                                 List.of("RelType1", "RelType2"),
                                 List.of("propertyName"),
                                 false,
-                                Optional.empty(),
                                 IndexConfig.empty())),
                 arguments(
                         """
@@ -818,7 +744,6 @@ class SchemaCommandReaderTest {
                                 List.of("RelType"),
                                 List.of("property1", "property2"),
                                 false,
-                                Optional.empty(),
                                 IndexConfig.empty())),
                 arguments(
                         """
@@ -831,7 +756,6 @@ class SchemaCommandReaderTest {
                                 List.of("RelType1", "RelType2"),
                                 List.of("property1", "property2"),
                                 false,
-                                Optional.empty(),
                                 IndexConfig.empty())),
                 arguments(
                         """
@@ -841,12 +765,7 @@ class SchemaCommandReaderTest {
                     OPTIONS { indexConfig: {`fulltext.eventually_consistent`:true} }
                     """,
                         new RelationshipFulltext(
-                                "testing",
-                                List.of("RelType"),
-                                List.of("propertyName"),
-                                false,
-                                Optional.empty(),
-                                FULLTEXT_CONFIG)),
+                                "testing", List.of("RelType"), List.of("propertyName"), false, FULLTEXT_CONFIG)),
                 arguments(
                         """
                     CREATE FULLTEXT INDEX testing
@@ -855,12 +774,7 @@ class SchemaCommandReaderTest {
                     OPTIONS { indexProvider: 'fulltext-1.0' }
                     """,
                         new RelationshipFulltext(
-                                "testing",
-                                List.of("RelType"),
-                                List.of("propertyName"),
-                                false,
-                                Optional.of(FULLTEXT),
-                                IndexConfig.empty())),
+                                "testing", List.of("RelType"), List.of("propertyName"), false, IndexConfig.empty())),
                 // NODE VECTOR INDEX
                 arguments(
                         """
@@ -868,7 +782,7 @@ class SchemaCommandReaderTest {
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     """,
-                        new NodeVector(null, "LabelName", "propertyName", false, Optional.empty(), VECTOR_CONFIG_V2)),
+                        new NodeVector(null, "LabelName", "propertyName", false, VECTOR_CONFIG_V2)),
                 arguments(
                         """
                     CREATE VECTOR INDEX testing
@@ -876,8 +790,7 @@ class SchemaCommandReaderTest {
                     ON (n.propertyName)
                     OPTIONS {}
                     """,
-                        new NodeVector(
-                                "testing", "LabelName", "propertyName", false, Optional.empty(), VECTOR_CONFIG_V2)),
+                        new NodeVector("testing", "LabelName", "propertyName", false, VECTOR_CONFIG_V2)),
                 arguments(
                         """
                     CREATE VECTOR INDEX testing
@@ -889,8 +802,7 @@ class SchemaCommandReaderTest {
                       }
                     }
                     """,
-                        new NodeVector(
-                                "testing", "LabelName", "propertyName", false, Optional.empty(), VECTOR_DIMENSIONS_V2)),
+                        new NodeVector("testing", "LabelName", "propertyName", false, VECTOR_DIMENSIONS_V2)),
                 arguments(
                         """
                     CREATE VECTOR INDEX testing IF NOT EXISTS
@@ -902,8 +814,7 @@ class SchemaCommandReaderTest {
                       }
                     }
                     """,
-                        new NodeVector(
-                                "testing", "LabelName", "propertyName", true, Optional.empty(), VECTOR_DIMENSIONS_V2)),
+                        new NodeVector("testing", "LabelName", "propertyName", true, VECTOR_DIMENSIONS_V2)),
                 arguments(
                         """
                     CREATE VECTOR INDEX testing
@@ -917,13 +828,7 @@ class SchemaCommandReaderTest {
                       indexProvider: 'vector-1.0'
                     }
                     """,
-                        new NodeVector(
-                                "testing",
-                                "LabelName",
-                                "propertyName",
-                                false,
-                                Optional.of(VECTOR_V1),
-                                VECTOR_DIMENSIONS_V1)),
+                        new NodeVector("testing", "LabelName", "propertyName", false, VECTOR_DIMENSIONS_V1)),
                 // REL VECTOR INDEX
                 arguments(
                         """
@@ -932,8 +837,7 @@ class SchemaCommandReaderTest {
                     ON (r.propertyName)
                     OPTIONS {}
                     """,
-                        new RelationshipVector(
-                                "testing", "RelName", "propertyName", false, Optional.empty(), VECTOR_CONFIG_V2)),
+                        new RelationshipVector("testing", "RelName", "propertyName", false, VECTOR_CONFIG_V2)),
                 arguments(
                         """
                     CREATE VECTOR INDEX
@@ -945,8 +849,7 @@ class SchemaCommandReaderTest {
                       }
                     }
                     """,
-                        new RelationshipVector(
-                                null, "RelName", "propertyName", false, Optional.empty(), VECTOR_DIMENSIONS_V2)),
+                        new RelationshipVector(null, "RelName", "propertyName", false, VECTOR_DIMENSIONS_V2)),
                 arguments(
                         """
                     CREATE VECTOR INDEX testing
@@ -958,8 +861,7 @@ class SchemaCommandReaderTest {
                       }
                     }
                     """,
-                        new RelationshipVector(
-                                "testing", "RelName", "propertyName", false, Optional.empty(), VECTOR_DIMENSIONS_V2)),
+                        new RelationshipVector("testing", "RelName", "propertyName", false, VECTOR_DIMENSIONS_V2)),
                 arguments(
                         """
                     CREATE VECTOR INDEX testing IF NOT EXISTS
@@ -971,8 +873,7 @@ class SchemaCommandReaderTest {
                       }
                     }
                     """,
-                        new RelationshipVector(
-                                "testing", "RelName", "propertyName", true, Optional.empty(), VECTOR_DIMENSIONS_V2)),
+                        new RelationshipVector("testing", "RelName", "propertyName", true, VECTOR_DIMENSIONS_V2)),
                 arguments(
                         """
                     CREATE VECTOR INDEX testing
@@ -985,13 +886,7 @@ class SchemaCommandReaderTest {
                       indexProvider: 'vector-2.0'
                     }
                     """,
-                        new RelationshipVector(
-                                "testing",
-                                "RelName",
-                                "propertyName",
-                                false,
-                                Optional.of(VECTOR_V2),
-                                VECTOR_DIMENSIONS_V2)),
+                        new RelationshipVector("testing", "RelName", "propertyName", false, VECTOR_DIMENSIONS_V2)),
                 // constraints
                 arguments(
                         """
@@ -1044,28 +939,28 @@ class SchemaCommandReaderTest {
                     FOR (c:LabelName)
                     REQUIRE c.prop IS NODE KEY
                     """,
-                        new NodeKey(null, "LabelName", List.of("prop"), false, Optional.empty())),
+                        new NodeKey(null, "LabelName", List.of("prop"), false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing
                     FOR (c:LabelName)
                     REQUIRE c.prop IS NODE KEY
                     """,
-                        new NodeKey("testing", "LabelName", List.of("prop"), false, Optional.empty())),
+                        new NodeKey("testing", "LabelName", List.of("prop"), false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing IF NOT EXISTS
                     FOR (c:LabelName)
                     REQUIRE c.prop IS NODE KEY
                     """,
-                        new NodeKey("testing", "LabelName", List.of("prop"), true, Optional.empty())),
+                        new NodeKey("testing", "LabelName", List.of("prop"), true)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing
                     FOR (c:LabelName)
                     REQUIRE (c.prop1, c.prop2) IS NODE KEY
                     """,
-                        new NodeKey("testing", "LabelName", List.of("prop1", "prop2"), false, Optional.empty())),
+                        new NodeKey("testing", "LabelName", List.of("prop1", "prop2"), false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing IF NOT EXISTS
@@ -1073,35 +968,35 @@ class SchemaCommandReaderTest {
                     REQUIRE c.prop IS NODE KEY
                     OPTIONS { indexProvider: 'range-1.0' }
                     """,
-                        new NodeKey("testing", "LabelName", List.of("prop"), true, Optional.of(RANGE))),
+                        new NodeKey("testing", "LabelName", List.of("prop"), true)),
                 arguments(
                         """
                     CREATE CONSTRAINT
                     FOR (c:LabelName)
                     REQUIRE c.prop IS NODE UNIQUE
                     """,
-                        new NodeUniqueness(null, "LabelName", List.of("prop"), false, Optional.empty())),
+                        new NodeUniqueness(null, "LabelName", List.of("prop"), false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing
                     FOR (c:LabelName)
                     REQUIRE c.prop IS NODE UNIQUE
                     """,
-                        new NodeUniqueness("testing", "LabelName", List.of("prop"), false, Optional.empty())),
+                        new NodeUniqueness("testing", "LabelName", List.of("prop"), false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing IF NOT EXISTS
                     FOR (c:LabelName)
                     REQUIRE c.prop IS UNIQUE
                     """,
-                        new NodeUniqueness("testing", "LabelName", List.of("prop"), true, Optional.empty())),
+                        new NodeUniqueness("testing", "LabelName", List.of("prop"), true)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing
                     FOR (c:LabelName)
                     REQUIRE (c.prop1, c.prop2) IS NODE UNIQUE
                     """,
-                        new NodeUniqueness("testing", "LabelName", List.of("prop1", "prop2"), false, Optional.empty())),
+                        new NodeUniqueness("testing", "LabelName", List.of("prop1", "prop2"), false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing IF NOT EXISTS
@@ -1109,7 +1004,7 @@ class SchemaCommandReaderTest {
                     REQUIRE c.prop IS UNIQUE
                     OPTIONS { indexProvider: 'range-1.0' }
                     """,
-                        new NodeUniqueness("testing", "LabelName", List.of("prop"), true, Optional.of(RANGE))),
+                        new NodeUniqueness("testing", "LabelName", List.of("prop"), true)),
                 arguments(
                         """
                     CREATE CONSTRAINT
@@ -1161,28 +1056,28 @@ class SchemaCommandReaderTest {
                     FOR ()-[c:RelName]-()
                     REQUIRE c.prop IS RELATIONSHIP KEY
                     """,
-                        new RelationshipKey(null, "RelName", List.of("prop"), false, Optional.empty())),
+                        new RelationshipKey(null, "RelName", List.of("prop"), false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing
                     FOR ()-[c:RelName]-()
                     REQUIRE c.prop IS RELATIONSHIP KEY
                     """,
-                        new RelationshipKey("testing", "RelName", List.of("prop"), false, Optional.empty())),
+                        new RelationshipKey("testing", "RelName", List.of("prop"), false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing IF NOT EXISTS
                     FOR ()-[c:RelName]-()
                     REQUIRE c.prop IS REL KEY
                     """,
-                        new RelationshipKey("testing", "RelName", List.of("prop"), true, Optional.empty())),
+                        new RelationshipKey("testing", "RelName", List.of("prop"), true)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing
                     FOR ()-[c:RelName]-()
                     REQUIRE (c.prop1, c.prop2) IS REL KEY
                     """,
-                        new RelationshipKey("testing", "RelName", List.of("prop1", "prop2"), false, Optional.empty())),
+                        new RelationshipKey("testing", "RelName", List.of("prop1", "prop2"), false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing IF NOT EXISTS
@@ -1190,36 +1085,35 @@ class SchemaCommandReaderTest {
                     REQUIRE c.prop IS REL KEY
                     OPTIONS { indexProvider: 'range-1.0' }
                     """,
-                        new RelationshipKey("testing", "RelName", List.of("prop"), true, Optional.of(RANGE))),
+                        new RelationshipKey("testing", "RelName", List.of("prop"), true)),
                 arguments(
                         """
                     CREATE CONSTRAINT
                     FOR ()-[c:RelName]-()
                     REQUIRE c.prop IS RELATIONSHIP UNIQUE
                     """,
-                        new RelationshipUniqueness(null, "RelName", List.of("prop"), false, Optional.empty())),
+                        new RelationshipUniqueness(null, "RelName", List.of("prop"), false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing
                     FOR ()-[c:RelName]-()
                     REQUIRE c.prop IS RELATIONSHIP UNIQUE
                     """,
-                        new RelationshipUniqueness("testing", "RelName", List.of("prop"), false, Optional.empty())),
+                        new RelationshipUniqueness("testing", "RelName", List.of("prop"), false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing IF NOT EXISTS
                     FOR ()-[c:RelName]-()
                     REQUIRE c.prop IS UNIQUE
                     """,
-                        new RelationshipUniqueness("testing", "RelName", List.of("prop"), true, Optional.empty())),
+                        new RelationshipUniqueness("testing", "RelName", List.of("prop"), true)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing
                     FOR ()-[c:RelName]-()
                     REQUIRE (c.prop1, c.prop2) IS REL UNIQUE
                     """,
-                        new RelationshipUniqueness(
-                                "testing", "RelName", List.of("prop1", "prop2"), false, Optional.empty())),
+                        new RelationshipUniqueness("testing", "RelName", List.of("prop1", "prop2"), false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing IF NOT EXISTS
@@ -1227,7 +1121,7 @@ class SchemaCommandReaderTest {
                     REQUIRE c.prop IS UNIQUE
                     OPTIONS { indexProvider: 'range-1.0' }
                     """,
-                        new RelationshipUniqueness("testing", "RelName", List.of("prop"), true, Optional.of(RANGE))),
+                        new RelationshipUniqueness("testing", "RelName", List.of("prop"), true)),
 
                 // MULTIPLES
                 Arguments.of(
@@ -1259,8 +1153,7 @@ class SchemaCommandReaderTest {
                     FOR (n:LabelName)
                     ON (n.propertyName);
                     """,
-                        List.of(new NodeRange(
-                                "testing", "LabelName", List.of("propertyName"), false, Optional.empty()))),
+                        List.of(new NodeRange("testing", "LabelName", List.of("propertyName"), false))),
                 Arguments.of(
                         """
                     DROP INDEX testing;
@@ -1270,8 +1163,7 @@ class SchemaCommandReaderTest {
                     """,
                         List.of(
                                 new IndexCommand.Drop("testing", false),
-                                new NodeRange(
-                                        "testing", "LabelName", List.of("propertyName"), false, Optional.empty()))),
+                                new NodeRange("testing", "LabelName", List.of("propertyName"), false))),
                 Arguments.of(
                         """
                     CREATE RANGE INDEX testing1
@@ -1282,9 +1174,8 @@ class SchemaCommandReaderTest {
                     ON (n2.propertyName);
                     """,
                         List.of(
-                                new NodeRange(
-                                        "testing1", "LabelName", List.of("propertyName"), false, Optional.empty()),
-                                new NodeText("testing2", "LabelName", "propertyName", false, Optional.empty()))),
+                                new NodeRange("testing1", "LabelName", List.of("propertyName"), false),
+                                new NodeText("testing2", "LabelName", "propertyName", false))),
                 Arguments.of(
                         """
                     CREATE CONSTRAINT testing1
@@ -1295,9 +1186,8 @@ class SchemaCommandReaderTest {
                     ON (n2.propInt);
                     """,
                         List.of(
-                                new NodeUniqueness(
-                                        "testing1", "LabelName", List.of("propString"), false, Optional.empty()),
-                                new NodeRange("testing2", "LabelName", List.of("propInt"), false, Optional.empty()))));
+                                new NodeUniqueness("testing1", "LabelName", List.of("propString"), false),
+                                new NodeRange("testing2", "LabelName", List.of("propInt"), false))));
     }
 
     private static Stream<Arguments> handlesIncorrectChanges() {

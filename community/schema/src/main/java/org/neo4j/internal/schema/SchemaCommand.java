@@ -30,7 +30,6 @@ import static org.neo4j.internal.schema.SchemaCommandUtils.forSchema;
 import static org.neo4j.internal.schema.SchemaCommandUtils.withName;
 
 import java.util.List;
-import java.util.Optional;
 import org.neo4j.common.EntityType;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
 import org.neo4j.internal.schema.constraints.PropertyTypeSet;
@@ -57,17 +56,10 @@ public sealed interface SchemaCommand {
 
             boolean ifNotExists();
 
-            Optional<IndexProviderDescriptor> provider();
-
             IndexPrototype toPrototype(TokenHolders tokenHolders);
 
             // SchemaCommand.CreateRangeNodeIndex
-            record NodeRange(
-                    String name,
-                    String label,
-                    List<String> properties,
-                    boolean ifNotExists,
-                    Optional<IndexProviderDescriptor> provider)
+            record NodeRange(String name, String label, List<String> properties, boolean ifNotExists)
                     implements Create {
                 @Override
                 public EntityType entityType() {
@@ -94,12 +86,7 @@ public sealed interface SchemaCommand {
             }
 
             // SchemaCommand.CreateRangeRelationshipIndex
-            record RelationshipRange(
-                    String name,
-                    String type,
-                    List<String> properties,
-                    boolean ifNotExists,
-                    Optional<IndexProviderDescriptor> provider)
+            record RelationshipRange(String name, String type, List<String> properties, boolean ifNotExists)
                     implements Create {
                 @Override
                 public EntityType entityType() {
@@ -126,13 +113,7 @@ public sealed interface SchemaCommand {
             }
 
             // SchemaCommand.CreateTextNodeIndex
-            record NodeText(
-                    String name,
-                    String label,
-                    String property,
-                    boolean ifNotExists,
-                    Optional<IndexProviderDescriptor> provider)
-                    implements Create {
+            record NodeText(String name, String label, String property, boolean ifNotExists) implements Create {
                 @Override
                 public EntityType entityType() {
                     return EntityType.NODE;
@@ -157,13 +138,7 @@ public sealed interface SchemaCommand {
             }
 
             // SchemaCommand.CreateTextRelationshipIndex
-            record RelationshipText(
-                    String name,
-                    String type,
-                    String property,
-                    boolean ifNotExists,
-                    Optional<IndexProviderDescriptor> provider)
-                    implements Create {
+            record RelationshipText(String name, String type, String property, boolean ifNotExists) implements Create {
                 @Override
                 public EntityType entityType() {
                     return EntityType.RELATIONSHIP;
@@ -189,13 +164,7 @@ public sealed interface SchemaCommand {
             }
 
             // SchemaCommand.CreatePointNodeIndex
-            record NodePoint(
-                    String name,
-                    String label,
-                    String property,
-                    boolean ifNotExists,
-                    Optional<IndexProviderDescriptor> provider,
-                    IndexConfig config)
+            record NodePoint(String name, String label, String property, boolean ifNotExists, IndexConfig config)
                     implements Create {
                 @Override
                 public EntityType entityType() {
@@ -223,13 +192,7 @@ public sealed interface SchemaCommand {
             }
 
             // SchemaCommand.CreatePointRelationshipIndex
-            record RelationshipPoint(
-                    String name,
-                    String type,
-                    String property,
-                    boolean ifNotExists,
-                    Optional<IndexProviderDescriptor> provider,
-                    IndexConfig config)
+            record RelationshipPoint(String name, String type, String property, boolean ifNotExists, IndexConfig config)
                     implements Create {
                 @Override
                 public EntityType entityType() {
@@ -257,8 +220,7 @@ public sealed interface SchemaCommand {
             }
 
             // SchemaCommand.CreateLookupIndex
-            record NodeLookup(String name, boolean ifNotExists, Optional<IndexProviderDescriptor> provider)
-                    implements Create {
+            record NodeLookup(String name, boolean ifNotExists) implements Create {
                 @Override
                 public EntityType entityType() {
                     return EntityType.NODE;
@@ -279,8 +241,7 @@ public sealed interface SchemaCommand {
             }
 
             // SchemaCommand.CreateLookupIndex
-            record RelationshipLookup(String name, boolean ifNotExists, Optional<IndexProviderDescriptor> provider)
-                    implements Create {
+            record RelationshipLookup(String name, boolean ifNotExists) implements Create {
                 @Override
                 public EntityType entityType() {
                     return EntityType.RELATIONSHIP;
@@ -305,12 +266,7 @@ public sealed interface SchemaCommand {
 
             // SchemaCommand.CreateFulltextNodeIndex
             record NodeFulltext(
-                    String name,
-                    List<String> labels,
-                    List<String> properties,
-                    boolean ifNotExists,
-                    Optional<IndexProviderDescriptor> provider,
-                    IndexConfig config)
+                    String name, List<String> labels, List<String> properties, boolean ifNotExists, IndexConfig config)
                     implements Create {
                 @Override
                 public EntityType entityType() {
@@ -340,12 +296,7 @@ public sealed interface SchemaCommand {
 
             // SchemaCommand.CreateFulltextRelationshipIndex
             record RelationshipFulltext(
-                    String name,
-                    List<String> types,
-                    List<String> properties,
-                    boolean ifNotExists,
-                    Optional<IndexProviderDescriptor> provider,
-                    IndexConfig config)
+                    String name, List<String> types, List<String> properties, boolean ifNotExists, IndexConfig config)
                     implements Create {
                 @Override
                 public EntityType entityType() {
@@ -374,13 +325,7 @@ public sealed interface SchemaCommand {
             }
 
             // SchemaCommand.CreateVectorNodeIndex
-            record NodeVector(
-                    String name,
-                    String label,
-                    String property,
-                    boolean ifNotExists,
-                    Optional<IndexProviderDescriptor> provider,
-                    IndexConfig config)
+            record NodeVector(String name, String label, String property, boolean ifNotExists, IndexConfig config)
                     implements Create {
                 @Override
                 public EntityType entityType() {
@@ -409,12 +354,7 @@ public sealed interface SchemaCommand {
 
             // SchemaCommand.CreateVectorRelationshipIndex
             record RelationshipVector(
-                    String name,
-                    String type,
-                    String property,
-                    boolean ifNotExists,
-                    Optional<IndexProviderDescriptor> provider,
-                    IndexConfig config)
+                    String name, String type, String property, boolean ifNotExists, IndexConfig config)
                     implements Create {
                 @Override
                 public EntityType entityType() {
@@ -465,12 +405,7 @@ public sealed interface SchemaCommand {
 
             ConstraintPrototype toPrototype(TokenHolders tokenHolders);
 
-            record NodeUniqueness(
-                    String name,
-                    String label,
-                    List<String> properties,
-                    boolean ifNotExists,
-                    Optional<IndexProviderDescriptor> provider)
+            record NodeUniqueness(String name, String label, List<String> properties, boolean ifNotExists)
                     implements Create {
                 @Override
                 public EntityType entityType() {
@@ -491,7 +426,7 @@ public sealed interface SchemaCommand {
                 public ConstraintPrototype toPrototype(TokenHolders tokenHolders) {
                     final var schema = SchemaDescriptors.forLabel(
                             tokenHolders.labelForName(label), tokenHolders.propertiesForName(properties));
-                    final var backingIndex = backingIndex(schema, provider);
+                    final var backingIndex = backingIndex(schema);
                     final var constraintDescriptor = withName(
                             name,
                             ConstraintDescriptorFactory.uniqueForSchema(schema, backingIndex.getIndexType()),
@@ -527,13 +462,7 @@ public sealed interface SchemaCommand {
                 }
             }
 
-            record NodeKey(
-                    String name,
-                    String label,
-                    List<String> properties,
-                    boolean ifNotExists,
-                    Optional<IndexProviderDescriptor> provider)
-                    implements Create {
+            record NodeKey(String name, String label, List<String> properties, boolean ifNotExists) implements Create {
                 @Override
                 public EntityType entityType() {
                     return EntityType.NODE;
@@ -553,7 +482,7 @@ public sealed interface SchemaCommand {
                 public ConstraintPrototype toPrototype(TokenHolders tokenHolders) {
                     final var schema = SchemaDescriptors.forLabel(
                             tokenHolders.labelForName(label), tokenHolders.propertiesForName(properties));
-                    final var backingIndex = backingIndex(schema, provider);
+                    final var backingIndex = backingIndex(schema);
                     final var constraintDescriptor = withName(
                             name,
                             ConstraintDescriptorFactory.keyForSchema(schema, backingIndex.getIndexType()),
@@ -593,12 +522,7 @@ public sealed interface SchemaCommand {
                 }
             }
 
-            record RelationshipUniqueness(
-                    String name,
-                    String type,
-                    List<String> properties,
-                    boolean ifNotExists,
-                    Optional<IndexProviderDescriptor> provider)
+            record RelationshipUniqueness(String name, String type, List<String> properties, boolean ifNotExists)
                     implements Create {
                 @Override
                 public EntityType entityType() {
@@ -619,7 +543,7 @@ public sealed interface SchemaCommand {
                 public ConstraintPrototype toPrototype(TokenHolders tokenHolders) {
                     final var schema = SchemaDescriptors.forRelType(
                             tokenHolders.relationshipForName(type), tokenHolders.propertiesForName(properties));
-                    final var backingIndex = backingIndex(schema, provider);
+                    final var backingIndex = backingIndex(schema);
                     final var constraintDescriptor = withName(
                             name,
                             ConstraintDescriptorFactory.uniqueForSchema(schema, backingIndex.getIndexType()),
@@ -656,12 +580,7 @@ public sealed interface SchemaCommand {
                 }
             }
 
-            record RelationshipKey(
-                    String name,
-                    String type,
-                    List<String> properties,
-                    boolean ifNotExists,
-                    Optional<IndexProviderDescriptor> provider)
+            record RelationshipKey(String name, String type, List<String> properties, boolean ifNotExists)
                     implements Create {
                 @Override
                 public EntityType entityType() {
@@ -682,7 +601,7 @@ public sealed interface SchemaCommand {
                 public ConstraintPrototype toPrototype(TokenHolders tokenHolders) {
                     final var schema = SchemaDescriptors.forRelType(
                             tokenHolders.relationshipForName(type), tokenHolders.propertiesForName(properties));
-                    final var backingIndex = backingIndex(schema, provider);
+                    final var backingIndex = backingIndex(schema);
                     final var constraintDescriptor = withName(
                             name,
                             ConstraintDescriptorFactory.keyForSchema(schema, backingIndex.getIndexType()),

@@ -25,11 +25,7 @@ import static org.neo4j.internal.schema.AllIndexProviderDescriptors.DEFAULT_VECT
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.POINT_DESCRIPTOR;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.RANGE_DESCRIPTOR;
-import static org.neo4j.internal.schema.AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR;
-import static org.neo4j.internal.schema.AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.TOKEN_DESCRIPTOR;
-import static org.neo4j.internal.schema.AllIndexProviderDescriptors.VECTOR_V1_DESCRIPTOR;
-import static org.neo4j.internal.schema.AllIndexProviderDescriptors.VECTOR_V2_DESCRIPTOR;
 import static org.neo4j.token.api.TokenHolder.TYPE_LABEL;
 import static org.neo4j.token.api.TokenHolder.TYPE_PROPERTY_KEY;
 import static org.neo4j.token.api.TokenHolder.TYPE_RELATIONSHIP_TYPE;
@@ -48,7 +44,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.common.EntityType;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeExistence;
@@ -111,16 +106,7 @@ class SchemaCommandTest {
                     Values.doubleArray(new double[] {0.0, 0.0}),
                     "spatial.cartesian.max",
                     Values.doubleArray(new double[] {1.0, 1.0}))));
-
-    private static final List<IndexConfig> VECTOR_V1_CONFIGS = List.of(
-            IndexConfig.empty(),
-            IndexConfig.with(Map.of(
-                    "vector.dimensions",
-                    Values.intValue(1536),
-                    "vector.similarity_function",
-                    Values.stringValue("COSINE"))));
-
-    private static final List<IndexConfig> VECTOR_V2_CONFIGS = List.of(
+    private static final List<IndexConfig> VECTOR_CONFIGS = List.of(
             IndexConfig.empty(),
             IndexConfig.with(Map.of(
                     "vector.hnsw.ef_construction",
@@ -140,6 +126,12 @@ class SchemaCommandTest {
                     Values.intValue(16),
                     "vector.quantization.enabled",
                     Values.booleanValue(true),
+                    "vector.similarity_function",
+                    Values.stringValue("COSINE"))),
+            // Vector 1
+            IndexConfig.with(Map.of(
+                    "vector.dimensions",
+                    Values.intValue(1536),
                     "vector.similarity_function",
                     Values.stringValue("COSINE"))));
 
@@ -197,13 +189,12 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("lookupProviders")
-    void createLookupNode(
-            String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
-        assertThat(new NodeLookup(name, IF_NOT_EXISTS, providers).toPrototype(tokenHolders))
+    @MethodSource("names")
+    void createLookupNode(String name) {
+        assertThat(new NodeLookup(name, IF_NOT_EXISTS).toPrototype(tokenHolders))
                 .satisfies(p -> {
                     assertIndexName(p.getName(), name);
-                    assertIndexProviderDescriptor(p.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), TOKEN_DESCRIPTOR);
                     assertThat(p.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.LOOKUP);
@@ -212,13 +203,12 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("lookupProviders")
-    void createLookupRelationship(
-            String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
-        assertThat(new RelationshipLookup(name, IF_NOT_EXISTS, providers).toPrototype(tokenHolders))
+    @MethodSource("names")
+    void createLookupRelationship(String name) {
+        assertThat(new RelationshipLookup(name, IF_NOT_EXISTS).toPrototype(tokenHolders))
                 .satisfies(p -> {
                     assertIndexName(p.getName(), name);
-                    assertIndexProviderDescriptor(p.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), TOKEN_DESCRIPTOR);
                     assertThat(p.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.LOOKUP);
@@ -227,15 +217,14 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("rangeProviders")
-    void createRangeNode(
-            String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
+    @MethodSource("names")
+    void createRangeNode(String name) {
         final var label = random.among(LABELS);
         final var properties = listFrom(PROPERTIES, random.nextInt(1, 5));
-        assertThat(new NodeRange(name, label, properties, IF_NOT_EXISTS, providers).toPrototype(tokenHolders))
+        assertThat(new NodeRange(name, label, properties, IF_NOT_EXISTS).toPrototype(tokenHolders))
                 .satisfies(p -> {
                     assertIndexName(p.getName(), name);
-                    assertIndexProviderDescriptor(p.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), RANGE_DESCRIPTOR);
                     assertThat(p.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.RANGE);
@@ -244,15 +233,14 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("rangeProviders")
-    void createRangeRelationship(
-            String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
+    @MethodSource("names")
+    void createRangeRelationship(String name) {
         final var type = random.among(TYPES);
         final var properties = listFrom(PROPERTIES, random.nextInt(1, 5));
-        assertThat(new RelationshipRange(name, type, properties, IF_NOT_EXISTS, providers).toPrototype(tokenHolders))
+        assertThat(new RelationshipRange(name, type, properties, IF_NOT_EXISTS).toPrototype(tokenHolders))
                 .satisfies(p -> {
                     assertIndexName(p.getName(), name);
-                    assertIndexProviderDescriptor(p.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), RANGE_DESCRIPTOR);
                     assertThat(p.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.RANGE);
@@ -261,15 +249,14 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("textProviders")
-    void createTextNode(
-            String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
+    @MethodSource("names")
+    void createTextNode(String name) {
         final var label = random.among(LABELS);
         final var property = random.among(PROPERTIES);
-        assertThat(new NodeText(name, label, property, IF_NOT_EXISTS, providers).toPrototype(tokenHolders))
+        assertThat(new NodeText(name, label, property, IF_NOT_EXISTS).toPrototype(tokenHolders))
                 .satisfies(p -> {
                     assertIndexName(p.getName(), name);
-                    assertIndexProviderDescriptor(p.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), DEFAULT_TEXT_DESCRIPTOR);
                     assertThat(p.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.TEXT);
@@ -278,15 +265,14 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("textProviders")
-    void createTextRelationship(
-            String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
+    @MethodSource("names")
+    void createTextRelationship(String name) {
         final var type = random.among(TYPES);
         final var property = random.among(PROPERTIES);
-        assertThat(new RelationshipText(name, type, property, IF_NOT_EXISTS, providers).toPrototype(tokenHolders))
+        assertThat(new RelationshipText(name, type, property, IF_NOT_EXISTS).toPrototype(tokenHolders))
                 .satisfies(p -> {
                     assertIndexName(p.getName(), name);
-                    assertIndexProviderDescriptor(p.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), DEFAULT_TEXT_DESCRIPTOR);
                     assertThat(p.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.TEXT);
@@ -295,17 +281,16 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("pointProviders")
-    void createPointNode(
-            String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
+    @MethodSource("names")
+    void createPointNode(String name) {
         final var label = random.among(LABELS);
         final var property = random.among(PROPERTIES);
         final var config = random.among(POINT_CONFIGS);
 
-        assertThat(new NodePoint(name, label, property, IF_NOT_EXISTS, providers, config).toPrototype(tokenHolders))
+        assertThat(new NodePoint(name, label, property, IF_NOT_EXISTS, config).toPrototype(tokenHolders))
                 .satisfies(p -> {
                     assertIndexName(p.getName(), name);
-                    assertIndexProviderDescriptor(p.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), POINT_DESCRIPTOR);
                     assertThat(p.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.POINT);
@@ -314,18 +299,16 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("pointProviders")
-    void createPointRelationship(
-            String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
+    @MethodSource("names")
+    void createPointRelationship(String name) {
         final var type = random.among(TYPES);
         final var property = random.among(PROPERTIES);
         final var config = random.among(POINT_CONFIGS);
 
-        assertThat(new RelationshipPoint(name, type, property, IF_NOT_EXISTS, providers, config)
-                        .toPrototype(tokenHolders))
+        assertThat(new RelationshipPoint(name, type, property, IF_NOT_EXISTS, config).toPrototype(tokenHolders))
                 .satisfies(p -> {
                     assertIndexName(p.getName(), name);
-                    assertIndexProviderDescriptor(p.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), POINT_DESCRIPTOR);
                     assertThat(p.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.POINT);
@@ -334,18 +317,16 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("fulltextProviders")
-    void createFulltextNode(
-            String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
+    @MethodSource("names")
+    void createFulltextNode(String name) {
         final var labels = listFrom(LABELS, random.nextInt(1, 3));
         final var properties = listFrom(PROPERTIES, random.nextInt(1, 5));
         final var config = random.among(FULLTEXT_CONFIGS);
 
-        assertThat(new NodeFulltext(name, labels, properties, IF_NOT_EXISTS, providers, config)
-                        .toPrototype(tokenHolders))
+        assertThat(new NodeFulltext(name, labels, properties, IF_NOT_EXISTS, config).toPrototype(tokenHolders))
                 .satisfies(p -> {
                     assertIndexName(p.getName(), name);
-                    assertIndexProviderDescriptor(p.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), FULLTEXT_DESCRIPTOR);
                     assertThat(p.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.FULLTEXT);
@@ -354,18 +335,16 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("fulltextProviders")
-    void createFulltextRelationship(
-            String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
+    @MethodSource("names")
+    void createFulltextRelationship(String name) {
         final var types = listFrom(TYPES, random.nextInt(1, 3));
         final var properties = listFrom(PROPERTIES, random.nextInt(1, 5));
         final var config = random.among(FULLTEXT_CONFIGS);
 
-        assertThat(new RelationshipFulltext(name, types, properties, IF_NOT_EXISTS, providers, config)
-                        .toPrototype(tokenHolders))
+        assertThat(new RelationshipFulltext(name, types, properties, IF_NOT_EXISTS, config).toPrototype(tokenHolders))
                 .satisfies(p -> {
                     assertIndexName(p.getName(), name);
-                    assertIndexProviderDescriptor(p.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), FULLTEXT_DESCRIPTOR);
                     assertThat(p.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.FULLTEXT);
@@ -374,18 +353,16 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("vectorProviders")
-    void createVectorNode(
-            String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
+    @MethodSource("names")
+    void createVectorNode(String name) {
         final var label = random.among(LABELS);
         final var property = random.among(PROPERTIES);
-        final var config =
-                random.among(fallbackDescriptor == VECTOR_V1_DESCRIPTOR ? VECTOR_V1_CONFIGS : VECTOR_V2_CONFIGS);
+        final var config = random.among(VECTOR_CONFIGS);
 
-        assertThat(new NodeVector(name, label, property, IF_NOT_EXISTS, providers, config).toPrototype(tokenHolders))
+        assertThat(new NodeVector(name, label, property, IF_NOT_EXISTS, config).toPrototype(tokenHolders))
                 .satisfies(p -> {
                     assertIndexName(p.getName(), name);
-                    assertIndexProviderDescriptor(p.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), DEFAULT_VECTOR_DESCRIPTOR);
                     assertThat(p.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.VECTOR);
@@ -394,19 +371,16 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("vectorProviders")
-    void createVectorRelationship(
-            String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
+    @MethodSource("names")
+    void createVectorRelationship(String name) {
         final var type = random.among(TYPES);
         final var property = random.among(PROPERTIES);
-        final var config =
-                random.among(fallbackDescriptor == VECTOR_V1_DESCRIPTOR ? VECTOR_V1_CONFIGS : VECTOR_V2_CONFIGS);
+        final var config = random.among(VECTOR_CONFIGS);
 
-        assertThat(new RelationshipVector(name, type, property, IF_NOT_EXISTS, providers, config)
-                        .toPrototype(tokenHolders))
+        assertThat(new RelationshipVector(name, type, property, IF_NOT_EXISTS, config).toPrototype(tokenHolders))
                 .satisfies(p -> {
                     assertIndexName(p.getName(), name);
-                    assertIndexProviderDescriptor(p.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), DEFAULT_VECTOR_DESCRIPTOR);
                     assertThat(p.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.VECTOR);
@@ -415,13 +389,12 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("rangeProviders")
-    void nodeUniqueness(
-            String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
+    @MethodSource("names")
+    void nodeUniqueness(String name) {
         final var label = random.among(LABELS);
         final var properties = listFrom(PROPERTIES, random.nextInt(1, 5));
 
-        assertThat(new NodeUniqueness(name, label, properties, IF_NOT_EXISTS, providers).toPrototype(tokenHolders))
+        assertThat(new NodeUniqueness(name, label, properties, IF_NOT_EXISTS).toPrototype(tokenHolders))
                 .satisfies(prototype -> {
                     final var constraint = prototype.descriptor();
                     assertThat(constraint).isInstanceOf(UniquenessConstraintDescriptor.class);
@@ -434,7 +407,7 @@ class SchemaCommandTest {
                             .as("should return the backing index")
                             .isNotNull();
                     assertIndexName(backingIndex.getName(), constraint.getName());
-                    assertIndexProviderDescriptor(backingIndex.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(backingIndex.getIndexProvider(), RANGE_DESCRIPTOR);
                     assertThat(backingIndex.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.RANGE);
@@ -442,14 +415,12 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("rangeProviders")
-    void relationshipUniqueness(
-            String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
+    @MethodSource("names")
+    void relationshipUniqueness(String name) {
         final var type = random.among(TYPES);
         final var properties = listFrom(PROPERTIES, random.nextInt(1, 5));
 
-        assertThat(new RelationshipUniqueness(name, type, properties, IF_NOT_EXISTS, providers)
-                        .toPrototype(tokenHolders))
+        assertThat(new RelationshipUniqueness(name, type, properties, IF_NOT_EXISTS).toPrototype(tokenHolders))
                 .satisfies(prototype -> {
                     final var constraint = prototype.descriptor();
                     assertThat(constraint).isInstanceOf(UniquenessConstraintDescriptor.class);
@@ -462,7 +433,7 @@ class SchemaCommandTest {
                             .as("should return the backing index")
                             .isNotNull();
                     assertIndexName(backingIndex.getName(), constraint.getName());
-                    assertIndexProviderDescriptor(backingIndex.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(backingIndex.getIndexProvider(), RANGE_DESCRIPTOR);
                     assertThat(backingIndex.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.RANGE);
@@ -470,12 +441,12 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("rangeProviders")
-    void nodeKey(String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
+    @MethodSource("names")
+    void nodeKey(String name) {
         final var label = random.among(LABELS);
         final var properties = listFrom(PROPERTIES, random.nextInt(1, 5));
 
-        assertThat(new NodeKey(name, label, properties, IF_NOT_EXISTS, providers).toPrototype(tokenHolders))
+        assertThat(new NodeKey(name, label, properties, IF_NOT_EXISTS).toPrototype(tokenHolders))
                 .satisfies(prototype -> {
                     final var constraint = prototype.descriptor();
                     assertThat(constraint).isInstanceOf(KeyConstraintDescriptor.class);
@@ -488,7 +459,7 @@ class SchemaCommandTest {
                             .as("should return the backing index")
                             .isNotNull();
                     assertIndexName(backingIndex.getName(), constraint.getName());
-                    assertIndexProviderDescriptor(backingIndex.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(backingIndex.getIndexProvider(), RANGE_DESCRIPTOR);
                     assertThat(backingIndex.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.RANGE);
@@ -496,13 +467,12 @@ class SchemaCommandTest {
     }
 
     @ParameterizedTest
-    @MethodSource("rangeProviders")
-    void relationshipKey(
-            String name, Optional<IndexProviderDescriptor> providers, IndexProviderDescriptor fallbackDescriptor) {
+    @MethodSource("names")
+    void relationshipKey(String name) {
         final var type = random.among(TYPES);
         final var properties = listFrom(PROPERTIES, random.nextInt(1, 5));
 
-        assertThat(new RelationshipKey(name, type, properties, IF_NOT_EXISTS, providers).toPrototype(tokenHolders))
+        assertThat(new RelationshipKey(name, type, properties, IF_NOT_EXISTS).toPrototype(tokenHolders))
                 .satisfies(prototype -> {
                     final var constraint = prototype.descriptor();
                     assertThat(constraint).isInstanceOf(KeyConstraintDescriptor.class);
@@ -515,7 +485,7 @@ class SchemaCommandTest {
                             .as("should return the backing index")
                             .isNotNull();
                     assertIndexName(backingIndex.getName(), constraint.getName());
-                    assertIndexProviderDescriptor(backingIndex.getIndexProvider(), providers, fallbackDescriptor);
+                    assertIndexProviderDescriptor(backingIndex.getIndexProvider(), RANGE_DESCRIPTOR);
                     assertThat(backingIndex.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.RANGE);
@@ -616,98 +586,84 @@ class SchemaCommandTest {
         final var relationships = Sets.mutable.<String>empty();
         final var properties = Sets.mutable.<String>empty();
         final var commands = List.<SchemaCommand>of(
-                new NodeLookup("command" + id++, IF_NOT_EXISTS, Optional.empty()),
-                new RelationshipLookup("command" + id++, IF_NOT_EXISTS, Optional.empty()),
+                new NodeLookup("command" + id++, IF_NOT_EXISTS),
+                new RelationshipLookup("command" + id++, IF_NOT_EXISTS),
                 new NodeRange(
                         "command" + id++,
                         track(LABELS, labels, random),
                         trackAll(PROPERTIES, properties, random),
-                        IF_NOT_EXISTS,
-                        Optional.empty()),
+                        IF_NOT_EXISTS),
                 new RelationshipRange(
                         "command" + id++,
                         track(TYPES, relationships, random),
                         trackAll(PROPERTIES, properties, random),
-                        IF_NOT_EXISTS,
-                        Optional.empty()),
+                        IF_NOT_EXISTS),
                 new NodePoint(
                         "command" + id++,
                         track(LABELS, labels, random),
                         track(PROPERTIES, properties, random),
                         IF_NOT_EXISTS,
-                        Optional.empty(),
                         random.among(POINT_CONFIGS)),
                 new RelationshipPoint(
                         "command" + id++,
                         track(TYPES, relationships, random),
                         track(PROPERTIES, properties, random),
                         IF_NOT_EXISTS,
-                        Optional.empty(),
                         random.among(POINT_CONFIGS)),
                 new NodeText(
                         "command" + id++,
                         track(LABELS, labels, random),
                         track(PROPERTIES, properties, random),
-                        IF_NOT_EXISTS,
-                        Optional.empty()),
+                        IF_NOT_EXISTS),
                 new RelationshipText(
                         "command" + id++,
                         track(TYPES, relationships, random),
                         track(PROPERTIES, properties, random),
-                        IF_NOT_EXISTS,
-                        Optional.empty()),
+                        IF_NOT_EXISTS),
                 new NodeFulltext(
                         "command" + id++,
                         trackAll(LABELS, labels, random),
                         trackAll(PROPERTIES, properties, random),
                         IF_NOT_EXISTS,
-                        Optional.empty(),
                         random.among(FULLTEXT_CONFIGS)),
                 new RelationshipFulltext(
                         "command" + id++,
                         trackAll(TYPES, relationships, random),
                         trackAll(PROPERTIES, properties, random),
                         IF_NOT_EXISTS,
-                        Optional.empty(),
                         random.among(FULLTEXT_CONFIGS)),
                 new NodeVector(
                         "command" + id++,
                         track(LABELS, labels, random),
                         track(PROPERTIES, properties, random),
                         IF_NOT_EXISTS,
-                        Optional.of(VECTOR_V2_DESCRIPTOR),
-                        random.among(VECTOR_V2_CONFIGS)),
+                        random.among(VECTOR_CONFIGS)),
                 new RelationshipVector(
                         "command" + id++,
                         track(TYPES, relationships, random),
                         track(PROPERTIES, properties, random),
                         IF_NOT_EXISTS,
-                        Optional.of(VECTOR_V2_DESCRIPTOR),
-                        random.among(VECTOR_V2_CONFIGS)),
+                        random.among(VECTOR_CONFIGS)),
                 new NodeKey(
                         "command" + id++,
                         track(LABELS, labels, random),
                         trackAll(PROPERTIES, properties, random),
-                        IF_NOT_EXISTS,
-                        Optional.empty()),
+                        IF_NOT_EXISTS),
                 new RelationshipKey(
                         "command" + id++,
                         track(TYPES, relationships, random),
                         trackAll(PROPERTIES, properties, random),
-                        IF_NOT_EXISTS,
-                        Optional.empty()),
+                        IF_NOT_EXISTS),
                 new NodeUniqueness(
                         "command" + id++,
                         track(LABELS, labels, random),
                         trackAll(PROPERTIES, properties, random),
-                        IF_NOT_EXISTS,
-                        Optional.empty()),
+                        IF_NOT_EXISTS),
                 new RelationshipUniqueness(
                         "command" + id++,
                         track(TYPES, relationships, random),
                         trackAll(PROPERTIES, properties, random),
-                        IF_NOT_EXISTS,
-                        Optional.empty()),
+                        IF_NOT_EXISTS),
                 new NodeExistence(
                         "command" + id++,
                         track(LABELS, labels, random),
@@ -764,14 +720,8 @@ class SchemaCommandTest {
     }
 
     private static void assertIndexProviderDescriptor(
-            IndexProviderDescriptor actual,
-            Optional<IndexProviderDescriptor> provided,
-            IndexProviderDescriptor fallbackDescriptor) {
-        if (provided.isPresent()) {
-            assertThat(actual).as("should have the correct index provider").isEqualTo(provided.get());
-        } else {
-            assertThat(actual).as("should have the fallback index provider").isEqualTo(fallbackDescriptor);
-        }
+            IndexProviderDescriptor actual, IndexProviderDescriptor expected) {
+        assertThat(actual).as("should have the expected index provider").isEqualTo(expected);
     }
 
     private void assertSchema(
@@ -826,46 +776,6 @@ class SchemaCommandTest {
 
     private static Stream<String> names() {
         return Stream.of(null, NAME);
-    }
-
-    private static Stream<Arguments> rangeProviders() {
-        return providersWithNameArguments(RANGE_DESCRIPTOR);
-    }
-
-    private static Stream<Arguments> pointProviders() {
-        return providersWithNameArguments(POINT_DESCRIPTOR);
-    }
-
-    private static Stream<Arguments> fulltextProviders() {
-        return providersWithNameArguments(FULLTEXT_DESCRIPTOR);
-    }
-
-    private static Stream<Arguments> lookupProviders() {
-        return providersWithNameArguments(TOKEN_DESCRIPTOR);
-    }
-
-    private static Stream<Arguments> textProviders() {
-        return providersWithNameArguments(DEFAULT_TEXT_DESCRIPTOR, TEXT_V1_DESCRIPTOR, TEXT_V2_DESCRIPTOR);
-    }
-
-    private static Stream<Arguments> vectorProviders() {
-        return providersWithNameArguments(DEFAULT_VECTOR_DESCRIPTOR, VECTOR_V1_DESCRIPTOR, VECTOR_V2_DESCRIPTOR);
-    }
-
-    private static Stream<Arguments> providersWithNameArguments(IndexProviderDescriptor providerDescriptor) {
-        return providersWithNameArguments(providerDescriptor, providerDescriptor);
-    }
-
-    private static Stream<Arguments> providersWithNameArguments(
-            IndexProviderDescriptor defaultDescriptor, IndexProviderDescriptor... descriptors) {
-        final var args = new IndexProviderDescriptor[descriptors.length + 1];
-        // skip the first one to use as the 'missing' provider
-        System.arraycopy(descriptors, 0, args, 1, descriptors.length);
-
-        return Stream.of(args)
-                .map(Optional::ofNullable)
-                .flatMap(f ->
-                        Stream.of(Arguments.of(null, f, defaultDescriptor), Arguments.of(NAME, f, defaultDescriptor)));
     }
 
     private static String[] tokens(int max, String prefix) {

@@ -21,7 +21,6 @@ package org.neo4j.internal.schema;
 
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.RANGE_DESCRIPTOR;
 
-import java.util.Optional;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.internal.schema.SchemaCommand.IndexCommand;
 
@@ -29,13 +28,11 @@ public interface SchemaCommandUtils {
 
     static IndexPrototype forSchema(
             IndexCommand.Create command, SchemaDescriptor schema, IndexProviderDescriptor descriptorProvider) {
-        return IndexPrototype.forSchema(schema, command.provider().orElse(descriptorProvider))
-                .withIndexType(command.indexType());
+        return IndexPrototype.forSchema(schema, descriptorProvider).withIndexType(command.indexType());
     }
 
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    static IndexPrototype backingIndex(SchemaDescriptor schema, Optional<IndexProviderDescriptor> providerDescriptor) {
-        return IndexPrototype.uniqueForSchema(schema, providerDescriptor.orElse(RANGE_DESCRIPTOR));
+    static IndexPrototype backingIndex(SchemaDescriptor schema) {
+        return IndexPrototype.uniqueForSchema(schema, RANGE_DESCRIPTOR);
     }
 
     static IndexPrototype withName(String name, IndexPrototype prototype, TokenNameLookup tokenNameLookup) {
