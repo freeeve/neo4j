@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
+import org.neo4j.gqlstatus.GqlParams
 
 /**
  * This class holds methods for performing semantic analysis.
@@ -105,7 +106,12 @@ trait SemanticAnalysisTooling {
           {
             val r2 = o match {
               case v: LogicalVariable =>
-                expectType(r1.state, possibleTypes, o, TypeMismatchContext.TypeMismatchContextVal(v.name))
+                expectType(
+                  r1.state,
+                  possibleTypes,
+                  o,
+                  TypeMismatchContext.TypeMismatchContextVal(GqlParams.StringParam.ident.process(v.name))
+                )
               case _ => expectType(r1.state, possibleTypes, o, TypeMismatchContext.EMPTY)
             }
             SemanticCheckResult(r2.state, r1.errors ++ r2.errors)
@@ -125,7 +131,12 @@ trait SemanticAnalysisTooling {
   ): SemanticCheck = (s: SemanticState) => {
     expression match {
       case v: LogicalVariable =>
-        expectType(s, possibleTypes, expression, TypeMismatchContext.TypeMismatchContextVal(v.name))
+        expectType(
+          s,
+          possibleTypes,
+          expression,
+          TypeMismatchContext.TypeMismatchContextVal(GqlParams.StringParam.ident.process(v.name))
+        )
       case _ => expectType(s, possibleTypes, expression, TypeMismatchContext.EMPTY)
     }
   }

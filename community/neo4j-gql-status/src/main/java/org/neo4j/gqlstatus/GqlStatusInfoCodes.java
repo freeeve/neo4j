@@ -1307,9 +1307,9 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N27(
             new GqlStatus("22N27"),
             """
-                    Invalid input { %s } for { %s }. Expected to be one of { %s }.""",
+                    Invalid input { %s } for { %s }. Expected to be { %s }.""",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.input, GqlParams.StringParam.variable, GqlParams.ListParam.valueTypeList
+                GqlParams.StringParam.input, GqlParams.StringParam.context, GqlParams.ListParam.valueTypeList
             },
             Map.of(GqlParams.ListParam.valueTypeList, GqlParams.JoinStyle.ORED),
             Condition.DATA_EXCEPTION,

@@ -117,19 +117,19 @@ public class GqlHelper {
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql22N27(String input, String variable, List<String> validTypes) {
+    public static ErrorGqlStatusObject getGql22N27(String input, String context, List<String> validTypes) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N27)
                 .withParam(GqlParams.StringParam.input, input)
-                .withParam(GqlParams.StringParam.variable, variable)
+                .withParam(GqlParams.StringParam.context, context)
                 .withParam(GqlParams.ListParam.valueTypeList, validTypes)
                 .build();
     }
 
     public static ErrorGqlStatusObject getGql22N27(
-            String input, String variable, List<String> validTypes, int line, int column, int offset) {
+            String input, String context, List<String> validTypes, int line, int column, int offset) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N27)
                 .withParam(GqlParams.StringParam.input, input)
-                .withParam(GqlParams.StringParam.variable, variable)
+                .withParam(GqlParams.StringParam.context, context)
                 .withParam(GqlParams.ListParam.valueTypeList, validTypes)
                 .atPosition(line, column, offset)
                 .build();

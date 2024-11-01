@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidEntityType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.gqlstatus.GqlParams
 
 class SetClauseSemanticAnalysisTest
     extends CypherFunSuite
@@ -65,7 +66,13 @@ class SetClauseSemanticAnalysisTest
 
   test("WITH {key: 1} AS var SET var['key'] = 3") {
     val msg = "Type mismatch: expected Node or Relationship but was Map"
-    run().hasErrors(invalidEntityType("Map", "var", List("Node", "Relationship"), msg, p(25, 1, 26)))
+    run().hasErrors(invalidEntityType(
+      "Map",
+      GqlParams.StringParam.ident.process("var"),
+      List("Node", "Relationship"),
+      msg,
+      p(25, 1, 26)
+    ))
   }
 
   test("WITH \"prop\" as prop MERGE (n) ON MATCH SET n[prop] = 3 ON CREATE SET n[prop] = 4") {
@@ -97,7 +104,7 @@ class SetClauseSemanticAnalysisTest
       case CypherVersion.Cypher25 =>
         Seq(invalidEntityType(
           "Relationship",
-          "r",
+          GqlParams.StringParam.ident.process("r"),
           Seq("Map"),
           "Type mismatch: expected Map but was Relationship",
           p(27, 1, 28)
@@ -110,7 +117,13 @@ class SetClauseSemanticAnalysisTest
   test("MATCH (n)-[r]->() SET r = n") {
     run().hasSemanticErrorsIn {
       case CypherVersion.Cypher25 =>
-        Seq(invalidEntityType("Node", "n", Seq("Map"), "Type mismatch: expected Map but was Node", p(26, 1, 27)))
+        Seq(invalidEntityType(
+          "Node",
+          GqlParams.StringParam.ident.process("n"),
+          Seq("Map"),
+          "Type mismatch: expected Map but was Node",
+          p(26, 1, 27)
+        ))
       case CypherVersion.Cypher5 =>
         Seq.empty
     }
@@ -121,7 +134,7 @@ class SetClauseSemanticAnalysisTest
       case CypherVersion.Cypher25 =>
         Seq(invalidEntityType(
           "Relationship",
-          "r",
+          GqlParams.StringParam.ident.process("r"),
           Seq("Map"),
           "Type mismatch: expected Map but was Relationship",
           p(28, 1, 29)
@@ -134,7 +147,13 @@ class SetClauseSemanticAnalysisTest
   test("MATCH (n)-[r]->() SET r += n") {
     run().hasSemanticErrorsIn {
       case CypherVersion.Cypher25 =>
-        Seq(invalidEntityType("Node", "n", Seq("Map"), "Type mismatch: expected Map but was Node", p(27, 1, 28)))
+        Seq(invalidEntityType(
+          "Node",
+          GqlParams.StringParam.ident.process("n"),
+          Seq("Map"),
+          "Type mismatch: expected Map but was Node",
+          p(27, 1, 28)
+        ))
       case CypherVersion.Cypher5 =>
         Seq.empty
     }

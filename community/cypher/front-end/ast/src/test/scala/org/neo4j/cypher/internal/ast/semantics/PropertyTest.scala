@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTTime
 import org.neo4j.cypher.internal.util.symbols.StorableType
+import org.neo4j.gqlstatus.GqlParams
 
 class PropertyTest extends SemanticFunSuite {
 
@@ -86,7 +87,7 @@ class PropertyTest extends SemanticFunSuite {
 
     result.errors should equal(Seq(SemanticError.invalidEntityType(
       "Integer",
-      "map",
+      GqlParams.StringParam.ident.process("map"),
       List(
         "Map",
         "Node",
