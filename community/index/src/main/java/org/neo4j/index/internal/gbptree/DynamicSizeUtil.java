@@ -398,7 +398,9 @@ public class DynamicSizeUtil {
             int rightBoundary,
             IntToIntFunction posToOffsetFunction) {
         var remappedOffsets = compactRight(cursor, count, offsets, sizes, rightBoundary);
-        remapOffsets(cursor, count, remappedOffsets, posToOffsetFunction);
+        if (!remappedOffsets.isEmpty()) {
+            remapOffsets(cursor, count, remappedOffsets, posToOffsetFunction);
+        }
     }
 
     private static void remapOffsets(
@@ -407,11 +409,11 @@ public class DynamicSizeUtil {
             int keyPosOffset = posToOffsetFunction.valueOf(pos);
             cursor.setOffset(keyPosOffset);
             int keyOffset = getUnsignedShort(cursor);
-            cursor.setOffset(keyPosOffset);
-            assert remappedOffsets.containsKey(keyOffset)
-                    : "missing mapping for offset " + keyOffset + " at pos " + pos + " key count " + keyCount
-                            + " all mappings " + remappedOffsets;
-            putUnsignedShort(cursor, remappedOffsets.get(keyOffset));
+            int remappedKeyOffset = remappedOffsets.getIfAbsent(keyOffset, keyOffset);
+            if (remappedKeyOffset != keyOffset) {
+                cursor.setOffset(keyPosOffset);
+                putUnsignedShort(cursor, remappedKeyOffset);
+            }
         }
     }
 
@@ -426,8 +428,8 @@ public class DynamicSizeUtil {
             targetOffset -= entrySize;
             if (sourceOffset != targetOffset) {
                 cursor.copyTo(sourceOffset, cursor, targetOffset, entrySize);
+                remappedOffsets.put(sourceOffset, targetOffset);
             }
-            remappedOffsets.put(sourceOffset, targetOffset);
         }
 
         // Update allocOffset¸
