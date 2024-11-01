@@ -21,7 +21,10 @@ package org.neo4j.queryapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.queryapi.QueryApiTestUtil.setupLogging;
-import static org.neo4j.server.queryapi.response.TypedJsonDriverResultWriter.TYPED_JSON_MIME_TYPE_VALUE;
+import static org.neo4j.server.queryapi.response.TypedJsonDriverAutoCommitResultWriter.TYPED_JSON_MIME_TYPE_VALUE;
+import static org.neo4j.server.queryapi.response.format.Fieldnames.ERRORS_KEY;
+import static org.neo4j.server.queryapi.response.format.Fieldnames.ERROR_CODE;
+import static org.neo4j.server.queryapi.response.format.Fieldnames.ERROR_MESSAGE;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -41,6 +44,7 @@ import org.neo4j.configuration.connectors.ConnectorType;
 import org.neo4j.configuration.connectors.HttpConnector;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 class QueryResourceErrorIT {
@@ -82,7 +86,7 @@ class QueryResourceErrorIT {
         assertThat(response.headers().allValues(HttpHeaders.CONTENT_TYPE)).contains(MediaType.APPLICATION_JSON);
         assertThat(response.body())
                 .isEqualTo("{\"errors\":[{\"code\":\"Neo.ClientError.Request.Invalid\","
-                        + "\"message\":\"Bad Request\"}]}");
+                        + "\"message\":\"statement cannot be null or empty\"}]}");
     }
 
     @Test
@@ -286,5 +290,21 @@ class QueryResourceErrorIT {
         assertThat(parsedBody.get("errors").get(0).get("code").asText())
                 .isEqualTo("Neo.ClientError.Statement.ArithmeticError");
         assertThat(parsedBody.get("errors").get(0).get("message").asText()).isEqualTo("/ by zero");
+    }
+
+    @Test
+    void shouldRejectBlankStatement() throws Exception {
+        var httpRequest = QueryApiTestUtil.baseRequestBuilder(queryEndpoint, "neo4j")
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+        var response = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+
+        assertThat(response.statusCode()).isEqualTo(400);
+        var parsedJson = MAPPER.readTree(response.body());
+
+        assertThat(parsedJson.get(ERRORS_KEY).get(0).get(ERROR_CODE).asText())
+                .isEqualTo(Status.Request.Invalid.code().serialize());
+        assertThat(parsedJson.get(ERRORS_KEY).get(0).get(ERROR_MESSAGE).asText())
+                .isEqualTo("statement cannot be null or empty");
     }
 }

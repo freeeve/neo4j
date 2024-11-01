@@ -28,8 +28,12 @@ import org.neo4j.server.queryapi.metrics.QueryAPIMetricsMonitor;
 import org.neo4j.server.queryapi.request.JsonMessageBodyReader;
 import org.neo4j.server.queryapi.request.TypedJsonMessageBodyReader;
 import org.neo4j.server.queryapi.response.ErrorResponseWriter;
-import org.neo4j.server.queryapi.response.PlainJsonDriverResultWriter;
-import org.neo4j.server.queryapi.response.TypedJsonDriverResultWriter;
+import org.neo4j.server.queryapi.response.PlainJsonDriverAutoCommitResultWriter;
+import org.neo4j.server.queryapi.response.PlainJsonTxManagingResultWriter;
+import org.neo4j.server.queryapi.response.TypedJsonBookmarkWriter;
+import org.neo4j.server.queryapi.response.TypedJsonDriverAutoCommitResultWriter;
+import org.neo4j.server.queryapi.response.TypedJsonTxInfoWriter;
+import org.neo4j.server.queryapi.response.TypedJsonTxManagingResultWriter;
 import org.neo4j.server.web.WebServer;
 
 /**
@@ -64,8 +68,12 @@ public class QueryModule implements ServerModule {
     private static List<Class<?>> jaxRsClasses() {
         return List.of(
                 QueryResource.class,
-                PlainJsonDriverResultWriter.class,
-                TypedJsonDriverResultWriter.class,
+                PlainJsonDriverAutoCommitResultWriter.class,
+                TypedJsonDriverAutoCommitResultWriter.class,
+                PlainJsonTxManagingResultWriter.class,
+                TypedJsonTxManagingResultWriter.class,
+                TypedJsonTxInfoWriter.class,
+                TypedJsonBookmarkWriter.class,
                 JsonMessageBodyReader.class,
                 TypedJsonMessageBodyReader.class,
                 ErrorResponseWriter.class);

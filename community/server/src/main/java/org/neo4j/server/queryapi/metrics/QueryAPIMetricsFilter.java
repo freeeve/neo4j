@@ -20,6 +20,7 @@
 package org.neo4j.server.queryapi.metrics;
 
 import java.io.IOException;
+import java.util.regex.Pattern;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -28,14 +29,19 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.eclipse.jetty.http.HttpVersion;
-import org.neo4j.server.queryapi.QueryResource;
 
 public class QueryAPIMetricsFilter implements Filter {
 
     private final QueryAPIMetricsMonitor monitor;
+    private final Pattern rootPattern;
+    private final Pattern continuePattern;
+    private final Pattern commitPattern;
 
     public QueryAPIMetricsFilter(QueryAPIMetricsMonitor monitor) {
         this.monitor = monitor;
+        this.rootPattern = Pattern.compile(".*/query/v2.*");
+        this.continuePattern = Pattern.compile(".*/query/v2/tx/.{4}");
+        this.commitPattern = Pattern.compile(".*/query/v2/tx/.{4}/commit");
     }
 
     @Override
@@ -47,9 +53,10 @@ public class QueryAPIMetricsFilter implements Filter {
         var httpServletRequest = (HttpServletRequest) request;
         var httpServletResponse = (HttpServletResponse) response;
 
-        if (httpServletRequest.getRequestURI().endsWith(QueryResource.API_PATH_FRAGMENT)) {
+        if (httpServletRequest.getRequestURI().matches(rootPattern.pattern())) {
             monitor.totalRequests();
             monitor.requestTimeTaken(totalExecutionTime);
+            meterEndpoint(httpServletRequest.getRequestURI(), httpServletRequest.getMethod());
             meterRequest(httpServletRequest);
             meterResponse(httpServletResponse);
         }
@@ -60,6 +67,22 @@ public class QueryAPIMetricsFilter implements Filter {
 
         monitor.requestContentType(contentType);
         monitor.httpVersion(HttpVersion.fromString(httpServletRequest.getProtocol()));
+    }
+
+    private void meterEndpoint(String uri, String httpVerb) {
+        if (uri.endsWith("/query/v2")) {
+            monitor.autoCommitRequest();
+        } else if (uri.endsWith("/query/v2/tx")) {
+            monitor.beginRequest();
+        } else if (uri.matches(continuePattern.pattern())) {
+            if (httpVerb.equals("POST")) {
+                monitor.continueRequest();
+            } else {
+                monitor.rollbackRequest();
+            }
+        } else if (uri.matches(commitPattern.pattern())) {
+            monitor.commitRequest();
+        }
     }
 
     private void meterResponse(HttpServletResponse response) {

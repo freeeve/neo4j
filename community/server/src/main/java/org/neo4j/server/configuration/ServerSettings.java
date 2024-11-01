@@ -176,6 +176,17 @@ public class ServerSettings implements SettingsDeclaration {
                     "server.http.transaction_idle_timeout", DURATION, Duration.ofSeconds(30))
             .build();
 
+    @Description("Timeout for idle transactions in the Query API. "
+            + "Note: this is different from 'db.transaction.timeout' which will timeout the underlying transaction.")
+    public static final Setting<Duration> queryapi_transaction_timeout = newBuilder(
+                    "server.queryapi.transaction_idle_timeout", DURATION, Duration.ofSeconds(60))
+            .build();
+
+    @Internal
+    @Description("The length of the transaction identifier to use in the Query API")
+    public static final Setting<Integer> transaction_id_length =
+            newBuilder("internal.server.queryapi.transactionid_length", INT, 4).build();
+
     @Internal
     @Description("Publicly discoverable bolt:// URI to use for Neo4j Drivers wanting to access the data in this "
             + "particular database instance. Normally this is the same as the advertised address configured for the "

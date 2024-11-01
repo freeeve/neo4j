@@ -48,7 +48,6 @@ import org.neo4j.configuration.connectors.HttpsConnector;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.dbms.DatabaseStateService;
 import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.driver.Driver;
 import org.neo4j.kernel.api.security.AuthManager;
 import org.neo4j.kernel.availability.CompositeDatabaseAvailabilityGuard;
 import org.neo4j.kernel.database.DefaultDatabaseResolver;
@@ -72,6 +71,7 @@ import org.neo4j.server.http.HttpTransactionMemoryPool;
 import org.neo4j.server.http.cypher.HttpTransactionManager;
 import org.neo4j.server.http.cypher.TransactionRegistry;
 import org.neo4j.server.modules.ServerModule;
+import org.neo4j.server.queryapi.QueryController;
 import org.neo4j.server.queryapi.driver.LocalChannelDriverFactory;
 import org.neo4j.server.queryapi.metrics.QueryAPIMetricsMonitor;
 import org.neo4j.server.rest.repr.RepresentationBasedMessageBodyWriter;
@@ -119,7 +119,8 @@ public abstract class AbstractNeoWebServer extends LifecycleAdapter implements N
     private final Supplier<SslPolicyLoader> sslPolicyFactorySupplier;
     private final HttpTransactionManager httpTransactionManager;
 
-    private volatile Driver driver;
+    private volatile QueryController queryController;
+    private final org.neo4j.server.queryapi.tx.TransactionManager queryApiTransactionManager;
     protected final QueryAPIMetricsMonitor metricsMonitor;
 
     private final CompositeDatabaseAvailabilityGuard globalAvailabilityGuard;
@@ -180,29 +181,39 @@ public abstract class AbstractNeoWebServer extends LifecycleAdapter implements N
         connectorPortRegister = globalDependencies.resolveDependency(ConnectorPortRegister.class);
         httpTransactionManager = createHttpTransactionManager();
         globalAvailabilityGuard = globalDependencies.resolveDependency(CompositeDatabaseAvailabilityGuard.class);
+        this.queryApiTransactionManager = new org.neo4j.server.queryapi.tx.QueryAPITransactionManager(
+                config.get(ServerSettings.queryapi_transaction_timeout),
+                globalDependencies.resolveDependency(JobScheduler.class),
+                metricsMonitor);
 
         life.add(new ServerComponentsLifecycleAdapter());
     }
 
-    private Driver getOrCreateDriver() {
+    private QueryController getOrCreateQueryController() {
 
-        var availableDriver = this.driver;
-        if (availableDriver == null) {
+        var availableController = this.queryController;
+        var internalLogProvider =
+                globalDependencies.resolveDependency(LogService.class).getInternalLogProvider();
+        if (availableController == null) {
             synchronized (this) {
-                availableDriver = this.driver;
-                if (availableDriver == null) {
-                    var internalLogProvider = globalDependencies
-                            .resolveDependency(LogService.class)
-                            .getInternalLogProvider();
+                availableController = this.queryController;
+                if (availableController == null) {
                     var driverFactory = new LocalChannelDriverFactory(
                             new LocalAddress(config.get(BoltConnectorInternalSettings.local_channel_address)),
                             internalLogProvider);
-                    this.driver = driverFactory.createLocalDriver();
-                    availableDriver = this.driver;
+                    var queryApiTxTimeout = config.get(ServerSettings.queryapi_transaction_timeout);
+                    var driver = driverFactory.createLocalDriver();
+                    this.queryController = new QueryController(
+                            driver,
+                            internalLogProvider,
+                            queryApiTxTimeout,
+                            queryApiTransactionManager,
+                            config.get(ServerSettings.transaction_id_length));
+                    availableController = this.queryController;
                 }
             }
         }
-        return availableDriver;
+        return availableController;
     }
 
     protected Dependencies getGlobalDependencies() {
@@ -398,9 +409,9 @@ public abstract class AbstractNeoWebServer extends LifecycleAdapter implements N
 
     @Override
     public void shutdown() throws Exception {
-        if (driver != null) {
-            driver.close();
-            driver = null;
+        if (queryController != null) {
+            queryController.closeDriver();
+            queryController = null;
         }
     }
 
@@ -430,6 +441,7 @@ public abstract class AbstractNeoWebServer extends LifecycleAdapter implements N
 
         var databaseStateService = getGlobalDependencies().resolveDependency(DatabaseStateService.class);
         var databaseResolver = getGlobalDependencies().resolveDependency(DefaultDatabaseResolver.class);
+        getGlobalDependencies().satisfyDependency(queryApiTransactionManager);
         binder.addSingletonBinding(databaseManagementService, DatabaseManagementService.class);
         binder.addSingletonBinding(databaseStateService, DatabaseStateService.class);
         binder.addSingletonBinding(this, NeoWebServer.class);
@@ -445,7 +457,8 @@ public abstract class AbstractNeoWebServer extends LifecycleAdapter implements N
         var webserverLog = userLogProvider.getLog(NeoWebServer.class);
         binder.addSingletonBinding(webserverLog, InternalLog.class);
         binder.addSingletonBinding(webserverLog, Log.class);
-        binder.addLazyBinding(this::getOrCreateDriver, Driver.class);
+        binder.addLazyBinding(this::getOrCreateQueryController, QueryController.class);
+        binder.addSingletonBinding(queryApiTransactionManager, org.neo4j.server.queryapi.tx.TransactionManager.class);
         binder.addSingletonBinding(metricsMonitor, QueryAPIMetricsMonitor.class);
 
         return binder;

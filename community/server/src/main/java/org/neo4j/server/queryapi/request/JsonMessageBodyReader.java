@@ -60,6 +60,10 @@ public class JsonMessageBodyReader implements MessageBodyReader<QueryRequest> {
             InputStream entityStream)
             throws IOException, WebApplicationException {
         try {
+            // to handle case with completely blank body
+            if (entityStream.available() == 0) {
+                return new QueryRequest();
+            }
             return jsonMapper.readValue(entityStream, QueryRequest.class);
         } catch (JacksonException e) {
             throw new BadRequestException(e);

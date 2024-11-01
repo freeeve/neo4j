@@ -35,23 +35,23 @@ import org.neo4j.server.queryapi.response.format.QueryAPICodec;
 import org.neo4j.server.queryapi.response.format.View;
 
 @Provider
-@Produces(MediaType.APPLICATION_JSON + "," + TypedJsonDriverAutoCommitResultWriter.TYPED_JSON_MIME_TYPE_VALUE)
-public class ErrorResponseWriter implements MessageBodyWriter<HttpErrorResponse> {
+@Produces(TypedJsonDriverAutoCommitResultWriter.TYPED_JSON_MIME_TYPE_VALUE)
+public class TypedJsonBookmarkWriter implements MessageBodyWriter<QueryResponseBookmarks> {
 
     private final JsonFactory jsonFactory;
 
-    public ErrorResponseWriter() {
-        this.jsonFactory = DefaultJsonFactory.INSTANCE.get().copy().setCodec(new QueryAPICodec(View.PLAIN_JSON));
+    public TypedJsonBookmarkWriter() {
+        jsonFactory = DefaultJsonFactory.INSTANCE.get().copy().setCodec(new QueryAPICodec(View.TYPED_JSON));
     }
 
     @Override
     public boolean isWriteable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
-        return HttpErrorResponse.class.isAssignableFrom(type);
+        return QueryResponseBookmarks.class.isAssignableFrom(type);
     }
 
     @Override
     public void writeTo(
-            HttpErrorResponse httpErrorResponse,
+            QueryResponseBookmarks queryResponseTxInfo,
             Class<?> type,
             Type genericType,
             Annotation[] annotations,
@@ -59,6 +59,6 @@ public class ErrorResponseWriter implements MessageBodyWriter<HttpErrorResponse>
             MultivaluedMap<String, Object> httpHeaders,
             OutputStream entityStream)
             throws IOException, WebApplicationException {
-        jsonFactory.createGenerator(entityStream).writeObject(httpErrorResponse);
+        jsonFactory.createGenerator(entityStream).writeObject(queryResponseTxInfo);
     }
 }

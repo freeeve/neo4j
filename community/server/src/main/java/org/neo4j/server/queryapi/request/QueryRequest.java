@@ -38,4 +38,8 @@ public record QueryRequest(
     public QueryRequest(String statement) {
         this(statement, Map.of(), false, AccessMode.WRITE, 0, List.of(), null);
     }
+
+    public QueryRequest() {
+        this(null, Map.of(), false, AccessMode.WRITE, 0, List.of(), null);
+    }
 }

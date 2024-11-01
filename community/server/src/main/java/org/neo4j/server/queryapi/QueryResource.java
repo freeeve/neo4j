@@ -19,14 +19,12 @@
  */
 package org.neo4j.server.queryapi;
 
-import static org.neo4j.server.queryapi.request.AccessMode.toDriverAccessMode;
-import static org.neo4j.server.queryapi.response.HttpErrorResponse.fromDriverException;
 import static org.neo4j.server.queryapi.response.HttpErrorResponse.singleError;
-import static org.neo4j.server.queryapi.response.TypedJsonDriverResultWriter.TYPED_JSON_MIME_TYPE_VALUE;
+import static org.neo4j.server.queryapi.response.TypedJsonDriverAutoCommitResultWriter.TYPED_JSON_MIME_TYPE_VALUE;
 
-import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -35,87 +33,93 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import org.neo4j.configuration.Config;
-import org.neo4j.driver.AuthToken;
-import org.neo4j.driver.AuthTokens;
-import org.neo4j.driver.Bookmark;
-import org.neo4j.driver.Driver;
-import org.neo4j.driver.Session;
-import org.neo4j.driver.SessionConfig;
-import org.neo4j.driver.exceptions.ClientException;
-import org.neo4j.driver.exceptions.FatalDiscoveryException;
-import org.neo4j.driver.exceptions.Neo4jException;
-import org.neo4j.driver.exceptions.TransientException;
 import org.neo4j.kernel.api.exceptions.Status;
-import org.neo4j.logging.InternalLog;
 import org.neo4j.server.configuration.ServerSettings;
 import org.neo4j.server.queryapi.metrics.QueryAPIMetricsMonitor;
 import org.neo4j.server.queryapi.request.AccessMode;
 import org.neo4j.server.queryapi.request.QueryRequest;
-import org.neo4j.server.queryapi.request.ResultContainer;
-import org.neo4j.server.queryapi.response.HttpErrorResponse;
-import org.neo4j.server.rest.dbms.AuthorizationHeaders;
 
-@Path(QueryResource.FULL_PATH)
+@Path(QueryResource.ROOT_PATH)
+@Produces({"application/json", TYPED_JSON_MIME_TYPE_VALUE})
+@Consumes({"application/json", TYPED_JSON_MIME_TYPE_VALUE})
 public class QueryResource {
 
     public static final String NAME = "query";
     private static final String DB_PATH_PARAM_NAME = "databaseName";
-    public static final String API_PATH_FRAGMENT = "query/v2";
-    static final String FULL_PATH = "/{" + DB_PATH_PARAM_NAME + "}/" + API_PATH_FRAGMENT;
-
-    private final Driver driver;
-    private final InternalLog log;
+    private static final String TX_ID_PATH_PARAM_NAME = "txId";
+    public static final String ROOT_PATH = "/{" + DB_PATH_PARAM_NAME + "}/query/v2";
     private final QueryAPIMetricsMonitor monitor;
+    private final QueryController queryController;
 
-    public QueryResource(@Context Driver driver, @Context InternalLog log, @Context QueryAPIMetricsMonitor monitor) {
-        this.driver = driver;
-        this.log = log;
+    public QueryResource(@Context QueryController queryController, @Context QueryAPIMetricsMonitor monitor) {
+        this.queryController = queryController;
         this.monitor = monitor;
     }
 
     @POST
-    @Produces({"application/json", TYPED_JSON_MIME_TYPE_VALUE})
-    @Consumes({"application/json", TYPED_JSON_MIME_TYPE_VALUE})
     public Response execute(
             @PathParam(DB_PATH_PARAM_NAME) String databaseName,
             QueryRequest request,
             @Context HttpServletRequest rawRequest,
             @Context HttpHeaders headers) {
         meterRequest(request);
-        var sessionConfig = buildSessionConfig(request, databaseName);
-        // The session will be closed after the result set has been serialized, it must not be closed in a
-        // try-with-resources block here. It must be closed only in an exceptional state
-        var sessionAuthToken = extractAuthToken(rawRequest);
-        if (sessionAuthToken == null) {
-            return Response.status(Response.Status.BAD_REQUEST).build();
-        }
-        Session session = driver.session(Session.class, sessionConfig, sessionAuthToken);
+        var clientErrorResponse = validateRequest(request);
 
-        Response response;
-        try {
-            var result = session.run(request.statement(), request.parameters());
-            var resultAndSession = new ResultContainer(result, session, request);
-            response = Response.accepted(resultAndSession).build();
-        } catch (FatalDiscoveryException ex) {
-            response = generateResponse(Response.Status.NOT_FOUND, fromDriverException(ex));
-        } catch (ClientException | TransientException clientException) {
-            response = generateResponse(Response.Status.BAD_REQUEST, fromDriverException(clientException));
-        } catch (Neo4jException neo4jException) {
-            response = generateResponse(Response.Status.INTERNAL_SERVER_ERROR, fromDriverException(neo4jException));
-        } catch (Exception exception) {
-            log.error("Local driver failed to execute query", exception);
-            response = generateResponse(
-                    Response.Status.INTERNAL_SERVER_ERROR,
-                    singleError(
-                            Status.General.UnknownError.code().serialize(),
-                            Status.General.UnknownError.code().description()));
+        if (clientErrorResponse != null) {
+            return clientErrorResponse;
         }
 
-        if (response.getStatus() != Response.Status.ACCEPTED.getStatusCode()) {
-            closeSession(session);
-        }
+        return queryController.executeQuery(request, rawRequest, databaseName);
+    }
 
-        return response;
+    @POST
+    @Path("/tx")
+    public Response beginTransaction(
+            @PathParam(DB_PATH_PARAM_NAME) String databaseName,
+            QueryRequest request,
+            @Context HttpServletRequest rawRequest,
+            @Context HttpHeaders headers) {
+        meterRequest(request);
+        return queryController.beginTransaction(request, rawRequest, databaseName);
+    }
+
+    @POST
+    @Path("tx/{" + TX_ID_PATH_PARAM_NAME + "}")
+    public Response continueTransaction(
+            @PathParam(DB_PATH_PARAM_NAME) String databaseName,
+            @PathParam(TX_ID_PATH_PARAM_NAME) String requestedTxId,
+            QueryRequest request,
+            @Context HttpServletRequest rawRequest,
+            @Context HttpHeaders headers) {
+        meterRequest(request);
+        return queryController.continueTransaction(request, rawRequest, databaseName, requestedTxId);
+    }
+
+    @POST
+    @Path("tx/{" + TX_ID_PATH_PARAM_NAME + "}/commit")
+    public Response commitTransaction(
+            @PathParam(DB_PATH_PARAM_NAME) String databaseName,
+            @PathParam(TX_ID_PATH_PARAM_NAME) String txId,
+            QueryRequest request,
+            @Context HttpServletRequest rawRequest,
+            @Context HttpHeaders headers) {
+        meterRequest(request);
+        return queryController.commitTransaction(request, rawRequest, databaseName, txId);
+    }
+
+    @DELETE
+    @Path("tx/{" + TX_ID_PATH_PARAM_NAME + "}")
+    public Response rollbackTransaction(
+            @PathParam(DB_PATH_PARAM_NAME) String databaseName,
+            @PathParam(TX_ID_PATH_PARAM_NAME) String txId,
+            QueryRequest request,
+            @Context HttpServletRequest rawRequest,
+            @Context HttpHeaders headers) {
+        return queryController.rollbackTransaction(txId, rawRequest, databaseName);
+    }
+
+    public static String absoluteDatabaseTransactionPath(Config config) {
+        return config.get(ServerSettings.db_api_path).getPath() + ROOT_PATH;
     }
 
     private void meterRequest(QueryRequest request) {
@@ -127,56 +131,12 @@ public class QueryResource {
         }
     }
 
-    private void closeSession(Session session) {
-        if (session != null) {
-            session.close();
+    private static Response validateRequest(QueryRequest request) {
+        if (request.statement() == null || request.statement().isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(singleError(Status.Request.Invalid.code().serialize(), "statement cannot be null or empty"))
+                    .build();
         }
-    }
-
-    private SessionConfig buildSessionConfig(QueryRequest request, String databaseName) {
-        var sessionConfigBuilder = SessionConfig.builder().withDatabase(databaseName);
-
-        if (!(request.bookmarks() == null || request.bookmarks().isEmpty())) {
-            sessionConfigBuilder.withBookmarks(
-                    request.bookmarks().stream().map(Bookmark::from).collect(Collectors.toList()));
-        }
-
-        if (!(request.impersonatedUser() == null || request.impersonatedUser().isBlank())) {
-            sessionConfigBuilder.withImpersonatedUser(request.impersonatedUser().trim());
-        }
-
-        if (request.accessMode() != null) {
-            sessionConfigBuilder.withDefaultAccessMode(toDriverAccessMode(request.accessMode()));
-        }
-
-        return sessionConfigBuilder.build();
-    }
-
-    private static AuthToken extractAuthToken(HttpServletRequest request) {
-        // Auth has already passed through AuthorizationEnabledFilter, so we know we have formatted credential
-        var authHeader = request.getHeader("Authorization");
-
-        if (authHeader == null) {
-            return AuthTokens.none();
-        }
-
-        var decoded = AuthorizationHeaders.decode(authHeader);
-        if (decoded == null) {
-            return AuthTokens.none();
-        }
-
-        return switch (decoded.scheme()) {
-            case BEARER -> AuthTokens.bearer(decoded.values()[0]);
-            case BASIC -> AuthTokens.basic(decoded.values()[0], decoded.values()[1]);
-            default -> AuthTokens.none();
-        };
-    }
-
-    public static String absoluteDatabaseTransactionPath(Config config) {
-        return config.get(ServerSettings.db_api_path).getPath() + FULL_PATH;
-    }
-
-    private Response generateResponse(Response.Status status, HttpErrorResponse message) {
-        return Response.status(status).entity(message).build();
+        return null;
     }
 }

@@ -32,25 +32,25 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.Provider;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.server.http.cypher.format.DefaultJsonFactory;
-import org.neo4j.server.queryapi.request.ResultContainer;
+import org.neo4j.server.queryapi.request.AutoCommitResultContainer;
 import org.neo4j.server.queryapi.response.format.QueryAPICodec;
 import org.neo4j.server.queryapi.response.format.View;
 
 @Provider
-@Produces(TypedJsonDriverResultWriter.TYPED_JSON_MIME_TYPE_VALUE)
-public class TypedJsonDriverResultWriter extends AbstractDriverResultWriter {
+@Produces(TypedJsonDriverAutoCommitResultWriter.TYPED_JSON_MIME_TYPE_VALUE)
+public class TypedJsonDriverAutoCommitResultWriter extends AbstractDriverResultWriter {
     public static final String TYPED_JSON_MIME_TYPE_VALUE = "application/vnd.neo4j.query";
 
     private final JsonFactory jsonFactory;
 
-    public TypedJsonDriverResultWriter(@Context InternalLog log) {
+    public TypedJsonDriverAutoCommitResultWriter(@Context InternalLog log) {
         super(log);
         this.jsonFactory = DefaultJsonFactory.INSTANCE.get().copy().setCodec(new QueryAPICodec(View.TYPED_JSON));
     }
 
     @Override
     public void writeTo(
-            ResultContainer result,
+            AutoCommitResultContainer result,
             Class<?> type,
             Type genericType,
             Annotation[] annotations,

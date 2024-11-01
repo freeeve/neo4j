@@ -19,39 +19,38 @@
  */
 package org.neo4j.server.queryapi.response;
 
-import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.ext.MessageBodyWriter;
 import javax.ws.rs.ext.Provider;
+import org.neo4j.logging.InternalLog;
 import org.neo4j.server.http.cypher.format.DefaultJsonFactory;
+import org.neo4j.server.queryapi.request.TxManagedResultContainer;
 import org.neo4j.server.queryapi.response.format.QueryAPICodec;
 import org.neo4j.server.queryapi.response.format.View;
+import org.neo4j.server.queryapi.tx.TransactionManager;
 
 @Provider
-@Produces(MediaType.APPLICATION_JSON + "," + TypedJsonDriverAutoCommitResultWriter.TYPED_JSON_MIME_TYPE_VALUE)
-public class ErrorResponseWriter implements MessageBodyWriter<HttpErrorResponse> {
+@Produces("application/json")
+public class PlainJsonTxManagingResultWriter extends AbstractTxManagingResultWriter {
 
-    private final JsonFactory jsonFactory;
-
-    public ErrorResponseWriter() {
-        this.jsonFactory = DefaultJsonFactory.INSTANCE.get().copy().setCodec(new QueryAPICodec(View.PLAIN_JSON));
-    }
-
-    @Override
-    public boolean isWriteable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
-        return HttpErrorResponse.class.isAssignableFrom(type);
+    public PlainJsonTxManagingResultWriter(
+            @Context InternalLog logger, @Context TransactionManager transactionManager) {
+        super(
+                logger,
+                DefaultJsonFactory.INSTANCE.get().copy().setCodec(new QueryAPICodec(View.PLAIN_JSON)),
+                transactionManager);
     }
 
     @Override
     public void writeTo(
-            HttpErrorResponse httpErrorResponse,
+            TxManagedResultContainer txManagedResultContainer,
             Class<?> type,
             Type genericType,
             Annotation[] annotations,
@@ -59,6 +58,6 @@ public class ErrorResponseWriter implements MessageBodyWriter<HttpErrorResponse>
             MultivaluedMap<String, Object> httpHeaders,
             OutputStream entityStream)
             throws IOException, WebApplicationException {
-        jsonFactory.createGenerator(entityStream).writeObject(httpErrorResponse);
+        writeDriverResult(txManagedResultContainer, entityStream);
     }
 }

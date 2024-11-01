@@ -33,10 +33,10 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.MessageBodyReader;
 import javax.ws.rs.ext.Provider;
-import org.neo4j.server.queryapi.response.TypedJsonDriverResultWriter;
+import org.neo4j.server.queryapi.response.TypedJsonDriverAutoCommitResultWriter;
 
 @Provider
-@Consumes(TypedJsonDriverResultWriter.TYPED_JSON_MIME_TYPE_VALUE)
+@Consumes(TypedJsonDriverAutoCommitResultWriter.TYPED_JSON_MIME_TYPE_VALUE)
 public class TypedJsonMessageBodyReader implements MessageBodyReader<QueryRequest> {
     private final JsonMapper jsonMapper;
 
@@ -61,6 +61,11 @@ public class TypedJsonMessageBodyReader implements MessageBodyReader<QueryReques
             MultivaluedMap<String, String> httpHeaders,
             InputStream entityStream)
             throws IOException, WebApplicationException {
+
+        if (entityStream.available() == 0) {
+            return new QueryRequest();
+        }
+
         try {
             return jsonMapper.readValue(entityStream, QueryRequest.class);
         } catch (JacksonException e) {

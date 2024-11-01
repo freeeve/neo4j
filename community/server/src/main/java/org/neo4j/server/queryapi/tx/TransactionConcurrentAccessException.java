@@ -17,40 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.server.queryapi.metrics;
+package org.neo4j.server.queryapi.tx;
 
-import org.eclipse.jetty.http.HttpVersion;
-
-public interface QueryAPIMetricsMonitor {
-    void totalRequests();
-
-    void openTransaction();
-
-    void closeTransaction();
-
-    void totalTransactionsTimedOut();
-
-    void requestTimeTaken(long timeInMillis);
-
-    void requestContentType(String contentType);
-
-    void responseContentType(String contentType);
-
-    void responseStatusCode(int code);
-
-    void httpVersion(HttpVersion httpVersion);
-
-    void readRequest();
-
-    void parameter();
-
-    void beginRequest();
-
-    void continueRequest();
-
-    void commitRequest();
-
-    void rollbackRequest();
-
-    void autoCommitRequest();
+public class TransactionConcurrentAccessException extends RuntimeException {
+    public TransactionConcurrentAccessException(String message) {
+        super(message);
+    }
 }

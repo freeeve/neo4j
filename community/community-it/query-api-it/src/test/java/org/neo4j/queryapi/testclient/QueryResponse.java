@@ -17,18 +17,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.server.queryapi.request;
+package org.neo4j.queryapi.testclient;
 
-import org.neo4j.driver.Result;
-import org.neo4j.driver.Session;
+import static org.neo4j.server.queryapi.response.format.Fieldnames.TX_ID_KEY;
 
-/**
- * A wrapper for a driver result and session. Needed so that the serialization logic can close the session when it has either:
- * - consumed all the results, or
- * - an error has occurred and the session needs to be closed.
- *
- * @param result
- * @param session
- * @param queryRequest
- */
-public record ResultContainer(Result result, Session session, QueryRequest queryRequest) {}
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import java.util.List;
+
+@JsonDeserialize
+public record QueryResponse(
+        JsonNode data,
+        List<String> bookmarks,
+        JsonNode notifications,
+        JsonNode errors,
+        JsonNode transaction,
+        JsonNode counters,
+        JsonNode queryPlan,
+        JsonNode profiledQueryPlan) {
+
+    public String txId() {
+        return transaction.get(TX_ID_KEY).textValue();
+    }
+}

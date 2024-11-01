@@ -17,40 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.server.queryapi.metrics;
+package org.neo4j.server.queryapi.request;
 
-import org.eclipse.jetty.http.HttpVersion;
+import org.neo4j.driver.Result;
+import org.neo4j.driver.Session;
 
-public interface QueryAPIMetricsMonitor {
-    void totalRequests();
-
-    void openTransaction();
-
-    void closeTransaction();
-
-    void totalTransactionsTimedOut();
-
-    void requestTimeTaken(long timeInMillis);
-
-    void requestContentType(String contentType);
-
-    void responseContentType(String contentType);
-
-    void responseStatusCode(int code);
-
-    void httpVersion(HttpVersion httpVersion);
-
-    void readRequest();
-
-    void parameter();
-
-    void beginRequest();
-
-    void continueRequest();
-
-    void commitRequest();
-
-    void rollbackRequest();
-
-    void autoCommitRequest();
-}
+/**
+ * A wrapper for a driver result and session. Needed so that the serialization logic can close the session when it has either:
+ * - consumed all the results, or - an error has occurred and the session needs to be closed.
+ */
+public record AutoCommitResultContainer(Result result, Session session, QueryRequest queryRequest) {}

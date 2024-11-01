@@ -55,8 +55,13 @@ public final class Fieldnames {
     public static final String PROFILE_KEY = "profiledQueryPlan";
 
     public static final String ERRORS_KEY = "errors";
+    public static final String TRANSACTION_KEY = "transaction";
+    public static final String TX_ID_KEY = "id";
+    public static final String TX_EXPIRY_KEY = "expires";
 
     public static final String ERROR_KEY = "error";
+    public static final String ERROR_MESSAGE = "message";
+    public static final String ERROR_CODE = "code";
 
     private Fieldnames() {}
 }

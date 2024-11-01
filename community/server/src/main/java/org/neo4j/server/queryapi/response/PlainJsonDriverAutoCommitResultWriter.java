@@ -32,24 +32,24 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.Provider;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.server.http.cypher.format.DefaultJsonFactory;
-import org.neo4j.server.queryapi.request.ResultContainer;
+import org.neo4j.server.queryapi.request.AutoCommitResultContainer;
 import org.neo4j.server.queryapi.response.format.QueryAPICodec;
 import org.neo4j.server.queryapi.response.format.View;
 
 @Provider
 @Produces("application/json")
-public class PlainJsonDriverResultWriter extends AbstractDriverResultWriter {
+public class PlainJsonDriverAutoCommitResultWriter extends AbstractDriverResultWriter {
 
     private final JsonFactory jsonFactory;
 
-    public PlainJsonDriverResultWriter(@Context InternalLog log) {
+    public PlainJsonDriverAutoCommitResultWriter(@Context InternalLog log) {
         super(log);
         this.jsonFactory = DefaultJsonFactory.INSTANCE.get().copy().setCodec(new QueryAPICodec(View.PLAIN_JSON));
     }
 
     @Override
     public void writeTo(
-            ResultContainer result,
+            AutoCommitResultContainer result,
             Class<?> type,
             Type genericType,
             Annotation[] annotations,

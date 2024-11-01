@@ -113,7 +113,7 @@ public class TransactionTestIT extends AbstractRestFunctionalTestBase {
             + "\n"
             + "The timeout may be reset by sending a keep-alive request to the server that executes an empty list of statements.\n"
             + "This request will reset the transaction timeout and return the new time at which the transaction will\n"
-            + "expire as an RFC1123 formatted timestamp value in the ``transaction'' section of the response.")
+            + "expires as an RFC1123 formatted timestamp value in the ``transaction'' section of the response.")
     public void reset_transaction_timeout_of_an_open_transaction() throws JsonParseException, InterruptedException {
         // Given
         HTTP.Response initialResponse = POST(txUri());

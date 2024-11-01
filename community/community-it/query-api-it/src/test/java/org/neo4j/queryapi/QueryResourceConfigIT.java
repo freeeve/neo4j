@@ -34,10 +34,12 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.configuration.connectors.BoltConnector;
 import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
@@ -79,8 +81,9 @@ class QueryResourceConfigIT {
         dbms.shutdown();
     }
 
-    @Test
-    void shouldUseWriteAccessModeByDefault() throws IOException, InterruptedException {
+    @ParameterizedTest
+    @MethodSource("configurableEndpoints")
+    void shouldUseWriteAccessModeByDefault(String queryEndpoint) throws IOException, InterruptedException {
         var httpRequest = QueryApiTestUtil.baseRequestBuilder(queryEndpoint, "neo4j")
                 .POST(HttpRequest.BodyPublishers.ofString("{\"statement\": \"CREATE (n) RETURN n\"}"))
                 .build();
@@ -130,8 +133,9 @@ class QueryResourceConfigIT {
         // todo we can look at query plan
     }
 
-    @Test
-    void shouldErrorIfWrongAccessModeUsed() throws IOException, InterruptedException {
+    @ParameterizedTest
+    @MethodSource("configurableEndpoints")
+    void shouldErrorIfWrongAccessModeUsed(String queryEndpoint) throws IOException, InterruptedException {
         var httpRequest = QueryApiTestUtil.baseRequestBuilder(queryEndpoint, "neo4j")
                 .POST(HttpRequest.BodyPublishers.ofString(
                         "{\"statement\": \"CREATE (n) RETURN n\",\"accessMode\": \"READ\"}"))
@@ -144,8 +148,9 @@ class QueryResourceConfigIT {
                         + "\"message\":\"Writing in read access mode not allowed. Attempted write to neo4j\"}]}");
     }
 
-    @Test
-    void shouldErrorIfInvalidAccessModeGiven() throws IOException, InterruptedException {
+    @ParameterizedTest
+    @MethodSource("configurableEndpoints")
+    void shouldErrorIfInvalidAccessModeGiven(String queryEndpoint) throws IOException, InterruptedException {
         var httpRequest = QueryApiTestUtil.baseRequestBuilder(queryEndpoint, "neo4j")
                 .POST(HttpRequest.BodyPublishers.ofString(
                         "{\"statement\": \"CREATE (n) RETURN n\",\"accessMode\": \"bananas\"}"))
@@ -158,8 +163,9 @@ class QueryResourceConfigIT {
                         + "\"message\":\"Bad Request\"}]}");
     }
 
-    @Test
-    void shouldReturnQueryPlan() throws IOException, InterruptedException {
+    @ParameterizedTest
+    @MethodSource("configurableEndpoints")
+    void shouldReturnQueryPlan(String queryEndpoint) throws IOException, InterruptedException {
         var httpRequest = QueryApiTestUtil.baseRequestBuilder(queryEndpoint, "neo4j")
                 .POST(HttpRequest.BodyPublishers.ofString("{\"statement\": \"EXPLAIN RETURN 1\"}"))
                 .build();
@@ -188,8 +194,9 @@ class QueryResourceConfigIT {
         assertThat(parsedJson.get(DATA_KEY).get(FIELDS_KEY).get(0).asText()).isEqualTo("1");
     }
 
-    @Test
-    void shouldReturnProfile() throws IOException, InterruptedException {
+    @ParameterizedTest
+    @MethodSource("configurableEndpoints")
+    void shouldReturnProfile(String queryEndpoint) throws IOException, InterruptedException {
         var httpRequest = QueryApiTestUtil.baseRequestBuilder(queryEndpoint, "neo4j")
                 .POST(HttpRequest.BodyPublishers.ofString("{\"statement\": \"PROFILE RETURN 1\"}"))
                 .build();
@@ -233,5 +240,9 @@ class QueryResourceConfigIT {
         assertThat(parsedJson.get(DATA_KEY).get(VALUES_KEY).get(0).get(0).asInt())
                 .isEqualTo(1);
         assertThat(parsedJson.get(DATA_KEY).get(FIELDS_KEY).get(0).asText()).isEqualTo("1");
+    }
+
+    public static Stream<Arguments> configurableEndpoints() {
+        return Stream.of(Arguments.of(queryEndpoint), Arguments.of(queryEndpoint + "/tx"));
     }
 }
