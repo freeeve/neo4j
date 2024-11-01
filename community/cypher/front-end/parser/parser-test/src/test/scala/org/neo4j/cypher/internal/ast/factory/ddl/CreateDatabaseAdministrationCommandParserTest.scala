@@ -477,6 +477,10 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
     failsParsing[Statements]
   }
 
+  test("CREATE DATABASE 42foo") {
+    failsParsing[Statements]
+  }
+
   test("CREATE DATABASE _foo-bar42 IF NOT EXISTS") {
     failsParsing[Statements]
   }

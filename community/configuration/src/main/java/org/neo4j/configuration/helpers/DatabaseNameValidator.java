@@ -20,6 +20,7 @@
 package org.neo4j.configuration.helpers;
 
 import static org.apache.commons.lang3.CharUtils.isAsciiAlphaLower;
+import static org.apache.commons.lang3.CharUtils.isAsciiNumeric;
 
 import java.util.Locale;
 import java.util.Objects;
@@ -54,9 +55,9 @@ public class DatabaseNameValidator {
                     + MINIMUM_DATABASE_NAME_LENGTH + " and " + MAXIMUM_DATABASE_NAME_LENGTH + " characters.");
         }
 
-        if (!isAsciiAlphaLower(name.charAt(0))) {
+        if (!(isAsciiAlphaLower(name.charAt(0)) || isAsciiNumeric(name.charAt(0)))) {
             throw new IllegalArgumentException(
-                    "Database name '" + name + "' is not starting with an ASCII alphabetic character.");
+                    "Database name '" + name + "' is not starting with an ASCII alphabetic character or number.");
         }
 
         if (!DATABASE_NAME_PATTERN.matcher(name).matches()) {

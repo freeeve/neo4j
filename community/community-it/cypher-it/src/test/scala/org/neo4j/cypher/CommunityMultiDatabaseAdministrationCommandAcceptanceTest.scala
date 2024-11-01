@@ -73,7 +73,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
       // WHEN
       Config.defaults(initial_default_database, "_default")
       // THEN
-    } should have message startOfError + "Failed to validate '_default' for 'initial.dbms.default_database': Database name '_default' is not starting with an ASCII alphabetic character."
+    } should have message startOfError + "Failed to validate '_default' for 'initial.dbms.default_database': Database name '_default' is not starting with an ASCII alphabetic character or number."
 
     // Has prefix 'system'
     the[IllegalArgumentException] thrownBy {

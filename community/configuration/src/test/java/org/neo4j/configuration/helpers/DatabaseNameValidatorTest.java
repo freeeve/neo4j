@@ -32,6 +32,11 @@ class DatabaseNameValidatorTest {
     }
 
     @Test
+    void shouldNotGetAnErrorForAValidDatabaseNameStartingWithDigit() {
+        assertValid("1database");
+    }
+
+    @Test
     void shouldGetAnErrorForAnEmptyDatabaseName() {
         Exception e = assertThrows(IllegalArgumentException.class, () -> assertValid(""));
         assertEquals("The provided database name is empty.", e.getMessage());
@@ -61,11 +66,15 @@ class DatabaseNameValidatorTest {
 
     @Test
     void shouldGetAnErrorForADatabaseNameWithInvalidFirstCharacter() {
-        Exception e = assertThrows(IllegalArgumentException.class, () -> assertValid("3database"));
-        assertEquals("Database name '3database' is not starting with an ASCII alphabetic character.", e.getMessage());
+        Exception e = assertThrows(IllegalArgumentException.class, () -> assertValid("ädatabase"));
+        assertEquals(
+                "Database name 'ädatabase' is not starting with an ASCII alphabetic character or number.",
+                e.getMessage());
 
         Exception e2 = assertThrows(IllegalArgumentException.class, () -> assertValid("_database"));
-        assertEquals("Database name '_database' is not starting with an ASCII alphabetic character.", e2.getMessage());
+        assertEquals(
+                "Database name '_database' is not starting with an ASCII alphabetic character or number.",
+                e2.getMessage());
     }
 
     @Test
