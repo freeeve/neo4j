@@ -256,7 +256,7 @@ class KernelTransactionTestBase {
                 storageEngine,
                 any -> CanWrite.INSTANCE,
                 new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER),
-                () -> collectionsFactory,
+                collectionsFactory,
                 new StandardConstraintSemantics(),
                 mock(SchemaState.class),
                 mockedTokenHolders(),

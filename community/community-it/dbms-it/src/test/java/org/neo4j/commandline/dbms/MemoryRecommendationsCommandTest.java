@@ -20,10 +20,8 @@
 package org.neo4j.commandline.dbms;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.neo4j.configuration.BootloaderSettings.additional_jvm;
 import static org.neo4j.configuration.BootloaderSettings.initial_heap_size;
@@ -31,24 +29,18 @@ import static org.neo4j.configuration.BootloaderSettings.max_heap_size;
 import static org.neo4j.configuration.Config.DEFAULT_CONFIG_FILE_NAME;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
-import static org.neo4j.configuration.GraphDatabaseSettings.TransactionStateMemoryAllocation.OFF_HEAP;
 import static org.neo4j.configuration.GraphDatabaseSettings.data_directory;
 import static org.neo4j.configuration.GraphDatabaseSettings.initial_default_database;
 import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_memory;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_max_off_heap_memory;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_memory_allocation;
 import static org.neo4j.configuration.SettingValueParsers.BYTES;
 import static org.neo4j.dbms.MemoryRecommendation.bytesToString;
 import static org.neo4j.dbms.MemoryRecommendation.recommendHeapMemory;
 import static org.neo4j.dbms.MemoryRecommendation.recommendOsMemory;
 import static org.neo4j.dbms.MemoryRecommendation.recommendPageCacheMemory;
-import static org.neo4j.dbms.MemoryRecommendation.recommendTxStateMemory;
 import static org.neo4j.internal.helpers.collection.MapUtil.store;
 import static org.neo4j.internal.helpers.collection.MapUtil.stringMap;
-import static org.neo4j.io.ByteUnit.exbiBytes;
 import static org.neo4j.io.ByteUnit.gibiBytes;
 import static org.neo4j.io.ByteUnit.mebiBytes;
-import static org.neo4j.io.ByteUnit.tebiBytes;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -62,8 +54,6 @@ import java.util.Arrays;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.junit.jupiter.api.Test;
 import org.neo4j.cli.ExecutionContext;
-import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseSettings.TransactionStateMemoryAllocation;
 import org.neo4j.configuration.SettingImpl;
 import org.neo4j.dbms.MemoryRecommendation;
 import org.neo4j.graphdb.Label;
@@ -156,56 +146,6 @@ class MemoryRecommendationsCommandTest {
     }
 
     @Test
-    void mustRecommendPageCacheMemoryWithOffHeapTxState() {
-        assertThat(recommendPageCacheMemory(mebiBytes(100), mebiBytes(130))).isBetween(mebiBytes(7), mebiBytes(12));
-        assertThat(recommendPageCacheMemory(gibiBytes(1), mebiBytes(260))).isBetween(mebiBytes(8), mebiBytes(50));
-        assertThat(recommendPageCacheMemory(gibiBytes(3), mebiBytes(368))).isBetween(mebiBytes(100), mebiBytes(256));
-        assertThat(recommendPageCacheMemory(gibiBytes(6), mebiBytes(780))).isBetween(mebiBytes(100), mebiBytes(256));
-        assertThat(recommendPageCacheMemory(gibiBytes(192), gibiBytes(10))).isBetween(gibiBytes(75), gibiBytes(202));
-        assertThat(recommendPageCacheMemory(gibiBytes(1920), gibiBytes(10))).isBetween(gibiBytes(978), gibiBytes(1900));
-
-        // Also never recommend more than 16 TiB of page cache memory, regardless of how much is available.
-        assertThat(recommendPageCacheMemory(exbiBytes(1), gibiBytes(100))).isLessThanOrEqualTo(tebiBytes(16));
-    }
-
-    @Test
-    void mustRecommendPageCacheMemoryWithOnHeapTxState() {
-        assertThat(recommendPageCacheMemory(mebiBytes(100), 0)).isBetween(mebiBytes(7), mebiBytes(12));
-        assertThat(recommendPageCacheMemory(gibiBytes(1), 0)).isBetween(mebiBytes(20), mebiBytes(60));
-        assertThat(recommendPageCacheMemory(gibiBytes(3), 0)).isBetween(mebiBytes(256), mebiBytes(728));
-        assertThat(recommendPageCacheMemory(gibiBytes(6), 0)).isBetween(mebiBytes(728), mebiBytes(1056));
-        assertThat(recommendPageCacheMemory(gibiBytes(192), 0)).isBetween(gibiBytes(75), gibiBytes(202));
-        assertThat(recommendPageCacheMemory(gibiBytes(1920), 0)).isBetween(gibiBytes(978), gibiBytes(1900));
-
-        // Also never recommend more than 16 TiB of page cache memory, regardless of how much is available.
-        assertThat(recommendPageCacheMemory(exbiBytes(1), gibiBytes(100))).isLessThanOrEqualTo(tebiBytes(16));
-    }
-
-    @Test
-    void doNotRecommendTxStateMemoryByDefault() {
-        final Config config = Config.defaults();
-        assertEquals(mebiBytes(0), recommendTxStateMemory(config, mebiBytes(100)));
-        assertEquals(mebiBytes(0), recommendTxStateMemory(config, mebiBytes(512)));
-        assertEquals(mebiBytes(0), recommendTxStateMemory(config, mebiBytes(768)));
-        assertEquals(mebiBytes(0), recommendTxStateMemory(config, gibiBytes(1)));
-        assertEquals(gibiBytes(0), recommendTxStateMemory(config, gibiBytes(16)));
-        assertEquals(gibiBytes(0), recommendTxStateMemory(config, gibiBytes(32)));
-        assertEquals(gibiBytes(0), recommendTxStateMemory(config, gibiBytes(128)));
-    }
-
-    @Test
-    void recommendOffHeapTxStateMemory() {
-        final Config config = Config.defaults(tx_state_memory_allocation, OFF_HEAP);
-        assertEquals(mebiBytes(128), recommendTxStateMemory(config, mebiBytes(100)));
-        assertEquals(mebiBytes(128), recommendTxStateMemory(config, mebiBytes(512)));
-        assertEquals(mebiBytes(192), recommendTxStateMemory(config, mebiBytes(768)));
-        assertEquals(mebiBytes(256), recommendTxStateMemory(config, gibiBytes(1)));
-        assertEquals(gibiBytes(4), recommendTxStateMemory(config, gibiBytes(16)));
-        assertEquals(gibiBytes(8), recommendTxStateMemory(config, gibiBytes(32)));
-        assertEquals(gibiBytes(8), recommendTxStateMemory(config, gibiBytes(128)));
-    }
-
-    @Test
     void bytesToStringMustBeParseableBySettings() {
         SettingImpl<Long> setting =
                 (SettingImpl<Long>) SettingImpl.newBuilder("arg", BYTES, null).build();
@@ -236,7 +176,7 @@ class MemoryRecommendationsCommandTest {
 
         CommandLine.populateCommand(command, "--memory=8g");
         String heap = bytesToString(recommendHeapMemory(gibiBytes(8)));
-        String pagecache = bytesToString(recommendPageCacheMemory(gibiBytes(8), 0));
+        String pagecache = bytesToString(recommendPageCacheMemory(gibiBytes(8)));
 
         command.execute();
 
@@ -245,8 +185,7 @@ class MemoryRecommendationsCommandTest {
                 .contains(initial_heap_size.name() + "=" + heap)
                 .contains(max_heap_size.name() + "=" + heap)
                 .contains(pagecache_memory.name() + "=" + pagecache)
-                .contains(additional_jvm.name() + "=" + "-XX:+ExitOnOutOfMemoryError")
-                .doesNotContain(tx_state_max_off_heap_memory.name());
+                .contains(additional_jvm.name() + "=" + "-XX:+ExitOnOutOfMemoryError");
     }
 
     @Test
@@ -264,7 +203,7 @@ class MemoryRecommendationsCommandTest {
 
         CommandLine.populateCommand(command, "--memory=8g", "--docker");
         String heap = bytesToString(recommendHeapMemory(gibiBytes(8)));
-        String pagecache = bytesToString(recommendPageCacheMemory(gibiBytes(8), 0));
+        String pagecache = bytesToString(recommendPageCacheMemory(gibiBytes(8)));
 
         command.execute();
 
@@ -273,39 +212,7 @@ class MemoryRecommendationsCommandTest {
                 .contains("NEO4J_server_memory_heap_initial__size='" + heap + "'")
                 .contains("NEO4J_server_memory_heap_max__size='" + heap + "'")
                 .contains("NEO4J_server_memory_pagecache_size='" + pagecache + "'")
-                .contains("NEO4J_server_jvm_additional='" + "-XX:+ExitOnOutOfMemoryError" + "'")
-                .doesNotContain("EXPORT NEO4J_server_memory_off__heap_max__size='");
-    }
-
-    @Test
-    void doNotPrintRecommendationsForOffHeapWhenOnHeapIsConfigured() throws Exception {
-        PrintStream output = mock(PrintStream.class);
-        Path homeDir = testDirectory.homePath();
-        Path configDir = homeDir.resolve("conf");
-        Path configFile = configDir.resolve(DEFAULT_CONFIG_FILE_NAME);
-        Files.createDirectories(configDir);
-        store(
-                stringMap(
-                        data_directory.name(),
-                        homeDir.toString(),
-                        tx_state_memory_allocation.name(),
-                        TransactionStateMemoryAllocation.ON_HEAP.name()),
-                configFile);
-
-        MemoryRecommendationsCommand command = new MemoryRecommendationsCommand(new ExecutionContext(
-                homeDir, configDir, output, mock(PrintStream.class), testDirectory.getFileSystem()));
-
-        CommandLine.populateCommand(command, "--memory=8g");
-        String heap = bytesToString(recommendHeapMemory(gibiBytes(8)));
-        String pagecache = bytesToString(recommendPageCacheMemory(gibiBytes(8), 0));
-        String offHeap = bytesToString(gibiBytes(2));
-
-        command.execute();
-
-        verify(output).println(initial_heap_size.name() + "=" + heap);
-        verify(output).println(max_heap_size.name() + "=" + heap);
-        verify(output).println(pagecache_memory.name() + "=" + pagecache);
-        verify(output, never()).println(tx_state_max_off_heap_memory.name() + "=" + offHeap);
+                .contains("NEO4J_server_jvm_additional='" + "-XX:+ExitOnOutOfMemoryError" + "'");
     }
 
     @Test
@@ -341,7 +248,7 @@ class MemoryRecommendationsCommandTest {
         MemoryRecommendationsCommand command = new MemoryRecommendationsCommand(new ExecutionContext(
                 homeDir, configDir, printStream, mock(PrintStream.class), testDirectory.getFileSystem()));
         String heap = bytesToString(recommendHeapMemory(gibiBytes(8)));
-        String pagecache = bytesToString(recommendPageCacheMemory(gibiBytes(8), 0));
+        String pagecache = bytesToString(recommendPageCacheMemory(gibiBytes(8)));
 
         // when
         CommandLine.populateCommand(command, "--memory=8g");

@@ -24,7 +24,6 @@ import static org.neo4j.configuration.BootloaderSettings.initial_heap_size;
 import static org.neo4j.configuration.BootloaderSettings.max_heap_size;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.databases_root_path;
 import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_memory;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_max_off_heap_memory;
 import static org.neo4j.dbms.MemoryRecommendation.MEMORY;
 import static org.neo4j.kernel.api.index.IndexDirectoryStructure.baseSchemaIndexFolder;
 
@@ -92,12 +91,9 @@ public class MemoryRecommendationsCommand extends AbstractAdminCommand {
         Path configFile = ctx.confDir().resolve(Config.DEFAULT_CONFIG_FILE_NAME);
         Config config = getConfig(configFile);
 
-        final long offHeapMemory = MemoryRecommendation.recommendTxStateMemory(config, memory);
         String os = MemoryRecommendation.bytesToString(MemoryRecommendation.recommendOsMemory(memory));
         String heap = MemoryRecommendation.bytesToString(MemoryRecommendation.recommendHeapMemory(memory));
-        String pageCache = MemoryRecommendation.bytesToString(
-                MemoryRecommendation.recommendPageCacheMemory(memory, offHeapMemory));
-        String txState = MemoryRecommendation.bytesToString(offHeapMemory);
+        String pageCache = MemoryRecommendation.bytesToString(MemoryRecommendation.recommendPageCacheMemory(memory));
 
         Path databasesRoot = config.get(databases_root_path);
         Neo4jLayout storeLayout = Neo4jLayout.of(config);
@@ -130,9 +126,6 @@ public class MemoryRecommendationsCommand extends AbstractAdminCommand {
         printSetting(initial_heap_size, heap);
         printSetting(max_heap_size, heap);
         printSetting(pagecache_memory, pageCache);
-        if (offHeapMemory != 0) {
-            printSetting(tx_state_max_off_heap_memory, txState);
-        }
         print("#");
         print("# It is also recommended turning out-of-memory errors into full crashes,");
         print("# instead of allowing a partially crashed database to continue running:");

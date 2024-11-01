@@ -161,7 +161,6 @@ import org.neo4j.kernel.impl.transaction.state.StaticIndexProviderMapFactory;
 import org.neo4j.kernel.impl.transaction.state.storeview.FullScanStoreView;
 import org.neo4j.kernel.impl.transaction.state.storeview.IndexStoreViewFactory;
 import org.neo4j.kernel.impl.transaction.stats.DatabaseTransactionStats;
-import org.neo4j.kernel.impl.util.collection.CollectionsFactorySupplier;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.internal.event.DatabaseTransactionEventListeners;
 import org.neo4j.kernel.internal.event.GlobalTransactionEventListeners;
@@ -219,7 +218,6 @@ public class Database extends AbstractDatabase {
     private final IOControllerService ioControllerService;
     private final SystemNanoClock clock;
     private final StoreCopyCheckPointMutex storeCopyCheckPointMutex;
-    private final CollectionsFactorySupplier collectionsFactorySupplier;
     private final DatabaseTracers tracers;
     private final AccessCapabilityFactory accessCapabilityFactory;
     private final LeaseService leaseService;
@@ -305,7 +303,6 @@ public class Database extends AbstractDatabase {
         this.lockService = createLockService(databaseConfig);
         this.commitProcessFactory = context.getCommitProcessFactory();
         this.globalPageCache = context.getPageCache();
-        this.collectionsFactorySupplier = context.getCollectionsFactorySupplier();
         this.storageEngineFactorySupplier = context.getStorageEngineFactorySupplier();
         TransactionsFactory transactionsFactory = context.getTransactionsFactory();
         this.databaseFacade = new GraphDatabaseFacade(
@@ -1030,7 +1027,6 @@ public class Database extends AbstractDatabase {
                 cpuClockRef,
                 accessCapabilityFactory,
                 cursorContextFactory,
-                collectionsFactorySupplier,
                 constraintSemantics,
                 databaseSchemaState,
                 tokenHolders,

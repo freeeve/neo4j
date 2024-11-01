@@ -153,7 +153,6 @@ import org.neo4j.kernel.impl.transaction.log.TransactionCommitmentFactory;
 import org.neo4j.kernel.impl.transaction.tracing.TransactionEvent;
 import org.neo4j.kernel.impl.transaction.tracing.TransactionTracer;
 import org.neo4j.kernel.impl.transaction.tracing.TransactionWriteEvent;
-import org.neo4j.kernel.impl.util.collection.CollectionsFactorySupplier;
 import org.neo4j.kernel.internal.event.DatabaseTransactionEventListeners;
 import org.neo4j.kernel.internal.event.TransactionEventListeners;
 import org.neo4j.lock.ActiveLock;
@@ -320,7 +319,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
             StorageEngine storageEngine,
             AccessCapabilityFactory accessCapabilityFactory,
             CursorContextFactory contextFactory,
-            CollectionsFactorySupplier collectionsFactorySupplier,
+            CollectionsFactory collectionsFactory,
             ConstraintSemantics constraintSemantics,
             SchemaState schemaState,
             TokenHolders tokenHolders,
@@ -462,7 +461,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         this.traceProvider = getTraceProvider(config);
         this.initializationTrace = NONE;
         this.transactionHeapBytesLimit = config.get(memory_transaction_max_size);
-        this.collectionsFactory = collectionsFactorySupplier.create();
+        this.collectionsFactory = collectionsFactory;
         this.kernelTransactions = kernelTransactions;
         this.databaseSerialGuard = databaseSerialGuard;
         this.transactionValidator =

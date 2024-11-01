@@ -105,10 +105,6 @@ import static org.neo4j.configuration.GraphDatabaseSettings.transaction_monitor_
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_sampling_percentage;
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_timeout;
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_tracing_level;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_max_off_heap_memory;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_memory_allocation;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_off_heap_block_cache_size;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_off_heap_max_cacheable_block_size;
 import static org.neo4j.configuration.GraphDatabaseSettings.writable_databases;
 import static org.neo4j.configuration.connectors.BoltConnectorInternalSettings.thread_pool_shutdown_wait_time;
 import static org.neo4j.configuration.connectors.BoltConnectorInternalSettings.unsupported_bolt_unauth_connection_max_inbound_bytes;
@@ -246,7 +242,18 @@ public final class SettingMigrators {
                 "internal.dbms.cluster.discovery.parallel_enabled",
                 "unsupported.dbms.kernel_id",
                 "internal.dbms.kernel_id",
-                "internal.dbms.linked_users");
+                "internal.dbms.linked_users",
+                "dbms.memory.off_heap.max_size",
+                "server.memory.off_heap.transaction_max_size",
+                "server.memory.off_heap.max_cacheable_block_size",
+                "dbms.memory.off_heap.max_cacheable_block_size",
+                "dbms.tx_state.off_heap.max_cacheable_block_size",
+                "server.memory.off_heap.block_cache_size",
+                "dbms.memory.off_heap.block_cache_size",
+                "dbms.tx_state.off_heap.block_cache_size",
+                "db.tx_state.memory_allocation",
+                "dbms.tx_state.memory_allocation",
+                "dbms.tx_state.max_off_heap_memory");
 
         private static final Collection<Mapping> LEGACY_UNSUPPORTED_SETTINGS_MAPPING = List.of(
                 new Mapping("dbms.capabilities.blocked", "internal.dbms.capabilities.blocked"),
@@ -643,17 +650,6 @@ public final class SettingMigrators {
                     values, log, "dbms.memory.pagecache.flush.buffer.enabled", pagecache_buffered_flush_enabled);
             migrateSettingNameChange(values, log, "dbms.memory.pagecache.directio", pagecache_direct_io);
 
-            migrateSettingNameChange(values, log, "dbms.memory.off_heap.max_size", tx_state_max_off_heap_memory);
-            // renaming the previous 5.x setting
-            migrateSettingNameChange(values, log, "server.memory.off_heap.max_size", tx_state_max_off_heap_memory);
-            migrateSettingNameChange(
-                    values,
-                    log,
-                    "dbms.memory.off_heap.max_cacheable_block_size",
-                    tx_state_off_heap_max_cacheable_block_size);
-            migrateSettingNameChange(
-                    values, log, "dbms.memory.off_heap.block_cache_size", tx_state_off_heap_block_cache_size);
-
             migrateSettingNameChange(values, log, "dbms.memory.heap.max_size", max_heap_size);
             migrateSettingNameChange(values, log, "dbms.memory.heap.initial_size", initial_heap_size);
         }
@@ -785,7 +781,6 @@ public final class SettingMigrators {
             migrateSettingNameChange(values, log, "dbms.tx_log.preallocate", preallocate_logical_logs);
             migrateSettingNameChange(values, log, "dbms.tx_log.rotation.retention_policy", keep_logical_logs);
             migrateSettingNameChange(values, log, "dbms.tx_log.rotation.size", logical_log_rotation_threshold);
-            migrateSettingNameChange(values, log, "dbms.tx_state.memory_allocation", tx_state_memory_allocation);
         }
 
         private void migrateTransactionAndTrackingSettings(
@@ -858,15 +853,6 @@ public final class SettingMigrators {
 
         private static void migrateDatabaseMemorySettings(
                 Map<String, String> values, Map<String, String> defaultValues, InternalLog log) {
-            migrateSettingNameChange(values, log, "dbms.tx_state.max_off_heap_memory", tx_state_max_off_heap_memory);
-            migrateSettingNameChange(
-                    values,
-                    log,
-                    "dbms.tx_state.off_heap.max_cacheable_block_size",
-                    tx_state_off_heap_max_cacheable_block_size);
-            migrateSettingNameChange(
-                    values, log, "dbms.tx_state.off_heap.block_cache_size", tx_state_off_heap_block_cache_size);
-
             // Migrate cypher.query_max_allocations to new setting, if new settings is not configured
             String maxAllocations = values.remove("cypher.query_max_allocations");
             if (isNotBlank(maxAllocations)) {

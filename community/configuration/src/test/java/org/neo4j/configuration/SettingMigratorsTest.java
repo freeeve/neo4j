@@ -37,7 +37,6 @@ import static org.neo4j.configuration.GraphDatabaseInternalSettings.automatic_up
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.upgrade_processors;
 import static org.neo4j.configuration.GraphDatabaseSettings.LogQueryLevel.INFO;
 import static org.neo4j.configuration.GraphDatabaseSettings.LogQueryLevel.VERBOSE;
-import static org.neo4j.configuration.GraphDatabaseSettings.TransactionStateMemoryAllocation.ON_HEAP;
 import static org.neo4j.configuration.GraphDatabaseSettings.TransactionTracingLevel.SAMPLE;
 import static org.neo4j.configuration.GraphDatabaseSettings.bookmark_ready_timeout;
 import static org.neo4j.configuration.GraphDatabaseSettings.check_point_interval_time;
@@ -110,10 +109,6 @@ import static org.neo4j.configuration.GraphDatabaseSettings.transaction_monitor_
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_sampling_percentage;
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_timeout;
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_tracing_level;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_max_off_heap_memory;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_memory_allocation;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_off_heap_block_cache_size;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_off_heap_max_cacheable_block_size;
 import static org.neo4j.configuration.SettingValueParsers.BYTES;
 import static org.neo4j.configuration.connectors.BoltConnectorInternalSettings.thread_pool_shutdown_wait_time;
 import static org.neo4j.io.ByteUnit.gibiBytes;
@@ -189,60 +184,6 @@ class SettingMigratorsTest {
                 .forLevel(WARN)
                 .containsMessages("Use of deprecated setting 'unsupported.tools.batch_inserter.batch_size'. "
                         + "It is replaced by 'internal.tools.batch_inserter.batch_size'.");
-    }
-
-    @Test
-    void testMemorySettingsRename() throws IOException {
-        Path confFile = testDirectory.createFile("test.conf");
-        Files.write(
-                confFile,
-                List.of(
-                        "dbms.tx_state.max_off_heap_memory=6g",
-                        "dbms.tx_state.off_heap.max_cacheable_block_size=4096",
-                        "dbms.tx_state.off_heap.block_cache_size=256"));
-
-        Config config = Config.newBuilder().fromFile(confFile).build();
-        var logProvider = new AssertableLogProvider();
-        config.setLogger(logProvider.getLog(Config.class));
-
-        assertThat(logProvider)
-                .forClass(Config.class)
-                .forLevel(WARN)
-                .containsMessageWithArguments(
-                        "Use of deprecated setting '%s'. It is replaced by '%s'.",
-                        "dbms.tx_state.max_off_heap_memory", tx_state_max_off_heap_memory.name())
-                .containsMessageWithArguments(
-                        "Use of deprecated setting '%s'. It is replaced by '%s'.",
-                        "dbms.tx_state.off_heap.max_cacheable_block_size",
-                        tx_state_off_heap_max_cacheable_block_size.name())
-                .containsMessageWithArguments(
-                        "Use of deprecated setting '%s'. It is replaced by '%s'.",
-                        "dbms.tx_state.off_heap.block_cache_size", tx_state_off_heap_block_cache_size.name());
-
-        assertEquals(BYTES.parse("6g"), config.get(tx_state_max_off_heap_memory));
-        assertEquals(4096, config.get(tx_state_off_heap_max_cacheable_block_size));
-        assertEquals(256, config.get(tx_state_off_heap_block_cache_size));
-    }
-
-    @Test
-    void testLegacyOffHeapMemorySettingsRename() throws IOException {
-        final var legacySetting = "server.memory.off_heap.max_size";
-
-        Path confFile = testDirectory.createFile("test.conf");
-        Files.write(confFile, List.of(legacySetting + "=6g"));
-
-        Config config = Config.newBuilder().fromFile(confFile).build();
-        var logProvider = new AssertableLogProvider();
-        config.setLogger(logProvider.getLog(Config.class));
-
-        assertThat(logProvider)
-                .forClass(Config.class)
-                .forLevel(WARN)
-                .containsMessageWithArguments(
-                        "Use of deprecated setting '%s'. It is replaced by '%s'.",
-                        legacySetting, tx_state_max_off_heap_memory.name());
-
-        assertEquals(BYTES.parse("6g"), config.get(tx_state_max_off_heap_memory));
     }
 
     @Test
@@ -504,7 +445,6 @@ class SettingMigratorsTest {
         assertFalse(config.get(preallocate_logical_logs));
         assertEquals("3 days", config.get(keep_logical_logs));
         assertEquals(mebiBytes(34), config.get(logical_log_rotation_threshold));
-        assertEquals(ON_HEAP, config.get(tx_state_memory_allocation));
     }
 
     @Test
@@ -752,9 +692,6 @@ class SettingMigratorsTest {
                         "dbms.memory.pagecache.flush.buffer.size_in_pages=129",
                         "dbms.memory.pagecache.flush.buffer.enabled=true",
                         "dbms.memory.pagecache.directio=true",
-                        "dbms.memory.off_heap.max_size=4G",
-                        "dbms.memory.off_heap.max_cacheable_block_size=2M",
-                        "dbms.memory.off_heap.block_cache_size=124",
                         "dbms.memory.heap.max_size=512M",
                         "dbms.memory.heap.initial_size=511M"));
 
@@ -765,10 +702,6 @@ class SettingMigratorsTest {
         assertEquals(129, config.get(pagecache_flush_buffer_size_in_pages));
         assertEquals(true, config.get(pagecache_buffered_flush_enabled));
         assertEquals(true, config.get(pagecache_direct_io));
-
-        assertEquals(gibiBytes(4), config.get(tx_state_max_off_heap_memory));
-        assertEquals(mebiBytes(2), config.get(tx_state_off_heap_max_cacheable_block_size));
-        assertEquals(124, config.get(tx_state_off_heap_block_cache_size));
 
         assertEquals(mebiBytes(512), config.get(max_heap_size));
         assertEquals(mebiBytes(511), config.get(initial_heap_size));

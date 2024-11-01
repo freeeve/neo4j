@@ -21,16 +21,10 @@ package org.neo4j.graphdb.factory.module;
 
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.data_collector_max_recent_query_count;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.duplication_user_messages;
-import static org.neo4j.configuration.GraphDatabaseSettings.TransactionStateMemoryAllocation;
 import static org.neo4j.configuration.GraphDatabaseSettings.filewatcher_enabled;
 import static org.neo4j.configuration.GraphDatabaseSettings.memory_tracking;
 import static org.neo4j.configuration.GraphDatabaseSettings.memory_transaction_global_max_size;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_max_off_heap_memory;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_memory_allocation;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_off_heap_block_cache_size;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_off_heap_max_cacheable_block_size;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
-import static org.neo4j.kernel.lifecycle.LifecycleAdapter.onShutdown;
 import static org.neo4j.logging.log4j.LogConfig.createLoggerFromXmlConfig;
 
 import java.nio.file.Path;
@@ -53,7 +47,6 @@ import org.neo4j.internal.collector.RecentQueryBuffer;
 import org.neo4j.internal.diagnostics.DiagnosticsManager;
 import org.neo4j.internal.nativeimpl.NativeAccess;
 import org.neo4j.internal.nativeimpl.NativeAccessProvider;
-import org.neo4j.internal.unsafe.UnsafeUtil;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemLifecycleAdapter;
@@ -77,11 +70,6 @@ import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.pagecache.ConfiguringPageCacheFactory;
 import org.neo4j.kernel.impl.pagecache.PageCacheLifecycle;
 import org.neo4j.kernel.impl.scheduler.JobSchedulerFactory;
-import org.neo4j.kernel.impl.util.collection.CachingOffHeapBlockAllocator;
-import org.neo4j.kernel.impl.util.collection.CapacityLimitingBlockAllocatorDecorator;
-import org.neo4j.kernel.impl.util.collection.CollectionsFactorySupplier;
-import org.neo4j.kernel.impl.util.collection.OffHeapBlockAllocator;
-import org.neo4j.kernel.impl.util.collection.OffHeapCollectionsFactory;
 import org.neo4j.kernel.impl.util.watcher.DefaultFileSystemWatcherService;
 import org.neo4j.kernel.impl.util.watcher.FileSystemWatcherService;
 import org.neo4j.kernel.info.JvmChecker;
@@ -132,7 +120,6 @@ public class GlobalModule {
     private final Iterable<ExtensionFactory<?>> extensionFactories;
     private final JobScheduler jobScheduler;
     private final SystemNanoClock globalClock;
-    private final CollectionsFactorySupplier collectionsFactorySupplier;
     private final ConnectorPortRegister connectorPortRegister;
     private final CompositeDatabaseAvailabilityGuard globalAvailabilityGuard;
     private final FileSystemWatcherService fileSystemWatcher;
@@ -232,8 +219,6 @@ public class GlobalModule {
         tracers = tryResolveOrCreate(Tracers.class, this::createDefaultTracers);
         globalDependencies.satisfyDependency(tracers);
         globalDependencies.satisfyDependency(tracers.getPageCacheTracer());
-
-        collectionsFactorySupplier = createCollectionsFactorySupplier(globalConfig, globalLife, logService);
 
         pageCache = tryResolveOrCreate(
                 PageCache.class,
@@ -422,38 +407,6 @@ public class GlobalModule {
         return pageCache;
     }
 
-    private static CollectionsFactorySupplier createCollectionsFactorySupplier(
-            Config config, LifeSupport life, LogService logService) {
-        final TransactionStateMemoryAllocation allocation = config.get(tx_state_memory_allocation);
-        if (allocation == TransactionStateMemoryAllocation.OFF_HEAP) {
-            if (!UnsafeUtil.unsafeByteBufferAccessAvailable()) {
-                var log = logService.getInternalLog(GlobalModule.class);
-                log.warn(tx_state_memory_allocation.name() + " is set to " + TransactionStateMemoryAllocation.OFF_HEAP
-                        + " but unsafe access to java.nio.DirectByteBuffer is not available. Defaulting to "
-                        + TransactionStateMemoryAllocation.ON_HEAP + ".");
-                return CollectionsFactorySupplier.ON_HEAP;
-            }
-
-            return createOffHeapCollectionsFactory(config, life);
-        }
-        return CollectionsFactorySupplier.ON_HEAP;
-    }
-
-    private static CollectionsFactorySupplier createOffHeapCollectionsFactory(Config config, LifeSupport life) {
-        final CachingOffHeapBlockAllocator allocator = new CachingOffHeapBlockAllocator(
-                config.get(tx_state_off_heap_max_cacheable_block_size), config.get(tx_state_off_heap_block_cache_size));
-        final OffHeapBlockAllocator sharedBlockAllocator;
-        final long maxMemory = config.get(tx_state_max_off_heap_memory);
-        if (maxMemory > 0) {
-            sharedBlockAllocator = new CapacityLimitingBlockAllocatorDecorator(
-                    allocator, maxMemory, tx_state_max_off_heap_memory.name());
-        } else {
-            sharedBlockAllocator = allocator;
-        }
-        life.add(onShutdown(sharedBlockAllocator::release));
-        return () -> new OffHeapCollectionsFactory(sharedBlockAllocator);
-    }
-
     private CapabilitiesService loadCapabilities() {
         var service = CapabilitiesService.newCapabilities(globalConfig, globalDependencies);
         service.set(DBMSCapabilities.dbms_instance_version, Version.getNeo4jVersion());
@@ -468,10 +421,6 @@ public class GlobalModule {
 
     public ConnectorPortRegister getConnectorPortRegister() {
         return connectorPortRegister;
-    }
-
-    CollectionsFactorySupplier getCollectionsFactorySupplier() {
-        return collectionsFactorySupplier;
     }
 
     public SystemNanoClock getGlobalClock() {

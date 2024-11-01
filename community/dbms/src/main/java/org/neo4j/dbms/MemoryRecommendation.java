@@ -21,7 +21,6 @@ package org.neo4j.dbms;
 
 import static java.lang.String.format;
 import static java.util.Locale.ROOT;
-import static org.neo4j.configuration.GraphDatabaseSettings.tx_state_memory_allocation;
 import static org.neo4j.io.ByteUnit.ONE_GIBI_BYTE;
 import static org.neo4j.io.ByteUnit.ONE_KIBI_BYTE;
 import static org.neo4j.io.ByteUnit.ONE_MEBI_BYTE;
@@ -33,7 +32,6 @@ import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Path;
 import java.util.function.ToDoubleFunction;
-import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.api.impl.index.storage.FailureStorage;
@@ -105,31 +103,13 @@ public final class MemoryRecommendation {
         return brackets.recommend(Bracket::heapMemory);
     }
 
-    public static long recommendTxStateMemory(Config config, long heapMemoryBytes) {
-        switch (config.get(tx_state_memory_allocation)) {
-            case OFF_HEAP:
-                long recommendation = heapMemoryBytes / 4;
-                recommendation = Math.max(mebiBytes(128), recommendation);
-                recommendation = Math.min(gibiBytes(8), recommendation);
-                return recommendation;
-            case ON_HEAP:
-                return 0;
-            default:
-                throw new IllegalArgumentException("Unsupported type of memory allocation.");
-        }
-    }
-
-    public static long recommendPageCacheMemory(long totalMemoryBytes, long offHeapMemory) {
+    public static long recommendPageCacheMemory(long totalMemoryBytes) {
         long osMemory = recommendOsMemory(totalMemoryBytes);
         long heapMemory = recommendHeapMemory(totalMemoryBytes);
-        long recommendation = totalMemoryBytes - osMemory - heapMemory - offHeapMemory;
+        long recommendation = totalMemoryBytes - osMemory - heapMemory;
         recommendation = Math.max(mebiBytes(8), recommendation);
         recommendation = Math.min(tebiBytes(16), recommendation);
         return recommendation;
-    }
-
-    public static long recommendPageCacheMemory(long totalMemoryBytes) {
-        return recommendPageCacheMemory(totalMemoryBytes, 0L);
     }
 
     private static Brackets findMemoryBrackets(long totalMemoryBytes) {

@@ -45,7 +45,6 @@ import org.neo4j.kernel.impl.locking.LockManager;
 import org.neo4j.kernel.impl.monitoring.TransactionMonitor;
 import org.neo4j.kernel.impl.query.TransactionExecutionMonitor;
 import org.neo4j.kernel.impl.transaction.log.TransactionCommitmentFactory;
-import org.neo4j.kernel.impl.util.collection.CollectionsFactorySupplier;
 import org.neo4j.kernel.internal.event.DatabaseTransactionEventListeners;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.GlobalMemoryGroupTracker;
@@ -78,7 +77,6 @@ public interface KernelTransactionsFactory {
             AtomicReference<CpuClock> cpuClockRef,
             AccessCapabilityFactory accessCapabilityFactory,
             CursorContextFactory contextFactory,
-            CollectionsFactorySupplier collectionsFactorySupplier,
             ConstraintSemantics constraintSemantics,
             SchemaState schemaState,
             TokenHolders tokenHolders,

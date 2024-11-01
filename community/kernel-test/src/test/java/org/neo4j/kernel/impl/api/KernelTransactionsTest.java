@@ -52,7 +52,6 @@ import static org.neo4j.kernel.api.security.AnonymousContext.access;
 import static org.neo4j.kernel.api.security.AnonymousContext.full;
 import static org.neo4j.kernel.database.DatabaseIdFactory.from;
 import static org.neo4j.kernel.impl.api.chunk.TransactionRollbackProcess.EMPTY_ROLLBACK_PROCESS;
-import static org.neo4j.kernel.impl.util.collection.CollectionsFactorySupplier.ON_HEAP;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 import static org.neo4j.storageengine.api.txstate.validation.TransactionValidatorFactory.EMPTY_VALIDATOR_FACTORY;
 import static org.neo4j.util.concurrent.Futures.combine;
@@ -818,7 +817,6 @@ class KernelTransactionsTest {
                 new AtomicReference<>(CpuClock.NOT_AVAILABLE),
                 any -> CanWrite.INSTANCE,
                 NULL_CONTEXT_FACTORY,
-                ON_HEAP,
                 mock(ConstraintSemantics.class),
                 mock(SchemaState.class),
                 mockedTokenHolders(),
@@ -944,7 +942,6 @@ class KernelTransactionsTest {
                     new AtomicReference<>(CpuClock.NOT_AVAILABLE),
                     accessCapabilityFactory,
                     contextFactory,
-                    ON_HEAP,
                     new StandardConstraintSemantics(),
                     mock(SchemaState.class),
                     tokenHolders,

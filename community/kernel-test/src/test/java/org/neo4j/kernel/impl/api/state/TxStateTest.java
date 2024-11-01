@@ -72,6 +72,7 @@ import org.neo4j.collection.diffset.LongDiffSets;
 import org.neo4j.collection.diffset.MutableLongDiffSets;
 import org.neo4j.collection.diffset.MutableLongDiffSetsImpl;
 import org.neo4j.collection.factory.CollectionsFactory;
+import org.neo4j.collection.factory.OnHeapCollectionsFactory;
 import org.neo4j.common.EntityType;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.function.Predicates;
@@ -91,7 +92,6 @@ import org.neo4j.internal.schema.constraints.UniquenessConstraintDescriptor;
 import org.neo4j.kernel.api.schema.index.TestIndexDescriptorFactory;
 import org.neo4j.kernel.impl.api.chunk.ChunkedTransactionSink;
 import org.neo4j.kernel.impl.transaction.tracing.TransactionEvent;
-import org.neo4j.kernel.impl.util.collection.CollectionsFactorySupplier;
 import org.neo4j.memory.LocalMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.PropertyKeyValue;
@@ -109,7 +109,7 @@ import org.neo4j.values.storable.ValueTuple;
 import org.neo4j.values.storable.Values;
 
 @ExtendWith(RandomExtension.class)
-abstract class TxStateTest {
+class TxStateTest {
     @Inject
     private RandomSupport random;
 
@@ -117,19 +117,14 @@ abstract class TxStateTest {
     private final IndexDescriptor indexOn_2_1 = TestIndexDescriptorFactory.forLabel(2, 1);
     private final IndexDescriptor indexOnRels =
             TestIndexDescriptorFactory.forSchema(SchemaDescriptors.forRelType(3, 1));
-    private final CollectionsFactorySupplier collectionsFactorySupplier;
     private CollectionsFactory collectionsFactory;
     private TxState state;
     MemoryTracker memoryTracker;
 
-    TxStateTest(CollectionsFactorySupplier collectionsFactorySupplier) {
-        this.collectionsFactorySupplier = collectionsFactorySupplier;
-    }
-
     @BeforeEach
     void before() {
         memoryTracker = new LocalMemoryTracker();
-        collectionsFactory = spy(collectionsFactorySupplier.create());
+        collectionsFactory = spy(OnHeapCollectionsFactory.INSTANCE);
         state = new TxState(
                 collectionsFactory,
                 memoryTracker,
@@ -145,7 +140,9 @@ abstract class TxStateTest {
         assertEquals(0L, memoryTracker.usedNativeMemory(), "Seems like native memory is leaking");
     }
 
-    abstract long usedMemory();
+    long usedMemory() {
+        return memoryTracker.estimatedHeapMemory();
+    }
 
     @Test
     void shouldGetAddedLabels() {

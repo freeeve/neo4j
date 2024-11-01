@@ -39,7 +39,6 @@ import static org.neo4j.kernel.database.DatabaseIdFactory.from;
 import static org.neo4j.kernel.impl.api.chunk.TransactionRollbackProcess.EMPTY_ROLLBACK_PROCESS;
 import static org.neo4j.kernel.impl.api.transaction.serial.DatabaseSerialGuard.EMPTY_GUARD;
 import static org.neo4j.kernel.impl.locking.NoLocksClient.NO_LOCKS_CLIENT;
-import static org.neo4j.kernel.impl.util.collection.CollectionsFactorySupplier.ON_HEAP;
 
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
@@ -51,6 +50,7 @@ import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.neo4j.collection.Dependencies;
+import org.neo4j.collection.factory.OnHeapCollectionsFactory;
 import org.neo4j.collection.pool.Pool;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.DbmsRuntimeVersionProvider;
@@ -282,7 +282,7 @@ class KernelTransactionTerminationTest {
                     mock(StorageEngine.class, RETURNS_MOCKS),
                     any -> CanWrite.INSTANCE,
                     new CursorContextFactory(new DefaultPageCacheTracer(), EMPTY_CONTEXT_SUPPLIER),
-                    ON_HEAP,
+                    OnHeapCollectionsFactory.INSTANCE,
                     new StandardConstraintSemantics(),
                     mock(SchemaState.class),
                     mockedTokenHolders(),

@@ -55,7 +55,6 @@ import org.neo4j.kernel.impl.pagecache.VersionStorageFactory;
 import org.neo4j.kernel.impl.query.QueryEngineProvider;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.StoreCopyCheckPointMutex;
 import org.neo4j.kernel.impl.transaction.stats.DatabaseTransactionStats;
-import org.neo4j.kernel.impl.util.collection.CollectionsFactorySupplier;
 import org.neo4j.kernel.internal.event.GlobalTransactionEventListeners;
 import org.neo4j.kernel.internal.locker.FileLockerService;
 import org.neo4j.kernel.monitoring.DatabaseEventListeners;
@@ -122,8 +121,6 @@ public interface DatabaseCreationContext {
     DbmsInfo getDbmsInfo();
 
     HostedOnMode getMode();
-
-    CollectionsFactorySupplier getCollectionsFactorySupplier();
 
     Iterable<ExtensionFactory<?>> getExtensionFactories();
 

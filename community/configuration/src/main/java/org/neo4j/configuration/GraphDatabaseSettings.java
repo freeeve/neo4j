@@ -26,11 +26,9 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Map.entry;
 import static org.neo4j.configuration.Config.DEFAULT_CONFIG_DIR_NAME;
-import static org.neo4j.configuration.GraphDatabaseSettings.TransactionStateMemoryAllocation.ON_HEAP;
 import static org.neo4j.configuration.SettingConstraints.ABSOLUTE_PATH;
 import static org.neo4j.configuration.SettingConstraints.HOSTNAME_ONLY;
 import static org.neo4j.configuration.SettingConstraints.NO_ALL_INTERFACES_ADDRESS;
-import static org.neo4j.configuration.SettingConstraints.POWER_OF_2;
 import static org.neo4j.configuration.SettingConstraints.any;
 import static org.neo4j.configuration.SettingConstraints.is;
 import static org.neo4j.configuration.SettingConstraints.min;
@@ -956,47 +954,6 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
     @Description("Enable off heap and on heap memory tracking. Should not be set to `false` for clusters.")
     public static final Setting<Boolean> memory_tracking =
             newBuilder("dbms.memory.tracking.enable", BOOL, true).build();
-
-    public enum TransactionStateMemoryAllocation {
-        ON_HEAP,
-        @Deprecated(since = "5.8.0", forRemoval = true)
-        OFF_HEAP
-    }
-
-    @Deprecated(since = "5.8.0", forRemoval = true)
-    @Description("Defines whether memory for transaction state should be allocated on- or off-heap. "
-            + "Note that for small transactions you can gain up to 25% write speed by setting it to `ON_HEAP`.")
-    public static final Setting<TransactionStateMemoryAllocation> tx_state_memory_allocation = newBuilder(
-                    "db.tx_state.memory_allocation", ofEnum(TransactionStateMemoryAllocation.class), ON_HEAP)
-            .build();
-
-    @Deprecated(since = "5.8.0", forRemoval = true)
-    @Description(
-            "The maximum amount of off-heap memory that can be used to store transaction state data; it's a total amount of memory "
-                    + "shared across all active transactions. Zero means 'unlimited'. Used when db.tx_state.memory_allocation is set to 'OFF_HEAP'.")
-    public static final Setting<Long> tx_state_max_off_heap_memory = newBuilder(
-                    "server.memory.off_heap.transaction_max_size", BYTES, BYTES.parse("2G"))
-            .addConstraint(min(0L))
-            .build();
-
-    @Deprecated(forRemoval = true)
-    @Description(
-            "Defines the maximum size of an off-heap memory block that can be cached to speed up allocations. The value must be a power of 2.")
-    public static final Setting<Long> tx_state_off_heap_max_cacheable_block_size = newBuilder(
-                    "server.memory.off_heap.max_cacheable_block_size", BYTES, ByteUnit.kibiBytes(512))
-            .addConstraint(min(kibiBytes(4)))
-            .addConstraint(POWER_OF_2)
-            .build();
-
-    @Deprecated(forRemoval = true)
-    @Description(
-            "Defines the size of the off-heap memory blocks cache. The cache will contain this number of blocks for each block size "
-                    + "that is power of two. Thus, maximum amount of memory used by blocks cache can be calculated as "
-                    + "2 * server.memory.off_heap.max_cacheable_block_size * server.memory.off_heap.block_cache_size")
-    public static final Setting<Integer> tx_state_off_heap_block_cache_size = newBuilder(
-                    "server.memory.off_heap.block_cache_size", INT, 128)
-            .addConstraint(min(16))
-            .build();
 
     @Description("Enable server-side routing in clusters using an additional bolt connector.\n"
             + "When configured, this allows requests to be forwarded from one cluster member to another, if the requests cannot be "

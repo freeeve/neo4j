@@ -66,7 +66,6 @@ import org.neo4j.kernel.impl.query.QueryEngineProvider;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.StoreCopyCheckPointMutex;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper;
 import org.neo4j.kernel.impl.transaction.stats.DatabaseTransactionStats;
-import org.neo4j.kernel.impl.util.collection.CollectionsFactorySupplier;
 import org.neo4j.kernel.impl.util.watcher.DefaultFileDeletionListenerFactory;
 import org.neo4j.kernel.internal.event.GlobalTransactionEventListeners;
 import org.neo4j.kernel.internal.locker.FileLockerService;
@@ -113,7 +112,6 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     private final CursorContextFactory contextFactory;
     private final VersionStorageFactory versionStorageFactory;
     private final DeviceMapper deviceMapper;
-    private final CollectionsFactorySupplier collectionsFactorySupplier;
     private final Iterable<ExtensionFactory<?>> extensionFactories;
     private final Function<DatabaseLayout, DatabaseLayoutWatcher> watcherServiceFactory;
     private final DatabaseLayout databaseLayout;
@@ -195,7 +193,6 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
         this.storeCopyCheckPointMutex = new StoreCopyCheckPointMutex();
         this.dbmsInfo = globalModule.getDbmsInfo();
         this.mode = mode;
-        this.collectionsFactorySupplier = globalModule.getCollectionsFactorySupplier();
         this.extensionFactories = globalModule.getExtensionFactories();
         this.watcherServiceFactory = databaseLayout -> createDatabaseFileSystemWatcher(
                 globalModule.getFileWatcher(), databaseLayout, globalModule.getLogService(), databaseFileFilter);
@@ -347,11 +344,6 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     @Override
     public HostedOnMode getMode() {
         return mode;
-    }
-
-    @Override
-    public CollectionsFactorySupplier getCollectionsFactorySupplier() {
-        return collectionsFactorySupplier;
     }
 
     @Override

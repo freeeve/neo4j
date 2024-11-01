@@ -33,6 +33,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import org.neo4j.collection.Dependencies;
+import org.neo4j.collection.factory.OnHeapCollectionsFactory;
 import org.neo4j.collection.pool.LinkedQueuePool;
 import org.neo4j.collection.pool.Pool;
 import org.neo4j.configuration.Config;
@@ -82,7 +83,6 @@ import org.neo4j.kernel.impl.locking.LockManager;
 import org.neo4j.kernel.impl.monitoring.TransactionMonitor;
 import org.neo4j.kernel.impl.query.TransactionExecutionMonitor;
 import org.neo4j.kernel.impl.transaction.log.TransactionCommitmentFactory;
-import org.neo4j.kernel.impl.util.collection.CollectionsFactorySupplier;
 import org.neo4j.kernel.internal.event.DatabaseTransactionEventListeners;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.LogProvider;
@@ -146,7 +146,6 @@ public class KernelTransactions extends LifecycleAdapter
     private final IndexStatisticsStore indexStatisticsStore;
     private final Dependencies databaseDependencies;
     private final Config config;
-    private final CollectionsFactorySupplier collectionsFactorySupplier;
     private final SchemaState schemaState;
     private final LeaseService leaseService;
 
@@ -201,7 +200,6 @@ public class KernelTransactions extends LifecycleAdapter
             AtomicReference<CpuClock> cpuClockRef,
             AccessCapabilityFactory accessCapabilityFactory,
             CursorContextFactory contextFactory,
-            CollectionsFactorySupplier collectionsFactorySupplier,
             ConstraintSemantics constraintSemantics,
             SchemaState schemaState,
             TokenHolders tokenHolders,
@@ -256,7 +254,6 @@ public class KernelTransactions extends LifecycleAdapter
         this.databaseDependencies = databaseDependencies;
         this.contextFactory = contextFactory;
         this.clock = clock;
-        this.collectionsFactorySupplier = collectionsFactorySupplier;
         this.constraintSemantics = constraintSemantics;
         this.schemaState = schemaState;
         this.leaseService = leaseService;
@@ -548,7 +545,7 @@ public class KernelTransactions extends LifecycleAdapter
                     storageEngine,
                     accessCapabilityFactory,
                     contextFactory,
-                    collectionsFactorySupplier,
+                    OnHeapCollectionsFactory.INSTANCE,
                     constraintSemantics,
                     schemaState,
                     tokenHolders,
