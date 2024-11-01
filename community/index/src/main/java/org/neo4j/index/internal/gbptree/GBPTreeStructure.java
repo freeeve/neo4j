@@ -278,9 +278,7 @@ public class GBPTreeStructure<ROOT_KEY, DATA_KEY, DATA_VALUE> {
         if (isLeaf) {
             visitor.key(key, isLeaf, offloadId);
             visitor.value(value);
-            if (visitor.visitHistory()) {
-                dataLeaf.deepVisitValue(cursor, i, visitor);
-            }
+            dataLeaf.deepVisitValue(cursor, i, visitor);
         } else {
             visitor.child(child);
             visitor.key(key, isLeaf, offloadId);

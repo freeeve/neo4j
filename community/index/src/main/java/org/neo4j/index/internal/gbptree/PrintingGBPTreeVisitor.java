@@ -95,6 +95,13 @@ public class PrintingGBPTreeVisitor<ROOT_KEY, KEY, VALUE> extends GBPTreeVisitor
     }
 
     @Override
+    public void valueVersion(long version) {
+        if (printValues) {
+            out.print("{" + version + "} ");
+        }
+    }
+
+    @Override
     public boolean visitHistory() {
         return printHistory;
     }
