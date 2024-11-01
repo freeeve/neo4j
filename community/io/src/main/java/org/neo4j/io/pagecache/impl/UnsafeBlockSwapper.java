@@ -26,43 +26,18 @@ import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.pagecache.impl.muninn.MuninnPageCache;
 
 /**
- * BlockSwapper that uses reflection to wrap buffer address into ByteBuffer proxy to directly read from/write to StoreChannel
+ * BlockSwapper that uses reflection to wrap buffer address into ByteBuffer to directly read from/write to StoreChannel
  */
 final class UnsafeBlockSwapper implements BlockSwapper {
-    private static final ThreadLocal<ByteBuffer> PROXY_CACHE = new ThreadLocal<>();
-
-    private static ByteBuffer proxy(long buffer, int bufferLength) throws IOException {
-        ByteBuffer buf = PROXY_CACHE.get();
-        if (buf != null) {
-            if (buf.capacity() != bufferLength) {
-                return createAndGetNewBuffer(buffer, bufferLength);
-            }
-            UnsafeUtil.initDirectByteBuffer(buf, buffer, bufferLength);
-            return buf;
-        }
-        return createAndGetNewBuffer(buffer, bufferLength);
-    }
-
-    private static ByteBuffer createAndGetNewBuffer(long buffer, int bufferLength) throws IOException {
-        ByteBuffer buf;
-        try {
-            buf = UnsafeUtil.newDirectByteBuffer(buffer, bufferLength);
-        } catch (Throwable e) {
-            throw new IOException(e);
-        }
-        PROXY_CACHE.set(buf);
-        return buf;
-    }
 
     @Override
     public int swapIn(StoreChannel channel, long bufferAddress, long fileOffset, int bufferSize) throws IOException {
         int readTotal = 0;
         try {
-            ByteBuffer bufferProxy;
-            bufferProxy = proxy(bufferAddress, bufferSize);
+            var buffer = buffer(bufferAddress, bufferSize);
             int read;
             do {
-                read = channel.read(bufferProxy, fileOffset + readTotal);
+                read = channel.read(buffer, fileOffset + readTotal);
             } while (read != -1 && (readTotal += read) < bufferSize);
 
             // Zero-fill the rest.
@@ -78,21 +53,29 @@ final class UnsafeBlockSwapper implements BlockSwapper {
         }
     }
 
-    private static String formatSwapInErrorMessage(long fileOffset, int size, int readTotal) {
-        return "Read failed after " + readTotal + " of " + size + " bytes from fileOffset " + fileOffset + ".";
-    }
-
     @Override
     public void swapOut(StoreChannel channel, long bufferAddress, long fileOffset, int bufferLength)
             throws IOException {
         try {
             // direct write from memory to channel using proxy
-            var bufferProxy = proxy(bufferAddress, bufferLength);
-            channel.writeAll(bufferProxy, fileOffset);
+            var buffer = buffer(bufferAddress, bufferLength);
+            channel.writeAll(buffer, fileOffset);
         } catch (IOException e) {
             throw e;
         } catch (Throwable e) {
             throw new IOException(e);
         }
+    }
+
+    private static ByteBuffer buffer(long buffer, int bufferLength) throws IOException {
+        try {
+            return UnsafeUtil.newDirectByteBuffer(buffer, bufferLength);
+        } catch (Throwable e) {
+            throw new IOException(e);
+        }
+    }
+
+    private static String formatSwapInErrorMessage(long fileOffset, int size, int readTotal) {
+        return "Read failed after " + readTotal + " of " + size + " bytes from fileOffset " + fileOffset + ".";
     }
 }
