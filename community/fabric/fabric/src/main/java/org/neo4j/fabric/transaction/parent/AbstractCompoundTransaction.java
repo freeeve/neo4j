@@ -38,6 +38,9 @@ import org.neo4j.fabric.executor.FabricException;
 import org.neo4j.fabric.executor.Location;
 import org.neo4j.fabric.transaction.ErrorReporter;
 import org.neo4j.fabric.transaction.TransactionMode;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.TransactionTerminatedException;
 import org.neo4j.kernel.api.TerminationMark;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -73,7 +76,72 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
         TERMINATED
     }
 
-    protected record ErrorRecord(String message, Throwable error) {}
+    protected static class ErrorRecord {
+        private final String message;
+        private final Throwable error;
+        private final ErrorGqlStatusObject gqlStatusObject;
+
+        @Deprecated
+        private ErrorRecord(String message, Throwable error) {
+            this.message = message;
+            this.error = error;
+            this.gqlStatusObject = null;
+        }
+
+        private ErrorRecord(ErrorGqlStatusObject gql, String message, Throwable error) {
+            this.message = message;
+            this.error = error;
+            this.gqlStatusObject = gql;
+        }
+
+        public String message() {
+            return message;
+        }
+
+        public Throwable error() {
+            return error;
+        }
+
+        public ErrorGqlStatusObject gqlStatusObject() {
+            return gqlStatusObject;
+        }
+
+        public static ErrorRecord commitFailed(String message, Throwable error) {
+            var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN01)
+                    .build();
+            return new ErrorRecord(gql, message, error);
+        }
+
+        public static ErrorRecord constituentCommitFailed(String message, Throwable error) {
+            var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN02)
+                    .build();
+            return new ErrorRecord(gql, message, error);
+        }
+
+        public static ErrorRecord rollbackFailed(String message, Throwable error) {
+            var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_40N01)
+                    .build();
+            return new ErrorRecord(gql, message, error);
+        }
+
+        public static ErrorRecord constituentRollbackFailed(String message, Throwable error) {
+            var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_40N02)
+                    .build();
+            return new ErrorRecord(gql, message, error);
+        }
+
+        public static ErrorRecord transactionTerminateFailed(String message, Throwable error) {
+            var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN03)
+                    .build();
+            return new ErrorRecord(gql, message, error);
+        }
+
+        public static ErrorRecord constituentTransactionTerminationFailed(String message, Throwable error) {
+            var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN04)
+                    .build();
+            return new ErrorRecord(gql, message, error);
+        }
+    }
 
     protected AbstractCompoundTransaction(ErrorReporter errorReporter, SystemNanoClock clock) {
         this.errorReporter = errorReporter;
@@ -166,7 +234,8 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
             }
 
             if (state == State.CLOSED) {
-                throw new FabricException(TransactionCommitFailed, "Trying to commit closed transaction");
+                throw FabricException.transactionCommitFailed(
+                        TransactionCommitFailed, "Trying to commit closed transaction");
             }
 
             state = State.CLOSED;
@@ -175,20 +244,21 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
 
             try {
                 doOnChildren(readingTransactions, null, this::childTransactionCommit)
-                        .forEach(error ->
-                                allFailures.add(new ErrorRecord("Failed to commit a child read transaction", error)));
+                        .forEach(error -> allFailures.add(ErrorRecord.constituentCommitFailed(
+                                "Failed to commit a child read transaction", error)));
 
                 if (!allFailures.isEmpty()) {
                     doOnChildren(List.of(), writingTransaction, this::childTransactionRollback)
-                            .forEach(error -> allFailures.add(
-                                    new ErrorRecord("Failed to rollback a child write transaction", error)));
+                            .forEach(error -> allFailures.add(ErrorRecord.constituentRollbackFailed(
+                                    "Failed to rollback a child write transaction", error)));
                 } else {
                     doOnChildren(List.of(), writingTransaction, this::childTransactionCommit)
-                            .forEach(error -> allFailures.add(
-                                    new ErrorRecord("Failed to commit a child write transaction", error)));
+                            .forEach(error -> allFailures.add(ErrorRecord.constituentCommitFailed(
+                                    "Failed to commit a child write transaction", error)));
                 }
             } catch (Exception e) {
-                allFailures.add(new ErrorRecord("Failed to commit composite transaction", commitFailedError()));
+                allFailures.add(
+                        ErrorRecord.commitFailed("Failed to commit composite transaction", commitFailedError()));
             } finally {
                 closeContextsAndRemoveTransaction();
             }
@@ -230,10 +300,11 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
 
         try {
             doOnChildren(readingTransactions, writingTransaction, operation)
-                    .forEach(
-                            error -> allFailures.add(new ErrorRecord("Failed to rollback a child transaction", error)));
+                    .forEach(error -> allFailures.add(
+                            ErrorRecord.constituentRollbackFailed("Failed to rollback a child transaction", error)));
         } catch (Exception e) {
-            allFailures.add(new ErrorRecord("Failed to rollback composite transaction", rollbackFailedError()));
+            allFailures.add(
+                    ErrorRecord.rollbackFailed("Failed to rollback composite transaction", rollbackFailedError()));
         } finally {
             closeContextsAndRemoveTransaction();
         }
@@ -314,10 +385,11 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
                             readingTransactions,
                             writingTransaction,
                             singleDbTransaction -> childTransactionTerminate(singleDbTransaction, reason))
-                    .forEach(error ->
-                            allFailures.add(new ErrorRecord("Failed to terminate a child transaction", error)));
+                    .forEach(error -> allFailures.add(ErrorRecord.constituentTransactionTerminationFailed(
+                            "Failed to terminate a child transaction", error)));
         } catch (Exception e) {
-            allFailures.add(new ErrorRecord("Failed to terminate composite transaction", terminationFailedError()));
+            allFailures.add(ErrorRecord.transactionTerminateFailed(
+                    "Failed to terminate composite transaction", terminationFailedError()));
         }
         throwIfNonEmpty(allFailures, TransactionTerminationFailed);
     }
@@ -362,7 +434,8 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
         if (!failures.isEmpty()) {
             // The main exception is not logged, because it will be logged by Bolt
             // and the log would contain two lines reporting the same thing without any additional info.
-            var mainException = Exceptions.transformUnexpectedError(defaultStatusCode, failures.get(0).error);
+            var mainException =
+                    Exceptions.transform(failures.get(0).gqlStatusObject, defaultStatusCode, failures.get(0).error);
             for (int i = 1; i < failures.size(); i++) {
                 var errorRecord = failures.get(i);
                 mainException.addSuppressed(errorRecord.error);
@@ -389,15 +462,18 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
     }
 
     private FabricException commitFailedError() {
-        return new FabricException(TransactionCommitFailed, "Failed to commit composite transaction");
+        return FabricException.transactionCommitFailed(
+                TransactionCommitFailed, "Failed to commit composite transaction");
     }
 
     private FabricException rollbackFailedError() {
-        return new FabricException(TransactionRollbackFailed, "Failed to rollback composite transaction");
+        return FabricException.transactionRollbackFailed(
+                TransactionRollbackFailed, "Failed to rollback composite transaction");
     }
 
     private FabricException terminationFailedError() {
-        return new FabricException(TransactionTerminationFailed, "Failed to terminate composite transaction");
+        return FabricException.transactionTerminationFailed(
+                TransactionTerminationFailed, "Failed to terminate composite transaction");
     }
 
     protected abstract boolean isUninitialized();

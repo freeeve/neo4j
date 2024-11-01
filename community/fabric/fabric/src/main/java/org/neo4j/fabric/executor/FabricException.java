@@ -198,6 +198,24 @@ public class FabricException extends GqlRuntimeException implements Status.HasSt
         return new FabricException(gql, Status.Transaction.ForbiddenDueToTransactionType, message);
     }
 
+    public static FabricException transactionCommitFailed(Status statusCode, String message) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN01)
+                .build();
+        return new FabricException(gql, statusCode, message);
+    }
+
+    public static FabricException transactionRollbackFailed(Status statusCode, String message) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_40N01)
+                .build();
+        return new FabricException(gql, statusCode, message);
+    }
+
+    public static FabricException transactionTerminationFailed(Status statusCode, String message) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN03)
+                .build();
+        return new FabricException(gql, statusCode, message);
+    }
+
     @Override
     public Status status() {
         return statusCode;
