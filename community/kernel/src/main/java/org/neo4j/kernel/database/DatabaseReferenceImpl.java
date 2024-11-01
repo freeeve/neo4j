@@ -26,6 +26,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.neo4j.configuration.helpers.RemoteUri;
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel;
 
@@ -327,8 +329,19 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
     }
 
     public static final class SPD extends DatabaseReferenceImpl.Internal {
+        private static final Pattern pattern = Pattern.compile("(.)+(-shard-)([0-9][0-9])");
+
         public static String shardName(String databaseName, int index) {
             return String.format("%s-shard-%02d", databaseName, index);
+        }
+
+        public static boolean isShardName(String databaseName) {
+            return pattern.matcher(databaseName).matches();
+        }
+
+        public static int shardIndex(String databaseName) {
+            Matcher matcher = pattern.matcher(databaseName);
+            return matcher.matches() ? Integer.parseInt(matcher.group(3)) : -1;
         }
 
         private final Map<Integer, DatabaseReference> entityDetailStores;
