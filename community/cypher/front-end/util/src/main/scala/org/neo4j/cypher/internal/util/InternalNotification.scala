@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.util
 import java.lang
 
 import scala.jdk.CollectionConverters.IterableHasAsJava
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
  * Describes a notification
@@ -214,6 +215,8 @@ case class DeprecatedStoreFormat(format: String) extends InternalNotification
 
 case object InsecureProtocol extends InternalNotification
 
-case object RuntimeUnsatisfiableRelationshipTypeExpression extends InternalNotification {
-  def instance: RuntimeUnsatisfiableRelationshipTypeExpression.type = this
+case class RuntimeUnsatisfiableRelationshipTypeExpression(types: List[String]) extends InternalNotification {
+
+  def this(types: java.util.List[String]) =
+    this(types.asScala.toList)
 }

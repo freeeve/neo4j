@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.util.attribution.Id
 case class DirectedRelationshipTypeScanPipe(
   ident: String,
   fromNode: String,
-  typ: LazyType,
+  typ: LazyTypeStatic,
   toNode: String,
   indexOrder: IndexOrder
 )(val id: Id = Id.INVALID_ID) extends Pipe {
@@ -36,7 +36,7 @@ case class DirectedRelationshipTypeScanPipe(
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val ctx = state.newRowWithArgument(rowFactory)
     val query = state.query
-    val typeId = typ.asStatic.getId(query)
+    val typeId = typ.getId(query)
     if (typeId == LazyType.UNKNOWN) ClosingIterator.empty
     else {
       val relIterator = query.getRelationshipsByType(state.relTypeTokenReadSession.get, typeId, indexOrder)

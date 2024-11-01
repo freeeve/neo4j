@@ -158,7 +158,7 @@ final case class PatternRelationship(
       if (!withTypes || types.isEmpty) {
         ""
       } else {
-        types.map(_.name).mkString(":", "|", "")
+        types.map(_.asCanonicalStringVal).mkString(":", "|", "")
       }
     val lengthStr = length match {
       case SimplePatternLength              => ""

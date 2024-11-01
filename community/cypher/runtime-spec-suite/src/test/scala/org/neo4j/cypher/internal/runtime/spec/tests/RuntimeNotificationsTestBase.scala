@@ -167,7 +167,7 @@ abstract class RuntimeNotificationsTestBase[CONTEXT <: RuntimeContext](
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
-      .filterExpression(hasDynamicType(varFor("r"), literal(Seq("A", "B"))))
+      .filterExpression(hasDynamicType(varFor("r"), literal(Seq("A", "B", "C"))))
       .allRelationshipsScan("()-[r]-()")
       .build()
 
@@ -175,7 +175,7 @@ abstract class RuntimeNotificationsTestBase[CONTEXT <: RuntimeContext](
 
     runtimeResult should beColumns("r")
       .withNoRows()
-      .withNotifications(RuntimeUnsatisfiableRelationshipTypeExpression)
+      .withNotifications(RuntimeUnsatisfiableRelationshipTypeExpression(List("A", "B", "C")))
   }
 
 }

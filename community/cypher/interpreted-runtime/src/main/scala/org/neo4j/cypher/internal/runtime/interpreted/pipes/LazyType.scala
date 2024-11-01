@@ -37,15 +37,12 @@ sealed abstract class LazyType {
 
   def getOrCreateType(row: ReadableRow, state: QueryState, token: TokenWrite): Int
 
-  /**
-   * This method throws an exception for dynamic types and should be used with caution/removed entirely once the feature is complete
-   */
-  def asStatic: LazyTypeStatic
+  def getId(row: ReadableRow, state: QueryState): Int
 
-  def rendered: String
+  def stringified: String
 }
 
-case class LazyTypeDynamic(expr: Expression, rendered: String) extends LazyType {
+case class LazyTypeDynamic(expr: Expression, stringified: String) extends LazyType {
 
   def getOrCreateType(row: ReadableRow, state: QueryState): Int = {
     if (id == LazyType.UNKNOWN) {
@@ -61,12 +58,17 @@ case class LazyTypeDynamic(expr: Expression, rendered: String) extends LazyType 
     id
   }
 
-  def asStatic: LazyTypeStatic = throw new NotImplementedError("DynamicRelTypeExpression not yet supported here")
+  def getId(row: ReadableRow, state: QueryState): Int = {
+    val name = CypherFunctions.evaluateSingleDynamicRelType(expr(row, state))
+    if (id == LazyLabel.UNKNOWN) {
+      id = state.query.getOptRelTypeId(name).getOrElse(LazyType.UNKNOWN)
+    }
+    id
+  }
 }
 
 case class LazyTypeStatic(name: String) extends LazyType {
-  def asStatic: LazyTypeStatic = this
-  def rendered: String = name
+  def stringified: String = name
 
   def getOrCreateType(row: ReadableRow, state: QueryState): Int =
     getOrCreateType(state.query)
@@ -94,6 +96,9 @@ case class LazyTypeStatic(name: String) extends LazyType {
     }
     id
   }
+
+  def getId(row: ReadableRow, state: QueryState): Int =
+    getId(state.query)
 }
 
 object LazyType {
@@ -106,18 +111,18 @@ object LazyType {
   ): LazyType = {
     relTypeExpression match {
       case name: RelTypeName => LazyType(name)(table)
-      case DynamicRelTypeExpression(expression, _) =>
-        LazyType(commandExpressionConverter(expression), expression.asCanonicalStringVal)
+      case dyn @ DynamicRelTypeExpression(expression, _) =>
+        LazyType(commandExpressionConverter(expression), dyn.asCanonicalStringVal)
     }
   }
 
-  def apply(relTypeName: RelTypeName)(implicit table: TokenTable): LazyType = {
+  def apply(relTypeName: RelTypeName)(implicit table: TokenTable): LazyTypeStatic = {
     val typ = LazyTypeStatic(relTypeName.name)
     typ.id = table.id(relTypeName)
     typ
   }
 
-  def apply(relTypeExpr: Expression, rendered: String): LazyType = {
+  def apply(relTypeExpr: Expression, rendered: String): LazyTypeDynamic = {
     LazyTypeDynamic(relTypeExpr, rendered)
   }
 }

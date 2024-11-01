@@ -52,7 +52,7 @@ case class GetDegreeWithTypePrimitiveLate(offset: Int, typ: LazyType, direction:
     with SlottedExpression {
 
   override def apply(row: ReadableRow, state: QueryState): AnyValue = {
-    val typeId = typ.asStatic.getId(state.query)
+    val typeId = typ.getId(row, state)
     if (typeId == LazyType.UNKNOWN) Values.ZERO_INT
     else longValue(state.query.nodeGetDegree(row.getLongAt(offset), direction, typeId, state.cursors.nodeCursor))
   }

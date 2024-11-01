@@ -104,10 +104,10 @@ case class CreateSlottedRelationship(command: CreateRelationshipSlottedCommand, 
               map(state).foreach {
                 case (k: String, v: AnyValue) if v eq Values.NO_VALUE =>
                   if (!allowNullOrNaNProperty) {
-                    CreateRelationship.handleNoValue(command.startName, command.relType.rendered, command.endName, k)
+                    CreateRelationship.handleNoValue(command.startName, command.relType.stringified, command.endName, k)
                   }
                 case (k: String, v: FloatingPointValue) if !allowNullOrNaNProperty && v.isNaN =>
-                  CreateRelationship.handleNaNValue(command.startName, command.relType.rendered, command.endName, k)
+                  CreateRelationship.handleNaNValue(command.startName, command.relType.stringified, command.endName, k)
                 case (k: String, v: AnyValue) =>
                   val propId = state.query.getOrCreatePropertyKeyId(k)
                   state.query.relationshipWriteOps.setProperty(relationship, propId, makeValueNeoSafe(v))

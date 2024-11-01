@@ -32,13 +32,13 @@ import org.neo4j.values.virtual.VirtualRelationshipValue
 case class UndirectedRelationshipTypeScanPipe(
   ident: String,
   fromNode: String,
-  typ: LazyType,
+  typ: LazyTypeStatic,
   toNode: String,
   indexOrder: IndexOrder
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
-    val typeId = typ.asStatic.getId(state.query)
+    val typeId = typ.getId(state.query)
     if (typeId == LazyType.UNKNOWN) {
       ClosingIterator.empty
     } else {

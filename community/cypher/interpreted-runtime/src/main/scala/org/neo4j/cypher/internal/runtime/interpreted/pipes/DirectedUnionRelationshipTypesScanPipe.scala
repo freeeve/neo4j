@@ -39,7 +39,7 @@ import org.neo4j.io.IOUtils
 case class DirectedUnionRelationshipTypesScanPipe(
   ident: String,
   fromNode: String,
-  types: Seq[LazyType],
+  types: Seq[LazyTypeStatic],
   toNode: String,
   indexOrder: IndexOrder
 )(
@@ -67,12 +67,12 @@ object DirectedUnionRelationshipTypesScanPipe {
 
   def unionTypeIterator(
     state: QueryState,
-    types: Seq[LazyType],
+    types: Seq[LazyTypeStatic],
     indexOrder: IndexOrder,
     tokenReadSession: TokenReadSession
   ): ClosingLongIterator with RelationshipIterator = {
     val query = state.query
-    val ids = types.map(_.asStatic.getId(query)).filter(_ != LazyType.UNKNOWN).toArray
+    val ids = types.map(_.getId(query)).filter(_ != LazyType.UNKNOWN).toArray
     if (ids.isEmpty) ClosingLongIterator.emptyClosingRelationshipIterator
     else {
       val cursors = ids.map(_ => {

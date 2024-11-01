@@ -116,11 +116,11 @@ case class CreateRelationship(command: CreateRelationshipCommand, allowNullOrNaN
             map(state).foreach {
               case (k, v) if v eq Values.NO_VALUE =>
                 if (!allowNullOrNaNProperty) {
-                  CreateRelationship.handleNoValue(command.startNode, command.relType.rendered, command.endNode, k)
+                  CreateRelationship.handleNoValue(command.startNode, command.relType.stringified, command.endNode, k)
                 }
               case (k, v: FloatingPointValue) if v.isNaN =>
                 if (!allowNullOrNaNProperty) {
-                  CreateRelationship.handleNaNValue(command.startNode, command.relType.rendered, command.endNode, k)
+                  CreateRelationship.handleNaNValue(command.startNode, command.relType.stringified, command.endNode, k)
                 }
               case (k, v) =>
                 val propId = state.query.getOrCreatePropertyKeyId(k)

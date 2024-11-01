@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.CypherRowFactory
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyType
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyTypeStatic
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.runtime.slotted.pipes.UndirectedRelationshipTypeScanSlottedPipe.UndirectedIterator
@@ -34,13 +35,13 @@ import org.neo4j.cypher.internal.util.attribution.Id
 case class UndirectedRelationshipTypeScanSlottedPipe(
   relOffset: Int,
   fromOffset: Int,
-  typ: LazyType,
+  typ: LazyTypeStatic,
   toOffset: Int,
   indexOrder: IndexOrder
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
-    val typeId = typ.asStatic.getId(state.query)
+    val typeId = typ.getId(state.query)
     if (typeId == LazyType.UNKNOWN) {
       ClosingIterator.empty
     } else {

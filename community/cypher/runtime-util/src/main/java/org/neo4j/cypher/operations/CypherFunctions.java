@@ -1421,24 +1421,30 @@ public final class CypherFunctions {
         assert entity != NO_VALUE : "NO_VALUE checks need to happen outside this call";
 
         TextValue singleValue = null;
+        ArrayList<String> conflictingTypes = null;
         if (entity instanceof VirtualRelationshipValue relationship) {
             for (var value : dynamicTypes) {
                 if (value instanceof TextValue textValue) {
-                    if (singleValue == null) {
+                    if (conflictingTypes != null) {
+                        conflictingTypes.add(textValue.stringValue());
+                    } else if (singleValue == null) {
                         singleValue = textValue;
                     } else if (!singleValue.equals(textValue)) {
-                        notifier.newRuntimeNotification(RuntimeUnsatisfiableRelationshipTypeExpression.instance());
-                        return false;
+                        conflictingTypes = new ArrayList<>();
+                        conflictingTypes.add(singleValue.stringValue());
+                        conflictingTypes.add(textValue.stringValue());
                     }
                 } else if (value instanceof SequenceValue sequenceValue) {
                     for (var t : sequenceValue) {
                         if (t instanceof TextValue textValue) {
-                            if (singleValue == null) {
+                            if (conflictingTypes != null) {
+                                conflictingTypes.add(textValue.stringValue());
+                            } else if (singleValue == null) {
                                 singleValue = textValue;
                             } else if (!singleValue.equals(textValue)) {
-                                notifier.newRuntimeNotification(
-                                        RuntimeUnsatisfiableRelationshipTypeExpression.instance());
-                                return false;
+                                conflictingTypes = new ArrayList<>();
+                                conflictingTypes.add(singleValue.stringValue());
+                                conflictingTypes.add(textValue.stringValue());
                             }
                         } else {
                             throw new CypherTypeException(format(
@@ -1456,6 +1462,12 @@ public final class CypherFunctions {
             if (singleValue == null) {
                 // weird but if we have no value by this point then the list was empty and all(for n in []) == true
                 return true;
+            }
+
+            if (conflictingTypes != null) {
+                // detected more than one relationship type; the conjunction can never be satisfied
+                notifier.newRuntimeNotification(new RuntimeUnsatisfiableRelationshipTypeExpression(conflictingTypes));
+                return false;
             }
 
             return hasType(relationship, singleValue, relCursor, queryContext);
