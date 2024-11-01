@@ -278,6 +278,7 @@ public abstract class AbstractNettyConnector<CFG extends NettyConfiguration> ext
                 Duration connectionShutdownDuration,
                 boolean enableTransactionThreadBinding,
                 Duration threadBindingTimeout,
+                SocketAddress advertisedAddress,
                 boolean enableMergeCumulator,
                 boolean requireEncryption,
                 SslContext sslContext) {
@@ -299,7 +300,8 @@ public abstract class AbstractNettyConnector<CFG extends NettyConfiguration> ext
                     streamingFlushThreshold,
                     connectionShutdownDuration,
                     enableTransactionThreadBinding,
-                    threadBindingTimeout);
+                    threadBindingTimeout,
+                    advertisedAddress);
             if (requireEncryption && sslContext == null) {
                 throw new IllegalArgumentException("SslContext must be specified when encryption is required");
             }

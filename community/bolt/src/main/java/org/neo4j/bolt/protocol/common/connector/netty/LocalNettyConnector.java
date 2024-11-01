@@ -150,6 +150,7 @@ public class LocalNettyConnector extends AbstractNettyConnector<LocalConfigurati
                     connectionShutdownDuration,
                     enableTransactionThreadBinding,
                     threadBindingTimeout,
+                    null, // Doesn't advertise address
                     enableMergeCumulator,
                     false, // Currently always disabled on local connector
                     null);

@@ -19,10 +19,13 @@
  */
 package org.neo4j.bolt.protocol.v54;
 
+import org.neo4j.bolt.fsm.StateMachineConfiguration;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
 import org.neo4j.bolt.protocol.AbstractBoltProtocol;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
+import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.fsm.response.metadata.MetadataHandler;
+import org.neo4j.bolt.protocol.common.fsm.transition.authentication.AuthenticationStateTransition;
 import org.neo4j.bolt.protocol.common.message.encoder.FailureMessageEncoder;
 import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
 import org.neo4j.bolt.protocol.common.message.response.ResponseMessage;
@@ -64,6 +67,11 @@ public class BoltProtocolV54 extends AbstractBoltProtocol {
         return super.createResponseMessageRegistry()
                 .unregister(FailureMessageEncoder.getInstance())
                 .register(FailureMessageEncoderV40.getInstance());
+    }
+
+    @Override
+    protected StateMachineConfiguration.Factory createStateMachine() {
+        return super.createStateMachine().withState(States.AUTHENTICATION, AuthenticationStateTransition.getInstance());
     }
 
     @Override

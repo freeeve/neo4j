@@ -403,5 +403,14 @@ public interface Connector<CFG extends Connector.Configuration> extends Lifecycl
          * @return a timeout duration after which a thread is released.
          */
         Duration threadBindingTimeout();
+
+        /**
+         * Specifies the advertisement address of this connector.
+         * <p/>
+         * This value is provided as information for being redirect to client connections.
+         *
+         * @return the advertised address for the connector
+         */
+        SocketAddress advertisedAddress();
     }
 }

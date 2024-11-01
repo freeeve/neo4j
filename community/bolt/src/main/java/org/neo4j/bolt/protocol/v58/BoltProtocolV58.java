@@ -17,32 +17,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.bolt.protocol.v57;
+package org.neo4j.bolt.protocol.v58;
 
-import org.neo4j.bolt.fsm.StateMachineConfiguration;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
 import org.neo4j.bolt.protocol.AbstractBoltProtocol;
-import org.neo4j.bolt.protocol.common.fsm.States;
-import org.neo4j.bolt.protocol.common.fsm.transition.authentication.AuthenticationStateTransition;
 
-public final class BoltProtocolV57 extends AbstractBoltProtocol {
-    public static final ProtocolVersion VERSION = new ProtocolVersion(5, 7);
+public final class BoltProtocolV58 extends AbstractBoltProtocol {
+    public static final ProtocolVersion VERSION = new ProtocolVersion(5, 8);
 
-    private static final BoltProtocolV57 INSTANCE = new BoltProtocolV57();
+    private static final BoltProtocolV58 INSTANCE = new BoltProtocolV58();
 
-    private BoltProtocolV57() {}
+    private BoltProtocolV58() {}
 
-    public static BoltProtocolV57 getInstance() {
+    public static BoltProtocolV58 getInstance() {
         return INSTANCE;
     }
 
     @Override
     public ProtocolVersion version() {
         return VERSION;
-    }
-
-    @Override
-    protected StateMachineConfiguration.Factory createStateMachine() {
-        return super.createStateMachine().withState(States.AUTHENTICATION, AuthenticationStateTransition.getInstance());
     }
 }

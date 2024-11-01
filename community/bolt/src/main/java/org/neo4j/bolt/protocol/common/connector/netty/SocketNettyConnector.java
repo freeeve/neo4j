@@ -196,6 +196,7 @@ public class SocketNettyConnector extends AbstractNettyConnector<SocketConfigura
                 Duration connectionShutdownDuration,
                 boolean enableTransactionThreadBinding,
                 Duration threadBindingTimeout,
+                SocketAddress advertisedAddress,
                 boolean enableMergeCumulator,
                 boolean requireEncryption,
                 SslContext sslContext,
@@ -219,6 +220,7 @@ public class SocketNettyConnector extends AbstractNettyConnector<SocketConfigura
                     connectionShutdownDuration,
                     enableTransactionThreadBinding,
                     threadBindingTimeout,
+                    advertisedAddress,
                     enableMergeCumulator,
                     requireEncryption,
                     sslContext);

@@ -34,6 +34,7 @@ import org.neo4j.bolt.testing.assertions.BoltConnectionAssertions;
 import org.neo4j.bolt.testing.client.BoltTestConnection;
 import org.neo4j.bolt.testing.messages.BoltWire;
 import org.neo4j.bolt.transport.Neo4jWithSocketExtension;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.connectors.BoltConnector;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
@@ -46,6 +47,7 @@ public class ConnectionHintIT {
     @SettingsFunction
     protected void customizeSettings(Map<Setting<?>, Object> settings) {
         settings.put(BoltConnector.server_bolt_telemetry_enabled, true);
+        settings.put(GraphDatabaseSettings.routing_enabled, true);
     }
 
     @ProtocolTest
@@ -70,5 +72,29 @@ public class ConnectionHintIT {
                 .extractingByKey("hints")
                 .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
                 .doesNotContainKey("telemetry.enabled"));
+    }
+
+    @ProtocolTest
+    @ExcludeWire({@Version(major = 4), @Version(major = 5, minor = 7, range = 7)})
+    void shouldIncludeSSRHintOnCompatibleVersions(BoltWire wire, @VersionSelected BoltTestConnection connection)
+            throws IOException {
+        connection.send(wire.hello());
+
+        BoltConnectionAssertions.assertThat(connection).receivesSuccess(meta -> Assertions.assertThat(meta)
+                .extractingByKey("hints")
+                .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+                .containsEntry("ssr.enabled", true));
+    }
+
+    @ProtocolTest
+    @IncludeWire({@Version(major = 4), @Version(major = 5, minor = 7, range = 7)})
+    void shouldExcludeSSRHintOnLegacyVersions(BoltWire wire, @VersionSelected BoltTestConnection connection)
+            throws IOException {
+        connection.send(wire.hello());
+
+        BoltConnectionAssertions.assertThat(connection).receivesSuccess(meta -> Assertions.assertThat(meta)
+                .extractingByKey("hints")
+                .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+                .doesNotContainKey("ssr.enabled"));
     }
 }

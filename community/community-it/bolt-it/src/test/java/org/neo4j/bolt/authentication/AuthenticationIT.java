@@ -47,6 +47,8 @@ import org.neo4j.bolt.testing.client.BoltTestConnection;
 import org.neo4j.bolt.testing.messages.BoltWire;
 import org.neo4j.bolt.transport.Neo4jWithSocketExtension;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.configuration.connectors.BoltConnector;
+import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -77,6 +79,7 @@ public class AuthenticationIT {
     @SettingsFunction
     protected void customizeSettings(Map<Setting<?>, Object> settings) {
         settings.put(GraphDatabaseSettings.auth_enabled, true);
+        settings.put(BoltConnector.advertised_address, new SocketAddress("my-server.neo4j.io", 7688));
     }
 
     @AfterEach
@@ -863,5 +866,45 @@ public class AuthenticationIT {
                         "cannot be handled by a session in the AUTHENTICATION state.",
                         GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
                         "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.");
+    }
+
+    @ProtocolTest
+    @IncludeWire({@Version(major = 5, minor = 7, range = 6)})
+    void shouldNotReturnAdvertiseAddressOnLogonMessageSuccess(
+            BoltWire wire, @VersionSelected BoltTestConnection connection) {
+        connection.send(wire.hello());
+        // ensure that the server returns the expected set of metadata
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).containsKeys("server", "connection_id"));
+
+        connection.send(wire.logon(Map.of(
+                "scheme", "basic",
+                "principal", "neo4j",
+                "credentials", "neo4j")));
+
+        // ensure that the server returns the expected set of metadata as well as a marker indicating that the used
+        // credentials have expired and will need to be changed
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).doesNotContainKeys("advertised_address"));
+    }
+
+    @ProtocolTest
+    @ExcludeWire({@Version(major = 5, minor = 7, range = 7), @Version(major = 4)})
+    void shouldReturnAdvertiseAddressOnLogonMessageSuccess(
+            BoltWire wire, @VersionSelected BoltTestConnection connection) {
+        connection.send(wire.hello());
+        // ensure that the server returns the expected set of metadata
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).containsKeys("server", "connection_id"));
+
+        connection.send(wire.logon(Map.of(
+                "scheme", "basic",
+                "principal", "neo4j",
+                "credentials", "neo4j")));
+
+        // ensure that the server returns the expected set of metadata as well as a marker indicating that the used
+        // credentials have expired and will need to be changed
+        BoltConnectionAssertions.assertThat(connection).receivesSuccess(meta -> Assertions.assertThat(meta)
+                .containsEntry("advertised_address", "my-server.neo4j.io:7688"));
     }
 }

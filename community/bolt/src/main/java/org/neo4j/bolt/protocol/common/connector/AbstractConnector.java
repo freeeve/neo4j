@@ -20,6 +20,7 @@
 package org.neo4j.bolt.protocol.common.connector;
 
 import io.netty.channel.Channel;
+import java.net.SocketAddress;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
@@ -282,6 +283,7 @@ public abstract class AbstractConnector<CFG extends AbstractConfiguration> imple
         private final Duration connectionShutdownDuration;
         private final boolean enableTransactionThreadBinding;
         private final Duration threadBindingTimeout;
+        private final SocketAddress advertisedAddress;
 
         protected AbstractConfiguration(
                 boolean enableProtocolCapture,
@@ -301,7 +303,8 @@ public abstract class AbstractConnector<CFG extends AbstractConfiguration> imple
                 int streamingFlushThreshold,
                 Duration connectionShutdownDuration,
                 boolean enableTransactionThreadBinding,
-                Duration threadBindingTimeout) {
+                Duration threadBindingTimeout,
+                SocketAddress advertisedAddress) {
             this.enableProtocolCapture = enableProtocolCapture;
             this.protocolCapturePath = protocolCapturePath;
             this.enableProtocolLogging = enableProtocolLogging;
@@ -320,6 +323,7 @@ public abstract class AbstractConnector<CFG extends AbstractConfiguration> imple
             this.connectionShutdownDuration = connectionShutdownDuration;
             this.enableTransactionThreadBinding = enableTransactionThreadBinding;
             this.threadBindingTimeout = threadBindingTimeout;
+            this.advertisedAddress = advertisedAddress;
         }
 
         @Override
@@ -410,6 +414,11 @@ public abstract class AbstractConnector<CFG extends AbstractConfiguration> imple
         @Override
         public Duration threadBindingTimeout() {
             return this.threadBindingTimeout;
+        }
+
+        @Override
+        public SocketAddress advertisedAddress() {
+            return this.advertisedAddress;
         }
     }
 }

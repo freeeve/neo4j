@@ -23,6 +23,7 @@ import org.neo4j.bolt.fsm.StateMachineConfiguration;
 import org.neo4j.bolt.protocol.common.BoltProtocol;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.fsm.States;
+import org.neo4j.bolt.protocol.common.fsm.transition.authentication.AppendAdvertisedAddressOnStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.transition.authentication.AuthenticationStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.transition.authentication.LogoffStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.transition.negotiation.HelloStateTransition;
@@ -88,7 +89,10 @@ public abstract class AbstractBoltProtocol implements BoltProtocol {
     protected StateMachineConfiguration.Factory createStateMachine() {
         return StateMachineConfiguration.builder()
                 .withInitialState(States.NEGOTIATION, HelloStateTransition.getInstance())
-                .withState(States.AUTHENTICATION, AuthenticationStateTransition.getInstance())
+                .withState(
+                        States.AUTHENTICATION,
+                        AuthenticationStateTransition.getInstance()
+                                .also(AppendAdvertisedAddressOnStateTransition.getInstance()))
                 .withState(
                         States.READY,
                         CreateTransactionStateTransition.getInstance(),

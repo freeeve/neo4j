@@ -57,7 +57,8 @@ public interface BoltWire {
                 new BoltV53Wire(),
                 new BoltV54Wire(),
                 new BoltV56Wire(),
-                new BoltV57Wire());
+                new BoltV57Wire(),
+                new BoltV58Wire());
     }
 
     /**

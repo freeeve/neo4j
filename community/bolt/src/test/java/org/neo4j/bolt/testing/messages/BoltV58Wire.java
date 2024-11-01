@@ -22,22 +22,22 @@ package org.neo4j.bolt.testing.messages;
 import io.netty.buffer.ByteBuf;
 import java.util.function.UnaryOperator;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
-import org.neo4j.bolt.protocol.v57.BoltProtocolV57;
+import org.neo4j.bolt.protocol.v58.BoltProtocolV58;
 import org.neo4j.bolt.testing.messages.factory.TelemetryMessageBuilder;
 
-public class BoltV57Wire extends BoltV56Wire {
+public class BoltV58Wire extends BoltV56Wire {
 
-    protected BoltV57Wire(ProtocolVersion version) {
+    protected BoltV58Wire(ProtocolVersion version) {
         super(version);
     }
 
-    public BoltV57Wire() {
-        this(BoltProtocolV57.VERSION);
+    public BoltV58Wire() {
+        this(BoltProtocolV58.VERSION);
     }
 
     @Override
     public String getUserAgent() {
-        return "BoltWire/5.7";
+        return "BoltWire/5.8";
     }
 
     @Override

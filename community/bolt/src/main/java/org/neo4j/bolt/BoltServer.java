@@ -47,6 +47,7 @@ import org.neo4j.bolt.protocol.common.connection.BoltConnectionMetricsMonitor;
 import org.neo4j.bolt.protocol.common.connection.BoltDriverMetricsMonitor;
 import org.neo4j.bolt.protocol.common.connection.hint.ConnectionHintRegistry;
 import org.neo4j.bolt.protocol.common.connection.hint.KeepAliveConnectionHintProvider;
+import org.neo4j.bolt.protocol.common.connection.hint.SeverSideRoutingHintProvider;
 import org.neo4j.bolt.protocol.common.connection.hint.TelemetryConnectionHintProvider;
 import org.neo4j.bolt.protocol.common.connector.Connector;
 import org.neo4j.bolt.protocol.common.connector.accounting.error.CircuitBreakerErrorAccountant;
@@ -183,6 +184,7 @@ public class BoltServer extends LifecycleAdapter {
         this.connectionHintRegistry = ConnectionHintRegistry.newBuilder()
                 .withProvider(new KeepAliveConnectionHintProvider(config))
                 .withProvider(new TelemetryConnectionHintProvider(config))
+                .withProvider(new SeverSideRoutingHintProvider(config))
                 .build();
 
         this.executorServiceFactory = new ThreadPoolExecutorServiceFactory(
@@ -544,6 +546,7 @@ public class BoltServer extends LifecycleAdapter {
                 this.config.get(BoltConnectorInternalSettings.connection_shutdown_wait_time),
                 this.config.get(BoltConnectorInternalSettings.transaction_thread_binding),
                 this.config.get(BoltConnectorInternalSettings.thread_binding_timeout),
+                this.config.get(BoltConnector.advertised_address).socketAddress(),
                 this.config.get(BoltConnectorInternalSettings.netty_message_merge_cumulator),
                 encryptionRequired,
                 sslContext,
@@ -605,6 +608,7 @@ public class BoltServer extends LifecycleAdapter {
                 this.config.get(BoltConnectorInternalSettings.connection_shutdown_wait_time),
                 this.config.get(BoltConnectorInternalSettings.transaction_thread_binding),
                 this.config.get(BoltConnectorInternalSettings.thread_binding_timeout),
+                this.config.get(BoltConnector.advertised_address).socketAddress(),
                 this.config.get(BoltConnectorInternalSettings.netty_message_merge_cumulator),
                 encryptionRequired,
                 sslContext,

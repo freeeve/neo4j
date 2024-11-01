@@ -191,6 +191,7 @@ public class DomainSocketNettyConnector extends AbstractNettyConnector<DomainSoc
                     connectionShutdownDuration,
                     enableTransactionThreadBinding,
                     threadBindingTimeout,
+                    null, // Doesn't advertises address
                     enableMergeCumulator,
                     false, // Currently always disabled on UNIX socket
                     null);

@@ -19,6 +19,8 @@
  */
 package org.neo4j.bolt.protocol.common.fsm.transition.authentication;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +29,8 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 import org.mockito.Mockito;
+import org.neo4j.bolt.protocol.common.connector.Connector;
+import org.neo4j.bolt.protocol.common.connector.connection.ConnectionHandle;
 import org.neo4j.bolt.protocol.common.connector.connection.Feature;
 import org.neo4j.bolt.protocol.common.connector.connection.authentication.AuthenticationFlag;
 import org.neo4j.bolt.protocol.common.fsm.States;
@@ -74,6 +78,26 @@ class AuthenticationStateTransitionTest
 
                     inOrder.verify(this.context).connection();
                     inOrder.verify(this.connection).logon(request.authToken());
+                    inOrder.verify(this.context).defaultState(States.READY);
+                }));
+    }
+
+    @TestFactory
+    Stream<DynamicTest> shouldNotReturnAdvertisedAddress() {
+        return this.createRequests()
+                .map(request -> DynamicTest.dynamicTest(request.toString(), () -> {
+                    mockAdvertisedAddress(this.connection, InetSocketAddress.createUnresolved("localhost", 7687));
+
+                    var targetState = this.transition.process(this.context, request, this.responseHandler);
+
+                    Assertions.assertThat(targetState).isEqualTo(States.READY);
+
+                    var inOrder = Mockito.inOrder(this.context, this.connection, this.responseHandler);
+
+                    inOrder.verify(this.context).connection();
+                    inOrder.verify(this.connection).logon(request.authToken());
+                    inOrder.verify(this.responseHandler, Mockito.never())
+                            .onMetadata(Mockito.eq("advertised_address"), Mockito.any());
                     inOrder.verify(this.context).defaultState(States.READY);
                 }));
     }
@@ -133,5 +157,13 @@ class AuthenticationStateTransitionTest
 
                     Mockito.verifyNoInteractions(this.responseHandler);
                 }));
+    }
+
+    private static void mockAdvertisedAddress(ConnectionHandle connection, SocketAddress socketAddress) {
+        var connector = Mockito.mock(Connector.class);
+        var configuration = Mockito.mock(Connector.Configuration.class);
+        Mockito.doReturn(connector).when(connection).connector();
+        Mockito.doReturn(configuration).when(connector).configuration();
+        Mockito.doReturn(socketAddress).when(configuration).advertisedAddress();
     }
 }
