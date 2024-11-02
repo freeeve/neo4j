@@ -19,6 +19,8 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionHelpers.equalInAllVersions
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.UsingStatefulShortestPathAll
@@ -43,8 +45,15 @@ class StatefulShortestPlanningHintsInserterTest extends CypherFunSuite with Logi
   private def buildSinglePlannerQueryAndRewrite(
     query: String,
     statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption
+  ): SinglePlannerQuery = equalInAllVersions(buildSinglePlannerQueryAndRewrite(_, query, statefulShortestPlanningMode))
+
+  private def buildSinglePlannerQueryAndRewrite(
+    version: CypherVersion,
+    query: String,
+    statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption
   ): SinglePlannerQuery = {
     val context = ContextHelper.create(
+      version = version,
       statefulShortestPlanningMode = statefulShortestPlanningMode
     )
 

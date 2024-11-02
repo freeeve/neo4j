@@ -48,7 +48,7 @@ case class SyntaxDeprecationWarningsAndReplacements(deprecations: Deprecations)
     val allDeprecations = deprecations match {
       case syntacticDeprecations: SyntacticDeprecations =>
         val foundWithoutContext = state.statement().folder.fold(Set.empty[Deprecation]) {
-          syntacticDeprecations.find.andThen(deprecation => acc => acc + deprecation)
+          syntacticDeprecations.find(context.cypherVersion).andThen(deprecation => acc => acc + deprecation)
         }
         val foundWithContext = syntacticDeprecations.findWithContext(state.statement())
         foundWithoutContext ++ foundWithContext
@@ -60,7 +60,9 @@ case class SyntaxDeprecationWarningsAndReplacements(deprecations: Deprecations)
         )
 
         state.statement().folder.fold(Set.empty[Deprecation]) {
-          semanticDeprecations.find(semanticTable).andThen(deprecation => acc => acc + deprecation)
+          semanticDeprecations.find(context.cypherVersion, semanticTable).andThen(deprecation =>
+            acc => acc + deprecation
+          )
         }
     }
 

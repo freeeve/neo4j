@@ -35,8 +35,7 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
   private val allSelectiveSelectors = selectors.filter(_.selective).map(_.syntax)
 
   test(s"MATCH path = ((a)-->(b))+ RETURN count(*)") {
-    val result = runSemanticAnalysis()
-    result.errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   // Selectors may be placed inside QPPs and PPPs if separated by a subquery expression
@@ -47,7 +46,7 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
   ).foreach { operation =>
     selectors.map(_.syntax).foreach { selector =>
       test(s"MATCH ((a)-[r]-(b WHERE $operation { MATCH $selector ((c)-[q]-(d))+ RETURN q } ))+ RETURN 1") {
-        runSemanticAnalysis().errorMessages shouldBe empty
+        run().hasNoErrors
       }
     }
   }
@@ -58,7 +57,7 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
             |   p1 = $selector (a)-->*(c)-->(c),
             |   p2 = (x)-->*(c)-->(z)
             |RETURN count(*)""".stripMargin) {
-      runSemanticAnalysis().errorMessages shouldBe Seq(
+      run().hasErrorMessages(
         "Multiple path patterns cannot be used in the same clause in combination with a selective path selector."
       )
     }
@@ -66,7 +65,7 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
             |   p2 = (x)-->*(c)-->(z),
             |   p1 = $selector (a)-->*(c)-->(c)
             |RETURN count(*)""".stripMargin) {
-      runSemanticAnalysis().errorMessages shouldBe Seq(
+      run().hasErrorMessages(
         "Multiple path patterns cannot be used in the same clause in combination with a selective path selector."
       )
     }
@@ -79,7 +78,7 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
               |   p2 = $firstSelector (x)-->*(c)-->(z),
               |   p1 = $secondSelector (a)-->*(c)-->(c)
               |RETURN count(*)""".stripMargin) {
-        runSemanticAnalysis().errorMessages shouldBe empty
+        run().hasNoErrors
       }
     }
   }
@@ -94,20 +93,20 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
          |   p2 = $shortest((x)-[*]->(c))
          |RETURN count(*)""".stripMargin
     ) {
-      runSemanticAnalysis().errorMessages shouldBe empty
+      run().hasNoErrors
     }
   }
 
   // Should allow more than one QPP
   selectors.filter(_.shortest).map(_.syntax).foreach { selector =>
     test(s"MATCH $selector ((a)-[r]->(b))+ ((c)-[s]->(d))+ RETURN count(*)") {
-      runSemanticAnalysis().errorMessages shouldBe empty
+      run().hasNoErrors
     }
   }
 
   (selectors.filter(!_.shortest).map(_.syntax) :+ "").foreach { selector =>
     test(s"MATCH $selector ((a)-[r]->(b))+ ((c)-[s]->(d))+ RETURN count(*)") {
-      runSemanticAnalysis().errorMessages shouldBe empty
+      run().hasNoErrors
     }
   }
 
@@ -128,7 +127,7 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
     ("SHORTEST 0 PATHS GROUPS", "group")
   ).foreach { case (selector, kind) =>
     test(s"MATCH $selector ((a)-[]->(b))+ RETURN a") {
-      runSemanticAnalysis().errorMessages shouldBe Seq(
+      run().hasErrorMessages(
         s"The $kind count needs to be greater than 0."
       )
     }
@@ -151,49 +150,48 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
     "SHORTEST 9999999999999999999999999999999999999999999 PATHS GROUPS"
   ).foreach { selector =>
     test(s"MATCH $selector ((a)-[]->(b))+ RETURN a") {
-      runSemanticAnalysis().errorMessages shouldBe Seq(
+      run().hasErrorMessages(
         s"integer is too large"
       )
     }
   }
 
   test(s"MATCH SHORTEST 2 PATH GROUPS ((a)-[r]->(b))+ RETURN count(*)") {
-    runSemanticAnalysis().errorMessages shouldBe Seq.empty
+    run().hasNoErrors
   }
 
   // WHERE clauses in Parenthesized Path Patterns
 
   selectors.foreach { selector =>
     test(s"MATCH path = ${selector.syntax} ((a)-[r]->+(b) WHERE a.prop = b.prop) RETURN 1") {
-      val result = runSemanticAnalysis()
-      result.errorMessages shouldBe empty
+      run().hasNoErrors
     }
   }
 
   // Do semantic checking in the WHERE clause
   selectors.foreach { selector =>
     test(s"MATCH ${selector.syntax} ((a) WHERE c.prop) RETURN 1") {
-      runSemanticAnalysis().errorMessages shouldBe Seq(
+      run().hasErrorMessages(
         "Variable `c` not defined"
       )
     }
   }
 
   test(s"MATCH ALL (path = (a)-[r]->+(b)<-[s]-+(c) WHERE length(path) > 3) RETURN path") {
-    runSemanticAnalysis().errorMessages shouldBe Seq(
+    run().hasErrorMessages(
       "Sub-path assignment is currently not supported."
     )
   }
 
   test(s"MATCH p = (q = (a)-[r]->+(b)<-[s]-+(c) WHERE length(q) > 3) RETURN p, q") {
-    runSemanticAnalysis().errorMessages shouldBe Seq(
+    run().hasErrorMessages(
       "Sub-path assignment is currently not supported."
     )
   }
 
   selectors.map(_.syntax).foreach { selector =>
     test(s"MATCH p = $selector ((a)-[r]->+(b)<-[s]-+(c) WHERE length(p) > 3) RETURN p") {
-      runSemanticAnalysis().errorMessages shouldBe Seq(
+      run().hasErrorMessages(
         """From within a parenthesized path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
           |In this case, `p` is defined in the same `MATCH` clause as ((a) (()-[r]->())+ (b) (()<-[s]-())+ (c) WHERE length(p) > 3).""".stripMargin
       )
@@ -202,68 +200,68 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
 
   allSelectiveSelectors.foreach { selector =>
     test(s"MATCH $selector (path = (a)-[r]->+(b)<-[s]-+(c) WHERE length(path) > 3) RETURN path") {
-      runSemanticAnalysis().errorMessages shouldBe empty
+      run().hasNoErrors
     }
   }
 
   // Mixing selective selectors with shortestPath/allShortestPaths is not allowed
   allSelectiveSelectors.foreach { selector =>
     test(s"MATCH $selector shortestPath((a)-->(b)) RETURN *") {
-      runSemanticAnalysis().errorMessages shouldBe Seq(
+      run().hasErrorMessages(
         "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
       )
     }
 
     test(s"MATCH $selector allShortestPaths((a)-->(b)) RETURN *") {
-      runSemanticAnalysis().errorMessages shouldBe Seq(
+      run().hasErrorMessages(
         "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
       )
     }
 
     test(s"MATCH $selector (a)-->(b) WHERE shortestPath((a)-->(b)) IS NOT NULL RETURN *") {
-      runSemanticAnalysis().errorMessages shouldBe Seq(
+      run().hasErrorMessages(
         "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
       )
     }
 
     test(s"MATCH $selector (a)-->(b) WHERE EXISTS { MATCH shortestPath((a)-->(b)) } RETURN *") {
-      runSemanticAnalysis().errorMessages shouldBe Seq(
+      run().hasErrorMessages(
         "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
       )
     }
 
     test(s"CALL { MATCH $selector (a)-->(b) MATCH shortestPath((c)-->(d)) RETURN * } RETURN *") {
-      runSemanticAnalysis().errorMessages shouldBe Seq(
+      run().hasErrorMessages(
         "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
       )
     }
 
     test(s"MATCH $selector (a)-->(b) MATCH shortestPath((c)-->(d)) RETURN *") {
-      runSemanticAnalysis().errorMessages shouldBe empty
+      run().hasNoErrors
     }
   }
 
   test(s"MATCH ALL shortestPath((a)-->(b)) RETURN *") {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test(s"MATCH ALL allShortestPaths((a)-->(b)) RETURN *") {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test(s"MATCH ALL (a)-->(b) WHERE shortestPath((a)-->(b)) IS NOT NULL RETURN *") {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test(s"MATCH ALL (a)-->(b) WHERE EXISTS { MATCH shortestPath((a)-->(b)) } RETURN *") {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test(s"CALL { MATCH ALL (a)-->(b) MATCH shortestPath((c)-->(d)) RETURN * } RETURN *") {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test(s"MATCH ALL (a)-->(b) MATCH shortestPath((c)-->(d)) RETURN *") {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 }

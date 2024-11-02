@@ -19,6 +19,8 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionHelpers.randomVersion
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
@@ -58,6 +60,12 @@ import org.neo4j.cypher.internal.util.symbols.CTNode
 trait QueryGraphProducer {
   self: LogicalPlanningTestSupport =>
 
+  // Hack to guarantee coverage of all versions :/
+  def producePlannerQueryForPattern(
+    query: String,
+    appendReturn: Boolean = true
+  ): (SinglePlannerQuery, SemanticTable) = producePlannerQueryForPattern(randomVersion(), query, appendReturn)
+
   /**
    * Returns a planner query and semantic table for the given query.
    * The plan context defines one procedure:
@@ -65,8 +73,9 @@ trait QueryGraphProducer {
    * my.proc.foo(a: INT): (x: INT, y: NODE)
    */
   def producePlannerQueryForPattern(
+    version: CypherVersion,
     query: String,
-    appendReturn: Boolean = true
+    appendReturn: Boolean
   ): (SinglePlannerQuery, SemanticTable) = {
     val appendix = if (appendReturn) " RETURN 1 AS Result" else ""
     val q = query + appendix
@@ -112,6 +121,7 @@ trait QueryGraphProducer {
       Some(semanticState)
     )
     val context = ContextHelper.create(
+      version = version,
       logicalPlanIdGen = idGen,
       planContext = resolver
     )

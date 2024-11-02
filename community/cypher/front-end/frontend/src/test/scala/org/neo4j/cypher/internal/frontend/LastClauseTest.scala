@@ -56,19 +56,17 @@ class LastClauseTest
     )
 
   test("FINISH") {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""FINISH
          |RETURN 1""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      errorCanOnlyBeUsedAtTheEnd("FINISH", 0, 1, 1)
-    )
+    run().hasErrors(errorCanOnlyBeUsedAtTheEnd("FINISH", 0, 1, 1))
   }
 
   test("""FINISH
          |MATCH (a)""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
+    run().hasErrors(
       errorCanOnlyBeUsedAtTheEnd("FINISH", 0, 1, 1),
       errorCannotConcludeWith("MATCH", 7, 2, 1)
     )
@@ -77,7 +75,7 @@ class LastClauseTest
   test("""FINISH
          |MATCH (a)
          |FINISH""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
+    run().hasErrors(
       errorCanOnlyBeUsedAtTheEnd("FINISH", 0, 1, 1)
     )
   }
@@ -85,48 +83,38 @@ class LastClauseTest
   test("""FINISH
          |MATCH (a)
          |RETURN a""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      errorCanOnlyBeUsedAtTheEnd("FINISH", 0, 1, 1)
-    )
+    run().hasErrors(errorCanOnlyBeUsedAtTheEnd("FINISH", 0, 1, 1))
   }
 
   test("""FINISH
          |CREATE (a)""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      errorCanOnlyBeUsedAtTheEnd("FINISH", 0, 1, 1)
-    )
+    run().hasErrors(errorCanOnlyBeUsedAtTheEnd("FINISH", 0, 1, 1))
   }
 
   test("""FINISH
          |CREATE (a)
          |FINISH""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      errorCanOnlyBeUsedAtTheEnd("FINISH", 0, 1, 1)
-    )
+    run().hasErrors(errorCanOnlyBeUsedAtTheEnd("FINISH", 0, 1, 1))
   }
 
   test("""FINISH
          |CREATE (a)
          |RETURN a""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      errorCanOnlyBeUsedAtTheEnd("FINISH", 0, 1, 1)
-    )
+    run().hasErrors(errorCanOnlyBeUsedAtTheEnd("FINISH", 0, 1, 1))
   }
 
   test("RETURN 1") {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""RETURN 1
          |FINISH""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1)
-    )
+    run().hasErrors(errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1))
   }
 
   test("""RETURN 1
          |MATCH (a)""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
+    run().hasErrors(
       errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1),
       errorCannotConcludeWith("MATCH", 9, 2, 1)
     )
@@ -135,150 +123,134 @@ class LastClauseTest
   test("""RETURN 1
          |MATCH (a)
          |FINISH""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1)
-    )
+    run().hasErrors(errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1))
   }
 
   test("""RETURN 1
          |MATCH (a)
          |RETURN a""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1)
-    )
+    run().hasErrors(errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1))
   }
 
   test("""RETURN 1
          |CREATE (a)""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1)
-    )
+    run().hasErrors(errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1))
   }
 
   test("""RETURN 1
          |CREATE (a)
          |FINISH""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1)
-    )
+    run().hasErrors(errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1))
   }
 
   test("""RETURN 1
          |CREATE (a)
          |RETURN a""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1)
-    )
+    run().hasErrors(errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1))
   }
 
   test("MATCH (a)") {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      errorCannotConcludeWith("MATCH", 0, 1, 1)
-    )
+    run().hasErrors(errorCannotConcludeWith("MATCH", 0, 1, 1))
   }
 
   test("""MATCH (a)
          |FINISH
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""MATCH (a)
          |RETURN a
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("WITH 1 AS a".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      errorCannotConcludeWith("WITH", 0, 1, 1)
-    )
+    run().hasErrors(errorCannotConcludeWith("WITH", 0, 1, 1))
   }
 
   test("""WITH 1 AS a
          |FINISH
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""WITH 1 AS a
          |RETURN a
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("UNWIND [1,2] AS a") {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      errorCannotConcludeWith("UNWIND", 0, 1, 1)
-    )
+    run().hasErrors(errorCannotConcludeWith("UNWIND", 0, 1, 1))
   }
 
   test("""UNWIND [1,2] AS a
          |FINISH
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""UNWIND [1,2] AS a
          |RETURN a
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("CREATE (a)") {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""CREATE (a)
          |FINISH
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""CREATE (a)
          |RETURN a
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""MATCH (a)
          |SET a.p = 5
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""MATCH (a)
          |SET a.p = 5
          |FINISH
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""MATCH (a)
          |SET a.p = 5
          |RETURN a
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""MATCH (a)
          |REMOVE a.p
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""MATCH (a)
          |REMOVE a.p
          |FINISH
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""MATCH (a)
          |REMOVE a.p
          |RETURN a
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""MATCH (a)
@@ -286,9 +258,7 @@ class LastClauseTest
          |  MATCH (b)
          |}
          |RETURN a""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      errorCannotConcludeWith("MATCH", 19, 3, 3)
-    )
+    run().hasErrors(errorCannotConcludeWith("MATCH", 19, 3, 3))
   }
 
   test("""MATCH (a)
@@ -298,7 +268,7 @@ class LastClauseTest
          |}
          |RETURN a
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""MATCH (a)
@@ -308,14 +278,14 @@ class LastClauseTest
          |}
          |RETURN a, b
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""  MATCH (a)
          |UNION
          |  MATCH (b)
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set(
+    run().hasErrors(
       errorCannotConcludeWith("MATCH", 0, 1, 1),
       errorCannotConcludeWith("MATCH", 18, 3, 3)
     )
@@ -327,7 +297,7 @@ class LastClauseTest
          |  MATCH (b)
          |  FINISH
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""  MATCH (a)
@@ -336,14 +306,14 @@ class LastClauseTest
          |  MATCH (b)
          |  RETURN 1
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""  CREATE (a)
          |UNION
          |  CREATE (b)
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""  CREATE (a)
@@ -352,7 +322,7 @@ class LastClauseTest
          |  CREATE (b)
          |  FINISH
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""  CREATE (a)
@@ -361,7 +331,6 @@ class LastClauseTest
          |  CREATE (b)
          |  RETURN 1
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
-
 }

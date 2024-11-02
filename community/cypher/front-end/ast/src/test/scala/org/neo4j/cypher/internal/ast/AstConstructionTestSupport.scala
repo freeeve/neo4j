@@ -192,6 +192,8 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 import scala.language.implicitConversions
 
+object Ast extends AstConstructionTestSupport
+
 trait AstConstructionTestSupport {
   protected val pos: InputPosition = InputPosition.NONE
   protected val defaultPos: InputPosition = InputPosition(0, 1, 1)
@@ -202,6 +204,9 @@ trait AstConstructionTestSupport {
 
   implicit protected def statementToStatements(statement: Statement): Statements =
     Statements(Seq(statement))
+
+  def p(offset: Int, line: Int, column: Int): InputPosition = InputPosition(offset, line, column)
+  def p(offset: Int): InputPosition = InputPosition(offset, 1, offset + 1)
 
   def varFor(name: String): Variable = varFor(name, pos, isIsolated = false)
   def varFor(name: String, isIsolated: Boolean): Variable = varFor(name, pos, isIsolated)

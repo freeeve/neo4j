@@ -28,6 +28,8 @@ import org.mockito.stubbing.Answer
 import org.neo4j.common
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionHelpers.randomVersion
+import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.Hint
@@ -137,7 +139,9 @@ import org.neo4j.internal.schema.constraints.SchemaValueType
 import scala.util.Success
 import scala.util.Try
 
-trait LogicalPlanningTestSupport extends AstConstructionTestSupport with LogicalPlanConstructionTestSupport {
+trait LogicalPlanningTestSupport extends AstConstructionTestSupport
+    with LogicalPlanConstructionTestSupport
+    with CypherVersionTestSupport {
   self: CypherFunSuite =>
 
   val monitors = mock[Monitors]
@@ -520,8 +524,7 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport with Logical
 
   private lazy val pipeLine: Transformer[PlannerContext, BaseState, LogicalPlanState] =
     Parse(
-      useAntlr = GraphDatabaseInternalSettings.cypher_parser_antlr_enabled.defaultValue(),
-      CypherVersion.Default
+      useAntlr = GraphDatabaseInternalSettings.cypher_parser_antlr_enabled.defaultValue()
     ) andThen
       PreparatoryRewriting andThen
       SemanticAnalysis(warn = true, semanticFeatures: _*) andThen
@@ -537,10 +540,18 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport with Logical
       CreatePlannerQuery(semanticFeatures.toSet) andThen
       NameDeduplication
 
+  // Hack to guarantee coverage in all versions :/
   def buildPlannerQuery(
     query: String,
     procLookup: Option[QualifiedName => ProcedureSignature] = None,
     fcnLookup: Option[QualifiedName => Option[UserFunctionSignature]] = None
+  ): PlannerQuery = buildPlannerQuery(randomVersion(), query, procLookup, fcnLookup)
+
+  def buildPlannerQuery(
+    version: CypherVersion,
+    query: String,
+    procLookup: Option[QualifiedName => ProcedureSignature],
+    fcnLookup: Option[QualifiedName => Option[UserFunctionSignature]]
   ): PlannerQuery = {
     val signature = ProcedureSignature(
       QualifiedName(Seq.empty, "foo"),
@@ -562,6 +573,7 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport with Logical
       new AnonymousVariableNameGenerator()
     )
     val context = ContextHelper.create(
+      version = version,
       cypherExceptionFactory = exceptionFactory,
       planContext = planContext,
       logicalPlanIdGen = idGen

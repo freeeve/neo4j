@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.helpers
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats
@@ -35,17 +36,14 @@ case class TestContext(
   override val notificationLogger: InternalNotificationLogger = mock[InternalNotificationLogger],
   override val sessionDatabase: DatabaseReference = null
 ) extends BaseContext {
+
+  override def cypherVersion: CypherVersion =
+    throw new UnsupportedOperationException("This context do not support cypher version")
   override def tracer = CompilationPhaseTracer.NO_TRACING
-
   override def cypherExceptionFactory: CypherExceptionFactory = OpenCypherExceptionFactory(None)
-
   override def monitors = mock[Monitors]
-
   override def errorHandler = _ => ()
-
   override def errorMessageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider
-
   override def cancellationChecker: CancellationChecker = CancellationChecker.NeverCancelled
-
   override def internalSyntaxUsageStats: InternalSyntaxUsageStats = InternalSyntaxUsageStatsNoOp
 }

@@ -20,26 +20,25 @@ class PatternExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysisTes
 
   // Pattern comprehensions
   test("MATCH (n) WITH [ p = (n)--(m) | p ] as paths RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
-  ignore("MATCH (n) WITH [ p = (n) | p ] as paths RETURN count(*)") {
+  test("MATCH (n) WITH [ p = (n) | p ] as paths RETURN count(*)") {
     // this currently fails with a parse error
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
-      "Path patterns in a pattern comprehension must include at least one relationship."
-    )
+    run()
+      // .hasErrorMessages("Path patterns in a pattern comprehension must include at least one relationship.")
+      .failsWithMessageContaining("Invalid input")
   }
 
   // Pattern expressions
   test("MATCH (n) WHERE (n)--() RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   // we need the property in the second pattern expression to differentiate it from a parenthesized variable
-  ignore("MATCH (n) RETURN CASE WHEN (n)--() THEN 'Relationship' WHEN (n {prop: 42}) THEN 'Node' END") {
-    // this currently fails with a parse error
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
-      "Path patterns in a pattern expression must include at least one relationship."
-    )
+  test("MATCH (n) RETURN CASE WHEN (n)--() THEN 'Relationship' WHEN (n {prop: 42}) THEN 'Node' END") {
+    run()
+      // .hasErrorMessages("Path patterns in a pattern expression must include at least one relationship.")
+      .hasErrorMessages("Type mismatch: expected Boolean but was Map")
   }
 }

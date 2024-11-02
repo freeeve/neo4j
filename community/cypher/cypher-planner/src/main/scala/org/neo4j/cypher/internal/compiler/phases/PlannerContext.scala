@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.phases
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.ExecutionModel
@@ -57,6 +58,7 @@ import org.neo4j.values.virtual.MapValue
 import java.time.Clock
 
 class BaseContextImpl(
+  override val cypherVersion: CypherVersion,
   override val cypherExceptionFactory: CypherExceptionFactory,
   override val tracer: CompilationPhaseTracer,
   override val notificationLogger: InternalNotificationLogger,
@@ -75,6 +77,7 @@ class BaseContextImpl(
 object BaseContextImpl {
 
   def apply(
+    cypherVersion: CypherVersion,
     tracer: CompilationPhaseTracer,
     notificationLogger: InternalNotificationLogger,
     queryText: String,
@@ -86,6 +89,7 @@ object BaseContextImpl {
   ): BaseContextImpl = {
     val exceptionFactory = Neo4jCypherExceptionFactory(queryText, offset)
     new BaseContextImpl(
+      cypherVersion,
       exceptionFactory,
       tracer,
       notificationLogger,
@@ -98,6 +102,7 @@ object BaseContextImpl {
 }
 
 class PlannerContext(
+  cypherVersion: CypherVersion,
   cypherExceptionFactory: CypherExceptionFactory,
   tracer: CompilationPhaseTracer,
   notificationLogger: InternalNotificationLogger,
@@ -125,6 +130,7 @@ class PlannerContext(
   val labelInferenceStrategy: LabelInferenceStrategy,
   override val sessionDatabase: DatabaseReference
 ) extends BaseContextImpl(
+      cypherVersion,
       cypherExceptionFactory,
       tracer,
       notificationLogger,
@@ -140,6 +146,7 @@ class PlannerContext(
   def withNotificationLogger(notificationLogger: InternalNotificationLogger): PlannerContext = {
     val newPlanContext = planContext.withNotificationLogger(notificationLogger)
     new PlannerContext(
+      cypherVersion,
       cypherExceptionFactory,
       tracer,
       notificationLogger,
@@ -173,6 +180,7 @@ class PlannerContext(
 object PlannerContext {
 
   def apply(
+    cypherVersion: CypherVersion,
     tracer: CompilationPhaseTracer,
     notificationLogger: InternalNotificationLogger,
     planContext: PlanContext,
@@ -215,6 +223,7 @@ object PlannerContext {
     )
 
     new PlannerContext(
+      cypherVersion,
       exceptionFactory,
       tracer,
       notificationLogger,

@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.NO_TRACING
 import org.neo4j.cypher.internal.util.CancellationChecker
@@ -30,8 +31,10 @@ import org.scalatestplus.mockito.MockitoSugar
 
 object ContextHelper extends MockitoSugar {
 
-  def create(sessionDatabaseReference: DatabaseReference = null): BaseContext = {
+  def create(version: CypherVersion, sessionDatabaseReference: DatabaseReference = null): BaseContext = {
     new BaseContext {
+      override def cypherVersion: CypherVersion = version
+
       override def tracer: CompilationPhaseTracer = NO_TRACING
 
       override def notificationLogger: InternalNotificationLogger = devNullLogger

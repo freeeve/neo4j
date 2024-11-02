@@ -108,6 +108,7 @@ case class FabricFrontEnd(
       compilationTracer.compileQuery(query.description)
 
     private val context: BaseContext = BaseContextImpl(
+      query.options.queryOptions.cypherVersion.actualVersion,
       CompilationPhaseTracer.NO_TRACING,
       notificationLogger,
       query.rawStatement,
@@ -124,7 +125,6 @@ case class FabricFrontEnd(
     )
 
     private val parsingConfig = CompilationPhases.ParsingConfig(
-      cypherVersion = query.options.queryOptions.cypherVersion.actualVersion,
       extractLiterals = cypherConfig.extractLiterals,
       parameterTypeMapping = ParameterValueTypeHelper.asCypherTypeMap(params, cypherConfig.useParameterSizeHint),
       semanticFeatures =

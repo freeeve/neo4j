@@ -16,12 +16,14 @@
  */
 package org.neo4j.cypher.internal.frontend.label_expressions
 
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DynamicLabelsAndTypes
 import org.neo4j.cypher.internal.frontend.SemanticAnalysisTestSuiteWithDefaultQuery
 import org.neo4j.cypher.internal.util.test_helpers.TestName
+import org.scalatest.LoneElement
 
 abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(statement: UpdateStatement)
     extends SemanticAnalysisTestSuiteWithDefaultQuery
+    with LoneElement
     with TestName {
 
   override def defaultQuery: String = s"$statement $testName"
@@ -30,72 +32,70 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(state
     s"Label expressions in patterns are not allowed in a $statement clause, but only in a MATCH clause and in expressions"
 
   test("(n:A:B)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("(n:A&B)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("(n:A|B)") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
-      labelExprErrorMessage
-    )
+    run().hasErrorMessages(labelExprErrorMessage)
   }
 
   test("(n:A|:B)") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
+    run().hasErrorMessages(
       labelExprErrorMessage,
       "Label expressions are not allowed to contain '|:'."
     )
   }
 
   test("(IS A)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("(n IS A&B)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("(n IS !(A&B))") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
+    run().hasErrorMessages(
       labelExprErrorMessage
     )
   }
 
   test("(n IS A&!B)") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
+    run().hasErrorMessages(
       labelExprErrorMessage
     )
   }
 
   test("(n IS A|B)") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
+    run().hasErrorMessages(
       labelExprErrorMessage
     )
   }
 
   test("(n IS %)") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
+    run().hasErrorMessages(
       labelExprErrorMessage
     )
   }
 
   test("(n IS A|:B)") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
+    run().hasErrorMessages(
       labelExprErrorMessage,
       "Label expressions are not allowed to contain '|:'."
     )
   }
 
   test("(IS:IS)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("(n:A&B:C)") {
     // should not allow mixing colon as label conjunction symbol with GPM label expression symbols in label expression
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B&C."
     )
   }
@@ -103,173 +103,164 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(state
   test("(n IS A:B)") {
     // should not allow mixing colon as label conjunction symbol with IS keyword in label expression
     // Just checking the first error, since MERGE (being ReadWrite) reports the error twice, but CREATE only once.
-    runSemanticAnalysis().errorMessages.headOption shouldEqual Some(
-      "Mixing the IS keyword with colon (':') between labels is not allowed. This expression could be expressed as IS A&B."
+    run().assert(
+      _.errors.headOption.map(_.msg).getOrElse("") shouldBe
+        "Mixing the IS keyword with colon (':') between labels is not allowed. This expression could be expressed as IS A&B."
     )
   }
 
   test("(n IS A&B:C)") {
     // should not allow mixing colon as label conjunction symbol with GPM label expression symbols in label expression
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing the IS keyword with colon (':') between labels is not allowed. This expression could be expressed as IS A&B&C."
     )
   }
 
   test("()-[:Rel1]->()") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("()-[:Rel1|Rel2]->()") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(s"A single relationship type must be specified for $statement")
+  }
+
+  test("()-[:Rel1&Rel2]->()") {
+    run().hasErrorMessages(
+      s"Relationship type expressions in patterns are not allowed in a $statement clause, but only in a MATCH clause",
       s"A single relationship type must be specified for $statement"
     )
   }
 
-  test("()-[:Rel1&Rel2]->()") {
-    runSemanticAnalysis().errorMessages should contain
-    s"A single relationship type must be specified for $statement"
-  }
-
   test("()-[:Rel1&!Rel2]->()") {
-    runSemanticAnalysis().errorMessages should contain
-    s"A single relationship type must be specified for $statement"
+    run().hasErrorMessages(
+      s"Relationship type expressions in patterns are not allowed in a $statement clause, but only in a MATCH clause",
+      s"A single relationship type must be specified for $statement"
+    )
   }
 
   test("()-[:!Rel1]->()") {
-    runSemanticAnalysis().errorMessages should contain
-    s"A single plain relationship type like `:Rel1` must be specified for $statement"
+    run().hasErrorMessages(
+      s"A single plain relationship type like `:Rel1` must be specified for $statement",
+      s"Relationship type expressions in patterns are not allowed in a $statement clause, but only in a MATCH clause"
+    )
   }
 
   test("()-[r]->()") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       s"Exactly one relationship type must be specified for $statement. Did you forget to prefix your relationship type with a ':'?"
     )
   }
 
   test("()-[r IS Rel1]->()") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("(n IS A)-[:REL]->()") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("()-[:REL]->(IS B)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("()-[IS Rel1|Rel2]->()") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
+    run().hasErrorMessages(
       s"A single relationship type must be specified for $statement"
     )
   }
 
   test("()-[IS Rel1|:Rel2]->()") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
+    run().hasErrorMessages(
       s"A single relationship type must be specified for $statement",
       "Mixing the IS keyword with colon (':') between labels is not allowed. This expression could be expressed as IS Rel1|Rel2."
     )
   }
 
   test("()-[IS !Rel1]->()") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
+    run().hasErrorMessages(
       s"A single plain relationship type like `:Rel1` must be specified for $statement",
       s"Relationship type expressions in patterns are not allowed in a $statement clause, but only in a MATCH clause"
     )
   }
 
   test("()-[IS:IS]->()") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("(n IS A)-[r IS R]->(m:B) RETURN *") {
     // Mixing colon (not as conjunction) and IS keyword should be allowed as they are both part of GQL
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   // Dynamic labels and types
   test("(n:$(\"label\"))") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
-      "Setting labels or types dynamically is not supported."
-    )
-
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors shouldBe empty
+    run().hasErrorMessages("Setting labels or types dynamically is not supported.")
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("(n:A&B&$(\"label\"))") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
-      "Setting labels or types dynamically is not supported."
-    )
-
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors shouldBe empty
+    run().hasErrorMessages("Setting labels or types dynamically is not supported.")
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("(n)-[:$(\"label\")]->()") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
-      "Setting labels or types dynamically is not supported."
-    )
-
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors shouldBe empty
+    run().hasErrorMessages("Setting labels or types dynamically is not supported.")
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("(n:$(1))") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errorMessages.toSet shouldEqual Set(
-      "Type mismatch: expected String or List<String> but was Integer"
-    )
+    runWith(DynamicLabelsAndTypes)
+      .hasErrorMessages("Type mismatch: expected String or List<String> but was Integer")
   }
 
   test("(n)-[:$(1 + 3.0)]->()") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errorMessages.toSet shouldEqual Set(
-      "Type mismatch: expected String or List<String> but was Float"
-    )
+    runWith(DynamicLabelsAndTypes)
+      .hasErrorMessages("Type mismatch: expected String or List<String> but was Float")
   }
 
   test("(n:$([1]))") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errorMessages.toSet shouldEqual Set(
+    runWith(DynamicLabelsAndTypes).hasErrorMessages(
       "Type mismatch: expected String or List<String> but was List<Integer>"
     )
   }
 
   test("(n:$(['']))") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errorMessages.toSet shouldEqual Set(
-      "'' is not a valid token name. Token names cannot be empty or contain any null-bytes."
-    )
+    runWith(DynamicLabelsAndTypes)
+      .hasErrorMessages("'' is not a valid token name. Token names cannot be empty or contain any null-bytes.")
   }
 
   test("(n:$([null]))") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errorMessages.toSet shouldEqual Set(
-      "Null is not a valid token name. Token names cannot be empty or contain any null-bytes."
-    )
+    runWith(DynamicLabelsAndTypes)
+      .hasErrorMessages("Null is not a valid token name. Token names cannot be empty or contain any null-bytes.")
   }
 
   test("(n:$all(['Foo', 'Bar']))") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors.toSet shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("(n:$any(['Foo', 'Bar']))") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errorMessages.toSet shouldEqual Set(
+    runWith(DynamicLabelsAndTypes).hasErrorMessages(
       "Dynamic labels using `$any()` are not allowed in CREATE or MERGE."
     )
   }
 
   test("(n:$(['Foo', 'Bar']))") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors.toSet shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("(n)-[:$any('Foo')]->()") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errorMessages.toSet shouldEqual Set(
+    runWith(DynamicLabelsAndTypes).hasErrorMessages(
       "Dynamic labels using `$any()` are not allowed in CREATE or MERGE."
     )
   }
 
   test("(n)-[:$(['Foo', 'Bar'])]->()") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errorMessages.toSet shouldEqual Set(
-      s"A single relationship type must be specified for $statement"
-    )
+    runWith(DynamicLabelsAndTypes)
+      .hasErrorMessages(s"A single relationship type must be specified for $statement")
   }
 
   test("(n)-[:$([])]->()") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errorMessages.toSet shouldEqual Set(
+    runWith(DynamicLabelsAndTypes).hasErrorMessages(
       s"Exactly one relationship type must be specified for $statement. Did you forget to prefix your relationship type with a ':'?"
     )
   }
@@ -289,14 +280,14 @@ class LabelExpressionInCreateSemanticAnalysisTest
 
   test("(n:A:B), (m:A&B)") {
     // should not allow mixing colon as label conjunction symbol with GPM label expression symbols in label expression
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
 
   test("(n:A), (m IS B) RETURN *") {
     // Mixing colon (not as conjunction) and IS keyword should be allowed as they are both part of GQL
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 }
 

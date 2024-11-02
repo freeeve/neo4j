@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.rewriting.rewriters.foldConstants
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
@@ -59,8 +60,10 @@ class extractSensitiveLiteralsTest extends CypherFunSuite with AstConstructionTe
   }
 
   def assertSensitiveNotRewritten(query: String): Unit = {
-    val unfolded: BaseState = prepareFrom(query, rewriterPhaseUnderTest)
-    val folded = unfolded.statement().endoRewrite(foldConstants(OpenCypherExceptionFactory(None)))
-    unfolded.statement() should equal(folded)
+    CypherVersion.values().foreach { version =>
+      val unfolded = prepareFrom(version, query, rewriterPhaseUnderTest)
+      val folded = unfolded.statement().endoRewrite(foldConstants(OpenCypherExceptionFactory(None)))
+      unfolded.statement() should equal(folded)
+    }
   }
 }

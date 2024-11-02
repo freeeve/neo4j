@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
-import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.CreateOrInsert
 import org.neo4j.cypher.internal.ast.Insert
@@ -60,20 +59,16 @@ import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
  *
  * Does not change the State, just checks for semantic errors.
  */
-
-object SemanticTypeCheck {
-  type SemanticErrorCheck = (BaseState, BaseContext) => Seq[SemanticError]
-}
-
-case class SemanticTypeCheck(cypherVersion: CypherVersion) extends VisitorPhase[BaseContext, BaseState]
+case object SemanticTypeCheck extends VisitorPhase[BaseContext, BaseState]
     with StepSequencer.Step
     with DefaultPostCondition
     with ParsePipelineTransformerFactory {
+  type SemanticErrorCheck = (BaseState, BaseContext) => Seq[SemanticError]
 
   val checks: Seq[SemanticErrorCheck] = Seq(
     patternExpressionInNonExistenceCheck,
-    SelfReferenceCheckWithinPatternPart(cypherVersion).check,
-    SelfReferenceCheckAcrossPatternParts(cypherVersion).check,
+    SelfReferenceCheckWithinPatternPart.check,
+    SelfReferenceCheckAcrossPatternParts.check,
     listCoercedToBooleanCheck
   )
 
@@ -175,7 +170,7 @@ trait VariableReferenceCheck {
   }
 }
 
-case class SelfReferenceCheckWithinPatternPart(cypherVersion: CypherVersion) extends VariableReferenceCheck {
+object SelfReferenceCheckWithinPatternPart extends VariableReferenceCheck {
 
   def check: SemanticErrorCheck = (baseState, baseContext) => {
     val semanticTable = baseState.semanticTable()
@@ -187,7 +182,7 @@ case class SelfReferenceCheckWithinPatternPart(cypherVersion: CypherVersion) ext
           val errors = checkPattern(c, c.pattern, semanticTable, errorMessageProvider)
           SkipChildren(accErrors ++ errors)
 
-      case m: Merge if Merge.SelfReference.errorIn(cypherVersion) =>
+      case m: Merge if Merge.SelfReference.errorIn(baseContext.cypherVersion) =>
         accErrors =>
           val pattern = Pattern.ForUpdate(Seq(m.pattern))(m.pattern.position)
           val errors = checkPattern(m, pattern, semanticTable, errorMessageProvider)
@@ -230,9 +225,9 @@ case class SelfReferenceCheckWithinPatternPart(cypherVersion: CypherVersion) ext
   }
 }
 
-case class SelfReferenceCheckAcrossPatternParts(cypherVersion: CypherVersion) extends VariableReferenceCheck {
+object SelfReferenceCheckAcrossPatternParts extends VariableReferenceCheck {
 
-  def check: SemanticErrorCheck = (baseState, _) => {
+  def check: SemanticErrorCheck = (baseState, ctx) => {
     val semanticTable = baseState.semanticTable()
     baseState.statement().folder.treeFold(Seq.empty[SemanticError]) {
       case i: Insert =>
@@ -240,7 +235,7 @@ case class SelfReferenceCheckAcrossPatternParts(cypherVersion: CypherVersion) ex
           val errors = checkPattern(i, i.pattern, semanticTable)
           SkipChildren(accErrors ++ errors)
 
-      case c: Create if Create.SelfReferenceAcrossPatterns.errorIn(cypherVersion) =>
+      case c: Create if Create.SelfReferenceAcrossPatterns.errorIn(ctx.cypherVersion) =>
         accErrors =>
           val errors = checkPattern(c, c.pattern, semanticTable)
           SkipChildren(accErrors ++ errors)

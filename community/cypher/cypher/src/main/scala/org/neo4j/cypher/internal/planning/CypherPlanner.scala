@@ -377,6 +377,7 @@ case class CypherPlanner(
 
     // Context used to create logical plans
     val plannerContext = PlannerContext(
+      options.queryOptions.cypherVersion.actualVersion,
       tracer,
       notificationLogger,
       planContext,

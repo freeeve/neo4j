@@ -21,22 +21,25 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.apache.commons.io.FileUtils
 import org.neo4j.cypher.graphcounts.GraphCountsJson
+import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class BenchmarkCardinalityEstimationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport {
+class BenchmarkCardinalityEstimationTest extends CypherFunSuite
+    with LogicalPlanningIntegrationTestSupport
+    with CypherVersionTestSupport {
 
   private val qmulGraphCounts = GraphCountsJson.parseAsGraphCountData(
     FileUtils.toFile(classOf[BenchmarkCardinalityEstimationTest].getResource("/qmul.json"))
   )
 
-  test("qmul should estimate simple pattern relationship with labels and rel type") {
+  testVersions("qmul should estimate simple pattern relationship with labels and rel type") { version =>
     val planner = plannerBuilder()
       .processGraphCounts(qmulGraphCounts)
       .build()
 
     val query = "MATCH (a:Person)-[r:friends]->(b:Person) RETURN r"
-    val planState = planner.planState(query)
+    val planState = planner.planState(version, query)
     val plan = planState.logicalPlan
     val cardinalities = planState.planningAttributes.cardinalities
 

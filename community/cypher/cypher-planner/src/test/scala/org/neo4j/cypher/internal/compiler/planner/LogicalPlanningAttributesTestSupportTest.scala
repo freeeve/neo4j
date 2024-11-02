@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner
 
+import org.neo4j.cypher.internal.CypherVersionHelpers.randomVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.planner.AttributeComparisonStrategy.ComparingProvidedAttributesOnly
@@ -55,7 +56,7 @@ class LogicalPlanningAttributesTestSupportTest
       |LIMIT 2""".stripMargin
 
   val planState: LogicalPlanState =
-    config.planState(query)
+    config.planState(randomVersion(), query)
 
   val providedOrder: ProvidedOrder =
     DefaultProvidedOrderFactory

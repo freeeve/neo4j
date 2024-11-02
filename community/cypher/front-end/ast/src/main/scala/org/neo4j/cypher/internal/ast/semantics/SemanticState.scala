@@ -388,7 +388,7 @@ case class SemanticState(
           Left(SemanticError.invalidEntityType(
             existingTypes,
             variable.name,
-            possibleTypes.toStrings.toList,
+            possibleTypes.toStrings,
             s"Type mismatch: ${variable.name} defined with conflicting type $existingTypes (expected $expectedTypes)",
             variable.position
           ))

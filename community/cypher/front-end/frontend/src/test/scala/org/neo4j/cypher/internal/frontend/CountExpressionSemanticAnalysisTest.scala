@@ -17,8 +17,9 @@
 package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersion.Cypher25
+import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N07
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N39
@@ -32,12 +33,10 @@ class CountExpressionSemanticAnalysisTest
   test("""MATCH (a)
          |RETURN COUNT { CREATE (b) } > 1
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N57("Count", 2, 8, 17),
-        "A Count Expression cannot contain any updates",
-        InputPosition(17, 2, 8)
-      )
+    run().hasError(
+      getGql42001_42N57("Count", 2, 8, 17),
+      "A Count Expression cannot contain any updates",
+      p(17, 2, 8)
     )
   }
 
@@ -45,7 +44,7 @@ class CountExpressionSemanticAnalysisTest
          |WHERE COUNT { OPTIONAL MATCH (a)-[r]->(b) } > 1
          |RETURN m
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test(
@@ -57,56 +56,50 @@ class CountExpressionSemanticAnalysisTest
       |RETURN a
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("""MATCH (m)
          |WHERE COUNT { MATCH (a:A)-[r]->(b) USING SCAN a:A } > 1
          |RETURN m
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("""MATCH (a)
          |RETURN COUNT { SET a.name = 1 } > 1
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N57("Count", 2, 8, 17),
-        "A Count Expression cannot contain any updates",
-        InputPosition(17, 2, 8)
-      )
+    run().hasError(
+      getGql42001_42N57("Count", 2, 8, 17),
+      "A Count Expression cannot contain any updates",
+      p(17, 2, 8)
     )
   }
 
   test("""MATCH (a)
          |RETURN COUNT { MATCH (b) WHERE b.a = a.a DETACH DELETE b } > 1
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N57("Count", 2, 8, 17),
-        "A Count Expression cannot contain any updates",
-        InputPosition(17, 2, 8)
-      )
+    run().hasError(
+      getGql42001_42N57("Count", 2, 8, 17),
+      "A Count Expression cannot contain any updates",
+      p(17, 2, 8)
     )
   }
 
   test("""MATCH (a)
          |RETURN COUNT { MATCH (b) MERGE (b)-[:FOLLOWS]->(:Person) } > 1
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N57("Count", 2, 8, 17),
-        "A Count Expression cannot contain any updates",
-        InputPosition(17, 2, 8)
-      )
+    run().hasError(
+      getGql42001_42N57("Count", 2, 8, 17),
+      "A Count Expression cannot contain any updates",
+      p(17, 2, 8)
     )
   }
 
   test("""MATCH (a)
          |RETURN COUNT { CALL db.labels() } > 1
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("""MATCH (a)
@@ -117,19 +110,19 @@ class CountExpressionSemanticAnalysisTest
          |   MATCH (a)-[:LOVES]->(b)
          |   RETURN b.name as name
          |}""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("""MATCH (a)
          |RETURN COUNT { MATCH (m)-[r]->(p), (a)-[r2]-(c) }
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("""MATCH (a)
          |RETURN COUNT { (a)-->(b) WHERE b.prop = 5  }
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test(
@@ -139,7 +132,7 @@ class CountExpressionSemanticAnalysisTest
       |RETURN 1
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test(
@@ -149,7 +142,7 @@ class CountExpressionSemanticAnalysisTest
       |RETURN 1
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test(
@@ -159,7 +152,7 @@ class CountExpressionSemanticAnalysisTest
       |RETURN 1
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test(
@@ -170,7 +163,7 @@ class CountExpressionSemanticAnalysisTest
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("""WITH 5 as aNum
@@ -181,12 +174,10 @@ class CountExpressionSemanticAnalysisTest
          |  RETURN a
          |}
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N07("aNum", 4, 13, 52),
-        "The variable `aNum` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-        InputPosition(52, 4, 13)
-      )
+    run().hasError(
+      getGql42001_42N07("aNum", 4, 13, 52),
+      "The variable `aNum` is shadowing a variable with the same name from the outer scope and needs to be renamed",
+      p(52, 4, 13)
     )
   }
 
@@ -199,12 +190,10 @@ class CountExpressionSemanticAnalysisTest
          |  RETURN a
          |}
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N07("aNum", 5, 13, 90),
-        "The variable `aNum` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-        InputPosition(90, 5, 13)
-      )
+    run().hasError(
+      getGql42001_42N07("aNum", 5, 13, 90),
+      "The variable `aNum` is shadowing a variable with the same name from the outer scope and needs to be renamed",
+      p(90, 5, 13)
     )
   }
 
@@ -216,12 +205,10 @@ class CountExpressionSemanticAnalysisTest
          |  RETURN a
          |}
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N07("a", 4, 13, 55),
-        "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-        InputPosition(55, 4, 13)
-      )
+    run().hasError(
+      getGql42001_42N07("a", 4, 13, 55),
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
+      p(55, 4, 13)
     )
   }
 
@@ -236,12 +223,10 @@ class CountExpressionSemanticAnalysisTest
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N07("a", 4, 15, 51),
-        "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-        InputPosition(51, 4, 15)
-      )
+    run().hasError(
+      getGql42001_42N07("a", 4, 15, 51),
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
+      p(51, 4, 15)
     )
   }
 
@@ -259,12 +244,10 @@ class CountExpressionSemanticAnalysisTest
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N07("a", 10, 15, 126),
-        "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-        InputPosition(126, 10, 15)
-      )
+    run().hasError(
+      getGql42001_42N07("a", 10, 15, 126),
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
+      p(126, 10, 15)
     )
   }
 
@@ -276,7 +259,7 @@ class CountExpressionSemanticAnalysisTest
          |  RETURN a
          |}
          |""".stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test(
@@ -293,7 +276,7 @@ class CountExpressionSemanticAnalysisTest
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test(
@@ -307,7 +290,7 @@ class CountExpressionSemanticAnalysisTest
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""MATCH (person:Person)
@@ -319,7 +302,7 @@ class CountExpressionSemanticAnalysisTest
          |} > 1
          |RETURN person.name
      """.stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""MATCH (person:Person)
@@ -330,7 +313,7 @@ class CountExpressionSemanticAnalysisTest
          |} > 1
          |RETURN person.name
      """.stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test("""MATCH (person:Person)
@@ -341,17 +324,13 @@ class CountExpressionSemanticAnalysisTest
          |} > 1
          |RETURN person.name
      """.stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N71(3, 5, 40),
-        "Query cannot conclude with MATCH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
-        InputPosition(40, 3, 5)
-      ),
-      SemanticError(
-        getGql42001_42N71(5, 5, 64),
-        "Query cannot conclude with MATCH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
-        InputPosition(64, 5, 5)
-      )
+    run().hasErrors(
+      getGql42001_42N71(3, 5, 40),
+      "Query cannot conclude with MATCH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
+      p(40, 3, 5),
+      getGql42001_42N71(5, 5, 64),
+      "Query cannot conclude with MATCH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
+      p(64, 5, 5)
     )
   }
 
@@ -364,12 +343,10 @@ class CountExpressionSemanticAnalysisTest
          |} > 1
          |RETURN person.name
      """.stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N39(5, 5, 72),
-        "All sub queries in an UNION must have the same return column names",
-        InputPosition(72, 5, 5)
-      )
+    run().hasError(
+      getGql42001_42N39(5, 5, 72),
+      "All sub queries in an UNION must have the same return column names",
+      p(72, 5, 5)
     )
   }
 
@@ -382,12 +359,10 @@ class CountExpressionSemanticAnalysisTest
          |} > 1
          |RETURN person.name
      """.stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N39(4, 5, 54),
-        "All sub queries in an UNION must have the same return column names",
-        InputPosition(54, 4, 5)
-      )
+    run().hasError(
+      getGql42001_42N39(4, 5, 54),
+      "All sub queries in an UNION must have the same return column names",
+      p(54, 4, 5)
     )
   }
 
@@ -400,12 +375,10 @@ class CountExpressionSemanticAnalysisTest
          |} > 1
          |RETURN person.name
      """.stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N39(5, 5, 67),
-        "All sub queries in an UNION must have the same return column names",
-        InputPosition(67, 5, 5)
-      )
+    run().hasError(
+      getGql42001_42N39(5, 5, 67),
+      "All sub queries in an UNION must have the same return column names",
+      p(67, 5, 5)
     )
   }
 
@@ -418,12 +391,10 @@ class CountExpressionSemanticAnalysisTest
          |} > 1
          |RETURN person.name
      """.stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N39(4, 5, 54),
-        "All sub queries in an UNION must have the same return column names",
-        InputPosition(54, 4, 5)
-      )
+    run().hasError(
+      getGql42001_42N39(4, 5, 54),
+      "All sub queries in an UNION must have the same return column names",
+      p(54, 4, 5)
     )
   }
 
@@ -438,12 +409,10 @@ class CountExpressionSemanticAnalysisTest
          |} > 1
          |RETURN person.name
      """.stripMargin) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N39(4, 5, 54),
-        "All sub queries in an UNION must have the same return column names",
-        InputPosition(54, 4, 5)
-      )
+    run().hasError(
+      getGql42001_42N39(4, 5, 54),
+      "All sub queries in an UNION must have the same return column names",
+      p(54, 4, 5)
     )
   }
 
@@ -460,49 +429,36 @@ class CountExpressionSemanticAnalysisTest
          |} > 5
          |RETURN person.name
      """.stripMargin) {
-    runSemanticAnalysisWithCypherVersion(Seq(CypherVersion.Cypher25), testName).errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N39(5, 5, 67),
-        "All sub queries in an UNION must have the same return column names",
-        InputPosition(67, 5, 5)
-      ),
-      SemanticError(
-        getGql42001_42N39(8, 5, 104),
-        "All sub queries in an UNION must have the same return column names",
-        InputPosition(104, 8, 5)
-      ),
-      SemanticError(
-        "All subqueries in a UNION [ALL] must have the same ordering for the return columns.",
-        InputPosition(40, 3, 5)
-      )
-    )
-  }
-
-  test("""MATCH (person:Person)
-         |WHERE COUNT {
-         |    MATCH (n)
-         |    RETURN n
-         |    UNION
-         |    MATCH (m)
-         |    RETURN m
-         |    UNION
-         |    MATCH (l)
-         |    RETURN l
-         |} > 3
-         |RETURN person.name
-     """.stripMargin) {
-    runSemanticAnalysisWithCypherVersion(Seq(CypherVersion.Cypher5), testName).errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N39(5, 5, 67),
-        "All sub queries in an UNION must have the same return column names",
-        InputPosition(67, 5, 5)
-      ),
-      SemanticError(
-        getGql42001_42N39(8, 5, 104),
-        "All sub queries in an UNION must have the same return column names",
-        InputPosition(104, 8, 5)
-      )
-    )
+    run().hasSemanticErrorsIn {
+      case Cypher25 => Seq(
+          SemanticError(
+            getGql42001_42N39(5, 5, 67),
+            "All sub queries in an UNION must have the same return column names",
+            p(67, 5, 5)
+          ),
+          SemanticError(
+            getGql42001_42N39(8, 5, 104),
+            "All sub queries in an UNION must have the same return column names",
+            p(104, 8, 5)
+          ),
+          SemanticError(
+            "All subqueries in a UNION [ALL] must have the same ordering for the return columns.",
+            p(40, 3, 5)
+          )
+        )
+      case CypherVersion.Cypher5 => Seq(
+          SemanticError(
+            getGql42001_42N39(5, 5, 67),
+            "All sub queries in an UNION must have the same return column names",
+            p(67, 5, 5)
+          ),
+          SemanticError(
+            getGql42001_42N39(8, 5, 104),
+            "All sub queries in an UNION must have the same return column names",
+            p(104, 8, 5)
+          )
+        )
+    }
   }
 
   test(
@@ -516,7 +472,7 @@ class CountExpressionSemanticAnalysisTest
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test(
@@ -531,7 +487,7 @@ class CountExpressionSemanticAnalysisTest
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test(
@@ -547,12 +503,10 @@ class CountExpressionSemanticAnalysisTest
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N07("x", 7, 15, 94),
-        "The variable `x` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-        InputPosition(94, 7, 15)
-      )
+    run().hasError(
+      getGql42001_42N07("x", 7, 15, 94),
+      "The variable `x` is shadowing a variable with the same name from the outer scope and needs to be renamed",
+      p(94, 7, 15)
     )
   }
 
@@ -569,7 +523,7 @@ class CountExpressionSemanticAnalysisTest
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errors.toSet shouldBe Set.empty
+    run().hasNoErrors
   }
 
   test(
@@ -584,12 +538,10 @@ class CountExpressionSemanticAnalysisTest
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError(
-        getGql42001_42N07("y", 6, 26, 104),
-        "The variable `y` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-        InputPosition(104, 6, 26)
-      )
+    run().hasError(
+      getGql42001_42N07("y", 6, 26, 104),
+      "The variable `y` is shadowing a variable with the same name from the outer scope and needs to be renamed",
+      p(104, 6, 26)
     )
   }
 }

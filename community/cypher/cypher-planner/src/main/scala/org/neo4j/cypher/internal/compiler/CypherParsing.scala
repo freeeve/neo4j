@@ -69,6 +69,7 @@ class CypherParsing(
     val plannerName = PlannerNameFor(plannerNameText)
     val startState = InitialState(queryText, plannerName, new AnonymousVariableNameGenerator)
     val context = BaseContextImpl(
+      cypherVersion.actualVersion,
       tracer,
       notificationLogger,
       rawQueryText,
@@ -87,7 +88,6 @@ class CypherParsing(
     )
     CompilationPhases.parsing(
       ParsingConfig(
-        cypherVersion = cypherVersion.actualVersion,
         extractLiterals = config.extractLiterals,
         parameterTypeMapping = paramTypes,
         semanticFeatures = features,

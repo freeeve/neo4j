@@ -31,7 +31,7 @@ import org.neo4j.util.VisibleForTesting
 /**
  * Parse text into an AST object.
  */
-case class Parse(useAntlr: Boolean, version: CypherVersion) extends Phase[BaseContext, BaseState, BaseState]
+case class Parse(useAntlr: Boolean) extends Phase[BaseContext, BaseState, BaseState]
     with StepSequencer.Step
     with ParsePipelineTransformerFactory {
 
@@ -45,9 +45,9 @@ case class Parse(useAntlr: Boolean, version: CypherVersion) extends Phase[BaseCo
     val exceptionFactory = context.cypherExceptionFactory
     val notificationLogger = context.notificationLogger
     if (useAntlr) {
-      AstParserFactory(version)(query, exceptionFactory, Some(notificationLogger)).singleStatement()
+      AstParserFactory(context.cypherVersion)(query, exceptionFactory, Some(notificationLogger)).singleStatement()
     } else {
-      version match {
+      context.cypherVersion match {
         case CypherVersion.Cypher5 =>
           JavaCCParser.parse(query, exceptionFactory, notificationLogger)
         case CypherVersion.Cypher25 =>

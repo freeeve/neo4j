@@ -16,46 +16,34 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.gqlstatus.GqlHelper
+import org.neo4j.gqlstatus.GqlHelper.getGql22003
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42I25
+import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N71
 
 class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("nested CALL { ... } IN TRANSACTIONS") {
     val query = "CALL { CALL { CREATE (x) } IN TRANSACTIONS } IN TRANSACTIONS RETURN 1 AS result"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError("Nested CALL { ... } IN TRANSACTIONS is not supported", InputPosition(7, 1, 8))
-      )
-    )
+    run(query).hasError("Nested CALL { ... } IN TRANSACTIONS is not supported", p(7, 1, 8))
   }
 
   test("regular CALL nested in CALL { ... } IN TRANSACTIONS") {
     val query = "CALL { CALL { CREATE (x) } } IN TRANSACTIONS RETURN 1 AS result"
-    expectNoErrorsFrom(query)
+    run(query).hasNoErrors
   }
 
   test("CALL { ... } IN TRANSACTIONS nested in a regular CALL") {
     val query = "CALL { CALL { CREATE (x) } IN TRANSACTIONS } RETURN 1 AS result"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError("CALL { ... } IN TRANSACTIONS nested in a regular CALL is not supported", InputPosition(7, 1, 8))
-      )
-    )
+    run(query).hasError("CALL { ... } IN TRANSACTIONS nested in a regular CALL is not supported", p(7, 1, 8))
   }
 
   test("CALL { ... } IN TRANSACTIONS nested in a regular CALL and nested CALL { ... } IN TRANSACTIONS") {
     val query = "CALL { CALL { CALL { CREATE (x) } IN TRANSACTIONS } IN TRANSACTIONS } RETURN 1 AS result"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError("Nested CALL { ... } IN TRANSACTIONS is not supported", InputPosition(14, 1, 15)),
-        SemanticError("CALL { ... } IN TRANSACTIONS nested in a regular CALL is not supported", InputPosition(7, 1, 8))
-      )
+    run(query).hasErrors(
+      SemanticError("Nested CALL { ... } IN TRANSACTIONS is not supported", p(14, 1, 15)),
+      SemanticError("CALL { ... } IN TRANSACTIONS nested in a regular CALL is not supported", p(7, 1, 8))
     )
   }
 
@@ -69,13 +57,10 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |UNION
         |CALL { CREATE (x) } IN TRANSACTIONS
         |RETURN 3 AS result""".stripMargin
-    expectErrorsFrom(
-      query,
-      List(
-        SemanticError("CALL { ... } IN TRANSACTIONS in a UNION is not supported", InputPosition(0, 1, 1)),
-        SemanticError("CALL { ... } IN TRANSACTIONS in a UNION is not supported", InputPosition(61, 4, 1)),
-        SemanticError("CALL { ... } IN TRANSACTIONS in a UNION is not supported", InputPosition(122, 7, 1))
-      )
+    run(query).hasErrors(
+      SemanticError("CALL { ... } IN TRANSACTIONS in a UNION is not supported", p(0, 1, 1)),
+      SemanticError("CALL { ... } IN TRANSACTIONS in a UNION is not supported", p(61, 4, 1)),
+      SemanticError("CALL { ... } IN TRANSACTIONS in a UNION is not supported", p(122, 7, 1))
     )
   }
 
@@ -85,12 +70,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |RETURN 1 AS result
         |UNION
         |RETURN 2 AS result""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError("CALL { ... } IN TRANSACTIONS in a UNION is not supported", InputPosition(0, 1, 1))
-      )
-    )
+    run(query).hasError("CALL { ... } IN TRANSACTIONS in a UNION is not supported", p(0, 1, 1))
   }
 
   test("CALL { ... } IN TRANSACTIONS in second part of UNION") {
@@ -99,12 +79,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |UNION
         |CALL { CREATE (x) } IN TRANSACTIONS
         |RETURN 2 AS result""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError("CALL { ... } IN TRANSACTIONS in a UNION is not supported", InputPosition(25, 3, 1))
-      )
-    )
+    run(query).hasError("CALL { ... } IN TRANSACTIONS in a UNION is not supported", p(25, 3, 1))
   }
 
   test("CALL { ... } IN TRANSACTIONS with a preceding write clause") {
@@ -113,15 +88,10 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |WITH foo AS foo
         |CALL { CREATE (x) } IN TRANSACTIONS
         |RETURN foo AS foo""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          getGql42001_42I25(3, 1, 29),
-          "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
-          InputPosition(29, 3, 1)
-        )
-      )
+    run(query).hasError(
+      getGql42001_42I25(3, 1, 29),
+      "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
+      p(29, 3, 1)
     )
   }
 
@@ -132,20 +102,13 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |CALL { CREATE (x) } IN TRANSACTIONS
         |CALL { CREATE (x) } IN TRANSACTIONS
         |RETURN foo AS foo""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          getGql42001_42I25(3, 1, 29),
-          "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
-          InputPosition(29, 3, 1)
-        ),
-        SemanticError(
-          getGql42001_42I25(4, 1, 65),
-          "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
-          InputPosition(65, 4, 1)
-        )
-      )
+    run(query).hasErrors(
+      getGql42001_42I25(3, 1, 29),
+      "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
+      p(29, 3, 1),
+      getGql42001_42I25(4, 1, 65),
+      "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
+      p(65, 4, 1)
     )
   }
 
@@ -156,15 +119,10 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |WITH foo AS foo
         |CALL { CREATE (x) } IN TRANSACTIONS
         |RETURN foo AS foo""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          getGql42001_42I25(4, 1, 65),
-          "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
-          InputPosition(65, 4, 1)
-        )
-      )
+    run(query).hasError(
+      getGql42001_42I25(4, 1, 65),
+      "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
+      p(65, 4, 1)
     )
   }
 
@@ -174,15 +132,10 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |WITH foo AS foo
         |CALL { CREATE (x) } IN TRANSACTIONS
         |RETURN foo AS foo""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          getGql42001_42I25(3, 1, 56),
-          "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
-          InputPosition(56, 3, 1)
-        )
-      )
+    run(query).hasError(
+      getGql42001_42I25(3, 1, 56),
+      "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
+      p(56, 3, 1)
     )
   }
 
@@ -192,15 +145,10 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |WITH 1 AS foo
         |CALL { CREATE (x) } IN TRANSACTIONS
         |RETURN foo AS foo""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          getGql42001_42I25(3, 1, 34),
-          "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
-          InputPosition(34, 3, 1)
-        )
-      )
+    run(query).hasError(
+      getGql42001_42I25(3, 1, 34),
+      "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
+      p(34, 3, 1)
     )
   }
 
@@ -210,7 +158,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |WITH 1 AS foo
         |CALL { CREATE (y) } IN TRANSACTIONS
         |RETURN foo AS foo""".stripMargin
-    expectNoErrorsFrom(query)
+    run(query).hasNoErrors
   }
 
   test("CALL { ... } IN TRANSACTIONS with a following write clause") {
@@ -218,7 +166,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
       """CALL { CREATE (x) } IN TRANSACTIONS
         |CREATE (foo)
         |RETURN foo AS foo""".stripMargin
-    expectNoErrorsFrom(query)
+    run(query).hasNoErrors
   }
 
   test("CALL IN TRANSACTIONS with batchSize 1") {
@@ -227,7 +175,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  CREATE ()
         |} IN TRANSACTIONS OF 1 ROW
         |""".stripMargin
-    expectNoErrorsFrom(query)
+    run(query).hasNoErrors
   }
 
   test("CALL IN TRANSACTIONS with batchSize 0") {
@@ -236,18 +184,15 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  CREATE ()
         |} IN TRANSACTIONS OF 0 ROWS
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError.specifiedNumberOutOfRange(
-          "OF ... ROWS",
-          "INTEGER",
-          1,
-          Long.MaxValue,
-          "0",
-          "Invalid input. '0' is not a valid value. Must be a positive integer.",
-          InputPosition(40, 3, 22)
-        )
+    run(query).hasErrors(
+      SemanticError.specifiedNumberOutOfRange(
+        "OF ... ROWS",
+        "INTEGER",
+        1,
+        Long.MaxValue,
+        "0",
+        "Invalid input. '0' is not a valid value. Must be a positive integer.",
+        p(40, 3, 22)
       )
     )
   }
@@ -258,18 +203,15 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  CREATE ()
         |} IN TRANSACTIONS OF -1 ROWS
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError.specifiedNumberOutOfRange(
-          "OF ... ROWS",
-          "INTEGER",
-          1,
-          Long.MaxValue,
-          "-1",
-          "Invalid input. '-1' is not a valid value. Must be a positive integer.",
-          InputPosition(40, 3, 22)
-        )
+    run(query).hasErrors(
+      SemanticError.specifiedNumberOutOfRange(
+        "OF ... ROWS",
+        "INTEGER",
+        1,
+        Long.MaxValue,
+        "-1",
+        "Invalid input. '-1' is not a valid value. Must be a positive integer.",
+        p(40, 3, 22)
       )
     )
   }
@@ -280,25 +222,22 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  CREATE ()
         |} IN TRANSACTIONS OF 1.5 ROWS
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError.specifiedNumberOutOfRange(
-          "OF ... ROWS",
-          "INTEGER",
-          1,
-          Long.MaxValue,
-          "1.5",
-          "Invalid input. '1.5' is not a valid value. Must be a positive integer.",
-          InputPosition(40, 3, 22)
-        ),
-        SemanticError.invalidEntityType(
-          "Float",
-          "1.5",
-          List("Integer"),
-          "Type mismatch: expected Integer but was Float",
-          InputPosition(40, 3, 22)
-        )
+    run(query).hasErrors(
+      SemanticError.specifiedNumberOutOfRange(
+        "OF ... ROWS",
+        "INTEGER",
+        1,
+        Long.MaxValue,
+        "1.5",
+        "Invalid input. '1.5' is not a valid value. Must be a positive integer.",
+        p(40, 3, 22)
+      ),
+      SemanticError.invalidEntityType(
+        "Float",
+        "1.5",
+        List("Integer"),
+        "Type mismatch: expected Integer but was Float",
+        p(40, 3, 22)
       )
     )
   }
@@ -309,25 +248,22 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  CREATE ()
         |} IN TRANSACTIONS OF 'foo' ROWS
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError.specifiedNumberOutOfRange(
-          "OF ... ROWS",
-          "INTEGER",
-          1,
-          Long.MaxValue,
-          "foo",
-          "Invalid input. 'foo' is not a valid value. Must be a positive integer.",
-          InputPosition(40, 3, 22).withInputLength(5)
-        ),
-        SemanticError.invalidEntityType(
-          "String",
-          "foo",
-          List("Integer"),
-          "Type mismatch: expected Integer but was String",
-          InputPosition(40, 3, 22).withInputLength(5)
-        )
+    run(query).hasErrors(
+      SemanticError.specifiedNumberOutOfRange(
+        "OF ... ROWS",
+        "INTEGER",
+        1,
+        Long.MaxValue,
+        "foo",
+        "Invalid input. 'foo' is not a valid value. Must be a positive integer.",
+        p(40, 3, 22).withInputLength(5)
+      ),
+      SemanticError.invalidEntityType(
+        "String",
+        "foo",
+        List("Integer"),
+        "Type mismatch: expected Integer but was String",
+        p(40, 3, 22).withInputLength(5)
       )
     )
   }
@@ -338,18 +274,15 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  CREATE ()
         |} IN TRANSACTIONS OF NULL ROWS
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError.specifiedNumberOutOfRange(
-          "OF ... ROWS",
-          "INTEGER",
-          1,
-          Long.MaxValue,
-          "NULL",
-          "Invalid input. 'NULL' is not a valid value. Must be a positive integer.",
-          InputPosition(40, 3, 22)
-        )
+    run(query).hasErrors(
+      SemanticError.specifiedNumberOutOfRange(
+        "OF ... ROWS",
+        "INTEGER",
+        1,
+        Long.MaxValue,
+        "NULL",
+        "Invalid input. 'NULL' is not a valid value. Must be a positive integer.",
+        p(40, 3, 22)
       )
     )
   }
@@ -361,13 +294,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN TRANSACTIONS OF $batchSize ROWS
          |""".stripMargin
-    val gql = GqlHelper.getGql22003(batchSize, 3, 22, 40)
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(gql, "integer is too large", InputPosition(40, 3, 22))
-      )
-    )
+    run(query).hasError(getGql22003(batchSize, 3, 22, 40), "integer is too large", p(40, 3, 22))
   }
 
   test("CALL IN TRANSACTIONS with batchSize with a variable reference") {
@@ -377,14 +304,9 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN TRANSACTIONS OF b ROWS
          |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "It is not allowed to refer to variables in OF ... ROWS, so that the value for OF ... ROWS can be statically calculated.",
-          InputPosition(52, 4, 22)
-        )
-      )
+    run(query).hasError(
+      "It is not allowed to refer to variables in OF ... ROWS, so that the value for OF ... ROWS can be statically calculated.",
+      p(52, 4, 22)
     )
   }
 
@@ -394,14 +316,9 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN TRANSACTIONS OF size(()--()) ROWS
          |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "It is not allowed to use patterns in the expression for OF ... ROWS, so that the value for OF ... ROWS can be statically calculated.",
-          InputPosition(40, 3, 22)
-        )
-      )
+    run(query).hasError(
+      "It is not allowed to use patterns in the expression for OF ... ROWS, so that the value for OF ... ROWS can be statically calculated.",
+      p(40, 3, 22)
     )
   }
 
@@ -411,20 +328,17 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN TRANSACTIONS OF [path IN ()--() | 5] ROWS
          |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "It is not allowed to use patterns in the expression for OF ... ROWS, so that the value for OF ... ROWS can be statically calculated.",
-          InputPosition(40, 3, 22)
-        ),
-        SemanticError.invalidEntityType(
-          "List<Integer>",
-          "ListComprehension(ExtractSc...",
-          List("Integer"),
-          "Type mismatch: expected Integer but was List<Integer>",
-          InputPosition(40, 3, 22)
-        )
+    run(query).hasErrors(
+      SemanticError(
+        "It is not allowed to use patterns in the expression for OF ... ROWS, so that the value for OF ... ROWS can be statically calculated.",
+        p(40, 3, 22)
+      ),
+      SemanticError.invalidEntityType(
+        "List<Integer>",
+        "ListComprehension(ExtractSc...",
+        List("Integer"),
+        "Type mismatch: expected Integer but was List<Integer>",
+        p(40, 3, 22)
       )
     )
   }
@@ -435,14 +349,9 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN TRANSACTIONS OF COUNT { ()--() } ROWS
          |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "It is not allowed to use patterns in the expression for OF ... ROWS, so that the value for OF ... ROWS can be statically calculated.",
-          InputPosition(40, 3, 22)
-        )
-      )
+    run(query).hasError(
+      "It is not allowed to use patterns in the expression for OF ... ROWS, so that the value for OF ... ROWS can be statically calculated.",
+      p(40, 3, 22)
     )
   }
 
@@ -452,7 +361,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  CREATE ()
         |} IN 1 CONCURRENT TRANSACTIONS
         |""".stripMargin
-    expectNoErrorsFrom(query)
+    run(query).hasNoErrors
   }
 
   test("CALL IN TRANSACTIONS with concurrency 0") {
@@ -461,18 +370,15 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  CREATE ()
         |} IN 0 CONCURRENT TRANSACTIONS
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError.specifiedNumberOutOfRange(
-          "IN ... CONCURRENT",
-          "INTEGER",
-          1,
-          Long.MaxValue,
-          "0",
-          "Invalid input. '0' is not a valid value. Must be a positive integer.",
-          InputPosition(24, 3, 6)
-        )
+    run(query).hasErrors(
+      SemanticError.specifiedNumberOutOfRange(
+        "IN ... CONCURRENT",
+        "INTEGER",
+        1,
+        Long.MaxValue,
+        "0",
+        "Invalid input. '0' is not a valid value. Must be a positive integer.",
+        p(24, 3, 6)
       )
     )
   }
@@ -483,18 +389,15 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  CREATE ()
         |} IN -1 CONCURRENT TRANSACTIONS
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError.specifiedNumberOutOfRange(
-          "IN ... CONCURRENT",
-          "INTEGER",
-          1,
-          Long.MaxValue,
-          "-1",
-          "Invalid input. '-1' is not a valid value. Must be a positive integer.",
-          InputPosition(24, 3, 6)
-        )
+    run(query).hasErrors(
+      SemanticError.specifiedNumberOutOfRange(
+        "IN ... CONCURRENT",
+        "INTEGER",
+        1,
+        Long.MaxValue,
+        "-1",
+        "Invalid input. '-1' is not a valid value. Must be a positive integer.",
+        p(24, 3, 6)
       )
     )
   }
@@ -505,25 +408,22 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  CREATE ()
         |} IN 1.5 CONCURRENT TRANSACTIONS
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError.specifiedNumberOutOfRange(
-          "IN ... CONCURRENT",
-          "INTEGER",
-          1,
-          Long.MaxValue,
-          "1.5",
-          "Invalid input. '1.5' is not a valid value. Must be a positive integer.",
-          InputPosition(24, 3, 6)
-        ),
-        SemanticError.invalidEntityType(
-          "Float",
-          "1.5",
-          List("Integer"),
-          "Type mismatch: expected Integer but was Float",
-          InputPosition(24, 3, 6)
-        )
+    run(query).hasErrors(
+      SemanticError.specifiedNumberOutOfRange(
+        "IN ... CONCURRENT",
+        "INTEGER",
+        1,
+        Long.MaxValue,
+        "1.5",
+        "Invalid input. '1.5' is not a valid value. Must be a positive integer.",
+        p(24, 3, 6)
+      ),
+      SemanticError.invalidEntityType(
+        "Float",
+        "1.5",
+        List("Integer"),
+        "Type mismatch: expected Integer but was Float",
+        p(24, 3, 6)
       )
     )
   }
@@ -534,25 +434,22 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  CREATE ()
         |} IN 'foo' CONCURRENT TRANSACTIONS
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError.specifiedNumberOutOfRange(
-          "IN ... CONCURRENT",
-          "INTEGER",
-          1,
-          Long.MaxValue,
-          "foo",
-          "Invalid input. 'foo' is not a valid value. Must be a positive integer.",
-          InputPosition(24, 3, 6).withInputLength(5)
-        ),
-        SemanticError.invalidEntityType(
-          "String",
-          "foo",
-          List("Integer"),
-          "Type mismatch: expected Integer but was String",
-          InputPosition(24, 3, 6).withInputLength(5)
-        )
+    run(query).hasErrors(
+      SemanticError.specifiedNumberOutOfRange(
+        "IN ... CONCURRENT",
+        "INTEGER",
+        1,
+        Long.MaxValue,
+        "foo",
+        "Invalid input. 'foo' is not a valid value. Must be a positive integer.",
+        p(24, 3, 6).withInputLength(5)
+      ),
+      SemanticError.invalidEntityType(
+        "String",
+        "foo",
+        List("Integer"),
+        "Type mismatch: expected Integer but was String",
+        p(24, 3, 6).withInputLength(5)
       )
     )
   }
@@ -563,18 +460,15 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  CREATE ()
         |} IN NULL CONCURRENT TRANSACTIONS
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError.specifiedNumberOutOfRange(
-          "IN ... CONCURRENT",
-          "INTEGER",
-          1,
-          Long.MaxValue,
-          "NULL",
-          "Invalid input. 'NULL' is not a valid value. Must be a positive integer.",
-          InputPosition(24, 3, 6)
-        )
+    run(query).hasErrors(
+      SemanticError.specifiedNumberOutOfRange(
+        "IN ... CONCURRENT",
+        "INTEGER",
+        1,
+        Long.MaxValue,
+        "NULL",
+        "Invalid input. 'NULL' is not a valid value. Must be a positive integer.",
+        p(24, 3, 6)
       )
     )
   }
@@ -586,13 +480,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN $concurrency CONCURRENT TRANSACTIONS
          |""".stripMargin
-    val gql = GqlHelper.getGql22003(concurrency, 3, 6, 24)
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(gql, "integer is too large", InputPosition(24, 3, 6))
-      )
-    )
+    run(query).hasError(getGql22003(concurrency, 3, 6, 24), "integer is too large", p(24, 3, 6))
   }
 
   test("CALL IN TRANSACTIONS with concurrency as a variable reference") {
@@ -602,14 +490,9 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN b CONCURRENT TRANSACTIONS
          |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "It is not allowed to refer to variables in IN ... CONCURRENT, so that the value for IN ... CONCURRENT can be statically calculated.",
-          InputPosition(36, 4, 6)
-        )
-      )
+    run(query).hasError(
+      "It is not allowed to refer to variables in IN ... CONCURRENT, so that the value for IN ... CONCURRENT can be statically calculated.",
+      p(36, 4, 6)
     )
   }
 
@@ -619,14 +502,9 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN size(()--()) CONCURRENT TRANSACTIONS
          |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "It is not allowed to use patterns in the expression for IN ... CONCURRENT, so that the value for IN ... CONCURRENT can be statically calculated.",
-          InputPosition(24, 3, 6)
-        )
-      )
+    run(query).hasError(
+      "It is not allowed to use patterns in the expression for IN ... CONCURRENT, so that the value for IN ... CONCURRENT can be statically calculated.",
+      p(24, 3, 6)
     )
   }
 
@@ -636,20 +514,17 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN [path IN ()--() | 5] CONCURRENT TRANSACTIONS
          |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "It is not allowed to use patterns in the expression for IN ... CONCURRENT, so that the value for IN ... CONCURRENT can be statically calculated.",
-          InputPosition(24, 3, 6)
-        ),
-        SemanticError.invalidEntityType(
-          "List<Integer>",
-          "ListComprehension(ExtractSc...",
-          List("Integer"),
-          "Type mismatch: expected Integer but was List<Integer>",
-          InputPosition(24, 3, 6)
-        )
+    run(query).hasErrors(
+      SemanticError(
+        "It is not allowed to use patterns in the expression for IN ... CONCURRENT, so that the value for IN ... CONCURRENT can be statically calculated.",
+        p(24, 3, 6)
+      ),
+      SemanticError.invalidEntityType(
+        "List<Integer>",
+        "ListComprehension(ExtractSc...",
+        List("Integer"),
+        "Type mismatch: expected Integer but was List<Integer>",
+        p(24, 3, 6)
       )
     )
   }
@@ -660,14 +535,9 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN COUNT { ()--() } CONCURRENT TRANSACTIONS
          |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "It is not allowed to use patterns in the expression for IN ... CONCURRENT, so that the value for IN ... CONCURRENT can be statically calculated.",
-          InputPosition(24, 3, 6)
-        )
-      )
+    run(query).hasError(
+      "It is not allowed to use patterns in the expression for IN ... CONCURRENT, so that the value for IN ... CONCURRENT can be statically calculated.",
+      p(24, 3, 6)
     )
   }
 
@@ -679,7 +549,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  ON ERROR BREAK 
         |  RETURN v
         |""".stripMargin
-    expectNoErrorsFrom(query)
+    run(query).hasNoErrors
   }
 
   test("CALL IN TRANSACTIONS ON ERROR BREAK without inner and outer return should pass semantic check") {
@@ -689,7 +559,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |} IN TRANSACTIONS 
         |  ON ERROR BREAK 
         |""".stripMargin
-    expectNoErrorsFrom(query)
+    run(query).hasNoErrors
   }
 
   test("CALL IN TRANSACTIONS ON ERROR BREAK with inner return and no outer return should fail semantic check") {
@@ -699,15 +569,10 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |} IN TRANSACTIONS 
         |  ON ERROR BREAK 
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          GqlHelper.getGql42001_42N71(1, 1, 0),
-          "Query cannot conclude with CALL (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
-          InputPosition(0, 1, 1)
-        )
-      )
+    run(query).hasError(
+      getGql42001_42N71(1, 1, 0),
+      "Query cannot conclude with CALL (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
+      p(0, 1, 1)
     )
   }
 
@@ -720,7 +585,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  REPORT STATUS AS status
         |  RETURN v, status
         |""".stripMargin
-    expectNoErrorsFrom(query)
+    run(query).hasNoErrors
   }
 
   test("CALL IN TRANSACTIONS ON ERROR CONTINUE REPORT STATUS without outer RETURN should fail semantic check") {
@@ -729,15 +594,10 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  CREATE ()
         |} IN TRANSACTIONS ON ERROR CONTINUE REPORT STATUS AS status
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          GqlHelper.getGql42001_42N71(1, 1, 0),
-          "Query cannot conclude with CALL (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
-          InputPosition(0, 1, 1)
-        )
-      )
+    run(query).hasError(
+      getGql42001_42N71(1, 1, 0),
+      "Query cannot conclude with CALL (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
+      p(0, 1, 1)
     )
   }
 
@@ -750,15 +610,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  CREATE ()
         |} IN TRANSACTIONS ON ERROR CONTINUE REPORT STATUS AS v RETURN v
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "Variable `v` already declared",
-          InputPosition(85, 4, 54)
-        )
-      )
-    )
+    run(query).hasError("Variable `v` already declared", p(85, 4, 54))
   }
 
   test("CALL IN TRANSACTIONS ON ERROR BREAK REPORT STATUS AS status should pass semantic check") {
@@ -770,7 +622,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  REPORT STATUS AS status
         |  RETURN v, status
         |""".stripMargin
-    expectNoErrorsFrom(query)
+    run(query).hasNoErrors
   }
 
   test("CALL IN TRANSACTIONS REPORT STATUS should fail semantic check") {
@@ -781,14 +633,9 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  REPORT STATUS AS status
         |  RETURN v, status
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "REPORT STATUS can only be used when specifying ON ERROR CONTINUE or ON ERROR BREAK",
-          InputPosition(43, 4, 3)
-        )
-      )
+    run(query).hasError(
+      "REPORT STATUS can only be used when specifying ON ERROR CONTINUE or ON ERROR BREAK",
+      p(43, 4, 3)
     )
   }
 
@@ -801,14 +648,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  REPORT STATUS AS status
         |  RETURN v, status
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "REPORT STATUS can only be used when specifying ON ERROR CONTINUE or ON ERROR BREAK",
-          InputPosition(59, 5, 3)
-        )
-      )
-    )
+    run(query)
+      .hasError("REPORT STATUS can only be used when specifying ON ERROR CONTINUE or ON ERROR BREAK", p(59, 5, 3))
   }
 }

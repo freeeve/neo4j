@@ -23,6 +23,8 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPlanningMode.ALL_IF_POSSIBLE
 import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPlanningMode.CARDINALITY_HEURISTIC
 import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPlanningMode.INTO_ONLY
+import org.neo4j.cypher.internal.CypherVersion.Cypher25
+import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
@@ -2261,7 +2263,8 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
         |  END
         |RETURN m""".stripMargin
 
-    println(planner.plan(query))
+    planner.plan(Cypher5, query)
+    planner.plan(Cypher25, query)
   }
 
   test("Should handle path assignment for shortest path containing qpp with two juxtaposed nodes") {

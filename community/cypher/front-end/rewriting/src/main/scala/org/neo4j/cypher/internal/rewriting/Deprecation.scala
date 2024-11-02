@@ -86,11 +86,11 @@ import scala.annotation.tailrec
 
 object Deprecations {
 
-  case class SyntacticallyDeprecatedFeatures(cypherVersion: CypherVersion) extends SyntacticDeprecations {
+  case object SyntacticallyDeprecatedFeatures extends SyntacticDeprecations {
 
     val stringifier: ExpressionStringifier = ExpressionStringifier()
 
-    override val find: PartialFunction[Any, Deprecation] = Function.unlift {
+    override def find(version: CypherVersion): PartialFunction[Any, Deprecation] = Function.unlift {
 
       // legacy type separator -[:A|:B]->
       case rel @ RelationshipPattern(variable, Some(labelExpression), None, None, None, _)
@@ -119,35 +119,30 @@ object Deprecations {
         ))
 
       case NodePattern(Some(variable), None, Some(properties), None)
-        if NodePattern.WhereVariableInNodePatterns.deprecatedIn(
-          cypherVersion
-        ) && !variable.isIsolated && variable.name.equalsIgnoreCase("where") =>
+        if NodePattern.WhereVariableInNodePatterns.deprecatedIn(version) &&
+          !variable.isIsolated && variable.name.equalsIgnoreCase("where") =>
         Some(Deprecation(
           None,
           Some(DeprecatedWhereVariableInNodePattern(variable.position, variable.name, stringifier(properties)))
         ))
       case RelationshipPattern(Some(variable), None, _, Some(properties), None, _)
-        if RelationshipPattern.WhereVariableInRelationshipPatterns.deprecatedIn(
-          cypherVersion
-        ) && !variable.isIsolated && variable.name.equalsIgnoreCase("where") =>
+        if RelationshipPattern.WhereVariableInRelationshipPatterns.deprecatedIn(version) &&
+          !variable.isIsolated && variable.name.equalsIgnoreCase("where") =>
         Some(Deprecation(
           None,
           Some(DeprecatedWhereVariableInRelationshipPattern(variable.position, variable.name, stringifier(properties)))
         ))
 
       case Add(_, lep @ LabelExpressionPredicate(_, _))
-        if LabelExpressionPredicate.UnparenthesizedLabelPredicateOnRhsOfAdd.deprecatedIn(
-          cypherVersion
-        ) && !lep.isParenthesized =>
+        if LabelExpressionPredicate.UnparenthesizedLabelPredicateOnRhsOfAdd.deprecatedIn(version) &&
+          !lep.isParenthesized =>
         Some(Deprecation(
           None,
           Some(DeprecatedPrecedenceOfLabelExpressionPredicate(lep.position, stringifier(lep)))
         ))
 
       case CaseExpression(Some(_), alternatives, _)
-        if CaseExpression.KeywordVariablesInWhenOperand.deprecatedIn(
-          cypherVersion
-        ) =>
+        if CaseExpression.KeywordVariablesInWhenOperand.deprecatedIn(version) =>
         alternatives.collectFirst {
           case (Equals(_, it @ IsTyped(variable: Variable, cypherType)), _)
             if !variable.isIsolated && variable.name.equalsIgnoreCase("is") && it.withDoubleColonOnly =>
@@ -264,7 +259,7 @@ object Deprecations {
   }
 
   // add new semantically deprecated features here
-  case class SemanticallyDeprecatedFeatures(cypherVersion: CypherVersion) extends SemanticDeprecations {
+  case object SemanticallyDeprecatedFeatures extends SemanticDeprecations {
 
     // Returns the set of variables that are defined in a `CREATE` or `MERGE` and then used in the same `CREATE` or `MERGE` for property read
     // E.g. `CREATE (a {prop: 5}), (b {prop: a.prop})
@@ -290,50 +285,51 @@ object Deprecations {
       referencedVariables.intersect(declaredVariables)
     }
 
-    override def find(semanticTable: SemanticTable): PartialFunction[Any, Deprecation] = Function.unlift {
-      case s @ SetExactPropertiesFromMapItem(lhs: Variable, rhs: Variable, false)
-        if semanticTable.typeFor(rhs).isAnyOf(CTNode, CTRelationship) =>
-        Some(Deprecation(
-          Some(Ref(s) -> s.copy(expression = functionInvocationForSetProperties(s, rhs))(s.position)),
-          Some(DeprecatedNodesOrRelationshipsInSetClauseNotification(
-            rhs.position,
-            s"SET ${lhs.name} = ${rhs.name}",
-            s"SET ${lhs.name} = properties(${rhs.name})"
+    override def find(version: CypherVersion, semanticTable: SemanticTable): PartialFunction[Any, Deprecation] =
+      Function.unlift {
+        case s @ SetExactPropertiesFromMapItem(lhs: Variable, rhs: Variable, false)
+          if semanticTable.typeFor(rhs).isAnyOf(CTNode, CTRelationship) =>
+          Some(Deprecation(
+            Some(Ref(s) -> s.copy(expression = functionInvocationForSetProperties(s, rhs))(s.position)),
+            Some(DeprecatedNodesOrRelationshipsInSetClauseNotification(
+              rhs.position,
+              s"SET ${lhs.name} = ${rhs.name}",
+              s"SET ${lhs.name} = properties(${rhs.name})"
+            ))
           ))
-        ))
-      case s @ SetIncludingPropertiesFromMapItem(lhs: Variable, rhs: Variable, false)
-        if semanticTable.typeFor(rhs).isAnyOf(CTNode, CTRelationship) =>
-        Some(Deprecation(
-          Some(Ref(s) -> s.copy(expression = functionInvocationForSetProperties(s, rhs))(s.position)),
-          Some(DeprecatedNodesOrRelationshipsInSetClauseNotification(
-            rhs.position,
-            s"SET ${lhs.name} += ${rhs.name}",
-            s"SET ${lhs.name} += properties(${rhs.name})"
+        case s @ SetIncludingPropertiesFromMapItem(lhs: Variable, rhs: Variable, false)
+          if semanticTable.typeFor(rhs).isAnyOf(CTNode, CTRelationship) =>
+          Some(Deprecation(
+            Some(Ref(s) -> s.copy(expression = functionInvocationForSetProperties(s, rhs))(s.position)),
+            Some(DeprecatedNodesOrRelationshipsInSetClauseNotification(
+              rhs.position,
+              s"SET ${lhs.name} += ${rhs.name}",
+              s"SET ${lhs.name} += properties(${rhs.name})"
+            ))
           ))
-        ))
 
-      case c @ ImportingWithSubqueryCall(innerQuery, _, _) =>
-        @tailrec
-        def includesExisting(q: Query): Boolean = {
-          q match {
-            case sq: SingleQuery => sq.partitionedClauses.importingWith.exists(w => w.returnItems.includeExisting)
-            case un: Union =>
-              un.rhs.partitionedClauses.importingWith.exists(w => w.returnItems.includeExisting) ||
-              includesExisting(un.lhs)
+        case c @ ImportingWithSubqueryCall(innerQuery, _, _) =>
+          @tailrec
+          def includesExisting(q: Query): Boolean = {
+            q match {
+              case sq: SingleQuery => sq.partitionedClauses.importingWith.exists(w => w.returnItems.includeExisting)
+              case un: Union =>
+                un.rhs.partitionedClauses.importingWith.exists(w => w.returnItems.includeExisting) ||
+                includesExisting(un.lhs)
+            }
           }
-        }
 
-        val importing = if (innerQuery.isCorrelated) {
-          if (includesExisting(innerQuery)) "*" else innerQuery.importColumns.mkString(", ")
-        } else ""
+          val importing = if (innerQuery.isCorrelated) {
+            if (includesExisting(innerQuery)) "*" else innerQuery.importColumns.mkString(", ")
+          } else ""
 
-        Some(Deprecation(
-          None,
-          Some(DeprecatedImportingWithInSubqueryCall(c.position, importing))
-        ))
+          Some(Deprecation(
+            None,
+            Some(DeprecatedImportingWithInSubqueryCall(c.position, importing))
+          ))
 
-      case Create(pattern) if Create.SelfReferenceAcrossPatterns.deprecatedIn(cypherVersion) =>
-        /*
+        case Create(pattern) if Create.SelfReferenceAcrossPatterns.deprecatedIn(version) =>
+          /*
         Note: When this deprecation turns into a semantic error in 6.0,
         we can clean up some code.
 
@@ -342,20 +338,20 @@ object Deprecations {
         This check won't be needed in the future because such queries will have led to an error already.
         Even though it won't need to look at the SemanticTable any more, it will still depend on
         SemanticAnalysis having run, so that these queries don't reach the IsolateSubqueriesInMutatingPatterns.
-         */
-        propertyUsageOfNewVariable(pattern, semanticTable).collectFirst { e =>
-          Deprecation(None, Some(DeprecatedPropertyReferenceInCreate(e.position, e.name)))
-        }
+           */
+          propertyUsageOfNewVariable(pattern, semanticTable).collectFirst { e =>
+            Deprecation(None, Some(DeprecatedPropertyReferenceInCreate(e.position, e.name)))
+          }
 
-      case Merge(patternPart, _, _) if Merge.SelfReference.deprecatedIn(cypherVersion) =>
-        // Create an update pattern consisting of the one patternPart from the MERGE clause
-        val pattern = Pattern.ForUpdate(Seq(patternPart))(patternPart.position)
-        propertyUsageOfNewVariable(pattern, semanticTable).collectFirst { e =>
-          Deprecation(None, Some(DeprecatedPropertyReferenceInMerge(e.position, e.name)))
-        }
+        case Merge(patternPart, _, _) if Merge.SelfReference.deprecatedIn(version) =>
+          // Create an update pattern consisting of the one patternPart from the MERGE clause
+          val pattern = Pattern.ForUpdate(Seq(patternPart))(patternPart.position)
+          propertyUsageOfNewVariable(pattern, semanticTable).collectFirst { e =>
+            Deprecation(None, Some(DeprecatedPropertyReferenceInMerge(e.position, e.name)))
+          }
 
-      case _ => None
-    }
+        case _ => None
+      }
   }
 }
 
@@ -373,10 +369,10 @@ case class Deprecation(replacement: Option[(Ref[ASTNode], ASTNode)], notificatio
 sealed trait Deprecations
 
 trait SyntacticDeprecations extends Deprecations {
-  def find: PartialFunction[Any, Deprecation]
+  def find(version: CypherVersion): PartialFunction[Any, Deprecation]
   def findWithContext(statement: ast.Statement): Set[Deprecation] = Set.empty
 }
 
 trait SemanticDeprecations extends Deprecations {
-  def find(semanticTable: SemanticTable): PartialFunction[Any, Deprecation]
+  def find(version: CypherVersion, semanticTable: SemanticTable): PartialFunction[Any, Deprecation]
 }

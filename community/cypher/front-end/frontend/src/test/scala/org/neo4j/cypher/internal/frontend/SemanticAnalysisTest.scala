@@ -16,10 +16,13 @@
  */
 package org.neo4j.cypher.internal.frontend
 
-import org.neo4j.cypher.internal.ast.semantics.SemanticError
+import org.neo4j.cypher.internal.ast.Ast.p
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.literal
+import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidEntityType
+import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidNumberOfProcedureOrFunctionArguments
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
-import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
-import org.neo4j.cypher.internal.expressions.StringLiteral
+import org.neo4j.cypher.internal.frontend.SemanticAnalysisTest.gql42N29
+import org.neo4j.cypher.internal.frontend.SemanticAnalysisTest.gql42NA5
 import org.neo4j.cypher.internal.frontend.phases.SemanticAnalysis
 import org.neo4j.cypher.internal.util.CartesianProductNotification
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
@@ -27,11 +30,15 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.RepeatedRelationshipReference
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
-import org.neo4j.gqlstatus.GqlHelper
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation.from
+import org.neo4j.gqlstatus.GqlHelper.getGql22003
+import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N39
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N71
-import org.neo4j.gqlstatus.GqlParams
-import org.neo4j.gqlstatus.GqlStatusInfoCodes
+import org.neo4j.gqlstatus.GqlParams.StringParam.variable
+import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_42001
+import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_42I40
+import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_42N29
+import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_42NA5
 
 class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
@@ -53,39 +60,23 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
     "'' is not a valid token name. Token names cannot be empty or contain any null-bytes."
 
   test("should fail for max() with no arguments") {
-    val query = "RETURN max() AS max"
-    expectErrorsFrom(
-      query,
-      Set(SemanticError.invalidNumberOfProcedureOrFunctionArguments(
-        1,
-        0,
-        "max",
-        "max(input :: ANY) :: ANY",
-        "Insufficient parameters for function 'max'",
-        InputPosition(7, 1, 8)
-      ))
-    )
+    val msg = "Insufficient parameters for function 'max'"
+    run("RETURN max() AS max")
+      .hasErrors(invalidNumberOfProcedureOrFunctionArguments(1, 0, "max", "max(input :: ANY) :: ANY", msg, p(7, 1, 8)))
   }
 
   test("Should allow overriding variable name in RETURN clause with an ORDER BY") {
-    val query = "MATCH (n) RETURN n.prop AS n ORDER BY n + 2"
-    expectNoErrorsFrom(query)
+    run("MATCH (n) RETURN n.prop AS n ORDER BY n + 2").hasNoErrors
   }
 
   test("Should not allow multiple columns with the same name in WITH") {
-    val query = "MATCH (n) WITH n.prop AS n, n.foo AS n ORDER BY n + 2 RETURN 1 AS one"
-    expectErrorsFrom(
-      query,
-      Set(SemanticError("Multiple result columns with the same name are not supported", InputPosition(15, 1, 16)))
-    )
+    run("MATCH (n) WITH n.prop AS n, n.foo AS n ORDER BY n + 2 RETURN 1 AS one")
+      .hasError("Multiple result columns with the same name are not supported", p(15, 1, 16))
   }
 
   test("Should not allow duplicate variable name in CREATE") {
-    val query = "CREATE (n), (n) RETURN 1 as one"
-    expectErrorsFrom(
-      query,
-      Set(SemanticError("Variable `n` already declared", InputPosition(13, 1, 14)))
-    )
+    run("CREATE (n), (n) RETURN 1 as one")
+      .hasError("Variable `n` already declared", p(13, 1, 14))
   }
 
   test("Should not allow Distinct in functions that aren't aggregate") {
@@ -105,57 +96,37 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
       ("isEmpty", "'param1'"),
       ("toBoolean", "'param1'")
     )
-    nonAggregateFunctions.foreach {
-      case (func, params) =>
-        val query = s"RETURN $func(DISTINCT $params)"
-        expectErrorsFrom(
-          query,
-          Set(SemanticError(s"Invalid use of DISTINCT with function '$func'", InputPosition(7, 1, 8)))
-        )
+    nonAggregateFunctions.foreach { case (func, params) =>
+      run(s"RETURN $func(DISTINCT $params)")
+        .hasError(s"Invalid use of DISTINCT with function '$func'", p(7, 1, 8))
     }
   }
 
   test("Should not allow parameter maps in node pattern in MATCH") {
-    val query = "MATCH (n $foo) RETURN 1"
-    expectErrorsFrom(
-      query,
-      Set(SemanticError(
-        "Parameter maps cannot be used in `MATCH` patterns (use a literal map instead, e.g. `{id: $foo.id}`)",
-        InputPosition(9, 1, 10)
-      ))
+    run("MATCH (n $foo) RETURN 1").hasError(
+      "Parameter maps cannot be used in `MATCH` patterns (use a literal map instead, e.g. `{id: $foo.id}`)",
+      p(9, 1, 10)
     )
   }
 
   test("Should not allow parameter maps in node pattern in MERGE") {
-    val query = "MERGE (n $foo) RETURN 1"
-    expectErrorsFrom(
-      query,
-      Set(SemanticError(
-        "Parameter maps cannot be used in `MERGE` patterns (use a literal map instead, e.g. `{id: $foo.id}`)",
-        InputPosition(9, 1, 10)
-      ))
+    run("MERGE (n $foo) RETURN 1").hasError(
+      "Parameter maps cannot be used in `MERGE` patterns (use a literal map instead, e.g. `{id: $foo.id}`)",
+      p(9, 1, 10)
     )
   }
 
   test("Should not allow parameter maps in relationship pattern in MATCH") {
-    val query = "MATCH (n)-[r $foo]->() RETURN 1"
-    expectErrorsFrom(
-      query,
-      Set(SemanticError(
-        "Parameter maps cannot be used in `MATCH` patterns (use a literal map instead, e.g. `{id: $foo.id}`)",
-        InputPosition(13, 1, 14)
-      ))
+    run("MATCH (n)-[r $foo]->() RETURN 1").hasError(
+      "Parameter maps cannot be used in `MATCH` patterns (use a literal map instead, e.g. `{id: $foo.id}`)",
+      p(13, 1, 14)
     )
   }
 
   test("Should not allow parameter maps in relationship pattern in MERGE") {
-    val query = "MERGE (n)-[r:R $foo]->() RETURN 1"
-    expectErrorsFrom(
-      query,
-      Set(SemanticError(
-        "Parameter maps cannot be used in `MERGE` patterns (use a literal map instead, e.g. `{id: $foo.id}`)",
-        InputPosition(15, 1, 16)
-      ))
+    run("MERGE (n)-[r:R $foo]->() RETURN 1").hasError(
+      "Parameter maps cannot be used in `MERGE` patterns (use a literal map instead, e.g. `{id: $foo.id}`)",
+      p(15, 1, 16)
     )
   }
 
@@ -167,17 +138,12 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
       "RETURN none(x IN [1,2,3] WHERE $p) AS foo",
       "RETURN single(x IN [1,2,3] WHERE $p) AS foo"
     )
-    queries.foreach { query =>
-      withClue(query) {
-        val pipeline = pipelineWithSemanticFeatures()
-        def initialState = initialStateWithQuery(query).withParams(Map(AutoExtractedParameter(
-          "p",
-          CTAny
-        )(InputPosition.NONE) -> StringLiteral("hello")(InputPosition.NONE.withInputLength(0))))
-        val result = runSemanticAnalysisWithPipelineAndState(pipeline, () => initialState)
 
-        result.errors shouldBe empty
-      }
+    queries.foreach { query =>
+      analyse(query)
+        .withParam("p", CTAny, literal("hello"))
+        .run
+        .hasNoErrors
     }
   }
 
@@ -189,261 +155,206 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
       "MATCH (n) RETURN none(x IN [1,2,3] WHERE (n)--()) AS foo",
       "MATCH (n) RETURN single(x IN [1,2,3] WHERE (n)--()) AS foo"
     )
-    queries.foreach { query =>
-      withClue(query) {
-        expectNoErrorsFrom(query)
-      }
-    }
+    queries.foreach(query => run(query).hasNoErrors)
   }
 
   // Escaped backticks in tokens
 
   test("Should allow escaped backticks in node property key name") {
     // Property without escaping: `abc123``
-    val query = "CREATE ({prop: 5, ```abc123`````: 1})"
-    expectNoErrorsFrom(query)
+    run("CREATE ({prop: 5, ```abc123`````: 1})").hasNoErrors
   }
 
   test("Should allow escaped backticks in relationship property key name") {
     // Property without escaping: abc`123
-    val query = "MATCH ()-[r]->() RETURN r.`abc``123` as result"
-    expectNoErrorsFrom(query)
+    run("MATCH ()-[r]->() RETURN r.`abc``123` as result").hasNoErrors
   }
 
   test("Should allow escaped backticks in label") {
     // Label without escaping: `abc123
-    val query = "MATCH (n) SET n:```abc123`"
-    expectNoErrorsFrom(query)
+    run("MATCH (n) SET n:```abc123`").hasNoErrors
   }
 
   test("Should allow escaped backtick in relationship type") {
     // Relationship type without escaping: abc123``
-    val query = "MERGE ()-[r:`abc123`````]->()"
-    expectNoErrorsFrom(query)
+    run("MERGE ()-[r:`abc123`````]->()").hasNoErrors
   }
 
   test("Should allow escaped backtick in indexes") {
     // Query without proper escaping: CREATE INDEX `abc`123`` FOR (n:`Per`son`) ON (n.first``name`, n.``last`name)
-    val query = "CREATE INDEX ```abc``123````` FOR (n:```Per``son```) ON (n.`first````name```, n.`````last``name`)"
-    expectNoErrorsFrom(query)
+    run("CREATE INDEX ```abc``123````` FOR (n:```Per``son```) ON (n.`first````name```, n.`````last``name`)")
+      .hasNoErrors
   }
 
   test("Should allow escaped backtick in constraints") {
     // Query without proper escaping: CREATE CONSTRAINT abc123` FOR (n:``Label) REQUIRE (n.pr``op) IS NODE KEY
-    val query = "CREATE CONSTRAINT `abc123``` FOR (n:`````Label`) REQUIRE (n.`pr````op`) IS NODE KEY"
-    expectNoErrorsFrom(query)
+    run("CREATE CONSTRAINT `abc123``` FOR (n:`````Label`) REQUIRE (n.`pr````op`) IS NODE KEY")
+      .hasNoErrors
   }
 
   test("Should register uses in PathExpressions") {
-    val query = "MATCH p = (a)-[r]-(b) RETURN p AS p"
-
-    val pipeline = ProjectNamedPathsPhase andThen SemanticAnalysis(warn = true)
-    val result = runSemanticAnalysisWithPipeline(pipeline, query)
-    val scopeTree = result.state.semantics().scopeTree
-
-    Set("a", "r", "b").foreach { name =>
-      scopeTree.allSymbols(name).head.uses shouldNot be(empty)
-    }
+    analyse("MATCH p = (a)-[r]-(b) RETURN p AS p")
+      .withPipeline(ProjectNamedPathsPhase andThen SemanticAnalysis(warn = true))
+      .run
+      .assert { result =>
+        Set("a", "r", "b").foreach { name =>
+          result.state.semantics().scopeTree.allSymbols(name).head.uses shouldNot be(empty)
+        }
+      }
   }
 
   test("should allow node pattern predicates in MATCH") {
-    val query =
+    run(
       "WITH 123 AS minValue MATCH (n {prop: 42} WHERE n.otherProp > minValue)-->(m:Label WHERE m.prop = 42) RETURN n AS result"
-    expectNoErrorsFrom(query)
+    ).hasNoErrors
   }
 
   test("should allow node pattern predicates in MATCH to refer to other nodes") {
-    val query = "MATCH (start)-->(end:Label WHERE start.prop = 42) RETURN start AS result"
-    expectNoErrorsFrom(query)
+    run("MATCH (start)-->(end:Label WHERE start.prop = 42) RETURN start AS result")
+      .hasNoErrors
   }
 
   test("should allow node pattern predicates in shortest path to refer to other nodes") {
-    val query = "MATCH (a), (b) MATCH shortestPath( (a)-->(b WHERE c.prop = 42) ), (c) RETURN count(*) AS result"
-    expectNoErrorsFrom(query)
+    run("MATCH (a), (b) MATCH shortestPath( (a)-->(b WHERE c.prop = 42) ), (c) RETURN count(*) AS result")
+      .hasNoErrors
   }
 
   test("should allow node property predicates in shortest path to refer to other nodes") {
-    val query = "MATCH (a), (b) MATCH shortestPath( (a)-->(b {prop: c.prop}) ), (c) RETURN count(*) AS result"
-    expectNoErrorsFrom(query)
+    run("MATCH (a), (b) MATCH shortestPath( (a)-->(b {prop: c.prop}) ), (c) RETURN count(*) AS result")
+      .hasNoErrors
   }
 
   test("should not allow node pattern predicates in CREATE") {
-    val query = "CREATE (n WHERE n.prop = 123)"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "Node pattern predicates are not allowed in a CREATE clause, but only in a MATCH clause or inside a pattern comprehension",
-          InputPosition(23, 1, 24)
-        )
-      )
+    run("CREATE (n WHERE n.prop = 123)").hasError(
+      "Node pattern predicates are not allowed in a CREATE clause, but only in a MATCH clause or inside a pattern comprehension",
+      p(23, 1, 24)
     )
   }
 
   test("should not allow node pattern predicates in MERGE") {
-    val query = "MERGE (n WHERE n.prop = 123)"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "Node pattern predicates are not allowed in a MERGE clause, but only in a MATCH clause or inside a pattern comprehension",
-          InputPosition(22, 1, 23)
-        )
-      )
+    run("MERGE (n WHERE n.prop = 123)").hasError(
+      "Node pattern predicates are not allowed in a MERGE clause, but only in a MATCH clause or inside a pattern comprehension",
+      p(22, 1, 23)
     )
   }
 
   test("should allow node pattern predicates in pattern comprehension") {
-    val query =
+    run(
       "WITH 123 AS minValue RETURN [(n {prop: 42} WHERE n.otherProp > minValue)-->(m:Label WHERE m.prop = 42) | n] AS result"
-    expectNoErrorsFrom(query)
+    ).hasNoErrors
   }
 
   test("should allow node pattern predicates in pattern comprehension to refer to other nodes") {
-    val query = "RETURN [(start)-->(end:Label WHERE start.prop = 42) | start] AS result"
-    expectNoErrorsFrom(query)
+    run("RETURN [(start)-->(end:Label WHERE start.prop = 42) | start] AS result")
+      .hasNoErrors
   }
 
   test("should not allow node pattern predicates in pattern expression") {
-    val query =
-      """MATCH (a), (b)
-        |RETURN exists((a WHERE a.prop > 123)-->(b)) AS result""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "Node pattern predicates are not allowed in an expression, but only in a MATCH clause or inside a pattern comprehension",
-          InputPosition(45, 2, 31)
-        )
+    run("""MATCH (a), (b)
+          |RETURN exists((a WHERE a.prop > 123)-->(b)) AS result""".stripMargin)
+      .hasError(
+        "Node pattern predicates are not allowed in an expression, but only in a MATCH clause or inside a pattern comprehension",
+        p(45, 2, 31)
       )
-    )
   }
 
   test("should allow node pattern predicates in MATCH with shortestPath") {
-    val query =
+    run(
       """
         |WITH 123 AS minValue
         |MATCH p = shortestPath((n {prop: 42} WHERE n.otherProp > minValue)-[:REL*]->(m:Label WHERE m.prop = 42))
-        |RETURN n AS result
-        |""".stripMargin
-    expectNoErrorsFrom(query)
+        |RETURN n AS result""".stripMargin
+    ).hasNoErrors
   }
 
   test("should allow node pattern predicates in MATCH with shortestPath to refer to other nodes") {
-    val query =
-      """
-        |MATCH p = shortestPath((start)-[:REL*]->(end:Label WHERE start.prop = 42))
-        |RETURN start AS result""".stripMargin
-    expectNoErrorsFrom(query)
+    run("""
+          |MATCH p = shortestPath((start)-[:REL*]->(end:Label WHERE start.prop = 42))
+          |RETURN start AS result""".stripMargin)
+      .hasNoErrors
   }
 
   test("should not allow node pattern predicates in shortestPath expression") {
-    val query =
-      """
-        |MATCH (a), (b)
-        |WITH shortestPath((a WHERE a.prop > 123)-[:REL*]->(b)) AS p
-        |RETURN length(p) AS result""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "Node pattern predicates are not allowed in an expression, but only in a MATCH clause or inside a pattern comprehension",
-          InputPosition(50, 3, 35)
-        )
+    run("""
+          |MATCH (a), (b)
+          |WITH shortestPath((a WHERE a.prop > 123)-[:REL*]->(b)) AS p
+          |RETURN length(p) AS result""".stripMargin)
+      .hasError(
+        "Node pattern predicates are not allowed in an expression, but only in a MATCH clause or inside a pattern comprehension",
+        p(50, 3, 35)
       )
-    )
   }
 
   test("should allow relationship pattern predicates in MATCH") {
-    val query =
+    run(
       "WITH 123 AS minValue MATCH (n)-[r:Relationship {prop: 42} WHERE r.otherProp > minValue]->(m) RETURN r AS result"
-    expectNoErrorsFrom(query)
+    ).hasNoErrors
   }
 
   test("should not allow relationship pattern predicates in MATCH when path length is provided") {
-    val query =
+    run(
       "WITH 123 AS minValue MATCH (n)-[r:Relationship*1..3 {prop: 42} WHERE r.otherProp > minValue]->(m) RETURN r AS result"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "Relationship pattern predicates are not supported for variable-length relationships.",
-          InputPosition(81, 1, 82)
-        )
-      )
+    ).hasError(
+      "Relationship pattern predicates are not supported for variable-length relationships.",
+      p(81, 1, 82)
     )
   }
 
   test("should allow relationship pattern predicates in MATCH to refer to nodes") {
-    val query = "MATCH (n)-[r:Relationship WHERE n.prop = 42]->(m:Label) RETURN r AS result"
-    expectNoErrorsFrom(query)
+    run("MATCH (n)-[r:Relationship WHERE n.prop = 42]->(m:Label) RETURN r AS result")
+      .hasNoErrors
   }
 
   test("should not allow relationship pattern predicates in CREATE") {
-    val query = "CREATE (n)-[r:Relationship WHERE r.prop = 42]->(m)"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "Relationship pattern predicates are not allowed in a CREATE clause, but only in a MATCH clause or inside a pattern comprehension",
-          InputPosition(40, 1, 41)
-        )
-      )
+    run("CREATE (n)-[r:Relationship WHERE r.prop = 42]->(m)").hasError(
+      "Relationship pattern predicates are not allowed in a CREATE clause, but only in a MATCH clause or inside a pattern comprehension",
+      p(40, 1, 41)
     )
   }
 
   test("should not allow relationship pattern predicates in MERGE") {
-    val query = "MERGE (n)-[r:Relationship WHERE r.prop = 42]->(m)"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "Relationship pattern predicates are not allowed in a MERGE clause, but only in a MATCH clause or inside a pattern comprehension",
-          InputPosition(39, 1, 40)
-        )
-      )
+    run("MERGE (n)-[r:Relationship WHERE r.prop = 42]->(m)").hasError(
+      "Relationship pattern predicates are not allowed in a MERGE clause, but only in a MATCH clause or inside a pattern comprehension",
+      p(39, 1, 40)
     )
   }
 
   test("should allow relationship pattern predicates in pattern comprehension") {
-    val query =
-      "WITH 123 AS minValue RETURN [(n)-[r:Relationship {prop: 42} WHERE r.otherProp > minValue]->(m) | r] AS result"
-    expectNoErrorsFrom(query)
+    run("WITH 123 AS minValue RETURN [(n)-[r:Relationship {prop: 42} WHERE r.otherProp > minValue]->(m) | r] AS result")
+      .hasNoErrors
   }
 
   test("should allow relationship pattern predicates in pattern comprehension to refer to nodes") {
-    val query = "RETURN [(n)-[r:Relationship WHERE n.prop = 42]->(m:Label) | r] AS result"
-    expectNoErrorsFrom(query)
+    run("RETURN [(n)-[r:Relationship WHERE n.prop = 42]->(m:Label) | r] AS result")
+      .hasNoErrors
   }
 
   test("should not allow relationship pattern predicates in pattern expression") {
-    val query =
+    run(
       """MATCH (a)-[r]->(b)
         |RETURN exists((a)-[r WHERE r.prop > 123]->(b)) AS result""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "Relationship pattern predicates are not allowed in an expression, but only in a MATCH clause or inside a pattern comprehension",
-          InputPosition(53, 2, 35)
-        )
-      )
+    ).hasError(
+      "Relationship pattern predicates are not allowed in an expression, but only in a MATCH clause or inside a pattern comprehension",
+      p(53, 2, 35)
     )
   }
 
   test("redundant composite use clause should not be considered as nested use clause") {
     val query = "USE comp CALL { USE comp.c1 RETURN 1 as n } RETURN n"
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, databaseName = "comp")
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+      .hasNoErrors
   }
 
   test("redundant composite use clause should not be considered as nested use clause and scope clause") {
     val query = "USE comp CALL () { USE comp.c1 RETURN 1 as n } RETURN n"
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, databaseName = "comp")
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+      .hasNoErrors
   }
 
   test("redundant composite use clause should not be considered as nested use clause (case insensitive)") {
     val query = "USE comp CALL { USE COMP.c1 RETURN 1 as n } RETURN n"
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, databaseName = "comp")
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+      .hasNoErrors
   }
 
   test("nesting after redundant composite use clause should be considered as nesting") {
@@ -458,191 +369,137 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  RETURN n
         |}
         |RETURN n""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "Nested subqueries must use the same graph as their parent query",
-          InputPosition(47, 5, 9)
-        )
-      ),
-      pipelineWithUseAsMultipleGraphsSelector,
-      isComposite = true,
-      databaseName = "comp"
-    )
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+      .hasError(
+        "Nested subqueries must use the same graph as their parent query",
+        p(47, 5, 9)
+      )
   }
 
   test("redundant composite use clause should not be considered as nested use clause with graph function") {
     val query = "USE comp CALL { USE graph.byName('c1') RETURN 1 as n } return n"
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, databaseName = "comp")
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+      .hasNoErrors
   }
 
   test(
     "redundant composite use clause should not be considered as nested use clause with graph function, scope clause"
   ) {
     val query = "USE comp CALL () { USE graph.byName('c1') RETURN 1 as n } return n"
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, databaseName = "comp")
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+      .hasNoErrors
   }
 
   test("identical static graph target should not be considered as nested use clause (case insensitive)") {
     val query = "USE comp.c1 CALL { USE COMP.c1 RETURN 1 as n } return n"
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, databaseName = "comp")
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+      .hasNoErrors
   }
 
   test("identical dynamic graph target should not be considered as nested use clause") {
     val query = "USE graph.byName('comp.c2') CALL { USE graph.byName('comp.c2') RETURN 1 as n } return n"
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, databaseName = "comp")
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+      .hasNoErrors
   }
 
   test("throw nested use clause exception with nested static use clauses") {
     val query = "USE comp.c1 CALL { USE comp.c1.c2 RETURN 1 as n } return n"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "Nested subqueries must use the same graph as their parent query",
-          InputPosition(23, 1, 24)
-        )
-      ),
-      pipelineWithUseAsMultipleGraphsSelector,
-      isComposite = true,
-      databaseName = "comp"
-    )
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+      .hasError(
+        "Nested subqueries must use the same graph as their parent query",
+        p(23, 1, 24)
+      )
   }
 
   test("throw nested use clause exception with nested dynamic use clauses") {
     val query = "USE graph.byName('comp.c1') CALL { USE graph.byName('comp.c2') RETURN 1 as n } return n"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "Nested subqueries must use the same graph as their parent query",
-          InputPosition(39, 1, 40)
-        )
-      ),
-      pipelineWithUseAsMultipleGraphsSelector,
-      isComposite = true,
-      databaseName = "comp"
-    )
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+      .hasError(
+        "Nested subqueries must use the same graph as their parent query",
+        p(39, 1, 40)
+      )
   }
 
   test("throw nested use clause exception with nested proper dynamic use clauses") {
-    val query = """WITH "local" AS i
-                  | CALL {
-                  |      WITH i
-                  |      USE graph.byName("comp." + i)
-                  |      WITH "neo4j" AS i
-                  |      CALL {
-                  |           WITH i
-                  |           USE graph.byName("comp." + i)
-                  |           MATCH (n)
-                  |           RETURN n.prop as prop
-                  |      }
-                  |      RETURN prop
-                  |}
-                  |RETURN prop""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "Nested subqueries must use the same graph as their parent query",
-          InputPosition(145, 8, 16)
-        )
-      ),
-      pipelineWithUseAsMultipleGraphsSelector,
-      isComposite = true,
-      databaseName = "comp"
-    )
+    val query =
+      """WITH "local" AS i
+        | CALL {
+        |      WITH i
+        |      USE graph.byName("comp." + i)
+        |      WITH "neo4j" AS i
+        |      CALL {
+        |           WITH i
+        |           USE graph.byName("comp." + i)
+        |           MATCH (n)
+        |           RETURN n.prop as prop
+        |      }
+        |      RETURN prop
+        |}
+        |RETURN prop""".stripMargin
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+      .hasError(
+        "Nested subqueries must use the same graph as their parent query",
+        p(145, 8, 16)
+      )
   }
 
   test("throw nested use clause exception with nested proper dynamic use clauses with scope clause") {
-    val query = """WITH "local" AS i
-                  | CALL (i) {
-                  |      USE graph.byName("comp." + i)
-                  |      WITH "neo4j" AS j
-                  |      CALL (j) {
-                  |           USE graph.byName("comp." + j)
-                  |           MATCH (n)
-                  |           RETURN n.prop as prop
-                  |      }
-                  |      RETURN prop
-                  |}
-                  |RETURN prop""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "Nested subqueries must use the same graph as their parent query",
-          InputPosition(122, 6, 16)
-        )
-      ),
-      pipelineWithUseAsMultipleGraphsSelector,
-      isComposite = true,
-      databaseName = "comp"
-    )
+    val query =
+      """WITH "local" AS i
+        | CALL (i) {
+        |      USE graph.byName("comp." + i)
+        |      WITH "neo4j" AS j
+        |      CALL (j) {
+        |           USE graph.byName("comp." + j)
+        |           MATCH (n)
+        |           RETURN n.prop as prop
+        |      }
+        |      RETURN prop
+        |}
+        |RETURN prop""".stripMargin
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+      .hasError(
+        "Nested subqueries must use the same graph as their parent query",
+        p(122, 6, 16)
+      )
   }
 
   test("allow nested use clause exception if inner catalog name has more than a length of 2") {
     val query = "USE comp CALL { USE comp.c1.c2 RETURN 1 as n } return n"
-    expectNoErrorsFrom(
-      query,
-      pipelineWithUseAsMultipleGraphsSelector,
-      isComposite = true,
-      databaseName = "comp"
-    )
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
+      .hasNoErrors
   }
 
   test("throw exception multi database on single graph selector") {
     val query = "USE comp CALL { USE comp.c1 RETURN 1 as n } return n"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-            .atPosition(1, 17, 16)
-            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA5)
-              .atPosition(1, 17, 16)
-              .build())
-            .build(),
-          messageProvider.createMultipleGraphReferencesError("comp.c1"),
-          InputPosition(16, 1, 17)
-        )
-      ),
-      pipelineWithUseAsSingleGraphSelector,
-      isComposite = false,
-      databaseName = "neo4j"
+    run(query, pipelineWithUseAsSingleGraphSelector, isComposite = true, "neo4j").hasError(
+      gql42NA5(p(16, 1, 17)),
+      messageProvider.createMultipleGraphReferencesError("comp.c1"),
+      p(16, 1, 17)
     )
   }
 
   test("should not allow USE when semantic feature is not set") {
-    val query = "USE g RETURN 1"
-    expectErrorMessagesFrom(
-      query,
-      Set(
-        messageProvider.createUseClauseUnsupportedError()
-      ),
-      pipeline = pipelineWithMultiGraphs
-    )
+    run("USE g RETURN 1", pipelineWithMultiGraphs)
+      .hasErrorMessages(messageProvider.createUseClauseUnsupportedError())
   }
 
   test("should allow USE when UseAsMultipleGraphsSelector feature is set") {
-    val query = "USE g RETURN 1"
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector)
+    run("USE g RETURN 1", pipelineWithUseAsMultipleGraphsSelector).hasNoErrors
   }
 
   test("should allow USE when UseAsSingleGraphSelector feature is set") {
-    val query = "USE g RETURN 1"
-    expectNoErrorsFrom(query, pipelineWithUseAsSingleGraphSelector)
+    run("USE g RETURN 1", pipelineWithUseAsSingleGraphSelector).hasNoErrors
   }
 
   test("Allow qualified identifier in USE when UseAsMultipleGraphsSelector feature is set") {
-    val query = "USE x.y.z RETURN 1"
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector)
+    run("USE x.y.z RETURN 1", pipelineWithUseAsMultipleGraphsSelector)
+      .hasNoErrors
   }
 
   test("Allow qualified identifier in USE when UseAsSingleGraphSelector feature is set") {
-    val query = "USE x.y.z RETURN 1"
-    expectNoErrorsFrom(query, pipelineWithUseAsSingleGraphSelector)
+    run("USE x.y.z RETURN 1", pipelineWithUseAsSingleGraphSelector)
+      .hasNoErrors
   }
 
   test("Allow view invocation in USE when UseAsMultipleGraphsSelector feature is set") {
@@ -651,7 +508,8 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |USE graph.byName($g, w($k))
         |RETURN 1
         |""".stripMargin
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true)
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true)
+      .hasNoErrors
   }
 
   test("Don't allow view invocation in USE when UseAsSingleGraphSelector feature is set") {
@@ -660,15 +518,9 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |USE graph.byName($g, w($k))
         |RETURN 1
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          messageProvider.createDynamicGraphReferenceUnsupportedError("graph.byName($g, w($k))"),
-          InputPosition(1, 2, 1)
-        )
-      ),
-      pipelineWithUseAsSingleGraphSelector
+    run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+      messageProvider.createDynamicGraphReferenceUnsupportedError("graph.byName($g, w($k))"),
+      p(1, 2, 1)
     )
   }
 
@@ -678,21 +530,19 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |USE graph.byName($g, x.g(), x.v($k))
         |RETURN 1
         |""".stripMargin
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true)
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true).hasNoErrors
   }
 
   test("Allow expressions in view invocations (with feature flag)") {
     val query = "USE graph.byName(2, 'x', $x, $x+3) RETURN 1"
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true)
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true).hasNoErrors
   }
 
   test("Expressions in view invocations are checked (with feature flag)") {
     val query = "USE graph.byName(2, 'x', y, $x+3) RETURN 1"
-    expectErrorsFrom(
-      query,
-      Set(SemanticError("Variable `y` not defined", InputPosition(25, 1, 26))),
-      pipelineWithUseAsMultipleGraphsSelector,
-      isComposite = true
+    run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true).hasError(
+      "Variable `y` not defined",
+      p(25, 1, 26)
     )
   }
 
@@ -705,8 +555,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |USE x
         |RETURN 1
         |""".stripMargin
-
-    expectNoErrorsFrom(query, pipelineWithUseAsSingleGraphSelector)
+    run(query, pipelineWithUseAsSingleGraphSelector).hasNoErrors
   }
 
   test(
@@ -721,7 +570,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |RETURN 1
         |""".stripMargin
 
-    expectNoErrorsFrom(query, pipelineWithUseAsSingleGraphSelector)
+    run(query, pipelineWithUseAsSingleGraphSelector).hasNoErrors
   }
 
   test("should not allow multiple USE referencing different graphs when UseAsSingleGraphSelector feature is set") {
@@ -734,21 +583,10 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |RETURN 1
         |""".stripMargin
 
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-            .atPosition(5, 1, 22)
-            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA5)
-              .atPosition(5, 1, 22)
-              .build())
-            .build(),
-          messageProvider.createMultipleGraphReferencesError("y"),
-          InputPosition(22, 5, 1)
-        )
-      ),
-      pipelineWithUseAsSingleGraphSelector
+    run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+      gql42NA5(p(22, 5, 1)),
+      messageProvider.createMultipleGraphReferencesError("y"),
+      p(22, 5, 1)
     )
   }
 
@@ -766,21 +604,10 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |RETURN n;
         |""".stripMargin
 
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-            .atPosition(5, 5, 29)
-            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA5)
-              .atPosition(5, 5, 29)
-              .build())
-            .build(),
-          messageProvider.createMultipleGraphReferencesError("B"),
-          InputPosition(29, 5, 5)
-        )
-      ),
-      pipelineWithUseAsSingleGraphSelector
+    run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+      gql42NA5(p(29, 5, 5)),
+      messageProvider.createMultipleGraphReferencesError("B"),
+      p(29, 5, 5)
     )
   }
 
@@ -798,21 +625,10 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |RETURN n;
         |""".stripMargin
 
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-            .atPosition(5, 5, 27)
-            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA5)
-              .atPosition(5, 5, 27)
-              .build())
-            .build(),
-          messageProvider.createMultipleGraphReferencesError("B"),
-          InputPosition(27, 5, 5)
-        )
-      ),
-      pipelineWithUseAsSingleGraphSelector
+    run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+      gql42NA5(p(27, 5, 5)),
+      messageProvider.createMultipleGraphReferencesError("B"),
+      p(27, 5, 5)
     )
   }
 
@@ -825,7 +641,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |RETURN 1
         |""".stripMargin
 
-    expectNoErrorsFrom(query, pipelineWithUseAsSingleGraphSelector)
+    run(query, pipelineWithUseAsSingleGraphSelector).hasNoErrors
   }
 
   test("should allow USE only in leading position") {
@@ -835,15 +651,9 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |USE g
         |RETURN n
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
-          InputPosition(11, 3, 1)
-        )
-      ),
-      pipelineWithUseAsSingleGraphSelector
+    run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+      "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
+      p(11, 3, 1)
     )
   }
 
@@ -858,15 +668,9 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |RETURN n
         |""".stripMargin
 
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
-          InputPosition(13, 3, 1)
-        )
-      ),
-      pipelineWithUseAsSingleGraphSelector
+    run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+      "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
+      p(13, 3, 1)
     )
   }
 
@@ -880,15 +684,9 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |MATCH (n)
         |RETURN n
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
-          InputPosition(11, 3, 1)
-        )
-      ),
-      pipelineWithUseAsSingleGraphSelector
+    run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+      "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
+      p(11, 3, 1)
     )
   }
 
@@ -896,285 +694,155 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   // "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN"
 
   test("Should give helpful error when accessing illegal variable in ORDER BY after WITH DISTINCT") {
-    val query = "MATCH (p) WITH DISTINCT p.email AS mail ORDER BY p.name RETURN mail AS mail"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
-          InputPosition(49, 1, 50)
-        )
+    run("MATCH (p) WITH DISTINCT p.email AS mail ORDER BY p.name RETURN mail AS mail")
+      .hasError(
+        "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
+        p(49, 1, 50)
       )
-    )
   }
 
   test("Should give helpful error when accessing illegal variable in ORDER BY after WITH with aggregation") {
-    val query = "MATCH (p) WITH collect(p.email) AS mail ORDER BY p.name RETURN mail AS mail"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
-          InputPosition(49, 1, 50)
-        )
+    run("MATCH (p) WITH collect(p.email) AS mail ORDER BY p.name RETURN mail AS mail")
+      .hasError(
+        "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
+        p(49, 1, 50)
       )
-    )
   }
 
   test("Should give helpful error when accessing illegal variable in ORDER BY after RETURN DISTINCT") {
-    val query = "MATCH (p) RETURN DISTINCT p.email AS mail ORDER BY p.name"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
-          InputPosition(51, 1, 52)
-        )
+    run("MATCH (p) RETURN DISTINCT p.email AS mail ORDER BY p.name")
+      .hasError(
+        "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
+        p(51, 1, 52)
       )
-    )
   }
 
   test("Should give helpful error when accessing illegal variable in ORDER BY after RETURN with aggregation") {
-    val query = "MATCH (p) RETURN collect(p.email) AS mail ORDER BY p.name"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
-          InputPosition(51, 1, 52)
-        )
+    run("MATCH (p) RETURN collect(p.email) AS mail ORDER BY p.name")
+      .hasError(
+        "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
+        p(51, 1, 52)
       )
-    )
   }
 
   test("Should give helpful error when accessing illegal variable in WHERE after WITH DISTINCT") {
-    val query = "MATCH (p) WITH DISTINCT p.email AS mail WHERE p.name IS NOT NULL RETURN mail AS mail"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
-          InputPosition(46, 1, 47)
-        )
+    run("MATCH (p) WITH DISTINCT p.email AS mail WHERE p.name IS NOT NULL RETURN mail AS mail")
+      .hasError(
+        "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
+        p(46, 1, 47)
       )
-    )
   }
 
   test("Should give helpful error when accessing illegal variable in WHERE after WITH with aggregation") {
-    val query = "MATCH (p) WITH collect(p.email) AS mail WHERE p.name IS NOT NULL RETURN mail AS mail"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
-          InputPosition(46, 1, 47)
-        )
+    run("MATCH (p) WITH collect(p.email) AS mail WHERE p.name IS NOT NULL RETURN mail AS mail")
+      .hasError(
+        "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
+        p(46, 1, 47)
       )
-    )
   }
 
   // negative tests that we do not get this error message otherwise
 
   test("Should not invent helpful error when accessing undefined variable in ORDER BY after WITH DISTINCT") {
-    val query = "MATCH (p) WITH DISTINCT p.email AS mail ORDER BY q.name RETURN mail AS mail"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError("Variable `q` not defined", InputPosition(49, 1, 50))
-      )
-    )
+    run("MATCH (p) WITH DISTINCT p.email AS mail ORDER BY q.name RETURN mail AS mail")
+      .hasError("Variable `q` not defined", p(49, 1, 50))
   }
 
   test("Should not invent helpful error when accessing undefined variable in ORDER BY after WITH with aggregation") {
-    val query = "MATCH (p) WITH collect(p.email) AS mail ORDER BY q.name RETURN mail AS mail"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError("Variable `q` not defined", InputPosition(49, 1, 50))
-      )
-    )
+    run("MATCH (p) WITH collect(p.email) AS mail ORDER BY q.name RETURN mail AS mail")
+      .hasError("Variable `q` not defined", p(49, 1, 50))
   }
 
   test("Should not invent helpful error when accessing undefined variable in ORDER BY after RETURN DISTINCT") {
-    val query = "MATCH (p) RETURN DISTINCT p.email AS mail ORDER BY q.name"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError("Variable `q` not defined", InputPosition(51, 1, 52))
-      )
-    )
+    run("MATCH (p) RETURN DISTINCT p.email AS mail ORDER BY q.name")
+      .hasError("Variable `q` not defined", p(51, 1, 52))
   }
 
   test("Should not invent helpful error when accessing undefined variable in ORDER BY after RETURN with aggregation") {
-    val query = "MATCH (p) RETURN collect(p.email) AS mail ORDER BY q.name"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError("Variable `q` not defined", InputPosition(51, 1, 52))
-      )
-    )
+    run("MATCH (p) RETURN collect(p.email) AS mail ORDER BY q.name")
+      .hasError("Variable `q` not defined", p(51, 1, 52))
   }
 
   test("Should not invent helpful error when accessing undefined variable in WHERE after WITH DISTINCT") {
-    val query = "MATCH (p) WITH DISTINCT p.email AS mail WHERE q.name IS NOT NULL RETURN mail AS mail"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError("Variable `q` not defined", InputPosition(46, 1, 47))
-      )
-    )
+    run("MATCH (p) WITH DISTINCT p.email AS mail WHERE q.name IS NOT NULL RETURN mail AS mail")
+      .hasError("Variable `q` not defined", p(46, 1, 47))
   }
 
   test("Should not invent helpful error when accessing undefined variable in WHERE after WITH with aggregation") {
-    val query = "MATCH (p) WITH collect(p.email) AS mail WHERE q.name IS NOT NULL RETURN mail AS mail"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError("Variable `q` not defined", InputPosition(46, 1, 47))
-      )
-    )
+    run("MATCH (p) WITH collect(p.email) AS mail WHERE q.name IS NOT NULL RETURN mail AS mail")
+      .hasError("Variable `q` not defined", p(46, 1, 47))
   }
 
   // Empty tokens for node property
 
   test("Should not allow empty node property key name in CREATE clause") {
-    val query = "CREATE ({prop: 5, ``: 1})"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(18, 1, 19))
-      )
-    )
+    run("CREATE ({prop: 5, ``: 1})")
+      .hasError(emptyTokenErrorMessage, p(18, 1, 19))
   }
 
   test("Should not allow empty node property key name in MERGE clause") {
-    val query = "MERGE (n {``: 1})"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(10, 1, 11))
-      )
-    )
+    run("MERGE (n {``: 1})")
+      .hasError(emptyTokenErrorMessage, p(10, 1, 11))
   }
 
   test("Should not allow empty node property key name in ON CREATE SET") {
-    val query = "MERGE (n :Label) ON CREATE SET n.`` = 1"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(33, 1, 34))
-      )
-    )
+    run("MERGE (n :Label) ON CREATE SET n.`` = 1")
+      .hasError(emptyTokenErrorMessage, p(33, 1, 34))
   }
 
   test("Should not allow empty node property key name in ON MATCH SET") {
-    val query = "MERGE (n :Label) ON MATCH SET n.`` = 1"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(32, 1, 33))
-      )
-    )
+    run("MERGE (n :Label) ON MATCH SET n.`` = 1")
+      .hasError(emptyTokenErrorMessage, p(32, 1, 33))
   }
 
   test("Should not allow empty node property key name in MATCH clause") {
-    val query = "MATCH (n {``: 1}) RETURN n AS invalid"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(10, 1, 11))
-      )
-    )
+    run("MATCH (n {``: 1}) RETURN n AS invalid")
+      .hasError(emptyTokenErrorMessage, p(10, 1, 11))
   }
 
   test("Should not allow empty node property key name in SET clause") {
-    val query = "MATCH (n) SET n.``= 1"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(16, 1, 17))
-      )
-    )
+    run("MATCH (n) SET n.``= 1")
+      .hasError(emptyTokenErrorMessage, p(16, 1, 17))
   }
 
   test("Should not allow empty node property key name in REMOVE clause") {
-    val query = "MATCH (n) REMOVE n.``"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(19, 1, 20))
-      )
-    )
+    run("MATCH (n) REMOVE n.``")
+      .hasError(emptyTokenErrorMessage, p(19, 1, 20))
   }
 
   test("Should not allow empty node property key name in WHERE clause") {
-    val query = "MATCH (n) WHERE n.``= 1 RETURN n AS invalid"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(18, 1, 19))
-      )
-    )
+    run("MATCH (n) WHERE n.``= 1 RETURN n AS invalid")
+      .hasError(emptyTokenErrorMessage, p(18, 1, 19))
   }
 
   test("Should not allow empty node property key name in WITH clause") {
-    val query = "MATCH (n) WITH n.`` AS prop RETURN prop AS invalid"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(17, 1, 18))
-      )
-    )
+    run("MATCH (n) WITH n.`` AS prop RETURN prop AS invalid")
+      .hasError(emptyTokenErrorMessage, p(17, 1, 18))
   }
 
   test("Should not allow empty node property key name in ORDER BY in WITH") {
-    val query = "MATCH (n) WITH n AS invalid ORDER BY n.`` RETURN count(*) AS count"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(39, 1, 40))
-      )
-    )
+    run("MATCH (n) WITH n AS invalid ORDER BY n.`` RETURN count(*) AS count")
+      .hasError(emptyTokenErrorMessage, p(39, 1, 40))
   }
 
   test("Should not allow empty node property key name in RETURN clause") {
-    val query = "MATCH (n) RETURN n.`` AS invalid"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(19, 1, 20))
-      )
-    )
+    run("MATCH (n) RETURN n.`` AS invalid")
+      .hasError(emptyTokenErrorMessage, p(19, 1, 20))
   }
 
   test("Should not allow empty node property key name in DISTINCT RETURN clause") {
-    val query = "MATCH (n) RETURN DISTINCT n.`` AS invalid"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(28, 1, 29))
-      )
-    )
+    run("MATCH (n) RETURN DISTINCT n.`` AS invalid")
+      .hasError(emptyTokenErrorMessage, p(28, 1, 29))
   }
 
   test("Should not allow empty node property key name in aggregation in RETURN clause") {
-    val query = "MATCH (n) RETURN count(n.``) AS count"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(25, 1, 26))
-      )
-    )
+    run("MATCH (n) RETURN count(n.``) AS count")
+      .hasError(emptyTokenErrorMessage, p(25, 1, 26))
   }
 
   test("Should not allow empty node property key name in ORDER BY in RETURN") {
-    val query = "MATCH (n) RETURN n AS invalid ORDER BY n.`` DESC LIMIT 2"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(41, 1, 42))
-      )
-    )
+    run("MATCH (n) RETURN n AS invalid ORDER BY n.`` DESC LIMIT 2")
+      .hasError(emptyTokenErrorMessage, p(41, 1, 42))
   }
 
   test("Should not allow empty node property key name in CASE clause") {
@@ -1187,12 +855,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN 1
         |ELSE 2 END AS result
       """.stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(25, 4, 8))
-      )
-    )
+    run(query).hasError(emptyTokenErrorMessage, p(25, 4, 8))
   }
 
   test("Should not allow empty node property key name in CASE WHEN clause") {
@@ -1205,12 +868,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN 1
         |ELSE 2 END AS result
       """.stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(30, 5, 8))
-      )
-    )
+    run(query).hasError(emptyTokenErrorMessage, p(30, 5, 8))
   }
 
   test("Should not allow empty node property key name in CASE THEN clause") {
@@ -1223,12 +881,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN n.``
         |ELSE 2 END AS result
       """.stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(51, 6, 8))
-      )
-    )
+    run(query).hasError(emptyTokenErrorMessage, p(51, 6, 8))
   }
 
   test("Should not allow empty node property key name in CASE ELSE clause") {
@@ -1241,154 +894,82 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN 1
         |ELSE n.`` END AS result
       """.stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(58, 7, 8))
-      )
+    run(query).hasError(
+      emptyTokenErrorMessage,
+      p(58, 7, 8)
     )
   }
 
   // Empty tokens for relationship properties
 
   test("Should not allow empty relationship property key name in CREATE clause") {
-    val query = "CREATE ()-[:REL {``: 1}]->()"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(17, 1, 18))
-      )
-    )
+    run("CREATE ()-[:REL {``: 1}]->()")
+      .hasError(emptyTokenErrorMessage, p(17, 1, 18))
   }
 
   test("Should not allow empty relationship property key name in MERGE clause") {
-    val query = "MERGE ()-[r :REL {``: 1, prop: 42}]->()"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(18, 1, 19))
-      )
-    )
+    run("MERGE ()-[r :REL {``: 1, prop: 42}]->()")
+      .hasError(emptyTokenErrorMessage, p(18, 1, 19))
   }
 
   test("Should not allow empty relationship property key name in ON CREATE SET") {
-    val query = "MERGE ()-[r:REL]->() ON CREATE SET r.`` = 1"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(37, 1, 38))
-      )
-    )
+    run("MERGE ()-[r:REL]->() ON CREATE SET r.`` = 1")
+      .hasError(emptyTokenErrorMessage, p(37, 1, 38))
   }
 
   test("Should not allow empty relationship property key name in ON MATCH SET") {
-    val query = "MERGE ()-[r:REL]->() ON MATCH SET r.`` = 1"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(36, 1, 37))
-      )
-    )
+    run("MERGE ()-[r:REL]->() ON MATCH SET r.`` = 1")
+      .hasError(emptyTokenErrorMessage, p(36, 1, 37))
   }
 
   test("Should not allow empty relationship property key name in MATCH clause") {
-    val query = "MATCH ()-[r {prop:1337, ``: 1}]->() RETURN r AS invalid"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(24, 1, 25))
-      )
-    )
+    run("MATCH ()-[r {prop:1337, ``: 1}]->() RETURN r AS invalid")
+      .hasError(emptyTokenErrorMessage, p(24, 1, 25))
   }
 
   test("Should not allow empty relationship property key name in SET clause") {
-    val query = "MATCH ()-[r]->() SET r.``= 1 RETURN r AS invalid"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(23, 1, 24))
-      )
-    )
+    run("MATCH ()-[r]->() SET r.``= 1 RETURN r AS invalid")
+      .hasError(emptyTokenErrorMessage, p(23, 1, 24))
   }
 
   test("Should not allow empty relationship property key name in REMOVE clause") {
-    val query = "MATCH ()-[r]->() REMOVE r.``"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(26, 1, 27))
-      )
-    )
+    run("MATCH ()-[r]->() REMOVE r.``")
+      .hasError(emptyTokenErrorMessage, p(26, 1, 27))
   }
 
   test("Should not allow empty relationship property key name in WHERE clause") {
-    val query = "MATCH (n)-[r]->() WHERE n.prop > r.`` RETURN n AS invalid"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(35, 1, 36))
-      )
-    )
+    run("MATCH (n)-[r]->() WHERE n.prop > r.`` RETURN n AS invalid")
+      .hasError(emptyTokenErrorMessage, p(35, 1, 36))
   }
 
   test("Should not allow empty relationship property key name in WITH clause") {
-    val query = "MATCH ()-[r]->() WITH r.`` AS prop, r.prop as prop2 RETURN count(*) AS count"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(24, 1, 25))
-      )
-    )
+    run("MATCH ()-[r]->() WITH r.`` AS prop, r.prop as prop2 RETURN count(*) AS count")
+      .hasError(emptyTokenErrorMessage, p(24, 1, 25))
   }
 
   test("Should not allow empty relationship property key name in ORDER BY in WITH") {
-    val query = "MATCH ()-[r]->() WITH r AS invalid ORDER BY r.`` RETURN count(*) AS count"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(46, 1, 47))
-      )
-    )
+    run("MATCH ()-[r]->() WITH r AS invalid ORDER BY r.`` RETURN count(*) AS count")
+      .hasError(emptyTokenErrorMessage, p(46, 1, 47))
   }
 
   test("Should not allow empty relationship property key name in RETURN clause") {
-    val query = "MATCH ()-[r]->() RETURN r.`` as result"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(26, 1, 27))
-      )
-    )
+    run("MATCH ()-[r]->() RETURN r.`` as result")
+      .hasError(emptyTokenErrorMessage, p(26, 1, 27))
   }
 
   test("Should not allow empty relationship property key name in DISTINCT RETURN clause") {
-    val query = "MATCH ()-[r]->() RETURN DISTINCT r.`` as result"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(35, 1, 36))
-      )
-    )
+    run("MATCH ()-[r]->() RETURN DISTINCT r.`` as result")
+      .hasError(emptyTokenErrorMessage, p(35, 1, 36))
   }
 
   test("Should not allow empty relationship property key name in aggregation in RETURN clause") {
-    val query = "MATCH ()-[r]->() RETURN max(r.``) AS max"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(30, 1, 31))
-      )
-    )
+    run("MATCH ()-[r]->() RETURN max(r.``) AS max")
+      .hasError(emptyTokenErrorMessage, p(30, 1, 31))
   }
 
   test("Should not allow empty relationship property key name in ORDER BY in RETURN") {
-    val query = "MATCH ()-[r]->() RETURN r AS result ORDER BY r.``"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(47, 1, 48))
-      )
-    )
+    run("MATCH ()-[r]->() RETURN r AS result ORDER BY r.``")
+      .hasError(emptyTokenErrorMessage, p(47, 1, 48))
   }
 
   test("Should not allow empty relationship property key name in CASE clause") {
@@ -1401,12 +982,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN 1
         |ELSE 2 END AS result
       """.stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(32, 4, 8))
-      )
-    )
+    run(query).hasError(emptyTokenErrorMessage, p(32, 4, 8))
   }
 
   test("Should not allow empty relationship property key name in CASE WHEN clause") {
@@ -1419,12 +995,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN 1
         |ELSE 2 END AS result
       """.stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(37, 5, 8))
-      )
-    )
+    run(query).hasError(emptyTokenErrorMessage, p(37, 5, 8))
   }
 
   test("Should not allow empty relationship property key name in CASE THEN clause") {
@@ -1437,12 +1008,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN r.``
         |ELSE 2 END AS result
       """.stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(58, 6, 8))
-      )
-    )
+    run(query).hasError(emptyTokenErrorMessage, p(58, 6, 8))
   }
 
   test("Should not allow empty relationship property key name in CASE ELSE clause") {
@@ -1455,511 +1021,299 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN 1
         |ELSE r.`` END AS result
       """.stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(65, 7, 8))
-      )
-    )
+    run(query).hasError(emptyTokenErrorMessage, p(65, 7, 8))
   }
 
   // Empty tokens for labels
 
   test("Should not allow empty label in CREATE clause") {
-    val query = "CREATE (:Valid:``)"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(14, 1, 15))
-      )
-    )
+    run("CREATE (:Valid:``)")
+      .hasError(emptyTokenErrorMessage, p(14, 1, 15))
   }
 
   test("Should not allow empty label in MERGE clause") {
-    val query = "MERGE (n:``)"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(9, 1, 10))
-      )
-    )
+    run("MERGE (n:``)")
+      .hasError(emptyTokenErrorMessage, p(9, 1, 10))
   }
 
   test("Should not allow empty label in MATCH clause") {
-    val query = "MATCH (n:``:Valid) RETURN n AS invalid"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(11, 1, 12))
-      )
-    )
+    run("MATCH (n:``:Valid) RETURN n AS invalid")
+      .hasError(emptyTokenErrorMessage, p(11, 1, 12))
   }
 
   test("Should not allow empty label in label expression") {
-    val query = "MATCH (n:``&Valid) RETURN n AS invalid"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(11, 1, 12))
-      )
-    )
+    run("MATCH (n:``&Valid) RETURN n AS invalid")
+      .hasError(emptyTokenErrorMessage, p(11, 1, 12))
   }
 
   test("should not allow empty label name in label expression predicate") {
-    val query = "MATCH (n) WHERE n:A&`` RETURN *"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(19, 1, 20))
-      )
-    )
+    run("MATCH (n) WHERE n:A&`` RETURN *")
+      .hasError(emptyTokenErrorMessage, p(19, 1, 20))
   }
 
   test("should not allow empty label name in label expression with legacy symbols") {
-    val query = "MATCH (n) WHERE n:A:`` RETURN *"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(19, 1, 20))
-      )
-    )
+    run("MATCH (n) WHERE n:A:`` RETURN *")
+      .hasError(emptyTokenErrorMessage, p(19, 1, 20))
   }
 
   test("Should not allow empty label in SET clause") {
-    val query = "MATCH (n) SET n:``"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(14, 1, 15))
-      )
-    )
+    run("MATCH (n) SET n:``")
+      .hasError(emptyTokenErrorMessage, p(14, 1, 15))
   }
 
   test("Should not allow empty label in REMOVE clause") {
-    val query = "MATCH (n) REMOVE n:``"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(17, 1, 18))
-      )
-    )
+    run("MATCH (n) REMOVE n:``")
+      .hasError(emptyTokenErrorMessage, p(17, 1, 18))
   }
 
   // Empty tokens for relationship type
 
   test("Should not allow empty relationship type in CREATE clause") {
-    val query = "CREATE ()-[:``]->()"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(12, 1, 13))
-      )
-    )
+    run("CREATE ()-[:``]->()")
+      .hasError(emptyTokenErrorMessage, p(12, 1, 13))
   }
 
   test("Should not allow empty relationship type in MERGE clause") {
-    val query = "MERGE ()-[r :``]->()"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(13, 1, 14))
-      )
-    )
+    run("MERGE ()-[r :``]->()")
+      .hasError(emptyTokenErrorMessage, p(13, 1, 14))
   }
 
   test("Should not allow empty relationship type in MATCH clause") {
-    val query = "MATCH ()-[r :``]->() RETURN r AS invalid"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(13, 1, 14))
-      )
-    )
+    run("MATCH ()-[r :``]->() RETURN r AS invalid")
+      .hasError(emptyTokenErrorMessage, p(13, 1, 14))
   }
 
   test("Should not allow empty relationship type in variable length pattern") {
-    val query = "MATCH ()-[r :``*1..5]->() RETURN r AS invalid"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(emptyTokenErrorMessage, InputPosition(13, 1, 14))
-      )
-    )
+    run("MATCH ()-[r :``*1..5]->() RETURN r AS invalid")
+      .hasError(emptyTokenErrorMessage, p(13, 1, 14))
   }
 
   test("Should not allow to use aggregate functions inside aggregate functions") {
-    val query = "WITH 1 AS x RETURN sum(max(x)) AS sumOfMax"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError("Can't use aggregate functions inside of aggregate functions.", InputPosition(23, 1, 24))
-      )
-    )
+    run("WITH 1 AS x RETURN sum(max(x)) AS sumOfMax")
+      .hasError("Can't use aggregate functions inside of aggregate functions.", p(23, 1, 24))
   }
 
   test("Should not allow to use count(*) inside aggregate functions") {
-    val query = "WITH 1 AS x RETURN min(count(*)) AS minOfCount"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError("Can't use aggregate functions inside of aggregate functions.", InputPosition(23, 1, 24))
-      )
-    )
+    run("WITH 1 AS x RETURN min(count(*)) AS minOfCount")
+      .hasError("Can't use aggregate functions inside of aggregate functions.", p(23, 1, 24))
   }
 
   test("Should allow repeating rel variable in pattern") {
-    val query = "MATCH ()-[r]-()-[r]-() RETURN r AS r"
-    expectNotificationsFrom(
-      query,
-      Set(
-        RepeatedRelationshipReference(
-          InputPosition(10, 1, 11),
-          "r",
-          "()-[r]-()-[r]-()"
-        )
+    run("MATCH ()-[r]-()-[r]-() RETURN r AS r").hasNotifications(
+      RepeatedRelationshipReference(
+        p(10, 1, 11),
+        "r",
+        "()-[r]-()-[r]-()"
       )
     )
   }
 
   test("Should allow repeating rel variable in comma separated patterns") {
-    val query = "MATCH ()-[r]-(), ()-[r]-() RETURN r AS r"
-    expectNotificationsFrom(
-      query,
-      Set(
-        RepeatedRelationshipReference(
-          InputPosition(10, 1, 11),
-          "r",
-          "()-[r]-(), ()-[r]-()"
-        ),
-        CartesianProductNotification(
-          InputPosition(0, 1, 1),
-          Set.empty,
-          "()-[r]-(), ()-[r]-()"
-        )
+    run("MATCH ()-[r]-(), ()-[r]-() RETURN r AS r").hasNotifications(
+      RepeatedRelationshipReference(
+        p(10, 1, 11),
+        "r",
+        "()-[r]-(), ()-[r]-()"
+      ),
+      CartesianProductNotification(
+        p(0, 1, 1),
+        Set.empty,
+        "()-[r]-(), ()-[r]-()"
       )
     )
   }
 
   test("Should allow repeating rel variable in comma separated paths") {
-    val query = "MATCH p = ()-[r]-(), q = ()-[r]-() RETURN p, q"
-    expectNotificationsFrom(
-      query,
-      Set(
-        RepeatedRelationshipReference(
-          InputPosition(14, 1, 15),
-          "r",
-          "p = ()-[r]-(), q = ()-[r]-()"
-        ),
-        CartesianProductNotification(
-          InputPosition(0, 1, 1),
-          Set.empty,
-          "p = ()-[r]-(), q = ()-[r]-()"
-        )
+    run("MATCH p = ()-[r]-(), q = ()-[r]-() RETURN p, q").hasNotifications(
+      RepeatedRelationshipReference(
+        p(14, 1, 15),
+        "r",
+        "p = ()-[r]-(), q = ()-[r]-()"
+      ),
+      CartesianProductNotification(
+        p(0, 1, 1),
+        Set.empty,
+        "p = ()-[r]-(), q = ()-[r]-()"
       )
     )
   }
 
   test("Should allow repeated rel variable in pattern expression") {
-    val query = normalizeNewLines("MATCH ()-[r]-() RETURN size( ()-[r]-()-[r]-() ) AS size")
-    expectNotificationsFrom(
-      query,
-      Set(
-        RepeatedRelationshipReference(
-          InputPosition(33, 1, 34),
-          "r",
-          "()-[r]-()-[r]-()"
-        )
+    run("MATCH ()-[r]-() RETURN size( ()-[r]-()-[r]-() ) AS size").hasNotifications(
+      RepeatedRelationshipReference(
+        p(33, 1, 34),
+        "r",
+        "()-[r]-()-[r]-()"
       )
     )
   }
 
   test("Should allow repeated rel variable in pattern comprehension") {
-    val query = "MATCH ()-[r]-() RETURN [ ()-[r]-()-[r]-() | r ] AS rs"
-    expectNotificationsFrom(
-      query,
-      Set(
-        RepeatedRelationshipReference(
-          InputPosition(29, 1, 30),
-          "r",
-          "()-[r]-()-[r]-()"
-        )
+    run("MATCH ()-[r]-() RETURN [ ()-[r]-()-[r]-() | r ] AS rs").hasNotifications(
+      RepeatedRelationshipReference(
+        p(29, 1, 30),
+        "r",
+        "()-[r]-()-[r]-()"
       )
     )
   }
 
   test("Should type check predicates in FilteringExpression") {
     val queries = Seq(
-      ("RETURN [x IN [1,2,3] WHERE 42 | x + 1] AS foo", InputPosition(27, 1, 28)),
-      ("RETURN all(x IN [1,2,3] WHERE 42) AS foo", InputPosition(30, 1, 31)),
-      ("RETURN any(x IN [1,2,3] WHERE 42) AS foo", InputPosition(30, 1, 31)),
-      ("RETURN none(x IN [1,2,3] WHERE 42) AS foo", InputPosition(31, 1, 32)),
-      ("RETURN single(x IN [1,2,3] WHERE 42) AS foo", InputPosition(33, 1, 34))
+      ("RETURN [x IN [1,2,3] WHERE 42 | x + 1] AS foo", p(27, 1, 28)),
+      ("RETURN all(x IN [1,2,3] WHERE 42) AS foo", p(30, 1, 31)),
+      ("RETURN any(x IN [1,2,3] WHERE 42) AS foo", p(30, 1, 31)),
+      ("RETURN none(x IN [1,2,3] WHERE 42) AS foo", p(31, 1, 32)),
+      ("RETURN single(x IN [1,2,3] WHERE 42) AS foo", p(33, 1, 34))
     )
-    queries.foreach {
-      case (query, pos) =>
-        expectErrorsFrom(
-          query,
-          Set(SemanticError.invalidEntityType(
-            "Integer",
-            "42",
-            List("Boolean"),
-            "Type mismatch: expected Boolean but was Integer",
-            pos
-          ))
-        )
+    queries.foreach { case (query, pos) =>
+      val msg = "Type mismatch: expected Boolean but was Integer"
+      run(query).hasErrors(invalidEntityType("Integer", "42", Seq("Boolean"), msg, pos))
     }
   }
 
   test("Should disallow introducing variables in pattern expressions") {
-    val query = "MATCH (x) WHERE (x)-[r]-(y) RETURN x"
-    val rPos = InputPosition(21, 1, 22)
-    val yPos = InputPosition(25, 1, 26)
-
-    def gql(name: String, position: InputPosition): ErrorGqlStatusObject = {
-      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(position.line, position.column, position.offset)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N29)
-          .atPosition(position.line, position.column, position.offset)
-          .withParam(GqlParams.StringParam.variable, name)
-          .build())
-        .build()
-    }
-
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(gql("r", rPos), "PatternExpressions are not allowed to introduce new variables: 'r'.", rPos),
-        SemanticError(gql("y", yPos), "PatternExpressions are not allowed to introduce new variables: 'y'.", yPos)
-      )
+    run("MATCH (x) WHERE (x)-[r]-(y) RETURN x").hasErrors(
+      gql42N29(p(21, 1, 22), "r"),
+      "PatternExpressions are not allowed to introduce new variables: 'r'.",
+      p(21, 1, 22),
+      gql42N29(p(25, 1, 26), "y"),
+      "PatternExpressions are not allowed to introduce new variables: 'y'.",
+      p(25, 1, 26)
     )
   }
 
   Seq("SKIP", "LIMIT").foreach { phrase =>
     test(s"$phrase with variables should complain") {
-      val query = s"MATCH (a) RETURN * $phrase a.prop"
-      expectErrorsFrom(
-        query,
-        Set(
-          SemanticError(
-            s"It is not allowed to refer to variables in $phrase, so that the value for $phrase can be statically calculated.",
-            InputPosition(20 + phrase.length, 1, 21 + phrase.length)
-          )
-        )
+      run(s"MATCH (a) RETURN * $phrase a.prop").hasError(
+        s"It is not allowed to refer to variables in $phrase, so that the value for $phrase can be statically calculated.",
+        p(20 + phrase.length, 1, 21 + phrase.length)
       )
     }
     test(s"$phrase with PatternComprehension should complain") {
-      val query = s"RETURN 1 $phrase size([(a)-->(b) | a.prop])"
-      expectErrorsFrom(
-        query,
-        Set(
-          SemanticError(
-            s"It is not allowed to use patterns in the expression for $phrase, so that the value for $phrase can be statically calculated.",
-            InputPosition(10 + phrase.length, 1, 11 + phrase.length)
-          )
-        )
+      run(s"RETURN 1 $phrase size([(a)-->(b) | a.prop])").hasError(
+        s"It is not allowed to use patterns in the expression for $phrase, so that the value for $phrase can be statically calculated.",
+        p(10 + phrase.length, 1, 11 + phrase.length)
       )
     }
 
     test(s"$phrase with PatternExpression should complain") {
-      val query = s"RETURN 1 $phrase size(()-->())"
-      expectErrorsFrom(
-        query,
-        Set(
-          SemanticError(
-            s"It is not allowed to use patterns in the expression for $phrase, so that the value for $phrase can be statically calculated.",
-            InputPosition(10 + phrase.length, 1, 11 + phrase.length)
-          )
-        )
+      run(s"RETURN 1 $phrase size(()-->())").hasError(
+        s"It is not allowed to use patterns in the expression for $phrase, so that the value for $phrase can be statically calculated.",
+        p(10 + phrase.length, 1, 11 + phrase.length)
       )
     }
 
     test(s"$phrase with CountExpression should complain") {
-      val query = s"RETURN 1 $phrase COUNT { ()--() }"
-      expectErrorsFrom(
-        query,
-        Set(
-          SemanticError(
-            s"It is not allowed to use patterns in the expression for $phrase, so that the value for $phrase can be statically calculated.",
-            InputPosition(10 + phrase.length, 1, 11 + phrase.length)
-          )
-        )
+      run(s"RETURN 1 $phrase COUNT { ()--() }").hasError(
+        s"It is not allowed to use patterns in the expression for $phrase, so that the value for $phrase can be statically calculated.",
+        p(10 + phrase.length, 1, 11 + phrase.length)
       )
     }
   }
 
   Seq("", " DISTINCT", " ALL").foreach { setQuantifier =>
     test(s"UNION$setQuantifier with incomplete first part") {
-      val query = s"MATCH (a) WITH a UNION$setQuantifier MATCH (a) RETURN a"
-      expectErrorsFrom(
-        query,
-        Set(
-          SemanticError(
-            getGql42001_42N71(1, 11, 10),
-            "Query cannot conclude with WITH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
-            InputPosition(10, 1, 11)
-          ),
-          SemanticError(
-            GqlHelper.getGql42001_42N39(1, 18, 17),
-            "All sub queries in an UNION must have the same return column names",
-            InputPosition(17, 1, 18)
-          )
-        )
+      run(s"MATCH (a) WITH a UNION$setQuantifier MATCH (a) RETURN a").hasErrors(
+        getGql42001_42N71(1, 11, 10),
+        "Query cannot conclude with WITH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
+        p(10, 1, 11),
+        getGql42001_42N39(1, 18, 17),
+        "All sub queries in an UNION must have the same return column names",
+        p(17, 1, 18)
       )
     }
 
     test(s"UNION$setQuantifier with incomplete second part") {
-      val query = s"MATCH (a) RETURN a UNION$setQuantifier MATCH (a) WITH a"
       val extraLength = setQuantifier.length
-      expectErrorsFrom(
-        query,
-        Set(
-          SemanticError(
-            getGql42001_42N71(1, 36 + extraLength, 35 + extraLength),
-            "Query cannot conclude with WITH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
-            InputPosition(35 + extraLength, 1, 36 + extraLength)
-          ),
-          SemanticError(
-            GqlHelper.getGql42001_42N39(1, 20, 19),
-            "All sub queries in an UNION must have the same return column names",
-            InputPosition(19, 1, 20)
-          )
-        )
+      run(s"MATCH (a) RETURN a UNION$setQuantifier MATCH (a) WITH a").hasErrors(
+        getGql42001_42N71(1, 36 + extraLength, 35 + extraLength),
+        "Query cannot conclude with WITH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
+        p(35 + extraLength, 1, 36 + extraLength),
+        getGql42001_42N39(1, 20, 19),
+        "All sub queries in an UNION must have the same return column names",
+        p(19, 1, 20)
       )
     }
 
     test(s"UNION$setQuantifier with missing return in first part") {
-      val query = s"CALL db.labels() YIELD label UNION$setQuantifier CALL db.labels() YIELD label RETURN label"
-      expectErrorsFrom(
-        query,
-        Set(
-          SemanticError(
-            GqlHelper.getGql42001_42N39(1, 30, 29),
-            "All sub queries in an UNION must have the same return column names",
-            InputPosition(29, 1, 30)
-          )
-        )
+      run(s"CALL db.labels() YIELD label UNION$setQuantifier CALL db.labels() YIELD label RETURN label").hasError(
+        getGql42001_42N39(1, 30, 29),
+        "All sub queries in an UNION must have the same return column names",
+        p(29, 1, 30)
       )
     }
 
     test(s"UNION$setQuantifier with missing return in second part") {
-      val query = s"CALL db.labels() YIELD label RETURN label UNION$setQuantifier CALL db.labels() YIELD label"
-      expectErrorsFrom(
-        query,
-        Set(
-          SemanticError(
-            GqlHelper.getGql42001_42N39(1, 43, 42),
-            "All sub queries in an UNION must have the same return column names",
-            InputPosition(42, 1, 43)
-          )
-        )
+      run(s"CALL db.labels() YIELD label RETURN label UNION$setQuantifier CALL db.labels() YIELD label").hasError(
+        getGql42001_42N39(1, 43, 42),
+        "All sub queries in an UNION must have the same return column names",
+        p(42, 1, 43)
       )
     }
 
     test(s"UNION$setQuantifier with finish in first part") {
-      val query = s"UNWIND [1,2] AS a FINISH UNION$setQuantifier UNWIND [2,3] AS a RETURN a"
-      expectErrorsFrom(
-        query,
-        Set(
-          SemanticError(
-            GqlHelper.getGql42001_42N39(1, 26, 25),
-            "All sub queries in an UNION must have the same return column names",
-            InputPosition(25, 1, 26)
-          )
-        )
+      run(s"UNWIND [1,2] AS a FINISH UNION$setQuantifier UNWIND [2,3] AS a RETURN a").hasError(
+        getGql42001_42N39(1, 26, 25),
+        "All sub queries in an UNION must have the same return column names",
+        p(25, 1, 26)
       )
     }
 
     test(s"UNION$setQuantifier with finish in second part") {
-      val query = s"UNWIND [1,2] AS a RETURN a UNION$setQuantifier UNWIND [2,3] AS a FINISH"
-      expectErrorsFrom(
-        query,
-        Set(
-          SemanticError(
-            GqlHelper.getGql42001_42N39(1, 28, 27),
-            "All sub queries in an UNION must have the same return column names",
-            InputPosition(27, 1, 28)
-          )
-        )
+      run(s"UNWIND [1,2] AS a RETURN a UNION$setQuantifier UNWIND [2,3] AS a FINISH").hasError(
+        getGql42001_42N39(1, 28, 27),
+        "All sub queries in an UNION must have the same return column names",
+        p(27, 1, 28)
       )
     }
   }
 
-  Seq("", " DISTINCT", " ALL").foreach { setQuantifier1 =>
-    Seq("", " DISTINCT", " ALL").foreach { setQuantifier2 =>
-      if (setQuantifier1 != setQuantifier2 && setQuantifier1 + setQuantifier2 != " DISTINCT") {
-        test(s"Invalid combination of UNION$setQuantifier1 and UNION$setQuantifier2") {
-          val query =
-            s"""RETURN 1 AS a
-               |UNION$setQuantifier1
-               |RETURN 2 AS a
-               |UNION$setQuantifier2
-               |RETURN 3 AS a""".stripMargin
-          val extraLength = setQuantifier1.length
-          val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-            .atPosition(4, 1, 34 + extraLength)
-            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I40)
-              .atPosition(4, 1, 34 + extraLength)
-              .build)
-            .build
-          expectErrorsFrom(
-            query,
-            Set(
-              SemanticError(
-                gql,
-                "Invalid combination of UNION and UNION ALL",
-                InputPosition(34 + extraLength, 4, 1)
-              )
-            )
-          )
-        }
-      }
+  for {
+    qualifierA <- Seq("", " DISTINCT", " ALL")
+    qualifierB <- Seq("", " DISTINCT", " ALL")
+    if qualifierA != qualifierB && qualifierA + qualifierB != " DISTINCT"
+  } {
+    test(s"Invalid combination of UNION$qualifierA and UNION$qualifierB") {
+      val query =
+        s"""RETURN 1 AS a
+           |UNION$qualifierA
+           |RETURN 2 AS a
+           |UNION$qualifierB
+           |RETURN 3 AS a""".stripMargin
+      val extraLength = qualifierA.length
+      val gql = from(STATUS_42001).atPosition(4, 1, 34 + extraLength)
+        .withCause(from(STATUS_42I40).atPosition(4, 1, 34 + extraLength).build)
+        .build
+      run(query).hasError(gql, "Invalid combination of UNION and UNION ALL", p(34 + extraLength, 4, 1))
     }
   }
 
   test("Query ending in CALL ... YIELD ...") {
-    val query = "MATCH (a) CALL proc.foo() YIELD bar"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          getGql42001_42N71(1, 11, 10),
-          "Query cannot conclude with CALL together with YIELD",
-          InputPosition(10, 1, 11)
-        )
-      )
-    )
+    run("MATCH (a) CALL proc.foo() YIELD bar")
+      .hasError(getGql42001_42N71(1, 11, 10), "Query cannot conclude with CALL together with YIELD", p(10, 1, 11))
   }
 
   test("Query with only importing WITH") {
-    val query = "WITH a"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError("Variable `a` not defined", InputPosition(5, 1, 6)),
-        SemanticError(
-          getGql42001_42N71(1, 1, 0),
-          "Query cannot conclude with WITH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
-          InputPosition(0, 1, 1)
-        )
-      )
+    run("WITH a").hasErrors(
+      null,
+      "Variable `a` not defined",
+      p(5, 1, 6),
+      getGql42001_42N71(1, 1, 0),
+      "Query cannot conclude with WITH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
+      p(0, 1, 1)
     )
   }
 
   test("Relationship Pattern predicates should be enabled by default") {
-    val query = "MATCH ()-[r:Rel WHERE r.prop > 42]->() return *"
-    expectNoErrorsFrom(query)
+    run("MATCH ()-[r:Rel WHERE r.prop > 42]->() return *")
+      .hasNoErrors
   }
 
   test("Relationship Pattern predicates should not be allowed with quantification") {
-    val query = "MATCH ()-[r:Rel* WHERE r.prop > 42]->() return *"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "Relationship pattern predicates are not supported for variable-length relationships.",
-          InputPosition(30, 1, 31)
-        )
-      )
+    run("MATCH ()-[r:Rel* WHERE r.prop > 42]->() return *").hasError(
+      "Relationship pattern predicates are not supported for variable-length relationships.",
+      p(30, 1, 31)
     )
   }
 
@@ -1970,123 +1324,79 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |}
         |RETURN name
         |""".stripMargin
-
-    expectErrorMessagesFrom(
-      query,
-      Set("Variable `name` not defined")
-    )
+    run(query).hasErrorMessages("Variable `name` not defined")
   }
 
   test("should fail for size(COUNT{...})") {
-    val query = "RETURN size(COUNT{ (n) }) AS foo"
-    expectErrorsFrom(
-      query,
-      Set(SemanticError.invalidEntityType(
-        "Integer",
-        "CountExpression(SingleQuery...",
-        List("String", "List<T>"),
-        "Type mismatch: expected String or List<T> but was Integer",
-        InputPosition(12, 1, 13)
-      ))
-    )
+    run("RETURN size(COUNT{ (n) }) AS foo").hasErrors(invalidEntityType(
+      "Integer",
+      "CountExpression(SingleQuery...",
+      List("String", "List<T>"),
+      "Type mismatch: expected String or List<T> but was Integer",
+      InputPosition(12, 1, 13)
+    ))
   }
 
   test("should not allow subquery expressions in MERGE ON CREATE") {
-    val query = "MERGE (n) ON CREATE SET n.prop = EXISTS { MATCH () } RETURN 1"
-
-    expectErrorsFrom(
-      query,
-      Set(SemanticError("Subquery expressions are not allowed in a MERGE clause.", InputPosition(33, 1, 34)))
-    )
+    run("MERGE (n) ON CREATE SET n.prop = EXISTS { MATCH () } RETURN 1")
+      .hasError("Subquery expressions are not allowed in a MERGE clause.", p(33, 1, 34))
   }
 
   test("should not allow subquery expressions in MERGE") {
-    val query = "MERGE (n {prop: EXISTS {MATCH ()}}) RETURN n.prop"
-
-    expectErrorsFrom(
-      query,
-      Set(SemanticError("Subquery expressions are not allowed in a MERGE clause.", InputPosition(16, 1, 17)))
-    )
+    run("MERGE (n {prop: EXISTS {MATCH ()}}) RETURN n.prop")
+      .hasError("Subquery expressions are not allowed in a MERGE clause.", p(16, 1, 17))
   }
 
   test("should not allow subquery expressions in MERGE ON SET") {
-    val query = "MERGE (n) ON CREATE SET n.prop = COUNT { MATCH () } RETURN 1"
-
-    expectErrorsFrom(
-      query,
-      Set(SemanticError("Subquery expressions are not allowed in a MERGE clause.", InputPosition(33, 1, 34)))
-    )
+    run("MERGE (n) ON CREATE SET n.prop = COUNT { MATCH () } RETURN 1")
+      .hasError("Subquery expressions are not allowed in a MERGE clause.", p(33, 1, 34))
   }
 
   test("should allow index hint with negated predicate") {
-    val query = "MATCH (a:A) USING INDEX a:A(prop) WHERE NOT a.prop > 123 RETURN 1"
-    expectNoErrorsFrom(query)
+    run("MATCH (a:A) USING INDEX a:A(prop) WHERE NOT a.prop > 123 RETURN 1")
+      .hasNoErrors
   }
 
   test("Should check for undefined variables in type predicate expression") {
-    val result = runSemanticAnalysis("MATCH (n) WHERE x IS :: BOOL RETURN 1")
-    result.errors.map(e => (e.msg, e.position.line, e.position.column)) should equal(List(
-      ("Variable `x` not defined", 1, 17)
-    ))
+    run("MATCH (n) WHERE x IS :: BOOL RETURN 1")
+      .hasError("Variable `x` not defined", p(16, 1, 17))
   }
 
   test("Should check for undefined variables in negative type predicate expression") {
-    val result = runSemanticAnalysis("MATCH (n) WHERE x IS NOT :: BOOL RETURN 1")
-    result.errors.map(e => (e.msg, e.position.line, e.position.column)) should equal(List(
-      ("Variable `x` not defined", 1, 17)
-    ))
+    run("MATCH (n) WHERE x IS NOT :: BOOL RETURN 1")
+      .hasError("Variable `x` not defined", p(16, 1, 17))
   }
 
   test("should fail for normalize() with incorrect arguments") {
-    val query = "RETURN normalize(1) AS normalize"
-    expectErrorsFrom(
-      query,
-      Set(SemanticError.invalidEntityType(
-        "Integer",
-        "1",
-        List("String"),
-        "Type mismatch: expected String but was Integer",
-        InputPosition(17, 1, 18)
-      ))
-    )
+    run("RETURN normalize(1) AS normalize").hasErrors(invalidEntityType(
+      "Integer",
+      "1",
+      List("String"),
+      "Type mismatch: expected String but was Integer",
+      InputPosition(17, 1, 18)
+    ))
   }
 
   test("Should check for undefined variables in normalized predicate expression") {
-    val result = runSemanticAnalysis("MATCH (n) WHERE x IS NORMALIZED RETURN 1")
-    result.errors.map(e => (e.msg, e.position.line, e.position.column)) should equal(List(
-      ("Variable `x` not defined", 1, 17)
-    ))
+    run("MATCH (n) WHERE x IS NORMALIZED RETURN 1")
+      .hasError("Variable `x` not defined", p(16, 1, 17))
   }
 
   test("Should check for undefined variables in negative normalized predicate expression") {
-    val result = runSemanticAnalysis("MATCH (n) WHERE x IS NOT NORMALIZED RETURN 1")
-    result.errors.map(e => (e.msg, e.position.line, e.position.column)) should equal(List(
-      ("Variable `x` not defined", 1, 17)
-    ))
+    run("MATCH (n) WHERE x IS NOT NORMALIZED RETURN 1")
+      .hasError("Variable `x` not defined", p(16, 1, 17))
   }
 
   test("Should not allow too large lower bound in variable length relationship") {
     val bigNumber = "9999999999999999999999999999999999999999999"
-    val query = s"MATCH ()-[*$bigNumber..]->() RETURN 1"
-    val gql = GqlHelper.getGql22003(bigNumber, 1, 12, 11)
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(gql, "integer is too large", InputPosition(11, 1, 12))
-      )
-    )
+    run(s"MATCH ()-[*$bigNumber..]->() RETURN 1")
+      .hasError(getGql22003(bigNumber, 1, 12, 11), "integer is too large", p(11, 1, 12))
   }
 
   test("Should not allow too large upper bound in variable length relationship") {
     val bigNumber = "9999999999999999999999999999999999999999999"
-    val query = s"MATCH ()-[*..$bigNumber]->() RETURN 1"
-    val gql = GqlHelper.getGql22003(bigNumber, 1, 14, 13)
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(gql, "integer is too large", InputPosition(13, 1, 14))
-      )
-    )
+    run(s"MATCH ()-[*..$bigNumber]->() RETURN 1")
+      .hasError(getGql22003(bigNumber, 1, 14, 13), "integer is too large", p(13, 1, 14))
   }
 
   override def messageProvider: ErrorMessageProvider = new ErrorMessageProviderAdapter {
@@ -2098,4 +1408,18 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
     override def createMultipleGraphReferencesError(graphName: String, transactioinalDefault: Boolean = false): String =
       "A very nice message explaining why multiple graph references are not allowed: " + graphName
   }
+}
+
+object SemanticAnalysisTest {
+
+  def gql42N29(pos: InputPosition, n: String): ErrorGqlStatusObject =
+    from(STATUS_42001)
+      .atPosition(pos.line, pos.column, pos.offset)
+      .withCause(from(STATUS_42N29).atPosition(pos.line, pos.column, pos.offset).withParam(variable, n).build())
+      .build()
+
+  def gql42NA5(pos: InputPosition): ErrorGqlStatusObject =
+    from(STATUS_42001).atPosition(pos.line, pos.column, pos.offset)
+      .withCause(from(STATUS_42NA5).atPosition(pos.line, pos.column, pos.offset).build())
+      .build()
 }

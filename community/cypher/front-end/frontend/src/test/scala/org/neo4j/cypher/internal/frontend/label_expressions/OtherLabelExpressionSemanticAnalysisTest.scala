@@ -17,45 +17,40 @@
 package org.neo4j.cypher.internal.frontend.label_expressions
 
 import org.neo4j.cypher.internal.frontend.NameBasedSemanticAnalysisTestSuite
+import org.scalatest.LoneElement
 
-class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
+class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite with LoneElement {
 
   test("MATCH (a), (b) WITH shortestPath((a:A|B)-[:REL*]->(b:B|C)) AS p RETURN length(p) AS result") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
-      "Label expressions in shortestPath are not allowed in an expression"
-    )
+    run().hasErrorMessages("Label expressions in shortestPath are not allowed in an expression")
   }
 
   test("MATCH (a), (b) WITH shortestPath((a IS A)-[:REL*]->(b:B)) AS p RETURN length(p) AS result") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (a), (b) WITH shortestPath((a:A)-[:A*]->(b:B)) AS p RETURN length(p) AS result") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n), (m) WITH shortestPath((n)-[:A|B|C*]->(m)) AS p RETURN length(p) AS result") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n), (m) WITH shortestPath((n)-[:!A&!B*]->(m)) AS p RETURN length(p) AS result") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
-      "Variable length relationships must not use relationship type expressions."
-    )
+    run().hasErrorMessages("Variable length relationships must not use relationship type expressions.")
   }
 
   test("MATCH (n), (m) WITH shortestPath((n)-[IS A*]->(m)) AS p RETURN length(p) AS result") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n), (m) WITH (n)-[:!A&!B*]->(m) AS p RETURN p AS result") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
-      "Variable length relationships must not use relationship type expressions."
-    )
+    run().hasErrorMessages("Variable length relationships must not use relationship type expressions.")
   }
 
   test("MATCH (a), (b) RETURN [(a:A|B)-[:REL*]->(b IS B) | 1] AS p") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   // LabelExpressionPredicate
@@ -63,40 +58,39 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   // Node
 
   test("MATCH (n:A:B)-[r]->() WITH [r, n] AS list UNWIND list as x RETURN x:A|B") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   // Unknown
 
   test("RETURN $param:A:B") {
     // should allow colon conjunction on unknown type
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("RETURN $param:A|B") {
     // should allow disjunction on unknown type
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("RETURN $param:A|:B") {
-    val error = runSemanticAnalysis().error
-
-    error.msg shouldBe
-      """The semantics of using colon in the separation of alternative relationship types in conjunction with
-        |the use of variable binding, inlined property predicates, or variable length is no longer supported.
-        |Please separate the relationships types using `:A|B` instead.""".stripMargin
-
-    checkGqlDisjunctionError(error, "|:")
+    run()
+      .hasErrorMessages(
+        """The semantics of using colon in the separation of alternative relationship types in conjunction with
+          |the use of variable binding, inlined property predicates, or variable length is no longer supported.
+          |Please separate the relationships types using `:A|B` instead.""".stripMargin
+      )
+      .assert(r => checkGqlDisjunctionError(r.errors.loneElement, "|:"))
   }
 
   test("RETURN $param:A:B&C") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B&C."
     )
   }
 
   test("RETURN $param:A|B:C") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A|(B&C)."
     )
   }
@@ -109,12 +103,12 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
          |    ELSE null
          |  END
          |""".stripMargin) {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   // Mixed label expression in same statement
   test("MATCH ((n:A:B:C)-[]->()) RETURN n:A&B, n:A:B") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
@@ -122,7 +116,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   // Ignored since changing this would break backwards compatibility.
   // See the "GPM Sync Rolling Agenda" notes for Nov 23, 2023
   // Mixed label specification in same statements
-  ignore(
+  test(
     """
       |CALL {
       |  CREATE (n:A&B)
@@ -130,15 +124,17 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as multiple comma separated items which one Label each."
-    )
+    run()
+      // .hasErrorMessages(
+      //  "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as multiple comma separated items which one Label each."
+      // )
+      .hasNoErrors
   }
 
   // Ignored since changing this would break backwards compatibility.
   // See the "GPM Sync Rolling Agenda" notes for Nov 23, 2023
   // Mixed label specification in same statements
-  ignore(
+  test(
     """
       |CALL {
       |  CREATE (n:A&B)
@@ -146,9 +142,11 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as multiple comma separated items which one Label each."
-    )
+    run()
+      // .hasErrorMessages(
+      //  "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as multiple comma separated items which one Label each."
+      // )
+      .hasNoErrors
   }
 
   // Ignored since changing this would break backwards compatibility.
@@ -162,9 +160,11 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
-      "Mixing variable-length relationships ('-[*]-') with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*') is not allowed."
-    )
+    run()
+      // .hasErrorMessages(
+      //  "Mixing variable-length relationships ('-[*]-') with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*') is not allowed."
+      // )
+      .hasNoErrors
   }
 
   test(
@@ -177,7 +177,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test(
@@ -190,7 +190,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test(
@@ -201,7 +201,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test(
@@ -212,7 +212,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test(
@@ -223,7 +223,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test(
@@ -234,7 +234,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test(
@@ -245,7 +245,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |}
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test(
@@ -255,7 +255,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |RETURN labelCheck
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Dynamic Label and Types are only allowed in MATCH, CREATE, MERGE, SET and REMOVE clauses."
     )
   }
@@ -267,7 +267,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |RETURN n
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Dynamic Label and Types are only allowed in MATCH, CREATE, MERGE, SET and REMOVE clauses."
     )
   }
@@ -278,7 +278,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |RETURN n:$(A)
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Dynamic Label and Types are only allowed in MATCH, CREATE, MERGE, SET and REMOVE clauses."
     )
   }
@@ -289,7 +289,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |RETURN n
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Dynamic Label and Types are only allowed in MATCH, CREATE, MERGE, SET and REMOVE clauses."
     )
   }
@@ -300,7 +300,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |RETURN r
       |""".stripMargin
   ) {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Dynamic Label and Types are only allowed in MATCH, CREATE, MERGE, SET and REMOVE clauses."
     )
   }

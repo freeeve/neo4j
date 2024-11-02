@@ -170,7 +170,7 @@ trait SemanticAnalysisTooling {
               SemanticError.invalidEntityType(
                 existingTypesString,
                 context,
-                possibleTypes.toStrings.toList,
+                possibleTypes.toStrings,
                 "Type mismatch: " + messageGen(expectedTypesString, existingTypesString),
                 expression.position
               )

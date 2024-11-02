@@ -29,6 +29,7 @@ import org.neo4j.cypher.graphcounts.Index
 import org.neo4j.cypher.graphcounts.NodeCount
 import org.neo4j.cypher.graphcounts.RelationshipCount
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionHelpers.randomVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
@@ -1420,11 +1421,18 @@ class StatisticsBackedLogicalPlanningConfiguration(
 ) extends LogicalPlanConstructionTestSupport
     with AstConstructionTestSupport {
 
-  def plan(queryString: String, explicitVersion: Option[CypherVersion] = None): LogicalPlan = {
-    planState(queryString, explicitVersion).logicalPlan
-  }
+  // Hack to guarantee coverage in all versions
+  def plan(query: String): LogicalPlan = plan(randomVersion(), query)
 
-  def planState(queryString: String, explicitVersion: Option[CypherVersion] = None): LogicalPlanState = {
+  def plan(version: CypherVersion, query: String): LogicalPlan = planState(version, query).logicalPlan
+
+  // Hack to guarantee coverage in all versions
+  def planState(query: String): LogicalPlanState = planState(randomVersion(), query)
+
+  def planState(
+    version: CypherVersion,
+    queryString: String
+  ): LogicalPlanState = {
     val plannerConfiguration = CypherPlannerConfiguration.withSettings(settings)
 
     val cfg = Config.defaults(settings.asJava)
@@ -1445,6 +1453,7 @@ class StatisticsBackedLogicalPlanningConfiguration(
     )
 
     val context = ContextHelper.create(
+      version = version,
       planContext = planContext,
       cypherExceptionFactory = exceptionFactory,
       queryGraphSolver = queryGraphSolver(plannerConfiguration),
@@ -1462,13 +1471,11 @@ class StatisticsBackedLogicalPlanningConfiguration(
     val state = InitialState(queryString, IDPPlannerName, new AnonymousVariableNameGenerator)
     val parsingConfig = {
       val cfg = LogicalPlanningTestSupport2.defaultParsingConfig
-      val version = explicitVersion.getOrElse(cfg.cypherVersion)
-      cfg.copy(semanticFeatures = cfg.semanticFeatures ++ options.semanticFeatures, cypherVersion = version)
+      cfg.copy(semanticFeatures = cfg.semanticFeatures ++ options.semanticFeatures)
     }
     LogicalPlanningTestSupport2
       .pipeLine(
         parsingConfig = parsingConfig,
-        compatibleVersions = explicitVersion.map(v => Seq(v)).getOrElse(CypherVersion.values()),
         deduplicateNames = options.deduplicateNames
       )
       .transform(state, context)

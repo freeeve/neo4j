@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.frontend.helpers.TestContext
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.LOGICAL_PLANNING
 import org.neo4j.cypher.internal.rewriting.ValidatingCondition
@@ -23,7 +24,7 @@ import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class TransformerTest extends CypherFunSuite {
+class TransformerTest extends CypherFunSuite with CypherVersionTestSupport {
 
   private case class TestPhase(
     override val postConditions: Set[StepSequencer.Condition],

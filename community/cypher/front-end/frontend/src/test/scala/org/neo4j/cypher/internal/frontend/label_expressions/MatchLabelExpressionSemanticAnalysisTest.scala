@@ -16,330 +16,318 @@
  */
 package org.neo4j.cypher.internal.frontend.label_expressions
 
-import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.Ast.p
+import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidEntityType
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DynamicLabelsAndTypes
 import org.neo4j.cypher.internal.frontend.NameBasedSemanticAnalysisTestSuite
-import org.neo4j.cypher.internal.util.InputPosition
+import org.scalatest.LoneElement
 
-class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
+class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite with LoneElement {
 
   // Node Pattern
   test("MATCH (n) RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A) RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n IS A) RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (:A) RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (IS A) RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A:B) RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (:A:B) RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A|:B) RETURN n") {
     // should not allow colon disjunctions on nodes
-    val error = runSemanticAnalysis().error
-    error.msg shouldBe "Label expressions are not allowed to contain '|:'."
-    checkGqlDisjunctionError(error, "|:")
+    run()
+      .hasErrorMessages("Label expressions are not allowed to contain '|:'.")
+      .assert(r => checkGqlDisjunctionError(r.errors.loneElement, "|:"))
   }
 
   test("MATCH (n IS A|:B) RETURN n") {
     // should not allow colon disjunctions on nodes
-    val error = runSemanticAnalysis().error
-    error.msg shouldBe "Label expressions are not allowed to contain '|:'."
-    checkGqlDisjunctionError(error, "|:")
+    run()
+      .hasErrorMessages("Label expressions are not allowed to contain '|:'.")
+      .assert(r => checkGqlDisjunctionError(r.errors.loneElement, "|:"))
   }
 
   test("MATCH (:(A|B)&!C) RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (IS !(A|B&C)) RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (IS %) RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A&B:C) RETURN n") {
     // should not allow mixing colon as label conjunction symbol with GPM label expression symbols in label expression
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B&C."
     )
   }
 
   test("MATCH (n IS A:B) RETURN n") {
     // should not allow mixing colon as label conjunction symbol with IS keyword in label expression
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing the IS keyword with colon (':') between labels is not allowed. This expression could be expressed as IS A&B."
     )
   }
 
   test("MATCH (n IS A&B:C) RETURN n") {
     // should not allow mixing colon as label conjunction symbol with GPM label expression symbols in label expression
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing the IS keyword with colon (':') between labels is not allowed. This expression could be expressed as IS A&B&C."
     )
   }
 
   test("MATCH (n:A), (m:A&B) RETURN *") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A), (m:A:B) RETURN *") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A)-[r:R|T]-(m:B) RETURN *") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A:B)-[r:R|T]-(m:B) RETURN *") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A&B)-[r:R|T]-(m:B) RETURN *") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A)-[r:!R&!T]-(m:B) RETURN *") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A&B)-[r]-(m:B:C) RETURN *") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :B&C."
     )
   }
 
   test("MATCH (n:A:B)-[r:!R&!T]-(m:B) RETURN *") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
 
   test("MATCH (n:A:B), (m:A&B) RETURN *") {
     // should not allow mixing colon as label conjunction symbol with GPM label expression symbols in label expression
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
 
   test("MATCH (n:A:B)-[]-(m) WHERE m:(A&B)|C RETURN *") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
 
   test("MATCH (n:A:B)-[]-(m) WHERE (m:(A&B)|C)--() RETURN *") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
 
   test("MATCH (n:A:B)-[]-(m) WHERE m IS C RETURN *") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing the IS keyword with colon (':') between labels is not allowed. This expression could be expressed as :A&B."
     )
   }
 
   test("MATCH (n:A:B)-[r IS A|B]->(m) RETURN *") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing the IS keyword with colon (':') between labels is not allowed. This expression could be expressed as :A&B."
     )
   }
 
   test("MATCH (n:A)-[]-(m) WHERE (m:(A&B)|C)--() RETURN *") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH p = shortestPath((a:A|B)-[:REL*]->(b:B|C)) RETURN length(p) AS result") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH p = shortestPath((a IS A)-[:REL*]->(b:B)) RETURN length(p) AS result") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n), (m) WHERE length(shortestPath((n)-[:A|B|C*]->(m))) > 1 RETURN n, m AS result") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH p = shortestPath((n)-[:A|B|C*]->(m)) RETURN length(p) AS result") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n), (m) WHERE length(shortestPath((n)-[:!A&!B*]->(m))) > 0 RETURN n, m AS result") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
-      "Variable length relationships must not use relationship type expressions."
-    )
+    run().hasErrorMessages("Variable length relationships must not use relationship type expressions.")
   }
 
   test("MATCH (n), (m) WITH (n)-[IS A*]->(m) AS p RETURN p AS result") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH p = shortestPath((n)-[:!A&!B*]->(m)) RETURN length(p) AS result") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
-      "Variable length relationships must not use relationship type expressions."
-    )
+    run().hasErrorMessages("Variable length relationships must not use relationship type expressions.")
   }
 
   test("MATCH p = shortestPath((n)-[:!A&!B]->(m)) RETURN length(p) AS result") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
+    run().hasErrorMessages(
       "Variable length relationships must not use relationship type expressions."
     )
   }
 
   test("MATCH p = shortestPath((n)-[IS A]->(m)) RETURN length(p) AS result") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A&B)-[]-(m) WHERE (m:A:B)--() RETURN *") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
 
   test("MATCH (n:A:B) MATCH (m:(A&B)|C) RETURN *") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A:B) MATCH (m IS C) RETURN *") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A:B) WITH n WHERE n:(A&B)|C RETURN *") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A:B) WITH n WHERE n IS C RETURN *") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A:B WHERE true)-[]-(m) RETURN *") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   // Relationship Pattern
   test("MATCH ()-[r]->() RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[r:A]->() RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[r IS A]->() RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[:A]->() RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[IS A]->() RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[r:A|B]->() RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[:A|B]->() RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[:A|B*]->() RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[r:%]->() RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[:A|:B]->() RETURN n") {
     // should allow old style relationship types without names, predicates, properties, quantifiers (for now)
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[:A|B|(!C&!D)]->() RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[r:A:B]->() RETURN r") {
     // should not allow colon conjunctions on relationships
-    val error = runSemanticAnalysis().error
-
-    error.msg shouldBe
-      "Relationship types in a relationship type expressions may not be combined using ':'"
-
-    checkGqlDisjunctionError(error, ":")
+    run()
+      .hasErrorMessages("Relationship types in a relationship type expressions may not be combined using ':'")
+      .assert(r => checkGqlDisjunctionError(r.errors.loneElement, ":"))
   }
 
   test("MATCH ()-[r IS A:B]->() RETURN r") {
     // should not allow colon conjunctions on relationships
-    val error = runSemanticAnalysis().error
-
-    error.msg shouldBe
-      "Relationship types in a relationship type expressions may not be combined using ':'"
-
-    checkGqlDisjunctionError(error, ":")
+    run()
+      .hasErrorMessages("Relationship types in a relationship type expressions may not be combined using ':'")
+      .assert(r => checkGqlDisjunctionError(r.errors.loneElement, ":"))
   }
 
   test("MATCH (n)-[:A|:B&!C]->() RETURN n") {
-    val error = runSemanticAnalysis().error
-
-    error.msg shouldBe
-      """The semantics of using colon in the separation of alternative relationship types in conjunction with
-        |the use of variable binding, inlined property predicates, or variable length is no longer supported.
-        |Please separate the relationships types using `:A|(B&!C)` instead.""".stripMargin
-
-    checkGqlDisjunctionError(error, "|:")
+    run()
+      .hasErrorMessages(
+        """The semantics of using colon in the separation of alternative relationship types in conjunction with
+          |the use of variable binding, inlined property predicates, or variable length is no longer supported.
+          |Please separate the relationships types using `:A|(B&!C)` instead.""".stripMargin
+      )
+      .assert(r => checkGqlDisjunctionError(r.errors.loneElement, "|:"))
   }
 
   test("MATCH (n)-[IS A|:B&!C]->() RETURN n") {
-    val error = runSemanticAnalysis().error
-
-    error.msg shouldBe
-      """The semantics of using colon in the separation of alternative relationship types in conjunction with
-        |the use of variable binding, inlined property predicates, or variable length is no longer supported.
-        |Please separate the relationships types using `IS A|(B&!C)` instead.""".stripMargin
-
-    checkGqlDisjunctionError(error, "|:")
+    run()
+      .hasErrorMessages(
+        """The semantics of using colon in the separation of alternative relationship types in conjunction with
+          |the use of variable binding, inlined property predicates, or variable length is no longer supported.
+          |Please separate the relationships types using `IS A|(B&!C)` instead.""".stripMargin
+      )
+      .assert(r => checkGqlDisjunctionError(r.errors.loneElement, "|:"))
   }
 
   test("MATCH (n)-[:(A&!B)|:C]->() RETURN n") {
     // should not allow mixing colon disjunction symbol with GPM label expression symbols in relationship type expression
-    val error = runSemanticAnalysis().error
-
-    error.msg shouldBe
-      """The semantics of using colon in the separation of alternative relationship types in conjunction with
-        |the use of variable binding, inlined property predicates, or variable length is no longer supported.
-        |Please separate the relationships types using `:(A&!B)|C` instead.""".stripMargin
-
-    checkGqlDisjunctionError(error, "|:")
+    run()
+      .hasErrorMessages(
+        """The semantics of using colon in the separation of alternative relationship types in conjunction with
+          |the use of variable binding, inlined property predicates, or variable length is no longer supported.
+          |Please separate the relationships types using `:(A&!B)|C` instead.""".stripMargin
+      )
+      .assert(r => checkGqlDisjunctionError(r.errors.loneElement, "|:"))
   }
 
   test("MATCH ()-[:!A*]->() RETURN count(*)") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Variable length relationships must not use relationship type expressions."
     )
   }
@@ -348,206 +336,204 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
 
   // Node
   test("MATCH (n) WHERE n:A RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n) WHERE n IS A RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n) WHERE n:A:B RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n) WHERE n:A|:B RETURN n") {
     // should not allow colon disjunctions on node label predicate
-    val error = runSemanticAnalysis().error
-    error.msg shouldBe
-      """Label expressions are not allowed to contain '|:'.
-        |If you want to express a disjunction of labels, please use `:A|B` instead""".stripMargin
-
-    checkGqlDisjunctionError(error, "|:")
+    run()
+      .hasErrorMessages(
+        """Label expressions are not allowed to contain '|:'.
+          |If you want to express a disjunction of labels, please use `:A|B` instead""".stripMargin
+      )
+      .assert(r => checkGqlDisjunctionError(r.errors.loneElement, "|:"))
   }
 
   test("MATCH (n) WHERE n IS A|:B RETURN n") {
     // should not allow colon disjunctions on node label predicate
-    val error = runSemanticAnalysis().error
-    error.msg shouldBe
-      """Label expressions are not allowed to contain '|:'.
-        |If you want to express a disjunction of labels, please use `IS A|B` instead""".stripMargin
-    checkGqlDisjunctionError(error, "|:")
+    run()
+      .hasErrorMessages(
+        """Label expressions are not allowed to contain '|:'.
+          |If you want to express a disjunction of labels, please use `IS A|B` instead""".stripMargin
+      )
+      .assert(r => checkGqlDisjunctionError(r.errors.loneElement, "|:"))
   }
 
   test("MATCH (n) WHERE n:(A|B)&!C RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n) WHERE n:A&B:C RETURN n") {
     // should not allow mixing colon as label conjunction symbol with GPM label expression symbols in label expression predicate
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B&C."
     )
   }
 
   test("MATCH (n) WHERE n IS A:C RETURN n") {
     // should not allow mixing colon as label conjunction symbol with IS keyword in label expression predicate
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing the IS keyword with colon (':') between labels is not allowed. This expression could be expressed as IS A&C."
     )
   }
 
   test("MATCH (n) WHERE n:% RETURN n") {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n) WHERE n:!A&% RETURN n") {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   // Relationship
   test("MATCH ()-[r]->() WHERE r:A RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[r]->() WHERE r IS A RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[r]->() WHERE r:A|B RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[r]->() WHERE n:A|B&C RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[r]->() WHERE n IS A|B&C RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[r]->() WHERE r:A:B RETURN count(*)") {
     // this was allowed before, so we must continue to accept it
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[r]->() WHERE r:(A&!B)|:C RETURN n") {
     // should not allow mixing colon disjunction symbol with GPM label expression symbols in relationship type expression – separate error
-    val error = runSemanticAnalysis().error
-
-    error.msg shouldBe
-      """The semantics of using colon in the separation of alternative relationship types in conjunction with
-        |the use of variable binding, inlined property predicates, or variable length is no longer supported.
-        |Please separate the relationships types using `:(A&!B)|C` instead.""".stripMargin
-
-    checkGqlDisjunctionError(error, "|:")
+    run()
+      .hasErrorMessages(
+        """The semantics of using colon in the separation of alternative relationship types in conjunction with
+          |the use of variable binding, inlined property predicates, or variable length is no longer supported.
+          |Please separate the relationships types using `:(A&!B)|C` instead.""".stripMargin
+      )
+      .assert(r => checkGqlDisjunctionError(r.errors.loneElement, "|:"))
   }
 
   test("MATCH (n)-[r]->() WHERE r IS (A&!B)|:C RETURN n") {
     // should not allow mixing colon disjunction symbol with IS keyword in relationship type expression – separate error
-    val error = runSemanticAnalysis().error
-
-    error.msg shouldBe
-      """The semantics of using colon in the separation of alternative relationship types in conjunction with
-        |the use of variable binding, inlined property predicates, or variable length is no longer supported.
-        |Please separate the relationships types using `IS (A&!B)|C` instead.""".stripMargin
-
-    checkGqlDisjunctionError(error, "|:")
+    run()
+      .hasErrorMessages(
+        """The semantics of using colon in the separation of alternative relationship types in conjunction with
+          |the use of variable binding, inlined property predicates, or variable length is no longer supported.
+          |Please separate the relationships types using `IS (A&!B)|C` instead.""".stripMargin
+      )
+      .assert(r => checkGqlDisjunctionError(r.errors.loneElement, "|:"))
   }
 
   test("MATCH (n)-[r]->() WHERE r:B|:C RETURN n") {
-    val error = runSemanticAnalysis().error
-
-    error.msg shouldBe
-      """The semantics of using colon in the separation of alternative relationship types in conjunction with
-        |the use of variable binding, inlined property predicates, or variable length is no longer supported.
-        |Please separate the relationships types using `:B|C` instead.""".stripMargin
-
-    checkGqlDisjunctionError(error, "|:")
+    run()
+      .hasErrorMessages(
+        """The semantics of using colon in the separation of alternative relationship types in conjunction with
+          |the use of variable binding, inlined property predicates, or variable length is no longer supported.
+          |Please separate the relationships types using `:B|C` instead.""".stripMargin
+      )
+      .assert(r => checkGqlDisjunctionError(r.errors.loneElement, "|:"))
   }
 
   test("MATCH ()-[r]->() WHERE r:% RETURN r") {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[r]->() WHERE r:!A&% RETURN r") {
-    runSemanticAnalysis().errorMessages shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A:B WHERE $param:C|D) RETURN count(*)") {
     // should allow disjunction on unknown type
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   // Both Node and predicate
 
   test("MATCH (n:A:B) WHERE n:C&D|E RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
 
   test("MATCH (n:A:B) WHERE n IS C RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing the IS keyword with colon (':') between labels is not allowed. This expression could be expressed as :A&B."
     )
   }
 
   test("MATCH (n IS A) WHERE n :B:C RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing the IS keyword with colon (':') between labels is not allowed. This expression could be expressed as :B&C."
     )
   }
 
   test("MATCH (n:A:B) WHERE n:C|D|E RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
 
   test("MATCH (n:A:B WHERE n:C&D|E) RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
 
   test("MATCH (n:A:B)-[:R|(T&S)]-(m) RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
 
   test("MATCH (n:A&B)-[:R|T|:S]-(m) RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :R|T|S."
     )
   }
 
   test("MATCH (n:A&B)-[IS R|T|:S]-(m) RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as IS R|T|S."
     )
   }
 
   test("MATCH (n:A:B WHERE n:C|D|E) RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
 
   test("MATCH (n:C&D|E) WHERE n:A:B RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
 
   test("MATCH (n:C&D|E)-[]-(m:A:F) WHERE n:A:B RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. These expressions could be expressed as :A&F, :A&B."
     )
   }
 
   test("MATCH (n:C&D|E)-[]-(m IS A:F) WHERE n:A:B RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. These expressions could be expressed as IS A&F, :A&B."
     )
   }
@@ -555,117 +541,117 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   // CIP-40 test cases
   // all non-GPM
   test("MATCH (n:A:B:C)-[*]->() RETURN n") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A:B)-[r:S|T|U]-() RETURN n, r") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH p = shortestPath(()-[*1..5]-()) RETURN p") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   // All GPM
   test("MATCH ()-[r:A&B]->*() RETURN r") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:(A&B)|C)-[]->+() RETURN n") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH p = SHORTEST 2 PATHS ()-[]-{1,5}() RETURN p") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   // GPM and non-GPM in separate statements
   test("MATCH (m:A:B:C)-[]->() MATCH (n:(A&B)|C)-[]->(m) RETURN m,n") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[r*]-(m) MATCH (n)-[]->+() RETURN m,n,r") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH p = shortestPath(()-[*1..5]-()) MATCH q = SHORTEST 2 PATHS ()-[]-{1,5}() RETURN nodes(p), nodes(q)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   // GPM and non-GPM in unrelated features
   test("MATCH (m)-[]->+(n:R) RETURN m, n") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ((a:A:B)-[]->(b) WHERE a.p < b.p)+ RETURN count(*)") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH p = SHORTEST 2 PATHS (m)-[*0..5]-(n) RETURN p") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   // Mixed label expression in same statement
   test("MATCH (n:A:B)-[]-(m) WHERE m:(A&B)|C RETURN m, n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
 
   // ... graph pattern
   test("MATCH (n:A:B)--(:C), (n)-->(m:(A&B)|C) RETURN m, n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
 
   // ... path pattern
   test("MATCH (n:A:B)-[]-(m:(A&B)|C) RETURN m, n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
     )
   }
 
   // ... node pattern
   test("MATCH (n:A|B:C) RETURN n") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A|(B&C)."
     )
   }
 
   // Mixing pre-GPM label expression with QPP does not raise SyntaxError
   test("MATCH ({p: 1})-->() ((:R:T)--()){1,2} ()-->(m) RETURN m.p as mp") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   // Mixing colon (not as conjunction) and IS keyword should be allowed as they are both part of GQL
 
   test("MATCH (n:A)-[r]-(m IS B) RETURN *") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n:A WHERE n IS B) RETURN *") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n IS A WHERE n:B) RETURN *") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[r1:$([\"Z\"])]->(m:!Z) RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("MATCH (n)-[r1 IS $([\"Z\"])]->(m IS !Z) RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("MATCH (n)-[r1 IS $([\"Z\"])]->(m:!Z) RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("MATCH (n:A:$([\"B\"]))-[r IS $([\"A\"])|B]->(m) RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errorMessages shouldEqual Seq(
+    runWith(DynamicLabelsAndTypes).hasErrorMessages(
       "Mixing the IS keyword with colon (':') between labels is not allowed. These expressions could be expressed as :A&$all([\"B\"]), IS $all([\"A\"])|B."
     )
   }
@@ -684,140 +670,123 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   ) {
     // We can only at runtime detect whether y:A|B is gpm-only (if applied to a node),
     // or both gpm and legacy (if applied to a relationship).
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   // Dynamic labels and types
   test("MATCH (n:$(\"label\")) RETURN *") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
+    run().hasErrorMessages(
       "Setting labels or types dynamically is not supported."
     )
 
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("MATCH (n:A&B&$(\"label\")) RETURN *") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
+    run().hasErrorMessages(
       "Setting labels or types dynamically is not supported."
     )
 
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("MATCH (n)-[:$(\"label\")]->() RETURN *") {
-    runSemanticAnalysis().errorMessages.toSet shouldEqual Set(
+    run().hasErrorMessages(
       "Setting labels or types dynamically is not supported."
     )
 
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("MATCH (n:$(1)) RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors.toSet shouldEqual Set(
-      SemanticError.invalidEntityType(
-        "Integer",
-        "1",
-        List("String", "List<String>"),
-        "Type mismatch: expected String or List<String> but was Integer",
-        InputPosition(11, 1, 12)
-      )
-    )
+    runWith(DynamicLabelsAndTypes).hasErrors(invalidEntityType(
+      "Integer",
+      "1",
+      List("String", "List<String>"),
+      "Type mismatch: expected String or List<String> but was Integer",
+      p(11, 1, 12)
+    ))
   }
 
   test("MATCH (n:$(null)) RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors.toSet shouldEqual Set(
-      SemanticError(
-        "Null is not a valid token name. Token names cannot be empty or contain any null-bytes.",
-        InputPosition(9, 1, 10)
-      )
+    runWith(DynamicLabelsAndTypes).hasError(
+      "Null is not a valid token name. Token names cannot be empty or contain any null-bytes.",
+      p(9, 1, 10)
     )
   }
 
   test("MATCH (n:$([\"A\", \"\"])) RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors.toSet shouldEqual Set(
-      SemanticError(
-        "'' is not a valid token name. Token names cannot be empty or contain any null-bytes.",
-        InputPosition(9, 1, 10)
-      )
+    runWith(DynamicLabelsAndTypes).hasError(
+      "'' is not a valid token name. Token names cannot be empty or contain any null-bytes.",
+      p(9, 1, 10)
     )
   }
 
   test("MATCH (n)-[:$(point({x:22, y:44}))]-() RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors.toSet shouldEqual Set(
-      SemanticError.invalidEntityType(
-        "Point",
-        "point({x: 22, y: 44})",
-        List("String", "List<String>"),
-        "Type mismatch: expected String or List<String> but was Point",
-        InputPosition(14, 1, 15)
-      )
-    )
+    runWith(DynamicLabelsAndTypes).hasErrors(invalidEntityType(
+      "Point",
+      "point({x: 22, y: 44})",
+      List("String", "List<String>"),
+      "Type mismatch: expected String or List<String> but was Point",
+      p(14, 1, 15)
+    ))
   }
 
   test("MATCH (n:$([1])) RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors.toSet shouldEqual Set(
-      SemanticError.invalidEntityType(
-        "List<Integer>",
-        "[1]",
-        List("String", "List<String>"),
-        "Type mismatch: expected String or List<String> but was List<Integer>",
-        InputPosition(11, 1, 12)
-      )
-    )
+    runWith(DynamicLabelsAndTypes).hasErrors(invalidEntityType(
+      "List<Integer>",
+      "[1]",
+      List("String", "List<String>"),
+      "Type mismatch: expected String or List<String> but was List<Integer>",
+      p(11, 1, 12)
+    ))
   }
 
   test("MATCH (n:$([''])) RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors.toSet shouldEqual Set(
-      SemanticError(
-        "'' is not a valid token name. Token names cannot be empty or contain any null-bytes.",
-        InputPosition(9, 1, 10)
-      )
+    runWith(DynamicLabelsAndTypes).hasError(
+      "'' is not a valid token name. Token names cannot be empty or contain any null-bytes.",
+      p(9, 1, 10)
     )
   }
 
   test("MATCH (n:$all(['Foo', 'Bar'])) RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors.toSet shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("MATCH (n:$any(['Foo', 'Bar'])) RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors.toSet shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("MATCH (n:$(['Foo', 'Bar'])) RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors.toSet shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("MATCH (n)-[:$all(['Foo', 'Bar'])]-() RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors.toSet shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("MATCH (n)-[:$any(['Foo', 'Bar'])]-() RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors.toSet shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("MATCH (n)-[:$(['Foo', 'Bar'])]-() RETURN *") {
-    runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes).errors.toSet shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoErrors
   }
 
   test("MATCH (n)-[:!$('R')]-() RETURN *") {
-    val result = runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes)
-    result.state.semantics().notifications.map(_.notificationName) shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoNotifications
   }
 
   test("MATCH (n)-[:A&$('R')]-() RETURN *") {
-    val result = runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes)
-    result.state.semantics().notifications.map(_.notificationName) shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoNotifications
   }
 
   test("MATCH (n)-[:$('R2')&$('R')]-() RETURN *") {
-    val result = runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes)
-    result.state.semantics().notifications.map(_.notificationName) shouldBe empty
+    runWith(DynamicLabelsAndTypes).hasNoNotifications
   }
 
   test("MATCH (n)-[:A&!%]-() RETURN *") {
-    val result = runSemanticAnalysisWithSemanticFeatures(SemanticFeature.DynamicLabelsAndTypes)
-    result.state.semantics().notifications.map(_.notificationName) shouldBe Set(
-      "UnsatisfiableRelationshipTypeExpression"
-    )
+    runWith(DynamicLabelsAndTypes)
+      .assert(_.notifications.map(_.notificationName) shouldBe Set("UnsatisfiableRelationshipTypeExpression"))
   }
 }

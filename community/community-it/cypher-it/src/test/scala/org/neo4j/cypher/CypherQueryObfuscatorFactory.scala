@@ -61,8 +61,10 @@ class CypherQueryObfuscatorFactory {
       null,
       new AnonymousVariableNameGenerator()
     )
-    val res = pipeline(preParsedQuery.options.queryOptions.cypherVersion.actualVersion)
-      .transform(state, plannerContext(query))
+    val res = pipeline.transform(
+      state,
+      plannerContext(preParsedQuery.options.queryOptions.cypherVersion.actualVersion, query)
+    )
     CypherQueryObfuscator(res.obfuscationMetadata())
   }
 
@@ -75,20 +77,23 @@ class CypherQueryObfuscatorFactory {
   private val procedures = new GlobalProceduresRegistry()
 
   private val preParser = new CachingPreParser(
-    CypherConfiguration.fromConfig(Config.defaults()),
+    CypherConfiguration.fromConfig(Config.defaults(
+      GraphDatabaseInternalSettings.enable_experimental_cypher_versions,
+      java.lang.Boolean.TRUE
+    )),
     new LFUCache[String, PreParsedQuery](new ExecutorBasedCaffeineCacheFactory((r: Runnable) => r.run()), 1)
   )
 
-  private def pipeline(version: CypherVersion) =
+  private val pipeline =
     Parse(
-      useAntlr = GraphDatabaseInternalSettings.cypher_parser_antlr_enabled.defaultValue(),
-      version
+      useAntlr = GraphDatabaseInternalSettings.cypher_parser_antlr_enabled.defaultValue()
     ) andThen
       RewriteProcedureCalls andThen
       ObfuscationMetadataCollection
 
-  private def plannerContext(query: String) =
+  private def plannerContext(version: CypherVersion, query: String) =
     new PlannerContext(
+      version,
       Neo4jCypherExceptionFactory(query, None),
       CompilationPhaseTracer.NO_TRACING,
       null,

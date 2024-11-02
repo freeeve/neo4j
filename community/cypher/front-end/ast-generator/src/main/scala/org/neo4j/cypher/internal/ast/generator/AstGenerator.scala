@@ -613,7 +613,7 @@ object AstGenerator {
 class AstGenerator(
   simpleStrings: Boolean = true,
   allowedVarNames: Option[Seq[String]] = None,
-  whenAstDifferUseCypherVersion: CypherVersion = CypherVersion.Default
+  val whenAstDifferUseCypherVersion: CypherVersion = CypherVersion.Default
 ) {
   // HELPERS
   // ==========================================================================

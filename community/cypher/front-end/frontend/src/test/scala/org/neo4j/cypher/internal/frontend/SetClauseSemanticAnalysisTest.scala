@@ -17,8 +17,8 @@
 package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.ast.Ast.p
+import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidEntityType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class SetClauseSemanticAnalysisTest
@@ -26,158 +26,129 @@ class SetClauseSemanticAnalysisTest
     with NameBasedSemanticAnalysisTestSuite {
 
   test("MATCH (n) SET n[\"prop\"] = 3") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[r]->(m) SET (CASE WHEN n.prop = 5 THEN n ELSE r END)[\"prop\"] = 3") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n), (m) SET n[1] = 3") {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError.invalidEntityType(
-        "Integer",
-        "node or relationship property key",
-        List("String"),
-        "Type mismatch: node or relationship property key must be given as String, but was Integer",
-        InputPosition(21, 1, 22)
-      )
-    )
+    run().hasErrors(invalidEntityType(
+      "Integer",
+      "node or relationship property key",
+      List("String"),
+      "Type mismatch: node or relationship property key must be given as String, but was Integer",
+      p(21, 1, 22)
+    ))
   }
 
   test("MATCH (n)-[r]->(m) SET r[5.0] = 3") {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError.invalidEntityType(
-        "Float",
-        "node or relationship property key",
-        List("String"),
-        "Type mismatch: node or relationship property key must be given as String, but was Float",
-        InputPosition(25, 1, 26)
-      )
-    )
+    run().hasErrors(invalidEntityType(
+      "Float",
+      "node or relationship property key",
+      List("String"),
+      "Type mismatch: node or relationship property key must be given as String, but was Float",
+      p(25, 1, 26)
+    ))
   }
 
   test("WITH 5 AS var MATCH (n) SET n[var] = 3") {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError.invalidEntityType(
-        "Integer",
-        "node or relationship property key",
-        List("String"),
-        "Type mismatch: node or relationship property key must be given as String, but was Integer",
-        InputPosition(30, 1, 31)
-      )
-    )
+    run().hasErrors(invalidEntityType(
+      "Integer",
+      "node or relationship property key",
+      List("String"),
+      "Type mismatch: node or relationship property key must be given as String, but was Integer",
+      p(30, 1, 31)
+    ))
   }
 
   test("WITH {key: 1} AS var SET var['key'] = 3") {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError.invalidEntityType(
-        "Map",
-        "var",
-        List("Node", "Relationship"),
-        "Type mismatch: expected Node or Relationship but was Map",
-        InputPosition(25, 1, 26)
-      )
-    )
+    val msg = "Type mismatch: expected Node or Relationship but was Map"
+    run().hasErrors(invalidEntityType("Map", "var", List("Node", "Relationship"), msg, p(25, 1, 26)))
   }
 
   test("WITH \"prop\" as prop MERGE (n) ON MATCH SET n[prop] = 3 ON CREATE SET n[prop] = 4") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n) WITH {key: n} AS var SET (var.key)['prop'] = 3") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n) SET n[\"prop\"] = 4") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n) SET n[$param] = 'hi'") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[r]->() SET r[\"prop\"] = 4") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n) SET n.prop = 4") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
-  }
-
-  test("MATCH (n)-[r]->() SET n = r") {
-    runSemanticAnalysisWithCypherVersion(Seq(CypherVersion.Cypher5), testName).errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[r]->(m) SET n = r") {
-    runSemanticAnalysisWithCypherVersion(Seq(CypherVersion.Cypher25), testName).errors.toSet shouldEqual Set(
-      SemanticError.invalidEntityType(
-        "Relationship",
-        "r",
-        List("Map"),
-        "Type mismatch: expected Map but was Relationship",
-        InputPosition(27, 1, 28)
-      )
-    )
+    run().hasSemanticErrorsIn {
+      case CypherVersion.Cypher25 =>
+        Seq(invalidEntityType(
+          "Relationship",
+          "r",
+          Seq("Map"),
+          "Type mismatch: expected Map but was Relationship",
+          p(27, 1, 28)
+        ))
+      case CypherVersion.Cypher5 =>
+        Seq.empty
+    }
   }
 
   test("MATCH (n)-[r]->() SET r = n") {
-    runSemanticAnalysisWithCypherVersion(Seq(CypherVersion.Cypher5), testName).errors.toSet shouldBe empty
-  }
-
-  test("MATCH (n)-[r]->(m) SET r = n") {
-    runSemanticAnalysisWithCypherVersion(Seq(CypherVersion.Cypher25), testName).errors.toSet shouldEqual Set(
-      SemanticError.invalidEntityType(
-        "Node",
-        "n",
-        List("Map"),
-        "Type mismatch: expected Map but was Node",
-        InputPosition(27, 1, 28)
-      )
-    )
-  }
-
-  test("MATCH (n)-[r]->() SET n += r") {
-    runSemanticAnalysisWithCypherVersion(Seq(CypherVersion.Cypher5), testName).errors.toSet shouldBe empty
+    run().hasSemanticErrorsIn {
+      case CypherVersion.Cypher25 =>
+        Seq(invalidEntityType("Node", "n", Seq("Map"), "Type mismatch: expected Map but was Node", p(26, 1, 27)))
+      case CypherVersion.Cypher5 =>
+        Seq.empty
+    }
   }
 
   test("MATCH (n)-[r]->(m) SET n += r") {
-    runSemanticAnalysisWithCypherVersion(Seq(CypherVersion.Cypher25), testName).errors.toSet shouldEqual Set(
-      SemanticError.invalidEntityType(
-        "Relationship",
-        "r",
-        List("Map"),
-        "Type mismatch: expected Map but was Relationship",
-        InputPosition(28, 1, 29)
-      )
-    )
+    run().hasSemanticErrorsIn {
+      case CypherVersion.Cypher25 =>
+        Seq(invalidEntityType(
+          "Relationship",
+          "r",
+          Seq("Map"),
+          "Type mismatch: expected Map but was Relationship",
+          p(28, 1, 29)
+        ))
+      case CypherVersion.Cypher5 =>
+        Seq.empty
+    }
   }
 
   test("MATCH (n)-[r]->() SET r += n") {
-    runSemanticAnalysisWithCypherVersion(Seq(CypherVersion.Cypher5), testName).errors.toSet shouldBe empty
-  }
-
-  test("MATCH (n)-[r]->(m) SET r += n") {
-    runSemanticAnalysisWithCypherVersion(Seq(CypherVersion.Cypher25), testName).errors.toSet shouldEqual Set(
-      SemanticError.invalidEntityType(
-        "Node",
-        "n",
-        List("Map"),
-        "Type mismatch: expected Map but was Node",
-        InputPosition(28, 1, 29)
-      )
-    )
+    run().hasSemanticErrorsIn {
+      case CypherVersion.Cypher25 =>
+        Seq(invalidEntityType("Node", "n", Seq("Map"), "Type mismatch: expected Map but was Node", p(27, 1, 28)))
+      case CypherVersion.Cypher5 =>
+        Seq.empty
+    }
   }
 
   test("MATCH (n)-[r]->() SET n = properties(r)") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[r]->() SET n = {prop: 1}") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[r]->() SET n += {prop: 1}") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 }

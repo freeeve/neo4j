@@ -21,6 +21,8 @@ package org.neo4j.cypher.internal.compiler.planner
 
 import org.mockito.Mockito.when
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionHelpers.equalInAllVersions
+import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.Query
@@ -58,8 +60,10 @@ import org.neo4j.values.storable.TemporalValue.TemporalFields
 
 import scala.jdk.CollectionConverters.SetHasAsScala
 
-class CheckForUnresolvedTokensTest extends CypherFunSuite with AstConstructionTestSupport
-    with LogicalPlanConstructionTestSupport {
+class CheckForUnresolvedTokensTest extends CypherFunSuite
+    with AstConstructionTestSupport
+    with LogicalPlanConstructionTestSupport
+    with CypherVersionTestSupport {
 
   test("warn when missing label") {
     // given
@@ -282,7 +286,16 @@ class CheckForUnresolvedTokensTest extends CypherFunSuite with AstConstructionTe
     }
   }
 
-  private def checkForTokens(ast: Query, semanticTable: SemanticTable): Set[InternalNotification] = {
+  private def checkForTokens(
+    ast: Query,
+    semanticTable: SemanticTable
+  ): Set[InternalNotification] = equalInAllVersions(checkForTokens(_, ast, semanticTable))
+
+  private def checkForTokens(
+    version: CypherVersion,
+    ast: Query,
+    semanticTable: SemanticTable
+  ): Set[InternalNotification] = {
     val notificationLogger = new RecordingNotificationLogger
     val plannerQuery = mock[PlannerQuery]
     when(plannerQuery.readOnly).thenReturn(true)
@@ -295,7 +308,7 @@ class CheckForUnresolvedTokensTest extends CypherFunSuite with AstConstructionTe
       maybeSemanticTable = Some(semanticTable),
       maybeQuery = Some(plannerQuery)
     )
-    val context = ContextHelper.create(notificationLogger = notificationLogger)
+    val context = ContextHelper.create(version, notificationLogger = notificationLogger)
     CheckForUnresolvedTokens.transform(compilationState, context)
     notificationLogger.notifications
   }

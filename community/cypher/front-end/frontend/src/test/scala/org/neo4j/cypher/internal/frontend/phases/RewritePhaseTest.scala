@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
 import org.neo4j.cypher.internal.ast.SetIncludingPropertiesFromMapItem
@@ -46,7 +47,7 @@ import org.neo4j.kernel.database.NormalizedDatabaseName
 import java.util.Optional
 import java.util.UUID
 
-trait RewritePhaseTest {
+trait RewritePhaseTest extends CypherVersionTestSupport {
   self: CypherFunSuite with AstConstructionTestSupport =>
 
   def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState]
@@ -77,9 +78,23 @@ trait RewritePhaseTest {
 
   def assertNotRewritten(from: String): Unit = assertRewritten(from, from)
 
-  def assertRewritten(from: String, to: String): Unit = assertRewritten(from, to, List.empty)
+  def assertRewritten(version: CypherVersion, from: String, to: String): Unit = assertRewritten(version, from, to, Nil)
+
+  def assertRewritten(from: String, to: String): Unit = CypherVersion.values().foreach { version =>
+    withClue(s"CYPHER $version\n")(assertRewritten(version, from, to, List.empty))
+  }
 
   def assertRewritten(
+    from: String,
+    to: String,
+    semanticTableExpressions: List[Expression],
+    features: SemanticFeature*
+  ): Unit = CypherVersion.values().foreach { version =>
+    withClue(s"CYPHER $version\n")(assertRewritten(version, from, to, semanticTableExpressions, features: _*))
+  }
+
+  def assertRewritten(
+    version: CypherVersion,
     from: String,
     to: String,
     semanticTableExpressions: List[Expression],
@@ -94,9 +109,9 @@ trait RewritePhaseTest {
         prettifier.asString(statement)
       }
     }
-    val fromOutState: BaseState = prepareFrom(from, rewriterPhaseUnderTest, features: _*)
 
-    val toOutState = prepareFrom(to, rewriterPhaseForExpected, features: _*)
+    val fromOutState = prepareFrom(version, from, rewriterPhaseUnderTest, features: _*)
+    val toOutState = prepareFrom(version, to, rewriterPhaseForExpected, features: _*)
 
     StatementPrettifier(fromOutState.statement()) should equal(StatementPrettifier(toOutState.statement()))
     if (astRewriteAndAnalyze) {
@@ -113,13 +128,14 @@ trait RewritePhaseTest {
     to: Statement,
     semanticTableExpressions: List[Expression],
     features: SemanticFeature*
-  ): Unit = {
-    val fromOutState: BaseState = prepareFrom(from, rewriterPhaseUnderTest, features: _*)
-
-    fromOutState.statement() should equal(to)
-    if (astRewriteAndAnalyze) {
-      semanticTableExpressions.foreach { e =>
-        fromOutState.semanticTable().types.keys.map(_.node) should contain(e)
+  ): Unit = CypherVersion.values().foreach { version =>
+    withClue(s"version=$version") {
+      val fromOutState = prepareFrom(version, from, rewriterPhaseUnderTest, features: _*)
+      fromOutState.statement() should equal(to)
+      if (astRewriteAndAnalyze) {
+        semanticTableExpressions.foreach { e =>
+          fromOutState.semanticTable().types.keys.map(_.node) should contain(e)
+        }
       }
     }
   }
@@ -144,20 +160,6 @@ trait RewritePhaseTest {
     }
   }
 
-  private def parseAndRewrite(query: String, features: SemanticFeature*): Statement = {
-    // Quick and dirty hack to try to make sure we have sufficient coverage of all cypher versions.
-    // Feel free to improve ¯\_(ツ)_/¯.
-    val defaultResult = rewriteOtherASTDifferences(parseAndRewrite(CypherVersion.Default, query, features: _*))
-    CypherVersion.values().foreach { version =>
-      if (version != CypherVersion.Default) {
-        withClue(s"Parser $version") {
-          rewriteOtherASTDifferences(parseAndRewrite(version, query, features: _*)) shouldBe defaultResult
-        }
-      }
-    }
-    defaultResult
-  }
-
   /**
    * There are some AST changes done at the parser level for semantic analysis that won't affect the plan.
    * This rewriter can be expanded to update those parts.
@@ -175,30 +177,23 @@ trait RewritePhaseTest {
   def targetsComposite: Boolean = false
 
   def prepareFrom(
+    version: CypherVersion,
     from: String,
     transformer: Transformer[BaseContext, BaseState, BaseState],
     features: SemanticFeature*
   ): BaseState = {
-    val fromAst = parseAndRewrite(from, features: _*)
+    val fromAst = parseAndRewrite(version, from, features: _*)
     val initialState =
       InitialState(from, plannerName, new AnonymousVariableNameGenerator, maybeStatement = Some(fromAst))
     val databaseReference = new DatabaseReference {
       override def alias(): NormalizedDatabaseName = ???
-
       override def namespace(): Optional[NormalizedDatabaseName] = ???
-
       override def isPrimary: Boolean = ???
-
       override def id(): UUID = ???
-
       override def toPrettyString: String = ???
-
       override def fullName(): NormalizedDatabaseName = new NormalizedDatabaseName(sessionDatabase)
-
       override def isComposite: Boolean = targetsComposite
-
       override def compareTo(o: DatabaseReference): Int = ???
-
       override def owningDatabaseName: String = ???
     }
 
@@ -212,6 +207,6 @@ trait RewritePhaseTest {
         initialState
       }
     }
-    transformer.transform(fromInState, ContextHelper.create(databaseReference))
+    transformer.transform(fromInState, ContextHelper.create(version, databaseReference))
   }
 }

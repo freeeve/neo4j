@@ -16,8 +16,8 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class RemoveClauseSemanticAnalysisTest
@@ -25,78 +25,70 @@ class RemoveClauseSemanticAnalysisTest
     with NameBasedSemanticAnalysisTestSuite {
 
   test("MATCH (n) REMOVE n[\"prop\"]") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n), (m) REMOVE (CASE WHEN n.prop = 5 THEN n ELSE m END)[\"prop\"]") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n), (m) REMOVE n[1]") {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError.invalidEntityType(
-        "Integer",
-        "node or relationship property key",
-        List("String"),
-        "Type mismatch: node or relationship property key must be given as String, but was Integer",
-        InputPosition(24, 1, 25)
-      )
-    )
+    run().hasErrors(SemanticError.invalidEntityType(
+      "Integer",
+      "node or relationship property key",
+      List("String"),
+      "Type mismatch: node or relationship property key must be given as String, but was Integer",
+      p(24, 1, 25)
+    ))
   }
 
   test("MATCH (n)-[r]->(m) REMOVE r[5.0]") {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError.invalidEntityType(
-        "Float",
-        "node or relationship property key",
-        List("String"),
-        "Type mismatch: node or relationship property key must be given as String, but was Float",
-        InputPosition(28, 1, 29)
-      )
-    )
+    run().hasErrors(SemanticError.invalidEntityType(
+      "Float",
+      "node or relationship property key",
+      List("String"),
+      "Type mismatch: node or relationship property key must be given as String, but was Float",
+      p(28, 1, 29)
+    ))
   }
 
   test("WITH 5 AS var MATCH (n) REMOVE n[var]") {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError.invalidEntityType(
-        "Integer",
-        "node or relationship property key",
-        List("String"),
-        "Type mismatch: node or relationship property key must be given as String, but was Integer",
-        InputPosition(33, 1, 34)
-      )
-    )
+    run().hasErrors(SemanticError.invalidEntityType(
+      "Integer",
+      "node or relationship property key",
+      List("String"),
+      "Type mismatch: node or relationship property key must be given as String, but was Integer",
+      p(33, 1, 34)
+    ))
   }
 
   test("WITH {key: 1} AS var REMOVE var['key']") {
-    runSemanticAnalysis().errors.toSet shouldEqual Set(
-      SemanticError.invalidEntityType(
-        "Map",
-        "var",
-        List("Node", "Relationship"),
-        "Type mismatch: expected Node or Relationship but was Map",
-        InputPosition(28, 1, 29)
-      )
-    )
+    run().hasErrors(SemanticError.invalidEntityType(
+      "Map",
+      "var",
+      List("Node", "Relationship"),
+      "Type mismatch: expected Node or Relationship but was Map",
+      p(28, 1, 29)
+    ))
   }
 
   test("MATCH (n) REMOVE n[\"prop2\"]") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[r]->() REMOVE r[\"prop2\"]") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n) REMOVE n.prop") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n) REMOVE n IS Label") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n) REMOVE n :Label") {
-    runSemanticAnalysis().errors.toSet shouldBe empty
+    run().hasNoErrors
   }
 }

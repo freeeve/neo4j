@@ -17,6 +17,9 @@
 package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionHelpers.equalInAllVersions
+import org.neo4j.cypher.internal.CypherVersionTestSupport
+import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.frontend.helpers.ErrorCollectingContext
 import org.neo4j.cypher.internal.frontend.helpers.NoPlannerName
 import org.neo4j.cypher.internal.frontend.phases.InitialState
@@ -32,12 +35,12 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.messages.MessageUtilProvider
 import org.scalatest.LoneElement
 
-class SemanticTypeCheckTest extends CypherFunSuite with LoneElement {
+class SemanticTypeCheckTest extends CypherFunSuite with LoneElement with CypherVersionTestSupport {
 
-  private def pipeline(cypherVersion: CypherVersion) = Parse(useAntlr = true, cypherVersion) andThen
+  private def pipeline = Parse(useAntlr = true) andThen
     PreparatoryRewriting andThen
     SemanticAnalysis(warn = false) andThen
-    SemanticTypeCheck(cypherVersion)
+    SemanticTypeCheck
 
   // PatternExpressionInNonExistenceCheck
   test("should fail if pattern expression is used wherever we don't expect a boolean value") {
@@ -48,7 +51,7 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement {
 
     queries.foreach { query =>
       withClue(s"Failing query: $query") {
-        runPipeline(query).errors.map(_.msg) should contain(PatternExpressionInNonExistenceCheck.errorMessage)
+        runPipeline(query).map(_.msg) should contain(PatternExpressionInNonExistenceCheck.errorMessage)
       }
     }
   }
@@ -61,7 +64,7 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement {
 
     queries.foreach { query =>
       withClue(s"Failing query: $query") {
-        runPipeline(query).errors.map(_.msg) should contain(
+        runPipeline(query).map(_.msg) should contain(
           PatternExpressionInNonExistenceCheck.errorMessageForSizeFunction
         )
       }
@@ -96,7 +99,7 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement {
 
     queries.foreach { query =>
       withClue(s"Failing query: $query") {
-        runPipeline(query).errors.size shouldBe 0
+        runPipeline(query).size shouldBe 0
       }
     }
   }
@@ -119,7 +122,7 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement {
 
     queries.foreach { query =>
       withClue(s"Failing query: $query") {
-        runPipeline(query).errors.map(_.msg) should contain(ListCoercedToBooleanCheck.errorMessage)
+        runPipeline(query).map(_.msg) should contain(ListCoercedToBooleanCheck.errorMessage)
       }
     }
   }
@@ -170,7 +173,7 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement {
 
     queries.foreach { query =>
       withClue(s"Failing query: size($query)") {
-        runPipeline(query).errors.size shouldBe 0
+        runPipeline(query).size shouldBe 0
       }
     }
   }
@@ -222,13 +225,13 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement {
 
     for (query <- queries.disallowed) {
       withClue(s"Failing query: $query") {
-        runPipeline(query, cypherVersion).errors.loneElement.msg shouldEqual errorMessage
+        runPipeline(cypherVersion, query).loneElement.msg shouldEqual errorMessage
       }
     }
 
     for (query <- queries.allowed) {
       withClue(s"Failing query: $query") {
-        runPipeline(query, cypherVersion).errors should be(empty)
+        runPipeline(cypherVersion, query) should be(empty)
       }
     }
   }
@@ -242,7 +245,7 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement {
     val queries = SelfReferenceAcrossPatternsTestQueries.forClause("CREATE")
     for (query <- queries.disallowed ++ queries.allowed) {
       withClue(s"Failing query: $query") {
-        runPipeline(query, CypherVersion.Cypher5).errors should be(empty)
+        runPipeline(CypherVersion.Cypher5, query) should be(empty)
       }
     }
   }
@@ -286,20 +289,20 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement {
 
     for (query <- queries.disallowedNode) {
       withClue(s"Failing query: $query") {
-        runPipeline(query, cypherVersion).errors.map(e => e.msg) should
+        runPipeline(cypherVersion, query).map(e => e.msg) should
           contain(MessageUtilProvider.createSelfReferenceError("a", "Node", clause))
       }
     }
     for (query <- queries.disallowedRel) {
       withClue(s"Failing query: $query") {
-        runPipeline(query, cypherVersion).errors.map(e => e.msg) should
+        runPipeline(cypherVersion, query).map(e => e.msg) should
           contain(MessageUtilProvider.createSelfReferenceError("a", "Relationship", clause))
       }
     }
 
     for (query <- queries.allowed) {
       withClue(s"Failing query: $query") {
-        runPipeline(query, cypherVersion).errors should be(empty)
+        runPipeline(cypherVersion, query) should be(empty)
       }
     }
   }
@@ -318,7 +321,7 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement {
     val queries = SelfReferenceWithinPatternTestQueries.forClause("MERGE")
     for (query <- queries.allowed ++ queries.disallowedNode ++ queries.disallowedRel) {
       withClue(s"Failing query: $query") {
-        runPipeline(query, CypherVersion.Cypher5).errors should be(empty)
+        runPipeline(CypherVersion.Cypher5, query) should be(empty)
       }
     }
   }
@@ -327,16 +330,18 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement {
     runReferenceWithinPatternTests("MERGE", CypherVersion.Cypher25)
   }
 
+  private def runPipeline(query: String): Seq[SemanticErrorDef] = equalInAllVersions(runPipeline(_, query))
+
   private def runPipeline(
-    query: String,
-    cypherVersion: CypherVersion = CypherVersion.Default
-  ): ErrorCollectingContext = {
+    version: CypherVersion,
+    query: String
+  ): Seq[SemanticErrorDef] = {
     val startState = InitialState(query, NoPlannerName, new AnonymousVariableNameGenerator)
-    val context = new ErrorCollectingContext() {
+    val context = new ErrorCollectingContext(version) {
       override def errorMessageProvider: ErrorMessageProvider = MessageUtilProvider
     }
-    pipeline(cypherVersion).transform(startState, context)
+    pipeline.transform(startState, context)
 
-    context
+    context.errors
   }
 }

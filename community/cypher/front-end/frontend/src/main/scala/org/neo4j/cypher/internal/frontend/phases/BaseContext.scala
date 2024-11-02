@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
@@ -24,17 +25,14 @@ import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.kernel.database.DatabaseReference
 
 trait BaseContext {
+  def cypherVersion: CypherVersion
   def tracer: CompilationPhaseTracer
   def notificationLogger: InternalNotificationLogger
   def cypherExceptionFactory: CypherExceptionFactory
   def monitors: Monitors
   def errorHandler: Seq[SemanticErrorDef] => Unit
-
   def errorMessageProvider: ErrorMessageProvider
-
   def cancellationChecker: CancellationChecker
-
   def internalSyntaxUsageStats: InternalSyntaxUsageStats
-
   def sessionDatabase: DatabaseReference
 }

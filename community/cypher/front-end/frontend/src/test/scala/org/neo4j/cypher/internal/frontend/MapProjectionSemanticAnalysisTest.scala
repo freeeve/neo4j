@@ -20,50 +20,50 @@ class MapProjectionSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
 
   // Literal Map Entry on a MAP, NODE or RELATIONSHIP should work
   test("WITH {g: 1} AS l RETURN l{p: 2}") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("WITH {g: 1} AS l RETURN l{.*, p: 2}") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n) RETURN n{p: 2}") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH (n) RETURN n{.*, p: 2}") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[r]->() RETURN r{.*, p: 2}") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   test("MATCH ()-[r]->() RETURN r{p: 2}") {
-    runSemanticAnalysis().errors shouldBe empty
+    run().hasNoErrors
   }
 
   // Literal Map Entry not on a map should not work
   test("WITH [1] AS l RETURN l{p: 2}") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Type mismatch: expected Map, Node or Relationship but was List<Integer>"
     )
   }
 
   test("WITH [1] AS l RETURN l{.*, p: 2}") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Type mismatch: expected Map, Node or Relationship but was List<Integer>"
     )
   }
 
   test("WITH 2 AS l RETURN l{.*, p: 2}") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Type mismatch: expected Map, Node or Relationship but was Integer"
     )
   }
 
   test("WITH \"hello\" AS l RETURN l{.*, p: 2}") {
-    runSemanticAnalysis().errorMessages shouldEqual Seq(
+    run().hasErrorMessages(
       "Type mismatch: expected Map, Node or Relationship but was String"
     )
   }

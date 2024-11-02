@@ -16,6 +16,8 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.frontend.helpers.ErrorCollectingContext
@@ -26,90 +28,64 @@ import org.neo4j.cypher.internal.frontend.phases.SemanticAnalysis
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class InputDataStreamSemanticAnalysisTest extends CypherFunSuite with AstConstructionTestSupport {
+class InputDataStreamSemanticAnalysisTest extends CypherFunSuite
+    with AstConstructionTestSupport
+    with CypherVersionTestSupport {
 
   // This test invokes SemanticAnalysis twice because that's what the production pipeline does
   private val pipeline = SemanticAnalysis(warn = true) andThen SemanticAnalysis(warn = false)
 
-  test("can parse INPUT DATA STREAM") {
+  private def transform(version: CypherVersion, statement: Statement)(f: ErrorCollectingContext => Unit): Unit = {
+    val context = new ErrorCollectingContext(version)
+    // As the test only checks ast -> semantic analysis, the query isn't used.
+    val state = InitialState("whatever", NoPlannerName, new AnonymousVariableNameGenerator).withStatement(statement)
+    pipeline.transform(state, context)
+    f(context)
+  }
+
+  testVersions("can parse INPUT DATA STREAM") { version =>
     // "INPUT DATA STREAM a, b, c RETURN *"
     val ast = singleQuery(input(varFor("a"), varFor("b"), varFor("c")), returnAll)
-    val startState = initStartState(ast)
-
-    val context = new ErrorCollectingContext()
-    pipeline.transform(startState, context)
-
-    context.errors shouldBe empty
+    transform(version, ast)(_.errors shouldBe empty)
   }
 
-  test("cannot redeclare variable") {
+  testVersions("cannot redeclare variable") { version =>
     // "INPUT DATA STREAM a, b, c UNWIND [] AS a RETURN *"
     val ast = singleQuery(input(varFor("a"), varFor("b"), varFor("c")), unwind(listOf(), varFor("a")), returnAll)
-    val startState = initStartState(ast)
-
-    val context = new ErrorCollectingContext()
-    pipeline.transform(startState, context)
-
-    context should failWith("Variable `a` already declared")
+    transform(version, ast)(_ should failWith("Variable `a` already declared"))
   }
 
-  test("INPUT DATA STREAM must be the first clause in a query") {
+  testVersions("INPUT DATA STREAM must be the first clause in a query") { version =>
     // "UNWIND [0, 1] AS x INPUT DATA STREAM a, b, c RETURN *"
     val ast = singleQuery(
       unwind(listOf(literalInt(0), literalInt(1)), varFor("x")),
       input(varFor("a"), varFor("b"), varFor("c")),
       returnAll
     )
-
-    val startState = initStartState(ast)
-
-    val context = new ErrorCollectingContext()
-    pipeline.transform(startState, context)
-
-    context should failWith("INPUT DATA STREAM must be the first clause in a query")
+    transform(version, ast)(_ should failWith("INPUT DATA STREAM must be the first clause in a query"))
   }
 
-  test("There can be only one INPUT DATA STREAM in a query") {
+  testVersions("There can be only one INPUT DATA STREAM in a query") { version =>
     // "INPUT DATA STREAM a INPUT DATA STREAM b RETURN *"
     val ast = singleQuery(input(varFor("a")), input(varFor("b")), returnAll)
-    val startState = initStartState(ast)
-
-    val context = new ErrorCollectingContext()
-    pipeline.transform(startState, context)
-
-    context should failWith("There can be only one INPUT DATA STREAM in a query")
+    transform(version, ast)(_ should failWith("There can be only one INPUT DATA STREAM in a query"))
   }
 
-  test("INPUT DATA STREAM is not supported in UNION queries") {
+  testVersions("INPUT DATA STREAM is not supported in UNION queries") { version =>
     // "INPUT DATA STREAM x RETURN * UNION MATCH (x) RETURN *"
     val ast = union(
       singleQuery(input(varFor("x")), returnAll),
       singleQuery(match_(nodePat(Some("x"))), returnAll)
     )
-    val startState = initStartState(ast)
-
-    val context = new ErrorCollectingContext()
-    pipeline.transform(startState, context)
-
-    context should failWith("INPUT DATA STREAM is not supported in UNION queries")
+    transform(version, ast)(_ should failWith("INPUT DATA STREAM is not supported in UNION queries"))
   }
 
-  test("INPUT DATA STREAM is not supported in UNION queries 2") {
+  testVersions("INPUT DATA STREAM is not supported in UNION queries 2") { version =>
     // "MATCH (x) RETURN * UNION INPUT DATA STREAM x RETURN *"
     val ast = union(
       singleQuery(match_(nodePat(Some("x"))), returnAll),
       singleQuery(input(varFor("x")), returnAll)
     )
-    val startState = initStartState(ast)
-
-    val context = new ErrorCollectingContext()
-    pipeline.transform(startState, context)
-
-    context should failWith("INPUT DATA STREAM is not supported in UNION queries")
-  }
-
-  private def initStartState(statement: Statement) = {
-    // As the test only checks ast -> semantic analysis, the query isn't used.
-    InitialState("whatever", NoPlannerName, new AnonymousVariableNameGenerator, maybeStatement = Some(statement))
+    transform(version, ast)(_ should failWith("INPUT DATA STREAM is not supported in UNION queries"))
   }
 }

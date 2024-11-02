@@ -17,10 +17,16 @@
 package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionTestSupport
+import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
+import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.frontend.SemanticAnalysisTestSuite.Pipeline
+import org.neo4j.cypher.internal.frontend.SemanticAnalysisTestSuite.initialStateWithQuery
 import org.neo4j.cypher.internal.frontend.helpers.ErrorCollectingContext
 import org.neo4j.cypher.internal.frontend.helpers.NoPlannerName
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
@@ -36,100 +42,71 @@ import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.rewriting.rewriters.projectNamedPaths
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
 import org.neo4j.cypher.internal.util.StepSequencer
+import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
-import org.scalatest.Assertions.fail
+import org.neo4j.gqlstatus.ErrorGqlStatusObject
+import org.scalatest.TryValues
 
-import scala.util.Random
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 case class SemanticAnalysisResult(context: ErrorCollectingContext, state: BaseState) {
-
   def errors: Seq[SemanticErrorDef] = context.errors
-
-  def error: SemanticError = {
-    if (errors.length != 1) {
-      fail("Expected exactly 1 error but got " + errors.length)
-    }
-    errors.head.asInstanceOf[SemanticError]
-  }
-
+  def notifications: Set[InternalNotification] = state.semantics().notifications
   def errorMessages: Seq[String] = errors.map(_.msg)
-
   def semanticTable: SemanticTable = state.semanticTable()
 }
 
-trait SemanticAnalysisTestSuite extends CypherFunSuite {
-  private val defaultDatabaseName = "mock"
-
+object SemanticAnalysisTestSuite {
   type Pipeline = Transformer[BaseContext, BaseState, BaseState]
 
-  def messageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider
-
-  def runSemanticAnalysisWithPipelineAndState(
-    pipeline: Pipeline,
-    createInitialState: () => BaseState,
-    isComposite: Boolean = false,
-    sessionDatabase: String = defaultDatabaseName,
-    versions: Seq[CypherVersion] = CypherVersion.values()
-  ): SemanticAnalysisResult = {
-    val result = versions.map { version =>
-      version -> runSemanticAnalysisWithPipelineAndState(
-        version,
-        pipeline,
-        createInitialState,
-        isComposite,
-        sessionDatabase
-      )
-    }
-
-    // Quick and dirty hack to try to make sure we have sufficient coverage of all cypher versions.
-    // Feel free to improve ¯\_(ツ)_/¯.
-    val (baseVersion, baseResult) = result(Random.nextInt(result.size))
-    result.foreach { case (version, result) =>
-      if (version != baseVersion) withClue(s"Parser $version")(result.errors shouldBe baseResult.errors)
-    }
-    baseResult
-  }
-
-  private def runSemanticAnalysisWithPipelineAndState(
+  protected def run(
     version: CypherVersion,
     pipeline: Pipeline,
     createInitialState: () => BaseState,
     isComposite: Boolean,
-    sessionDatabase: String
+    sessionDatabase: String,
+    messageProvider: ErrorMessageProvider
   ): SemanticAnalysisResult = {
-    withClue("Parsing is not allowed to be part of the pipeline! It will be added later.") {
-      pipeline.name should not include "Parse"
-    }
+    require(!pipeline.name.contains("Parse"))
 
-    val context = new ErrorCollectingContext(isComposite, sessionDatabase) {
+    val context = new ErrorCollectingContext(version, isComposite, sessionDatabase) {
       override def errorMessageProvider: ErrorMessageProvider = messageProvider
     }
-
-    val state = (Parse(useAntlr = true, version) andThen pipeline).transform(createInitialState(), context)
+    val state = (Parse(useAntlr = true) andThen pipeline).transform(createInitialState(), context)
     SemanticAnalysisResult(context, state)
   }
 
   def initialStateWithQuery(query: String): InitialState =
     InitialState(query, NoPlannerName, new AnonymousVariableNameGenerator)
+}
 
-  def runSemanticAnalysisWithPipeline(
-    pipeline: Pipeline,
+trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSupport with TryValues {
+  private val defaultDatabaseName = "mock"
+
+  def messageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider
+
+  def run(
     query: String,
+    pipeline: Pipeline = pipelineWithSemanticFeatures(),
     isComposite: Boolean = false,
-    versions: Seq[CypherVersion] = CypherVersion.values(),
-    sessionDatabase: String = defaultDatabaseName
-  ): SemanticAnalysisResult =
-    runSemanticAnalysisWithPipelineAndState(
-      pipeline,
-      () => initialStateWithQuery(query),
-      isComposite,
-      sessionDatabase,
-      versions
-    )
+    sessionDatabase: String = defaultDatabaseName,
+    state: BaseState => BaseState = s => s
+  ): AnalysisAssertions = analyse(query, pipeline, isComposite, sessionDatabase, state).run
+
+  def analyse(
+    query: String,
+    pipeline: Pipeline = pipelineWithSemanticFeatures(),
+    isComposite: Boolean = false,
+    sessionDatabase: String = defaultDatabaseName,
+    state: BaseState => BaseState = s => s
+  ): Analyse = Analyse(query, pipeline, isComposite, sessionDatabase, state, messageProvider)
 
   // This test invokes SemanticAnalysis twice because that's what the production pipeline does
   def pipelineWithSemanticFeatures(semanticFeatures: SemanticFeature*): Pipeline =
@@ -137,78 +114,130 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite {
       SemanticAnalysis(warn = true, semanticFeatures: _*) andThen
       SemanticAnalysis(warn = false, semanticFeatures: _*)
 
-  def runSemanticAnalysisWithSemanticFeatures(
-    semanticFeatures: Seq[SemanticFeature],
-    query: String
-  ): SemanticAnalysisResult =
-    runSemanticAnalysisWithPipeline(pipelineWithSemanticFeatures(semanticFeatures: _*), query)
-
-  def runSemanticAnalysisWithCypherVersion(
-    cypherVersions: Seq[CypherVersion],
-    query: String
-  ): SemanticAnalysisResult =
-    runSemanticAnalysisWithPipelineAndState(
-      pipelineWithSemanticFeatures(),
-      () => initialStateWithQuery(query),
-      isComposite = false,
-      defaultDatabaseName,
-      cypherVersions
-    )
-
-  def runSemanticAnalysis(query: String): SemanticAnalysisResult =
-    runSemanticAnalysisWithSemanticFeatures(Seq.empty, query)
-
-  // ------- Helpers ------------------------------
-
-  def expectNoErrorsFrom(
+  case class Analyse(
     query: String,
-    pipeline: Transformer[BaseContext, BaseState, BaseState] = pipelineWithSemanticFeatures(),
-    versions: Seq[CypherVersion] = CypherVersion.values(),
-    isComposite: Boolean = false,
-    databaseName: String = defaultDatabaseName
-  ): Unit =
-    runSemanticAnalysisWithPipeline(pipeline, query, isComposite, versions, databaseName).errors shouldBe empty
+    pipeline: Pipeline,
+    isComposite: Boolean,
+    sessionDatabase: String,
+    stateTransform: BaseState => BaseState,
+    messageProvider: ErrorMessageProvider
+  ) {
+    def withPipeline(pipeline: Pipeline): Analyse = copy(pipeline = pipeline)
 
-  def expectErrorsFrom(
-    query: String,
-    expectedErrors: Iterable[SemanticError],
-    pipeline: Transformer[BaseContext, BaseState, BaseState] = pipelineWithSemanticFeatures(),
-    versions: Seq[CypherVersion] = CypherVersion.values(),
-    isComposite: Boolean = false,
-    databaseName: String = defaultDatabaseName
-  ): Unit =
-    runSemanticAnalysisWithPipeline(
-      pipeline,
-      query,
-      isComposite,
-      versions,
-      databaseName
-    ).errors should contain theSameElementsAs expectedErrors
+    def withParam(n: String, t: CypherType, e: Expression): Analyse =
+      withParams(AutoExtractedParameter(n, t)(p(0, 0, 0)) -> e)
+    def withParams(ps: (AutoExtractedParameter, Expression)*): Analyse = state(_.withParams(ps.toMap))
+    def inComposite: Analyse = copy(isComposite = true)
+    def withDb(name: String): Analyse = copy(sessionDatabase = name)
+    def state(f: BaseState => BaseState): Analyse = copy(stateTransform = stateTransform.andThen(f))
 
-  def expectErrorMessagesFrom(
-    query: String,
-    expectedErrors: Iterable[String],
-    versions: Seq[CypherVersion] = CypherVersion.values(),
-    pipeline: Transformer[BaseContext, BaseState, BaseState] = pipelineWithSemanticFeatures(),
-    isComposite: Boolean = false
-  ): Unit =
-    runSemanticAnalysisWithPipeline(
-      pipeline,
-      query,
-      isComposite,
-      versions
-    ).errorMessages should contain theSameElementsAs expectedErrors
+    def run: AnalysisAssertions = {
+      val results = CypherVersion.values()
+        .map(v =>
+          v -> Try(SemanticAnalysisTestSuite.run(
+            v,
+            pipeline,
+            () => stateTransform(initialStateWithQuery(query)),
+            isComposite,
+            sessionDatabase,
+            messageProvider
+          ))
+        )
+        .toMap
+      AnalysisAssertions(this, results)
+    }
+  }
 
-  def expectNotificationsFrom(
-    query: String,
-    expectedNotifications: Set[InternalNotification],
-    versions: Seq[CypherVersion] = CypherVersion.values(),
-    pipeline: Transformer[BaseContext, BaseState, BaseState] = pipelineWithSemanticFeatures()
-  ): Unit = {
-    val normalisedQuery = normalizeNewLines(query)
-    val result = runSemanticAnalysisWithPipeline(pipeline, normalisedQuery, versions = versions)
-    result.state.semantics().notifications shouldEqual expectedNotifications
-    result.errors shouldBe empty
+  case class AnalysisAssertions(
+    private val analyse: Analyse,
+    results: Map[CypherVersion, Try[SemanticAnalysisResult]]
+  ) {
+    private type Self = AnalysisAssertions
+    private type Pos = InputPosition
+    private type GqlError = ErrorGqlStatusObject
+    private type Notification = InternalNotification
+
+    def hasNoErrors: Self = hasErrors()
+    def hasErrors(expected: SemanticError*): Self = assert(_.errors should contain theSameElementsAs expected)
+
+    def hasErrors(gql1: GqlError, msg1: String, p1: Pos, gql2: GqlError, msg2: String, p2: Pos): Self =
+      hasErrors(SemanticError(gql1, msg1, p1), SemanticError(gql2, msg2, p2))
+
+    def hasErrors(
+      gql1: GqlError,
+      msg1: String,
+      p1: Pos,
+      gql2: GqlError,
+      msg2: String,
+      p2: Pos,
+      gql3: GqlError,
+      msg3: String,
+      p3: Pos
+    ): Self = hasErrors(SemanticError(gql1, msg1, p1), SemanticError(gql2, msg2, p2), SemanticError(gql3, msg3, p3))
+
+    def hasError(msg: String, pos: Pos): Self = hasErrors(SemanticError(msg, pos))
+    def hasError(gql: GqlError, msg: String, pos: Pos): Self = hasErrors(SemanticError(gql, msg, pos))
+
+    def hasErrorMessages(expected: String*): Self =
+      assert(_.errorMessages.distinct should contain theSameElementsAs expected)
+
+    def hasNotifications(expected: Notification*): Self =
+      assert(_.notifications should contain theSameElementsAs expected)
+    def hasNoNotifications: Any = hasNotifications()
+
+    def hasNotificationsIn(f: CypherVersion => Seq[Notification]): Self =
+      assertIn(v => r => r.notifications should contain theSameElementsAs f(v))
+
+    def hasSemanticErrorsIn(f: CypherVersion => Seq[SemanticError]): Self =
+      assertIn(v => r => r.errors should contain theSameElementsAs f(v))
+
+    def hasErrorsIn(f: CypherVersion => Seq[(String, Pos)]): Self =
+      assertIn(v => r => r.errors should contain theSameElementsAs f(v).map(toSemErr))
+
+    def failsWithMessageContaining(msg: String): Any = assertTry { res =>
+      res should be a Symbol("failure")
+      res.failed.get.getMessage should include(msg)
+    }
+
+    def assert(assertion: SemanticAnalysisResult => Unit): AnalysisAssertions = {
+      CypherVersion.values().foreach { version =>
+        results(version) match {
+          case Success(result) => withContext(version)(assertion(result))
+          case Failure(t)      => fail(s"Expected to succeed in CYPHER $version: $t", t)
+        }
+      }
+      this
+    }
+
+    def assertTry(assertion: Try[SemanticAnalysisResult] => Unit): AnalysisAssertions = {
+      CypherVersion.values().foreach(version => withContext(version)(assertion(results(version))))
+      this
+    }
+
+    def assertTryIn(assertion: CypherVersion => Try[SemanticAnalysisResult] => Unit): AnalysisAssertions = {
+      CypherVersion.values().foreach(version => withContext(version)(assertion(version)(results(version))))
+      this
+    }
+
+    def assertIn(assertion: CypherVersion => SemanticAnalysisResult => Unit): AnalysisAssertions = {
+      CypherVersion.values().foreach { version =>
+        results(version) match {
+          case Success(result) => withContext(version)(assertion(version)(result))
+          case Failure(t)      => withContext(version)(fail(t))
+        }
+      }
+      this
+    }
+
+    private def toSemErr(a: (String, Pos)): SemanticError = SemanticError(a._1, a._2)
+
+    private def withContext(version: CypherVersion)(f: => Unit): Unit = {
+      withClue(
+        s"""Version: CYPHER $version
+           |Query: ${analyse.query}
+           |""".stripMargin
+      )(f)
+    }
   }
 
   final case object ProjectNamedPathsPhase extends Phase[BaseContext, BaseState, BaseState] {
@@ -219,24 +248,23 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite {
     }
     override def postConditions: Set[StepSequencer.Condition] = Set.empty
   }
-
 }
 
 trait SemanticAnalysisTestSuiteWithDefaultQuery extends SemanticAnalysisTestSuite {
 
   def defaultQuery: String
 
-  def runSemanticAnalysis(): SemanticAnalysisResult = runSemanticAnalysis(defaultQuery)
+  def run(): AnalysisAssertions = run(defaultQuery)
 
-  def runSemanticAnalysisWithSemanticFeatures(semanticFeatures: SemanticFeature*): SemanticAnalysisResult =
-    runSemanticAnalysisWithSemanticFeatures(semanticFeatures, defaultQuery)
+  def runWith(features: SemanticFeature*): AnalysisAssertions =
+    run(defaultQuery, pipelineWithSemanticFeatures(features: _*))
 }
 
 trait NameBasedSemanticAnalysisTestSuite extends SemanticAnalysisTestSuiteWithDefaultQuery with TestName {
 
   override def defaultQuery: String = testName
 
-  def checkGqlDisjunctionError(error: SemanticError, invalidSymbol: String): Unit = {
+  def checkGqlDisjunctionError(error: SemanticErrorDef, invalidSymbol: String): Unit = {
     val gqlError = error.gqlStatusObject
     gqlError.gqlStatus() shouldBe "42001"
 

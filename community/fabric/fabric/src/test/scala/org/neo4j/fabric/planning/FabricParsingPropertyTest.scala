@@ -90,7 +90,6 @@ class FabricParsingPropertyTest extends CypherFunSuite
 
   private val fabricParsingConfig =
     ParsingConfig(
-      cypherVersion = CypherVersion.Default,
       semanticFeatures = defaultSemanticFeatures ++ Seq(MultipleGraphs, UseAsMultipleGraphsSelector)
     )
   private val fabricParsing = CompilationPhases.fabricParsing(fabricParsingConfig, resolver)
@@ -123,6 +122,7 @@ class FabricParsingPropertyTest extends CypherFunSuite
   // This string must may contain anonymous variable names, but they must use negative numbers.
   // Otherwise newly generated anonymous variable names
   // on the remote instance can clash with the existing anonymous variable names.
+  // Note, default cypher version only!
   test("fabricParsing should not introduce anonymous variable names with non-negative numbers.") {
     // To reproduce test failures, enable the following line with the seed from the TC build
     // setScalaCheckInitialSeed(seed)
@@ -136,6 +136,7 @@ class FabricParsingPropertyTest extends CypherFunSuite
         )
 
         val context = new BaseContext {
+          override def cypherVersion: CypherVersion = astGenerator.whenAstDifferUseCypherVersion
           override def tracer: CompilationPhaseTracer = CompilationPhaseTracer.NO_TRACING
           override def notificationLogger: InternalNotificationLogger = devNullLogger
           override def cypherExceptionFactory: CypherExceptionFactory = dummyExceptionFactory

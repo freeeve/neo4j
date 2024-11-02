@@ -17,18 +17,20 @@
 package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.frontend.helpers.ErrorCollectingContext
 import org.neo4j.cypher.internal.frontend.helpers.NoPlannerName
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class CollectSyntaxUsageMetricsTest extends CypherFunSuite {
+class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTestSupport {
 
-  private def pipeline(version: CypherVersion) =
-    Parse(useAntlr = true, version) andThen CollectSyntaxUsageMetrics
+  private def pipeline =
+    Parse(useAntlr = true) andThen CollectSyntaxUsageMetrics
 
-  test("should find multiple things in one query") {
+  testVersions("should find multiple things in one query") { version =>
     val stats = runPipeline(
+      version,
       """
         |MATCH ANY SHORTEST (a)-->*(b)
         |MATCH ANY SHORTEST (c)-->*(d)
@@ -40,8 +42,9 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite {
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LEGACY_SHORTEST) should be(1)
   }
 
-  test("should find GPM SHORTEST") {
+  testVersions("should find GPM SHORTEST") { version =>
     val stats = runPipeline(
+      version,
       """
         |MATCH ANY SHORTEST (a)-->*(b)
         |RETURN *
@@ -50,8 +53,9 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite {
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.GPM_SHORTEST) should be(1)
   }
 
-  test("should find LEGACY SHORTEST in MATCH") {
+  testVersions("should find LEGACY SHORTEST in MATCH") { version =>
     val stats = runPipeline(
+      version,
       """
         |MATCH shortestPath( (a)-[*]->(b) )
         |RETURN *
@@ -60,8 +64,9 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite {
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LEGACY_SHORTEST) should be(1)
   }
 
-  test("should find LEGACY SHORTEST in WITH") {
+  testVersions("should find LEGACY SHORTEST in WITH") { version =>
     val stats = runPipeline(
+      version,
       """
         |MATCH (a), (b) WITH shortestPath( (a)-[*]->(b) ) AS p
         |RETURN *
@@ -70,8 +75,9 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite {
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LEGACY_SHORTEST) should be(1)
   }
 
-  test("should find COLLECT subquery") {
+  testVersions("should find COLLECT subquery") { version =>
     val stats = runPipeline(
+      version,
       """
         |RETURN COLLECT { MATCH (a) RETURN a } AS as
         |""".stripMargin
@@ -79,8 +85,9 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite {
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.COLLECT_SUBQUERY) should be(1)
   }
 
-  test("should find COUNT subquery") {
+  testVersions("should find COUNT subquery") { version =>
     val stats = runPipeline(
+      version,
       """
         |RETURN COUNT { MATCH (a) RETURN a } AS as
         |""".stripMargin
@@ -88,8 +95,9 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite {
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.COUNT_SUBQUERY) should be(1)
   }
 
-  test("should find EXISTS subquery") {
+  testVersions("should find EXISTS subquery") { version =>
     val stats = runPipeline(
+      version,
       """
         |RETURN EXISTS { MATCH (a) RETURN a } AS as
         |""".stripMargin
@@ -97,8 +105,9 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite {
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.EXISTS_SUBQUERY) should be(1)
   }
 
-  test("should find QPP") {
+  testVersions("should find QPP") { version =>
     val stats = runPipeline(
+      version,
       """
         |MATCH ANY SHORTEST (a)( ()-->() )*(b)
         |RETURN *
@@ -107,8 +116,9 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite {
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.QUANTIFIED_PATH_PATTERN) should be(1)
   }
 
-  test("should find QPP syntactic sugar") {
+  testVersions("should find QPP syntactic sugar") { version =>
     val stats = runPipeline(
+      version,
       """
         |MATCH ANY SHORTEST (a)-->*(b)
         |RETURN *
@@ -117,31 +127,13 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite {
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.QUANTIFIED_PATH_PATTERN) should be(1)
   }
 
-  private def runPipeline(query: String): InternalSyntaxUsageStats = {
-    val defaultResult = runPipeline(CypherVersion.Default, query)
-
-    // Quick and dirty hack to try to make sure we have sufficient coverage of all cypher versions.
-    // Feel free to improve ¯\_(ツ)_/¯.
-    CypherVersion.values.foreach { version =>
-      if (version != CypherVersion.Default) {
-        val otherResult = runPipeline(version, query)
-        SyntaxUsageMetricKey.values().foreach { metricKey =>
-          otherResult.getSyntaxUsageCount(metricKey) shouldBe defaultResult.getSyntaxUsageCount(metricKey)
-        }
-      }
-    }
-
-    defaultResult
-  }
-
   private def runPipeline(version: CypherVersion, query: String): InternalSyntaxUsageStats = {
     val startState = InitialState(query, NoPlannerName, new AnonymousVariableNameGenerator)
-    val context = new ErrorCollectingContext() {
+    val context = new ErrorCollectingContext(version) {
       override val internalSyntaxUsageStats: InternalSyntaxUsageStats = InternalSyntaxUsageStats.newImpl()
     }
-    pipeline(version).transform(startState, context)
+    pipeline.transform(startState, context)
 
     context.internalSyntaxUsageStats
   }
-
 }

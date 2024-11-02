@@ -30,11 +30,15 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 sealed trait SemanticErrorDef {
   def msg: String
   def position: InputPosition
+  def gqlStatusObject: ErrorGqlStatusObject
   def withMsg(message: String): SemanticErrorDef
 }
 
-final case class SemanticError(gqlStatusObject: ErrorGqlStatusObject, msg: String, position: InputPosition)
-    extends SemanticErrorDef {
+final case class SemanticError(
+  override val gqlStatusObject: ErrorGqlStatusObject,
+  override val msg: String,
+  override val position: InputPosition
+) extends SemanticErrorDef {
   def this(msg: String, position: InputPosition) = this(null, msg, position)
   override def withMsg(message: String): SemanticError = copy(msg = message)
 }
@@ -308,7 +312,7 @@ object SemanticError {
   def invalidEntityType(
     invalidInput: String,
     variable: String,
-    expectedValueList: List[String],
+    expectedValueList: Seq[String],
     legacyMessage: String,
     pos: InputPosition
   ): SemanticError = {
@@ -773,10 +777,10 @@ object SemanticError {
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef
 
 final case class FeatureError(
-  gqlStatusObject: ErrorGqlStatusObject,
-  msg: String,
+  override val gqlStatusObject: ErrorGqlStatusObject,
+  override val msg: String,
   feature: SemanticFeature,
-  position: InputPosition
+  override val position: InputPosition
 ) extends UnsupportedOpenCypher {
 
   def this(msg: String, featureError: SemanticFeature, position: InputPosition) =

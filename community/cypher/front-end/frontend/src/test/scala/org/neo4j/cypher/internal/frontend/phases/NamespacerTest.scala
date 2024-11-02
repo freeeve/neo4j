@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.ExistsExpression
@@ -322,58 +323,68 @@ class NamespacerTest extends CypherFunSuite with AstConstructionTestSupport with
   test("should rewrite introduced variables and scope dependencies of EXISTS even if not used in expression") {
     val query = "MATCH (n) WHERE EXISTS { MATCH (p:Label) } WITH n as m, 1 as p RETURN m, p"
 
-    val statement = prepareFrom(query, rewriterPhaseUnderTest).statement()
+    CypherVersion.values().foreach { version =>
+      val statement = prepareFrom(version, query, rewriterPhaseUnderTest).statement()
 
-    val existsExpression = statement.folder.treeFindByClass[ExistsExpression].get
+      val existsExpression = statement.folder.treeFindByClass[ExistsExpression].get
 
-    existsExpression.introducedVariables.map(_.name) should be(Set("  p@0"))
-    existsExpression.scopeDependencies.map(_.name) should be(Set.empty)
+      existsExpression.introducedVariables.map(_.name) should be(Set("  p@0"))
+      existsExpression.scopeDependencies.map(_.name) should be(Set.empty)
+    }
   }
 
   test("should rewrite introduced variables and scope dependencies of full EXISTS") {
     val query = "MATCH (n), (m) WHERE EXISTS { MATCH (p:Label)-[r]-(m) RETURN p } WITH n as m, 1 as p RETURN m"
 
-    val statement = prepareFrom(query, rewriterPhaseUnderTest).statement()
+    CypherVersion.values().foreach { version =>
+      val statement = prepareFrom(version, query, rewriterPhaseUnderTest).statement()
 
-    val existsExpression = statement.folder.treeFindByClass[ExistsExpression].get
+      val existsExpression = statement.folder.treeFindByClass[ExistsExpression].get
 
-    existsExpression.introducedVariables.map(_.name) should be(Set("  p@1", "r"))
-    existsExpression.scopeDependencies.map(_.name) should be(Set("  m@0"))
+      existsExpression.introducedVariables.map(_.name) should be(Set("  p@1", "r"))
+      existsExpression.scopeDependencies.map(_.name) should be(Set("  m@0"))
+    }
   }
 
   test("should rewrite introduced variables and scope dependencies of full EXISTS with nested ScopeExpression") {
     val query =
       "MATCH (n), (m) WHERE EXISTS { MATCH (p:Label)-[r]-(m) WHERE all(i IN p.booleans WHERE i) RETURN p } WITH n as m, 1 as p RETURN m"
 
-    val statement = prepareFrom(query, rewriterPhaseUnderTest).statement()
+    CypherVersion.values().foreach { version =>
+      val statement = prepareFrom(version, query, rewriterPhaseUnderTest).statement()
 
-    val existsExpression = statement.folder.treeFindByClass[ExistsExpression].get
+      val existsExpression = statement.folder.treeFindByClass[ExistsExpression].get
 
-    existsExpression.introducedVariables.map(_.name) should be(Set("  p@1", "r", "i"))
-    existsExpression.scopeDependencies.map(_.name) should be(Set("  m@0"))
+      existsExpression.introducedVariables.map(_.name) should be(Set("  p@1", "r", "i"))
+      existsExpression.scopeDependencies.map(_.name) should be(Set("  m@0"))
+    }
   }
 
   test("should rewrite introduced variables ands scope dependencies of full COUNT") {
     val query = "MATCH (n), (m) WHERE COUNT { MATCH (p:Label)-[r]-(m) RETURN p } > 2 WITH n as m, 1 as p RETURN m"
 
-    val statement = prepareFrom(query, rewriterPhaseUnderTest).statement()
+    CypherVersion.values().foreach { version =>
+      val statement = prepareFrom(version, query, rewriterPhaseUnderTest).statement()
 
-    val countExpression = statement.folder.treeFindByClass[CountExpression].get
+      val countExpression = statement.folder.treeFindByClass[CountExpression].get
 
-    countExpression.introducedVariables.map(_.name) should be(Set("  p@1", "r"))
-    countExpression.scopeDependencies.map(_.name) should be(Set("  m@0"))
+      countExpression.introducedVariables.map(_.name) should be(Set("  p@1", "r"))
+      countExpression.scopeDependencies.map(_.name) should be(Set("  m@0"))
+    }
   }
 
   test("should rewrite introduced variables ands scope dependencies of full COUNT with nested ScopeExpression") {
     val query =
       "MATCH (n), (m) WHERE COUNT { MATCH (p:Label)-[r]-(m) WHERE all(i IN p.booleans WHERE i) RETURN p } > 2 WITH n as m, 1 as p RETURN m"
 
-    val statement = prepareFrom(query, rewriterPhaseUnderTest).statement()
+    CypherVersion.values().foreach { version =>
+      val statement = prepareFrom(version, query, rewriterPhaseUnderTest).statement()
 
-    val countExpression = statement.folder.treeFindByClass[CountExpression].get
+      val countExpression = statement.folder.treeFindByClass[CountExpression].get
 
-    countExpression.introducedVariables.map(_.name) should be(Set("  p@1", "r", "i"))
-    countExpression.scopeDependencies.map(_.name) should be(Set("  m@0"))
+      countExpression.introducedVariables.map(_.name) should be(Set("  p@1", "r", "i"))
+      countExpression.scopeDependencies.map(_.name) should be(Set("  m@0"))
+    }
   }
 
   // noinspection ZeroIndexToHead
@@ -383,12 +394,15 @@ class NamespacerTest extends CypherFunSuite with AstConstructionTestSupport with
 
     val query =
       s"UNWIND [1,2,3] AS ${names(0)} WITH ${names(0)} + 1 AS x MATCH (${names(0)})-[${names(1)}]-(${names(2)}) RETURN 1 AS foo"
-    val statement = prepareFrom(query, rewriterPhaseUnderTest).statement()
 
-    statement.folder.findAllByClass[Variable].map(_.name).foreach {
-      case "x" | "foo"                                     => // OK
-      case v if AnonymousVariableNameGenerator.notNamed(v) => // OK
-      case v                                               => fail(s"$v was not an anonymous variable")
+    CypherVersion.values().foreach { version =>
+      val statement = prepareFrom(version, query, rewriterPhaseUnderTest).statement()
+
+      statement.folder.findAllByClass[Variable].map(_.name).foreach {
+        case "x" | "foo"                                     => // OK
+        case v if AnonymousVariableNameGenerator.notNamed(v) => // OK
+        case v                                               => fail(s"$v was not an anonymous variable")
+      }
     }
   }
 

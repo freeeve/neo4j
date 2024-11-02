@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.test_helpers
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.NotImplementedPlanContext
@@ -60,6 +61,7 @@ import scala.reflect.ClassTag
 object ContextHelper extends MockitoSugar {
 
   def create(
+    version: CypherVersion,
     cypherExceptionFactory: CypherExceptionFactory = Neo4jCypherExceptionFactory("<QUERY>", None),
     tracer: CompilationPhaseTracer = NO_TRACING,
     notificationLogger: InternalNotificationLogger = devNullLogger,
@@ -88,6 +90,7 @@ object ContextHelper extends MockitoSugar {
     sessionDatabase: DatabaseReference = null
   ): PlannerContext = {
     new PlannerContext(
+      version,
       cypherExceptionFactory,
       tracer,
       notificationLogger,

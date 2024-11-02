@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal
 
 import org.neo4j.configuration.Config
-import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.cache.LFUCache
 import org.neo4j.cypher.internal.cache.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases
@@ -42,15 +41,16 @@ class InputQueryTest extends CypherFunSuite {
     )
 
   private def parser =
-    CompilationPhases.parsing(ParsingConfig(CypherVersion.Default))
+    CompilationPhases.parsing(ParsingConfig())
 
   private def toPreParsedQuery(queryString: String) =
     preParser.preParseQuery(queryString, devNullLogger)
 
+  // Note, only parse in default version
   private def toFullyParsedQuery(queryString: String) = FullyParsedQuery(
     state = parser.transform(
       from = InitialState(queryString, IDPPlannerName, new AnonymousVariableNameGenerator),
-      context = ContextHelper.create()
+      context = ContextHelper.create(CypherVersion.Default)
     ),
     options = QueryOptions.default
   )

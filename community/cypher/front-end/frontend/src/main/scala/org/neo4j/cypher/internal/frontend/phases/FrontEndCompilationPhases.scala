@@ -17,7 +17,6 @@
 package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
-import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
 import org.neo4j.cypher.internal.rewriting.Deprecations
@@ -37,13 +36,12 @@ trait FrontEndCompilationPhases {
     defaultSemanticFeatures ++ extra.map(SemanticFeature.fromString)
 
   case class ParsingConfig(
-    cypherVersion: CypherVersion,
     extractLiterals: ExtractLiteral = ExtractLiteral.ALWAYS,
     /* TODO: This is not part of configuration - Move to BaseState */
     parameterTypeMapping: Map[String, ParameterTypeInfo] = Map.empty,
     semanticFeatures: Seq[SemanticFeature] = defaultSemanticFeatures,
     obfuscateLiterals: Boolean = false,
-    antlrParserEnabled: Boolean = false
+    antlrParserEnabled: Boolean = true
   ) {
 
     def literalExtractionStrategy: LiteralExtractionStrategy = extractLiterals match {
@@ -55,21 +53,17 @@ trait FrontEndCompilationPhases {
   }
 
   def parsingBase(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] = {
-    Parse(config.antlrParserEnabled, config.cypherVersion) andThen
+    Parse(config.antlrParserEnabled) andThen
       CollectSyntaxUsageMetrics andThen
-      SyntaxDeprecationWarningsAndReplacements(
-        Deprecations.SyntacticallyDeprecatedFeatures(config.cypherVersion)
-      ) andThen
+      SyntaxDeprecationWarningsAndReplacements(Deprecations.SyntacticallyDeprecatedFeatures) andThen
       PreparatoryRewriting andThen
       If((_: BaseState) => config.obfuscateLiterals)(
         extractSensitiveLiterals
       ) andThen
       SemanticAnalysis(warn = true, config.semanticFeatures: _*) andThen
       RemoveDuplicateUseClauses andThen
-      SemanticTypeCheck(config.cypherVersion) andThen
-      SyntaxDeprecationWarningsAndReplacements(
-        Deprecations.SemanticallyDeprecatedFeatures(config.cypherVersion)
-      ) andThen
+      SemanticTypeCheck andThen
+      SyntaxDeprecationWarningsAndReplacements(Deprecations.SemanticallyDeprecatedFeatures) andThen
       IsolateSubqueriesInMutatingPatterns andThen
       SemanticAnalysis(warn = false, config.semanticFeatures: _*)
   }

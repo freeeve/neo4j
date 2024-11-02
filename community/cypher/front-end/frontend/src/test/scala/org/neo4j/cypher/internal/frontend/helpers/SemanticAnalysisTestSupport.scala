@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.helpers
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
@@ -32,7 +33,11 @@ import org.scalatest.matchers.Matcher
 import java.util.Optional
 import java.util.UUID
 
-class ErrorCollectingContext(val isComposite: Boolean = false, databaseName: String = "mock") extends BaseContext {
+class ErrorCollectingContext(
+  override val cypherVersion: CypherVersion,
+  val isComposite: Boolean = false,
+  databaseName: String = "mock"
+) extends BaseContext {
 
   var errors: Seq[SemanticErrorDef] = Seq.empty
 

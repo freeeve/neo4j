@@ -16,12 +16,9 @@
  */
 package org.neo4j.cypher.internal.frontend
 
-import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
 import org.scalatest.LoneElement
 
 class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite with LoneElement {
-
-  implicit private val windowsStringSafe: WindowsStringSafe.type = WindowsStringSafe
 
   test("can use sub-path variable in WHERE") {
     val q =
@@ -29,8 +26,7 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
         |MATCH SHORTEST 1 (p = (a)-[r]->+(b) WHERE length(p) % 2 = 0)
         |RETURN b
         |""".stripMargin
-
-    runSemanticAnalysis(q).errorMessages shouldBe empty
+    run(q).hasNoErrors
   }
 
   test("can not use path variable from the same MATCH clause in WHERE") {
@@ -40,9 +36,10 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
         |RETURN b
         |""".stripMargin
 
-    runSemanticAnalysis(q).errorMessages.loneElement shouldEqual
+    run(q).hasErrorMessages(
       """From within a parenthesized path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
         |In this case, `p` is defined in the same `MATCH` clause as ((a) (()-[r]->())+ (b) WHERE length(p) % 2 = 0).""".stripMargin
+    )
   }
 
   test("can use path variable from a previous MATCH clause in WHERE") {
@@ -53,7 +50,7 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
         |RETURN b
         |""".stripMargin
 
-    runSemanticAnalysis(q).errorMessages shouldBe empty
+    run(q).hasNoErrors
   }
 
   test("can not use a variable from the same MATCH clause in a subquery expression") {
@@ -63,10 +60,11 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
         |RETURN b
         |""".stripMargin
 
-    runSemanticAnalysis(q).errorMessages.loneElement shouldEqual
+    run(q).hasErrorMessages(
       """From within a parenthesized path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
         |In this case, `p` is defined in the same `MATCH` clause as ((a) (()-[r]->())+ (b) WHERE 0 = COUNT { MATCH (x)-->(y)
         |  WHERE length(p) % 2 = 0 }).""".stripMargin
+    )
   }
 
   test("can not re-declare a path variable from the outer MATCH clause in a subquery expression") {
@@ -76,8 +74,9 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
         |MATCH ANY (p = ()--+())
         |RETURN *""".stripMargin
 
-    runSemanticAnalysis(q).errorMessages.loneElement shouldEqual
+    run(q).hasErrorMessages(
       """Variable `p` already declared""".stripMargin
+    )
   }
 
   test("can not shadow a path variable in a subquery expression") {
@@ -87,7 +86,8 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
         |WHERE NOT EXISTS { ANY (p = (a)<--+(b) WHERE length(p) % 2 = 1) }
         |RETURN *""".stripMargin
 
-    runSemanticAnalysis(q).errorMessages.loneElement shouldEqual
+    run(q).hasErrorMessages(
       """The variable `p` is shadowing a variable with the same name from the outer scope and needs to be renamed""".stripMargin
+    )
   }
 }

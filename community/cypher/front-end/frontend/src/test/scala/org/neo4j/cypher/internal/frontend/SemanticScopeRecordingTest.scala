@@ -30,7 +30,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class SemanticScopeRecordingTest extends CypherFunSuite {
 
   // This test invokes SemanticAnalysis twice because that's what the production pipeline does
-  private val pipeline = Parse(true, CypherVersion.Default) andThen
+  private val pipeline = Parse(true) andThen
     PreparatoryRewriting andThen
     SemanticAnalysis(warn = true) andThen
     SemanticAnalysis(warn = false)
@@ -48,7 +48,7 @@ class SemanticScopeRecordingTest extends CypherFunSuite {
       """.stripMargin
     val startState = initStartState(query)
 
-    val context = new ErrorCollectingContext()
+    val context = new ErrorCollectingContext(CypherVersion.Default)
     val state = pipeline.transform(startState, context)
 
     context.errors shouldBe empty

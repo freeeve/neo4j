@@ -16,28 +16,29 @@
  */
 package org.neo4j.cypher.internal.frontend
 
-import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersion.Cypher25
+import org.neo4j.cypher.internal.CypherVersion.Cypher5
+import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.frontend.SemanticAnalysisTest.gql42NA5
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
-import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.SubqueryVariableShadowing
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
-import org.neo4j.gqlstatus.GqlHelper
-import org.neo4j.gqlstatus.GqlStatusInfoCodes
+import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N07
+import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N71
 
 class SubqueryCallSemanticAnalysisTest
     extends CypherFunSuite
     with NameBasedSemanticAnalysisTestSuite {
 
-  private val pipelineWithUseAsMultipleGraphsSelector = pipelineWithSemanticFeatures(
+  private val withMultiGraphs = pipelineWithSemanticFeatures(
     SemanticFeature.MultipleGraphs,
     SemanticFeature.UseAsMultipleGraphsSelector
   )
 
-  private val pipelineWithUseAsSingleGraphSelector = pipelineWithSemanticFeatures(
+  private val withSingleGraph = pipelineWithSemanticFeatures(
     SemanticFeature.MultipleGraphs,
     SemanticFeature.UseAsSingleGraphSelector
   )
@@ -52,11 +53,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN i
         |""".stripMargin
 
-    val result = runSemanticAnalysisWithCypherVersion(CypherVersion.values(), query)
-
-    result.errors.map(e => (e.msg, e.position.line, e.position.column)) should equal(List(
-      ("Variable `i` already declared in outer scope", 4, 10)
-    ))
+    run(query).hasError("Variable `i` already declared in outer scope", p(45, 4, 10))
   }
 
   test("Returning a variable that is already bound outside should give a useful error") {
@@ -69,11 +66,8 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN i
         |""".stripMargin
 
-    val result = runSemanticAnalysisWithCypherVersion(CypherVersion.values(), query)
-
-    result.errors.map(e => (e.msg, e.position.line, e.position.column)) should equal(List(
-      ("Variable `i` already declared in outer scope", 4, 10)
-    ))
+    run(query)
+      .hasError(getGql42001_42N07("i", 4, 10, 42), "Variable `i` already declared in outer scope", p(42, 4, 10))
   }
 
   test("Returning a variable that is already bound outside, from a union, should give a useful error") {
@@ -89,12 +83,14 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN i
         |""".stripMargin
 
-    val result = runSemanticAnalysis(query)
-
-    result.errors.map(e => (e.msg, e.position.line, e.position.column)) should equal(List(
-      ("Variable `i` already declared in outer scope", 4, 10),
-      ("Variable `i` already declared in outer scope", 7, 15)
-    ))
+    run(query).hasErrors(
+      getGql42001_42N07("i", 4, 10, 42),
+      "Variable `i` already declared in outer scope",
+      p(42, 4, 10),
+      getGql42001_42N07("i", 7, 15, 82),
+      "Variable `i` already declared in outer scope",
+      p(82, 7, 15)
+    )
   }
 
   test("Returning a variable implicitly that is already bound outside scoped call should give a useful error") {
@@ -107,11 +103,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN i
         |""".stripMargin
 
-    val result = runSemanticAnalysisWithCypherVersion(CypherVersion.values(), query)
-
-    result.errors.map(e => (e.msg, e.position.line)) should equal(List(
-      ("Variable `i` already declared in outer scope", 4)
-    ))
+    run(query).hasError("Variable `i` already declared in outer scope", p(38, 4, 3))
   }
 
   test("Returning a variable implicitly that is already bound outside should give a useful error") {
@@ -124,11 +116,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN i
         |""".stripMargin
 
-    val result = runSemanticAnalysisWithCypherVersion(CypherVersion.values(), query)
-
-    result.errors.map(e => (e.msg, e.position.line)) should equal(List(
-      ("Variable `i` already declared in outer scope", 4)
-    ))
+    run(query).hasError(getGql42001_42N07("i", 4, 10, 42), "Variable `i` already declared in outer scope", p(42, 4, 10))
   }
 
   test("Returning a variable implicitly that is already bound outside, from a union, should give a useful error") {
@@ -144,12 +132,14 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN i
         |""".stripMargin
 
-    val result = runSemanticAnalysis(query)
-
-    result.errors.map(e => (e.msg, e.position.line)) should equal(List(
-      ("Variable `i` already declared in outer scope", 4),
-      ("Variable `i` already declared in outer scope", 7)
-    ))
+    run(query).hasErrors(
+      getGql42001_42N07("i", 4, 10, 42),
+      "Variable `i` already declared in outer scope",
+      p(42, 4, 10),
+      getGql42001_42N07("i", 7, 10, 77),
+      "Variable `i` already declared in outer scope",
+      p(77, 7, 10)
+    )
   }
 
   test("Should warn about variable shadowing in a scoped subquery") {
@@ -160,7 +150,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(query, Set(SubqueryVariableShadowing(InputPosition(36, 3, 10), "shadowed")))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(36, 3, 10), "shadowed"))
   }
 
   test("Should warn about variable shadowing in a subquery") {
@@ -171,11 +161,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(
-      query,
-      Set(SubqueryVariableShadowing(InputPosition(33, 3, 10), "shadowed")),
-      Seq(CypherVersion.Cypher5)
-    )
+    run(query).hasNotifications(SubqueryVariableShadowing(p(33, 3, 10), "shadowed"))
   }
 
   test("Should warn about variable shadowing in a scoped subquery when aliasing") {
@@ -188,7 +174,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(query, Set(SubqueryVariableShadowing(InputPosition(63, 4, 13), "shadowed")))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(63, 4, 13), "shadowed"))
   }
 
   test("Should warn about variable shadowing in a subquery when aliasing") {
@@ -201,11 +187,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(
-      query,
-      Set(SubqueryVariableShadowing(InputPosition(60, 4, 13), "shadowed")),
-      Seq(CypherVersion.Cypher5)
-    )
+    run(query).hasNotifications(SubqueryVariableShadowing(p(60, 4, 13), "shadowed"))
   }
 
   test("Should warn about variable shadowing in a nested scoped subquery") {
@@ -220,7 +202,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m, x
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(query, Set(SubqueryVariableShadowing(InputPosition(74, 5, 12), "shadowed")))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(74, 5, 12), "shadowed"))
   }
 
   test("Should warn about variable shadowing in a nested subquery") {
@@ -235,11 +217,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m, x
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(
-      query,
-      Set(SubqueryVariableShadowing(InputPosition(68, 5, 12), "shadowed")),
-      Seq(CypherVersion.Cypher5)
-    )
+    run(query).hasNotifications(SubqueryVariableShadowing(p(68, 5, 12), "shadowed"))
   }
 
   test("Should warn about variable shadowing from enclosing scoped subquery") {
@@ -254,7 +232,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m, x
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(query, Set(SubqueryVariableShadowing(InputPosition(89, 5, 12), "shadowed")))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(89, 5, 12), "shadowed"))
   }
 
   test("Should warn about variable shadowing from enclosing subquery") {
@@ -270,11 +248,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m, x
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(
-      query,
-      Set(SubqueryVariableShadowing(InputPosition(91, 6, 12), "shadowed")),
-      Seq(CypherVersion.Cypher5)
-    )
+    run(query).hasNotifications(SubqueryVariableShadowing(p(91, 6, 12), "shadowed"))
   }
 
   test("Should warn about multiple shadowed variables in a scoped subquery") {
@@ -285,12 +259,9 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN shadowed AS n, alsoShadowed AS m
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(
-      query,
-      Set(
-        SubqueryVariableShadowing(InputPosition(53, 3, 10), "shadowed"),
-        SubqueryVariableShadowing(InputPosition(66, 3, 23), "alsoShadowed")
-      )
+    run(query).hasNotifications(
+      SubqueryVariableShadowing(p(53, 3, 10), "shadowed"),
+      SubqueryVariableShadowing(p(66, 3, 23), "alsoShadowed")
     )
   }
 
@@ -302,13 +273,9 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN shadowed AS n, alsoShadowed AS m
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(
-      query,
-      Set(
-        SubqueryVariableShadowing(InputPosition(50, 3, 10), "shadowed"),
-        SubqueryVariableShadowing(InputPosition(63, 3, 23), "alsoShadowed")
-      ),
-      Seq(CypherVersion.Cypher5)
+    run(query).hasNotifications(
+      SubqueryVariableShadowing(p(50, 3, 10), "shadowed"),
+      SubqueryVariableShadowing(p(63, 3, 23), "alsoShadowed")
     )
   }
 
@@ -324,12 +291,9 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m, x
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(
-      query,
-      Set(
-        SubqueryVariableShadowing(InputPosition(36, 3, 10), "shadowed"),
-        SubqueryVariableShadowing(InputPosition(97, 5, 12), "shadowed")
-      )
+    run(query).hasNotifications(
+      SubqueryVariableShadowing(p(36, 3, 10), "shadowed"),
+      SubqueryVariableShadowing(p(97, 5, 12), "shadowed")
     )
   }
 
@@ -345,13 +309,9 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m, x
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(
-      query,
-      Set(
-        SubqueryVariableShadowing(InputPosition(33, 3, 10), "shadowed"),
-        SubqueryVariableShadowing(InputPosition(91, 5, 12), "shadowed")
-      ),
-      Seq(CypherVersion.Cypher5)
+    run(query).hasNotifications(
+      SubqueryVariableShadowing(p(33, 3, 10), "shadowed"),
+      SubqueryVariableShadowing(p(91, 5, 12), "shadowed")
     )
   }
 
@@ -366,7 +326,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(query, Set.empty)
+    run(query).hasNotifications()
   }
 
   test("Should not warn about variable shadowing in a subquery if it has been removed from scope by WITH") {
@@ -378,7 +338,10 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(query, Set.empty, Seq(CypherVersion.Cypher5))
+    run(query).hasNotificationsIn {
+      case Cypher25 => Seq.empty
+      case Cypher5  => Seq.empty
+    }
   }
 
   test("Should not allow redeclaration of imported variable in a scoped subquery") {
@@ -390,13 +353,9 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN notShadowed AS x
         |}
         |RETURN *""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(SemanticError(
-        "The variable `notShadowed` is shadowing an imported variable with the same name and needs to be renamed",
-        InputPosition(87, 4, 13)
-      )),
-      versions = CypherVersion.values()
+    run(query).hasError(
+      "The variable `notShadowed` is shadowing an imported variable with the same name and needs to be renamed",
+      p(87, 4, 13)
     )
   }
 
@@ -410,7 +369,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN notShadowed AS x
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(query, Set.empty, Seq(CypherVersion.Cypher5))
+    run(query).hasNoNotifications
   }
 
   test("Should warn about variable shadowing in an union scoped subquery") {
@@ -423,7 +382,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(query, Set(SubqueryVariableShadowing(InputPosition(64, 5, 10), "shadowed")))
+    run(query).hasNotifications(SubqueryVariableShadowing(p(64, 5, 10), "shadowed"))
   }
 
   test("Should warn about variable shadowing in an union subquery") {
@@ -436,11 +395,7 @@ class SubqueryCallSemanticAnalysisTest
         |  RETURN m
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(
-      query,
-      Set(SubqueryVariableShadowing(InputPosition(61, 5, 10), "shadowed")),
-      Seq(CypherVersion.Cypher5)
-    )
+    run(query).hasNotifications(SubqueryVariableShadowing(p(61, 5, 10), "shadowed"))
   }
 
   test("Should warn about variable shadowing in one of the union subquery branches") {
@@ -457,72 +412,40 @@ class SubqueryCallSemanticAnalysisTest
         |  MATCH (x) RETURN x AS m
         |}
         |RETURN *""".stripMargin
-    expectNotificationsFrom(
-      query,
-      Set(SubqueryVariableShadowing(InputPosition(98, 7, 10), "shadowed")),
-      Seq(CypherVersion.Cypher5)
-    )
+    run(query).hasNotifications(SubqueryVariableShadowing(p(98, 7, 10), "shadowed"))
   }
 
   test("Subquery with only importing WITH") {
-    val query = "WITH 1 AS a CALL { WITH a } RETURN a"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          GqlHelper.getGql42001_42N71(1, 20, 19),
-          "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
-          InputPosition(19, 1, 20)
-        )
-      ),
-      versions = Seq(CypherVersion.Cypher5)
+    run("WITH 1 AS a CALL { WITH a } RETURN a").hasError(
+      getGql42001_42N71(1, 20, 19),
+      "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
+      p(19, 1, 20)
     )
   }
 
   test("Scoped Subquery with only USE") {
-    val query = "WITH 1 AS a CALL () { USE x } RETURN a"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          GqlHelper.getGql42001_42N71(1, 23, 22),
-          "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
-          InputPosition(22, 1, 23)
-        )
-      ),
-      pipelineWithUseAsMultipleGraphsSelector
+    run("WITH 1 AS a CALL () { USE x } RETURN a", withMultiGraphs).hasError(
+      getGql42001_42N71(1, 23, 22),
+      "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
+      p(22, 1, 23)
     )
   }
 
   test("Subquery with only USE") {
     val query = "WITH 1 AS a CALL { USE x } RETURN a"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          GqlHelper.getGql42001_42N71(1, 20, 19),
-          "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
-          InputPosition(19, 1, 20)
-        )
-      ),
-      pipelineWithUseAsMultipleGraphsSelector,
-      Seq(CypherVersion.Cypher5)
+    run(query, withMultiGraphs).hasError(
+      getGql42001_42N71(1, 20, 19),
+      "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
+      p(19, 1, 20)
     )
   }
 
   test("Subquery with only USE and importing WITH") {
     val query = "WITH 1 AS a CALL { USE x WITH a } RETURN a"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          GqlHelper.getGql42001_42N71(1, 20, 19),
-          "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
-          InputPosition(19, 1, 20)
-        )
-      ),
-      pipelineWithUseAsMultipleGraphsSelector,
-      Seq(CypherVersion.Cypher5)
+    run(query, withMultiGraphs).hasError(
+      getGql42001_42N71(1, 20, 19),
+      "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
+      p(19, 1, 20)
     )
   }
 
@@ -540,7 +463,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN *
         |""".stripMargin
 
-    expectNoErrorsFrom(query, pipelineWithUseAsSingleGraphSelector)
+    run(query, withSingleGraph).hasNoErrors
   }
 
   test("should allow Multiple USE referencing the same graph when UseAsSingleGraphSelector feature is set") {
@@ -555,7 +478,10 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN *
         |""".stripMargin
 
-    expectNoErrorsFrom(query, pipelineWithUseAsSingleGraphSelector, Seq(CypherVersion.Cypher5))
+    run(query, withSingleGraph).hasErrorsIn {
+      case Cypher25 => Seq.empty
+      case Cypher5  => Seq.empty
+    }
   }
 
   test(
@@ -572,7 +498,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN *
         |""".stripMargin
 
-    expectNoErrorsFrom(query, pipelineWithUseAsSingleGraphSelector)
+    run(query, withSingleGraph).hasNoErrors
   }
 
   test(
@@ -589,7 +515,10 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN *
         |""".stripMargin
 
-    expectNoErrorsFrom(query, pipelineWithUseAsSingleGraphSelector, Seq(CypherVersion.Cypher5))
+    run(query, withSingleGraph).hasErrorsIn {
+      case Cypher25 => Seq.empty
+      case Cypher5  => Seq.empty
+    }
   }
 
   test(
@@ -606,21 +535,10 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN *
         |""".stripMargin
 
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-            .atPosition(5, 3, 31)
-            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA5)
-              .atPosition(5, 3, 31)
-              .build())
-            .build(),
-          messageProvider.createMultipleGraphReferencesError("y"),
-          InputPosition(31, 5, 3)
-        )
-      ),
-      pipelineWithUseAsSingleGraphSelector
+    run(query, withSingleGraph).hasError(
+      gql42NA5(p(31, 5, 3)),
+      messageProvider.createMultipleGraphReferencesError("y"),
+      p(31, 5, 3)
     )
   }
 
@@ -636,22 +554,10 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN *
         |""".stripMargin
 
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-            .atPosition(5, 3, 28)
-            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA5)
-              .atPosition(5, 3, 28)
-              .build())
-            .build(),
-          messageProvider.createMultipleGraphReferencesError("y"),
-          InputPosition(28, 5, 3)
-        )
-      ),
-      pipelineWithUseAsSingleGraphSelector,
-      Seq(CypherVersion.Cypher5)
+    run(query, withSingleGraph).hasError(
+      gql42NA5(p(28, 5, 3)),
+      messageProvider.createMultipleGraphReferencesError("y"),
+      p(28, 5, 3)
     )
   }
 
@@ -665,7 +571,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector)
+    run(query, withMultiGraphs).hasNoErrors
   }
 
   test("Allow view invocation in USE when UseAsMultipleGraphsSelector feature is set") {
@@ -678,7 +584,10 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector, Seq(CypherVersion.Cypher5))
+    run(query, withMultiGraphs).hasErrorsIn {
+      case Cypher25 => Seq.empty
+      case Cypher5  => Seq.empty
+    }
   }
 
   test("Don't allow view invocation in USE when UseAsSingleGraphSelector feature is set in scoped subquery") {
@@ -691,15 +600,9 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          messageProvider.createDynamicGraphReferenceUnsupportedError("graph.byName(g, w(k))"),
-          InputPosition(37, 4, 3)
-        )
-      ),
-      pipelineWithUseAsSingleGraphSelector
+    run(query, withSingleGraph).hasError(
+      messageProvider.createDynamicGraphReferenceUnsupportedError("graph.byName(g, w(k))"),
+      p(37, 4, 3)
     )
   }
 
@@ -713,16 +616,9 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          messageProvider.createDynamicGraphReferenceUnsupportedError("graph.byName(g, w(k))"),
-          InputPosition(30, 4, 3)
-        )
-      ),
-      pipelineWithUseAsSingleGraphSelector,
-      Seq(CypherVersion.Cypher5)
+    run(query, withSingleGraph).hasError(
+      messageProvider.createDynamicGraphReferenceUnsupportedError("graph.byName(g, w(k))"),
+      p(30, 4, 3)
     )
   }
 
@@ -736,7 +632,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector)
+    run(query, withMultiGraphs).hasNoErrors
   }
 
   test("Allow qualified view invocation in USE") {
@@ -749,7 +645,10 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector, Seq(CypherVersion.Cypher5))
+    run(query, withMultiGraphs).hasErrorsIn {
+      case Cypher25 => Seq.empty
+      case Cypher5  => Seq.empty
+    }
   }
 
   test("Allow expressions in view invocations (with feature flag) in scoped subquery") {
@@ -762,7 +661,7 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector)
+    run(query, withMultiGraphs).hasNoErrors
   }
 
   test("Allow expressions in view invocations (with feature flag)") {
@@ -775,7 +674,10 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    expectNoErrorsFrom(query, pipelineWithUseAsMultipleGraphsSelector, Seq(CypherVersion.Cypher5))
+    run(query, withMultiGraphs).hasErrorsIn {
+      case Cypher25 => Seq.empty
+      case Cypher5  => Seq.empty
+    }
   }
 
   test("Expressions in view invocations are checked (with feature flag) in scoped subquery") {
@@ -789,14 +691,9 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN a
         |""".stripMargin
 
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError("Variable `y` not defined", InputPosition(50, 4, 28)),
-        SemanticError("Variable `x` not defined", InputPosition(53, 4, 31))
-      ),
-      pipelineWithUseAsMultipleGraphsSelector,
-      Seq(CypherVersion.Cypher5)
+    run(query, withMultiGraphs).hasErrors(
+      SemanticError("Variable `y` not defined", p(50, 4, 28)),
+      SemanticError("Variable `x` not defined", p(53, 4, 31))
     )
   }
 
@@ -811,12 +708,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN a
         |""".stripMargin
 
-    expectErrorsFrom(
-      query,
-      Set(SemanticError("Variable `y` not defined", InputPosition(47, 4, 28))),
-      pipelineWithUseAsMultipleGraphsSelector,
-      Seq(CypherVersion.Cypher5)
-    )
+    run(query, withMultiGraphs).hasError("Variable `y` not defined", p(47, 4, 28))
   }
 
   test("should allow USE only in leading sub-query position in scoped subquery") {
@@ -830,15 +722,9 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN n
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "USE clause must be the first clause in a (sub-)query.",
-          InputPosition(37, 5, 3)
-        )
-      ),
-      pipelineWithUseAsSingleGraphSelector
+    run(query, withSingleGraph).hasError(
+      "USE clause must be the first clause in a (sub-)query.",
+      p(37, 5, 3)
     )
   }
 
@@ -853,16 +739,9 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN n
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
-          InputPosition(34, 5, 3)
-        )
-      ),
-      pipelineWithUseAsSingleGraphSelector,
-      Seq(CypherVersion.Cypher5)
+    run(query, withSingleGraph).hasError(
+      "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
+      p(34, 5, 3)
     )
   }
 
@@ -877,16 +756,9 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
-          InputPosition(36, 5, 3)
-        )
-      ),
-      pipelineWithUseAsSingleGraphSelector,
-      Seq(CypherVersion.Cypher5)
+    run(query, withSingleGraph).hasError(
+      "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
+      p(36, 5, 3)
     )
   }
 
@@ -901,35 +773,27 @@ class SubqueryCallSemanticAnalysisTest
         |}
         |RETURN a
         |""".stripMargin
-    expectNoErrorsFrom(query, pipelineWithUseAsSingleGraphSelector, Seq(CypherVersion.Cypher5))
+    run(query, withSingleGraph).hasErrorsIn {
+      case Cypher25 => Seq.empty
+      case Cypher5  => Seq.empty
+    }
   }
 
   test("Scoped Subquery with only MATCH") {
     val query = "WITH 1 AS a CALL () { MATCH (n) } RETURN a"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          GqlHelper.getGql42001_42N71(1, 23, 22),
-          "Query cannot conclude with MATCH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
-          InputPosition(22, 1, 23)
-        )
-      )
+    run(query).hasError(
+      getGql42001_42N71(1, 23, 22),
+      "Query cannot conclude with MATCH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
+      p(22, 1, 23)
     )
   }
 
   test("Subquery with only MATCH") {
     val query = "WITH 1 AS a CALL { MATCH (n) } RETURN a"
-    expectErrorsFrom(
-      query,
-      Set(
-        SemanticError(
-          GqlHelper.getGql42001_42N71(1, 20, 19),
-          "Query cannot conclude with MATCH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
-          InputPosition(19, 1, 20)
-        )
-      ),
-      versions = Seq(CypherVersion.Cypher5)
+    run(query).hasError(
+      getGql42001_42N71(1, 20, 19),
+      "Query cannot conclude with MATCH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
+      p(19, 1, 20)
     )
   }
 
@@ -977,43 +841,12 @@ class SubqueryCallSemanticAnalysisTest
            |}
            |RETURN $finalReturn
            |""".stripMargin
-      withClue(query) {
-        val result = runSemanticAnalysisWithCypherVersion(CypherVersion.values(), query)
-        result.errors should be(empty)
-
-        val statement = result.state.statement().asInstanceOf[SingleQuery]
-        val semanticState = result.state.semantics()
-        val finalVariables = semanticState.scope(statement.clauses.last).get.symbolNames
-        finalVariables should equal(finalReturnVars)
-      }
-    }
-  }
-
-  test("RETURN * in a CALL should export variables") {
-    for {
-      subqueryReturn <- returnStarNMCombinations
-      subqueryReturnVars = containedVariables(subqueryReturn)
-      finalReturn <- returnStarNMCombinations
-      finalReturnVars = containedVariables(finalReturn)
-      if finalReturnVars.subsetOf(subqueryReturnVars)
-    } {
-      val query =
-        s"""
-           |CALL {
-           |  MATCH (n), (m)
-           |  RETURN $subqueryReturn
-           |}
-           |RETURN $finalReturn
-           |""".stripMargin
-      withClue(query) {
-        val result = runSemanticAnalysisWithCypherVersion(Seq(CypherVersion.Cypher5), query)
-        result.errors should be(empty)
-
-        val statement = result.state.statement().asInstanceOf[SingleQuery]
-        val semanticState = result.state.semantics()
-        val finalVariables = semanticState.scope(statement.clauses.last).get.symbolNames
-        finalVariables should equal(finalReturnVars)
-      }
+      run(query)
+        .hasNoErrors
+        .assert { result =>
+          val lastClause = result.state.statement().asInstanceOf[SingleQuery].clauses.last
+          result.state.semantics().scope(lastClause).get.symbolNames shouldBe finalReturnVars
+        }
     }
   }
 
@@ -1039,15 +872,15 @@ class SubqueryCallSemanticAnalysisTest
            |}
            |RETURN $finalReturn
            |""".stripMargin
-      withClue(query) {
-        val result = runSemanticAnalysisWithCypherVersion(Seq(CypherVersion.Cypher5), query)
-        result.errors should be(empty)
-
-        val statement = result.state.statement().asInstanceOf[SingleQuery]
-        val semanticState = result.state.semantics()
-        val finalVariables = semanticState.scope(statement.clauses.last).get.symbolNames
-        finalVariables should equal(finalReturnVars)
-      }
+      run(query)
+        .assertIn {
+          case Cypher25 => _ => // No assertion
+          case Cypher5  => res => res.errors shouldBe empty
+        }
+        .assert { result =>
+          val lastClause = result.state.statement().asInstanceOf[SingleQuery].clauses.last
+          result.state.semantics().scope(lastClause).get.symbolNames shouldBe finalReturnVars
+        }
     }
   }
 
@@ -1073,16 +906,12 @@ class SubqueryCallSemanticAnalysisTest
            |}
            |RETURN $finalReturn
            |""".stripMargin
-
-      withClue(query) {
-        val result = runSemanticAnalysisWithCypherVersion(Seq(CypherVersion.Cypher25), query)
-        result.errors should be(empty)
-
-        val statement = result.state.statement().asInstanceOf[SingleQuery]
-        val semanticState = result.state.semantics()
-        val finalVariables = semanticState.scope(statement.clauses.last).get.symbolNames
-        finalVariables should equal(finalReturnVars)
-      }
+      run(query)
+        .hasNoErrors
+        .assert { result =>
+          val lastClause = result.state.statement().asInstanceOf[SingleQuery].clauses.last
+          result.state.semantics().scope(lastClause).get.symbolNames shouldBe finalReturnVars
+        }
     }
   }
 
@@ -1107,22 +936,23 @@ class SubqueryCallSemanticAnalysisTest
            |  RETURN $firstSubqueryReturn
            |    UNION
            |  MATCH (n), (m)
-           |  RETURN $firstSubqueryReturn
+           |  RETURN $secondSubqueryReturn
            |    UNION
            |  MATCH (n), (m)
            |  RETURN $thirdSubqueryReturn
            |}
            |RETURN $finalReturn
            |""".stripMargin
-      withClue(query) {
-        val result = runSemanticAnalysisWithCypherVersion(Seq(CypherVersion.Cypher5), query)
-        result.errors should be(empty)
 
-        val statement = result.state.statement().asInstanceOf[SingleQuery]
-        val semanticState = result.state.semantics()
-        val finalVariables = semanticState.scope(statement.clauses.last).get.symbolNames
-        finalVariables should equal(finalReturnVars)
-      }
+      run(query)
+        .assertIn {
+          case Cypher25 => _ => // No assertion
+          case Cypher5  => _.errors shouldBe empty
+        }
+        .assert { result =>
+          val lastClause = result.state.statement().asInstanceOf[SingleQuery].clauses.last
+          result.state.semantics().scope(lastClause).get.symbolNames shouldBe finalReturnVars
+        }
     }
   }
 
@@ -1154,15 +984,13 @@ class SubqueryCallSemanticAnalysisTest
            |}
            |RETURN $finalReturn
            |""".stripMargin
-      withClue(query) {
-        val result = runSemanticAnalysisWithCypherVersion(Seq(CypherVersion.Cypher25), query)
-        result.errors should be(empty)
 
-        val statement = result.state.statement().asInstanceOf[SingleQuery]
-        val semanticState = result.state.semantics()
-        val finalVariables = semanticState.scope(statement.clauses.last).get.symbolNames
-        finalVariables should equal(finalReturnVars)
-      }
+      run(query)
+        .hasNoErrors
+        .assert { result =>
+          val lastClause = result.state.statement().asInstanceOf[SingleQuery].clauses.last
+          result.state.semantics().scope(lastClause).get.symbolNames shouldBe finalReturnVars
+        }
     }
   }
 

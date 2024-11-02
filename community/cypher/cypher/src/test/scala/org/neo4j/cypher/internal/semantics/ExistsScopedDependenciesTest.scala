@@ -51,7 +51,7 @@ class DummyException() extends RuntimeException
 
 class ExistsScopedDependenciesTest extends CypherFunSuite with AstConstructionTestSupport {
 
-  private val parsing = CompilationPhases.parsing(ParsingConfig(CypherVersion.Default)) andThen Namespacer
+  private val parsing = CompilationPhases.parsing(ParsingConfig()) andThen Namespacer
 
   private val dummyExceptionFactory = new CypherExceptionFactory {
 
@@ -71,7 +71,8 @@ class ExistsScopedDependenciesTest extends CypherFunSuite with AstConstructionTe
 
   }
 
-  val context = new BaseContext {
+  def context(version: CypherVersion): BaseContext = new BaseContext {
+    override def cypherVersion: CypherVersion = version
     override def tracer: CompilationPhaseTracer = CompilationPhaseTracer.NO_TRACING
     override def notificationLogger: InternalNotificationLogger = devNullLogger
     override def cypherExceptionFactory: CypherExceptionFactory = dummyExceptionFactory
@@ -82,7 +83,6 @@ class ExistsScopedDependenciesTest extends CypherFunSuite with AstConstructionTe
     override val errorMessageProvider: ErrorMessageProvider = MessageUtilProvider
     override def cancellationChecker: CancellationChecker = CancellationChecker.NeverCancelled
     override def internalSyntaxUsageStats: InternalSyntaxUsageStats = InternalSyntaxUsageStatsNoOp
-
     override def sessionDatabase: DatabaseReference = null
   }
 
@@ -106,17 +106,19 @@ class ExistsScopedDependenciesTest extends CypherFunSuite with AstConstructionTe
       new AnonymousVariableNameGenerator
     )
 
-    val parsed = parsing.transform(state, context).statement()
+    CypherVersion.values().foreach { version =>
+      val parsed = parsing.transform(state, context(version)).statement()
 
-    val existsExpressions = parsed.folder.findAllByClass[ExistsExpression]
+      val existsExpressions = parsed.folder.findAllByClass[ExistsExpression]
 
-    val outerExists = existsExpressions(0)
-    val nestedExists = existsExpressions(1)
+      val outerExists = existsExpressions(0)
+      val nestedExists = existsExpressions(1)
 
-    outerExists.introducedVariables shouldEqual Set(varFor("n"), varFor("i"), varFor("p"))
-    outerExists.scopeDependencies shouldEqual Set(varFor("m"))
-    nestedExists.introducedVariables shouldEqual Set(varFor("p"))
-    nestedExists.scopeDependencies shouldEqual Set(varFor("m"))
+      outerExists.introducedVariables shouldEqual Set(varFor("n"), varFor("i"), varFor("p"))
+      outerExists.scopeDependencies shouldEqual Set(varFor("m"))
+      nestedExists.introducedVariables shouldEqual Set(varFor("p"))
+      nestedExists.scopeDependencies shouldEqual Set(varFor("m"))
+    }
   }
 
   test(
@@ -139,16 +141,18 @@ class ExistsScopedDependenciesTest extends CypherFunSuite with AstConstructionTe
       new AnonymousVariableNameGenerator
     )
 
-    val parsed = parsing.transform(state, context).statement()
+    CypherVersion.values().foreach { version =>
+      val parsed = parsing.transform(state, context(version)).statement()
 
-    val existsExpressions = parsed.folder.findAllByClass[ExistsExpression]
-    val outerExists = existsExpressions(0)
-    val nestedExists = existsExpressions(1)
+      val existsExpressions = parsed.folder.findAllByClass[ExistsExpression]
+      val outerExists = existsExpressions(0)
+      val nestedExists = existsExpressions(1)
 
-    outerExists.introducedVariables shouldEqual Set(varFor("y"), varFor("n"), varFor("i"), varFor("p"))
-    outerExists.scopeDependencies shouldEqual Set(varFor("x"), varFor("m"))
-    nestedExists.introducedVariables shouldEqual Set(varFor("p"))
-    nestedExists.scopeDependencies shouldEqual Set(varFor("m"), varFor("y"))
+      outerExists.introducedVariables shouldEqual Set(varFor("y"), varFor("n"), varFor("i"), varFor("p"))
+      outerExists.scopeDependencies shouldEqual Set(varFor("x"), varFor("m"))
+      nestedExists.introducedVariables shouldEqual Set(varFor("p"))
+      nestedExists.scopeDependencies shouldEqual Set(varFor("m"), varFor("y"))
+    }
   }
 
   test(
@@ -170,16 +174,19 @@ class ExistsScopedDependenciesTest extends CypherFunSuite with AstConstructionTe
       new AnonymousVariableNameGenerator
     )
 
-    val parsed = parsing.transform(state, context).statement()
+    CypherVersion.values().foreach { version =>
+      val parsed = parsing.transform(state, context(version)).statement()
 
-    val existsExpressions = parsed.folder.findAllByClass[ExistsExpression]
-    val outerExists = existsExpressions(0)
-    val nestedExists = existsExpressions(1)
+      val existsExpressions = parsed.folder.findAllByClass[ExistsExpression]
+      val outerExists = existsExpressions(0)
+      val nestedExists = existsExpressions(1)
 
-    outerExists.introducedVariables shouldEqual Set(varFor("n"), varFor("y"), varFor("p"), varFor("i"))
-    outerExists.scopeDependencies shouldEqual Set(varFor("x"), varFor("m"))
-    nestedExists.introducedVariables shouldEqual Set(varFor("y"), varFor("p"))
-    nestedExists.scopeDependencies shouldEqual Set(varFor("x"), varFor("m"))
+      outerExists.introducedVariables shouldEqual Set(varFor("n"), varFor("y"), varFor("p"), varFor("i"))
+      outerExists.scopeDependencies shouldEqual Set(varFor("x"), varFor("m"))
+      nestedExists.introducedVariables shouldEqual Set(varFor("y"), varFor("p"))
+      nestedExists.scopeDependencies shouldEqual Set(varFor("x"), varFor("m"))
+
+    }
   }
 
   test(
@@ -202,16 +209,18 @@ class ExistsScopedDependenciesTest extends CypherFunSuite with AstConstructionTe
       new AnonymousVariableNameGenerator
     )
 
-    val parsed = parsing.transform(state, context).statement()
+    CypherVersion.values().foreach { version =>
+      val parsed = parsing.transform(state, context(version)).statement()
 
-    val existsExpressions = parsed.folder.findAllByClass[ExistsExpression]
-    val outerExists = existsExpressions(0)
-    val nestedExists = existsExpressions(1)
+      val existsExpressions = parsed.folder.findAllByClass[ExistsExpression]
+      val outerExists = existsExpressions(0)
+      val nestedExists = existsExpressions(1)
 
-    outerExists.introducedVariables shouldEqual Set(varFor("y"), varFor("n"), varFor("z"), varFor("i"), varFor("p"))
-    outerExists.scopeDependencies shouldEqual Set(varFor("x"), varFor("m"))
-    nestedExists.introducedVariables shouldEqual Set(varFor("z"), varFor("p"))
-    nestedExists.scopeDependencies shouldEqual Set(varFor("m"), varFor("y"))
+      outerExists.introducedVariables shouldEqual Set(varFor("y"), varFor("n"), varFor("z"), varFor("i"), varFor("p"))
+      outerExists.scopeDependencies shouldEqual Set(varFor("x"), varFor("m"))
+      nestedExists.introducedVariables shouldEqual Set(varFor("z"), varFor("p"))
+      nestedExists.scopeDependencies shouldEqual Set(varFor("m"), varFor("y"))
+    }
   }
 
   test(
@@ -234,15 +243,18 @@ class ExistsScopedDependenciesTest extends CypherFunSuite with AstConstructionTe
       new AnonymousVariableNameGenerator
     )
 
-    val parsed = parsing.transform(state, context).statement()
+    CypherVersion.values().foreach { version =>
+      val parsed = parsing.transform(state, context(version)).statement()
 
-    val existsExpressions = parsed.folder.findAllByClass[ExistsExpression]
-    val outerExists = existsExpressions(0)
-    val nestedExists = existsExpressions(1)
+      val existsExpressions = parsed.folder.findAllByClass[ExistsExpression]
+      val outerExists = existsExpressions(0)
+      val nestedExists = existsExpressions(1)
 
-    outerExists.introducedVariables shouldEqual Set(varFor("p"), varFor("y"), varFor("n"), varFor("i"), varFor("q"))
-    outerExists.scopeDependencies shouldEqual Set(varFor("m"), varFor("x"))
-    nestedExists.introducedVariables shouldEqual Set(varFor("p"), varFor("q"))
-    nestedExists.scopeDependencies shouldEqual Set(varFor("m"), varFor("y"))
+      outerExists.introducedVariables shouldEqual Set(varFor("p"), varFor("y"), varFor("n"), varFor("i"), varFor("q"))
+      outerExists.scopeDependencies shouldEqual Set(varFor("m"), varFor("x"))
+      nestedExists.introducedVariables shouldEqual Set(varFor("p"), varFor("q"))
+      nestedExists.scopeDependencies shouldEqual Set(varFor("m"), varFor("y"))
+
+    }
   }
 }

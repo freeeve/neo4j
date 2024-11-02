@@ -222,18 +222,18 @@ class SimplifyPredicatesTest extends CypherFunSuite with AstRewritingTestSupport
     assertRewrittenMatches("$n = 2 OR $n = 3", { case Ors(SetExtractor(Equals(_, _), Equals(_, _))) => () })
   }
 
-  ignore("Simplify AND of identical value spread apart") {
+  test("Simplify AND of identical value spread apart") {
     assertRewrittenMatches(
       "$n = 2 AND $m = 3 AND $n = 2",
       { case Ands(SetExtractor(Equals(_, _), Equals(_, _))) => () }
     )
   }
 
-  ignore("Simplify OR of identical value spread apart") {
+  test("Simplify OR of identical value spread apart") {
     assertRewrittenMatches("$n = 2 OR $m = 3 OR $n = 2", { case Ors(SetExtractor(Equals(_, _), Equals(_, _))) => () })
   }
 
-  ignore("Simplify AND of identical value with parenthesis") {
+  test("Simplify AND of identical value with parenthesis") {
     assertRewrittenMatches(
       "$n = 2 AND ($n = 2 AND $m = 3)",
       { case Ands(SetExtractor(Equals(_, _), Equals(_, _))) => () }

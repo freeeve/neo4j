@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
@@ -40,7 +41,7 @@ class UnionPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIn
         |MATCH (a:B) RETURN 1 AS b, a AS a
         |""".stripMargin
 
-    cfg.plan(query) shouldEqual cfg.planBuilder()
+    cfg.plan(Cypher5, query) shouldEqual cfg.planBuilder()
       .produceResults("a", "b")
       .union()
       .|.projection("a AS a", "b AS b")
@@ -66,7 +67,7 @@ class UnionPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIn
         |MATCH (a:B) RETURN 1 AS b, a AS a"""
         .stripMargin
 
-    cfg.plan(query) shouldEqual cfg.planBuilder()
+    cfg.plan(Cypher5, query) shouldEqual cfg.planBuilder()
       .produceResults("a", "b")
       .distinct("a AS a", "b AS b")
       .union()
@@ -95,7 +96,7 @@ class UnionPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIn
         |MATCH (a:C) RETURN a AS a, 1 AS b
         |""".stripMargin
 
-    cfg.plan(query) shouldEqual cfg.planBuilder()
+    cfg.plan(Cypher5, query) shouldEqual cfg.planBuilder()
       .produceResults("a", "b")
       .union()
       .|.projection("a AS a", "b AS b")
@@ -128,7 +129,7 @@ class UnionPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIn
         |MATCH (a:C) RETURN a AS a, 1 AS b
         |""".stripMargin
 
-    cfg.plan(query) shouldEqual cfg.planBuilder()
+    cfg.plan(Cypher5, query) shouldEqual cfg.planBuilder()
       .produceResults("a", "b")
       .distinct("a AS a", "b AS b")
       .union()

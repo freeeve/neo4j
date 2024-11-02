@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.frontend.phases.rewriting.cnf
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.when
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
@@ -270,20 +271,18 @@ object TestContext extends MockitoSugar {
   def apply(monitors: Monitors): TestContext = new TestContext(monitors)
 }
 
-class TestContext(override val monitors: Monitors) extends BaseContext {
+class TestContext(
+  override val monitors: Monitors
+) extends BaseContext {
+
+  override def cypherVersion: CypherVersion =
+    throw new UnsupportedOperationException("This context do not support cypher version")
   override def tracer: CompilationPhaseTracer = CompilationPhaseTracer.NO_TRACING
-
   override def notificationLogger: InternalNotificationLogger = ???
-
   override def cypherExceptionFactory: CypherExceptionFactory = ???
-
   override def errorHandler: Seq[SemanticErrorDef] => Unit = _ => ()
-
   override def errorMessageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider
-
   override def cancellationChecker: CancellationChecker = CancellationChecker.NeverCancelled
-
   override def internalSyntaxUsageStats: InternalSyntaxUsageStats = InternalSyntaxUsageStatsNoOp
-
   override def sessionDatabase: DatabaseReference = null
 }

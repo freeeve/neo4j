@@ -16,7 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
-import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.rewriting.Deprecations.SemanticallyDeprecatedFeatures
 import org.neo4j.cypher.internal.rewriting.Deprecations.SyntacticallyDeprecatedFeatures
@@ -24,11 +24,11 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class ReplaceDeprecatedCypherSyntaxTest extends CypherFunSuite with AstConstructionTestSupport with RewritePhaseTest {
 
-  override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
-    SyntaxDeprecationWarningsAndReplacements(SyntacticallyDeprecatedFeatures(CypherVersion.Default)) andThen
+  override val rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
+    SyntaxDeprecationWarningsAndReplacements(SyntacticallyDeprecatedFeatures) andThen
       PreparatoryRewriting andThen
       SemanticAnalysis(warn = true) andThen
-      SyntaxDeprecationWarningsAndReplacements(SemanticallyDeprecatedFeatures(CypherVersion.Default))
+      SyntaxDeprecationWarningsAndReplacements(SemanticallyDeprecatedFeatures)
 
   override def astRewriteAndAnalyze: Boolean = false
 
@@ -41,6 +41,7 @@ class ReplaceDeprecatedCypherSyntaxTest extends CypherFunSuite with AstConstruct
 
   test("should rewrite setting of relationship properties to use properties function in a Set Clause") {
     assertRewritten(
+      Cypher5,
       "MATCH (g)-[r:KNOWS]->(k) SET g = r",
       "MATCH (g)-[r:KNOWS]->(k) SET g = properties(r)"
     )
@@ -48,6 +49,7 @@ class ReplaceDeprecatedCypherSyntaxTest extends CypherFunSuite with AstConstruct
 
   test("should rewrite setting of node properties to use properties function in a Set Clause") {
     assertRewritten(
+      Cypher5,
       "MATCH (g)-[r:KNOWS]->(k) SET g = k",
       "MATCH (g)-[r:KNOWS]->(k) SET g = properties(k)"
     )
@@ -55,6 +57,7 @@ class ReplaceDeprecatedCypherSyntaxTest extends CypherFunSuite with AstConstruct
 
   test("should rewrite setting of relationship properties to use properties function in a Mutate Set Clause") {
     assertRewritten(
+      Cypher5,
       "MATCH (g)-[r:KNOWS]->(k) SET g += r",
       "MATCH (g)-[r:KNOWS]->(k) SET g += properties(r)"
     )
@@ -62,6 +65,7 @@ class ReplaceDeprecatedCypherSyntaxTest extends CypherFunSuite with AstConstruct
 
   test("should rewrite setting of node properties to use properties function in a Mutate Set Clause") {
     assertRewritten(
+      Cypher5,
       "MATCH (g)-[r:KNOWS]->(k) SET g += k",
       "MATCH (g)-[r:KNOWS]->(k) SET g += properties(k)"
     )

@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher
 
+import org.neo4j.cypher.internal.options.CypherVersion
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.Transaction
 import org.neo4j.internal.kernel.api.security.SecurityContext
@@ -63,10 +64,14 @@ class CypherQueryObfuscatorIT extends CypherFunSuite {
         "ALTER CURRENT USER SET PASSWORD FROM ****** TO ******"
     )
 
-    for ((rawText, obfuscatedText) <- literalTests) {
-      test(s"$rawText [text]") {
-        val ob = obfuscatorFactory.obfuscatorForQuery(rawText)
-        ob.obfuscateText(rawText, 0) should equal(obfuscatedText)
+    for {
+      (rawText, obfuscatedText) <- literalTests
+      version <- CypherVersion.values + CypherVersion.default
+    } {
+      val renderedVersion = if (version == CypherVersion.default) "" else "CYPHER " + version.render + " "
+      test(s"$renderedVersion$rawText [text]") {
+        obfuscatorFactory.obfuscatorForQuery(renderedVersion + rawText)
+          .obfuscateText(rawText, 0) should equal(obfuscatedText)
       }
     }
   }
@@ -111,11 +116,15 @@ class CypherQueryObfuscatorIT extends CypherFunSuite {
     )
   )
 
-  for (ParameterTest(rawText, obfuscatedText, rawParameters, obfuscatedParameters) <- parameterTests) {
-    test(s"$rawText [params]") {
+  for {
+    ParameterTest(rawText, obfuscatedText, rawParameters, obfuscatedParameters) <- parameterTests
+    version <- CypherVersion.values
+  } {
+    val renderedVersion = if (version == CypherVersion.default) "" else "CYPHER " + version.render + " "
+    test(s"$renderedVersion$rawText [params]") {
       val params = ValueUtils.asMapValue(rawParameters.asJava)
       val expectedParams = ValueUtils.asMapValue(obfuscatedParameters.asJava)
-      val ob = obfuscatorFactory.obfuscatorForQuery(rawText)
+      val ob = obfuscatorFactory.obfuscatorForQuery(renderedVersion + rawText)
       ob.obfuscateText(rawText, 0) should equal(obfuscatedText)
       ob.obfuscateParameters(params) should equal(expectedParams)
     }

@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class TypePredicateExpressionsSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAnalysisTestSuite {
@@ -25,11 +26,10 @@ class TypePredicateExpressionsSemanticAnalysisTest extends CypherFunSuite with N
       """RETURN 1 IS :: INTEGER | FLOAT NOT NULL
         |""".stripMargin
 
-    val result = runSemanticAnalysis(query)
-
-    result.errors.map(e => (e.msg, e.position.line, e.position.column)) should equal(List(
-      ("All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`", 1, 16)
-    ))
+    run(query).hasError(
+      "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`",
+      p(15, 1, 16)
+    )
   }
 
   test("Simple Closed Dynamic Union using ANY syntax with different nullabilities should error") {
@@ -37,11 +37,10 @@ class TypePredicateExpressionsSemanticAnalysisTest extends CypherFunSuite with N
       """RETURN 1 IS :: ANY<INTEGER | FLOAT NOT NULL>
         |""".stripMargin
 
-    val result = runSemanticAnalysis(query)
-
-    result.errors.map(e => (e.msg, e.position.line, e.position.column)) should equal(List(
-      ("All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`", 1, 20)
-    ))
+    run(query).hasError(
+      "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`",
+      p(19, 1, 20)
+    )
   }
 
   test("Dynamic union within a list should fail with different nullabilities") {
@@ -49,11 +48,10 @@ class TypePredicateExpressionsSemanticAnalysisTest extends CypherFunSuite with N
       """RETURN 1 IS :: LIST<ANY<INTEGER | FLOAT NOT NULL>>
         |""".stripMargin
 
-    val result = runSemanticAnalysis(query)
-
-    result.errors.map(e => (e.msg, e.position.line, e.position.column)) should equal(List(
-      ("All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`", 1, 25)
-    ))
+    run(query).hasError(
+      "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`",
+      p(24, 1, 25)
+    )
   }
 
   test("Deeper nested unions should be found and fail semantic check") {
@@ -61,11 +59,10 @@ class TypePredicateExpressionsSemanticAnalysisTest extends CypherFunSuite with N
       """RETURN 1 IS :: LIST<ANY<INTEGER NOT NULL | FLOAT NOT NULL | LIST<ANY<INTEGER NOT NULL | FLOAT>> NOT NULL>>
         |""".stripMargin
 
-    val result = runSemanticAnalysis(query)
-
-    result.errors.map(e => (e.msg, e.position.line, e.position.column)) should equal(List(
-      ("All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`", 1, 70)
-    ))
+    run(query).hasError(
+      "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`",
+      p(69, 1, 70)
+    )
   }
 
   test("Nested unions should be uncovered during normalization and fail semantic check") {
@@ -73,71 +70,47 @@ class TypePredicateExpressionsSemanticAnalysisTest extends CypherFunSuite with N
       """RETURN 1 IS :: ANY<ANY<BOOL | BOOLEAN | INT NOT NULL> | ANY<ANY<BOOL NOT NULL>>>
         |""".stripMargin
 
-    val result = runSemanticAnalysis(query)
-
-    result.errors.map(e => (e.msg, e.position.line, e.position.column)) should equal(List(
-      ("All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`", 1, 20)
-    ))
+    run(query).hasError(
+      "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`",
+      p(19, 1, 20)
+    )
   }
 
   test("Nested unions which are okay by themselves should be uncovered during normalization and fail semantic check") {
     val query = "RETURN 1 IS :: ANY<ANY<BOOL | BOOLEAN | INT> | ANY<ANY<BOOL NOT NULL>>>"
 
-    val result = runSemanticAnalysis(query)
-
-    result.errors.map(e => (e.msg, e.position.line, e.position.column)) should equal(List(
-      ("All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`", 1, 20)
-    ))
+    run(query).hasError(
+      "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`",
+      p(19, 1, 20)
+    )
   }
 
   test("ANY<BOOLEAN NOT NULL | BOOLEAN> is not allowed") {
     val query = "RETURN 1 IS :: ANY<BOOLEAN NOT NULL | BOOLEAN>"
 
-    val result = runSemanticAnalysis(query)
-
-    result.errors.map(e => (e.msg, e.position.line, e.position.column)) should equal(List(
-      ("All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`", 1, 20)
-    ))
+    run(query).hasError(
+      "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`",
+      p(19, 1, 20)
+    )
   }
 
   test("ANY<INTEGER | BOOLEAN> should be allowed") {
-    val query = "RETURN 1 IS :: ANY<INTEGER | BOOLEAN>"
-
-    val result = runSemanticAnalysis(query)
-
-    result.errors shouldBe empty
+    run("RETURN 1 IS :: ANY<INTEGER | BOOLEAN>").hasNoErrors
   }
 
   test("ANY<INTEGER NOT NULL | BOOLEAN NOT NULL> should be allowed") {
-    val query = "RETURN 1 IS :: ANY<INTEGER NOT NULL | BOOLEAN NOT NULL>"
-
-    val result = runSemanticAnalysis(query)
-
-    result.errors shouldBe empty
+    run("RETURN 1 IS :: ANY<INTEGER NOT NULL | BOOLEAN NOT NULL>").hasNoErrors
   }
 
   test("ANY<NOTHING | BOOLEAN> should be allowed") {
-    val query = "RETURN 1 IS :: ANY<NOTHING | BOOLEAN>"
-
-    val result = runSemanticAnalysis(query)
-
-    result.errors shouldBe empty
+    run("RETURN 1 IS :: ANY<NOTHING | BOOLEAN>").hasNoErrors
   }
 
   test("ANY<NOTHING NOT NULL | BOOLEAN> should be allowed as it is the same as ANY<NOTHING | BOOLEAN>") {
-    val query = "RETURN 1 IS :: ANY<NOTHING NOT NULL | BOOLEAN>"
-
-    val result = runSemanticAnalysis(query)
-
-    result.errors shouldBe empty
+    run("RETURN 1 IS :: ANY<NOTHING NOT NULL | BOOLEAN>").hasNoErrors
   }
 
   test("ANY<NULL NOT NULL | BOOLEAN> should be allowed as it is the same as ANY<NOTHING | BOOLEAN>") {
-    val query = "RETURN 1 IS :: ANY<NULL NOT NULL | BOOLEAN>"
-
-    val result = runSemanticAnalysis(query)
-
-    result.errors shouldBe empty
+    run("RETURN 1 IS :: ANY<NULL NOT NULL | BOOLEAN>").hasNoErrors
   }
-
 }
