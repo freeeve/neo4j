@@ -18,7 +18,6 @@ package org.neo4j.cypher.internal.frontend.label_expressions
 
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidEntityType
 import org.neo4j.cypher.internal.frontend.SemanticAnalysisTestSuiteWithDefaultQuery
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.TestName
