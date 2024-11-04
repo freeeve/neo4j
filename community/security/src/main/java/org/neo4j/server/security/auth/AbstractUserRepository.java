@@ -106,8 +106,11 @@ public abstract class AbstractUserRepository extends LifecycleAdapter implements
             throw new InvalidArgumentsException("The provided username is empty.");
         }
         if (!usernamePattern.matcher(username).matches()) {
-            throw new InvalidArgumentsException("Username '" + username
-                    + "' contains illegal characters. Use ascii characters that are not ',', ':' or whitespaces.");
+            throw InvalidArgumentsException.inputContainsInvalidCharacters(
+                    username,
+                    "username",
+                    "Username '" + username
+                            + "' contains illegal characters. Use ascii characters that are not ',', ':' or whitespaces.");
         }
     }
 

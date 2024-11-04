@@ -363,4 +363,17 @@ public class InvalidArgumentException extends Neo4jException {
         var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of("INTEGER", "FLOAT"), gotType);
         return new InvalidArgumentException(gql, "Factor must be either integer of floating point number.");
     }
+
+    public static InvalidArgumentException inputContainsInvalidCharacters(
+            String invalidInput, String context, String legacyMessage) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+                .withParam(GqlParams.StringParam.input, invalidInput)
+                .withParam(GqlParams.StringParam.context, context)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N82)
+                        .withParam(GqlParams.StringParam.input, invalidInput)
+                        .withParam(GqlParams.StringParam.context, context)
+                        .build())
+                .build();
+        return new InvalidArgumentException(gql, legacyMessage);
+    }
 }

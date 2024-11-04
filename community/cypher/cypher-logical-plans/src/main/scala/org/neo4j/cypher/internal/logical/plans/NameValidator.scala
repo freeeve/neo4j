@@ -37,7 +37,9 @@ object NameValidator {
     if (name == null || name.isEmpty)
       throw new InvalidArgumentException("The provided username is empty.")
     if (!usernamePattern.matcher(name).matches)
-      throw new InvalidArgumentException(
+      throw InvalidArgumentException.inputContainsInvalidCharacters(
+        name,
+        "username",
         s"""Username '$name' contains illegal characters.
            |Use ascii characters that are not ',', ':' or whitespaces.""".stripMargin
       )
@@ -48,7 +50,9 @@ object NameValidator {
     if (name == null || name.isEmpty)
       throw new InvalidArgumentException("The provided role name is empty.")
     if (!roleNamePattern.matcher(name).matches)
-      throw new InvalidArgumentException(
+      throw InvalidArgumentException.inputContainsInvalidCharacters(
+        name,
+        "role name",
         s"""Role name '$name' contains illegal characters.
            |Use simple ascii characters, numbers and underscores.""".stripMargin
       )

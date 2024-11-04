@@ -335,4 +335,17 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
         return new InvalidArgumentsException(
                 gql, String.format("Option `%s` requires integer argument, got `%s`", option, value));
     }
+
+    public static InvalidArgumentsException inputContainsInvalidCharacters(
+            String invalidInput, String context, String legacyMessage) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+                .withParam(GqlParams.StringParam.input, invalidInput)
+                .withParam(GqlParams.StringParam.context, context)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N82)
+                        .withParam(GqlParams.StringParam.input, invalidInput)
+                        .withParam(GqlParams.StringParam.context, context)
+                        .build())
+                .build();
+        return new InvalidArgumentsException(gql, legacyMessage);
+    }
 }

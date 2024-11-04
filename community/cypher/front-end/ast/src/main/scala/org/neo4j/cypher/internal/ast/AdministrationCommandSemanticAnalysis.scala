@@ -53,4 +53,16 @@ object AdministrationCommandSemanticAnalysis {
   ): SemanticCheck =
     SemanticCheck.error(SemanticError.duplicateClause(clause, legacyMessage, position))
 
+  def inputContainsInvalidCharactersError(
+    invalidInput: String,
+    context: String,
+    legacyMessage: String,
+    position: InputPosition
+  ): SemanticCheck =
+    SemanticCheck.error(SemanticError.inputContainsInvalidCharacters(
+      invalidInput,
+      context,
+      legacyMessage,
+      position
+    ))
 }

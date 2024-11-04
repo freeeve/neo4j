@@ -59,6 +59,14 @@ class NameValidatorTest extends CypherFunSuite {
           """Username 'user:' contains illegal characters.
             |Use ascii characters that are not ',', ':' or whitespaces.""".stripMargin
         )
+        e.gqlStatus() should be("22N05")
+        e.statusDescription() should include("Invalid input 'user:' for username.")
+        e.cause() should not be empty
+        e.cause().get().gqlStatus() should be("22N82")
+        e.cause().get().statusDescription() should include(
+          "Input 'user:' contains invalid characters for username. Special characters may require that the input is quoted using backticks."
+        )
+
     }
   }
 
@@ -96,6 +104,13 @@ class NameValidatorTest extends CypherFunSuite {
         e.getMessage should be(
           """Role name 'role%' contains illegal characters.
             |Use simple ascii characters, numbers and underscores.""".stripMargin
+        )
+        e.gqlStatus() should be("22N05")
+        e.statusDescription() should include("Invalid input 'role%' for role name.")
+        e.cause() should not be empty
+        e.cause().get().gqlStatus() should be("22N82")
+        e.cause().get().statusDescription() should include(
+          "Input 'role%' contains invalid characters for role name. Special characters may require that the input is quoted using backticks."
         )
     }
   }

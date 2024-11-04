@@ -879,6 +879,25 @@ object SemanticError {
 
     SemanticError(gql, s"$name(...) requires a pattern containing a single relationship", position)
   }
+
+  def inputContainsInvalidCharacters(
+    invalidInput: String,
+    context: String,
+    legacyMessage: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+      .atPosition(position.line, position.column, position.offset)
+      .withParam(GqlParams.StringParam.input, invalidInput)
+      .withParam(GqlParams.StringParam.context, context)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N82)
+        .atPosition(position.line, position.column, position.offset)
+        .withParam(GqlParams.StringParam.input, invalidInput)
+        .withParam(GqlParams.StringParam.context, context)
+        .build())
+      .build()
+    SemanticError(gql, legacyMessage, position)
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

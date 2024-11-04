@@ -20,6 +20,7 @@
 package org.neo4j.server.security.auth;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -133,22 +134,60 @@ class FileUserRepositoryTest {
         assertThatThrownBy(() -> users.assertValidUsername(""))
                 .isInstanceOf(InvalidArgumentsException.class)
                 .hasMessage("The provided username is empty.");
-        assertThatThrownBy(() -> users.assertValidUsername(","))
+        var e3 = catchThrowable(() -> users.assertValidUsername(","));
+        assertThat(e3)
                 .isInstanceOf(InvalidArgumentsException.class)
                 .hasMessage(
                         "Username ',' contains illegal characters. Use ascii characters that are not ',', ':' or whitespaces.");
-        assertThatThrownBy(() -> users.assertValidUsername("with space"))
+        assertThat(((InvalidArgumentsException) e3).gqlStatus()).isEqualTo("22N05");
+        assertThat(((InvalidArgumentsException) e3).statusDescription()).contains("Invalid input ',' for username.");
+        assertThat(((InvalidArgumentsException) e3).cause()).isPresent();
+        assertThat(((InvalidArgumentsException) e3).cause().get().gqlStatus()).isEqualTo("22N82");
+        assertThat(((InvalidArgumentsException) e3).cause().get().statusDescription())
+                .contains(
+                        "Input ',' contains invalid characters for username. Special characters may require that the input is quoted using backticks.");
+
+        var e4 = catchThrowable(() -> users.assertValidUsername("with space"));
+        assertThat(e4)
                 .isInstanceOf(InvalidArgumentsException.class)
                 .hasMessage(
                         "Username 'with space' contains illegal characters. Use ascii characters that are not ',', ':' or whitespaces.");
-        assertThatThrownBy(() -> users.assertValidUsername("with:colon"))
+        assertThat(((InvalidArgumentsException) e4).gqlStatus()).isEqualTo("22N05");
+        assertThat(((InvalidArgumentsException) e4).statusDescription())
+                .contains("Invalid input 'with space' for username.");
+        assertThat(((InvalidArgumentsException) e4).cause()).isPresent();
+        assertThat(((InvalidArgumentsException) e4).cause().get().gqlStatus()).isEqualTo("22N82");
+        assertThat(((InvalidArgumentsException) e4).cause().get().statusDescription())
+                .contains(
+                        "Input 'with space' contains invalid characters for username. Special characters may require that the input is quoted using backticks.");
+
+        var e5 = catchThrowable(() -> users.assertValidUsername("with:colon"));
+        assertThat(e5)
                 .isInstanceOf(InvalidArgumentsException.class)
                 .hasMessage(
                         "Username 'with:colon' contains illegal characters. Use ascii characters that are not ',', ':' or whitespaces.");
-        assertThatThrownBy(() -> users.assertValidUsername("withå"))
+        assertThat(((InvalidArgumentsException) e5).gqlStatus()).isEqualTo("22N05");
+        assertThat(((InvalidArgumentsException) e5).statusDescription())
+                .contains("Invalid input 'with:colon' for username.");
+        assertThat(((InvalidArgumentsException) e5).cause()).isPresent();
+        assertThat(((InvalidArgumentsException) e5).cause().get().gqlStatus()).isEqualTo("22N82");
+        assertThat(((InvalidArgumentsException) e5).cause().get().statusDescription())
+                .contains(
+                        "Input 'with:colon' contains invalid characters for username. Special characters may require that the input is quoted using backticks.");
+
+        var e6 = catchThrowable(() -> users.assertValidUsername("withå"));
+        assertThat(e6)
                 .isInstanceOf(InvalidArgumentsException.class)
                 .hasMessage(
                         "Username 'withå' contains illegal characters. Use ascii characters that are not ',', ':' or whitespaces.");
+        assertThat(((InvalidArgumentsException) e6).gqlStatus()).isEqualTo("22N05");
+        assertThat(((InvalidArgumentsException) e6).statusDescription())
+                .contains("Invalid input 'withå' for username.");
+        assertThat(((InvalidArgumentsException) e6).cause()).isPresent();
+        assertThat(((InvalidArgumentsException) e6).cause().get().gqlStatus()).isEqualTo("22N82");
+        assertThat(((InvalidArgumentsException) e6).cause().get().statusDescription())
+                .contains(
+                        "Input 'withå' contains invalid characters for username. Special characters may require that the input is quoted using backticks.");
     }
 
     @Test

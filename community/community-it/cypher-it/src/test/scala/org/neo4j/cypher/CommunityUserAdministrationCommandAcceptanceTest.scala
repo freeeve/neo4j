@@ -789,21 +789,37 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
     // THEN
     execute("SHOW USERS").toSet shouldBe Set(defaultUser)
 
-    the[InvalidArgumentException] thrownBy {
+    val e3 = the[InvalidArgumentException] thrownBy {
       // WHEN
       execute("CREATE USER `neo:4j` SET PASSWORD 'password' SET PASSWORD CHANGE REQUIRED")
       // THEN
-    } should have message
+    }
+    e3 should have message
       """Username 'neo:4j' contains illegal characters.
         |Use ascii characters that are not ',', ':' or whitespaces.""".stripMargin
+    e3.gqlStatus() should be("22N05")
+    e3.statusDescription() should include("Invalid input 'neo:4j' for username.")
+    e3.cause() should not be empty
+    e3.cause().get().gqlStatus() should be("22N82")
+    e3.cause().get().statusDescription() should include(
+      "Input 'neo:4j' contains invalid characters for username. Special characters may require that the input is quoted using backticks."
+    )
 
-    the[InvalidArgumentException] thrownBy {
+    val e4 = the[InvalidArgumentException] thrownBy {
       // WHEN
       execute("CREATE USER $user SET PASSWORD 'password' SET PASSWORD CHANGE REQUIRED", Map("user" -> "neo:4j"))
       // THEN
-    } should have message
+    }
+    e4 should have message
       """Username 'neo:4j' contains illegal characters.
         |Use ascii characters that are not ',', ':' or whitespaces.""".stripMargin
+    e4.gqlStatus() should be("22N05")
+    e4.statusDescription() should include("Invalid input 'neo:4j' for username.")
+    e4.cause() should not be empty
+    e4.cause().get().gqlStatus() should be("22N82")
+    e4.cause().get().statusDescription() should include(
+      "Input 'neo:4j' contains invalid characters for username. Special characters may require that the input is quoted using backticks."
+    )
 
     // THEN
     execute("SHOW USERS").toSet shouldBe Set(defaultUser)

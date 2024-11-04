@@ -1765,11 +1765,9 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N82(
             new GqlStatus("22N82"),
             """
-                    Input { %s } contains invalid characters for { %s }. Allowed characters are { %s }. To use these characters, the input needs to be quoted using backticks.""",
-            new GqlParams.GqlParam[] {
-                GqlParams.StringParam.input, GqlParams.StringParam.context, GqlParams.ListParam.characterRangeList
-            },
-            Map.of(GqlParams.ListParam.characterRangeList, GqlParams.JoinStyle.COMMAD),
+                    Input { %s } contains invalid characters for { %s }. Special characters may require that the input is quoted using backticks.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.StringParam.context},
+            emptyMap(),
             Condition.DATA_EXCEPTION,
             "input contains invalid characters",
             ErrorClassification.CLIENT_ERROR),

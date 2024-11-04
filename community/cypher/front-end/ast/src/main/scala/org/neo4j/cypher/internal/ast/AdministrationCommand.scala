@@ -1530,7 +1530,9 @@ final case class CreateCompositeDatabase(
     case _ =>
       databaseName match {
         case nsn @ NamespacedName(_, Some(_)) =>
-          error(
+          AdministrationCommandSemanticAnalysis.inputContainsInvalidCharactersError(
+            nsn.toString,
+            "composite database name",
             s"Failed to create the specified composite database '${nsn.toString}': COMPOSITE DATABASE names cannot contain \".\". " +
               "COMPOSITE DATABASE names using '.' must be quoted with backticks e.g. `composite.database`.",
             nsn.position
@@ -1734,7 +1736,9 @@ final case class CreateLocalDatabaseAlias(
 
   private def namespacedNameHasNoDots: SemanticCheck = aliasName match {
     case nsn @ NamespacedName(nameComponents, Some(_)) =>
-      if (nameComponents.length > 1) error(
+      if (nameComponents.length > 1) AdministrationCommandSemanticAnalysis.inputContainsInvalidCharactersError(
+        nsn.toString,
+        "local alias name",
         s"'.' is not a valid character in the local alias name '${nsn.toString}'. " +
           "Local alias names using '.' must be quoted with backticks when adding a local alias to a composite database e.g. `local.alias`.",
         nsn.position
