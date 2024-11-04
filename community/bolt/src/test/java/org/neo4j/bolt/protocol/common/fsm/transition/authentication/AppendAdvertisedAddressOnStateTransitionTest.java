@@ -77,7 +77,9 @@ class AppendAdvertisedAddressOnStateTransitionTest
                         new AdvertisedAddressScenario(
                                 new InetSocketAddress("my-db.neo4j.io", 7688), "my-db.neo4j.io:7688", request),
                         new AdvertisedAddressScenario(
-                                UnixDomainSocketAddress.of("/var/my.sock"), "/var/my.sock", request)));
+                                UnixDomainSocketAddress.of("/var/my.sock"),
+                                UnixDomainSocketAddress.of("/var/my.sock").toString(),
+                                request)));
     }
 
     @TestFactory
