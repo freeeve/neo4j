@@ -3693,7 +3693,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
           _.withSyntaxErrorContaining("Invalid index type b-tree, use range, point or text index instead.")
         case _ if failAsCreateCommand =>
           _.withSyntaxErrorContaining(
-            "Invalid input 'BTREE': expected 'ALIAS', 'CONSTRAINT', 'DATABASE', 'COMPOSITE DATABASE', 'INDEX', " +
+            "Invalid input 'BTREE': expected 'ALIAS', 'CONSTRAINT', 'DATABASE', 'COMPOSITE DATABASE', 'IMMUTABLE', 'INDEX', " +
               "'FULLTEXT INDEX', 'LOOKUP INDEX', 'POINT INDEX', 'RANGE INDEX', 'TEXT INDEX', 'VECTOR INDEX', 'ROLE' or 'USER'"
           )
         case _ =>

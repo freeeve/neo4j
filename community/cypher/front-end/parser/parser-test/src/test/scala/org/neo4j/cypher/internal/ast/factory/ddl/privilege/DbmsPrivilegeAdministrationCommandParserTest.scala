@@ -56,6 +56,7 @@ import org.neo4j.cypher.internal.ast.ShowServerAction
 import org.neo4j.cypher.internal.ast.ShowUserAction
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
@@ -66,7 +67,7 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
   def privilegeTests(command: String, preposition: String, privilegeFunc: dbmsPrivilegeFunc): Unit = {
     Seq[Immutable](true, false).foreach {
       immutable =>
-        val immutableString = immutableOrEmpty(immutable)
+        val immutableString = maybeImmutable(immutable)
         val offset = command.length + immutableString.length + 1
         Seq(
           ("CREATE ROLE", CreateRoleAction),

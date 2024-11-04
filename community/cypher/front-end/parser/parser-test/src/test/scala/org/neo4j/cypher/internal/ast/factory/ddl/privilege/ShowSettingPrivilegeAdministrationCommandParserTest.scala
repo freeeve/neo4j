@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.ast.SettingQualifier
 import org.neo4j.cypher.internal.ast.ShowSettingAction
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.util.InputPosition
 
@@ -35,7 +36,7 @@ class ShowSettingPrivilegeAdministrationCommandParserTest extends Administration
     case (verb: String, preposition: String, func: settingPrivilegeFunc) =>
       Seq[Immutable](true, false).foreach {
         immutable =>
-          val immutableString = immutableOrEmpty(immutable)
+          val immutableString = maybeImmutable(immutable)
           Seq(
             ("SHOW SETTING", ShowSettingAction)
           ).foreach {

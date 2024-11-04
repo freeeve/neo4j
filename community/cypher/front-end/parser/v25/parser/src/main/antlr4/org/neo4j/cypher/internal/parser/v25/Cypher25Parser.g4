@@ -1133,7 +1133,7 @@ reallocateDatabases
 // Role commands
 
 createRole
-   : ROLE commandNameExpression (IF NOT EXISTS)? (AS COPY OF commandNameExpression)?
+   : IMMUTABLE? ROLE commandNameExpression (IF NOT EXISTS)? (AS COPY OF commandNameExpression)?
    ;
 
 dropRole

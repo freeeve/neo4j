@@ -2250,10 +2250,12 @@ class Neo4jASTFactory(query: String, astExceptionFactory: ASTExceptionFactory, l
     replace: Boolean,
     roleName: SimpleEither[StringPos[InputPosition], Parameter],
     from: SimpleEither[StringPos[InputPosition], Parameter],
-    ifNotExists: Boolean
+    ifNotExists: Boolean,
+    immutable: Boolean
   ): CreateRole = {
     CreateRole(
       stringLiteralOrParameterExpression(roleName.asScala),
+      immutable,
       Option(from).map(roleName => stringLiteralOrParameterExpression(roleName.asScala)),
       ifExistsDo(replace, ifNotExists)
     )(p)

@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.ast.factory.ddl
 
 import org.neo4j.cypher.internal.ast
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
@@ -131,7 +132,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
 
   type Immutable = Boolean
 
-  def immutableOrEmpty(immutable: Immutable): String = if (immutable) " IMMUTABLE" else ""
+  def maybeImmutablePad(immutable: Immutable): String = " " * maybeImmutable(immutable).length
 
   type resourcePrivilegeFunc = (
     ast.PrivilegeType,

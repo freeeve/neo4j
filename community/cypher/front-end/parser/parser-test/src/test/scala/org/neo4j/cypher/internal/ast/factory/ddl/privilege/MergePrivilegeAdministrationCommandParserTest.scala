@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.ast.PropertiesResource
 import org.neo4j.cypher.internal.ast.RelationshipAllQualifier
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
@@ -42,7 +43,7 @@ class MergePrivilegeAdministrationCommandParserTest extends AdministrationAndSch
     case (verb: String, preposition: String, func: resourcePrivilegeFunc) =>
       Seq[Immutable](true, false).foreach {
         immutable =>
-          val immutableString = immutableOrEmpty(immutable)
+          val immutableString = maybeImmutable(immutable)
           test(s"$verb$immutableString MERGE { prop } ON GRAPH foo $preposition role") {
             parsesTo[Statements](func(
               GraphPrivilege(MergeAdminAction, graphScopeFoo)(_),

@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.ast.RenameRole
 import org.neo4j.cypher.internal.ast.RevokeRolesFromUsers
 import org.neo4j.cypher.internal.ast.ShowRoles
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.util.InputPosition
 
@@ -312,135 +313,155 @@ class RoleAdministrationCommandParserTest extends AdministrationAndSchemaCommand
 
   //  Creating role
 
-  test("CREATE ROLE foo") {
-    parsesTo[Statements](CreateRole(literalFoo, None, IfExistsThrowError)(pos))
-  }
+  Seq(true, false).foreach { immutable =>
+    val immutableString = maybeImmutable(immutable)
+    val immutablePad = maybeImmutablePad(immutable)
 
-  test("CREATE ROLE $foo") {
-    parsesTo[Statements](CreateRole(paramFoo, None, IfExistsThrowError)(pos))
-  }
-
-  test("CREATE ROLE `fo!$o`") {
-    parsesTo[Statements](CreateRole(literal("fo!$o"), None, IfExistsThrowError)(pos))
-  }
-
-  test("CREATE ROLE ``") {
-    parsesTo[Statements](CreateRole(literalEmpty, None, IfExistsThrowError)(pos))
-  }
-
-  test("CREATE ROLE foo AS COPY OF bar") {
-    parsesTo[Statements](CreateRole(literalFoo, Some(literalBar), IfExistsThrowError)(pos))
-  }
-
-  test("CREATE ROLE foo AS COPY OF $bar") {
-    parsesTo[Statements](CreateRole(literalFoo, Some(stringParam("bar")), IfExistsThrowError)(pos))
-  }
-
-  test("CREATE ROLE foo AS COPY OF ``") {
-    parsesTo[Statements](CreateRole(literalFoo, Some(literalEmpty), IfExistsThrowError)(pos))
-  }
-
-  test("CREATE ROLE `` AS COPY OF bar") {
-    parsesTo[Statements](CreateRole(literalEmpty, Some(literalBar), IfExistsThrowError)(pos))
-  }
-
-  test("CREATE ROLE foo IF NOT EXISTS") {
-    parsesTo[Statements](CreateRole(literalFoo, None, IfExistsDoNothing)(pos))
-  }
-
-  test("CREATE ROLE foo IF NOT EXISTS AS COPY OF bar") {
-    parsesTo[Statements](CreateRole(literalFoo, Some(literalBar), IfExistsDoNothing)(pos))
-  }
-
-  test("CREATE OR REPLACE ROLE foo") {
-    parsesTo[Statements](CreateRole(literalFoo, None, IfExistsReplace)(pos))
-  }
-
-  test("CREATE OR REPLACE ROLE foo AS COPY OF bar") {
-    parsesTo[Statements](CreateRole(literalFoo, Some(literalBar), IfExistsReplace)(pos))
-  }
-
-  test("CREATE OR REPLACE ROLE foo IF NOT EXISTS") {
-    parsesTo[Statements](CreateRole(literalFoo, None, IfExistsInvalidSyntax)(pos))
-  }
-
-  test("CREATE OR REPLACE ROLE foo IF NOT EXISTS AS COPY OF bar") {
-    parsesTo[Statements](CreateRole(literalFoo, Some(literalBar), IfExistsInvalidSyntax)(pos))
-  }
-
-  test("CREATE ROLE \"foo\"") {
-    failsParsing[Statements]
-  }
-
-  test("CREATE ROLE f%o") {
-    failsParsing[Statements]
-  }
-
-  test("CREATE ROLE  IF NOT EXISTS") {
-    failsParsing[Statements]
-  }
-
-  test("CREATE ROLE foo IF EXISTS") {
-    failsParsing[Statements]
-  }
-
-  test("CREATE OR REPLACE ROLE ") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("Invalid input '': expected a parameter or an identifier (line 1, column 23 (offset: 22))")
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a parameter or an identifier (line 1, column 23 (offset: 22))
-            |"CREATE OR REPLACE ROLE"
-            |                       ^""".stripMargin
-        )
+    test(s"CREATE$immutableString ROLE foo") {
+      parsesTo[Statements](CreateRole(literalFoo, immutable, None, IfExistsThrowError)(pos))
     }
-  }
 
-  test("CREATE ROLE foo AS COPY OF") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("Invalid input '': expected a parameter or an identifier (line 1, column 27 (offset: 26))")
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a parameter or an identifier (line 1, column 27 (offset: 26))
-            |"CREATE ROLE foo AS COPY OF"
-            |                           ^""".stripMargin
-        )
+    test(s"CREATE$immutableString ROLE $$foo") {
+      parsesTo[Statements](CreateRole(paramFoo, immutable, None, IfExistsThrowError)(pos))
     }
-  }
 
-  test("CREATE ROLE foo IF NOT EXISTS AS COPY OF") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("Invalid input '': expected a parameter or an identifier (line 1, column 41 (offset: 40))")
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a parameter or an identifier (line 1, column 41 (offset: 40))
-            |"CREATE ROLE foo IF NOT EXISTS AS COPY OF"
-            |                                         ^""".stripMargin
-        )
+    test(s"CREATE$immutableString ROLE `fo!$$o`") {
+      parsesTo[Statements](CreateRole(literal("fo!$o"), immutable, None, IfExistsThrowError)(pos))
     }
-  }
 
-  test("CREATE OR REPLACE ROLE foo AS COPY OF") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("Invalid input '': expected a parameter or an identifier (line 1, column 38 (offset: 37))")
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a parameter or an identifier (line 1, column 38 (offset: 37))
-            |"CREATE OR REPLACE ROLE foo AS COPY OF"
-            |                                      ^""".stripMargin
-        )
+    test(s"CREATE$immutableString ROLE ``") {
+      parsesTo[Statements](CreateRole(literalEmpty, immutable, None, IfExistsThrowError)(pos))
     }
-  }
 
-  test("CREATE ROLE foo UNION CREATE ROLE foo2") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("Invalid input 'UNION': expected \"AS\", \"IF\" or <EOF> (line 1, column 17 (offset: 16))")
-      case _ => _.withSyntaxError(
-          """Invalid input 'UNION': expected 'IF NOT EXISTS', 'AS COPY OF' or <EOF> (line 1, column 17 (offset: 16))
-            |"CREATE ROLE foo UNION CREATE ROLE foo2"
-            |                 ^""".stripMargin
-        )
+    test(s"CREATE$immutableString ROLE foo AS COPY OF bar") {
+      parsesTo[Statements](CreateRole(literalFoo, immutable, Some(literalBar), IfExistsThrowError)(pos))
+    }
+
+    test(s"CREATE$immutableString ROLE foo AS COPY OF $$bar") {
+      parsesTo[Statements](CreateRole(literalFoo, immutable, Some(stringParam("bar")), IfExistsThrowError)(pos))
+    }
+
+    test(s"CREATE$immutableString ROLE foo AS COPY OF ``") {
+      parsesTo[Statements](CreateRole(literalFoo, immutable, Some(literalEmpty), IfExistsThrowError)(pos))
+    }
+
+    test(s"CREATE$immutableString ROLE `` AS COPY OF bar") {
+      parsesTo[Statements](CreateRole(literalEmpty, immutable, Some(literalBar), IfExistsThrowError)(pos))
+    }
+
+    test(s"CREATE$immutableString ROLE foo IF NOT EXISTS") {
+      parsesTo[Statements](CreateRole(literalFoo, immutable, None, IfExistsDoNothing)(pos))
+    }
+
+    test(s"CREATE$immutableString ROLE foo IF NOT EXISTS AS COPY OF bar") {
+      parsesTo[Statements](CreateRole(literalFoo, immutable, Some(literalBar), IfExistsDoNothing)(pos))
+    }
+
+    test(s"CREATE OR REPLACE$immutableString ROLE foo") {
+      parsesTo[Statements](CreateRole(literalFoo, immutable, None, IfExistsReplace)(pos))
+    }
+
+    test(s"CREATE OR REPLACE$immutableString ROLE foo AS COPY OF bar") {
+      parsesTo[Statements](CreateRole(literalFoo, immutable, Some(literalBar), IfExistsReplace)(pos))
+    }
+
+    test(s"CREATE OR REPLACE$immutableString ROLE foo IF NOT EXISTS") {
+      parsesTo[Statements](CreateRole(literalFoo, immutable, None, IfExistsInvalidSyntax)(pos))
+    }
+
+    test(s"CREATE OR REPLACE$immutableString ROLE foo IF NOT EXISTS AS COPY OF bar") {
+      parsesTo[Statements](CreateRole(literalFoo, immutable, Some(literalBar), IfExistsInvalidSyntax)(pos))
+    }
+
+    test(s"CREATE$immutableString ROLE \"foo\"") {
+      failsParsing[Statements]
+    }
+
+    test(s"CREATE$immutableString ROLE f%o") {
+      failsParsing[Statements]
+    }
+
+    test(s"CREATE$immutableString ROLE  IF NOT EXISTS") {
+      failsParsing[Statements]
+    }
+
+    test(s"CREATE$immutableString ROLE foo IF EXISTS") {
+      failsParsing[Statements]
+    }
+
+    test(s"CREATE OR REPLACE$immutableString ROLE ") {
+      val offset = immutableString.length + 22
+      failsParsing[Statements].in {
+        case Cypher5JavaCc =>
+          _.withMessageStart(
+            s"Invalid input '': expected a parameter or an identifier (line 1, column ${offset + 1} (offset: $offset))"
+          )
+        case _ => _.withSyntaxError(
+            s"""Invalid input '': expected a parameter or an identifier (line 1, column ${offset + 1} (offset: $offset))
+               |"CREATE OR REPLACE$immutableString ROLE"
+               |                       $immutablePad^""".stripMargin
+          )
+      }
+    }
+
+    test(s"CREATE$immutableString ROLE foo AS COPY OF") {
+      val offset = immutableString.length + 26
+      failsParsing[Statements].in {
+        case Cypher5JavaCc =>
+          _.withMessageStart(
+            s"Invalid input '': expected a parameter or an identifier (line 1, column ${offset + 1} (offset: $offset)"
+          )
+        case _ => _.withSyntaxError(
+            s"""Invalid input '': expected a parameter or an identifier (line 1, column ${offset + 1} (offset: $offset))
+               |"CREATE$immutableString ROLE foo AS COPY OF"
+               |                           $immutablePad^""".stripMargin
+          )
+      }
+    }
+
+    test(s"CREATE$immutableString ROLE foo IF NOT EXISTS AS COPY OF") {
+      val offset = immutableString.length + 40
+      failsParsing[Statements].in {
+        case Cypher5JavaCc =>
+          _.withMessageStart(
+            s"Invalid input '': expected a parameter or an identifier (line 1, column ${offset + 1} (offset: $offset))"
+          )
+        case _ => _.withSyntaxError(
+            s"""Invalid input '': expected a parameter or an identifier (line 1, column ${offset + 1} (offset: $offset))
+               |"CREATE$immutableString ROLE foo IF NOT EXISTS AS COPY OF"
+               |                                         $immutablePad^""".stripMargin
+          )
+      }
+    }
+
+    test(s"CREATE OR REPLACE$immutableString ROLE foo AS COPY OF") {
+      val offset = immutableString.length + 37
+      failsParsing[Statements].in {
+        case Cypher5JavaCc =>
+          _.withMessageStart(
+            s"Invalid input '': expected a parameter or an identifier (line 1, column ${offset + 1} (offset: $offset))"
+          )
+        case _ => _.withSyntaxError(
+            s"""Invalid input '': expected a parameter or an identifier (line 1, column ${offset + 1} (offset: $offset))
+               |"CREATE OR REPLACE$immutableString ROLE foo AS COPY OF"
+               |                                      $immutablePad^""".stripMargin
+          )
+      }
+    }
+
+    test(s"CREATE$immutableString ROLE foo UNION CREATE$immutableString ROLE foo2") {
+      val offset = immutableString.length + 16
+      failsParsing[Statements].in {
+        case Cypher5JavaCc =>
+          _.withMessageStart(
+            s"Invalid input 'UNION': expected \"AS\", \"IF\" or <EOF> (line 1, column ${offset + 1} (offset: $offset))"
+          )
+        case _ => _.withSyntaxError(
+            s"""Invalid input 'UNION': expected 'IF NOT EXISTS', 'AS COPY OF' or <EOF> (line 1, column ${offset + 1} (offset: $offset))
+               |"CREATE$immutableString ROLE foo UNION CREATE$immutableString ROLE foo2"
+               |                 $immutablePad^""".stripMargin
+          )
+      }
     }
   }
 

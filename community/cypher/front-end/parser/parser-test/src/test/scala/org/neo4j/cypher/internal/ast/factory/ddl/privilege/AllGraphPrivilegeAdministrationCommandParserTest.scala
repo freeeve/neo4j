@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.GraphPrivilege
 import org.neo4j.cypher.internal.ast.HomeGraphScope
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
@@ -38,7 +39,7 @@ class AllGraphPrivilegeAdministrationCommandParserTest extends AdministrationAnd
     case (verb: String, preposition: String, func: noResourcePrivilegeFunc) =>
       Seq[Immutable](true, false).foreach {
         immutable =>
-          val immutableString = immutableOrEmpty(immutable)
+          val immutableString = maybeImmutable(immutable)
           // All versions of ALL [[GRAPH] PRIVILEGES] should be allowed
 
           test(s"$verb$immutableString ALL ON GRAPH foo $preposition role") {

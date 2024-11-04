@@ -417,6 +417,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
         None
     ctx.ast = CreateRole(
       nameExpressions.get(0).ast[Expression](),
+      ctx.IMMUTABLE() != null,
       from,
       ifExistsDo(parent.REPLACE() != null, ctx.EXISTS() != null)
     )(pos(parent))

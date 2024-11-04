@@ -5946,14 +5946,16 @@ ADMINISTRATION_COMMAND CreateRole( Token start, boolean replace ):
     SimpleEither<StringPos<POS>, PARAMETER> roleName = null;
     SimpleEither<StringPos<POS>, PARAMETER> sourceRoleName = null;
     boolean ifNotExists = false;
+    boolean immutable = false;
 }
 {
+    (<IMMUTABLE> { immutable = true; } )?
     <ROLE>
     roleName=SymbolicNameOrStringParameter()
     ( <IF> <NOT> <EXISTS> { ifNotExists = true; } )?
     ( <AS> <COPY> <OF> sourceRoleName=SymbolicNameOrStringParameter() )?
     {
-        return astFactory.createRole( pos( start ), replace, roleName, sourceRoleName, ifNotExists );
+        return astFactory.createRole( pos( start ), replace, roleName, sourceRoleName, ifNotExists, immutable );
     }
 }
 

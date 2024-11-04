@@ -43,6 +43,7 @@ import org.neo4j.cypher.internal.ast.TerminateTransactionAction
 import org.neo4j.cypher.internal.ast.UserAllQualifier
 import org.neo4j.cypher.internal.ast.UserQualifier
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
@@ -62,7 +63,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
     case (verb: String, preposition: String, privilegeFunc: databasePrivilegeFunc) =>
       Seq[Immutable](true, false).foreach {
         immutable =>
-          val immutableString = immutableOrEmpty(immutable)
+          val immutableString = maybeImmutable(immutable)
           Seq(
             ("ACCESS", AccessDatabaseAction),
             ("START", StartDatabaseAction),
@@ -360,7 +361,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
     case (verb: String, preposition: String, privilegeFunc: transactionPrivilegeFunc) =>
       Seq[Immutable](true, false).foreach {
         immutable =>
-          val immutableString = immutableOrEmpty(immutable)
+          val immutableString = maybeImmutable(immutable)
           test(s"$verb$immutableString SHOW TRANSACTION (*) ON DATABASE * $preposition role") {
             parsesTo[Statements](privilegeFunc(
               ShowTransactionAction,

@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.ast.factory.ddl.privilege
 
 import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.util.InputPosition
@@ -73,7 +74,7 @@ class ImpersonatePrivilegeParserTest extends AdministrationAndSchemaCommandParse
     case (verb: String, preposition: String, func: impersonatePrivilegeFunc) =>
       Seq[Immutable](true, false).foreach {
         immutable =>
-          val immutableString = immutableOrEmpty(immutable)
+          val immutableString = maybeImmutable(immutable)
           test(s"$verb$immutableString IMPERSONATE ON DBMS $preposition role") {
             assertAst(
               func(List(ast.UserAllQualifier()(pos)), List(literalRole), immutable)(defaultPos),

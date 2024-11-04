@@ -672,25 +672,31 @@ final case class ShowRoles(
 object ShowRoles {
 
   def apply(withUsers: Boolean, showAll: Boolean, yieldOrWhere: YieldOrWhere)(position: InputPosition): ShowRoles = {
-    val defaultColumnSet =
+    val allColumns =
       if (withUsers) List(
-        ShowColumn(Variable("role")(position, Variable.isIsolatedDefault), CTString, "role"),
-        ShowColumn(Variable("member")(position, Variable.isIsolatedDefault), CTString, "member")
+        (ShowColumn(Variable("role")(position, Variable.isIsolatedDefault), CTString, "role"), true),
+        (ShowColumn(Variable("member")(position, Variable.isIsolatedDefault), CTString, "member"), true),
+        (ShowColumn(Variable("immutable")(position, Variable.isIsolatedDefault), CTBoolean, "immutable"), false)
       )
-      else List(ShowColumn(Variable("role")(position, Variable.isIsolatedDefault), CTString, "role"))
-    ShowRoles(withUsers, showAll, yieldOrWhere, defaultColumnSet)(position)
+      else List(
+        (ShowColumn(Variable("role")(position, Variable.isIsolatedDefault), CTString, "role"), true),
+        (ShowColumn(Variable("immutable")(position, Variable.isIsolatedDefault), CTBoolean, "immutable"), false)
+      )
+    val columns = DefaultOrAllShowColumns(allColumns, yieldOrWhere).columns
+    ShowRoles(withUsers, showAll, yieldOrWhere, columns)(position)
   }
 }
 
 final case class CreateRole(
   roleName: Expression,
+  immutable: Boolean,
   from: Option[Expression],
   ifExistsDo: IfExistsDo
 )(val position: InputPosition) extends WriteAdministrationCommand {
 
   override def name: String = ifExistsDo match {
-    case IfExistsReplace | IfExistsInvalidSyntax => "CREATE OR REPLACE ROLE"
-    case _                                       => "CREATE ROLE"
+    case IfExistsReplace | IfExistsInvalidSyntax => s"CREATE OR REPLACE${Prettifier.maybeImmutable(immutable)} ROLE"
+    case _                                       => s"CREATE${Prettifier.maybeImmutable(immutable)} ROLE"
   }
 
   override def semanticCheck: SemanticCheck =
@@ -869,8 +875,6 @@ sealed abstract class PrivilegeCommand(
 ) extends WriteAdministrationCommand {
 
   private val FAILED_PROPERTY_RULE = "Failed to administer property rule."
-
-  protected def immutableKeywordOrEmptyString(immutable: Boolean): String = if (immutable) " IMMUTABLE" else ""
 
   private def nanError(l: NaN) =
     error(s"$FAILED_PROPERTY_RULE `NaN` is not supported for property-based access control.", l.position)
@@ -1084,7 +1088,7 @@ final case class GrantPrivilege(
   qualifier: List[PrivilegeQualifier],
   roleNames: Seq[Expression]
 )(val position: InputPosition) extends PrivilegeCommand(privilege, qualifier, position) {
-  override def name = s"GRANT${immutableKeywordOrEmptyString(immutable)} ${privilege.name}"
+  override def name = s"GRANT${Prettifier.maybeImmutable(immutable)} ${privilege.name}"
 
   override def semanticCheck: SemanticCheck = super.semanticCheck chain semanticCheckFold(roleNames)(roleName =>
     checkIsStringLiteralOrParameter("rolename", roleName)
@@ -1129,7 +1133,7 @@ final case class DenyPrivilege(
   roleNames: Seq[Expression]
 )(val position: InputPosition) extends PrivilegeCommand(privilege, qualifier, position) {
 
-  override def name = s"DENY${immutableKeywordOrEmptyString(immutable)} ${privilege.name}"
+  override def name = s"DENY${Prettifier.maybeImmutable(immutable)} ${privilege.name}"
 
   override def semanticCheck: SemanticCheck = {
     privilege match {
@@ -1181,7 +1185,7 @@ final case class RevokePrivilege(
 
   override def name: String = {
     val revokeTypeOrEmptyString = if (revokeType.name.nonEmpty) s" ${revokeType.name}" else ""
-    s"REVOKE$revokeTypeOrEmptyString${immutableKeywordOrEmptyString(immutableOnly)} ${privilege.name}"
+    s"REVOKE$revokeTypeOrEmptyString${Prettifier.maybeImmutable(immutableOnly)} ${privilege.name}"
   }
 
   override def semanticCheck: SemanticCheck = {

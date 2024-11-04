@@ -2540,7 +2540,8 @@ class AstGenerator(
     roleName <- _stringLiteralOrParameter
     fromRoleName <- option(_stringLiteralOrParameter)
     ifExistsDo <- _ifExistsDo
-  } yield CreateRole(roleName, fromRoleName, ifExistsDo)(pos)
+    immutable <- boolean
+  } yield CreateRole(roleName, immutable, fromRoleName, ifExistsDo)(pos)
 
   def _renameRole: Gen[RenameRole] = for {
     fromRoleName <- _stringLiteralOrParameter

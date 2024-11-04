@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.ExecuteFunctionAction
 import org.neo4j.cypher.internal.ast.FunctionQualifier
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.util.InputPosition
 
@@ -36,7 +37,7 @@ class ExecuteFunctionPrivilegeAdministrationCommandParserTest extends Administra
     case (verb: String, preposition: String, func: executeFunctionPrivilegeFunc) =>
       Seq[Immutable](true, false).foreach {
         immutable =>
-          val immutableString = immutableOrEmpty(immutable)
+          val immutableString = maybeImmutable(immutable)
           Seq(
             ("EXECUTE FUNCTION", ExecuteFunctionAction),
             ("EXECUTE USER FUNCTION", ExecuteFunctionAction),

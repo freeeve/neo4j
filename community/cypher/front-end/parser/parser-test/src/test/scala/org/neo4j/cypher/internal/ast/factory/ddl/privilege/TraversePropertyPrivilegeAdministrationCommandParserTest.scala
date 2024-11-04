@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.ast.PatternQualifier
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.TraverseAction
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.expressions.BooleanExpression
 import org.neo4j.cypher.internal.expressions.Equals
@@ -69,7 +70,7 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
       Action(verb, preposition, func) <- actions
       immutable <- Seq(true, false)
     } yield {
-      val immutableString = immutableOrEmpty(immutable)
+      val immutableString = maybeImmutable(immutable)
 
       s"$verb$immutableString TRAVERSE ON HOME GRAPH FOR (a:A) WHERE a.prop2=1 $preposition role" should
         parseTo[Statements](func(
@@ -96,7 +97,7 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
       LiteralExpression(expression, propertyRuleAst) <- literalExpressions
       Scope(graphName, graphScope) <- scopes
     } {
-      val immutableString = immutableOrEmpty(immutable)
+      val immutableString = maybeImmutable(immutable)
       val expressionString = expressionStringifier(expression)
 
       // No labels
@@ -275,7 +276,7 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
       graphKeyword <- graphKeywords
       LiteralExpression(expression, propertyRuleAst) <- literalExpressions
     } yield {
-      val immutableString = immutableOrEmpty(immutable)
+      val immutableString = maybeImmutable(immutable)
       val expressionString = expressionStringifier(expression)
 
       (expression match {
@@ -456,7 +457,7 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
 
     forAll(genTestCases, minSuccessful(1000)) {
       case (verb, preposition, immutable, graphKeyword, graphName, propertyRule) =>
-        val immutableString = immutableOrEmpty(immutable)
+        val immutableString = maybeImmutable(immutable)
 
         // Missing ON
         s"""$verb$immutableString TRAVERSE
@@ -504,7 +505,7 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
       segment <- invalidSegments
       Scope(graphName, _) <- scopes
     } yield {
-      val immutableString = immutableOrEmpty(immutable)
+      val immutableString = maybeImmutable(immutable)
 
       Seq(
         s"(n:A) WHERE n.prop1 = 1",
@@ -527,7 +528,7 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
       graphKeyword <- graphKeywords
       Scope(graphName, _) <- scopes
     } yield {
-      val immutableString = immutableOrEmpty(immutable)
+      val immutableString = maybeImmutable(immutable)
       disallowedPropertyRules.foreach { (disallowedPropertyRule: String) =>
         s"$verb$immutableString TRAVERSE ON $graphKeyword $graphName $patternKeyword $disallowedPropertyRule $preposition role" should
           notParse[Statements]

@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.NamedGraphsScope
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.WriteAction
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
@@ -39,7 +40,7 @@ class WritePrivilegeAdministrationCommandParserTest extends AdministrationAndSch
     case (verb: String, preposition: String, func: noResourcePrivilegeFunc) =>
       Seq[Immutable](true, false).foreach {
         immutable =>
-          val immutableString = immutableOrEmpty(immutable)
+          val immutableString = maybeImmutable(immutable)
           test(s"$verb$immutableString WRITE ON GRAPH foo $preposition role") {
             parsesTo[Statements](func(
               GraphPrivilege(WriteAction, graphScopeFoo)(pos),

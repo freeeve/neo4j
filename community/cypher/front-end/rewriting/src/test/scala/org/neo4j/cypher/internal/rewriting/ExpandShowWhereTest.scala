@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.ShowAllPrivileges
 import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.ShowPrivilegeCommands
+import org.neo4j.cypher.internal.ast.ShowRoles
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.Yield
@@ -107,11 +108,34 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
   }
 
   test("SHOW ROLES") {
-    assertRewrite(
-      "SHOW ROLES WHERE name STARTS WITH 's'",
-      "SHOW ROLES YIELD * WHERE name STARTS WITH 's'",
-      List("role")
-    )
+    val originalQuery = "SHOW ROLES WHERE name STARTS WITH 's'"
+    val original = parseForRewriting(originalQuery)
+    val result = rewrite(original)
+
+    // SHOW ROLES has brief (List(role)) and verbose (List(role, immutable))
+    result match {
+      case ShowRoles(
+          false,
+          true,
+          Some(Left((
+            Yield(
+              ReturnItems(returnStar, _, Some(columns)),
+              None,
+              None,
+              None,
+              Some(Where(StartsWith(Variable("name"), StringLiteral("s"))))
+            ),
+            None
+          ))),
+          _
+        ) if returnStar =>
+        columns shouldBe List(
+          "role"
+        )
+      case _ => fail(
+          s"\n$originalQuery\nshould be rewritten to:\nSHOW ALL ROLES YIELD * WHERE role STARTS WITH 's'\nbut was rewritten to:\n${prettifier.asString(result.asInstanceOf[Statement])}"
+        )
+    }
   }
 
   test("SHOW PRIVILEGES") {

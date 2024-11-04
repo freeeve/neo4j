@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.ast.RelationshipAllQualifier
 import org.neo4j.cypher.internal.ast.RelationshipQualifier
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
@@ -56,7 +57,7 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
     case (action: GraphAction, verb: String, preposition: String, func: resourcePrivilegeFunc) =>
       Seq[Immutable](true, false).foreach {
         immutable =>
-          val immutableString = immutableOrEmpty(immutable)
+          val immutableString = maybeImmutable(immutable)
           test(s"$verb$immutableString ${action.name} { prop } ON HOME GRAPH $preposition role") {
             parsesTo[Statements](func(
               GraphPrivilege(action, HomeGraphScope()(pos))(pos),

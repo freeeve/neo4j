@@ -566,14 +566,14 @@ case class Prettifier(
         val (y: String, r: String) = showClausesAsString(yields)
         s"${x.name}${if (withUsers) " WITH USERS" else ""}$y$r"
 
-      case x @ CreateRole(roleName, None, ifExistsDo) =>
+      case x @ CreateRole(roleName, _, None, ifExistsDo) =>
         ifExistsDo match {
           case IfExistsDoNothing | IfExistsInvalidSyntax =>
             s"${x.name} ${Prettifier.escapeName(roleName)} IF NOT EXISTS"
           case _ => s"${x.name} ${Prettifier.escapeName(roleName)}"
         }
 
-      case x @ CreateRole(roleName, Some(fromRole), ifExistsDo) =>
+      case x @ CreateRole(roleName, _, Some(fromRole), ifExistsDo) =>
         ifExistsDo match {
           case IfExistsDoNothing | IfExistsInvalidSyntax =>
             s"${x.name} ${Prettifier.escapeName(roleName)} IF NOT EXISTS AS COPY OF ${Prettifier.escapeName(fromRole)}"
@@ -1568,5 +1568,7 @@ object Prettifier {
     }.getOrElse("")
     s" TOPOLOGY$primariesString$maybeSecondariesString"
   }
+
+  def maybeImmutable(immutable: Boolean): String = if (immutable) " IMMUTABLE" else ""
 
 }

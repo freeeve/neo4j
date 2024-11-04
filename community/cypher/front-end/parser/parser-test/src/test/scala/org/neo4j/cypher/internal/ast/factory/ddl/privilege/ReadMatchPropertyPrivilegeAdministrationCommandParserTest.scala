@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.ast.PropertiesResource
 import org.neo4j.cypher.internal.ast.ReadAction
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.expressions.BooleanExpression
 import org.neo4j.cypher.internal.expressions.Equals
@@ -90,7 +91,7 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
       Action(action, verb, preposition, func) <- actions
       immutable <- Seq(true, false)
     } yield {
-      val immutableString = immutableOrEmpty(immutable)
+      val immutableString = maybeImmutable(immutable)
 
       s"$verb$immutableString ${action.name} { prop } ON HOME GRAPH FOR (a:A) WHERE a.prop2=1 $preposition role" should
         parseIn[Statements](_ =>
@@ -197,7 +198,7 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
     literalExpressionAndQualifiers().foreach { qualifiers =>
       forAll(genTestCase, minSuccessful(PosInt.from(minSuccess).get)) {
         case (action, immutable, graphKeyword, resource, scope, roleString, expectedRoles) =>
-          val immutableString = immutableOrEmpty(immutable)
+          val immutableString = maybeImmutable(immutable)
           s"""${action.verb}$immutableString ${action.action.name} {${resource.properties}}
              |ON $graphKeyword ${scope.graphName} $patternKeyword ${qualifiers.propertyRule}
              |${action.preposition} $roleString""".stripMargin should parseTo[Statements](
@@ -220,7 +221,7 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
       graphKeyword <- graphKeywords
       LiteralExpression(expression, propertyRuleAst) <- literalExpressions
     } yield {
-      val immutableString = immutableOrEmpty(immutable)
+      val immutableString = maybeImmutable(immutable)
       val expressionString = expressionStringifier(expression)
 
       (expression match {
@@ -502,7 +503,7 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
     } yield (action, verb, preposition, immutable, graphKeyword, properties, graphName, propertyRule)
     forAll(genTestCases, minSuccessful(1000)) {
       case (action, verb, preposition, immutable, graphKeyword, properties, graphName, propertyRule) =>
-        val immutableString = immutableOrEmpty(immutable)
+        val immutableString = maybeImmutable(immutable)
 
         // Missing ON
         s"""$verb$immutableString ${action.name} {$properties}
@@ -584,7 +585,7 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
       Resource(properties, _) <- resources
       Scope(graphName, _) <- scopes
     } yield {
-      val immutableString = immutableOrEmpty(immutable)
+      val immutableString = maybeImmutable(immutable)
 
       Seq(
         s"(n:A) WHERE n.prop1 = 1",
@@ -608,7 +609,7 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
       Resource(properties, _) <- resources
       Scope(graphName, _) <- scopes
     } yield {
-      val immutableString = immutableOrEmpty(immutable)
+      val immutableString = maybeImmutable(immutable)
 
       disallowedPropertyRules.foreach { (disallowedPropertyRule: String) =>
         s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $patternKeyword $disallowedPropertyRule $preposition role" should

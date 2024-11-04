@@ -7175,7 +7175,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
     assertGood(attach(DropRole(privLhsLP, util.Left("role")), 1.0), adminPlanDescription)
 
-    assertGood(attach(CreateRole(privLhsLP, util.Left("role")), 1.0), adminPlanDescription)
+    assertGood(attach(CreateRole(privLhsLP, util.Left("role"), immutable = false), 1.0), adminPlanDescription)
 
     assertGood(attach(RenameRole(privLhsLP, util.Left("role1"), Left("role2")), 1.0), adminPlanDescription)
 

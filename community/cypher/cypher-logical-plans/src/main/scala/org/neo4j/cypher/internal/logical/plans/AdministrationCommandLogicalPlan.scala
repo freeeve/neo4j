@@ -52,6 +52,7 @@ import org.neo4j.exceptions.DatabaseAdministrationException
 import org.neo4j.exceptions.NotSystemDatabaseException
 import org.neo4j.exceptions.SecurityAdministrationException
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
+import org.neo4j.graphdb.security.AuthorizationViolationException
 
 abstract class AdministrationCommandLogicalPlan(
   source: Option[AdministrationCommandLogicalPlan] = None
@@ -143,8 +144,11 @@ case class ShowRoles(
   returns: Option[Return]
 )(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
 
-case class CreateRole(source: SecurityAdministrationLogicalPlan, roleName: Either[String, Parameter])(implicit
-idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
+case class CreateRole(
+  source: SecurityAdministrationLogicalPlan,
+  roleName: Either[String, Parameter],
+  immutable: Boolean
+)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
 
 case class RenameRole(
   source: SecurityAdministrationLogicalPlan,
@@ -154,6 +158,26 @@ case class RenameRole(
 
 case class DropRole(source: SecurityAdministrationLogicalPlan, roleName: Either[String, Parameter])(implicit
 idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
+
+case class AssertRoleCanBeDropped(
+  source: SecurityAdministrationLogicalPlan,
+  roleName: Either[String, Parameter]
+)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
+
+case class AssertRoleCanBeReplaced(
+  source: SecurityAdministrationLogicalPlan,
+  roleName: Either[String, Parameter]
+)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
+
+case class AssertRoleCanBeRenamed(
+  source: SecurityAdministrationLogicalPlan,
+  roleName: Either[String, Parameter]
+)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
+
+case class AssertMutablePrivilegesCanBeAssignedToRole(
+  source: PrivilegePlan,
+  roleName: Either[String, Parameter]
+)(implicit idGen: IdGen) extends PrivilegePlan(Some(source))
 
 case class GrantRoleToUser(
   source: SecurityAdministrationLogicalPlan,
@@ -179,10 +203,18 @@ case class CopyRolePrivileges(
   grantDeny: String
 )(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
 
-case class AssertAllRolePrivilegesCanBeCopied(
+case class AssertRolePrivilegesCanAllBeCopied(
   source: SecurityAdministrationLogicalPlan,
   roleName: Either[String, Parameter]
 )(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
+
+case class AssertRolePrivilegesAreAllImmutable(
+  source: SecurityAdministrationLogicalPlan,
+  roleName: Either[String, Parameter]
+)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
+
+case class AssertSecurityDisabled(onViolation: () => AuthorizationViolationException)(implicit idGen: IdGen)
+    extends PrivilegePlan(None)
 
 abstract class PrivilegePlan(source: Option[PrivilegePlan] = None)(implicit idGen: IdGen)
     extends SecurityAdministrationLogicalPlan(source)

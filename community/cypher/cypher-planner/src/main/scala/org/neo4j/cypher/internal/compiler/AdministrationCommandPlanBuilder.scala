@@ -157,6 +157,8 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.Compilat
 import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.logical.plans
+import org.neo4j.cypher.internal.logical.plans.AssertRoleCanBeDropped
+import org.neo4j.cypher.internal.logical.plans.AssertRoleCanBeRenamed
 import org.neo4j.cypher.internal.logical.plans.DatabaseTypeFilter.Alias
 import org.neo4j.cypher.internal.logical.plans.DatabaseTypeFilter.CompositeDatabase
 import org.neo4j.cypher.internal.logical.plans.DatabaseTypeFilter.DatabaseOrLocalAlias
@@ -171,6 +173,7 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PRIMARY_PROPERTY
 import org.neo4j.exceptions.InvalidSemanticsException
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
+import org.neo4j.graphdb.security.AuthorizationViolationException
 
 /**
  * This planner takes on queries that run at the DBMS level for multi-database administration.
@@ -211,18 +214,31 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
 
     def getSourceForCreateRole(
       roleName: Either[String, Parameter],
+      createImmutable: Boolean,
       ifExistsDo: IfExistsDo
-    ): plans.SecurityAdministrationLogicalPlan = ifExistsDo match {
-      case IfExistsReplace =>
-        plans.DropRole(plans.AssertAllowedDbmsActions(None, Seq(DropRoleAction, CreateRoleAction)), roleName)
-      case IfExistsDoNothing =>
-        plans.DoNothingIfExists(
-          plans.AssertAllowedDbmsActions(CreateRoleAction),
-          "CREATE ROLE",
-          plans.RoleEntity,
-          roleName
-        )
-      case _ => plans.AssertAllowedDbmsActions(CreateRoleAction)
+    ): plans.SecurityAdministrationLogicalPlan = {
+      val canCreateImmutableCheck =
+        if (createImmutable)
+          Some(plans.AssertSecurityDisabled(() => AuthorizationViolationException.creatingImmutableRoles()))
+        else None
+      ifExistsDo match {
+        case IfExistsReplace =>
+          plans.DropRole(
+            plans.AssertRoleCanBeReplaced(
+              plans.AssertAllowedDbmsActions(canCreateImmutableCheck, Seq(DropRoleAction, CreateRoleAction)),
+              roleName
+            ),
+            roleName
+          )
+        case IfExistsDoNothing =>
+          plans.DoNothingIfExists(
+            plans.AssertAllowedDbmsActions(canCreateImmutableCheck, Seq(CreateRoleAction)),
+            s"CREATE${Prettifier.maybeImmutable(createImmutable)} ROLE",
+            plans.RoleEntity,
+            roleName
+          )
+        case _ => plans.AssertAllowedDbmsActions(canCreateImmutableCheck, Seq(CreateRoleAction))
+      }
     }
 
     def wrapInWait(
@@ -410,22 +426,23 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         ))
 
       // CREATE [OR REPLACE] ROLE foo [IF NOT EXISTS]
-      case c @ CreateRole(roleName, None, ifExistsDo) =>
-        val source = getSourceForCreateRole(roleName, ifExistsDo)
-        Some(plans.LogSystemCommand(plans.CreateRole(source, roleName), prettifier.asString(c)))
+      case c @ CreateRole(roleName, immutable, None, ifExistsDo) =>
+        val source = getSourceForCreateRole(roleName, immutable, ifExistsDo)
+        Some(plans.LogSystemCommand(plans.CreateRole(source, roleName, immutable), prettifier.asString(c)))
 
       // CREATE [OR REPLACE] ROLE foo [IF NOT EXISTS] AS COPY OF bar
-      case c @ CreateRole(roleName, Some(fromName), ifExistsDo) =>
-        val source = getSourceForCreateRole(roleName, ifExistsDo)
+      case c @ CreateRole(roleName, immutable, Some(fromName), ifExistsDo) =>
+        val source = getSourceForCreateRole(roleName, immutable, ifExistsDo)
         Some(plans.LogSystemCommand(
           plans.CopyRolePrivileges(
             plans.CopyRolePrivileges(
               plans.CreateRole(
-                plans.AssertAllRolePrivilegesCanBeCopied(
-                  plans.RequireRole(source, fromName),
-                  fromName
-                ),
-                roleName
+                if (immutable)
+                  plans.AssertRolePrivilegesAreAllImmutable(plans.RequireRole(source, fromName), fromName)
+                else
+                  plans.AssertRolePrivilegesCanAllBeCopied(plans.RequireRole(source, fromName), fromName),
+                roleName,
+                immutable
               ),
               roleName,
               fromName,
@@ -445,7 +462,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           if (ifExists)
             plans.DoNothingIfNotExists(assertAllowed, "RENAME ROLE", plans.RoleEntity, fromRoleName, "rename")
           else assertAllowed
-        Some(plans.LogSystemCommand(plans.RenameRole(source, fromRoleName, toRoleName), prettifier.asString(c)))
+        Some(plans.LogSystemCommand(
+          plans.RenameRole(AssertRoleCanBeRenamed(source, fromRoleName), fromRoleName, toRoleName),
+          prettifier.asString(c)
+        ))
 
       // DROP ROLE foo [IF EXISTS]
       case c @ DropRole(roleName, ifExists) =>
@@ -460,7 +480,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
             labelDescription = "Role",
             action = "delete"
           )
-        Some(plans.LogSystemCommand(plans.DropRole(source, roleName), prettifier.asString(c)))
+        Some(plans.LogSystemCommand(
+          plans.DropRole(AssertRoleCanBeDropped(source, roleName), roleName),
+          prettifier.asString(c)
+        ))
 
       // GRANT roles TO users
       case c: GrantRolesToUsers =>
@@ -474,7 +497,12 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
               roleNames = List(roleName),
               userNames = List(userName)
             )(c.position)
-            plans.GrantRoleToUser(source, roleName, userName, prettifier.asString(subCommand))
+            plans.GrantRoleToUser(
+              source,
+              roleName,
+              userName,
+              prettifier.asString(subCommand)
+            )
         }
         Some(plans.LogSystemCommand(plan, prettifier.asString(c)))
 
@@ -490,7 +518,12 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
               roleNames = List(roleName),
               userNames = List(userName)
             )(c.position)
-            plans.RevokeRoleFromUser(source, roleName, userName, prettifier.asString(subCommand))
+            plans.RevokeRoleFromUser(
+              source,
+              roleName,
+              userName,
+              prettifier.asString(subCommand)
+            )
         }
         Some(plans.LogSystemCommand(plan, prettifier.asString(c)))
 
@@ -500,7 +533,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           (roleName, simpleQualifier)
         }).foldLeft(
           plans.AssertAllowedDbmsActions(
-            plans.AssertDbmsActionIsAssignable(None, action), // this is the privilege being granted
+            plans.AssertDbmsActionIsAssignable(None, action), // this is the privilege being assigned
             assignPrivilegeAction(immutable) // this is the action of assigning a privilege
           ).asInstanceOf[plans.PrivilegePlan]
         ) {
@@ -509,7 +542,16 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
               qualifier = List(simpleQualifier),
               roleNames = List(roleName)
             )(c.position)
-            plans.GrantDbmsAction(source, action, simpleQualifier, roleName, immutable, prettifier.asString(subCommand))
+            val roleCheck =
+              if (immutable) source else plans.AssertMutablePrivilegesCanBeAssignedToRole(source, roleName)
+            plans.GrantDbmsAction(
+              roleCheck,
+              action,
+              simpleQualifier,
+              roleName,
+              immutable,
+              prettifier.asString(subCommand)
+            )
         }
         Some(plans.LogSystemCommand(plan, prettifier.asString(c)))
 
@@ -519,7 +561,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           (roleName, simpleQualifier)
         }).foldLeft(
           plans.AssertAllowedDbmsActions(
-            plans.AssertDbmsActionIsAssignable(None, action), // this is the privilege being granted
+            plans.AssertDbmsActionIsAssignable(None, action), // this is the privilege being assigned
             assignPrivilegeAction(immutable) // this is the action of assigning a privilege
           ).asInstanceOf[plans.PrivilegePlan]
         ) {
@@ -528,7 +570,16 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
               qualifier = List(simpleQualifier),
               roleNames = List(roleName)
             )(c.position)
-            plans.DenyDbmsAction(source, action, simpleQualifier, roleName, immutable, prettifier.asString(subCommand))
+            val roleCheck =
+              if (immutable) source else plans.AssertMutablePrivilegesCanBeAssignedToRole(source, roleName)
+            plans.DenyDbmsAction(
+              roleCheck,
+              action,
+              simpleQualifier,
+              roleName,
+              immutable,
+              prettifier.asString(subCommand)
+            )
         }
         Some(plans.LogSystemCommand(plan, prettifier.asString(c)))
 
@@ -583,8 +634,9 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
               qualifier = List(qualifier),
               roleNames = List(role)
             )(c.position)
+            val roleCheck = if (immutable) source else plans.AssertMutablePrivilegesCanBeAssignedToRole(source, role)
             plans.GrantDatabaseAction(
-              source,
+              roleCheck,
               action,
               runtimeScope,
               qualifier,
@@ -611,8 +663,9 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
               qualifier = List(qualifier),
               roleNames = List(role)
             )(c.position)
+            val roleCheck = if (immutable) source else plans.AssertMutablePrivilegesCanBeAssignedToRole(source, role)
             plans.DenyDatabaseAction(
-              source,
+              roleCheck,
               action,
               runtimeScope,
               qualifier,
@@ -692,8 +745,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
               qualifier = List(simpleQualifier),
               roleNames = List(roleName)
             )(c.position)
+            val roleCheck =
+              if (immutable) source else plans.AssertMutablePrivilegesCanBeAssignedToRole(source, roleName)
             plans.GrantGraphAction(
-              source,
+              roleCheck,
               action,
               resource,
               runtimeScope,
@@ -728,8 +783,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
               qualifier = List(simpleQualifier),
               roleNames = List(roleName)
             )(c.position)
+            val roleCheck =
+              if (immutable) source else plans.AssertMutablePrivilegesCanBeAssignedToRole(source, roleName)
             plans.DenyGraphAction(
-              source,
+              roleCheck,
               action,
               resource,
               runtimeScope,
@@ -820,7 +877,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
             qualifier = List(qualifier),
             roleNames = List(roleName)
           )(g.position)
-          GrantLoadAction(source, action, resource, qualifier, roleName, immutable, prettifier.asString(subCommand))
+          val roleCheck = if (immutable) source else plans.AssertMutablePrivilegesCanBeAssignedToRole(source, roleName)
+          GrantLoadAction(roleCheck, action, resource, qualifier, roleName, immutable, prettifier.asString(subCommand))
         }
         Some(plans.LogSystemCommand(plan, prettifier.asString(g)))
 
@@ -845,7 +903,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
             qualifier = List(qualifier),
             roleNames = List(roleName)
           )(d.position)
-          DenyLoadAction(source, action, resource, qualifier, roleName, immutable, prettifier.asString(subCommand))
+          val roleCheck = if (immutable) source else plans.AssertMutablePrivilegesCanBeAssignedToRole(source, roleName)
+          DenyLoadAction(roleCheck, action, resource, qualifier, roleName, immutable, prettifier.asString(subCommand))
         }
         Some(plans.LogSystemCommand(plan, prettifier.asString(d)))
 

@@ -183,7 +183,7 @@ class FabricPlannerTest
       )
 
       parse(remote.query)
-        .shouldEqual(CreateRole(literalString("myRole"), None, IfExistsThrowError)(pos))
+        .shouldEqual(CreateRole(literalString("myRole"), immutable = false, None, IfExistsThrowError)(pos))
     }
 
     "single admin command with password" in {

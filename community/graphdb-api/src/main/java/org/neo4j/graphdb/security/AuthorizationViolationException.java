@@ -94,6 +94,43 @@ public class AuthorizationViolationException extends GqlRuntimeException impleme
         return new AuthorizationViolationException(gql, String.format("Permission cannot be granted for %s.", action));
     }
 
+    public static AuthorizationViolationException droppingImmutableRoles() {
+        return authorizationViolation(
+                "Immutable roles cannot be dropped. Use `SHOW ROLES YIELD *` to see which roles are immutable.");
+    }
+
+    public static AuthorizationViolationException creatingImmutableRoles() {
+        return authorizationViolation(
+                "Immutable roles cannot be created. Try creating the role without the IMMUTABLE keyword.");
+    }
+
+    public static AuthorizationViolationException replacingImmutableRoles() {
+        return authorizationViolation(
+                "Immutable roles cannot be replaced. Use `SHOW ROLES YIELD *` to see which roles are immutable.");
+    }
+
+    public static AuthorizationViolationException renamingImmutableRoles() {
+        return authorizationViolation(
+                "Immutable roles cannot be renamed. Use `SHOW ROLES YIELD *` to see which roles are immutable.");
+    }
+
+    public static AuthorizationViolationException assigningMutablePrivilegesToImmutableRole() {
+        return authorizationViolation(
+                "Only immutable privileges can be assigned to an immutable role. Try `GRANT/DENY IMMUTABLE` instead.");
+    }
+
+    public static AuthorizationViolationException copyingRoleWithMutablePrivileges(String role) {
+        return authorizationViolation(
+                "'$role' cannot be copied to an immutable role because '$role' has one or more non-immutable privileges. Immutable roles can only contain immutable privileges. Use `SHOW ROLE $role PRIVILEGES AS COMMANDS YIELD *` to inspect $role's privileges."
+                        .replace("$role", role));
+    }
+
+    public static AuthorizationViolationException copyingRoleWithImmutablePrivileges(String role) {
+        return authorizationViolation(
+                "The role '%s' cannot be copied because it has one or more Immutable Privileges assigned to it. Permission cannot be granted for ASSIGN IMMUTABLE PRIVILEGE."
+                        .formatted(role));
+    }
+
     /** The Neo4j status code associated with this exception type. */
     @Override
     public Status status() {

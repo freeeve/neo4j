@@ -57,6 +57,10 @@ public class SecurityContext extends LoginContext {
         return DatabaseAccessMode.FULL;
     }
 
+    public boolean isAuthDisabled() {
+        return subject == AuthSubject.AUTH_DISABLED;
+    }
+
     public String database() {
         return database;
     }

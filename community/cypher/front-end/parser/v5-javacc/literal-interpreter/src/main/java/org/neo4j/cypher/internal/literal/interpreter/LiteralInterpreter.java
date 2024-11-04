@@ -667,7 +667,8 @@ public class LiteralInterpreter
             boolean replace,
             SimpleEither<StringPos<NULL>, Object> roleName,
             SimpleEither<StringPos<NULL>, Object> from,
-            boolean ifNotExists) {
+            boolean ifNotExists,
+            boolean immutable) {
         throw new UnsupportedOperationException("createRole is not a literal");
     }
 

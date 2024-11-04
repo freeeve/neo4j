@@ -461,7 +461,8 @@ public interface ASTFactory<
             boolean replace,
             SimpleEither<StringPos<POS>, PARAMETER> roleName,
             SimpleEither<StringPos<POS>, PARAMETER> fromRole,
-            boolean ifNotExists);
+            boolean ifNotExists,
+            boolean immutable);
 
     ADMINISTRATION_COMMAND dropRole(POS p, SimpleEither<StringPos<POS>, PARAMETER> roleName, boolean ifExists);
 

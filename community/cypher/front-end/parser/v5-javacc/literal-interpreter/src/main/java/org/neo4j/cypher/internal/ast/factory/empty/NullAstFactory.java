@@ -1055,7 +1055,8 @@ public class NullAstFactory
             boolean replace,
             SimpleEither<StringPos<NULL>, NULL> roleName,
             SimpleEither<StringPos<NULL>, NULL> fromRole,
-            boolean ifNotExists) {
+            boolean ifNotExists,
+            boolean immutable) {
         return null;
     }
 

@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.ExecuteProcedureAction
 import org.neo4j.cypher.internal.ast.ProcedureQualifier
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.util.InputPosition
 
@@ -42,7 +43,7 @@ class ExecuteProcedurePrivilegeAdministrationCommandParserTest extends Administr
         case (execute, action) =>
           Seq[Immutable](true, false).foreach {
             immutable =>
-              val immutableString = immutableOrEmpty(immutable)
+              val immutableString = maybeImmutable(immutable)
               test(s"$verb$immutableString $execute * ON DBMS $preposition role") {
                 parsesTo[Statements](func(action, List(procedureQualifier("*")), Seq(literalRole), immutable)(pos))
               }
@@ -378,7 +379,7 @@ class ExecuteProcedurePrivilegeAdministrationCommandParserTest extends Administr
     case (verb: String, preposition: String, func: dbmsPrivilegeFunc) =>
       Seq[Immutable](true, false).foreach {
         immutable =>
-          val immutableString = immutableOrEmpty(immutable)
+          val immutableString = maybeImmutable(immutable)
           Seq(
             "EXECUTE ADMIN PROCEDURES",
             "EXECUTE ADMINISTRATOR PROCEDURES"
