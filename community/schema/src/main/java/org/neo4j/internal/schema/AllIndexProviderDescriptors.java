@@ -59,6 +59,17 @@ public interface AllIndexProviderDescriptors {
             VECTOR_V2_DESCRIPTOR, IndexType.VECTOR);
 
     /**
+     * Mapping of {@link IndexType} to the latest {@link IndexProviderDescriptor} it can use.
+     */
+    Map<IndexType, IndexProviderDescriptor> LATEST_INDEX_PROVIDERS = Map.of(
+            IndexType.FULLTEXT, FULLTEXT_DESCRIPTOR,
+            IndexType.LOOKUP, TOKEN_DESCRIPTOR,
+            IndexType.TEXT, TEXT_V2_DESCRIPTOR,
+            IndexType.RANGE, RANGE_DESCRIPTOR,
+            IndexType.POINT, POINT_DESCRIPTOR,
+            IndexType.VECTOR, VECTOR_V2_DESCRIPTOR);
+
+    /**
      * @param providerName the name of the provider to find
      * @return the pairing of {@link IndexProviderDescriptor} to {@link IndexType} for the provided name
      */

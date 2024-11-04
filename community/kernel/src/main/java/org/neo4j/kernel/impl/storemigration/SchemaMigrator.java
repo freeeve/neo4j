@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.storemigration;
 
+import static org.neo4j.internal.schema.AllIndexProviderDescriptors.LATEST_INDEX_PROVIDERS;
 import static org.neo4j.kernel.impl.storemigration.SchemaStore44MigrationUtil.asRangeBackedConstraint;
 import static org.neo4j.kernel.impl.storemigration.SchemaStore44MigrationUtil.asRangeIndex;
 import static org.neo4j.token.api.TokenConstants.NO_TOKEN;
@@ -138,12 +139,17 @@ public class SchemaMigrator {
                                 indexDescriptor.schema(), tokenRead, schemaRuleMigrationAccess.tokenHolders());
 
                         IndexPrototype newPrototype = indexDescriptor.isUnique()
-                                ? IndexPrototype.uniqueForSchema(schema, indexDescriptor.getIndexProvider())
-                                : IndexPrototype.forSchema(schema, indexDescriptor.getIndexProvider());
+                                ? IndexPrototype.uniqueForSchema(schema)
+                                : IndexPrototype.forSchema(schema);
+
+                        // Disregard the old index provider of the indexDescriptor and just use the latest one.
+                        var latestIndexProvider = LATEST_INDEX_PROVIDERS.get(indexDescriptor.getIndexType());
+
                         newPrototype = newPrototype
                                 .withName(indexDescriptor.getName())
                                 .withIndexType(indexDescriptor.getIndexType())
-                                .withIndexConfig(indexDescriptor.getIndexConfig());
+                                .withIndexConfig(indexDescriptor.getIndexConfig())
+                                .withIndexProvider(latestIndexProvider);
 
                         if (indexDescriptor.isUnique()) {
                             // Handle constraint indexes later
