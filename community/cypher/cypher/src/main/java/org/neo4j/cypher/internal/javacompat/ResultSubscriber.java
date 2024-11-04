@@ -375,7 +375,7 @@ public class ResultSubscriber extends PrefetchingResourceIterator<Map<String, Ob
         } else {
             neo4jException = CypherExecutionException.unexpectedError(e);
         }
-        return new QueryExecutionKernelException(neo4jException).asUserException();
+        return QueryExecutionKernelException.wrapError(neo4jException).asUserException();
     }
 
     private <VisitationException extends Exception> void acceptFromMaterialized(

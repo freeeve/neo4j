@@ -20,14 +20,22 @@
 package org.neo4j.graphdb;
 
 import org.neo4j.annotations.api.PublicApi;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlRuntimeException;
 
 /**
  * This exception is thrown from the {@link Transaction#execute(String, java.util.Map) execute method}
  * when there is an error during the execution of a query.
  */
 @PublicApi
-public class QueryExecutionException extends RuntimeException {
+public class QueryExecutionException extends GqlRuntimeException {
     private final String statusCode;
+
+    public QueryExecutionException(
+            ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause, String statusCode) {
+        super(gqlStatusObject, message, cause);
+        this.statusCode = statusCode;
+    }
 
     public QueryExecutionException(String message, Throwable cause, String statusCode) {
         super(message, cause);

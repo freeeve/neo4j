@@ -462,6 +462,14 @@ public class GqlHelper {
      */
     public static ErrorGqlStatusObject getInnerGqlStatusObject(ErrorGqlStatusObject gqlStatusObject, Throwable cause) {
         if (cause instanceof ErrorGqlStatusObject gqlStatusObjectCause) {
+            // There are exceptions which are wrappers on top of other exceptions for being compliant with checked
+            // exceptions and re-thrown.
+            // On those scenarios, the original gqlStatusObject is copied to the new exception and
+            // the wrapped exception is added as a cause.
+            // So, we don't need to put this gqlStatusObject on the chain since it is already the same object.
+            if (gqlStatusObject == gqlStatusObjectCause) {
+                return gqlStatusObject;
+            }
             return getErrorObjectWithRewrittenCause(gqlStatusObject, gqlStatusObjectCause);
         } else {
             return gqlStatusObject;

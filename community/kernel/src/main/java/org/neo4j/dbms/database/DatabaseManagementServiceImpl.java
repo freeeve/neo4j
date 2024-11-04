@@ -165,7 +165,7 @@ public class DatabaseManagementServiceImpl implements DatabaseManagementService 
                 transaction.commit();
             }
         } catch (QueryExecutionException e) {
-            throw new DatabaseManagementException(e);
+            throw new DatabaseManagementException((Throwable) e);
         }
     }
 

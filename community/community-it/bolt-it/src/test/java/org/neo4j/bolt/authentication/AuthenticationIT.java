@@ -612,11 +612,17 @@ public class AuthenticationIT {
                 .send(wire.pull());
 
         BoltConnectionAssertions.assertThat(connection)
-                .receivesFailureFuzzy(
+                .receivesFailureFuzzyWithCause(
                         Status.Statement.ArgumentError,
                         "Old password and new password cannot be the same.",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.")
+                        GqlStatusInfoCodes.STATUS_22N05.getGqlStatus(),
+                        "error: data exception - input failed validation. Invalid input '***' for neo4j password.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCause(
+                                "2N89: Expected the new password to be different from the old password.",
+                                GqlStatusInfoCodes.STATUS_22N89.getGqlStatus(),
+                                "error: data exception - new password cannot be the same as the old password. Expected the new password to be different from the old password.",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")))
                 .receivesIgnored();
 
         connection

@@ -395,6 +395,29 @@ public final class BoltConnectionAssertions
                         .satisfies(causeAssertions)));
     }
 
+    public BoltConnectionAssertions receivesFailureFuzzyWithCause(
+            Status status,
+            String message,
+            GqlStatus gqlstatus,
+            String statusDescription,
+            Consumer<Map<String, Object>> diagnosticRecordAssertions,
+            Consumer<Map<String, Object>> causeAssertions) {
+        return this.receivesFailure(meta -> Assertions.assertThat(meta)
+                .containsOnlyKeys("neo4j_code", "message", "gql_status", "description", "diagnostic_record", "cause")
+                .containsEntry("neo4j_code", status.code().serialize())
+                .hasEntrySatisfying("message", msg -> Assertions.assertThat(msg)
+                        .asInstanceOf(InstanceOfAssertFactories.STRING)
+                        .contains(message))
+                .containsEntry("gql_status", gqlstatus.gqlStatusString())
+                .containsEntry("description", statusDescription)
+                .hasEntrySatisfying("diagnostic_record", diagnosticRecord -> Assertions.assertThat(diagnosticRecord)
+                        .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+                        .satisfies(diagnosticRecordAssertions))
+                .hasEntrySatisfying("cause", cause -> Assertions.assertThat(cause)
+                        .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+                        .satisfies(causeAssertions)));
+    }
+
     public BoltConnectionAssertions receivesFailureWithCause(
             Status status,
             String message,

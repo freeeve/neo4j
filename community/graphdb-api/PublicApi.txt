@@ -218,8 +218,9 @@ org.neo4j.graphdb.PathExpanders::<STATE extends java.lang.Object>printingWrapper
 org.neo4j.graphdb.PathExpanders::<STATE extends java.lang.Object>printingWrapper(org.neo4j.graphdb.PathExpander<STATE>, java.util.function.BiFunction<org.neo4j.graphdb.Path,org.neo4j.graphdb.traversal.BranchState,java.lang.Boolean>, org.neo4j.graphdb.traversal.Paths.PathDescriptor) org.neo4j.graphdb.PathExpander<STATE> public static
 org.neo4j.graphdb.PathExpanders::<STATE extends java.lang.Object>printingWrapper(org.neo4j.graphdb.PathExpander<STATE>, java.util.function.BiFunction<org.neo4j.graphdb.Path,org.neo4j.graphdb.traversal.BranchState,java.lang.Boolean>, org.neo4j.graphdb.traversal.Paths.PathDescriptor, java.io.PrintStream) org.neo4j.graphdb.PathExpander<STATE> public static
 org.neo4j.graphdb.PathExpanders::<STATE extends java.lang.Object>printingWrapper(org.neo4j.graphdb.PathExpander<STATE>, org.neo4j.graphdb.traversal.Paths.PathDescriptor) org.neo4j.graphdb.PathExpander<STATE> public static
-org.neo4j.graphdb.QueryExecutionException public class extends java.lang.RuntimeException
+org.neo4j.graphdb.QueryExecutionException public class extends org.neo4j.gqlstatus.GqlRuntimeException
 org.neo4j.graphdb.QueryExecutionException::QueryExecutionException(java.lang.String, java.lang.Throwable, java.lang.String) void public
+org.neo4j.graphdb.QueryExecutionException::QueryExecutionException(org.neo4j.gqlstatus.ErrorGqlStatusObject, java.lang.String, java.lang.Throwable, java.lang.String) void public
 org.neo4j.graphdb.QueryExecutionException::getStatusCode() java.lang.String public
 org.neo4j.graphdb.QueryExecutionType public final class extends java.lang.Object
 org.neo4j.graphdb.QueryExecutionType.QueryType public static final enum extends java.lang.Enum<org.neo4j.graphdb.QueryExecutionType.QueryType>

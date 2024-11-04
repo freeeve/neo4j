@@ -132,7 +132,7 @@ public class ExecutionEngine implements QueryExecutionEngine {
                     subscriber,
                     cypherExecutionEngine.defaultQueryExecutionMonitor());
         } catch (Neo4jException e) {
-            throw new QueryExecutionKernelException(e);
+            throw QueryExecutionKernelException.wrapError(e);
         }
     }
 
@@ -149,7 +149,7 @@ public class ExecutionEngine implements QueryExecutionEngine {
             checkParams(context, parameters);
             return cypherExecutionEngine.execute(query, parameters, context, false, prePopulate, subscriber, monitor);
         } catch (Neo4jException e) {
-            throw new QueryExecutionKernelException(e);
+            throw QueryExecutionKernelException.wrapError(e);
         }
     }
 
@@ -167,7 +167,7 @@ public class ExecutionEngine implements QueryExecutionEngine {
             return cypherExecutionEngine.execute(
                     query, parameters, context, prePopulate, input, queryMonitor, subscriber);
         } catch (Neo4jException e) {
-            throw new QueryExecutionKernelException(e);
+            throw QueryExecutionKernelException.wrapError(e);
         }
     }
 

@@ -92,13 +92,14 @@ public class FabricException extends GqlRuntimeException implements Status.HasSt
         this.queryId = queryId;
     }
 
+    private <T extends Throwable & Status.HasStatus> FabricException(ErrorGqlStatusObject gqlStatusObject, T cause) {
+        super(gqlStatusObject, cause.getMessage(), cause);
+        this.statusCode = cause.status();
+    }
+
     public static <T extends Exception & Status.HasStatus> FabricException translateLocalError(T localException) {
         if (localException instanceof ErrorGqlStatusObject gqlException && gqlException.gqlStatusObject() != null) {
-            return new FabricException(
-                    gqlException.gqlStatusObject(),
-                    localException.status(),
-                    localException.getMessage(),
-                    localException);
+            return new FabricException(gqlException, localException);
         }
         return new FabricException(localException.status(), localException.getMessage(), localException);
     }

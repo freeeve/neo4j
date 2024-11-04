@@ -86,9 +86,9 @@ public class StatementQuerySubscriber implements QuerySubscriber {
             if (this.pendingException instanceof KernelException kernelException) {
                 throw kernelException;
             } else if (this.pendingException instanceof Status.HasStatus hasStatus) {
-                throw new QueryExecutionKernelException((Throwable & Status.HasStatus) hasStatus);
+                throw QueryExecutionKernelException.wrapError((Throwable & Status.HasStatus) hasStatus);
             } else {
-                throw new QueryExecutionKernelException(
+                throw QueryExecutionKernelException.wrapError(
                         // DRI-059
                         CypherExecutionException.internalError(
                                 "CypherExecution", this.pendingException.getMessage(), this.pendingException));
