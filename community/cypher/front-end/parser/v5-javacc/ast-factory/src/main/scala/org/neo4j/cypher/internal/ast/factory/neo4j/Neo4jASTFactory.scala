@@ -1732,7 +1732,7 @@ class Neo4jASTFactory(query: String, astExceptionFactory: ASTExceptionFactory, l
       case t => throw new Neo4jASTConstructionException(ASTExceptionFactory.invalidShowFilterType("constraints", t))
     }
     val (yieldAll, yieldedItems) = getYieldAllAndYieldItems(yieldClause)
-    ShowConstraintsClause(constraintType, Option(where), yieldedItems, yieldAll)(p)
+    ShowConstraintsClause(constraintType, Option(where), yieldedItems, yieldAll, returnCypher5Columns = true)(p)
   }
 
   override def showProcedureClause(

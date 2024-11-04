@@ -2094,7 +2094,7 @@ sealed trait CommandClause extends Clause with SemanticAnalysisTooling {
   protected def originalColumns: List[ShowAndTerminateColumn]
 
   // Used for semantic check
-  private lazy val columnsAsMap: Map[String, CypherType] =
+  protected lazy val columnsAsMap: Map[String, CypherType] =
     originalColumns.map(column => column.name -> column.cypherType).toMap[String, CypherType]
 
   override def clauseSpecificSemanticCheck: SemanticCheck =
@@ -2299,6 +2299,26 @@ case class ShowConstraintsClause(
     DefaultOrAllShowColumns(useAllColumns, briefColumns, allColumns)
 
   override def moveWhereToProjection: CommandClause = copy(where = None)(position)
+
+  // Don't want to declare the graph type columns without the feature flag enabled
+  override def clauseSpecificSemanticCheck: SemanticCheck = fromState { s =>
+    val (updatedColumnsAsMap, updatedUnfilteredColumns) = if (!s.features(SemanticFeature.GraphTypes)) {
+      def filterOutGraphTypeColumns(name: String) =
+        Seq(ShowConstraintsClause.enforcedLabelColumn, ShowConstraintsClause.classificationColumn).contains(name)
+
+      val filteredColumnsAsMap = columnsAsMap.filterNot { case (name, _) => filterOutGraphTypeColumns(name) }
+      val filteredUnfilteredColumns =
+        unfilteredColumns.columns.filterNot { s: ShowColumn => filterOutGraphTypeColumns(s.name) }
+
+      (filteredColumnsAsMap, filteredUnfilteredColumns)
+    } else {
+      (columnsAsMap, unfilteredColumns.columns)
+    }
+
+    // This is the same things `super.clauseSpecificSemanticCheck` does (with the values of the else case directly)
+    if (yieldItems.nonEmpty) yieldItems.foldSemanticCheck(_.semanticCheck(updatedColumnsAsMap))
+    else semanticCheckFold(updatedUnfilteredColumns)(sc => declareVariable(sc.variable, sc.cypherType))
+  }
 }
 
 object ShowConstraintsClause {
@@ -2308,6 +2328,8 @@ object ShowConstraintsClause {
   val entityTypeColumn = "entityType"
   val labelsOrTypesColumn = "labelsOrTypes"
   val propertiesColumn = "properties"
+  val enforcedLabelColumn = "enforcedLabel"
+  val classificationColumn = "classification"
   val ownedIndexColumn = "ownedIndex"
   val propertyTypeColumn = "propertyType"
   val optionsColumn = "options"
@@ -2317,26 +2339,35 @@ object ShowConstraintsClause {
     constraintType: ShowConstraintType,
     where: Option[Where],
     yieldItems: List[CommandResultItem],
-    yieldAll: Boolean
+    yieldAll: Boolean,
+    returnCypher5Columns: Boolean
   )(position: InputPosition): ShowConstraintsClause = {
-    val briefCols = List(
-      ShowAndTerminateColumn(idColumn, CTInteger),
-      ShowAndTerminateColumn(nameColumn),
-      ShowAndTerminateColumn(typeColumn),
-      ShowAndTerminateColumn(entityTypeColumn),
-      ShowAndTerminateColumn(labelsOrTypesColumn, CTList(CTString)),
-      ShowAndTerminateColumn(propertiesColumn, CTList(CTString)),
-      ShowAndTerminateColumn(ownedIndexColumn),
-      ShowAndTerminateColumn(propertyTypeColumn)
+    val columns = List(
+      // (column, brief, availableInCypher5)
+      (ShowAndTerminateColumn(idColumn, CTInteger), true, true),
+      (ShowAndTerminateColumn(nameColumn), true, true),
+      (ShowAndTerminateColumn(typeColumn), true, true),
+      (ShowAndTerminateColumn(entityTypeColumn), true, true),
+      (ShowAndTerminateColumn(labelsOrTypesColumn, CTList(CTString)), true, true),
+      (ShowAndTerminateColumn(propertiesColumn, CTList(CTString)), true, true),
+      (ShowAndTerminateColumn(enforcedLabelColumn), true, false),
+      (ShowAndTerminateColumn(classificationColumn), false, false),
+      (ShowAndTerminateColumn(ownedIndexColumn), true, true),
+      (ShowAndTerminateColumn(propertyTypeColumn), true, true),
+      (ShowAndTerminateColumn(optionsColumn, CTMap), false, true),
+      (ShowAndTerminateColumn(createStatementColumn), false, true)
     )
-    val verboseCols = List(
-      ShowAndTerminateColumn(optionsColumn, CTMap),
-      ShowAndTerminateColumn(createStatementColumn)
-    )
+    val briefColumns =
+      columns.filter { case (_, brief, _) => brief }
+        .filter { case (_, _, availableInCypher5) => !returnCypher5Columns || availableInCypher5 }
+        .map { case (column, _, _) => column }
+    val allColumns =
+      columns.filter { case (_, _, availableInCypher5) => !returnCypher5Columns || availableInCypher5 }
+        .map { case (column, _, _) => column }
 
     ShowConstraintsClause(
-      briefCols,
-      briefCols ++ verboseCols,
+      briefColumns,
+      allColumns,
       constraintType,
       where,
       yieldItems,
@@ -2611,8 +2642,8 @@ object ShowTransactionsClause {
       (ShowAndTerminateColumn(currentQueryPageFaultsColumn, CTInteger), false),
       (ShowAndTerminateColumn(initializationStackTraceColumn), false)
     )
-    val briefColumns = columns.filter(_._2).map(_._1)
-    val allColumns = columns.map(_._1)
+    val briefColumns = columns.filter { case (_, brief) => brief }.map { case (column, _) => column }
+    val allColumns = columns.map { case (column, _) => column }
 
     ShowTransactionsClause(
       briefColumns,

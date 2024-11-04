@@ -78,7 +78,7 @@ class TransactionCommandAcceptanceTestSupport extends ExecutionEngineFunSuite wi
     query: String,
     database: String = DEFAULT_DATABASE_NAME,
     numColumns: Int = 10,
-    cypherVersion: CypherVersion = CypherVersion.Cypher5 // This needs to be updated when we defaults to Cypher 25
+    cypherVersion: CypherVersion = CypherVersion.Default
   ): Unit = {
     val checkCypher5Values = cypherVersion == CypherVersion.Cypher5
 

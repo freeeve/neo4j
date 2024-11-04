@@ -48,6 +48,7 @@ import org.neo4j.internal.kernel.api.security.AuthSubject
 import org.neo4j.internal.kernel.api.security.PermissionState
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
 import org.neo4j.internal.kernel.api.security.SecurityContext
+import org.neo4j.internal.schema.GraphTypeDependence
 import org.neo4j.internal.schema.LabelSchemaDescriptor
 import org.neo4j.internal.schema.RelationTypeSchemaDescriptor
 import org.neo4j.internal.schema.RelationshipEndpointLabelSchemaDescriptor
@@ -85,6 +86,7 @@ class ShowCommandTestBase extends CypherFunSuite {
   implicit protected def listToOption[T](value: List[T]): Option[List[T]] = Some(value)
   implicit protected def mapToOption(value: Map[String, AnyValue]): Option[Map[String, AnyValue]] = Some(value)
   implicit protected def valueToOption(value: AnyValue): Option[AnyValue] = Some(value)
+  implicit protected def classificationToOption(value: GraphTypeDependence): Option[GraphTypeDependence] = Some(value)
 
   // Variables
   def varFor(name: String): Variable = Variable(name)(InputPosition.NONE, Variable.isIsolatedDefault)

@@ -46,6 +46,7 @@ import org.neo4j.cypher.internal.runtime.IndexStatus
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.internal.schema.AllIndexProviderDescriptors
 import org.neo4j.internal.schema.EndpointType
+import org.neo4j.internal.schema.GraphTypeDependence
 import org.neo4j.internal.schema.IndexPrototype
 import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.SchemaDescriptors
@@ -56,6 +57,8 @@ import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualValues
 
+import java.util.Locale
+
 class ShowConstraintsCommandTest extends ShowCommandTestBase {
 
   private val defaultColumns =
@@ -63,7 +66,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       AllConstraints,
       None,
       List.empty,
-      yieldAll = false
+      yieldAll = false,
+      returnCypher5Columns = false
     )(InputPosition.NONE)
       .unfilteredColumns
       .columns
@@ -73,7 +77,19 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       AllConstraints,
       None,
       List.empty,
-      yieldAll = true
+      yieldAll = true,
+      returnCypher5Columns = false
+    )(InputPosition.NONE)
+      .unfilteredColumns
+      .columns
+
+  private val allColumnsCypher5 =
+    ShowConstraintsClause(
+      AllConstraints,
+      None,
+      List.empty,
+      yieldAll = true,
+      returnCypher5Columns = true
     )(InputPosition.NONE)
       .unfilteredColumns
       .columns
@@ -225,6 +241,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     entityType: Option[String] = None,
     labelsOrTypes: Option[List[String]] = None,
     properties: Option[List[String]] = None,
+    enforcedLabel: Option[String] = None,
+    classification: Option[GraphTypeDependence] = None,
     index: Option[String] = None,
     propType: Option[String] = None,
     options: Option[AnyValue] = None,
@@ -249,6 +267,14 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
         else VirtualValues.list(maybeExpected.map(Values.stringValue): _*)
       resultMap(ShowConstraintsClause.propertiesColumn) should be(expected)
     }
+    enforcedLabel.foreach(expected =>
+      resultMap(ShowConstraintsClause.enforcedLabelColumn) should be(Values.stringOrNoValue(expected))
+    )
+    classification.foreach(expected =>
+      resultMap(ShowConstraintsClause.classificationColumn) should be(
+        Values.stringValue(expected.toString.toLowerCase(Locale.ROOT))
+      )
+    )
     index.foreach(expected =>
       resultMap(ShowConstraintsClause.ownedIndexColumn) should be(Values.stringOrNoValue(expected))
     )
@@ -326,6 +352,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "NODE",
       labelsOrTypes = List(label),
       properties = List(prop),
+      enforcedLabel = Some(null),
       index = "constraint0",
       propType = Some(null)
     )
@@ -337,6 +364,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "RELATIONSHIP",
       labelsOrTypes = List(relType),
       properties = List(prop),
+      enforcedLabel = Some(null),
       index = Some(null),
       propType = Some(null)
     )
@@ -344,7 +372,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     result.foreach(res => {
       res.keys.toList should contain noElementsOf List(
         ShowConstraintsClause.optionsColumn,
-        ShowConstraintsClause.createStatementColumn
+        ShowConstraintsClause.createStatementColumn,
+        ShowConstraintsClause.classificationColumn
       )
     })
   }
@@ -370,6 +399,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "NODE",
       labelsOrTypes = List(label),
       properties = List(prop),
+      enforcedLabel = Some(null),
+      classification = GraphTypeDependence.UNDESIGNATED,
       index = "constraint0",
       propType = Some(null),
       options = optionsMap,
@@ -383,6 +414,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "RELATIONSHIP",
       labelsOrTypes = List(relType),
       properties = List(prop),
+      enforcedLabel = Some(null),
+      classification = GraphTypeDependence.INDEPENDENT,
       index = Some(null),
       propType = Some(null),
       options = Values.NO_VALUE,
@@ -423,6 +456,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       name = "constraint0",
       constraintType = "NODE_PROPERTY_UNIQUENESS",
       entityType = "NODE",
+      enforcedLabel = Some(null),
+      classification = GraphTypeDependence.UNDESIGNATED,
       index = "constraint0",
       propType = Some(null),
       options = optionsMap,
@@ -434,6 +469,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       name = "constraint1",
       constraintType = "RELATIONSHIP_PROPERTY_EXISTENCE",
       entityType = "RELATIONSHIP",
+      enforcedLabel = Some(null),
+      classification = GraphTypeDependence.INDEPENDENT,
       index = Some(null),
       propType = Some(null),
       options = Values.NO_VALUE,
@@ -448,6 +485,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "NODE",
       labelsOrTypes = List(label),
       properties = List(prop),
+      enforcedLabel = Some(null),
+      classification = GraphTypeDependence.INDEPENDENT,
       index = Some(null),
       propType = "BOOLEAN",
       options = Values.NO_VALUE,
@@ -461,6 +500,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "RELATIONSHIP",
       labelsOrTypes = List(relType),
       properties = List(prop),
+      enforcedLabel = Some(null),
+      classification = GraphTypeDependence.INDEPENDENT,
       index = Some(null),
       propType = "STRING",
       options = Values.NO_VALUE,
@@ -474,6 +515,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "NODE",
       labelsOrTypes = List(label),
       properties = Some(null),
+      enforcedLabel = label2,
+      classification = GraphTypeDependence.DEPENDENT,
       index = Some(null),
       propType = Some(null),
       options = Values.NO_VALUE,
@@ -487,6 +530,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "RELATIONSHIP",
       labelsOrTypes = List(relType),
       properties = Some(null),
+      enforcedLabel = label,
+      classification = GraphTypeDependence.DEPENDENT,
       index = Some(null),
       propType = Some(null),
       options = Values.NO_VALUE,
@@ -500,6 +545,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "RELATIONSHIP",
       labelsOrTypes = List(relType),
       properties = Some(null),
+      enforcedLabel = label,
+      classification = GraphTypeDependence.DEPENDENT,
       index = Some(null),
       propType = Some(null),
       options = Values.NO_VALUE,
@@ -510,6 +557,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       name = "constraint2",
       constraintType = "RELATIONSHIP_PROPERTY_UNIQUENESS",
       entityType = "RELATIONSHIP",
+      enforcedLabel = Some(null),
+      classification = GraphTypeDependence.UNDESIGNATED,
       index = "constraint2",
       propType = Some(null),
       options = optionsMap,
@@ -521,6 +570,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       name = "constraint3",
       constraintType = "NODE_KEY",
       entityType = "NODE",
+      enforcedLabel = Some(null),
+      classification = GraphTypeDependence.UNDESIGNATED,
       index = "constraint3",
       propType = Some(null),
       options = optionsMap,
@@ -532,6 +583,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       name = "constraint4",
       constraintType = "RELATIONSHIP_KEY",
       entityType = "RELATIONSHIP",
+      enforcedLabel = Some(null),
+      classification = GraphTypeDependence.UNDESIGNATED,
       index = "constraint4",
       propType = Some(null),
       options = optionsMap,
@@ -543,6 +596,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       name = "constraint5",
       constraintType = "NODE_PROPERTY_EXISTENCE",
       entityType = "NODE",
+      enforcedLabel = Some(null),
+      classification = GraphTypeDependence.INDEPENDENT,
       index = Some(null),
       propType = Some(null),
       options = Values.NO_VALUE,
@@ -1213,7 +1268,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     setupAllConstraints()
 
     // When
-    val showConstraints = ShowConstraintsCommand(AllConstraints, allColumns, List.empty, CypherVersion.Cypher5)
+    val showConstraints = ShowConstraintsCommand(AllConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1349,6 +1404,13 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       createStatement =
         s"CREATE CONSTRAINT `constraint5` FOR (n:`$label`) REQUIRE (n.`$prop`) IS NOT NULL"
     )
+    // confirm no Cypher 25 columns:
+    result.foreach(res => {
+      res.keys.toList should contain noElementsOf List(
+        ShowConstraintsClause.enforcedLabelColumn,
+        ShowConstraintsClause.classificationColumn
+      )
+    })
   }
 
   test("show unique constraints with Cypher 5") {
@@ -1357,7 +1419,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
 
     // When: all unique
     val showConstraintsAll =
-      ShowConstraintsCommand(UniqueConstraints.cypher5, allColumns, List.empty, CypherVersion.Cypher5)
+      ShowConstraintsCommand(UniqueConstraints.cypher5, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultAll = showConstraintsAll.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1387,7 +1449,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
 
     // When: node unique
     val showConstraintsNode =
-      ShowConstraintsCommand(NodeUniqueConstraints.cypher5, allColumns, List.empty, CypherVersion.Cypher5)
+      ShowConstraintsCommand(NodeUniqueConstraints.cypher5, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultNode = showConstraintsNode.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1406,7 +1468,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
 
     // When: rel unique
     val showConstraintsRel =
-      ShowConstraintsCommand(RelUniqueConstraints.cypher5, allColumns, List.empty, CypherVersion.Cypher5)
+      ShowConstraintsCommand(RelUniqueConstraints.cypher5, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultRel = showConstraintsRel.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1422,6 +1484,95 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       createStatement =
         s"CREATE CONSTRAINT `constraint2` FOR ()-[r:`$relType`]-() REQUIRE (r.`$prop`) IS UNIQUE"
     )
+
+    // confirm no Cypher 25 columns:
+    (resultAll ++ resultNode ++ resultRel).foreach(res => {
+      res.keys.toList should contain noElementsOf List(
+        ShowConstraintsClause.enforcedLabelColumn,
+        ShowConstraintsClause.classificationColumn
+      )
+    })
+  }
+
+  test("show key constraints with Cypher 5") {
+    // Given
+    setupAllConstraints()
+
+    // When: all key
+    val showConstraintsAll =
+      ShowConstraintsCommand(KeyConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
+    val resultAll = showConstraintsAll.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    resultAll should have size 2
+    checkResult(
+      resultAll.head,
+      name = "constraint3",
+      constraintType = "NODE_KEY",
+      entityType = "NODE",
+      index = "constraint3",
+      propType = Some(null),
+      options = optionsMap,
+      createStatement =
+        s"CREATE CONSTRAINT `constraint3` FOR (n:`$label`) REQUIRE (n.`$prop`) IS NODE KEY"
+    )
+    checkResult(
+      resultAll.last,
+      name = "constraint4",
+      constraintType = "RELATIONSHIP_KEY",
+      entityType = "RELATIONSHIP",
+      index = "constraint4",
+      propType = Some(null),
+      options = optionsMap,
+      createStatement =
+        s"CREATE CONSTRAINT `constraint4` FOR ()-[r:`$relType`]-() REQUIRE (r.`$prop`) IS RELATIONSHIP KEY"
+    )
+
+    // When: node key
+    val showConstraintsNode =
+      ShowConstraintsCommand(NodeKeyConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
+    val resultNode = showConstraintsNode.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    resultNode should have size 1
+    checkResult(
+      resultNode.head,
+      name = "constraint3",
+      constraintType = "NODE_KEY",
+      entityType = "NODE",
+      index = "constraint3",
+      propType = Some(null),
+      options = optionsMap,
+      createStatement =
+        s"CREATE CONSTRAINT `constraint3` FOR (n:`$label`) REQUIRE (n.`$prop`) IS NODE KEY"
+    )
+
+    // When: rel key
+    val showConstraintsRel =
+      ShowConstraintsCommand(RelKeyConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
+    val resultRel = showConstraintsRel.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    resultRel should have size 1
+    checkResult(
+      resultRel.head,
+      name = "constraint4",
+      constraintType = "RELATIONSHIP_KEY",
+      entityType = "RELATIONSHIP",
+      index = "constraint4",
+      propType = Some(null),
+      options = optionsMap,
+      createStatement =
+        s"CREATE CONSTRAINT `constraint4` FOR ()-[r:`$relType`]-() REQUIRE (r.`$prop`) IS RELATIONSHIP KEY"
+    )
+
+    // confirm no Cypher 25 columns:
+    (resultAll ++ resultNode ++ resultRel).foreach(res => {
+      res.keys.toList should contain noElementsOf List(
+        ShowConstraintsClause.enforcedLabelColumn,
+        ShowConstraintsClause.classificationColumn
+      )
+    })
   }
 
   test("show property existence constraints with Cypher 5") {
@@ -1430,7 +1581,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
 
     // When: all exists
     val showConstraintsAll =
-      ShowConstraintsCommand(PropExistsConstraints.cypher5, allColumns, List.empty, CypherVersion.Cypher5)
+      ShowConstraintsCommand(PropExistsConstraints.cypher5, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultAll = showConstraintsAll.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1460,7 +1611,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
 
     // When: node exists
     val showConstraintsNode =
-      ShowConstraintsCommand(NodePropExistsConstraints.cypher5, allColumns, List.empty, CypherVersion.Cypher5)
+      ShowConstraintsCommand(NodePropExistsConstraints.cypher5, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultNode = showConstraintsNode.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1479,7 +1630,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
 
     // When: rel exists
     val showConstraintsRel =
-      ShowConstraintsCommand(RelPropExistsConstraints.cypher5, allColumns, List.empty, CypherVersion.Cypher5)
+      ShowConstraintsCommand(RelPropExistsConstraints.cypher5, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultRel = showConstraintsRel.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1495,6 +1646,14 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       createStatement =
         s"CREATE CONSTRAINT `constraint1` FOR ()-[r:`$relType`]-() REQUIRE (r.`$prop`) IS NOT NULL"
     )
+
+    // confirm no Cypher 25 columns:
+    (resultAll ++ resultNode ++ resultRel).foreach(res => {
+      res.keys.toList should contain noElementsOf List(
+        ShowConstraintsClause.enforcedLabelColumn,
+        ShowConstraintsClause.classificationColumn
+      )
+    })
   }
 
   test("show existence constraints with Cypher 5") {
@@ -1503,7 +1662,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
 
     // When: all exists
     val showConstraintsAll =
-      ShowConstraintsCommand(AllExistsConstraints, allColumns, List.empty, CypherVersion.Cypher5)
+      ShowConstraintsCommand(AllExistsConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultAll = showConstraintsAll.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1546,7 +1705,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
 
     // When: node exists
     val showConstraintsNode =
-      ShowConstraintsCommand(NodeAllExistsConstraints, allColumns, List.empty, CypherVersion.Cypher5)
+      ShowConstraintsCommand(NodeAllExistsConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultNode = showConstraintsNode.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1578,7 +1737,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
 
     // When: rel exists
     val showConstraintsRel =
-      ShowConstraintsCommand(RelAllExistsConstraints, allColumns, List.empty, CypherVersion.Cypher5)
+      ShowConstraintsCommand(RelAllExistsConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
     val resultRel = showConstraintsRel.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1594,40 +1753,95 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       createStatement =
         s"CREATE CONSTRAINT `constraint1` FOR ()-[r:`$relType`]-() REQUIRE (r.`$prop`) IS NOT NULL"
     )
+
+    // confirm no Cypher 25 columns:
+    (resultAll ++ resultNode ++ resultRel).foreach(res => {
+      res.keys.toList should contain noElementsOf List(
+        ShowConstraintsClause.enforcedLabelColumn,
+        ShowConstraintsClause.classificationColumn
+      )
+    })
   }
 
-  test("show key constraints with Cypher 5") {
+  test("show property type constraints with Cypher 5") {
     // Given
     setupAllConstraints()
 
-    // When
-    val showConstraints = ShowConstraintsCommand(KeyConstraints, allColumns, List.empty, CypherVersion.Cypher5)
-    val result = showConstraints.originalNameRows(queryState, initialCypherRow).toList
+    // When: all prop type
+    val showConstraintsAll =
+      ShowConstraintsCommand(PropTypeConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
+    val resultAll = showConstraintsAll.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
-    result should have size 2
+    resultAll should have size 2
     checkResult(
-      result.head,
-      name = "constraint3",
-      constraintType = "NODE_KEY",
+      resultAll.head,
+      name = "constraint10",
+      constraintType = "NODE_PROPERTY_TYPE",
       entityType = "NODE",
-      index = "constraint3",
-      propType = Some(null),
-      options = optionsMap,
+      index = Some(null),
+      propType = "BOOLEAN",
+      options = Values.NO_VALUE,
       createStatement =
-        s"CREATE CONSTRAINT `constraint3` FOR (n:`$label`) REQUIRE (n.`$prop`) IS NODE KEY"
+        s"CREATE CONSTRAINT `constraint10` FOR (n:`$label`) REQUIRE (n.`$prop`) IS :: BOOLEAN"
     )
     checkResult(
-      result.last,
-      name = "constraint4",
-      constraintType = "RELATIONSHIP_KEY",
+      resultAll.last,
+      name = "constraint11",
+      constraintType = "RELATIONSHIP_PROPERTY_TYPE",
       entityType = "RELATIONSHIP",
-      index = "constraint4",
-      propType = Some(null),
-      options = optionsMap,
+      index = Some(null),
+      propType = "STRING",
+      options = Values.NO_VALUE,
       createStatement =
-        s"CREATE CONSTRAINT `constraint4` FOR ()-[r:`$relType`]-() REQUIRE (r.`$prop`) IS RELATIONSHIP KEY"
+        s"CREATE CONSTRAINT `constraint11` FOR ()-[r:`$relType`]-() REQUIRE (r.`$prop`) IS :: STRING"
     )
+
+    // When: node prop type
+    val showConstraintsNode =
+      ShowConstraintsCommand(NodePropTypeConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
+    val resultNode = showConstraintsNode.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    resultNode should have size 1
+    checkResult(
+      resultNode.head,
+      name = "constraint10",
+      constraintType = "NODE_PROPERTY_TYPE",
+      entityType = "NODE",
+      index = Some(null),
+      propType = "BOOLEAN",
+      options = Values.NO_VALUE,
+      createStatement =
+        s"CREATE CONSTRAINT `constraint10` FOR (n:`$label`) REQUIRE (n.`$prop`) IS :: BOOLEAN"
+    )
+
+    // When: rel prop type
+    val showConstraintsRel =
+      ShowConstraintsCommand(RelPropTypeConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
+    val resultRel = showConstraintsRel.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    resultRel should have size 1
+    checkResult(
+      resultRel.head,
+      name = "constraint11",
+      constraintType = "RELATIONSHIP_PROPERTY_TYPE",
+      entityType = "RELATIONSHIP",
+      index = Some(null),
+      propType = "STRING",
+      options = Values.NO_VALUE,
+      createStatement =
+        s"CREATE CONSTRAINT `constraint11` FOR ()-[r:`$relType`]-() REQUIRE (r.`$prop`) IS :: STRING"
+    )
+
+    // confirm no Cypher 25 columns:
+    (resultAll ++ resultNode ++ resultRel).foreach(res => {
+      res.keys.toList should contain noElementsOf List(
+        ShowConstraintsClause.enforcedLabelColumn,
+        ShowConstraintsClause.classificationColumn
+      )
+    })
   }
 
   test("show graph dependent constraints") {
@@ -1669,6 +1883,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "NODE",
       labelsOrTypes = List(label),
       properties = List(prop),
+      classification = GraphTypeDependence.DEPENDENT,
       index = Some(null),
       propType = "BOOLEAN",
       options = Values.NO_VALUE,
@@ -1682,6 +1897,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "RELATIONSHIP",
       labelsOrTypes = List(relType),
       properties = List(prop),
+      classification = GraphTypeDependence.DEPENDENT,
       index = Some(null),
       propType = "STRING",
       options = Values.NO_VALUE,
@@ -1695,6 +1911,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "NODE",
       labelsOrTypes = List(label),
       properties = List(prop),
+      classification = GraphTypeDependence.DEPENDENT,
       index = Some(null),
       propType = Some(null),
       options = Values.NO_VALUE,
@@ -1708,6 +1925,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "RELATIONSHIP",
       labelsOrTypes = List(relType),
       properties = List(prop),
+      classification = GraphTypeDependence.DEPENDENT,
       index = Some(null),
       propType = Some(null),
       options = Values.NO_VALUE,
@@ -1736,6 +1954,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "RELATIONSHIP",
       labelsOrTypes = List(relType),
       properties = Some(null),
+      enforcedLabel = label,
+      classification = GraphTypeDependence.DEPENDENT,
       index = Some(null),
       propType = Some(null),
       options = Values.NO_VALUE,
@@ -1749,6 +1969,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "RELATIONSHIP",
       labelsOrTypes = List(relType),
       properties = Some(null),
+      enforcedLabel = label,
+      classification = GraphTypeDependence.DEPENDENT,
       index = Some(null),
       propType = Some(null),
       options = Values.NO_VALUE,
@@ -1776,6 +1998,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       entityType = "NODE",
       labelsOrTypes = List(label),
       properties = Some(null),
+      enforcedLabel = label2,
+      classification = GraphTypeDependence.DEPENDENT,
       index = Some(null),
       propType = Some(null),
       options = Values.NO_VALUE,

@@ -42,7 +42,9 @@ import org.neo4j.cypher.internal.ast.RelationshipSourceLabelConstraints
 import org.neo4j.cypher.internal.ast.RelationshipTargetLabelConstraints
 import org.neo4j.cypher.internal.ast.ShowColumn
 import org.neo4j.cypher.internal.ast.ShowConstraintType
+import org.neo4j.cypher.internal.ast.ShowConstraintsClause.classificationColumn
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause.createStatementColumn
+import org.neo4j.cypher.internal.ast.ShowConstraintsClause.enforcedLabelColumn
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause.entityTypeColumn
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause.idColumn
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause.labelsOrTypesColumn
@@ -70,6 +72,8 @@ import org.neo4j.internal.schema.GraphTypeDependence
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualValues
+
+import java.util.Locale
 
 import scala.collection.immutable.ListMap
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -192,6 +196,13 @@ case class ShowConstraintsCommand(
               .map(props => VirtualValues.fromList(props.asJava)) // make it a ListValue
               .getOrElse(Values.NO_VALUE) // empty list should be NO_VALUE instead of empty list
             propertiesColumn -> properties
+          // The enforced label of this constraint, or null for property enforcing constraints
+          case `enforcedLabelColumn` =>
+            enforcedLabelColumn -> constraintInfo.enforcedLabel.map(Values.stringValue).getOrElse(Values.NO_VALUE)
+          // The classification of this constraint, one of "undesignated", "independent", "dependent"
+          case `classificationColumn` =>
+            classificationColumn ->
+              Values.stringValue(constraintDescriptor.graphTypeDependence().toString.toLowerCase(Locale.ROOT))
           // The name of the index associated to the constraint
           case `ownedIndexColumn` =>
             val ownedIndex =

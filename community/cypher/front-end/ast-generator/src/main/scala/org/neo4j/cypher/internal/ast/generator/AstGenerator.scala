@@ -1744,48 +1744,23 @@ class AstGenerator(
     yields <- _eitherYieldOrWhere
     yieldAll <- boolean
   } yield {
+    val usesCypher5 = whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)
     val showClauses = yields match {
       case Some(Right(w)) =>
-        Seq(
-          ShowConstraintsClause(
-            constraintType,
-            Some(w),
-            List.empty,
-            yieldAll = false
-          )(pos)
-        )
+        Seq(ShowConstraintsClause(constraintType, Some(w), List.empty, yieldAll = false, usesCypher5)(pos))
       case Some(Left((y, Some(r)))) =>
         val (w, yi) = turnYieldToWith(y)
-        Seq(
-          ShowConstraintsClause(constraintType, None, yi, yieldAll = false)(pos),
-          w,
-          r
-        )
+        Seq(ShowConstraintsClause(constraintType, None, yi, yieldAll = false, usesCypher5)(pos), w, r)
       case Some(Left((y, None))) =>
         val (w, yi) = turnYieldToWith(y)
-        Seq(
-          ShowConstraintsClause(constraintType, None, yi, yieldAll = false)(pos),
-          w
-        )
+        Seq(ShowConstraintsClause(constraintType, None, yi, yieldAll = false, usesCypher5)(pos), w)
       case _ if yieldAll =>
         Seq(
-          ShowConstraintsClause(
-            constraintType,
-            None,
-            List.empty,
-            yieldAll = true
-          )(pos),
+          ShowConstraintsClause(constraintType, None, List.empty, yieldAll = true, usesCypher5)(pos),
           getFullWithStarFromYield
         )
       case _ =>
-        Seq(
-          ShowConstraintsClause(
-            constraintType,
-            None,
-            List.empty,
-            yieldAll = false
-          )(pos)
-        )
+        Seq(ShowConstraintsClause(constraintType, None, List.empty, yieldAll = false, usesCypher5)(pos))
     }
     val fullClauses = use.map(u => u +: showClauses).getOrElse(showClauses)
     SingleQuery(fullClauses)(pos)
@@ -1959,19 +1934,14 @@ class AstGenerator(
     exec <- option(oneOf(CurrentUser, User(name)))
     yields <- _yield
     yieldAll <- boolean
+    usesCypher5 = whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)
     clause <- oneOf(
-      (item: List[CommandResultItem], all: Boolean) =>
-        ShowTransactionsClause(ids, None, item, all, whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5))(pos),
+      (item: List[CommandResultItem], all: Boolean) => ShowTransactionsClause(ids, None, item, all, usesCypher5)(pos),
       (item: List[CommandResultItem], all: Boolean) => ShowFunctionsClause(funcType, exec, None, item, all)(pos),
       (item: List[CommandResultItem], all: Boolean) => ShowProceduresClause(exec, None, item, all)(pos),
       (item: List[CommandResultItem], all: Boolean) => ShowSettingsClause(ids, None, item, all)(pos),
       (item: List[CommandResultItem], all: Boolean) =>
-        ShowConstraintsClause(
-          constraintType,
-          None,
-          item,
-          all
-        )(pos),
+        ShowConstraintsClause(constraintType, None, item, all, usesCypher5)(pos),
       (item: List[CommandResultItem], all: Boolean) =>
         ShowIndexesClause(indexType, None, item, all)(pos)
     )
