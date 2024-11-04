@@ -42,7 +42,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.eclipse.collections.api.list.MutableList;
 import org.eclipse.collections.api.list.primitive.LongList;
@@ -303,9 +302,9 @@ class GBPTreeConsistencyChecker<KEY> {
         if (level == 0 && numThreads > 1) {
             // Let's parallelize checking the children in the root, one child is one task
             var futures = new ArrayList<Future<Void>>();
-            AtomicInteger nbrRunning = new AtomicInteger();
-            AtomicBoolean lastOneSeen = new AtomicBoolean();
+            var nbrRunning = new AtomicInteger();
             var rightmostPerLevelFromShards = new ArrayList<RightmostInChainShard>();
+            List<ShardCheck<KEY>> shardChecks = new ArrayList<>();
             visitChildren(
                     cursor,
                     range,
@@ -314,45 +313,45 @@ class GBPTreeConsistencyChecker<KEY> {
                     visitor,
                     cursorContext,
                     generationTarget,
-                    (pos, treeNodeId, generation, childRange, isLast) -> {
+                    (pos, treeNodeId, generation, childRange) -> {
                         // Add the RightmostInChain in child order, i.e. when visiting and not when checking (which is
                         // done by another thread)
                         var shardRightmostPerLevel = new RightmostInChainShard(file, pos == 0);
                         rightmostPerLevelFromShards.add(shardRightmostPerLevel);
                         nbrRunning.incrementAndGet();
-                        if (isLast) {
-                            lastOneSeen.set(true);
-                        }
-                        futures.add(state.executor.submit(() -> {
-                            try (var shardContext = contextFactory.create(TAG_CHECK);
-                                    var shardCursor = cursorFactory.apply(shardContext);
-                                    var shardProgress = progress.threadLocalReporter()) {
-                                goTo(shardCursor, "child at pos " + pos, treeNodeId);
-                                checkSubtree(
-                                        shardCursor,
-                                        childRange,
-                                        pageId,
-                                        generation,
-                                        GBPTreePointerType.child(pos),
-                                        level + 1,
-                                        visitor,
-                                        state.threadLocalSeenIds(),
-                                        cursorContext,
-                                        shardRightmostPerLevel,
-                                        shardProgress,
-                                        monitor,
-                                        () -> {});
-                                int running = nbrRunning.decrementAndGet();
-                                if (lastOneSeen.get() && running == 0) {
-                                    checkRightmostInChainSeams(visitor, rightmostPerLevelFromShards);
-                                    // This is guaranteed to be last since we know checkSubtree doesn't add
-                                    // any new tasks on level > 0.
-                                    taskToRunAsLastCheck.run();
-                                }
-                                return null;
-                            }
-                        }));
+                        shardChecks.add(
+                                new ShardCheck<>(pos, treeNodeId, generation, childRange, shardRightmostPerLevel));
                     });
+            for (var shardCheck : shardChecks) {
+                futures.add(state.executor.submit(() -> {
+                    try (var shardContext = contextFactory.create(TAG_CHECK);
+                            var shardCursor = cursorFactory.apply(shardContext);
+                            var shardProgress = progress.threadLocalReporter()) {
+                        goTo(shardCursor, "child at pos " + shardCheck.pos, shardCheck.treeNodeId);
+                        checkSubtree(
+                                shardCursor,
+                                shardCheck.keyRange,
+                                pageId,
+                                shardCheck.generation,
+                                GBPTreePointerType.child(shardCheck.pos),
+                                level + 1,
+                                visitor,
+                                state.threadLocalSeenIds(),
+                                cursorContext,
+                                shardCheck.shardRightmostPerLevel,
+                                shardProgress,
+                                monitor,
+                                () -> {});
+                        if (nbrRunning.decrementAndGet() == 0) {
+                            checkRightmostInChainSeams(visitor, rightmostPerLevelFromShards);
+                            // This is guaranteed to be last since we know checkSubtree doesn't add
+                            // any new tasks on level > 0.
+                            taskToRunAsLastCheck.run();
+                        }
+                        return null;
+                    }
+                }));
+            }
             removeAlreadyFinishedTasks(futures);
             state.trackSubtasks(futures);
         } else {
@@ -364,7 +363,7 @@ class GBPTreeConsistencyChecker<KEY> {
                     visitor,
                     cursorContext,
                     generationTarget,
-                    (pos, treeNodeId, generation, childRange, isLast) -> {
+                    (pos, treeNodeId, generation, childRange) -> {
                         goTo(cursor, "child at pos " + pos, treeNodeId);
                         checkSubtree(
                                 cursor,
@@ -487,7 +486,7 @@ class GBPTreeConsistencyChecker<KEY> {
                 childRange = childRange.restrictLeft(prev);
             }
 
-            childVisitor.accept(pos, child, childGeneration, childRange, false);
+            childVisitor.accept(pos, child, childGeneration, childRange);
             layout.copyKey(readKey, prev);
             pos++;
         }
@@ -513,7 +512,7 @@ class GBPTreeConsistencyChecker<KEY> {
         if (pos > 0) {
             childRange = childRange.restrictLeft(prev);
         }
-        childVisitor.accept(pos, child, childGeneration, childRange, true);
+        childVisitor.accept(pos, child, childGeneration, childRange);
     }
 
     private static void checkAfterShouldRetry(PageCursor cursor) throws CursorException {
@@ -861,7 +860,7 @@ class GBPTreeConsistencyChecker<KEY> {
     }
 
     interface ChildVisitor<KEY> {
-        void accept(int pos, long treeNodeId, long generation, KeyRange<KEY> range, boolean isLast) throws IOException;
+        void accept(int pos, long treeNodeId, long generation, KeyRange<KEY> range) throws IOException;
     }
 
     private static class RightmostInChainShard {
@@ -910,4 +909,11 @@ class GBPTreeConsistencyChecker<KEY> {
     }
 
     static Monitor NO_MONITOR = keyCount -> {};
+
+    private record ShardCheck<KEY>(
+            int pos,
+            long treeNodeId,
+            long generation,
+            KeyRange<KEY> keyRange,
+            RightmostInChainShard shardRightmostPerLevel) {}
 }
