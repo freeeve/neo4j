@@ -19,6 +19,8 @@
  */
 package org.neo4j.test;
 
+import static org.awaitility.Durations.TWO_MINUTES;
+
 import java.time.Duration;
 import java.util.Objects;
 import org.awaitility.Awaitility;
@@ -32,7 +34,7 @@ public class AsyncDatabaseOperation {
 
     public static GraphDatabaseService findDatabaseEventually(
             DatabaseManagementService managementService, String databaseName) {
-        return findDatabaseEventually(managementService, databaseName, Duration.ofSeconds(30));
+        return findDatabaseEventually(managementService, databaseName, TWO_MINUTES);
     }
 
     public static GraphDatabaseService findDatabaseEventually(
