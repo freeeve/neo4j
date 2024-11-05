@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException;
 import org.neo4j.kernel.api.exceptions.Status;
 
@@ -44,7 +45,25 @@ class ExceptionsTest {
         var reactorException = reactor.core.Exceptions.multiple(primary1, primary2, secondary);
         var transformedException = Exceptions.transformUnexpectedError(Status.General.UnknownError, reactorException);
         assertThat(unpackExceptionMessages(transformedException)).contains("msg-1", "msg-2");
-        // TODO test gql
+    }
+
+    @Test
+    void testGqlFallbackUnexpectedError() {
+        var transformedException =
+                Exceptions.transformUnexpectedError(Status.General.UnknownError, new RuntimeException("msg-1"));
+        assertThat(unpackExceptionMessages(transformedException)).contains("msg-1");
+        assertThat(transformedException).isInstanceOf(ErrorGqlStatusObject.class);
+        var transformedExceptionGql = (ErrorGqlStatusObject) transformedException;
+        assertThat(transformedExceptionGql.gqlStatus()).isEqualTo("50N42");
+    }
+
+    @Test
+    void testGqlFallbackTransactionStartFailure() {
+        var transformedException = Exceptions.transformTransactionStartFailure(new RuntimeException("msg-1"));
+        assertThat(unpackExceptionMessages(transformedException)).contains("msg-1");
+        assertThat(transformedException).isInstanceOf(ErrorGqlStatusObject.class);
+        var transformedExceptionGql = (ErrorGqlStatusObject) transformedException;
+        assertThat(transformedExceptionGql.gqlStatus()).isEqualTo("25N06");
     }
 
     @Test

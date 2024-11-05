@@ -36,7 +36,7 @@ public class Exceptions {
     }
 
     public static RuntimeException transform(
-            ErrorGqlStatusObject gqlStatusObject, Status defaultStatus, Throwable t, Long queryId) {
+            ErrorGqlStatusObject fallbackGqlStatusObject, Status defaultStatus, Throwable t, Long queryId) {
         var unwrapped = reactor.core.Exceptions.unwrap(t);
         unwrapped = transformComposite(unwrapped);
 
@@ -53,18 +53,24 @@ public class Exceptions {
                     return (RuntimeException) unwrapped;
                 }
             }
-
-            return new FabricException(
-                    gqlStatusObject, ((Status.HasStatus) unwrapped).status(), message, unwrapped, queryId);
+            if (unwrapped instanceof ErrorGqlStatusObject gqlStatusObjectOfUnwrapped) {
+                return new FabricException(
+                        gqlStatusObjectOfUnwrapped,
+                        ((Status.HasStatus) unwrapped).status(),
+                        message,
+                        unwrapped,
+                        queryId);
+            }
+            return new FabricException(((Status.HasStatus) unwrapped).status(), message, unwrapped, queryId);
         }
 
-        return new FabricException(gqlStatusObject, defaultStatus, message, unwrapped, queryId);
+        return new FabricException(fallbackGqlStatusObject, defaultStatus, message, unwrapped, queryId);
     }
 
-    public static RuntimeException transformTransactionStartFailure(Status defaultStatus, Throwable t) {
+    public static RuntimeException transformTransactionStartFailure(Throwable t) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N06)
                 .build();
-        return transform(gql, defaultStatus, t);
+        return transform(gql, Status.Transaction.TransactionStartFailed, t);
     }
 
     public static RuntimeException transformUnexpectedError(Status defaultStatus, Throwable t) {

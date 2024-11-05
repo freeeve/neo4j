@@ -107,7 +107,7 @@ public class FabricTransactionImpl extends AbstractCompoundTransaction<SingleDbT
             }
         } catch (RuntimeException e) {
             // the exception with stack trace will be logged by Bolt's ErrorReporter
-            throw Exceptions.transformTransactionStartFailure(Status.Transaction.TransactionStartFailed, e);
+            throw Exceptions.transformTransactionStartFailure(e);
         }
     }
 
