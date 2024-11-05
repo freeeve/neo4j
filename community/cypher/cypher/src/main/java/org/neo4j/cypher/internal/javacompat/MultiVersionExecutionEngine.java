@@ -19,6 +19,9 @@
  */
 package org.neo4j.cypher.internal.javacompat;
 
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.multi_version_transaction_visibility_refresh;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.multi_version_transaction_visibility_refresh_all;
+
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.cypher.internal.CompilerFactory;
@@ -38,6 +41,7 @@ import org.neo4j.values.virtual.MapValue;
 
 public class MultiVersionExecutionEngine extends ExecutionEngine {
     private final int maxQueryExecutionAttempts;
+    private final Config config;
 
     public MultiVersionExecutionEngine(
             GraphDatabaseQueryService queryService,
@@ -47,6 +51,7 @@ public class MultiVersionExecutionEngine extends ExecutionEngine {
             CompilerFactory compilerFactory) {
         super(queryService, queryCaches, logProvider, compilerFactory);
         this.maxQueryExecutionAttempts = config.get(GraphDatabaseInternalSettings.snapshot_query_retries);
+        this.config = config;
     }
 
     @Override
@@ -98,6 +103,8 @@ public class MultiVersionExecutionEngine extends ExecutionEngine {
         }
 
         int attempts = 0;
+        boolean allowRefresh = config.get(multi_version_transaction_visibility_refresh);
+        boolean allowRefreshAllTypes = config.get(multi_version_transaction_visibility_refresh_all);
         QueryExecution result;
         VersionContext versionContext = getCursorContext(context);
         do {
@@ -123,6 +130,15 @@ public class MultiVersionExecutionEngine extends ExecutionEngine {
                 // haven't seen stale data, no need to retry
                 break;
             }
+
+            if (!allowRefresh) {
+                break;
+            }
+
+            if (kernelTransaction.clientInfo().isEmbedded() && !allowRefreshAllTypes) {
+                break;
+            }
+
         } while (attempts++ < maxQueryExecutionAttempts);
         return result;
     }

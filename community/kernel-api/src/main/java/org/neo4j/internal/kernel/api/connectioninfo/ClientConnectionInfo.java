@@ -28,6 +28,9 @@ import java.util.Map;
  * turn this class into a simpler value type that just holds the fields that are actually used.
  */
 public abstract class ClientConnectionInfo {
+
+    private static final String EMBEDDED_PROTOCOL = "embedded";
+
     /**
      * This method provides the custom format for each type of connection.
      * <p>
@@ -74,11 +77,19 @@ public abstract class ClientConnectionInfo {
         return null;
     }
 
+    /**
+     * True if connection using embedded protocol, false otherwise
+     */
+    public boolean isEmbedded() {
+        return EMBEDDED_PROTOCOL.equals(protocol());
+    }
+
     public Map<String, String> boltAgent() {
         return Collections.emptyMap();
     }
 
     public static final ClientConnectionInfo EMBEDDED_CONNECTION = new ClientConnectionInfo() {
+
         @Override
         public String asConnectionDetails() {
             return "embedded-session\t";
@@ -86,7 +97,7 @@ public abstract class ClientConnectionInfo {
 
         @Override
         public String protocol() {
-            return "embedded";
+            return EMBEDDED_PROTOCOL;
         }
 
         @Override

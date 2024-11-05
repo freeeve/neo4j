@@ -1241,6 +1241,20 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("Allow transaction visibility refresh on all types of transactions regardless of origin.")
+    public static final Setting<Boolean> multi_version_transaction_visibility_refresh_all = newBuilder(
+                    "internal.db.multiversion.transaction.visibility.refresh_all.enabled", BOOL, false)
+            .dynamic()
+            .build();
+
+    @Internal
+    @Description("Enable ability of transaction visibility refresh.")
+    public static final Setting<Boolean> multi_version_transaction_visibility_refresh = newBuilder(
+                    "internal.db.multiversion.transaction.visibility.refresh_enabled", BOOL, true)
+            .dynamic()
+            .build();
+
+    @Internal
     @Description("Page Cache Warmer blocks database start until it's completed")
     public static final Setting<Boolean> pagecache_warmup_blocking = newBuilder(
                     "internal.db.memory.pagecache.warmup.blocking_enabled", BOOL, false)

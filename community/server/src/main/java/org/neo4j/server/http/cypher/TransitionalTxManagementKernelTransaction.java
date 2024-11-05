@@ -34,7 +34,7 @@ public class TransitionalTxManagementKernelTransaction {
     private final long customTransactionTimeout;
     private final ClientConnectionInfo connectionInfo;
 
-    private InternalTransaction tx;
+    private final InternalTransaction tx;
 
     TransitionalTxManagementKernelTransaction(
             GraphDatabaseAPI db,
