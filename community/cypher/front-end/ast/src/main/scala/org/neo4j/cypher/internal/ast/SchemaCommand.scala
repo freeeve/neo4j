@@ -600,7 +600,7 @@ sealed trait CreateConstraint extends SchemaCommand {
           else (normalizedPropertyType.description, additionalErrorInfo(normalizedPropertyType))
 
         val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
-          .withParam(GqlParams.StringParam.constrDescrOrName, constraintType.description)
+          .withParam(GqlParams.StringParam.constrDescrOrName, constraintType.description + " constraint")
           .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
             .withParam(GqlParams.StringParam.item, typeDescription)
             .build())

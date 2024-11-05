@@ -411,7 +411,7 @@ object SemanticError {
     originalPropertyType: CypherType
   ): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
-      .withParam(GqlParams.StringParam.constrDescrOrName, constraintTypeDescription)
+      .withParam(GqlParams.StringParam.constrDescrOrName, constraintTypeDescription + " constraint")
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
         .withParam(GqlParams.StringParam.item, originalPropertyType.description)
         .build())
