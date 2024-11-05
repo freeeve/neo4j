@@ -17,10 +17,19 @@
 package org.neo4j.cypher.internal.rewriting.rewriters
 
 import org.neo4j.cypher.internal.expressions.And
+import org.neo4j.cypher.internal.expressions.DynamicLabelExpression
+import org.neo4j.cypher.internal.expressions.DynamicLabelOrRelTypeExpression
+import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
 import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasALabel
 import org.neo4j.cypher.internal.expressions.HasALabelOrType
+import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabel
+import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabelsOrTypes
+import org.neo4j.cypher.internal.expressions.HasAnyDynamicType
+import org.neo4j.cypher.internal.expressions.HasDynamicLabels
+import org.neo4j.cypher.internal.expressions.HasDynamicLabelsOrTypes
+import org.neo4j.cypher.internal.expressions.HasDynamicType
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.HasLabelsOrTypes
 import org.neo4j.cypher.internal.expressions.HasTypes
@@ -83,12 +92,34 @@ case class LabelExpressionNormalizer(entityExpression: Expression, entityType: O
     case Leaf(name: RelTypeName, _) =>
       HasTypes(copy(entityExpression), Seq(name))(name.position)
 
-    case leaf @ Leaf(_, _) =>
+    case DynamicLeaf(dle @ DynamicLabelExpression(expression, all), _) =>
+      if (all) {
+        HasDynamicLabels(copy(entityExpression), Seq(expression))(dle.position)
+      } else {
+        HasAnyDynamicLabel(copy(entityExpression), Seq(expression))(dle.position)
+      }
+
+    case DynamicLeaf(dle @ DynamicRelTypeExpression(expression, all), _) =>
+      if (all) {
+        HasDynamicType(copy(entityExpression), Seq(expression))(dle.position)
+      } else {
+        HasAnyDynamicType(copy(entityExpression), Seq(expression))(dle.position)
+      }
+
+    // in a dynamic label expression predicate
+    case DynamicLeaf(dle @ DynamicLabelOrRelTypeExpression(expression, all), _) =>
+      if (all) {
+        HasDynamicLabelsOrTypes(copy(entityExpression), Seq(expression))(dle.position)
+      } else {
+        HasAnyDynamicLabelsOrTypes(copy(entityExpression), Seq(expression))(dle.position)
+      }
+
+    case dynamicLeaf: DynamicLeaf =>
       throw new IllegalArgumentException(
-        s"Unexpected non-implemented label expression leaf $leaf when rewriting label expressions"
+        s"Unexpected non-implemented dynamic label expression leaf $dynamicLeaf when rewriting label expressions"
       )
 
-    case leaf @ DynamicLeaf(_, _) => // TODO
+    case leaf @ Leaf(_, _) =>
       throw new IllegalArgumentException(
         s"Unexpected non-implemented label expression leaf $leaf when rewriting label expressions"
       )

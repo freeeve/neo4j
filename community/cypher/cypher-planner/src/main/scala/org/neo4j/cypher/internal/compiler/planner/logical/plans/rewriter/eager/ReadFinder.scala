@@ -28,11 +28,13 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.GetDegree
 import org.neo4j.cypher.internal.expressions.HasALabel
+import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabel
 import org.neo4j.cypher.internal.expressions.HasDegree
 import org.neo4j.cypher.internal.expressions.HasDegreeGreaterThan
 import org.neo4j.cypher.internal.expressions.HasDegreeGreaterThanOrEqual
 import org.neo4j.cypher.internal.expressions.HasDegreeLessThan
 import org.neo4j.cypher.internal.expressions.HasDegreeLessThanOrEqual
+import org.neo4j.cypher.internal.expressions.HasDynamicLabels
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.HasLabelsOrTypes
 import org.neo4j.cypher.internal.expressions.HasTypes
@@ -1012,6 +1014,14 @@ object ReadFinder {
           TraverseChildren(labelsOrRels.foldLeft(acc)((acc, labelOrType) =>
             acc.withLabelRead(AccessedLabel(labelOrType.asLabelName, asMaybeVar(expr)))
           ))
+
+      case hasDynamicLabels: HasDynamicLabels =>
+        acc =>
+          TraverseChildren(acc.withUnknownLabelsRead(asMaybeVar(hasDynamicLabels.expression)))
+
+      case hasAnyDynamicLabel: HasAnyDynamicLabel =>
+        acc =>
+          TraverseChildren(acc.withUnknownLabelsRead(asMaybeVar(hasAnyDynamicLabel.expression)))
 
       case ContainerIndex(expr, index)
         if !semanticTable.typeFor(index).is(CTInteger) && !semanticTable.typeFor(expr).is(CTMap) =>

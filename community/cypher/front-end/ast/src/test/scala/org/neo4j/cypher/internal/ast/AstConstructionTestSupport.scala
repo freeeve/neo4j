@@ -62,9 +62,11 @@ import org.neo4j.cypher.internal.expressions.GreaterThanOrEqual
 import org.neo4j.cypher.internal.expressions.HasALabel
 import org.neo4j.cypher.internal.expressions.HasALabelOrType
 import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabel
+import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabelsOrTypes
 import org.neo4j.cypher.internal.expressions.HasAnyDynamicType
 import org.neo4j.cypher.internal.expressions.HasAnyLabel
 import org.neo4j.cypher.internal.expressions.HasDynamicLabels
+import org.neo4j.cypher.internal.expressions.HasDynamicLabelsOrTypes
 import org.neo4j.cypher.internal.expressions.HasDynamicType
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.HasLabelsOrTypes
@@ -244,6 +246,12 @@ trait AstConstructionTestSupport {
 
   def hasDynamicLabels(v: Expression, labels: Expression*): HasDynamicLabels =
     HasDynamicLabels(v, labels)(pos)
+
+  def hasDynamicLabelsOrTypes(v: Expression, labelsOrTypes: Expression*): HasDynamicLabelsOrTypes =
+    HasDynamicLabelsOrTypes(v, labelsOrTypes)(pos)
+
+  def hasAnyDynamicLabelsOrTypes(v: Expression, labelsOrTypes: Expression*): HasAnyDynamicLabelsOrTypes =
+    HasAnyDynamicLabelsOrTypes(v, labelsOrTypes)(pos)
 
   def hasAnyLabel(v: LogicalVariable, labels: String*): HasAnyLabel =
     HasAnyLabel(v, labels.map(labelName(_)))(pos)

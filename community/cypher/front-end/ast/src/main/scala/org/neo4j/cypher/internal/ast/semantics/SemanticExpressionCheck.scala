@@ -63,6 +63,8 @@ import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.GetDegree
 import org.neo4j.cypher.internal.expressions.GreaterThan
 import org.neo4j.cypher.internal.expressions.GreaterThanOrEqual
+import org.neo4j.cypher.internal.expressions.HasAnyDynamicType
+import org.neo4j.cypher.internal.expressions.HasDynamicType
 import org.neo4j.cypher.internal.expressions.HasTypes
 import org.neo4j.cypher.internal.expressions.HexIntegerLiteral
 import org.neo4j.cypher.internal.expressions.ImplicitProcedureArgument
@@ -459,6 +461,16 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           specifyType(CTBoolean, x)
 
       case x: HasTypes =>
+        check(ctx, x.expression) chain
+          expectType(CTRelationship.covariant, x.expression) chain
+          specifyType(CTBoolean, x)
+
+      case x: HasDynamicType =>
+        check(ctx, x.expression) chain
+          expectType(CTRelationship.covariant, x.expression) chain
+          specifyType(CTBoolean, x)
+
+      case x: HasAnyDynamicType =>
         check(ctx, x.expression) chain
           expectType(CTRelationship.covariant, x.expression) chain
           specifyType(CTBoolean, x)

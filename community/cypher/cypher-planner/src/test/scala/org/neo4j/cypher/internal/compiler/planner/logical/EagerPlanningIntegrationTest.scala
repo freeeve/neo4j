@@ -22,15 +22,19 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.EagerAnalysisImplementation
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DynamicLabelsAndTypes
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
 import org.neo4j.cypher.internal.expressions.HasDegreeGreaterThan
+import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
+import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.EagernessReason.Conflict
+import org.neo4j.cypher.internal.ir.EagernessReason.LabelReadSetConflict
 import org.neo4j.cypher.internal.ir.EagernessReason.PropertyReadSetConflict
 import org.neo4j.cypher.internal.ir.EagernessReason.ReadCreateConflict
 import org.neo4j.cypher.internal.ir.EagernessReason.ReadDeleteConflict
@@ -39,6 +43,7 @@ import org.neo4j.cypher.internal.ir.EagernessReason.Unknown
 import org.neo4j.cypher.internal.ir.EagernessReason.UnknownLabelReadRemoveConflict
 import org.neo4j.cypher.internal.ir.EagernessReason.UnknownLabelReadSetConflict
 import org.neo4j.cypher.internal.ir.HasHeaders
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.andsReorderable
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
@@ -1895,6 +1900,158 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
         .|.argument("s")
         .filter("s.name = 'me'")
         .nodeByLabelScan("s", "Person", IndexOrderNone)
+        .build()
+    )
+  }
+
+  test("eagerness should handle matching on dynamic labels - Create overlap") {
+    val planner = plannerBuilder()
+      .addSemanticFeature(DynamicLabelsAndTypes)
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("C", 10)
+      .build()
+
+    val query = """WITH ["A", "B"] as labels
+                  |MATCH (n:$any(labels))
+                  |CREATE (:Z)
+                  |RETURN n""".stripMargin
+
+    val plan = planner.plan(query)
+
+    val expression = hasAnyDynamicLabel(varFor("n"), varFor("labels"))
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("n")
+        .create(createNode("anon_0", "Z"))
+        .eager(lpReasons(LabelReadSetConflict(labelName("Z")).withConflict(Conflict(Id(1), Id(5)))))
+        .filterExpression(expression)
+        .apply()
+        .|.allNodeScan("n", "labels")
+        .projection("['A', 'B'] AS labels")
+        .argument()
+        .build()
+    )
+  }
+
+  test("eagerness should handle matching on dynamic labels - Set overlap") {
+    val planner = plannerBuilder()
+      .addSemanticFeature(DynamicLabelsAndTypes)
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Z", 10)
+      .build()
+
+    val expression =
+      not(hasDynamicLabels(varFor("n"), ListLiteral(List(StringLiteral("Z")(pos.withInputLength(1))))(pos)))
+
+    val query = """WITH ["A", "B"] as labels
+                  |MATCH (n:!$(["Z"])), (m:!Z)
+                  |Set m:Z
+                  |RETURN m""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("m")
+        .lpEager(ListSet(LabelReadSetConflict(labelName("Z")).withConflict(Conflict(Id(2), Id(0)))))
+        .irEager(ListSet(LabelReadSetConflict(labelName("Z"))))
+        .setLabels("m", Seq("Z"), Seq())
+        .lpEager(ListSet(
+          LabelReadSetConflict(labelName("Z")).withConflict(Conflict(Id(2), Id(6))),
+          LabelReadSetConflict(labelName("Z")).withConflict(Conflict(Id(2), Id(8)))
+        ))
+        .irEager(ListSet(LabelReadSetConflict(labelName("Z"))))
+        .apply()
+        .|.cartesianProduct()
+        .|.|.filter("NOT m:Z")
+        .|.|.allNodeScan("m", "labels")
+        .|.filterExpression(expression)
+        .|.allNodeScan("n", "labels")
+        .projection("['A', 'B'] AS labels")
+        .argument()
+        .build()
+    )
+  }
+
+  test("eagerness should handle matching on Dynamic Labels - Delete overlap") {
+    val planner = plannerBuilder()
+      .addSemanticFeature(DynamicLabelsAndTypes)
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Z", 10)
+      .setRelationshipCardinality("()-[]->()", 10)
+      .setLabelCardinality("A", 10)
+      .setLabelCardinality("C", 10)
+      .build()
+
+    val query = """WITH ["A", "B"] as types
+                  |MATCH (n:$([])), (m:!%)
+                  |DELETE m
+                  |RETURN n""".stripMargin
+
+    val plan = planner.plan(query)
+
+    val dynExpr = hasDynamicLabels(varFor("n"), ListLiteral(List.empty)(pos))
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("n")
+        .lpEager(ListSet(ReadDeleteConflict("n").withConflict(Conflict(Id(2), Id(0)))))
+        .irEager(ListSet(ReadDeleteConflict("n")))
+        .deleteNode("m")
+        .lpEager(ListSet(
+          ReadDeleteConflict("n").withConflict(Conflict(Id(2), Id(6))),
+          ReadDeleteConflict("n").withConflict(Conflict(Id(2), Id(7))),
+          ReadDeleteConflict("m").withConflict(Conflict(Id(2), Id(8))),
+          ReadDeleteConflict("m").withConflict(Conflict(Id(2), Id(9)))
+        ))
+        .irEager(ListSet(ReadDeleteConflict("m")))
+        .apply()
+        .|.cartesianProduct()
+        .|.|.filterExpression(dynExpr)
+        .|.|.allNodeScan("n", "types")
+        .|.filter("NOT m:%")
+        .|.allNodeScan("m", "types")
+        .projection("['A', 'B'] AS types")
+        .argument()
+        .build()
+    )
+  }
+
+  test("eagerness should handle matching on Dynamic Types - Create overlap") {
+    val planner = plannerBuilder()
+      .addSemanticFeature(DynamicLabelsAndTypes)
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Z", 10)
+      .setRelationshipCardinality("()-[]->()", 10)
+      .setLabelCardinality("A", 10)
+      .setLabelCardinality("C", 10)
+      .build()
+
+    val query = """WITH ["A", "B"] as types
+                  |MATCH (n:!A)-[r1:$(["Z"])&!B]->(m:!C)
+                  |CREATE (a:A)-[r2:B]->(b:C)
+                  |RETURN r1""".stripMargin
+
+    val plan = planner.plan(query)
+
+    val dynExpr = hasDynamicType(varFor("r1"), ListLiteral(List(StringLiteral("Z")(pos.withInputLength(1))))(pos))
+    val notExpr = not(hasTypes("r1", "B"))
+    val andsExpr = andsReorderable("NOT n:A", "NOT m:C")
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("r1")
+        .create(createNode("a", "A"), createNode("b", "C"), createRelationship("r2", "a", "B", "b", OUTGOING))
+        .eager(lpReasons(
+          LabelReadSetConflict(labelName("C")).withConflict(Conflict(Id(1), Id(5))),
+          LabelReadSetConflict(labelName("A")).withConflict(Conflict(Id(1), Id(5)))
+        ))
+        .filterExpression(dynExpr, notExpr, andsExpr)
+        .apply()
+        .|.allRelationshipsScan("(n)-[r1]->(m)", "types")
+        .projection("['A', 'B'] AS types")
+        .argument()
         .build()
     )
   }

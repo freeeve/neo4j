@@ -441,6 +441,38 @@ class AddUniquenessPredicatesTest extends CypherFunSuite with RewriteTest with A
     assertIsNotRewritten("MATCH ANY SHORTEST (a) RETURN *")
   }
 
+  test("Should always add uniqueness predicate for relationships with dynamic Types") {
+    assertRewrite(
+      originalQuery = """MATCH ANY SHORTEST ((a:A)-[r:$(["R1","R2"])]->+(b:B)) RETURN *""",
+      expectedQuery = s"""MATCH ANY SHORTEST ((a:A)-[r:$$(["R1","R2"])]->+(b:B) WHERE ${unique("r")}) RETURN *"""
+    )
+  }
+
+  test("Should always add uniqueness predicate for relationships with negated dynamic Types") {
+    assertRewrite(
+      originalQuery = """MATCH ANY SHORTEST ((a:A)-[r:!$(["R1","R2"])]->+(b:B)) RETURN *""",
+      expectedQuery = s"""MATCH ANY SHORTEST ((a:A)-[r:!$$(["R1","R2"])]->+(b:B) WHERE ${unique("r")}) RETURN *"""
+    )
+  }
+
+  test("Should always add uniqueness predicate for multiple relationships with dynamic Types") {
+    assertRewrite(
+      originalQuery = """MATCH (a)-[r1:!$(["R1","R2"])]->(b)-[r2:$(["R1","R2"])]->(c) RETURN *""",
+      expectedQuery =
+        s"""MATCH (a)-[r1:!$$(["R1","R2"])]->(b)-[r2:$$(["R1","R2"])]->(c) WHERE NOT r2 = r1
+           | RETURN *""".stripMargin
+    )
+  }
+
+  test("Should always add uniqueness predicate for multiple quantified relationships with dynamic Types") {
+    assertRewrite(
+      """MATCH (()-[r1:!$(["R1","R2"])]->()-[r2:$(["R1","R2"])]->())+ (()-[r3:!$(["R1","R2"])]->()-[r4:$(["R1","R2"])]->())+ RETURN *""",
+      s"""MATCH (()-[r1:!$$(["R1","R2"])]->()-[r2:$$(["R1","R2"])]->() WHERE NOT r2 = r1)+ (()-[r3:!$$(["R1","R2"])]->()-[r4:$$(["R1","R2"])]->() WHERE NOT r4 = r3)+
+         |WHERE ${disjoint("r1 + r2", "r3 + r4")} AND ${unique("r1 + r2", 1)} AND ${unique("r3 + r4", 3)}
+         |RETURN *""".stripMargin
+    )
+  }
+
   def rewriterUnderTest: Rewriter = inSequence(
     AddUniquenessPredicates.rewriter,
     UniquenessRewriter(new AnonymousVariableNameGenerator)

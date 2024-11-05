@@ -60,9 +60,11 @@ import org.neo4j.cypher.internal.expressions.GreaterThanOrEqual
 import org.neo4j.cypher.internal.expressions.HasALabel
 import org.neo4j.cypher.internal.expressions.HasALabelOrType
 import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabel
+import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabelsOrTypes
 import org.neo4j.cypher.internal.expressions.HasAnyDynamicType
 import org.neo4j.cypher.internal.expressions.HasAnyLabel
 import org.neo4j.cypher.internal.expressions.HasDynamicLabels
+import org.neo4j.cypher.internal.expressions.HasDynamicLabelsOrTypes
 import org.neo4j.cypher.internal.expressions.HasDynamicType
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.HasLabelsOrTypes
@@ -361,6 +363,14 @@ private class DefaultExpressionStringifier(
 
       case HasAnyDynamicType(arg, types) =>
         val t = types.map(t => s"$$any(${apply(t)})").mkString(":", "|", "")
+        s"${inner(ast)(arg)}$t"
+
+      case HasDynamicLabelsOrTypes(arg, labelsOrTypes) =>
+        val t = labelsOrTypes.map(t => s"$$all(${apply(t)})").mkString(":", "&", "")
+        s"${inner(ast)(arg)}$t"
+
+      case HasAnyDynamicLabelsOrTypes(arg, labelsOrTypes) =>
+        val t = labelsOrTypes.map(t => s"$$any(${apply(t)})").mkString(":", "|", "")
         s"${inner(ast)(arg)}$t"
 
       case lep: LabelExpressionPredicate =>

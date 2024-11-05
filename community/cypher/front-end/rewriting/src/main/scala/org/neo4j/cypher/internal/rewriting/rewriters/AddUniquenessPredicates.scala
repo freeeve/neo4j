@@ -44,6 +44,7 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonConjunct
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonDisjunction
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Conjunctions
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Disjunctions
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Negation
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Wildcard
@@ -198,6 +199,7 @@ case object AddUniquenessPredicates extends AddRelationshipPredicates[NodeConnec
       case Negation(e, _)                          => TailCalls.tailcall(evaluate(e, relType)).map(value => !value)
       case Wildcard(_)                             => TailCalls.done(true)
       case Leaf(expressionRelType: RelTypeName, _) => TailCalls.done(expressionRelType == relType)
+      case DynamicLeaf(_, _)                       => TailCalls.done(true)
       case x =>
         throw new IllegalArgumentException(s"Unexpected label expression $x when evaluating relationship overlap")
     }
@@ -228,7 +230,10 @@ case object AddUniquenessPredicates extends AddRelationshipPredicates[NodeConnec
     labelExpression1: Option[LabelExpression]
   ): Boolean = {
     // if both labelExpression0 and labelExpression1 evaluate to true when relType is present on a rel, then there's an overlap between the label expressions
-    relTypesToConsider.exists(relType => ands(Seq(labelExpression0, labelExpression1).flatten, relType).result)
+    relTypesToConsider.exists(relType => ands(Seq(labelExpression0, labelExpression1).flatten, relType).result) ||
+    // labelExpressions containing dynamic Types should always overlap.
+    labelExpression0.exists(_.containsDynamicLabelOrTypeExpression) ||
+    labelExpression1.exists(_.containsDynamicLabelOrTypeExpression)
   }
 
   private[rewriters] def getRelTypesToConsider(labelExpression: Option[LabelExpression]): Seq[SymbolicName] = {

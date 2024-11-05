@@ -139,3 +139,29 @@ case class HasAnyDynamicType(expression: Expression, types: Seq[Expression])(val
 
   override def isConstantForQuery: Boolean = false
 }
+
+/**
+ * Checks if expression has all dynamic labels OR all dynamic types
+ */
+case class HasDynamicLabelsOrTypes(entityExpression: Expression, labelsOrTypes: Seq[Expression])(
+  val position: InputPosition
+) extends LabelOrTypeCheckExpression {
+
+  override def asCanonicalStringVal =
+    s"${entityExpression.asCanonicalStringVal}${labelsOrTypes.map(t => s"$$all(${t.asCanonicalStringVal})").mkString(":", "&", "")}"
+
+  override def isConstantForQuery: Boolean = false
+}
+
+/**
+ * Checks if expression has any dynamic labels OR any dynamic types
+ */
+case class HasAnyDynamicLabelsOrTypes(entityExpression: Expression, labelsOrTypes: Seq[Expression])(
+  val position: InputPosition
+) extends LabelOrTypeCheckExpression {
+
+  override def asCanonicalStringVal =
+    s"${entityExpression.asCanonicalStringVal}${labelsOrTypes.map(t => s"$$any(${t.asCanonicalStringVal})").mkString(":", "|", "")}"
+
+  override def isConstantForQuery: Boolean = false
+}

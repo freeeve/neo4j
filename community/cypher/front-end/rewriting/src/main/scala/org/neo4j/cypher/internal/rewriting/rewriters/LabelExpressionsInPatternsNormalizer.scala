@@ -31,14 +31,14 @@ object LabelExpressionsInPatternsNormalizer extends PredicateNormalizer {
     case NodePattern(Some(id), Some(expression), _, _) =>
       Vector(extractLabelExpressionPredicates(id, expression, NODE_TYPE))
     case RelationshipPattern(Some(id), Some(expression), None, _, _, _)
-      if expression.containsGpmSpecificRelTypeExpression =>
+      if expression.containsGpmSpecificRelTypeExpression || expression.containsDynamicLabelOrTypeExpression =>
       Vector(extractLabelExpressionPredicates(id, expression, RELATIONSHIP_TYPE))
   }
 
   override val replace: PartialFunction[AnyRef, AnyRef] = {
     case p @ NodePattern(Some(_), Some(_), _, _) => p.copy(labelExpression = None)(p.position)
     case p @ RelationshipPattern(Some(_), Some(expression), None, _, _, _)
-      if expression.containsGpmSpecificRelTypeExpression =>
+      if expression.containsGpmSpecificRelTypeExpression || expression.containsDynamicLabelOrTypeExpression =>
       p.copy(labelExpression = None)(p.position)
   }
 

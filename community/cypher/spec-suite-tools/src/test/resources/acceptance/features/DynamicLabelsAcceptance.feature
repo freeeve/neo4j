@@ -605,7 +605,7 @@ Feature: DynamicLabelsAcceptance
        RETURN r;
       """
     Then the result should be, in any order:
-      | labels |
+      | r |
     Examples:
       | all |
       | all |
@@ -621,10 +621,10 @@ Feature: DynamicLabelsAcceptance
     When executing query:
       """
        MATCH ()-[r:$any(["REL1", "REL2"])]->()
-       RETURN type(r);
+       RETURN type(r) as types
       """
     Then the result should be, in any order:
-      | labels |
+      | types |
       | 'REL1' |
       | 'REL2' |
 
@@ -730,6 +730,7 @@ Feature: DynamicLabelsAcceptance
 
   Scenario: Dynamic Labels with a negation label expression in MATCH
     Given an empty graph
+    And having executed:
       """
       CREATE (:Foo), (:Foo:Bar), (:Bar)
       """
@@ -745,6 +746,7 @@ Feature: DynamicLabelsAcceptance
 
   Scenario: Dynamic Labels empty list in MATCH
     Given an empty graph
+    And having executed:
       """
       CREATE (:Foo), (:Foo:Bar), (:Bar)
       """
@@ -760,6 +762,7 @@ Feature: DynamicLabelsAcceptance
 
   Scenario: Dynamic Labels in MATCH with negation on any - !$any(labels) == !(label1|label2)
     Given an empty graph
+    And having executed:
       """
       CREATE (:Foo), (:Foo:Bar), (:Bar)
       """
@@ -768,7 +771,7 @@ Feature: DynamicLabelsAcceptance
       """
        WITH ["Foo", "Bar"] AS labels
        MATCH (n :!$any(labels))
-       RETURN labels(n)
+       RETURN count(n) as count
       """
     Then the result should be, in any order:
       | count  |
@@ -776,6 +779,7 @@ Feature: DynamicLabelsAcceptance
 
   Scenario: Dynamic Labels in MATCH with negation on all - !$all(labels) == !(label1&label2)
     Given an empty graph
+    And having executed:
       """
       CREATE (:Foo), (:Foo:Bar), (:Bar)
       """
@@ -784,7 +788,7 @@ Feature: DynamicLabelsAcceptance
       """
        WITH ["Foo", "Bar"] AS labels
        MATCH (n :!$all(labels))
-       RETURN labels(n)
+       RETURN count(n) as count
       """
     Then the result should be, in any order:
       | count  |
@@ -792,6 +796,7 @@ Feature: DynamicLabelsAcceptance
 
   Scenario: Dynamic Labels in MATCH with all and any - !$all(labels)&$any(labels)) == !(label1&label2)&(label1|label2)
     Given an empty graph
+    And having executed:
       """
       CREATE (:Foo), (:Foo:Bar), (:Bar), (:Baz)
       """
@@ -800,12 +805,12 @@ Feature: DynamicLabelsAcceptance
       """
        WITH ["Foo", "Bar"] AS labels
        MATCH (n :!$all(labels)&$any(labels)) 
-       RETURN labels(n) AS labels
+       RETURN labels(n) AS returnedLabels
       """
     Then the result should be, in any order:
-      | labels  |
-      | ['Foo'] |
-      | ['Bar'] |
+      | returnedLabels  |
+      | ['Foo']         |
+      | ['Bar']         |
 
   Scenario Outline: Should throw type errors when a node property being used as a dynamic label is invalid
     Given an empty graph
