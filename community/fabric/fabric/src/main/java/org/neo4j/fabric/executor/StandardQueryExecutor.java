@@ -41,6 +41,7 @@ import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.graphdb.GqlStatusObject;
 import org.neo4j.graphdb.Notification;
 import org.neo4j.kernel.impl.query.QueryRoutingMonitor;
+import org.neo4j.logging.InternalLog;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.MapValueBuilder;
@@ -72,7 +73,8 @@ class StandardQueryExecutor extends SingleQueryFragmentExecutor {
             QueryRoutingMonitor queryRoutingMonitor,
             MergedQueryStatistics statistics,
             Tracer tracer,
-            FragmentExecutor fragmentExecutor) {
+            FragmentExecutor fragmentExecutor,
+            InternalLog log) {
         super(
                 plannerInstance,
                 fabricWorkerExecutor,
@@ -89,7 +91,8 @@ class StandardQueryExecutor extends SingleQueryFragmentExecutor {
                 queryRoutingMonitor,
                 statistics,
                 tracer,
-                fragmentExecutor);
+                fragmentExecutor,
+                log);
         this.fragment = fragment;
     }
 

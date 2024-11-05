@@ -355,7 +355,8 @@ public class FabricExecutor {
                             queryRoutingMonitor,
                             statistics,
                             tracer(),
-                            FabricStatementExecution.this::run)
+                            FabricStatementExecution.this::run,
+                            log)
                     .run(argument);
         }
 
@@ -377,7 +378,8 @@ public class FabricExecutor {
                             queryRoutingMonitor,
                             statistics,
                             tracer(),
-                            FabricStatementExecution.this::run)
+                            FabricStatementExecution.this::run,
+                            log)
                     .run(argument);
 
             Mono<QueryExecutionType> executionType = Mono.just(EffectiveQueryType.queryExecutionType(plan, accessMode));

@@ -51,6 +51,7 @@ import org.neo4j.graphdb.GqlStatusObject;
 import org.neo4j.graphdb.Notification;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.query.QueryRoutingMonitor;
+import org.neo4j.logging.InternalLog;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.IntegralValue;
@@ -90,7 +91,8 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
             QueryRoutingMonitor queryRoutingMonitor,
             MergedQueryStatistics statistics,
             Tracer tracer,
-            FragmentExecutor fragmentExecutor) {
+            FragmentExecutor fragmentExecutor,
+            InternalLog log) {
         super(
                 plannerInstance,
                 fabricWorkerExecutor,
@@ -107,7 +109,8 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
                 queryRoutingMonitor,
                 statistics,
                 tracer,
-                fragmentExecutor);
+                fragmentExecutor,
+                log);
         this.callInTransactions = callInTransactions;
         this.innerFragment = (Fragment.Exec) callInTransactions.inner();
         this.batchSize = batchSize();

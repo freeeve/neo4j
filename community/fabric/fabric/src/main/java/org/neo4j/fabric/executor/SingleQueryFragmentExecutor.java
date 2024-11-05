@@ -57,6 +57,7 @@ import org.neo4j.graphdb.QueryExecutionType;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.impl.query.QueryRoutingMonitor;
+import org.neo4j.logging.InternalLog;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.MapValueBuilder;
@@ -85,6 +86,7 @@ abstract class SingleQueryFragmentExecutor {
     private final MergedQueryStatistics statistics;
     private final Tracer tracer;
     private final FragmentExecutor fragmentExecutor;
+    private final InternalLog log;
 
     SingleQueryFragmentExecutor(
             FabricPlanner.PlannerInstance plannerInstance,
@@ -102,7 +104,8 @@ abstract class SingleQueryFragmentExecutor {
             QueryRoutingMonitor queryRoutingMonitor,
             MergedQueryStatistics statistics,
             Tracer tracer,
-            FragmentExecutor fragmentExecutor) {
+            FragmentExecutor fragmentExecutor,
+            InternalLog log) {
         this.plannerInstance = plannerInstance;
         this.fabricWorkerExecutor = fabricWorkerExecutor;
         this.ctx = ctx;
@@ -119,6 +122,7 @@ abstract class SingleQueryFragmentExecutor {
         this.statistics = statistics;
         this.tracer = tracer;
         this.fragmentExecutor = fragmentExecutor;
+        this.log = log;
     }
 
     MapValue queryParams() {
@@ -365,10 +369,17 @@ abstract class SingleQueryFragmentExecutor {
     }
 
     private void updateSummary(Summary summary) {
-        if (summary != null) {
+        if (summary == null) {
+            log.debug("Result summary for single query fragment was null for query:" + plan.queryString());
+            return;
+        }
+        try {
             this.statistics.add(summary.getQueryStatistics());
             this.notifications.addAll(summary.getNotifications());
             mergeGqlStatusObjects(summary.getGqlStatusObjects());
+        } catch (Exception e) {
+            log.error("Error while updating summary", e);
+            throw e;
         }
     }
 
