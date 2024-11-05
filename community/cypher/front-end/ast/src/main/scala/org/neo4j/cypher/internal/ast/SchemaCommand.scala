@@ -67,11 +67,14 @@ sealed trait SchemaCommand extends StatementWithGraph with SemanticAnalysisTooli
 
   // The validation of the values (provider, config keys and config values) are done at runtime.
   protected def checkOptionsMap(schemaString: String, options: Options): SemanticCheck = options match {
-    case OptionsMap(ops)
-      if ops.view.filterKeys(k =>
+    case OptionsMap(ops) =>
+      val invalidKeys = ops.view.filterKeys(k =>
         !k.equalsIgnoreCase("indexProvider") && !k.equalsIgnoreCase("indexConfig")
-      ).nonEmpty =>
-      SemanticCheck.error(SemanticError.invalidOption(schemaString, String.valueOf(options), position))
+      )
+      if (invalidKeys.isEmpty)
+        SemanticCheck.success
+      else
+        SemanticCheck.error(SemanticError.invalidOption(schemaString, invalidKeys.keys.mkString(" and "), position))
     case _ => SemanticCheck.success
   }
 
