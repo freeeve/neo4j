@@ -97,14 +97,15 @@ public class VectorIndexProcedures {
     @Context
     public ProcedureCallContext callContext;
 
-    // loosely 'deprecated', should use `CREATE VECTOR INDEX...`
+    @Deprecated(since = "5.26.0", forRemoval = true)
     @Description(
             """
             Create a named node vector index for the specified label and property with the given vector dimensionality using either the EUCLIDEAN or COSINE similarity function.
             Both similarity functions are case-insensitive.
             Use the `db.index.vector.queryNodes` procedure to query the named index.
             """)
-    @Procedure(name = "db.index.vector.createNodeIndex", mode = SCHEMA)
+    @Procedure(name = "db.index.vector.createNodeIndex", mode = SCHEMA, deprecatedBy = "CREATE VECTOR INDEX")
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5})
     public void createIndex(
             @Name(value = "indexName") String name,
             @Name(value = "label") String label,

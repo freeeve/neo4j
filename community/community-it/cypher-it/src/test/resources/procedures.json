@@ -855,13 +855,13 @@
     "rolesBoostedExecution": [
       "admin"
     ],
-    "isDeprecated": false,
-    "deprecatedBy": null,
+    "isDeprecated": true,
+    "deprecatedBy": "CREATE VECTOR INDEX",
     "option": {
-      "deprecated": false
+      "deprecated": true
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "removedInCypher25": true
   },
   {
     "name": "db.index.vector.queryNodes",
