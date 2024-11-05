@@ -532,7 +532,7 @@
       "deprecated": true
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "removedInCypher25": true
   },
   {
     "name": "db.createLabel",

@@ -59,8 +59,10 @@ import org.neo4j.internal.schema.SettingsAccessor.IndexConfigAccessor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.KernelTransaction;
+import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions;
+import org.neo4j.kernel.api.procedure.QueryLanguageScope;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
 import org.neo4j.kernel.api.vector.VectorCandidate;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -207,6 +209,7 @@ public class VectorIndexProcedures {
     @Description("Set a vector property on a given node in a more space efficient representation than Cypher's SET.")
     @Procedure(name = "db.create.setVectorProperty", mode = WRITE, deprecatedBy = "db.create.setNodeVectorProperty")
     @Deprecated(since = "5.13.0", forRemoval = true)
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5})
     public Stream<NodeRecord> deprecatedSetVectorProperty(
             @Name(value = "node", description = "The node on which the new property will be stored.") Node node,
             @Name(value = "key", description = "The name of the new property.") String propKey,
