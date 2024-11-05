@@ -61,7 +61,6 @@ import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.Schema;
-import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
@@ -260,12 +259,20 @@ class IndexRecoveryIT {
                 .getInitialState(any(IndexDescriptor.class), any(CursorContext.class), any());
         // Start on one permit to let recovery through
         final Semaphore recoverySemaphore = new Semaphore(1);
-        var drainingMonitor = new IndexMonitor.MonitorAdapter() {
+        var drainingMonitor = new RecoveryMonitor() {
             @Override
-            public void populationCancelled(IndexDescriptor[] indexDescriptors, boolean storeScanHadStated) {
+            public void recoveryCompleted() {
                 recoverySemaphore.drainPermits();
             }
         };
+        // There is a race condition where we cancel the recovery index population job just before it runs.
+        // The IndexPopulator::run() checks if it's marked as stopped and return before calling create.
+        // But wait, life isn't that simple! There is another case where we got slightly further and will still
+        // try to call create after the population is cancelled.
+        // To handle both of those cases, we drain the semaphore when we are done with recovery to always leave
+        // recovery with an acquired semaphore  - to achieve populator stuck in populating state for the actual test.
+        monitors.addMonitorListener(drainingMonitor);
+
         try {
             doReturn(indexPopulatorWithControlledCompletionTiming(recoverySemaphore))
                     .when(mockedIndexProvider)
@@ -280,12 +287,6 @@ class IndexRecoveryIT {
                             any());
             var minimalIndexAccessor = mock(MinimalIndexAccessor.class);
             doReturn(minimalIndexAccessor).when(mockedIndexProvider).getMinimalIndexAccessor(any(), anyBoolean());
-
-            // There is a race condition where we cancel the recovery index population job just before it runs.
-            // The IndexPopulator::run() checks if it's marked as stopped and return before calling create.
-            // To prevent that, we drain the semaphore if we get a cancel job, which should only happen from
-            // the recovery flow.
-            monitors.addMonitorListener(drainingMonitor);
 
             startDb();
 
@@ -602,7 +603,7 @@ class IndexRecoveryIT {
 
     private record MyRecoveryMonitor(Semaphore recoverySemaphore) implements RecoveryMonitor {
         @Override
-        public void recoveryCompleted(long recoveryTimeInMilliseconds, RecoveryMode mode) {
+        public void transactionLogRecoveryCompleted(long recoveryTimeInMilliseconds, RecoveryMode mode) {
             recoverySemaphore.release();
         }
     }

@@ -1841,7 +1841,7 @@ class RecoveryIT {
             }
 
             @Override
-            public void recoveryCompleted(long recoveryTimeInMilliseconds, RecoveryMode mode) {
+            public void transactionLogRecoveryCompleted(long recoveryTimeInMilliseconds, RecoveryMode mode) {
                 recoveryCompleted.set(true);
             }
 

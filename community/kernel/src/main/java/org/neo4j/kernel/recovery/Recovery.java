@@ -707,10 +707,11 @@ public final class Recovery {
         schemaLife.add(indexingService);
 
         var doParallelRecovery = config.get(GraphDatabaseInternalSettings.do_parallel_recovery);
+        RecoveryMonitor recoveryMonitor = monitors.newMonitor(RecoveryMonitor.class);
         TransactionLogsRecovery transactionLogsRecovery = transactionLogRecovery(
                 fs,
                 metadataProvider,
-                monitors.newMonitor(RecoveryMonitor.class),
+                recoveryMonitor,
                 monitors.newMonitor(RecoveryStartInformationProvider.Monitor.class),
                 logFiles,
                 storageEngine,
@@ -771,6 +772,7 @@ public final class Recovery {
             }
         } finally {
             recoveryLife.shutdown();
+            recoveryMonitor.recoveryCompleted();
         }
         if (!databaseHealth.hasNoPanic()) {
             throw new IllegalStateException(databaseHealth.causeOfPanic());

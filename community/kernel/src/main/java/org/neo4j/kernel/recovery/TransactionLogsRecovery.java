@@ -292,7 +292,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
                     missingLogs,
                     cursorContext);
         }
-        monitor.recoveryCompleted(recoveryStartTime.elapsed(MILLISECONDS), mode);
+        monitor.transactionLogRecoveryCompleted(recoveryStartTime.elapsed(MILLISECONDS), mode);
     }
 
     private RollbackTransactionInfo rollbackTransactions(

@@ -630,7 +630,7 @@ class TransactionLogsRecoveryTest {
                 .isInstanceOf(DatabaseStartAbortedException.class);
 
         verify(logsTruncator, never()).truncate(any(), any());
-        verify(monitor, never()).recoveryCompleted(anyLong(), any(RecoveryMode.class));
+        verify(monitor, never()).transactionLogRecoveryCompleted(anyLong(), any(RecoveryMode.class));
     }
 
     private boolean recovery(Path storeDir) throws IOException {

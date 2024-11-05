@@ -27,7 +27,7 @@ public interface RecoveryMonitor {
 
     default void batchRecovered(CommittedCommandBatchRepresentation committedBatch) {}
 
-    default void recoveryCompleted(long recoveryTimeInMilliseconds, RecoveryMode mode) {}
+    default void transactionLogRecoveryCompleted(long recoveryTimeInMilliseconds, RecoveryMode mode) {}
 
     default void reverseStoreRecoveryCompleted(long lowestRecoveredAppendIndex) {}
 
@@ -44,4 +44,6 @@ public interface RecoveryMonitor {
     default void batchApplySkipped(CommittedCommandBatchRepresentation committedBatch) {}
 
     default void rollbackTransaction(long transactionId, long appendIndex) {}
+
+    default void recoveryCompleted() {}
 }

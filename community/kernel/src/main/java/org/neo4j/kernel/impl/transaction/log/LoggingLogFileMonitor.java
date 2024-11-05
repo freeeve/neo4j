@@ -53,7 +53,7 @@ public class LoggingLogFileMonitor
     }
 
     @Override
-    public void recoveryCompleted(long recoveryTimeInMilliseconds, RecoveryMode mode) {
+    public void transactionLogRecoveryCompleted(long recoveryTimeInMilliseconds, RecoveryMode mode) {
         log.info(format(
                 "Recovery in '%s' mode completed. Observed transactions range [first:%s, last:%s]: %d transactions applied, "
                         + "%d not completed transactions rolled back, "
