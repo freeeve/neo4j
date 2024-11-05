@@ -962,11 +962,6 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
     }
 
     @Override
-    public StorageEngineFactory unwrap() {
-        return this;
-    }
-
-    @Override
     public boolean fitsWithinStoreFormatLimits(
             StoreFormatLimits formatLimits,
             DatabaseLayout databaseLayout,
