@@ -201,6 +201,19 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
     result.toList should be(List(homeOrDefaultDb("foo")))
   }
 
+  test("should show custom default database with unusual name using show default database command") {
+    // GIVEN
+    val config = Config.defaults()
+    config.set(initial_default_database, "123abc")
+    setup(config)
+
+    // WHEN
+    val result = execute("SHOW DEFAULT DATABASE")
+
+    // THEN
+    result.toList should be(List(homeOrDefaultDb("123abc")))
+  }
+
   test("should show correct default database for switch of default database") {
     // GIVEN
     val config = Config.defaults()
