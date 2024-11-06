@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.RelationshipUniquenessPredicate
 import org.neo4j.cypher.internal.expressions.SemanticDirection
+import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.expressions.VarLengthLowerBound
 import org.neo4j.cypher.internal.expressions.VarLengthUpperBound
@@ -175,22 +176,40 @@ object ConvertToNFA {
       targetVariable: LogicalVariable,
       alreadySolvedPredicates: ListSet[Expression]
     ): ListSet[(Expression, Expression)] = {
-      val (startNode, endNode) = (dir, fromLeft) match {
-        case (SemanticDirection.BOTH, _) =>
-          // We cannot inline extra predicates for relationships with direction BOTH
-          return ListSet.empty
-        case (SemanticDirection.OUTGOING, true)  => (sourceVariable, targetVariable)
-        case (SemanticDirection.OUTGOING, false) => (targetVariable, sourceVariable)
-        case (SemanticDirection.INCOMING, true)  => (targetVariable, sourceVariable)
-        case (SemanticDirection.INCOMING, false) => (sourceVariable, targetVariable)
+      val (maybeStartNode, maybeEndNode) = (dir, fromLeft) match {
+        case (SemanticDirection.BOTH, _)         => (None, None)
+        case (SemanticDirection.OUTGOING, true)  => (Some(sourceVariable), Some(targetVariable))
+        case (SemanticDirection.OUTGOING, false) => (Some(targetVariable), Some(sourceVariable))
+        case (SemanticDirection.INCOMING, true)  => (Some(targetVariable), Some(sourceVariable))
+        case (SemanticDirection.INCOMING, false) => (Some(sourceVariable), Some(targetVariable))
       }
+      val anonymousRelationshipVariable = varFor(anonymousVariableNameGenerator.nextName)
 
-      def rewrite(expression: Expression): Expression = expression.endoRewrite(topDown(Rewriter.lift {
-        case `startNode` => StartNode(relationshipVariable)(InputPosition.NONE)
-        case `endNode`   => EndNode(relationshipVariable)(InputPosition.NONE)
-        case AndedPropertyInequalities(v, _, inequalities) if v == startNode || v == endNode =>
-          Ands.create(inequalities.map(rewrite).toListSet)
-      }))
+      def rewrite(expression: Expression): Expression =
+        expression.endoRewrite(topDown(Rewriter.lift {
+          case startNode if maybeStartNode.contains(startNode) => StartNode(relationshipVariable)(InputPosition.NONE)
+          case endNode if maybeEndNode.contains(endNode)       => EndNode(relationshipVariable)(InputPosition.NONE)
+          case AndedPropertyInequalities(v, _, inequalities)
+            if maybeStartNode.contains(v) || maybeEndNode.contains(v) =>
+            Ands.create(inequalities.map(rewrite).toListSet)
+        }))
+
+      def rewriteToRelationshipPredicate(nodePredicate: Expression): Option[Expression] = {
+        dir match {
+          case BOTH =>
+            // Replace the innerStartNode by TraversalEndpoint(newAnonymousVariable, From)
+            // Replace the innerEndNode by TraversalEndpoint(newAnonymousVariable, To)
+            Some(nodePredicate.endoRewrite(NodeToRelationshipExpressionRewriter(
+              startNode = sourceVariable,
+              globalRelationshipVariable = relationshipVariable,
+              endNode = targetVariable,
+              perIterationRelationshipVariable = anonymousRelationshipVariable,
+              nameGenerator = anonymousVariableNameGenerator,
+              isDirected = false
+            )))
+          case _ => None
+        }
+      }
 
       val allPredicatesGiven = getTopLevelPredicates(Set(
         sourceVariable,
@@ -201,7 +220,7 @@ object ConvertToNFA {
         .filter(_.folder.treeFindByClass[IRExpression].isEmpty)
 
       val allApplicablePredicates = allPredicatesGiven -- alreadySolvedPredicates
-      allApplicablePredicates.map(p => p -> rewrite(p))
+      allApplicablePredicates.map(p => p -> rewriteToRelationshipPredicate(p).getOrElse(rewrite(p)))
     }
 
     // go over the node connections and keep track of selections we could inline

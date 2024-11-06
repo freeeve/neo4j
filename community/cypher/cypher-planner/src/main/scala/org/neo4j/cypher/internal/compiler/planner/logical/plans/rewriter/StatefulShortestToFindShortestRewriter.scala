@@ -70,8 +70,8 @@ import scala.collection.Set
  *  1.2 or a QPP that is equivalent to a var-length relationship,
  * 2.0 start and end nodes must be bound
  * 3.0 predicates needs to be inlineable in a legacy find shortest plan
- * 4.1 Minimum bound is 0 (otherwise the startNode = endNode is not supported)
- *  4.2 OR relationship is directed.
+ * 4.1 Should not rewrite if Minimum bound is not 0
+ *  4.2 AND relationship is undirected. (then the startNode = endNode is not supported)
  * 5.0 Minimum bound must be 0 or 1 for QPP
  * 6.0 Selection asks for shortest 1
  *
@@ -127,16 +127,16 @@ case class StatefulShortestToFindShortestRewriter(
 
   /**
    * This method checks if the VarLengthPattern is able to be used in a findShortestPaths.
-   * - It can only contain one quantified relationship
-   * - It must contain a VarPatternLength with minimum repetition 0 OR be Directed.
+   * - It can only contain one quantified relationship.
+   * - It must contain a VarPatternLength that is NOT Undirected with a min patternlength larger than 0.
    */
   private def isVarlengthWithValidLength(patternRelationships: Seq[PatternRelationship])
     : Option[PatternRelationship] = {
     exactlyOne(patternRelationships).filter(patternRelationship =>
       patternRelationship.length match {
         case VarPatternLength(min, _) =>
-          min == 0 || //    4.1 Minimum bound is 0
-          patternRelationship.dir != BOTH //    4.2 OR relationship is directed.
+          !(min != 0 && //    4.1 Minimum bound is larger 0
+            patternRelationship.dir == BOTH) //    4.2  and relationship is not directed.
         case _ => false
       }
     )
@@ -230,13 +230,13 @@ case class StatefulShortestToFindShortestRewriter(
    * For a qpp to be viable to convert to a varLengthPattern
    * - It can only contain one quantified relationship
    * - The minimum repetition must be 0 or 1
-   * - The relationship must be directed OR the minimum repetition must be 0.
+   * - The relationship must NOT be undirected when the minimum repetition is larger than 0.
    */
   private def isValidQpp(qpp: QuantifiedPathPattern): Boolean =
     qpp.patternRelationships.size == 1 &&
-      qpp.repetition.min < 2 &&
-      (qpp.patternRelationships.exists(_.dir != BOTH) ||
-        qpp.repetition.min == 0)
+      !(qpp.patternRelationships.exists(_.dir == BOTH) &&
+        qpp.repetition.min != 0) &&
+      qpp.repetition.min < 2
 
   private def findShortestFromQppShortest(
     selectivePathPattern: SelectivePathPattern,

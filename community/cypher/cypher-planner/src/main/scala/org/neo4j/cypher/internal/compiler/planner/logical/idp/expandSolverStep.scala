@@ -36,7 +36,6 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NoneOfRelationships
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.RelationshipUniquenessPredicate
-import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.expressions.Unique
 import org.neo4j.cypher.internal.expressions.Variable
@@ -541,8 +540,7 @@ object expandSolverStep {
               // We do this because predicates using only these can also be inlined.
               // See `getExtraRelationshipPredicates` in ConvertToNFA.
               val extraRelVariableGroupings =
-                qpp.patternRelationships.toSet
-                  .filterNot(_.dir == BOTH)
+                qpp.patternRelationships.toSet[PatternRelationship]
                   .map(pr => pr.boundaryNodesSet + pr.variable)
                   .map { singletonVariables =>
                     val variableGroupings = qpp.variableGroupings

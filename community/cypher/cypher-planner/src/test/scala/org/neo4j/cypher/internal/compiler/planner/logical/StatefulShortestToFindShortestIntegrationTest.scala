@@ -27,10 +27,13 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.helpers.WindowsSafeAnyRef
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
+import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.MultiRelationshipPathStep
+import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.NilPathStep
 import org.neo4j.cypher.internal.expressions.NodePathStep
 import org.neo4j.cypher.internal.expressions.PathExpression
+import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
@@ -41,6 +44,9 @@ import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.AllowSameNode
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
+import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
+import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.From
+import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.To
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -1113,5 +1119,61 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
         )(pos)
       )(pos)
     )(InputPosition.NONE)
+  }
+
+  test(
+    "Should inline predicates referencing nodes in a undirected relationship as a relationship predicate"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setRelationshipCardinality("()-[:R]->()", 500)
+      .setLabelCardinality("A", 10)
+      .setLabelCardinality("B", 10)
+      .setRelationshipCardinality("(:A)-[:R]->(:B)", 10)
+      .setRelationshipCardinality("(:A)-[:R]->()", 10)
+      .setRelationshipCardinality("()-[:R]->(:B)", 10)
+      .setRelationshipCardinality("(:B)-[:R]->(:A)", 10)
+      .setRelationshipCardinality("(:B)-[:R]->()", 10)
+      .setRelationshipCardinality("()-[:R]->(:A)", 10)
+      .build()
+
+    val query =
+      """
+        |  MATCH (start:A), (end:B)
+        |  MATCH p = SHORTEST 1 (start)
+        |  ((innerStart)-[:R]-(innerEnd) WHERE innerEnd.prop - end.prop < innerStart.prop - innerEnd.start)*
+        |    (end)
+        |  return p
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    val relPredicate = VariablePredicate(
+      varFor("anon_1"),
+      lessThan(
+        subtract(
+          prop(TraversalEndpoint(varFor("anon_2"), To), "prop"),
+          CachedProperty(varFor("end"), varFor("end"), propName("prop"), NODE_TYPE)(pos)
+        ),
+        subtract(
+          prop(TraversalEndpoint(varFor("anon_3"), From), "prop"),
+          prop(TraversalEndpoint(varFor("anon_4"), To), "start")
+        )
+      )
+    )
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("p")
+      .projection(Map("p" -> varLengthPathExpression(varFor("start"), varFor("anon_0"), varFor("end"), BOTH)))
+      .shortestPathExpr(
+        "(start)-[anon_0:R*0..]-(end)",
+        pathName = Some("anon_5"),
+        nodePredicates = Seq(),
+        relationshipPredicates = Seq(relPredicate),
+        sameNodeMode = AllowSameNode
+      )
+      .cartesianProduct()
+      .|.cacheProperties("cacheNFromStore[end.prop]")
+      .|.nodeByLabelScan("end", "B")
+      .nodeByLabelScan("start", "A")
+      .build()
   }
 }

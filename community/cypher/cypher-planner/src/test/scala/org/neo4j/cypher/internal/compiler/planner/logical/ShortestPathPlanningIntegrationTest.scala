@@ -60,6 +60,9 @@ import org.neo4j.cypher.internal.logical.plans.NestedPlanExistsExpression
 import org.neo4j.cypher.internal.logical.plans.NestedPlanGetByNameExpression
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
+import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
+import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.From
+import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.To
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -1448,19 +1451,24 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     )
   }
 
-  test("should plan non inlined predicates") {
+  test("should inline predicates on nodes connected by undirected relationships") {
     val query =
       """MATCH ANY SHORTEST ((u:User) ((a)-[r]->(b))+ (v)-[s]-(w) WHERE v.prop = w.prop AND size(a) <> 5)
         |RETURN *""".stripMargin
     val plan =
       all_if_possible_planner.plan(query).stripProduceResults
 
+    def relPredicate(rel: LogicalVariable) = equals(
+      prop(TraversalEndpoint(varFor("anon_0"), From), "prop"),
+      prop(TraversalEndpoint(varFor("anon_1"), To), "prop")
+    )
+
     val expectedNfa = new TestNFABuilder(0, "u")
       .addTransition(0, 1, "(u) (a)")
       .addTransition(1, 2, "(a)-[r]->(b)")
       .addTransition(2, 1, "(b) (a)")
       .addTransition(2, 3, "(b) (v)")
-      .addTransition(3, 4, "(v)-[s]-(w)")
+      .addTransition(3, 4, "(v)-[s]-(w)", maybeRelPredicate = Some(relPredicate))
       .setFinalState(4)
       .build()
 
@@ -1470,7 +1478,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
           "u",
           "w",
           "SHORTEST 1 (u) ((`a`)-[`r`]->(`b`)){1, } (v)-[s]-(w)",
-          Some("v.prop = w.prop AND NOT size(a) = 5"),
+          Some("NOT size(a) = 5"),
           Set(("a", "a"), ("b", "b")),
           Set(("r", "r")),
           singletonNodeVariables = Set("v" -> "v", "w" -> "w"),
@@ -1537,11 +1545,12 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     val query =
       """MATCH ANY SHORTEST (u:User) ((b)--(b))* (c)
         |RETURN *""".stripMargin
-
+    def relPredicate(rel: LogicalVariable) =
+      equals(TraversalEndpoint(varFor("anon_1"), To), TraversalEndpoint(varFor("anon_2"), From))
     val nfa = new TestNFABuilder(0, "u")
       .addTransition(0, 1, "(u) (b)")
       .addTransition(0, 3, "(u) (c)")
-      .addTransition(1, 2, "(b)-[anon_0]-(b)")
+      .addTransition(1, 2, "(b)-[anon_0]-(b)", maybeRelPredicate = Some(relPredicate))
       .addTransition(2, 1, "(b) (b)")
       .addTransition(2, 3, "(b) (c)")
       .setFinalState(3)
@@ -1553,7 +1562,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
         "u",
         "c",
         "SHORTEST 1 (u) ((`b`)-[`anon_0`]-(`b`)){0, } (c)",
-        Some("all(anon_1 IN range(0, size(b) - 1) WHERE b[anon_1] = b[anon_1])"),
+        None,
         Set(("b", "b")),
         Set(),
         Set(("c", "c")),
@@ -1571,11 +1580,14 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     val query =
       """MATCH ANY SHORTEST (u:User) ((b)--(c) WHERE b.prop < c.prop)* (d)
         |RETURN *""".stripMargin
-
+    def relPredicate(rel: LogicalVariable) = lessThan(
+      prop(TraversalEndpoint(varFor("anon_1"), From), "prop"),
+      prop(TraversalEndpoint(varFor("anon_2"), To), "prop")
+    )
     val nfa = new TestNFABuilder(0, "u")
       .addTransition(0, 1, "(u) (b)")
       .addTransition(0, 3, "(u) (d)")
-      .addTransition(1, 2, "(b)-[anon_0]-(c)")
+      .addTransition(1, 2, "(b)-[anon_0]-(c)", maybeRelPredicate = Some(relPredicate))
       .addTransition(2, 1, "(c) (b)")
       .addTransition(2, 3, "(c) (d)")
       .setFinalState(3)
@@ -1587,7 +1599,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
         "u",
         "d",
         "SHORTEST 1 (u) ((`b`)-[`anon_0`]-(`c`)){0, } (d)",
-        Some("all(anon_1 IN range(0, size(b) - 1) WHERE (b[anon_1]).prop < (c[anon_1]).prop)"),
+        None,
         Set(("b", "b"), ("c", "c")),
         Set(),
         Set(("d", "d")),
@@ -1607,11 +1619,12 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     val query =
       """MATCH ANY SHORTEST (u:User) ((b)-[r]-(c) WHERE r.prop < c.prop)* (d)
         |RETURN *""".stripMargin
-
+    def relPredicate(rel: LogicalVariable) =
+      lessThan(prop(varFor("anon_0"), "prop"), prop(TraversalEndpoint(varFor("anon_1"), To), "prop"))
     val nfa = new TestNFABuilder(0, "u")
       .addTransition(0, 1, "(u) (b)")
       .addTransition(0, 3, "(u) (d)")
-      .addTransition(1, 2, "(b)-[r]-(c)")
+      .addTransition(1, 2, "(b)-[r]-(c)", maybeRelPredicate = Some(relPredicate))
       .addTransition(2, 1, "(c) (b)")
       .addTransition(2, 3, "(c) (d)")
       .setFinalState(3)
@@ -1623,7 +1636,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
         "u",
         "d",
         "SHORTEST 1 (u) ((`b`)-[`r`]-(`c`)){0, } (d)",
-        Some("all(anon_0 IN range(0, size(c) - 1) WHERE (r[anon_0]).prop < (c[anon_0]).prop)"),
+        None,
         Set(("b", "b"), ("c", "c")),
         Set(("r", "r")),
         Set(("d", "d")),
@@ -2809,15 +2822,20 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     )
   }
 
-  test("Should not inline relationship local (start and end node) predicate into NFA: direction BOTH") {
+  test("Should inline relationship local (start and end node) predicate into NFA: direction BOTH") {
     val query = "MATCH ANY SHORTEST ((u:User)((n)-[r]->(m))+(v)-[r2]-(w) WHERE v.prop > r2.prop + w.prop) RETURN *"
+
+    def relPredicate(rel: LogicalVariable) = greaterThan(
+      prop(TraversalEndpoint(varFor("anon_1"), From), "prop"),
+      add(prop("anon_0", "prop"), prop(TraversalEndpoint(varFor("anon_2"), To), "prop"))
+    )
 
     val nfa = new TestNFABuilder(0, "u")
       .addTransition(0, 1, "(u) (n)")
       .addTransition(1, 2, "(n)-[r]->(m)")
       .addTransition(2, 1, "(m) (n)")
       .addTransition(2, 3, "(m) (v)")
-      .addTransition(3, 4, "(v)-[r2]-(w)")
+      .addTransition(3, 4, "(v)-[r2]-(w)", maybeRelPredicate = Some(relPredicate))
       .setFinalState(4)
       .build()
 
@@ -2828,7 +2846,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
           "u",
           "w",
           "SHORTEST 1 (u) ((`n`)-[`r`]->(`m`)){1, } (v)-[r2]-(w)",
-          Some("v.prop > r2.prop + w.prop"),
+          None,
           groupNodes = Set(("n", "n"), ("m", "m")),
           groupRelationships = Set(("r", "r")),
           singletonNodeVariables = Set("v" -> "v", "w" -> "w"),
