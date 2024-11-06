@@ -19,8 +19,9 @@
  */
 package org.neo4j.server.startup;
 
-public class Neo4jBoot {
+import static org.neo4j.server.startup.NeoBoot.printJavaVersionErrorMessage;
 
+public class NeoAdminBoot {
     /**
      * IMPORTANT NOTE!
      * This class is compiled using Java 8 and can not use any dependencies or include any other class.
@@ -28,11 +29,5 @@ public class Neo4jBoot {
      */
     public static void main(String[] args) {
         printJavaVersionErrorMessage();
-    }
-
-    static void printJavaVersionErrorMessage() {
-        String version = System.getProperty("java.version");
-        System.out.println("Unsupported Java " + version
-                + " detected. Please use Java(TM) 17 or Java(TM) 21 to run Neo4j Server.");
     }
 }

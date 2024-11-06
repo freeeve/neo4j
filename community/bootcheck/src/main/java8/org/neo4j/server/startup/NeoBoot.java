@@ -19,14 +19,20 @@
  */
 package org.neo4j.server.startup;
 
-public class Neo4jBoot {
+public class NeoBoot {
 
     /**
      * IMPORTANT NOTE!
-     * The only purpose of this class is just to forward to the actual bootloader. Its part of a multi-version jar
-     * to be able to provide a useful error message when used on an old and unsupported version of java
+     * This class is compiled using Java 8 and can not use any dependencies or include any other class.
+     * Its only purpose is to print a useful error message when Neo4j (bootloader) is started using an old, unsupported java.
      */
     public static void main(String[] args) {
-        Neo4jCommand.main(args);
+        printJavaVersionErrorMessage();
+    }
+
+    static void printJavaVersionErrorMessage() {
+        String version = System.getProperty("java.version");
+        System.out.println("Unsupported Java " + version
+                + " detected. Please use Java(TM) 17 or Java(TM) 21 to run Neo4j Server.");
     }
 }

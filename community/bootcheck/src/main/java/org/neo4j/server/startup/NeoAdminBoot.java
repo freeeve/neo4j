@@ -19,15 +19,14 @@
  */
 package org.neo4j.server.startup;
 
-import static org.neo4j.server.startup.Neo4jBoot.printJavaVersionErrorMessage;
+public class NeoAdminBoot {
 
-public class Neo4jAdminBoot {
     /**
      * IMPORTANT NOTE!
-     * This class is compiled using Java 8 and can not use any dependencies or include any other class.
-     * Its only purpose is to print a useful error message when Neo4j (bootloader) is started using an old, unsupported java.
+     * The only purpose of this class is just to forward to the actual bootloader. Its part of a multi-version jar
+     * to be able to provide a useful error message when used on an old and unsupported version of java
      */
     public static void main(String[] args) {
-        printJavaVersionErrorMessage();
+        Neo4jAdminCommand.main(args);
     }
 }

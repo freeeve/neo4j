@@ -27,7 +27,7 @@
     </scm>
 
     <properties>
-        <neo4j.mainClass>org.neo4j.server.CommunityEntryPoint</neo4j.mainClass>
+        <neo4j.mainClass>org.neo4j.server.Neo4jCommunity</neo4j.mainClass>
     </properties>
 
     <build>
@@ -84,11 +84,11 @@
                     </platforms>
                     <programs>
                         <program>
-                            <mainClass>org.neo4j.server.startup.Neo4jBoot</mainClass>
+                            <mainClass>org.neo4j.server.startup.NeoBoot</mainClass>
                             <id>neo4j</id>
                         </program>
                         <program>
-                            <mainClass>org.neo4j.server.startup.Neo4jAdminBoot</mainClass>
+                            <mainClass>org.neo4j.server.startup.NeoAdminBoot</mainClass>
                             <id>neo4j-admin</id>
                         </program>
                     </programs>

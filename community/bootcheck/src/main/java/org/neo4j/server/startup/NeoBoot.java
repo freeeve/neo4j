@@ -19,7 +19,7 @@
  */
 package org.neo4j.server.startup;
 
-public class Neo4jAdminBoot {
+public class NeoBoot {
 
     /**
      * IMPORTANT NOTE!
@@ -27,6 +27,6 @@ public class Neo4jAdminBoot {
      * to be able to provide a useful error message when used on an old and unsupported version of java
      */
     public static void main(String[] args) {
-        Neo4jAdminCommand.main(args);
+        Neo4jCommand.main(args);
     }
 }

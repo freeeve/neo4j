@@ -23,7 +23,7 @@ import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.server.startup.EntryPoint;
 
 @ServiceProvider
-public class CommunityEntryPoint implements EntryPoint {
+public class Neo4jCommunity implements EntryPoint {
     private static Bootstrapper bootstrapper;
 
     public static void main(String[] args) {
