@@ -24,6 +24,7 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.config.CypherConfiguration.statsDivergenceFromConfig
 import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption
 import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
@@ -187,6 +188,9 @@ class CypherConfiguration private (val config: Config) {
   val cachePropertiesForEntitiesWithFilter: Boolean =
     config.get(GraphDatabaseInternalSettings.push_predicates_into_remote_batch_properties)
 
+  val defaultCypherVersionFromConfig: GraphDatabaseInternalSettings.CypherVersion =
+    config.get(GraphDatabaseInternalSettings.default_cypher_version)
+
   // dynamic configurations
   private var _obfuscateLiterals: Boolean = config.get(GraphDatabaseSettings.log_queries_obfuscate_literals)
   private var _renderPlanDescription: Boolean = config.get(GraphDatabaseSettings.cypher_render_plan_descriptions)
@@ -223,4 +227,9 @@ class CypherConfiguration private (val config: Config) {
   def obfuscateLiterals: Boolean = _obfuscateLiterals
   def renderPlanDescription: Boolean = _renderPlanDescription
   def parallelRuntimeSupport: CypherParallelRuntimeSupportOption = _parallelRuntimeSupport
+
+  def defaultCypherVersion: CypherVersion = defaultCypherVersionFromConfig match {
+    case GraphDatabaseInternalSettings.CypherVersion.Cypher5  => CypherVersion.Cypher5
+    case GraphDatabaseInternalSettings.CypherVersion.Cypher25 => CypherVersion.Cypher25
+  }
 }

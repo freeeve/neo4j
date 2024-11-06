@@ -25,6 +25,7 @@ import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.CypherVersion.Cypher5;
 import static org.neo4j.configuration.SettingConstraints.lessThanOrEqualLong;
 import static org.neo4j.configuration.SettingConstraints.max;
 import static org.neo4j.configuration.SettingConstraints.min;
@@ -1580,4 +1581,16 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Description("Enable background prefetch of the pages affected by transaction commands before applying them")
     public static final Setting<Boolean> prefetch_on_commit =
             newBuilder("internal.dbms.prefetch_on_commit", BOOL, false).build();
+
+    public enum CypherVersion {
+        Cypher5,
+        Cypher25
+    }
+
+    @Internal
+    @Description(
+            "Sets default cypher version for full dbms. Only for testing and should be removed once we can set default cypher version per database.")
+    public static final Setting<CypherVersion> default_cypher_version = newBuilder(
+                    "internal.dbms.cypher.version", ofEnum(CypherVersion.class), Cypher5)
+            .build();
 }
