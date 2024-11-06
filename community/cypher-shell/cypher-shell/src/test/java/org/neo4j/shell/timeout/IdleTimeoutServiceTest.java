@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,7 @@ class IdleTimeoutServiceTest {
     void startService(Duration timeout, Duration delay) throws Exception {
         if (service != null) service.close();
         ticker = new FakeTicker();
-        timeoutAction = new RecordingTimeout();
+        timeoutAction = new RecordingTimeout(ticker);
         awakenAction = new AwakenAction();
         service = new IdleTimeoutServiceImpl(ticker, timeout, Duration.ZERO, delay, timeoutAction, awakenAction);
         service.resume();
@@ -62,7 +63,7 @@ class IdleTimeoutServiceTest {
 
     @Test
     void timeout() {
-        assertThat(timeoutAction.timedOut.get()).isEqualTo(false);
+        assertThat(timeoutAction.hasTimedOut()).isEqualTo(false);
         ticker.forward(DEFAULT_TIMEOUT.plusMillis(1));
         assertTimedOut();
     }
@@ -126,21 +127,30 @@ class IdleTimeoutServiceTest {
     }
 
     private void assertTimedOut() {
-        await().timeout(Duration.ofSeconds(20)).untilTrue(timeoutAction.timedOut);
+        await().timeout(Duration.ofSeconds(20)).until(() -> timeoutAction.hasTimedOut());
     }
 
     private void assertNotTimedOut() {
         await().pollDelay(DEFAULT_DELAY.multipliedBy(20)) // Give it some time before asserting
                 .timeout(Duration.ofSeconds(20))
-                .untilFalse(timeoutAction.timedOut);
+                .untilAsserted(() -> assertThat(timeoutAction.timedOutAt.get()).isEqualTo(Long.MIN_VALUE));
     }
 
     private static class RecordingTimeout implements Runnable {
-        public final AtomicBoolean timedOut = new AtomicBoolean(false);
+        private final IdleTimeoutServiceImpl.Ticker ticker;
+        public final AtomicLong timedOutAt = new AtomicLong(Long.MIN_VALUE);
+
+        private RecordingTimeout(IdleTimeoutServiceImpl.Ticker ticker) {
+            this.ticker = ticker;
+        }
 
         @Override
         public void run() {
-            timedOut.set(true);
+            timedOutAt.set(ticker.get());
+        }
+
+        public boolean hasTimedOut() {
+            return timedOutAt.get() != Long.MIN_VALUE;
         }
     }
 

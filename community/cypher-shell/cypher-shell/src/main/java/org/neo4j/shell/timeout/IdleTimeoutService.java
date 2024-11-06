@@ -148,7 +148,9 @@ class IdleTimeoutServiceImpl implements IdleTimeoutService {
 
     private void callIdleTimeoutAction() {
         if (!paused.get() && elapsed() > timeoutNs) {
-            if (timeoutAction != null) {
+            // We need to check paused again in case it has flipped since last check.
+            // Has no significant real world impact, but fixes flaky test.
+            if (timeoutAction != null && !paused.get()) {
                 timeoutAction.run();
             }
         }
