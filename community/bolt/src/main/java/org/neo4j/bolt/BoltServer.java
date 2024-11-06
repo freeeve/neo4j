@@ -37,10 +37,12 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import javax.net.ssl.SSLException;
+import org.neo4j.bolt.negotiation.ProtocolVersion;
 import org.neo4j.bolt.protocol.BoltProtocolRegistry;
 import org.neo4j.bolt.protocol.common.BoltProtocol;
 import org.neo4j.bolt.protocol.common.connection.BoltConnectionMetricsMonitor;
@@ -200,9 +202,21 @@ public class BoltServer extends LifecycleAdapter {
         this.sslPolicyLoader = dependencyResolver.resolveDependency(SslPolicyLoader.class);
         this.authConfigProvider = dependencyResolver.resolveDependency(AuthConfigProvider.class);
         this.log = logService.getInternalLog(BoltServer.class);
+        var minProtocolVersion = Optional.ofNullable(config.get(BoltConnectorInternalSettings.min_protocol_version))
+                .map(version -> new ProtocolVersion(version.major(), version.minor()));
+        var maxProtocolVersion = Optional.ofNullable(config.get(BoltConnectorInternalSettings.max_protocol_version))
+                .map(version -> new ProtocolVersion(version.major(), version.minor()));
 
         this.protocolRegistry = BoltProtocolRegistry.builder()
-                .register(BoltProtocol.available())
+                .register(
+                        minProtocolVersion.isEmpty() && maxProtocolVersion.isEmpty()
+                                ? BoltProtocol.available()
+                                : BoltProtocol.available().stream()
+                                        .filter(candidate -> minProtocolVersion.isEmpty()
+                                                || candidate.version().isAtLeast(minProtocolVersion.get()))
+                                        .filter(candidate -> maxProtocolVersion.isEmpty()
+                                                || candidate.version().isAtMost(maxProtocolVersion.get()))
+                                        .toList())
                 .build();
     }
 

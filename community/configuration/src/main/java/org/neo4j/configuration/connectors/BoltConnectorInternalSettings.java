@@ -19,6 +19,7 @@
  */
 package org.neo4j.configuration.connectors;
 
+import static java.lang.String.format;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 import static org.neo4j.configuration.SettingConstraints.any;
@@ -36,10 +37,14 @@ import static org.neo4j.io.ByteUnit.kibiBytes;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.configuration.Description;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.Internal;
+import org.neo4j.configuration.SettingValueParser;
 import org.neo4j.configuration.SettingValueParsers;
 import org.neo4j.configuration.SettingsDeclaration;
 import org.neo4j.graphdb.config.Setting;
@@ -50,6 +55,41 @@ public final class BoltConnectorInternalSettings implements SettingsDeclaration 
 
     public static final String LOOPBACK_NAME = "bolt-loopback";
     public static final String LOCAL_NAME = "bolt-local";
+    public static final SettingValueParser<ConfiguredProtocolVersion> PROTOCOL_VERSION = new SettingValueParser<>() {
+        @Override
+        public ConfiguredProtocolVersion parse(String value) {
+            String trimmedValue = value.trim();
+
+            return Optional.of(trimmedValue)
+                    .map(trimmed -> trimmed.split("\\."))
+                    .filter(partsArr -> partsArr.length == 2)
+                    .map(List::of)
+                    .map(partsList -> partsList.stream()
+                            .map(maybeInt -> {
+                                try {
+                                    return Integer.parseInt(maybeInt);
+                                } catch (NumberFormatException ignored) {
+                                    return null;
+                                }
+                            })
+                            .filter(Objects::nonNull)
+                            .toList())
+                    .filter(partsInt -> partsInt.size() == 2)
+                    .map(partsInt -> new ConfiguredProtocolVersion(partsInt.get(0), partsInt.get(1)))
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            format("'%s' is not a valid protocol version value, must be '<major>.<minor>'", value)));
+        }
+
+        @Override
+        public String getDescription() {
+            return "a protocol version (<major>.<minor>)";
+        }
+
+        @Override
+        public Class<ConfiguredProtocolVersion> getType() {
+            return ConfiguredProtocolVersion.class;
+        }
+    };
 
     @Internal
     @Description("Enable protocol level logging for incoming connections on the Bolt connector")
@@ -261,6 +301,18 @@ public final class BoltConnectorInternalSettings implements SettingsDeclaration 
     public static final Setting<Boolean> enable_local_connector =
             newBuilder("internal.dbms.bolt.local_enabled", BOOL, true).build();
 
+    @Internal
+    @Description("Minimum Bolt Protocol version negotiated by the bolt connector.")
+    public static final Setting<ConfiguredProtocolVersion> min_protocol_version = newBuilder(
+                    "internal.dbms.bolt.min_protocol_version", PROTOCOL_VERSION, null)
+            .build();
+
+    @Internal
+    @Description("Maximum Bolt Protocol version negotiated by the bolt connector.")
+    public static final Setting<ConfiguredProtocolVersion> max_protocol_version = newBuilder(
+                    "internal.dbms.bolt.max_protocol_version", PROTOCOL_VERSION, null)
+            .build();
+
     public enum ProtocolLoggingMode {
         DECODED(false, true),
         RAW(true, false),
@@ -282,4 +334,6 @@ public final class BoltConnectorInternalSettings implements SettingsDeclaration 
             return loggingDecodedTraffic;
         }
     }
+
+    public record ConfiguredProtocolVersion(Integer major, Integer minor) {}
 }
