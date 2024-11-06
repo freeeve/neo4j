@@ -51,6 +51,8 @@ import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
 import org.neo4j.cypher.internal.expressions.DifferentRelationships
 import org.neo4j.cypher.internal.expressions.Disjoint
 import org.neo4j.cypher.internal.expressions.Divide
+import org.neo4j.cypher.internal.expressions.DynamicLabelsExpressions
+import org.neo4j.cypher.internal.expressions.DynamicLabelsOrTypeExpressions
 import org.neo4j.cypher.internal.expressions.EndsWith
 import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.Equals
@@ -460,12 +462,18 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       case x: LabelOrTypeCheckExpression =>
         check(ctx, x.entityExpression) chain
           expectType(CTNode.covariant | CTRelationship.covariant, x.entityExpression) chain
-          specifyType(CTBoolean, x)
+          specifyType(CTBoolean, x) chain
+          when(x.isInstanceOf[DynamicLabelsOrTypeExpressions]) {
+            check(ctx, x.asInstanceOf[DynamicLabelsOrTypeExpressions].labelsOrTypes)
+          }
 
       case x: LabelCheckExpression =>
         check(ctx, x.expression) chain
           expectType(CTNode.covariant, x.expression) chain
-          specifyType(CTBoolean, x)
+          specifyType(CTBoolean, x) chain
+          when(x.isInstanceOf[DynamicLabelsExpressions]) {
+            check(ctx, x.asInstanceOf[DynamicLabelsExpressions].labels)
+          }
 
       case x: HasTypes =>
         check(ctx, x.expression) chain
@@ -474,11 +482,13 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
 
       case x: HasDynamicType =>
         check(ctx, x.expression) chain
+          check(ctx, x.types) chain
           expectType(CTRelationship.covariant, x.expression) chain
           specifyType(CTBoolean, x)
 
       case x: HasAnyDynamicType =>
         check(ctx, x.expression) chain
+          check(ctx, x.types) chain
           expectType(CTRelationship.covariant, x.expression) chain
           specifyType(CTBoolean, x)
 

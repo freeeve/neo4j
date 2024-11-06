@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.expressions
 
 import org.neo4j.cypher.internal.expressions.functions.DeterministicFunction.isFunctionDeterministic
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
@@ -204,6 +205,16 @@ abstract class Expression extends ASTNode {
    */
   def findAggregate: Option[Expression] = this.folder.treeFind[Expression] {
     case IsAggregate(_) => true
+  }
+
+  /**
+   * Return true if this expression contains a dynamic expression.
+   */
+  def containsDynamicExpression: Boolean = this.folder.treeExists {
+    case _: HasDynamicLabels        => true
+    case _: HasDynamicType          => true
+    case _: HasDynamicLabelsOrTypes => true
+    case _: DynamicLeaf             => true
   }
 
   /**

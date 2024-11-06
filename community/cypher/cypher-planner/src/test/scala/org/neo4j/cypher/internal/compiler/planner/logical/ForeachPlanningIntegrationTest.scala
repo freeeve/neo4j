@@ -19,10 +19,18 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.hasAnyDynamicLabel
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.hasDynamicLabels
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.varFor
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DynamicLabelsAndTypes
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
+import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.removeLabel
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
+import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class ForeachPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport {
@@ -97,4 +105,79 @@ class ForeachPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .build()
   }
 
+  test("Eager should be inserted between MATCH and FOREACH REMOVE with dynamic label") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("100", 50)
+      .build()
+
+    val query =
+      """
+        |MATCH (), (n:`100`)
+        |FOREACH (i IN range(1, 5) | REMOVE n:$(toString(i)))
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults()
+      .emptyResult()
+      .foreach(
+        variable = "i",
+        expression = "range(1, 5)",
+        mutations = Seq(removeLabel(node = "n", staticLabels = Seq(), dynamicLabelExpressions = Seq("toString(i)")))
+      )
+      .eager(
+        ListSet(EagernessReason.UnknownLabelReadRemoveConflict.withConflict(EagernessReason.Conflict(Id(2), Id(5))))
+      )
+      .cartesianProduct()
+      .|.nodeByLabelScan(node = "n", label = "100")
+      .allNodeScan("anon_0")
+      .build()
+  }
+
+  test("Eager should be inserted between FOREACH REMOVE with dynamic label and MATCH") {
+    val planner = plannerBuilder()
+      .addSemanticFeature(DynamicLabelsAndTypes)
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("100", 50)
+      .build()
+
+    val query =
+      """
+        |WITH [i IN range(1, 5) | toString(i)] AS numericLabels
+        |MATCH (n:$any(numericLabels))
+        |FOREACH (l IN numericLabels | REMOVE n:$(l))
+        |WITH *
+        |MATCH ()
+        |MATCH (m:$all(numericLabels))
+        |RETURN count(m) AS shouldBeZero
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+
+    plan shouldEqual planner
+      .subPlanBuilder()
+      .aggregation(groupingExpressions = Seq(), aggregationExpression = Seq("count(m) AS shouldBeZero"))
+      .apply()
+      .|.cartesianProduct()
+      .|.|.filterExpression(hasDynamicLabels(varFor("m"), varFor("numericLabels")))
+      .|.|.allNodeScan(node = "m", "n", "numericLabels")
+      .|.allNodeScan(node = "anon_0", "n", "numericLabels")
+      .eager(
+        ListSet(EagernessReason.UnknownLabelReadRemoveConflict.withConflict(EagernessReason.Conflict(Id(8), Id(4))))
+      )
+      .foreach(
+        variable = "l",
+        expression = "numericLabels",
+        mutations = Seq(removeLabel(node = "n", staticLabels = Seq(), dynamicLabelExpressions = Seq("l")))
+      )
+      .filterExpression(hasAnyDynamicLabel(varFor("n"), varFor("numericLabels")))
+      .apply()
+      .|.allNodeScan(node = "n", "numericLabels")
+      .projection("[i IN range(1, 5) | toString(i)] AS numericLabels")
+      .argument()
+      .build()
+  }
 }

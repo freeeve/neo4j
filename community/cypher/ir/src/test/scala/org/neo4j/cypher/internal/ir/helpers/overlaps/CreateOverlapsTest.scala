@@ -21,304 +21,308 @@ package org.neo4j.cypher.internal.ir.helpers.overlaps
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.ir.CreatesKnownPropertyKeys
 import org.neo4j.cypher.internal.ir.CreatesNoPropertyKeys
+import org.neo4j.cypher.internal.ir.CreatesNodeLabels
 import org.neo4j.cypher.internal.ir.CreatesPropertyKeys
+import org.neo4j.cypher.internal.ir.CreatesStaticNodeLabels
 import org.neo4j.cypher.internal.ir.CreatesUnknownPropertyKeys
+import org.neo4j.cypher.internal.ir.helpers.overlaps.CreateOverlaps.NodeLabelsOverlap
 import org.neo4j.cypher.internal.ir.helpers.overlaps.CreateOverlaps.PropertiesOverlap
-import org.neo4j.cypher.internal.label_expressions.NodeLabels
-import org.neo4j.cypher.internal.label_expressions.NodeLabels.KnownLabels
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.Assertion
+import org.scalatest.OptionValues.convertOptionToValuable
 
 class CreateOverlapsTest extends CypherFunSuite with AstConstructionTestSupport {
 
   test("MATCH () CREATE () overlaps") {
     val predicatesOnRead = Nil
-    val labelsToCreate = Set.empty[String]
+    val labelsToCreate = staticLabels()
     val propertiesToCreate = CreatesNoPropertyKeys
     val propertiesOverlap = PropertiesOverlap.Overlap(Set.empty)
-    val expectedLabels = KnownLabels(Set.empty)
+    val expectedLabels = staticLabelsOverlap()
 
     expectOverlapOnCreate(predicatesOnRead, labelsToCreate, propertiesToCreate, propertiesOverlap, expectedLabels)
   }
 
   test("MATCH (n {property: 42}) CREATE () does not overlap") {
     val predicatesOnRead = List(in(prop("n", "property"), literalInt(42)))
-    val labelsToCreate = Set.empty[String]
+    val labelsToCreate = staticLabels()
     val propertiesToCreate = CreatesNoPropertyKeys
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoPropertyOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (n) WHERE n.property IS NOT NULL CREATE () does not overlap") {
     val predicatesOnRead = List(isNotNull(prop("n", "property")))
-    val labelsToCreate = Set.empty[String]
+    val labelsToCreate = staticLabels()
     val propertiesToCreate = CreatesNoPropertyKeys
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoPropertyOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (n {property: 42}) CREATE (m {property: *}) overlaps") {
     val predicatesOnRead = List(in(prop("n", "property"), literalInt(42)))
-    val labelsToCreate = Set.empty[String]
+    val labelsToCreate = staticLabels()
     val propertiesToCreate = CreatesKnownPropertyKeys(Set(propName("property")))
     val propertiesOverlap = PropertiesOverlap.Overlap(Set(propName("property")))
-    val expectedLabels = KnownLabels(Set.empty)
+    val expectedLabels = staticLabelsOverlap()
 
     expectOverlapOnCreate(predicatesOnRead, labelsToCreate, propertiesToCreate, propertiesOverlap, expectedLabels)
   }
 
   test("MATCH (n {property: 42}) CREATE (m {other: *}) does not overlap") {
     val predicatesOnRead = List(in(prop("n", "property"), literalInt(42)))
-    val labelsToCreate = Set.empty[String]
+    val labelsToCreate = staticLabels()
     val propertiesToCreate = CreatesKnownPropertyKeys(Set(propName("other")))
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoPropertyOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (n) WHERE n.property IS NOT NULL CREATE (m {property: *}) overlaps") {
     val predicatesOnRead = List(isNotNull(prop("n", "property")))
-    val labelsToCreate = Set.empty[String]
+    val labelsToCreate = staticLabels()
     val propertiesToCreate = CreatesKnownPropertyKeys(Set(propName("property")))
     val propertiesOverlap = PropertiesOverlap.Overlap(Set(propName("property")))
-    val expectedLabels = KnownLabels(Set.empty)
+    val expectedLabels = staticLabelsOverlap()
 
     expectOverlapOnCreate(predicatesOnRead, labelsToCreate, propertiesToCreate, propertiesOverlap, expectedLabels)
   }
 
   test("MATCH (n {property: 42}) CREATE ({properties}) overlaps") {
     val predicatesOnRead = List(in(prop("n", "property"), literalInt(42)))
-    val labelsToCreate = Set.empty[String]
+    val labelsToCreate = staticLabels()
     val propertiesToCreate = CreatesUnknownPropertyKeys
     val propertiesOverlap = PropertiesOverlap.UnknownOverlap
-    val expectedLabels = KnownLabels(Set.empty)
+    val expectedLabels = staticLabelsOverlap()
 
     expectOverlapOnCreate(predicatesOnRead, labelsToCreate, propertiesToCreate, propertiesOverlap, expectedLabels)
   }
 
   test("MATCH (m:A) CREATE () does not overlap") {
     val predicatesOnRead = List(hasLabels("m", "A"))
-    val labelsToCreate = Set.empty[String]
+    val labelsToCreate = staticLabels()
     val propertiesToCreate = CreatesNoPropertyKeys
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoLabelOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (m:A) CREATE (n:B) does not overlap") {
     val predicatesOnRead = List(hasLabels("m", "A"))
-    val labelsToCreate = Set("B")
+    val labelsToCreate = staticLabels("B")
     val propertiesToCreate = CreatesNoPropertyKeys
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoLabelOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (m:A {property: 42}) CREATE (n:B {property: *}) does not overlap") {
     val predicatesOnRead = List(hasLabels("m", "A"), in(prop("n", "property"), literalInt(42)))
-    val labelsToCreate = Set("B")
+    val labelsToCreate = staticLabels("B")
     val propertiesToCreate = CreatesKnownPropertyKeys(Set(propName("property")))
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoLabelOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (m:A {property: 42}) CREATE (n:B {properties}) does not overlap") {
     val predicatesOnRead = List(hasLabels("m", "A"), in(prop("n", "property"), literalInt(42)))
-    val labelsToCreate = Set("B")
+    val labelsToCreate = staticLabels("B")
     val propertiesToCreate = CreatesUnknownPropertyKeys
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoLabelOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (m:B) CREATE (n:A) does not overlap") {
     val predicatesOnRead = List(hasLabels("m", "B"))
-    val labelsToCreate = Set("A")
+    val labelsToCreate = staticLabels("A")
     val propertiesToCreate = CreatesNoPropertyKeys
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoLabelOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (m:A) CREATE (n:A) overlaps") {
     val predicatesOnRead = List(hasLabels("m", "A"))
-    val labelsToCreate = Set("A")
+    val labelsToCreate = staticLabels("A")
     val propertiesToCreate = CreatesNoPropertyKeys
     val propertiesOverlap = PropertiesOverlap.Overlap(Set.empty)
-    val expectedLabels = knownLabels("A")
+    val expectedLabels = staticLabelsOverlap("A")
 
     expectOverlapOnCreate(predicatesOnRead, labelsToCreate, propertiesToCreate, propertiesOverlap, expectedLabels)
   }
 
   test("MATCH (m:%) CREATE (n) does not overlap") {
     val predicatesOnRead = List(hasALabel("m"))
-    val labelsToCreate = Set.empty[String]
+    val labelsToCreate = staticLabels()
     val propertiesToCreate = CreatesNoPropertyKeys
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoLabelOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (m:%) CREATE (n:A) overlaps") {
     val predicatesOnRead = List(hasALabel("m"))
-    val labelsToCreate = Set("A")
+    val labelsToCreate = staticLabels("A")
     val propertiesToCreate = CreatesNoPropertyKeys
     val propertiesOverlap = PropertiesOverlap.Overlap(Set.empty)
-    val expectedLabels = knownLabels("A")
+    val expectedLabels = staticLabelsOverlap("A")
 
     expectOverlapOnCreate(predicatesOnRead, labelsToCreate, propertiesToCreate, propertiesOverlap, expectedLabels)
   }
 
   test("MATCH (m:!%) CREATE (n) overlaps") {
     val predicatesOnRead = List(not(hasALabel("m")))
-    val labelsToCreate = Set.empty[String]
+    val labelsToCreate = staticLabels()
     val propertiesToCreate = CreatesNoPropertyKeys
     val propertiesOverlap = PropertiesOverlap.Overlap(Set.empty)
-    val expectedLabels = KnownLabels(Set.empty)
+    val expectedLabels = staticLabelsOverlap()
 
     expectOverlapOnCreate(predicatesOnRead, labelsToCreate, propertiesToCreate, propertiesOverlap, expectedLabels)
   }
 
   test("MATCH (m:!A) CREATE (n:A) does not overlap") {
     val predicatesOnRead = List(not(hasLabels("m", "A")))
-    val labelsToCreate = Set("A")
+    val labelsToCreate = staticLabels("A")
     val propertiesToCreate = CreatesNoPropertyKeys
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoLabelOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (m:!A) CREATE (n) overlaps") {
     val predicatesOnRead = List(not(hasLabels("m", "A")))
-    val labelsToCreate = Set.empty[String]
+    val labelsToCreate = staticLabels()
     val propertiesToCreate = CreatesNoPropertyKeys
     val propertiesOverlap = PropertiesOverlap.Overlap(Set.empty)
-    val expectedLabels = KnownLabels(Set.empty)
+    val expectedLabels = staticLabelsOverlap()
 
     expectOverlapOnCreate(predicatesOnRead, labelsToCreate, propertiesToCreate, propertiesOverlap, expectedLabels)
   }
 
   test("MATCH (m:!!A) CREATE (n) does not overlap") {
     val predicatesOnRead = List(not(not(hasLabels("n", "A"))))
-    val labelsToCreate = Set.empty[String]
+    val labelsToCreate = staticLabels()
     val propertiesToCreate = CreatesNoPropertyKeys
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoLabelOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (m:A&B) CREATE (n:A:B) overlaps") {
     val predicatesOnRead = List(ands(hasLabels("m", "A"), hasLabels("m", "B")))
-    val labelsToCreate = Set("A", "B")
+    val labelsToCreate = staticLabels("A", "B")
     val propertiesToCreate = CreatesNoPropertyKeys
     val propertiesOverlap = PropertiesOverlap.Overlap(Set.empty)
-    val expectedLabels = knownLabels("A", "B")
+    val expectedLabels = staticLabelsOverlap("A", "B")
 
     expectOverlapOnCreate(predicatesOnRead, labelsToCreate, propertiesToCreate, propertiesOverlap, expectedLabels)
   }
 
   test("MATCH (m:A&B) CREATE (n:A) does not overlap") {
     val predicatesOnRead = List(ands(hasLabels("m", "A"), hasLabels("m", "B")))
-    val labelsToCreate = Set("A")
+    val labelsToCreate = staticLabels("A")
     val propertiesToCreate = CreatesNoPropertyKeys
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoLabelOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (m:!A) CREATE (n:A:B:C) does not overlap") {
     val predicatesOnRead = List(not(hasLabels("n", "A")))
-    val labelsToCreate = Set("A", "B", "C")
+    val labelsToCreate = staticLabels("A", "B", "C")
     val propertiesToCreate = CreatesNoPropertyKeys
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoLabelOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (m:A&B&C) CREATE (n:A:B:C) overlaps") {
     val predicatesOnRead = List(hasLabels("m", "A"), hasLabels("m", "B"), hasLabels("m", "C"))
-    val labelsToCreate = Set("A", "B", "C")
+    val labelsToCreate = staticLabels("A", "B", "C")
     val propertiesToCreate = CreatesNoPropertyKeys
     val propertiesOverlap = PropertiesOverlap.Overlap(Set.empty)
-    val expectedLabels = knownLabels("A", "B", "C")
+    val expectedLabels = staticLabelsOverlap("A", "B", "C")
     expectOverlapOnCreate(predicatesOnRead, labelsToCreate, propertiesToCreate, propertiesOverlap, expectedLabels)
   }
 
   test("MATCH (m:A|B|C) CREATE (n:A) overlaps") {
     val predicatesOnRead = List(ors(hasLabels("m", "A"), hasLabels("m", "B"), hasLabels("m", "C")))
-    val labelsToCreate = Set("A")
+    val labelsToCreate = staticLabels("A")
     val propertiesToCreate = CreatesNoPropertyKeys
     val propertiesOverlap = PropertiesOverlap.Overlap(Set.empty)
-    val expectedLabels = knownLabels("A")
+    val expectedLabels = staticLabelsOverlap("A")
     expectOverlapOnCreate(predicatesOnRead, labelsToCreate, propertiesToCreate, propertiesOverlap, expectedLabels)
   }
 
   test("MATCH (m:A&(B|C)) CREATE (n:A) does not overlap") {
     val predicatesOnRead = List(hasLabels("m", "A"), ors(hasLabels("m", "B"), hasLabels("m", "C")))
-    val labelsToCreate = Set("A")
+    val labelsToCreate = staticLabels("A")
     val propertiesToCreate = CreatesNoPropertyKeys
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoLabelOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (n:!(A|B)) CREATE (n:A) does not overlap") {
     val predicatesOnRead = List(not(or(hasLabels("n", "A"), hasLabels("n", "B"))))
-    val labelsToCreate = Set("A")
+    val labelsToCreate = staticLabels("A")
     val propertiesToCreate = CreatesNoPropertyKeys
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoLabelOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (m:A|B|C) WHERE m.prop2 = 42 CREATE (n:A {prop1: *}) does not overlap") {
@@ -326,25 +330,25 @@ class CreateOverlapsTest extends CypherFunSuite with AstConstructionTestSupport 
       in(prop("n", "prop2"), literalInt(42)),
       ors(hasLabels("m", "A"), hasLabels("m", "B"), hasLabels("m", "C"))
     ))
-    val labelsToCreate = Set("A")
+    val labelsToCreate = staticLabels("A")
     val propertiesToCreate = CreatesKnownPropertyKeys(Set(propName("prop1")))
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       propertiesToCreate
-    ) shouldEqual CreateOverlaps.NoPropertyOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (m) WHERE m:A XOR m:B CREATE (n:A:B) does not overlap") {
     val predicatesOnRead = List(xor(hasLabels("m", "A"), hasLabels("m", "B")))
-    val labelsToCreate = Set("A", "B")
+    val labelsToCreate = staticLabels("A", "B")
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       CreatesNoPropertyKeys
-    ) shouldEqual CreateOverlaps.NoLabelOverlap
+    ) shouldBe empty
   }
 
   // Normalised XOR
@@ -353,13 +357,13 @@ class CreateOverlapsTest extends CypherFunSuite with AstConstructionTestSupport 
       or(hasLabels("m", "A"), hasLabels("m", "B")),
       or(not(hasLabels("m", "A")), not(hasLabels("m", "B")))
     )
-    val labelsToCreate = Set("A", "B")
+    val labelsToCreate = staticLabels("A", "B")
 
-    CreateOverlaps.overlap(
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       CreatesNoPropertyKeys
-    ) shouldEqual CreateOverlaps.NoLabelOverlap
+    ) shouldBe empty
   }
 
   test("MATCH (m:!!A|B) CREATE (n:A:B) overlaps") {
@@ -367,10 +371,10 @@ class CreateOverlapsTest extends CypherFunSuite with AstConstructionTestSupport 
       not(not(hasLabels("m", "A"))),
       hasLabels("m", "B")
     ))
-    val labelsToCreate = Set("A", "B")
+    val labelsToCreate = staticLabels("A", "B")
     val propertiesToCreate = CreatesNoPropertyKeys
     val propertiesOverlap = PropertiesOverlap.Overlap(Set.empty)
-    val expectedLabels = knownLabels("A", "B")
+    val expectedLabels = staticLabelsOverlap("A", "B")
     expectOverlapOnCreate(predicatesOnRead, labelsToCreate, propertiesToCreate, propertiesOverlap, expectedLabels)
   }
 
@@ -382,20 +386,20 @@ class CreateOverlapsTest extends CypherFunSuite with AstConstructionTestSupport 
       ),
       hasLabels("m", "C")
     )
-    val labelsToCreate = Set("A", "B")
-    CreateOverlaps.overlap(
+    val labelsToCreate = staticLabels("A", "B")
+    CreateOverlaps.findNodeOverlap(
       predicatesOnRead,
       labelsToCreate,
       CreatesNoPropertyKeys
-    ) shouldEqual CreateOverlaps.NoLabelOverlap
+    ) shouldBe empty
   }
 
   test("overlapOnCreate ignores non-label predicates") {
     val read = List(InfinityLiteral)
-    val labelsToCreate = Set("A")
+    val labelsToCreate = staticLabels("A")
     val propertiesToCreate = CreatesNoPropertyKeys
     val propertiesOverlap = PropertiesOverlap.Overlap(Set.empty)
-    val expectedLabels = knownLabels("A")
+    val expectedLabels = staticLabelsOverlap("A")
     expectOverlapOnCreate(read, labelsToCreate, propertiesToCreate, propertiesOverlap, expectedLabels, read)
   }
 
@@ -408,10 +412,10 @@ class CreateOverlapsTest extends CypherFunSuite with AstConstructionTestSupport 
         in(prop("m", "property"), literalInt(42))
       )
     )))
-    val labelsToCreate = Set("A")
+    val labelsToCreate = staticLabels("A")
     val propertiesToCreate = CreatesNoPropertyKeys
     val propertiesOverlap = PropertiesOverlap.Overlap(Set.empty)
-    val expectedLabels = knownLabels("A")
+    val expectedLabels = staticLabelsOverlap("A")
     expectOverlapOnCreate(read, labelsToCreate, propertiesToCreate, propertiesOverlap, expectedLabels, read)
   }
 
@@ -420,7 +424,7 @@ class CreateOverlapsTest extends CypherFunSuite with AstConstructionTestSupport 
     val predicatesOnRead = List(ors(falseLiteral, in(prop("m", "property"), literalInt(42))))
     val read = labelExpressionOnRead :: predicatesOnRead
 
-    val labelsToCreate = Set("A")
+    val labelsToCreate = staticLabels("A")
     val propertiesToCreate = CreatesKnownPropertyKeys(Set(propName("property")))
     val propertiesOverlap = PropertiesOverlap.Overlap(Set.empty)
 
@@ -429,24 +433,32 @@ class CreateOverlapsTest extends CypherFunSuite with AstConstructionTestSupport 
       labelsToCreate,
       propertiesToCreate,
       propertiesOverlap,
-      knownLabels("A"),
+      staticLabelsOverlap("A"),
       predicatesOnRead
     )
   }
 
   def expectOverlapOnCreate(
     predicatesOnRead: Seq[Expression],
-    labelsToCreate: Set[String],
+    nodeLabelsToCreate: CreatesNodeLabels,
     propertiesToCreate: CreatesPropertyKeys,
     expectedPropertiesOverlap: PropertiesOverlap,
-    expectedNodeLabels: NodeLabels,
+    expectedNodeLabelsOverlap: NodeLabelsOverlap,
     expectedUnprocessedExpressions: Seq[Expression] = Nil
   ): Assertion = {
-    val result = CreateOverlaps.overlap(predicatesOnRead, labelsToCreate, propertiesToCreate)
-    val expected = CreateOverlaps.Overlap(expectedUnprocessedExpressions, expectedPropertiesOverlap, expectedNodeLabels)
+    val result = CreateOverlaps.findNodeOverlap(predicatesOnRead, nodeLabelsToCreate, propertiesToCreate)
+    val expected =
+      CreateOverlaps.NodeOverlap(expectedUnprocessedExpressions, expectedPropertiesOverlap, expectedNodeLabelsOverlap)
 
-    result shouldEqual expected
+    result.value shouldEqual expected
   }
 
-  def knownLabels(labels: String*): NodeLabels = KnownLabels(labels.toSet)
+  def staticLabels(labels: String*): CreatesNodeLabels =
+    CreatesStaticNodeLabels(labelNames(labels))
+
+  def staticLabelsOverlap(labels: String*): NodeLabelsOverlap =
+    NodeLabelsOverlap.Static(labelNames(labels))
+
+  private def labelNames(labels: Seq[String]): Set[LabelName] =
+    labels.map(label => LabelName(label)(InputPosition.NONE)).toSet
 }

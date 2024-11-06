@@ -20,6 +20,13 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap.PositionedNode
+import org.neo4j.cypher.internal.ast.Create
+import org.neo4j.cypher.internal.ast.Foreach
+import org.neo4j.cypher.internal.ast.Match
+import org.neo4j.cypher.internal.ast.Merge
+import org.neo4j.cypher.internal.ast.MergeAction
+import org.neo4j.cypher.internal.ast.OnCreate
+import org.neo4j.cypher.internal.ast.OnMatch
 import org.neo4j.cypher.internal.ast.Remove
 import org.neo4j.cypher.internal.ast.RemoveDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.RemoveLabelItem
@@ -31,6 +38,8 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.phases.CompilationContains
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
+import org.neo4j.cypher.internal.compiler.planner.logical.DeriveEagerAnalyzerOption.unsupportedClauseForIREagerness
+import org.neo4j.cypher.internal.compiler.planner.logical.UnsupportedMergeClause.UnsupportedForEachClause
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.LOGICAL_PLANNING
 import org.neo4j.cypher.internal.frontend.phases.Phase
@@ -55,7 +64,7 @@ case object DeriveEagerAnalyzerOption extends Phase[PlannerContext, LogicalPlanS
    * a. translate ir_from_config to ir if the query is not using dynamic labels and properties are not being set or removed.
    * b. translate ir_from_config to lp if the query is using dynamic labels/properties.
    * c. throw an invalid cypher option if the query passes eagerAnalyzer=ir (plannerContext.eagerAnalyzer should be ir in this case) and dynamic labels/properties are being used.
-   * d. copy the eagerAnalyzer from the plannerContext to the the logicalPlanState
+   * d. copy the eagerAnalyzer from the plannerContext to the logicalPlanState
    */
   override def process(from: LogicalPlanState, context: PlannerContext): LogicalPlanState = {
     from.copy(maybeEagerAnalyzerOption =
@@ -66,8 +75,12 @@ case object DeriveEagerAnalyzerOption extends Phase[PlannerContext, LogicalPlanS
   private def maybeUnsupportedFeatureForIREagerness(maybeSemanticTable: Option[SemanticTable])
     : Option[InvalidEagerReason] = {
     maybeSemanticTable.flatMap(_.recordedScopes.keys.collectFirst {
-      case PositionedNode(UnsupportedSetClause(setClause)) => setClause
-      case PositionedNode(UnsupportedRemoveClause(remove)) => remove
+      case PositionedNode(UnsupportedSetClause(setClause))         => setClause
+      case PositionedNode(UnsupportedRemoveClause(remove))         => remove
+      case PositionedNode(UnsupportedMergeClause(mergeClause))     => mergeClause
+      case PositionedNode(UnsupportedCreateClause(createClause))   => createClause
+      case PositionedNode(UnsupportedMatchClause(expression))      => expression
+      case PositionedNode(UnsupportedForEachClause(forEachClause)) => forEachClause
     })
   }
 
@@ -88,6 +101,17 @@ case object DeriveEagerAnalyzerOption extends Phase[PlannerContext, LogicalPlanS
 
     case CypherEagerAnalyzerOption.lp => lp
   }
+
+  def unsupportedClauseForIREagerness(clause: ASTNode): Boolean =
+    clause match {
+      case UnsupportedSetClause(_)     => true
+      case UnsupportedRemoveClause(_)  => true
+      case UnsupportedMergeClause(_)   => true
+      case UnsupportedCreateClause(_)  => true
+      case UnsupportedMatchClause(_)   => true
+      case UnsupportedForEachClause(_) => true
+      case _                           => false
+    }
 
   override def preConditions: Set[StepSequencer.Condition] = Set(CompilationContains[PlannerQuery]())
 
@@ -127,4 +151,62 @@ object UnsupportedRemoveClause {
       case _: RemoveDynamicPropertyItem => Some(InvalidEagerReason("removing dynamic properties"))
       case _                            => None
     }
+}
+
+object UnsupportedMatchClause {
+
+  def unapply(node: ASTNode): Option[InvalidEagerReason] = {
+    node match {
+      case _ @Match(_, _, _, _, maybeWhere) if maybeWhere.exists(_.expression.containsDynamicExpression) =>
+        Some(InvalidEagerReason("Matching on dynamic Label or Types"))
+      case _ => None
+    }
+  }
+}
+
+object UnsupportedCreateClause {
+
+  def unapply(node: ASTNode): Option[InvalidEagerReason] = {
+    node match {
+      case _ @Create(pattern) if pattern.patternParts.exists(_.containsDynamicPattern) =>
+        Some(InvalidEagerReason("Creating dynamic Label or Types"))
+      case _ => None
+    }
+  }
+}
+
+object UnsupportedMergeClause {
+
+  def unapply(node: ASTNode): Option[InvalidEagerReason] = {
+    node match {
+      case _ @Merge(pattern, mergeActions, maybeWhere)
+        if maybeWhere.exists(
+          _.expression.containsDynamicExpression
+        ) || pattern.containsDynamicPattern || mergeActions.exists(unsupportedMergeAction) =>
+        Some(InvalidEagerReason("Merge using dynamic Label or Types"))
+      case _ =>
+        None
+    }
+  }
+
+  private def unsupportedMergeAction(action: MergeAction): Boolean = {
+    action match {
+      case OnCreate(createAction) => unsupportedClauseForIREagerness(createAction)
+      case OnMatch(matchAction)   => unsupportedClauseForIREagerness(matchAction)
+      case _                      => false
+    }
+  }
+
+  object UnsupportedForEachClause {
+
+    def unapply(node: ASTNode): Option[InvalidEagerReason] = {
+      node match {
+        case _ @Foreach(_, expression, updates)
+          if expression.containsDynamicExpression || updates.exists(unsupportedClauseForIREagerness) =>
+          Some(InvalidEagerReason("Foreach using dynamic Label or Types"))
+        case _ =>
+          None
+      }
+    }
+  }
 }

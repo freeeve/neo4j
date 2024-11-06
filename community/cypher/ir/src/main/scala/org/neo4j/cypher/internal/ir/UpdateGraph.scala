@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.ir
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.expressions.BooleanExpression
 import org.neo4j.cypher.internal.expressions.ContainerIndex
+import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.GetDegree
@@ -36,6 +37,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.PathExpression
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
+import org.neo4j.cypher.internal.expressions.RelTypeExpression
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.functions.Labels
 import org.neo4j.cypher.internal.expressions.functions.Properties
@@ -180,17 +182,27 @@ trait UpdateGraph {
   /*
    * Finds all label names being removed on nodes that are not the given node.
    */
-  private def labelsToRemoveFromOtherNodes(node: LogicalVariable): Set[LabelName] = removeLabelPatterns.collect {
-    // TODO dynamic labels
-    case RemoveLabelPattern(n, labels, _) if n != node => labels
-  }.flatten.toSet
+  private def labelsToRemoveFromOtherNodes(node: LogicalVariable): Set[LabelName] = removeLabelPatterns.flatMap {
+    case RemoveLabelPattern(n, labels, dynamicLabels) =>
+      if (dynamicLabels.isEmpty)
+        if (n != node) labels else Seq()
+      else
+        throw new IllegalArgumentException("Dynamic node labels are not supported in IR eagerness analysis")
+  }.toSet
 
   /*
    * Relationship types being created with, CREATE/MERGE ()-[:T]->()
    */
   private lazy val createRelTypes: Set[RelTypeName] =
-    (createPatterns.flatMap(_.relationships.map(_.relType.asStatic)) ++
-      mergeRelationshipPatterns.flatMap(_.createRelationships.map(_.relType.asStatic))).toSet
+    (createPatterns.flatMap(_.relationships.map(r => asRelTypeName(r.relType))) ++
+      mergeRelationshipPatterns.flatMap(_.createRelationships.map(r => asRelTypeName(r.relType)))).toSet
+
+  private def asRelTypeName(relTypeExpression: RelTypeExpression): RelTypeName =
+    relTypeExpression match {
+      case relTypeName: RelTypeName => relTypeName
+      case _: DynamicRelTypeExpression =>
+        throw new IllegalArgumentException("Dynamic relationship types are not supported in IR eagerness analysis")
+    }
 
   /*
    * Does this UpdateGraph update nodes?
@@ -349,12 +361,9 @@ trait UpdateGraph {
     val unstableNodePredicates = selections.predicatesGiven(Set(nodes.matchedNode))
 
     possibleLabelCombinations.exists { labelsToCreate =>
-      val overlap = CreateOverlaps.overlap(unstableNodePredicates, labelsToCreate.map(_.name), propertiesToCreate)
-      overlap match {
-        case CreateOverlaps.NoPropertyOverlap                                                 => false
-        case CreateOverlaps.NoLabelOverlap                                                    => false
-        case CreateOverlaps.Overlap(unprocessedExpressions, propertiesOverlap, labelsOverlap) => true
-      }
+      CreateOverlaps
+        .findNodeOverlap(unstableNodePredicates, CreatesStaticNodeLabels(labelsToCreate), propertiesToCreate)
+        .isDefined
     }
   }
 
@@ -415,20 +424,27 @@ trait UpdateGraph {
     (typesOverlap(readRelTypes, createRelTypes) && propsOverlap(readRelProperties, createRelProperties))
   }
 
-  // TODO dynamic
   private lazy val labelsToSet: Set[LabelName] = {
     @tailrec
     def toLabelPattern(patterns: Seq[MutatingPattern], acc: Set[LabelName]): Set[LabelName] = {
 
       def extractLabels(patterns: Seq[SetMutatingPattern]) = patterns.collect {
-        case SetLabelPattern(_, labels, _) => labels
+        case SetLabelPattern(_, labels, dynamicLabels) =>
+          if (dynamicLabels.isEmpty)
+            labels
+          else
+            throw new IllegalArgumentException("Dynamic node labels are not supported in IR eagerness analysis")
       }.flatten
 
       if (patterns.isEmpty) {
         acc
       } else {
         patterns.head match {
-          case SetLabelPattern(_, labels, _) => toLabelPattern(patterns.tail, acc ++ labels)
+          case SetLabelPattern(_, labels, dynamicLabels) =>
+            if (dynamicLabels.isEmpty)
+              toLabelPattern(patterns.tail, acc ++ labels)
+            else
+              throw new IllegalArgumentException("Dynamic node labels are not supported in IR eagerness analysis")
           case MergeNodePattern(_, _, onCreate, onMatch) =>
             toLabelPattern(patterns.tail, acc ++ extractLabels(onCreate) ++ extractLabels(onMatch))
           case MergeRelationshipPattern(_, _, _, onCreate, onMatch) =>
@@ -667,8 +683,9 @@ trait UpdateGraph {
       case _: HasALabel => true
     }
 
-    // TODO dynamic labels
     val overlappingLabels: Seq[LabelName] = removeLabelPatterns.collect {
+      case RemoveLabelPattern(_, _, dynamicLabels) if dynamicLabels.nonEmpty =>
+        throw new IllegalArgumentException("Dynamic node labels are not supported in IR eagerness analysis")
       case RemoveLabelPattern(_, labelsToRemove, _) if overlapWithLabelsFunction || overlapWithWildcard =>
         labelsToRemove
       case RemoveLabelPattern(_, labelsToRemove, _)

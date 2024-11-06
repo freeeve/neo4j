@@ -45,8 +45,11 @@ import org.neo4j.cypher.internal.ir.EagernessReason.UnknownLabelReadSetConflict
 import org.neo4j.cypher.internal.ir.HasHeaders
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.andsReorderable
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationshipWithDynamicType
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.removeLabel
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setLabel
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
@@ -57,6 +60,7 @@ import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
+import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class EagerLPPlanningIntegrationTest extends EagerPlanningIntegrationTest(EagerAnalysisImplementation.LP)
@@ -1954,14 +1958,12 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
     plan should equal(
       planner.planBuilder()
         .produceResults("m")
-        .lpEager(ListSet(LabelReadSetConflict(labelName("Z")).withConflict(Conflict(Id(2), Id(0)))))
-        .irEager(ListSet(LabelReadSetConflict(labelName("Z"))))
+        .eager(ListSet(LabelReadSetConflict(labelName("Z")).withConflict(Conflict(Id(2), Id(0)))))
         .setLabels("m", Seq("Z"), Seq())
-        .lpEager(ListSet(
+        .eager(ListSet(
           LabelReadSetConflict(labelName("Z")).withConflict(Conflict(Id(2), Id(6))),
           LabelReadSetConflict(labelName("Z")).withConflict(Conflict(Id(2), Id(8)))
         ))
-        .irEager(ListSet(LabelReadSetConflict(labelName("Z"))))
         .apply()
         .|.cartesianProduct()
         .|.|.filter("NOT m:Z")
@@ -1996,16 +1998,14 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
     plan should equal(
       planner.planBuilder()
         .produceResults("n")
-        .lpEager(ListSet(ReadDeleteConflict("n").withConflict(Conflict(Id(2), Id(0)))))
-        .irEager(ListSet(ReadDeleteConflict("n")))
+        .eager(ListSet(ReadDeleteConflict("n").withConflict(Conflict(Id(2), Id(0)))))
         .deleteNode("m")
-        .lpEager(ListSet(
+        .eager(ListSet(
           ReadDeleteConflict("n").withConflict(Conflict(Id(2), Id(6))),
           ReadDeleteConflict("n").withConflict(Conflict(Id(2), Id(7))),
           ReadDeleteConflict("m").withConflict(Conflict(Id(2), Id(8))),
           ReadDeleteConflict("m").withConflict(Conflict(Id(2), Id(9)))
         ))
-        .irEager(ListSet(ReadDeleteConflict("m")))
         .apply()
         .|.cartesianProduct()
         .|.|.filterExpression(dynExpr)
@@ -2043,7 +2043,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
       planner.planBuilder()
         .produceResults("r1")
         .create(createNode("a", "A"), createNode("b", "C"), createRelationship("r2", "a", "B", "b", OUTGOING))
-        .eager(lpReasons(
+        .eager(ListSet(
           LabelReadSetConflict(labelName("C")).withConflict(Conflict(Id(1), Id(5))),
           LabelReadSetConflict(labelName("A")).withConflict(Conflict(Id(1), Id(5)))
         ))
@@ -2054,5 +2054,429 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
         .argument()
         .build()
     )
+  }
+
+  test("insert an eager between creating a node with a dynamic label and reading nodes") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(10)
+        .setLabelCardinality("Account", 10)
+        .build()
+
+    val query =
+      """CREATE (:$($label))
+        |WITH *
+        |MATCH (n:Account)
+        |RETURN n""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults("n")
+      .apply()
+      .|.nodeByLabelScan("n", "Account", IndexOrderNone)
+      .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(4), Id(2)))))
+      .create(createNodeFull("anon_0", dynamicLabels = Seq("$label")))
+      .argument()
+      .build()
+  }
+
+  test("insert an eager between reading nodes and creating a node with a dynamic label") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(10)
+        .setLabelCardinality("Account", 10)
+        .build()
+
+    val query =
+      """UNWIND [1] AS one
+        |MATCH (n:Account)
+        |CREATE (:$($label))""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults()
+      .emptyResult()
+      .create(createNodeFull("anon_0", dynamicLabels = Seq("$label")))
+      .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(2), Id(5)))))
+      .apply()
+      .|.nodeByLabelScan("n", "Account", "one")
+      .unwind("[1] AS one")
+      .argument()
+      .build()
+  }
+
+  test("insert an eager between reading a relationship and creating a relationship with a dynamic type") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(10)
+        .setLabelCardinality("A", 1)
+        .setRelationshipCardinality("()-[]->()", 1)
+        .build()
+
+    val query =
+      """CREATE (:A)-[:$("Foo")]->(:A)
+        |WITH *
+        |MATCH (:!A)-[r:!Foo]->(:!A)
+        |RETURN r
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults("r")
+      .filterExpression(
+        not(hasTypes("r", "Foo")),
+        andsReorderableAst(not(hasLabels("anon_3", "A")), not(hasLabels("anon_4", "A")))
+      )
+      .apply()
+      .|.allRelationshipsScan("(anon_3)-[r]->(anon_4)")
+      .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(5), Id(3)))))
+      .create(
+        createNodeFull("anon_0", labels = Seq("A")),
+        createNodeFull("anon_2", labels = Seq("A")),
+        createRelationshipWithDynamicType("anon_1", "anon_0", "'Foo'", "anon_2", OUTGOING)
+      )
+      .argument()
+      .build()
+  }
+
+  test("insert an eager between reading nodes and merging a node with a dynamic label") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(10)
+        .setLabelCardinality("Account", 10)
+        .build()
+
+    val query =
+      """UNWIND [1] AS one
+        |MATCH (n:Account)
+        |MERGE (:$($label))""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults()
+      .emptyResult()
+      .apply()
+      .|.merge(Seq(createNodeFull("anon_0", dynamicLabels = Seq("$label"))))
+      .|.filterExpression(hasDynamicLabels(varFor("anon_0"), parameter("label", CTAny)))
+      .|.allNodeScan("anon_0")
+      .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(3), Id(8)))))
+      .apply()
+      .|.nodeByLabelScan("n", "Account", IndexOrderNone, "one")
+      .unwind("[1] AS one")
+      .argument()
+      .build()
+  }
+
+  test("insert an eager between reading relationships and merging a relationship with a dynamic type") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(1000)
+        .setLabelCardinality("A", 100)
+        .setLabelCardinality("B", 100)
+        .setRelationshipCardinality("()-[]->()", 1000)
+        .setRelationshipCardinality("(:A)-[]->()", 250)
+        .setRelationshipCardinality("()-[]->(:A)", 250)
+        .setRelationshipCardinality("(:A)-[]->(:A)", 100)
+        .setRelationshipCardinality("(:B)-[]->()", 250)
+        .setRelationshipCardinality("()-[]->(:B)", 250)
+        .setRelationshipCardinality("(:B)-[]->(:B)", 100)
+        .build()
+
+    val query =
+      """MERGE (:A)-[:$("Foo")]->(:A)
+        |WITH *
+        |MATCH (:B)-[r:!Foo]->(:B)
+        |RETURN r
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults("r")
+      .filterExpression(not(hasTypes("r", "Foo")), hasLabels("anon_4", "B"))
+      .expandAll("(anon_3)-[r]->(anon_4)")
+      .apply()
+      .|.nodeByLabelScan("anon_3", "B", IndexOrderNone, "anon_0", "anon_2", "anon_1")
+      .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(6), Id(2)))))
+      .merge(
+        nodes = Seq(createNodeFull("anon_0", labels = Seq("A")), createNodeFull("anon_2", labels = Seq("A"))),
+        relationships = Seq(createRelationshipWithDynamicType("anon_1", "anon_0", "'Foo'", "anon_2", OUTGOING))
+      )
+      .filterExpression(
+        hasDynamicType(varFor("anon_1"), literal("Foo")),
+        hasLabels("anon_2", "A")
+      )
+      .expandAll("(anon_0)-[anon_1]->(anon_2)")
+      .nodeByLabelScan("anon_0", "A", IndexOrderNone)
+      .build()
+  }
+
+  test("Eager should be inserted between MATCH and FOREACH REMOVE with dynamic label") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("100", 50)
+      .build()
+
+    val query =
+      """
+        |MATCH (), (n:`100`)
+        |FOREACH (i IN range(1, 5) | REMOVE n:$(toString(i)))
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults()
+      .emptyResult()
+      .foreach(
+        variable = "i",
+        expression = "range(1, 5)",
+        mutations = Seq(removeLabel(node = "n", staticLabels = Seq(), dynamicLabelExpressions = Seq("toString(i)")))
+      )
+      .eager(
+        ListSet(EagernessReason.UnknownLabelReadRemoveConflict.withConflict(EagernessReason.Conflict(Id(2), Id(5))))
+      )
+      .cartesianProduct()
+      .|.nodeByLabelScan(node = "n", label = "100")
+      .allNodeScan("anon_0")
+      .build()
+  }
+
+  test("Eager should be inserted between FOREACH REMOVE with dynamic label and MATCH") {
+    val planner = plannerBuilder()
+      .addSemanticFeature(DynamicLabelsAndTypes)
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("100", 50)
+      .build()
+
+    val query =
+      """
+        |WITH [i IN range(1, 5) | toString(i)] AS numericLabels
+        |MATCH (n:$any(numericLabels))
+        |FOREACH (l IN numericLabels | REMOVE n:$(l))
+        |WITH *
+        |MATCH ()
+        |MATCH (m:$all(numericLabels))
+        |RETURN count(m) AS shouldBeZero
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+
+    plan shouldEqual planner
+      .subPlanBuilder()
+      .aggregation(groupingExpressions = Seq(), aggregationExpression = Seq("count(m) AS shouldBeZero"))
+      .apply()
+      .|.cartesianProduct()
+      .|.|.allNodeScan(node = "anon_0", "n", "numericLabels")
+      .|.filterExpression(hasDynamicLabels(varFor("m"), varFor("numericLabels")))
+      .|.allNodeScan(node = "m", "n", "numericLabels")
+      .eager(
+        ListSet(EagernessReason.UnknownLabelReadRemoveConflict.withConflict(EagernessReason.Conflict(Id(8), Id(5))))
+      )
+      .foreach(
+        variable = "l",
+        expression = "numericLabels",
+        mutations = Seq(removeLabel(node = "n", staticLabels = Seq(), dynamicLabelExpressions = Seq("l")))
+      )
+      .filterExpression(hasAnyDynamicLabel(varFor("n"), varFor("numericLabels")))
+      .apply()
+      .|.allNodeScan(node = "n", "numericLabels")
+      .projection("[i IN range(1, 5) | toString(i)] AS numericLabels")
+      .argument()
+      .build()
+  }
+
+  test("Eager should be inserted between MATCH and MERGE ON CREATE with dynamic label") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(10)
+        .setLabelCardinality("Account", 10)
+        .build()
+
+    val query =
+      """UNWIND [1] AS one
+        |MATCH (account:Account)
+        |MERGE (n)
+        |ON CREATE
+        |  SET n:$($label)""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults()
+      .emptyResult()
+      .apply()
+      .|.merge(nodes = Seq(createNodeFull("n")), onCreate = Seq(setLabel("n", Seq(), Seq("$label"))))
+      .|.allNodeScan("n")
+      .eager(ListSet(EagernessReason.UnknownLabelReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(7)))))
+      .apply()
+      .|.nodeByLabelScan("account", "Account", IndexOrderNone, "one")
+      .unwind("[1] AS one")
+      .argument()
+      .build()
+  }
+
+  test("Eager should be inserted between MATCH and MERGE ON MATCH with dynamic label") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(10)
+        .setLabelCardinality("Account", 10)
+        .build()
+
+    val query =
+      """UNWIND [1] AS one
+        |MATCH (account:Account)
+        |MERGE (n)
+        |ON MATCH
+        |  SET n:$($label)""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults()
+      .emptyResult()
+      .apply()
+      .|.merge(nodes = Seq(createNodeFull("n")), onMatch = Seq(setLabel("n", Seq(), Seq("$label"))))
+      .|.allNodeScan("n")
+      .eager(ListSet(EagernessReason.UnknownLabelReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(7)))))
+      .apply()
+      .|.nodeByLabelScan("account", "Account", IndexOrderNone, "one")
+      .unwind("[1] AS one")
+      .argument()
+      .build()
+  }
+
+  test("Eager should be inserted between MERGE ON CREATE and MATCH with dynamic label") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(100)
+        .setLabelCardinality("Account", 50)
+        .setLabelCardinality("Person", 50)
+        .build()
+
+    val query =
+      """MERGE (n:Account)
+        |ON CREATE
+        |  SET n:$($label)
+        |WITH *
+        |MATCH (account:Person)
+        |RETURN account""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults("account")
+      .apply()
+      .|.nodeByLabelScan(node = "account", label = "Person", "n")
+      .eager(
+        ListSet(
+          UnknownLabelReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(0))),
+          EagernessReason.UnknownLabelReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(2)))
+        )
+      )
+      .merge(
+        nodes = Seq(createNodeFull(node = "n", labels = Seq("Account"))),
+        onCreate = Seq(setLabel(node = "n", staticLabels = Seq(), dynamicLabelExpressions = Seq("$label")))
+      )
+      .nodeByLabelScan(node = "n", label = "Account")
+      .build()
+  }
+
+  test("Eager should be inserted between MERGE ON MATCH and MATCH with dynamic label") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(100)
+        .setLabelCardinality("Account", 50)
+        .setLabelCardinality("Person", 50)
+        .build()
+
+    val query =
+      """MERGE (n:Account)
+        |ON MATCH
+        |  SET n:$($label)
+        |WITH *
+        |MATCH (account:Person)
+        |RETURN account""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults("account")
+      .apply()
+      .|.nodeByLabelScan(node = "account", label = "Person", "n")
+      .eager(
+        ListSet(
+          UnknownLabelReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(0))),
+          EagernessReason.UnknownLabelReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(2)))
+        )
+      )
+      .merge(
+        nodes = Seq(createNodeFull(node = "n", labels = Seq("Account"))),
+        onMatch = Seq(setLabel(node = "n", staticLabels = Seq(), dynamicLabelExpressions = Seq("$label")))
+      )
+      .nodeByLabelScan(node = "n", label = "Account")
+      .build()
+  }
+
+  test("Eager should be inserted between MATCH and subquery containing MERGE ON CREATE with dynamic label") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(100)
+        .setLabelCardinality("A", 20)
+        .setLabelCardinality("B", 20)
+        .build()
+
+    val query =
+      """MATCH (), (n:A)
+        |CALL (n) {
+        |  MERGE (m:B)
+        |  ON CREATE
+        |    SET m:$(labels(n))
+        |  RETURN m.p AS mp
+        |}
+        |RETURN n.p AS np, mp""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults("np", "mp")
+      .projection("n.p AS np")
+      .apply()
+      .|.projection("m.p AS mp")
+      .|.merge(
+        nodes = Seq(createNodeFull(node = "m", labels = Seq("B"))),
+        onCreate = Seq(setLabel(node = "m", staticLabels = Seq(), dynamicLabelExpressions = Seq("labels(n)")))
+      )
+      .|.nodeByLabelScan(node = "m", label = "B", "n")
+      .eager(ListSet(EagernessReason.UnknownLabelReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(8)))))
+      .cartesianProduct()
+      .|.nodeByLabelScan(node = "n", label = "A")
+      .allNodeScan("anon_0")
+      .build()
   }
 }

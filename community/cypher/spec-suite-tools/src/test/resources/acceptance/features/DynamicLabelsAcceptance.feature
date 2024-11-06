@@ -634,15 +634,14 @@ Feature: DynamicLabelsAcceptance
     When executing query:
       """
        <clause> ()-[r:$(<input>)]->()
-       RETURN type(r)
+       RETURN type(r) AS types
       """
     Then the result should be, in any order:
-      | labels |
+      | types  |
       | 'FOO'  |
     And the side effects should be:
-      | +labels        | 1 |
       | +relationships | 1 |
-      | +nodes         | 3 |
+      | +nodes         | 2 |
     Examples:
       | clause | input   |
       | CREATE | 'FOO'   |
@@ -691,7 +690,7 @@ Feature: DynamicLabelsAcceptance
       | labels               | type   |
       | ['label1', 'label2'] | 'TYPE' |
     And the side effects should be:
-      | +labels        | 3 |
+      | +labels        | 2 |
       | +relationships | 1 |
       | +nodes         | 2 |
       | +properties    | 2 |
@@ -709,7 +708,7 @@ Feature: DynamicLabelsAcceptance
       | labels               | type   |
       | ['label1', 'label2'] | 'TYPE' |
     And the side effects should be:
-      | +labels        | 3 |
+      | +labels        | 2 |
       | +relationships | 1 |
       | +nodes         | 2 |
 
@@ -821,8 +820,8 @@ Feature: DynamicLabelsAcceptance
     When executing query:
       """
       MATCH (n)
-      <clause> (n:$(n.prop))
-      RETURN labels(n) AS labels
+      <clause> (m:$(n.prop))
+      RETURN labels(m) AS labels
       """
     Then a TypeError should be raised at runtime: *
     Examples:
@@ -842,8 +841,8 @@ Feature: DynamicLabelsAcceptance
     When executing query:
       """
       MATCH (n)
-      <clause> (n:$(n.prop))
-      RETURN labels(n) AS labels
+      <clause> (m:$(n.prop))
+      RETURN labels(m) AS labels
       """
     Then a TokenNameError should be raised at runtime: *
     Examples:

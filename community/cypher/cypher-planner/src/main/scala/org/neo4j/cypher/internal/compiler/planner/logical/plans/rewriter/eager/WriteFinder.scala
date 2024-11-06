@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.ReadFinder.AccessedLabel
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.ReadFinder.AccessedProperty
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.ReadFinder.asMaybeVar
+import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -31,9 +32,15 @@ import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.CreateNode
 import org.neo4j.cypher.internal.ir.CreatePattern
 import org.neo4j.cypher.internal.ir.CreateRelationship
+import org.neo4j.cypher.internal.ir.CreatesDynamicNodeLabels
+import org.neo4j.cypher.internal.ir.CreatesDynamicRelationshipType
 import org.neo4j.cypher.internal.ir.CreatesKnownPropertyKeys
 import org.neo4j.cypher.internal.ir.CreatesNoPropertyKeys
+import org.neo4j.cypher.internal.ir.CreatesNodeLabels
 import org.neo4j.cypher.internal.ir.CreatesPropertyKeys
+import org.neo4j.cypher.internal.ir.CreatesRelationshipType
+import org.neo4j.cypher.internal.ir.CreatesStaticNodeLabels
+import org.neo4j.cypher.internal.ir.CreatesStaticRelationshipType
 import org.neo4j.cypher.internal.ir.CreatesUnknownPropertyKeys
 import org.neo4j.cypher.internal.ir.DeleteMutatingPattern
 import org.neo4j.cypher.internal.ir.RemoveLabelPattern
@@ -122,22 +129,16 @@ object WriteFinder {
       copy(unknownLabelAccessors = unknownLabelAccessors :+ accessor)
   }
 
-  sealed private[eager] trait CreatedEntity[A] {
-    def getCreatedProperties: CreatesPropertyKeys
-    def getCreatedLabelsOrTypes: Set[A]
-  }
-
   /**
    * A single node from a CREATE or MERGE
    *
    * @param createdLabels     the created labels on that node
    * @param createdProperties the properties that get created
    */
-  private[eager] case class CreatedNode(createdLabels: Set[LabelName], createdProperties: CreatesPropertyKeys)
-      extends CreatedEntity[LabelName] {
-    override def getCreatedLabelsOrTypes: Set[LabelName] = createdLabels
-    override def getCreatedProperties: CreatesPropertyKeys = createdProperties
-  }
+  private[eager] case class CreatedNode(
+    createdLabels: CreatesNodeLabels,
+    createdProperties: CreatesPropertyKeys
+  )
 
   /**
    * A single relationship from a CREATE or MERGE
@@ -145,11 +146,10 @@ object WriteFinder {
    * @param createdType  the created types on that relationship
    * @param createdProperties the relationship properties that get created
    */
-  private[eager] case class CreatedRelationship(createdType: RelTypeName, createdProperties: CreatesPropertyKeys)
-      extends CreatedEntity[RelTypeName] {
-    override def getCreatedLabelsOrTypes: Set[RelTypeName] = Set(createdType)
-    override def getCreatedProperties: CreatesPropertyKeys = createdProperties
-  }
+  private[eager] case class CreatedRelationship(
+    createdType: CreatesRelationshipType,
+    createdProperties: CreatesPropertyKeys
+  )
 
   /**
    * Create write operations of a single plan
@@ -415,14 +415,14 @@ object WriteFinder {
 
   private def processCreateNodes(acc: PlanCreates, nodes: Iterable[CreateNode]): PlanCreates = {
     nodes.foldLeft(acc) {
-      case (_, CreateNode(_, _, dynamicLabels, _)) if dynamicLabels.nonEmpty =>
-        throw new NotImplementedError("Dynamic Labels not supported here yet")
-      case (acc, CreateNode(_, labels, _, maybeProperties)) =>
+      case (acc, CreateNode(_, staticLabels, dynamicLabels, maybeProperties)) =>
+        val createdLabels =
+          if (dynamicLabels.isEmpty) CreatesStaticNodeLabels(staticLabels) else CreatesDynamicNodeLabels
         maybeProperties match {
-          case None => acc.withCreatedNode(CreatedNode(labels, CreatesNoPropertyKeys))
+          case None => acc.withCreatedNode(CreatedNode(createdLabels, CreatesNoPropertyKeys))
           case Some(MapExpression(properties)) =>
-            acc.withCreatedNode(CreatedNode(labels, CreatesKnownPropertyKeys(properties.map(_._1).toSet)))
-          case Some(_) => acc.withCreatedNode(CreatedNode(labels, CreatesUnknownPropertyKeys))
+            acc.withCreatedNode(CreatedNode(createdLabels, CreatesKnownPropertyKeys(properties.map(_._1).toSet)))
+          case Some(_) => acc.withCreatedNode(CreatedNode(createdLabels, CreatesUnknownPropertyKeys))
         }
     }
   }
@@ -430,15 +430,16 @@ object WriteFinder {
   private def processCreateRelationships(acc: PlanCreates, relationships: Iterable[CreateRelationship]): PlanCreates = {
     relationships.foldLeft(acc) {
       case (acc, CreateRelationship(_, _, relType, _, _, maybeProperties)) =>
-        maybeProperties match {
-          case None => acc.withCreatedRelationship(CreatedRelationship(relType.asStatic, CreatesNoPropertyKeys))
-          case Some(MapExpression(properties)) =>
-            acc.withCreatedRelationship(CreatedRelationship(
-              relType.asStatic,
-              CreatesKnownPropertyKeys(properties.map(_._1).toSet)
-            ))
-          case Some(_) => acc.withCreatedRelationship(CreatedRelationship(relType.asStatic, CreatesUnknownPropertyKeys))
+        val createdRelType = relType match {
+          case relTypeName: RelTypeName    => CreatesStaticRelationshipType(relTypeName)
+          case _: DynamicRelTypeExpression => CreatesDynamicRelationshipType
         }
+        val createdPropertyKeys = maybeProperties match {
+          case None                            => CreatesNoPropertyKeys
+          case Some(MapExpression(properties)) => CreatesKnownPropertyKeys(properties.map(_._1).toSet)
+          case Some(_)                         => CreatesUnknownPropertyKeys
+        }
+        acc.withCreatedRelationship(CreatedRelationship(createdRelType, createdPropertyKeys))
     }
   }
 
@@ -502,13 +503,19 @@ object WriteFinder {
         acc.withUnknownRelPropertiesWritten(asMaybeVar(entity))
           .withUnknownNodePropertiesWritten(asMaybeVar(entity))
 
-      // TODO dynamic labels
-      case (acc, SetLabelPattern(variable, labels, _)) =>
-        acc.withLabelsWritten(labels.map(AccessedLabel(_, Some(variable))).toSet)
+      case (acc, SetLabelPattern(variable, labels, dynamicLabels)) =>
+        val accWithLabelsWritten = acc.withLabelsWritten(labels.map(AccessedLabel(_, Some(variable))).toSet)
+        if (dynamicLabels.nonEmpty)
+          accWithLabelsWritten.withUnknownLabelsWritten(Some(variable))
+        else
+          accWithLabelsWritten
 
-      // TODO dynamic labels
-      case (acc, RemoveLabelPattern(variable, labels, _)) =>
-        acc.withLabelsWritten(labels.map(AccessedLabel(_, Some(variable))).toSet)
+      case (acc, RemoveLabelPattern(variable, labels, dynamicLabels)) =>
+        val accWithLabelsWritten = acc.withLabelsWritten(labels.map(AccessedLabel(_, Some(variable))).toSet)
+        if (dynamicLabels.nonEmpty)
+          accWithLabelsWritten.withUnknownLabelsWritten(Some(variable))
+        else
+          accWithLabelsWritten
     }
   }
 

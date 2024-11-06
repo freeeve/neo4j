@@ -19,17 +19,21 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
-import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.relTypeName
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DynamicLabelsAndTypes
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfiguration
 import org.neo4j.cypher.internal.compiler.planner.UsingMatcher.using
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
+import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.EagernessReason.Conflict
 import org.neo4j.cypher.internal.ir.EagernessReason.TypeReadSetConflict
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationshipWithDynamicType
 import org.neo4j.cypher.internal.logical.plans.AssertSameNode
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.NodeUniqueIndexSeek
@@ -37,7 +41,10 @@ import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class MergeRelationshipPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport {
+class MergeRelationshipPlanningIntegrationTest
+    extends CypherFunSuite
+    with LogicalPlanningIntegrationTestSupport
+    with AstConstructionTestSupport {
 
   private def plannerConfigForSimpleExpandTests(): StatisticsBackedLogicalPlanningConfiguration =
     plannerBuilder()
@@ -332,6 +339,88 @@ class MergeRelationshipPlanningIntegrationTest extends CypherFunSuite with Logic
       .|.nodeByLabelScan("from", "Role")
       .filter("cacheNFromStore[to.name] = $__internal_toRole")
       .nodeByLabelScan("to", "Role")
+      .build()
+  }
+
+  test("merge a copy of each existing node, copying its labels dynamically, with a relationship to the original") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(10)
+        .setLabelCardinality("Copy", 1)
+        .setRelationshipCardinality("()-[:COPY_OF]->()", 1)
+        .setRelationshipCardinality("(:Copy)-[:COPY_OF]->()", 1)
+        .build()
+
+    val query =
+      """MATCH (n)
+        |MERGE (copy:Copy:$(labels(n)))-[copy_of:COPY_OF]->(n)""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults()
+      .emptyResult()
+      .apply()
+      .|.merge(
+        nodes = Seq(createNodeFull("copy", labels = Seq("Copy"), dynamicLabels = Seq("labels(n)"))),
+        relationships = Seq(createRelationship("copy_of", "copy", "COPY_OF", "n", OUTGOING)),
+        lockNodes = Set("n")
+      )
+      .|.filterExpression(
+        hasDynamicLabels(varFor("copy"), function("labels", varFor("n"))),
+        hasLabels(varFor("copy"), "Copy")
+      )
+      .|.expandAll("(n)<-[copy_of:COPY_OF]-(copy)")
+      .|.argument("n")
+      .allNodeScan("n")
+      .build()
+  }
+
+  test("merge a relationship with a dynamic type and then try to read") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(1000)
+        .setLabelCardinality("A", 100)
+        .setLabelCardinality("B", 100)
+        .setRelationshipCardinality("()-[]->()", 1000)
+        .setRelationshipCardinality("(:A)-[]->()", 250)
+        .setRelationshipCardinality("()-[]->(:A)", 250)
+        .setRelationshipCardinality("(:A)-[]->(:A)", 100)
+        .setRelationshipCardinality("(:B)-[]->()", 250)
+        .setRelationshipCardinality("()-[]->(:B)", 250)
+        .setRelationshipCardinality("(:B)-[]->(:B)", 100)
+        .build()
+
+    val query =
+      """MERGE (:A)-[:$("Foo")]->(:A)
+        |WITH *
+        |MATCH (:B)-[r:!Foo]->(:B)
+        |RETURN r
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults("r")
+      .filterExpression(not(hasTypes("r", "Foo")), hasLabels("anon_4", "B"))
+      .expandAll("(anon_3)-[r]->(anon_4)")
+      .apply()
+      .|.nodeByLabelScan("anon_3", "B", IndexOrderNone, "anon_0", "anon_2", "anon_1")
+      .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(6), Id(2)))))
+      .merge(
+        nodes = Seq(createNodeFull("anon_0", labels = Seq("A")), createNodeFull("anon_2", labels = Seq("A"))),
+        relationships = Seq(createRelationshipWithDynamicType("anon_1", "anon_0", "'Foo'", "anon_2", OUTGOING))
+      )
+      .filterExpression(
+        hasDynamicType(varFor("anon_1"), literal("Foo")),
+        hasLabels("anon_2", "A")
+      )
+      .expandAll("(anon_0)-[anon_1]->(anon_2)")
+      .nodeByLabelScan("anon_0", "A", IndexOrderNone)
       .build()
   }
 }

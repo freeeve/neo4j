@@ -49,6 +49,7 @@ import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
 import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.ir.AggregatingQueryProjection
 import org.neo4j.cypher.internal.ir.CallSubqueryHorizon
+import org.neo4j.cypher.internal.ir.CreateNode
 import org.neo4j.cypher.internal.ir.CreatePattern
 import org.neo4j.cypher.internal.ir.DistinctQueryProjection
 import org.neo4j.cypher.internal.ir.ExhaustivePathPattern
@@ -77,13 +78,15 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound
+import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSupport with AstConstructionTestSupport {
 
   override val semanticFeatures: List[SemanticFeature] = List(
-    SemanticFeature.MatchModes
+    SemanticFeature.MatchModes,
+    SemanticFeature.DynamicLabelsAndTypes
   )
   private val patternRel = PatternRelationship(v"r", (v"a", v"b"), OUTGOING, Seq.empty, SimplePatternLength)
   private val nProp = prop("n", "prop")
@@ -2898,6 +2901,31 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     )
 
     query.allPlannerQueries should have size 2
+  }
+
+  test("should convert create query with dynamic labels") {
+    val query = buildSinglePlannerQuery(
+      """WITH ['X', 'Y', 'Z'] AS labels
+        |CREATE (n:A:$(labels):B:$($extra_label):C)""".stripMargin
+    )
+
+    query shouldEqual RegularSinglePlannerQuery(
+      horizon = RegularQueryProjection(Map(varFor("labels") -> listOfString("X", "Y", "Z"))),
+      tail = Some(RegularSinglePlannerQuery(
+        queryGraph =
+          QueryGraph
+            .empty
+            .addArgumentId(varFor("labels"))
+            .addMutatingPatterns(CreatePattern(List(
+              CreateNode(
+                variable = varFor("n"),
+                labels = Set(labelName("A"), labelName("B"), labelName("C")),
+                labelExpressions = Set(varFor("labels"), parameter("extra_label", CTAny)),
+                properties = None
+              )
+            )))
+      ))
+    )
   }
 
   private def createNodeIr(node: String, properties: Option[String] = None): org.neo4j.cypher.internal.ir.CreateNode =

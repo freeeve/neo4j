@@ -26,13 +26,10 @@ import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.R
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.ReadsAndWritesFinder.PlanWithAccessor
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.ReadsAndWritesFinder.PossibleDeleteConflictPlans
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.ReadsAndWritesFinder.ReadsAndWrites
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.WriteFinder.CreatedNode
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.WriteFinder.CreatedRelationship
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
-import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.EagernessReason.Conflict
@@ -48,11 +45,11 @@ import org.neo4j.cypher.internal.ir.EagernessReason.UnknownPropertyReadSetConfli
 import org.neo4j.cypher.internal.ir.RemoveLabelPattern
 import org.neo4j.cypher.internal.ir.helpers.CachedFunction
 import org.neo4j.cypher.internal.ir.helpers.overlaps.CreateOverlaps
+import org.neo4j.cypher.internal.ir.helpers.overlaps.CreateOverlaps.NodeLabelsOverlap
 import org.neo4j.cypher.internal.ir.helpers.overlaps.CreateOverlaps.PropertiesOverlap
+import org.neo4j.cypher.internal.ir.helpers.overlaps.CreateOverlaps.RelationshipTypeOverlap
 import org.neo4j.cypher.internal.ir.helpers.overlaps.DeleteOverlaps
 import org.neo4j.cypher.internal.ir.helpers.overlaps.Expressions
-import org.neo4j.cypher.internal.label_expressions.LabelExpressionLeafName
-import org.neo4j.cypher.internal.label_expressions.NodeLabels
 import org.neo4j.cypher.internal.logical.plans.Argument
 import org.neo4j.cypher.internal.logical.plans.DeleteNode
 import org.neo4j.cypher.internal.logical.plans.DeleteRelationship
@@ -69,10 +66,10 @@ import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.StableLeafPlan
 import org.neo4j.cypher.internal.logical.plans.UpdatingPlan
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
-import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Ref
 import org.neo4j.cypher.internal.util.helpers.MapSupport.PowerMap
 
+import scala.collection.View
 import scala.collection.mutable
 import scala.util.hashing.MurmurHash3
 
@@ -188,81 +185,120 @@ sealed trait ConflictFinder {
     }
   }
 
-  private def createConflicts[T <: LabelExpressionLeafName, C <: WriteFinder.CreatedEntity[T]](
+  private def createNodeConflicts(
     readsAndWrites: ReadsAndWrites,
-    leftMostLeaf: LogicalPlan,
-    createdEntities: ReadsAndWritesFinder.Creates => Map[Ref[LogicalPlan], Set[C]],
-    filterExpressionSnapshots: (
-      ReadsAndWritesFinder.Creates,
-      Ref[LogicalPlan]
-    ) => Map[LogicalVariable, FilterExpressions],
-    filterExpressions: ReadsAndWritesFinder.Reads => Map[LogicalVariable, FilterExpressions],
-    createEntityReason: (String, Conflict) => EagernessReason
-  )(implicit planChildrenLookup: PlanChildrenLookup): Iterator[ConflictingPlanPair] = {
+    leftMostLeaf: LogicalPlan
+  )(implicit planChildrenLookup: PlanChildrenLookup): Iterator[ConflictingPlanPair] =
     for {
-      (Ref(writePlan), createdEntities) <- createdEntities(readsAndWrites.writes.creates).iterator
+      (Ref(writePlan), createdNodes) <- readsAndWrites.writes.creates.createdNodes.iterator
 
-      (variable, FilterExpressions(plansThatIntroduceVariable, expression)) <-
-        // If a variable exists in the snapshot, let's take it from there. This is when we have a read-write conflict.
-        // But we have to include other filterExpressions that are not in the snapshot, to also cover write-read conflicts.
-        filterExpressionSnapshots(readsAndWrites.writes.creates, Ref(writePlan)).fuse(
-          filterExpressions(readsAndWrites.reads)
-        )((x, _) => x).iterator
+      // If a variable exists in the snapshot, let's take it from there. This is when we have a read-write conflict.
+      // But we have to include other filterExpressions that are not in the snapshot, to also cover write-read conflicts.
+      filterExpressions =
+        readsAndWrites.reads.nodeFilterExpressions ++
+          readsAndWrites.writes.creates.nodeFilterExpressionsSnapshots(Ref(writePlan))
 
-      // Filter out Create vs Create conflicts
-      readPlans = plansThatIntroduceVariable.filter(ref => canConflictWithCreateOrDelete(ref.value))
-      if readPlans.nonEmpty
+      (readPlans, expressionsDependantOnlyOnVariable) <- filterExpressionsThatCanConflict(filterExpressions)
 
-      // We need to split the expression in order to filter single predicates.
-      // We only want to keep the predicates that depend on only variable, since that is a requirement of CreateOverlaps.overlap
-      expressionsDependantOnlyOnVariable =
-        Expressions.splitExpression(expression).filter(_.dependencies == set1(variable))
+      createdNode <- createdNodes.iterator
 
-      createdEntity <- createdEntities.iterator
-
-      entitySet = createdEntity.getCreatedLabelsOrTypes
-
-      overlap =
-        CreateOverlaps.overlap(
+      overlap <-
+        CreateOverlaps.findNodeOverlap(
           expressionsDependantOnlyOnVariable,
-          entitySet.map(_.name),
-          createdEntity.getCreatedProperties
-        )
-      if (overlap match {
-        case CreateOverlaps.NoPropertyOverlap => false
-        case CreateOverlaps.NoLabelOverlap    => false
-        case _: CreateOverlaps.Overlap        => true
-      })
+          createdNode.createdLabels,
+          createdNode.createdProperties
+        ).iterator
 
       Ref(readPlan) <- readPlans.iterator
       if isValidConflict(readPlan, writePlan, leftMostLeaf)
-    } yield {
-      val conflict = Conflict(writePlan.id, readPlan.id)
-      // If no labels are read or written this is a ReadCreateConflict, otherwise a LabelReadSetConflict
-      val reasons: Set[EagernessReason] = overlap match {
-        case CreateOverlaps.Overlap(_, propertiesOverlap, entityOverlap) =>
-          val entityReasons: Set[EagernessReason] = entityOverlap match {
-            case NodeLabels.KnownLabels(entityNames) => entityNames
-                .map(ln => createEntityReason(ln, conflict))
-            case NodeLabels.SomeUnknownLabels =>
-              throw new IllegalStateException("SomeUnknownLabels is not possible for a CREATE conflict")
-          }
-          val propertyReasons = propertiesOverlap match {
-            case PropertiesOverlap.Overlap(properties) =>
-              properties.map(PropertyReadSetConflict(_).withConflict(conflict))
-            case PropertiesOverlap.UnknownOverlap =>
-              set1(UnknownPropertyReadSetConflict.withConflict(conflict))
-          }
-          val allReasons = entityReasons ++ propertyReasons
-          if (allReasons.isEmpty) set1(ReadCreateConflict.withConflict(conflict))
-          else allReasons
+    } yield conflictingPlanPair(writePlan, readPlan, overlap)
 
-        // Other cases have been filtered out above
-        case x @ (CreateOverlaps.NoLabelOverlap | CreateOverlaps.NoPropertyOverlap) =>
-          throw new IllegalStateException(s"Only Overlap expected at this point, but got: $x")
-      }
-      ConflictingPlanPair(Ref(writePlan), Ref(readPlan), reasons)
+  private def createRelationshipConflicts(
+    readsAndWrites: ReadsAndWrites,
+    leftMostLeaf: LogicalPlan
+  )(implicit planChildrenLookup: PlanChildrenLookup): Iterator[ConflictingPlanPair] =
+    for {
+      (Ref(writePlan), createdRelationships) <- readsAndWrites.writes.creates.createdRelationships.iterator
+
+      // If a variable exists in the snapshot, let's take it from there. This is when we have a read-write conflict.
+      // But we have to include other filterExpressions that are not in the snapshot, to also cover write-read conflicts.
+      filterExpressions =
+        readsAndWrites.reads.relationshipFilterExpressions ++
+          readsAndWrites.writes.creates.relationshipFilterExpressionsSnapshots(Ref(writePlan))
+
+      (readPlans, expressionsDependantOnlyOnVariable) <- filterExpressionsThatCanConflict(filterExpressions)
+
+      createdRelationship <- createdRelationships.iterator
+
+      overlap <-
+        CreateOverlaps.findRelationshipOverlap(
+          expressionsDependantOnlyOnVariable,
+          createdRelationship.createdType,
+          createdRelationship.createdProperties
+        ).iterator
+
+      Ref(readPlan) <- readPlans.iterator
+      if isValidConflict(readPlan, writePlan, leftMostLeaf)
+    } yield conflictingPlanPair(writePlan, readPlan, overlap)
+
+  private def filterExpressionsThatCanConflict(
+    filterExpressionsPerVariable: Map[LogicalVariable, FilterExpressions]
+  ): Iterator[(Set[Ref[LogicalPlan]], List[Expression])] =
+    filterExpressionsPerVariable.iterator.flatMap {
+      case (variable, filterExpressions) =>
+        val readPlans =
+          filterExpressions
+            .plansThatIntroduceVariable
+            .filter(ref => canConflictWithCreateOrDelete(ref.value))
+        if (readPlans.isEmpty)
+          Iterator.empty
+        else {
+          // We need to split the expression in order to filter single predicates.
+          // We only want to keep the predicates that depend on only variable, since that is a requirement of CreateOverlaps.overlap
+          val expressionsDependantOnlyOnVariable =
+            Expressions
+              .splitExpression(filterExpressions.expression)
+              .filter(_.dependencies == set1(variable))
+          Iterator.single((readPlans, expressionsDependantOnlyOnVariable))
+        }
     }
+
+  private def conflictingPlanPair(
+    writePlan: LogicalPlan,
+    readPlan: LogicalPlan,
+    overlap: CreateOverlaps.EntityOverlap
+  ): ConflictingPlanPair = {
+    val labelOrRelTypeOverlapEagernessReasons = overlap match {
+      case nodeOverlap: CreateOverlaps.NodeOverlap =>
+        nodeOverlap.nodeLabelsOverlap match {
+          case NodeLabelsOverlap.Static(labelNames) =>
+            labelNames.view.map(LabelReadSetConflict)
+          case NodeLabelsOverlap.Dynamic =>
+            View.empty
+        }
+      case relationshipOverlap: CreateOverlaps.RelationshipOverlap =>
+        relationshipOverlap.relationshipTypeOverlap match {
+          case RelationshipTypeOverlap.Static(relationshipTypeName) =>
+            new View.Single(TypeReadSetConflict(relationshipTypeName))
+          case RelationshipTypeOverlap.Dynamic =>
+            View.empty
+        }
+    }
+    val propertyOverlapEagernessReasons = overlap.propertiesOverlap match {
+      case PropertiesOverlap.Overlap(properties) =>
+        properties.view.map(property => PropertyReadSetConflict(property))
+      case PropertiesOverlap.UnknownOverlap =>
+        new View.Single(UnknownPropertyReadSetConflict)
+    }
+    val combinedEagernessReasons = labelOrRelTypeOverlapEagernessReasons ++ propertyOverlapEagernessReasons
+    val eagernessReasons =
+      if (combinedEagernessReasons.isEmpty)
+        new View.Single(ReadCreateConflict)
+      else
+        combinedEagernessReasons
+    val conflict = Conflict(writePlan.id, readPlan.id)
+    val eagernessReasonsWithConflict = eagernessReasons.map(_.withConflict(conflict))
+    ConflictingPlanPair(Ref(writePlan), Ref(readPlan), eagernessReasonsWithConflict.toSet)
   }
 
   /**
@@ -527,23 +563,15 @@ sealed trait ConflictFinder {
     labelConflicts(readsAndWrites, leftMostLeaf).foreach(addConflict)
 
     // Conflicts between a label read (determined by a snapshot filterExpressions) and a label CREATE
-    createConflicts[LabelName, CreatedNode](
+    createNodeConflicts(
       readsAndWrites,
-      leftMostLeaf,
-      _.createdNodes,
-      _.nodeFilterExpressionsSnapshots(_),
-      _.nodeFilterExpressions,
-      (ln, conflict) => LabelReadSetConflict(LabelName(ln)(InputPosition.NONE)).withConflict(conflict)
+      leftMostLeaf
     ).foreach(addConflict)
 
     // Conflicts between a type read (determined by a snapshot filterExpressions) and a type CREATE
-    createConflicts[RelTypeName, CreatedRelationship](
+    createRelationshipConflicts(
       readsAndWrites,
-      leftMostLeaf,
-      _.createdRelationships,
-      _.relationshipFilterExpressionsSnapshots(_),
-      _.relationshipFilterExpressions,
-      (tn, conflict) => TypeReadSetConflict(RelTypeName(tn)(InputPosition.NONE)).withConflict(conflict)
+      leftMostLeaf
     ).foreach(addConflict)
 
     // Conflicts between a MATCH and a DELETE with a node variable

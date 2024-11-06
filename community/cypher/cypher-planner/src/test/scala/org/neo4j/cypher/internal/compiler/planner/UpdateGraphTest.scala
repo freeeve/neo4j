@@ -55,6 +55,7 @@ import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.RegularQueryProjection
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
+import org.neo4j.cypher.internal.ir.RemoveLabelPattern
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
 import org.neo4j.cypher.internal.ir.SetLabelPattern
@@ -72,6 +73,7 @@ import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.UpdateGraph.LeafPlansPredicatesResolver
 import org.neo4j.cypher.internal.ir.ast.ExistsIRExpression
 import org.neo4j.cypher.internal.ir.ast.ListIRExpression
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setLabel
 import org.neo4j.cypher.internal.logical.builder.Parser
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.NonEmptyList
@@ -318,7 +320,7 @@ class UpdateGraphTest extends CypherFunSuite with AstConstructionTestSupport wit
   }
 
   test("overlap when reading and deleting with collections") {
-    // ... WITH collect(a) as col DELETE col[0]
+    // WITH collect(a) as col DELETE col[0]
     val qg = QueryGraph(argumentIds = Set(v"col"))
     val ug = QueryGraph(mutatingPatterns =
       IndexedSeq(
@@ -658,6 +660,124 @@ class UpdateGraphTest extends CypherFunSuite with AstConstructionTestSupport wit
     val qgWithLeafInfo = QgWithLeafInfo(queryGraph, Set.empty, Set.empty, Some(StableIdentifier(v"start")), false)
 
     ug.overlaps(qgWithLeafInfo, noLeafPlanProvider) shouldBe ListSet()
+  }
+
+  test("throw exception doing IR eagerness analysis on SET with dynamic labels") {
+    // MATCH (a:L) SET b:$($label)
+    val selections = Selections.from(HasLabels(varFor("a"), Seq(LabelName("L")(pos)))(pos))
+    val qg = QueryGraph(patternNodes = Set(v"a"), selections = selections)
+    val ug = QueryGraph(mutatingPatterns =
+      IndexedSeq(SetLabelPattern(
+        variable = varFor("b"),
+        labels = Seq(),
+        dynamicLabels = Seq(Parser.parseExpression("$label"))
+      ))
+    )
+
+    val exception = the[IllegalArgumentException] thrownBy
+      ug.overlaps(qgWithNoStableIdentifierAndOnlyLeaves(qg), noLeafPlanProvider)
+
+    exception.getMessage should equal("Dynamic node labels are not supported in IR eagerness analysis")
+  }
+
+  test("throw exception doing IR eagerness analysis on SET with static and dynamic labels") {
+    // MATCH (a:L) SET b:L&$($label)
+    val selections = Selections.from(HasLabels(varFor("a"), Seq(LabelName("L")(pos)))(pos))
+    val qg = QueryGraph(patternNodes = Set(v"a"), selections = selections)
+    val ug = QueryGraph(mutatingPatterns =
+      IndexedSeq(SetLabelPattern(
+        variable = varFor("b"),
+        labels = Seq(labelName("L")),
+        dynamicLabels = Seq(Parser.parseExpression("$label"))
+      ))
+    )
+
+    val exception = the[IllegalArgumentException] thrownBy
+      ug.overlaps(qgWithNoStableIdentifierAndOnlyLeaves(qg), noLeafPlanProvider)
+
+    exception.getMessage should equal("Dynamic node labels are not supported in IR eagerness analysis")
+  }
+
+  test("throw exception doing IR eagerness analysis on REMOVE with dynamic labels") {
+    // MATCH (a:L) REMOVE b:$($label)
+    val selections = Selections.from(HasLabels(varFor("a"), Seq(LabelName("L")(pos)))(pos))
+    val qg = QueryGraph(patternNodes = Set(v"a"), selections = selections)
+    val ug = QueryGraph(mutatingPatterns =
+      IndexedSeq(RemoveLabelPattern(
+        variable = varFor("b"),
+        labels = Seq(),
+        dynamicLabels = Seq(Parser.parseExpression("$label"))
+      ))
+    )
+
+    val exception = the[IllegalArgumentException] thrownBy
+      ug.overlaps(qgWithNoStableIdentifierAndOnlyLeaves(qg), noLeafPlanProvider)
+
+    exception.getMessage should equal("Dynamic node labels are not supported in IR eagerness analysis")
+  }
+
+  test("throw exception doing IR eagerness analysis on MERGE ON CREATE with dynamic labels") {
+    // MATCH (a:L) MERGE b:M ON CREATE SET b:$($label)
+    val selections = Selections.from(HasLabels(varFor("a"), Seq(LabelName("L")(pos)))(pos))
+    val qg = QueryGraph(patternNodes = Set(v"a"), selections = selections)
+    val ug = QueryGraph(mutatingPatterns =
+      IndexedSeq(
+        MergeNodePattern(
+          createNode = CreateNode(
+            variable = v"b",
+            labels = Set(labelName("M")),
+            labelExpressions = Set(),
+            properties = None
+          ),
+          matchGraph = QueryGraph.empty,
+          onCreate = Seq(
+            setLabel(
+              node = "b",
+              staticLabels = Seq(),
+              dynamicLabelExpressions = Seq("$label")
+            )
+          ),
+          onMatch = Seq()
+        )
+      )
+    )
+
+    val exception = the[IllegalArgumentException] thrownBy
+      ug.overlaps(qgWithNoStableIdentifierAndOnlyLeaves(qg), noLeafPlanProvider)
+
+    exception.getMessage should equal("Dynamic node labels are not supported in IR eagerness analysis")
+  }
+
+  test("throw exception doing IR eagerness analysis on MERGE ON MATCH with dynamic labels") {
+    // MATCH (a:L) MERGE b:M ON MATCH SET b:$($label)
+    val selections = Selections.from(HasLabels(varFor("a"), Seq(LabelName("L")(pos)))(pos))
+    val qg = QueryGraph(patternNodes = Set(v"a"), selections = selections)
+    val ug = QueryGraph(mutatingPatterns =
+      IndexedSeq(
+        MergeNodePattern(
+          createNode = CreateNode(
+            variable = v"b",
+            labels = Set(labelName("M")),
+            labelExpressions = Set(),
+            properties = None
+          ),
+          matchGraph = QueryGraph.empty,
+          onCreate = Seq(),
+          onMatch = Seq(
+            setLabel(
+              node = "b",
+              staticLabels = Seq(),
+              dynamicLabelExpressions = Seq("$labels")
+            )
+          )
+        )
+      )
+    )
+
+    val exception = the[IllegalArgumentException] thrownBy
+      ug.overlaps(qgWithNoStableIdentifierAndOnlyLeaves(qg), noLeafPlanProvider)
+
+    exception.getMessage should equal("Dynamic node labels are not supported in IR eagerness analysis")
   }
 
   private def createNode(name: String, labels: String*) =

@@ -3520,11 +3520,11 @@ object AbstractLogicalPlanBuilder {
   def setLabel(node: String, labels: String*): SetMutatingPattern =
     SetLabelPattern(varFor(node), labels.map(l => LabelName(l)(InputPosition.NONE)), Seq.empty)
 
-  def setLabel(node: String, labels: Seq[String], labelExpressions: Seq[String]): SetMutatingPattern =
+  def setLabel(node: String, staticLabels: Seq[String], dynamicLabelExpressions: Seq[String]): SetMutatingPattern =
     SetLabelPattern(
       varFor(node),
-      labels.map(l => LabelName(l)(InputPosition.NONE)),
-      labelExpressions.map(e => Parser.parseExpression(e))
+      staticLabels.map(l => LabelName(l)(InputPosition.NONE)),
+      dynamicLabelExpressions.map(e => Parser.parseExpression(e))
     )
 
   def setDynamicLabel(node: String, labels: String*): SetMutatingPattern =
@@ -3533,11 +3533,11 @@ object AbstractLogicalPlanBuilder {
   def removeLabel(node: String, labels: String*): RemoveLabelPattern =
     RemoveLabelPattern(varFor(node), labels.map(l => LabelName(l)(InputPosition.NONE)), Seq.empty)
 
-  def removeLabel(node: String, labels: Seq[String], labelExpressions: Seq[String]): SetMutatingPattern =
+  def removeLabel(node: String, staticLabels: Seq[String], dynamicLabelExpressions: Seq[String]): SetMutatingPattern =
     RemoveLabelPattern(
       varFor(node),
-      labels.map(l => LabelName(l)(InputPosition.NONE)),
-      labelExpressions.map(e => Parser.parseExpression(e))
+      staticLabels.map(l => LabelName(l)(InputPosition.NONE)),
+      dynamicLabelExpressions.map(e => Parser.parseExpression(e))
     )
 
   def removeDynamicLabel(node: String, labels: String*): SetMutatingPattern =

@@ -61,14 +61,17 @@ import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.helpers.AggregationHelper
+import org.neo4j.cypher.internal.compiler.helpers.SeqSupport.RichSeq
 import org.neo4j.cypher.internal.compiler.planner.ProcedureCallProjection
 import org.neo4j.cypher.internal.expressions.ContainerIndex
+import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
+import org.neo4j.cypher.internal.expressions.HasDynamicLabels
+import org.neo4j.cypher.internal.expressions.HasDynamicType
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.In
 import org.neo4j.cypher.internal.expressions.IsAggregate
-import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -134,15 +137,8 @@ import org.neo4j.cypher.internal.ir.ordering.ColumnOrder.Desc
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrderCandidate
 import org.neo4j.cypher.internal.ir.ordering.RequiredOrderCandidate
-import org.neo4j.cypher.internal.label_expressions.LabelExpression
-import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonConjunction
-import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonDisjunction
-import org.neo4j.cypher.internal.label_expressions.LabelExpression.Conjunctions
-import org.neo4j.cypher.internal.label_expressions.LabelExpression.Disjunctions
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
-import org.neo4j.cypher.internal.label_expressions.LabelExpression.Negation
-import org.neo4j.cypher.internal.label_expressions.LabelExpression.Wildcard
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
@@ -154,7 +150,7 @@ import org.neo4j.exceptions.SyntaxException
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-object ClauseConverters {
+object ClauseConverters extends LabelExpressionConversion {
 
   /**
    * Adds a clause to a PlannerQueryBuilder
@@ -402,10 +398,10 @@ object ClauseConverters {
     seenPatternNodes ++= builder.lastQGNodesAndArguments
 
     clause.pattern.patternParts.foreach {
-      // CREATE (n :L1:L2 {prop: 42})
+      // CREATE (n :L1:L2:$('L3') {prop: 42})
       case PathPatternPart(NodePattern(Some(id), labelExpression, props, None)) =>
-        val labels = getLabelNameSet(labelExpression)
-        commands += CreateNode(id, labels, Set.empty, props)
+        val labelsToCreate = extractNodeLabelsToCreate(labelExpression)
+        commands += CreateNode(id, labelsToCreate.staticLabelNames, labelsToCreate.dynamicLabelNames, props)
         seenPatternNodes += id
         ()
 
@@ -428,26 +424,6 @@ object ClauseConverters {
     builder.amendQueryGraph(_.addMutatingPatterns(CreatePattern(commands.toSeq)))
   }
 
-  private def getLabelNameSet(labelExpression: Option[LabelExpression]): Set[LabelName] = {
-    def fail(le: LabelExpression) =
-      throw new IllegalStateException(
-        s"This label expression is not allowed here: $le. This is a bug and should have been caught by Semantic Analysis."
-      )
-
-    labelExpression match {
-      case None                                => Set.empty
-      case Some(Leaf(labelName: LabelName, _)) => Set(labelName)
-      case Some(ColonConjunction(lhs, rhs, _)) => getLabelNameSet(Some(lhs)) ++ getLabelNameSet(Some(rhs))
-      case Some(Conjunctions(children, _))     => children.flatMap(child => getLabelNameSet(Some(child))).toSet
-      case Some(n: Negation)                   => fail(n)
-      case Some(c: ColonDisjunction)           => fail(c)
-      case Some(d: Disjunctions)               => fail(d)
-      case Some(w: Wildcard)                   => fail(w)
-      case Some(l @ Leaf(_, _))                => fail(l)
-      case Some(d @ DynamicLeaf(_, _))         => fail(d)
-    }
-  }
-
   sealed private trait CreateEntityCommand
 
   private case class CreateNodeCommand(create: CreateNode, variable: LogicalVariable) extends CreateEntityCommand
@@ -456,7 +432,9 @@ object ClauseConverters {
 
   private def createNodeCommand(pattern: NodePattern): CreateNodeCommand = pattern match {
     case NodePattern(Some(variable), labelExpression, props, None) =>
-      CreateNodeCommand(CreateNode(variable, getLabelNameSet(labelExpression), Set.empty, props), variable)
+      val allLabelNames = extractNodeLabelsToCreate(labelExpression)
+      val createNode = CreateNode(variable, allLabelNames.staticLabelNames, allLabelNames.dynamicLabelNames, props)
+      CreateNodeCommand(createNode, variable)
     case _ => throw new InternalException("All nodes must be named at this instance")
   }
 
@@ -495,9 +473,15 @@ object ClauseConverters {
       // CREATE ()->[:R]->()-[:R]->...->()
       case RelationshipChain(
           left,
-          RelationshipPattern(Some(relVar), Some(Leaf(relType: RelTypeName, _)), _, properties, _, direction),
+          RelationshipPattern(Some(relVar), Some(relTypeExpression), _, properties, _, direction),
           rightNode @ NodePattern(Some(rightVar), _, _, _)
         ) =>
+        val relType = relTypeExpression match {
+          case Leaf(staticRelType: RelTypeName, _)                      => staticRelType
+          case DynamicLeaf(dynamicRelType: DynamicRelTypeExpression, _) => dynamicRelType
+          case other =>
+            throw new IllegalArgumentException(s"Invalid relationship type expression in a CREATE clause: $other")
+        }
         val (addLeft, seenLeft, leftNode) = allCreatePatternsInOrderAndDeduped(left, acc, seenNodes, clauseName)
         val (addRight, seenRight, _) = allCreatePatternsInOrderAndDeduped(rightNode, addLeft, seenLeft, clauseName)
 
@@ -761,14 +745,18 @@ object ClauseConverters {
     }.flatten
 
     clause.pattern match {
-      // MERGE (n :L1:L2 {prop: 42})
+      // MERGE (n :L1:L2:$('L3') {prop: 42})
       case PathPatternPart(NodePattern(Some(id), labelExpression, props, _)) =>
-        val labels = getLabelNameSet(labelExpression)
-        val labelPredicates = labels.map(l => HasLabels(id, Seq(l))(id.position))
+        val labelsToCreate = extractNodeLabelsToCreate(labelExpression)
+        val labelPredicates = labelsToCreate.staticLabelNames.map(l => HasLabels(id, Seq(l))(id.position))
+        val dynamicLabelPredicate = labelsToCreate.dynamicLabelNames.map(dynamicLabel =>
+          HasDynamicLabels(id, Seq(dynamicLabel))(id.position)
+        )
         val propertyPredicates = toPropertySelection(id, toPropertyMap(props))
-        val createNodePattern = CreateNode(id, labels, Set.empty, props)
+        val createNodePattern = CreateNode(id, labelsToCreate.staticLabelNames, labelsToCreate.dynamicLabelNames, props)
 
-        val selections = asSelections(clause.where) ++ Selections.from(labelPredicates ++ propertyPredicates)
+        val selections =
+          asSelections(clause.where) ++ Selections.from(labelPredicates ++ dynamicLabelPredicate ++ propertyPredicates)
 
         // Dependencies: Everything from the WHERE part plus everything from the MERGE pattern, excluding the merged node
         // itself, since it is provided by the MERGE.
@@ -796,7 +784,7 @@ object ClauseConverters {
           .withHorizon(PassthroughAllHorizon())
           .withTail(RegularSinglePlannerQuery())
 
-      // MERGE (n)-[r: R]->(m)
+      // MERGE (n)-[r: R]->(m) / MERGE (n)-[r: $('R')]->(m)
       case PathPatternPart(pattern: RelationshipChain) =>
         val (nodes, rels) =
           allCreatePatternsInOrderAndDeduped(pattern, clause.name).foldRight((
@@ -824,7 +812,8 @@ object ClauseConverters {
 
         val hasLabels = nodes.flatMap {
           case CreateNodeCommand(n, v) =>
-            n.labels.map(l => HasLabels(v, Seq(l))(v.position))
+            n.labels.map(l => HasLabels(v, Seq(l))(v.position)) ++
+              n.labelExpressions.map(dynamicLabel => HasDynamicLabels(v, Seq(dynamicLabel))(v.position))
         }
         val hasProps = nodes.flatMap {
           case CreateNodeCommand(n, v) =>
@@ -833,7 +822,20 @@ object ClauseConverters {
           case CreateRelCommand(r, v) =>
             toPropertySelection(v, toPropertyMap(r.properties))
         }
-        val selections = asSelections(clause.where) ++ Selections.from(hasLabels ++ hasProps)
+
+        val (hasDynamicTypes, patternRelationships) = rels.foldMap(Seq.empty[HasDynamicType]) {
+          case (acc, CreateRelCommand(r, v)) =>
+            val (dynamicTypes, staticTypes) = r.relType match {
+              case DynamicRelTypeExpression(expr, _) => (Seq(HasDynamicType(v, Seq(expr))(v.position)), Seq.empty)
+              case relType: RelTypeName              => (Seq.empty, Seq(relType))
+            }
+            (
+              acc ++ dynamicTypes,
+              PatternRelationship(r.variable, (r.leftNode, r.rightNode), r.direction, staticTypes, SimplePatternLength)
+            )
+        }
+
+        val selections = asSelections(clause.where) ++ Selections.from(hasLabels ++ hasProps ++ hasDynamicTypes)
 
         // Dependencies: Everything from the WHERE part plus everything from the MERGE pattern,
         // excluding nodes and rels to create, since they are provided by the MERGE.
@@ -849,16 +851,7 @@ object ClauseConverters {
 
         val matchGraph = QueryGraph(
           patternNodes = nodes.map(_.create.variable).toSet,
-          patternRelationships = rels.map {
-            case CreateRelCommand(r, _) =>
-              PatternRelationship(
-                r.variable,
-                (r.leftNode, r.rightNode),
-                r.direction,
-                Seq(r.relType.asStatic),
-                SimplePatternLength
-              )
-          }.toSet,
+          patternRelationships = patternRelationships.toSet,
           selections = selections,
           argumentIds = arguments
         )

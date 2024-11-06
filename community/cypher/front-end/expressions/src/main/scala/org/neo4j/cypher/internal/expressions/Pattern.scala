@@ -95,6 +95,8 @@ sealed abstract class PatternPart extends ASTNode {
 
   def isBounded: Boolean
   def isFixedLength: Boolean
+
+  def containsDynamicPattern: Boolean
 }
 
 sealed trait NonPrefixedPatternPart extends PatternPart with HasMappableExpressions[NonPrefixedPatternPart]
@@ -125,6 +127,8 @@ case class PatternPartWithSelector(selector: Selector, part: NonPrefixedPatternP
 
   def replaceElement(newElement: PatternElement): PatternPartWithSelector =
     modifyElement(_ => newElement)
+
+  override def containsDynamicPattern: Boolean = element.containsDynamicPattern
 }
 
 case class NamedPatternPart(variable: Variable, patternPart: AnonymousPatternPart)(val position: InputPosition)
@@ -141,10 +145,13 @@ case class NamedPatternPart(variable: Variable, patternPart: AnonymousPatternPar
     copy(patternPart = patternPart.mapExpressions(f).asInstanceOf[AnonymousPatternPart])(this.position)
 
   override def dependencies: Set[LogicalVariable] = patternPart.dependencies
+
+  override def containsDynamicPattern: Boolean = element.containsDynamicPattern
 }
 
 sealed trait AnonymousPatternPart extends NonPrefixedPatternPart {
   override def allVariables: Set[LogicalVariable] = element.allVariables
+  override def containsDynamicPattern: Boolean = element.containsDynamicPattern
 }
 
 case class PathPatternPart(element: PatternElement) extends AnonymousPatternPart {
@@ -159,6 +166,8 @@ case class PathPatternPart(element: PatternElement) extends AnonymousPatternPart
 
   override def mapExpressions(f: Expression => Expression): NonPrefixedPatternPart =
     copy(element.mapExpressions(f))
+
+  override def containsDynamicPattern: Boolean = element.containsDynamicPattern
 }
 
 case class ShortestPathsPatternPart(element: PatternElement, single: Boolean)(val position: InputPosition)
@@ -177,6 +186,8 @@ case class ShortestPathsPatternPart(element: PatternElement, single: Boolean)(va
     copy(element.mapExpressions(f))(this.position)
 
   override def dependencies: Set[LogicalVariable] = element.dependencies
+
+  override def containsDynamicPattern: Boolean = element.containsDynamicPattern
 }
 
 object PatternPart {
@@ -248,6 +259,8 @@ case class PathConcatenation(factors: Seq[PathFactor])(val position: InputPositi
     copy(factors.map(_.mapExpressions(f)).asInstanceOf[Seq[PathFactor]])(this.position)
 
   override def dependencies: Set[LogicalVariable] = factors.view.flatMap(_.dependencies).toSet
+
+  override def containsDynamicPattern: Boolean = factors.exists(_.containsDynamicPattern)
 }
 
 /**
@@ -293,6 +306,9 @@ case class QuantifiedPath(
 
   override def dependencies: Set[LogicalVariable] = part.dependencies ++
     optionalWhereExpression.toSet[Expression].flatMap(_.dependencies)
+
+  override def containsDynamicPattern: Boolean = optionalWhereExpression.exists(_.containsDynamicExpression) ||
+    part.containsDynamicPattern
 }
 
 object QuantifiedPath {
@@ -358,6 +374,9 @@ case class ParenthesizedPath(
 
   override def dependencies: Set[LogicalVariable] = part.dependencies ++
     optionalWhereClause.toSet[Expression].flatMap(_.dependencies)
+
+  override def containsDynamicPattern: Boolean = optionalWhereClause.exists(_.containsDynamicExpression) ||
+    part.containsDynamicPattern
 }
 
 object ParenthesizedPath {
@@ -377,6 +396,7 @@ sealed abstract class PatternElement extends ASTNode with HasMappableExpressions
   def isBounded: Boolean
   def isFixedLength: Boolean
   def dependencies: Set[LogicalVariable]
+  def containsDynamicPattern: Boolean
 
   def isSingleNode = false
 }
@@ -444,6 +464,10 @@ case class RelationshipChain(
     relationship.mapExpressions(f),
     rightNode.mapExpressions(f).asInstanceOf[NodePattern]
   )(this.position)
+
+  override def containsDynamicPattern: Boolean = element.containsDynamicPattern ||
+    relationship.labelExpression.exists(_.containsDynamicLabelOrTypeExpression) ||
+    rightNode.containsDynamicPattern
 }
 
 /**
@@ -485,6 +509,8 @@ case class NodePattern(
   }
 
   override def dependencies: Set[LogicalVariable] = (properties.toSet ++ predicate).flatMap(_.dependencies)
+
+  override def containsDynamicPattern: Boolean = labelExpression.exists(_.containsDynamicLabelOrTypeExpression)
 
 }
 

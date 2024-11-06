@@ -20,17 +20,21 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DynamicLabelsAndTypes
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
+import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.EagernessReason.Conflict
 import org.neo4j.cypher.internal.ir.EagernessReason.ReadCreateConflict
 import org.neo4j.cypher.internal.ir.EagernessReason.TypeReadSetConflict
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setNodeProperty
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
+import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -370,4 +374,81 @@ class CreateNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlann
       .nodeByLabelScan("benchmark_tool", "BenchmarkTool")
       .build()
   }
+
+  test("create a single node with a combination of static and dynamic labels") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(10)
+        .build()
+
+    val query =
+      """CREATE (account IS Account & $($roles))
+        |RETURN account""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults("account")
+      .create(createNodeFull("account", labels = Seq("Account"), dynamicLabels = Seq("$roles")))
+      .argument()
+      .build()
+  }
+
+  test("insert an eager between creating a node with a dynamic label and reading nodes") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(10)
+        .setLabelCardinality("Account", 10)
+        .build()
+
+    val query =
+      """CREATE (:$($label))
+        |WITH *
+        |MATCH (n:Account)
+        |RETURN n""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults("n")
+      .apply()
+      .|.nodeByLabelScan("n", "Account", IndexOrderNone)
+      .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(4), Id(2)))))
+      .create(createNodeFull("anon_0", dynamicLabels = Seq("$label")))
+      .argument()
+      .build()
+  }
+
+  test("insert an eager between reading nodes and creating a node with a dynamic label") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(10)
+        .setLabelCardinality("Account", 10)
+        .build()
+
+    val query =
+      """UNWIND [1] AS one
+        |MATCH (n:Account)
+        |CREATE (:$($label))""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults()
+      .emptyResult()
+      .create(createNodeFull("anon_0", dynamicLabels = Seq("$label")))
+      .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(2), Id(5)))))
+      .apply()
+      .|.nodeByLabelScan("n", "Account", "one")
+      .unwind("[1] AS one")
+      .argument()
+      .build()
+  }
+
 }

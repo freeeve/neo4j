@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.mockito.Mockito.when
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Remove
 import org.neo4j.cypher.internal.ast.RemoveDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.SetClause
@@ -30,7 +31,13 @@ import org.neo4j.cypher.internal.ast.semantics.Scope
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
+import org.neo4j.cypher.internal.expressions.DynamicLabelExpression
+import org.neo4j.cypher.internal.expressions.ExplicitParameter
+import org.neo4j.cypher.internal.expressions.HasDynamicLabels
+import org.neo4j.cypher.internal.expressions.ListLiteral
+import org.neo4j.cypher.internal.expressions.MatchMode.DifferentRelationships
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.NO_TRACING
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption
 import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption.ir
 import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption.irFromConfig
@@ -40,10 +47,44 @@ import org.neo4j.cypher.internal.planner.spi.PlanningAttributes
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.UnknownSize
+import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.InvalidCypherOption
 
 class DeriveEagerAnalyzerOptionTest extends CypherFunSuite with AstConstructionTestSupport {
+
+  private val matchOperation = Match(
+    false,
+    DifferentRelationships(true)(pos),
+    patternForMatch(
+      nodePat(Some("n"), None, None, None),
+      nodePat(Some("m"), None, None, None)
+    ),
+    List(),
+    Some(where(ands(
+      not(HasDynamicLabels(varFor("n"), List(ListLiteral(List(literalString("Z")))(pos)))(pos)),
+      not(hasLabels("m", "Z"))
+    )))
+  )(pos)
+
+  private val createOperation = create(
+    nodePat(
+      Some("a"),
+      Some(DynamicLeaf(DynamicLabelExpression(ExplicitParameter("label", CTAny, UnknownSize)(pos))(pos))),
+      None,
+      None
+    )
+  )
+
+  private val mergeOperation = merge(
+    nodePat(
+      Some("a"),
+      Some(DynamicLeaf(DynamicLabelExpression(ExplicitParameter("label", CTAny, UnknownSize)(pos))(pos))),
+      None,
+      None
+    )
+  )
 
   private val unsupportedOperationsForIR: Seq[ASTNode] = Seq(
     setLabelItem(node = "foo", labels = Seq("bar"), dynamicLabels = Seq(varFor("A"))),
@@ -55,7 +96,10 @@ class DeriveEagerAnalyzerOptionTest extends CypherFunSuite with AstConstructionT
     removeLabelItem(node = "foo", labels = Seq.empty, dynamicLabels = Seq(varFor("A")), containsIs = true),
     Remove(Seq(removeLabelItem(node = "foo", labels = Seq.empty, dynamicLabels = Seq(varFor("A")))))(pos),
     RemoveDynamicPropertyItem(containerIndex(varFor("A"), 0)),
-    Remove(Seq(RemoveDynamicPropertyItem(containerIndex(varFor("A"), 0))))(pos)
+    Remove(Seq(RemoveDynamicPropertyItem(containerIndex(varFor("A"), 0))))(pos),
+    matchOperation,
+    createOperation,
+    mergeOperation
   )
 
   private val supportedOperationsForIR: Seq[ASTNode] = Seq(

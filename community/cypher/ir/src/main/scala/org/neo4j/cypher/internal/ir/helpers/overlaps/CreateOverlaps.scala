@@ -20,13 +20,19 @@
 package org.neo4j.cypher.internal.ir.helpers.overlaps
 
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
+import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.ir.CreatesDynamicNodeLabels
+import org.neo4j.cypher.internal.ir.CreatesDynamicRelationshipType
 import org.neo4j.cypher.internal.ir.CreatesKnownPropertyKeys
 import org.neo4j.cypher.internal.ir.CreatesNoPropertyKeys
+import org.neo4j.cypher.internal.ir.CreatesNodeLabels
 import org.neo4j.cypher.internal.ir.CreatesPropertyKeys
+import org.neo4j.cypher.internal.ir.CreatesRelationshipType
+import org.neo4j.cypher.internal.ir.CreatesStaticNodeLabels
+import org.neo4j.cypher.internal.ir.CreatesStaticRelationshipType
 import org.neo4j.cypher.internal.ir.CreatesUnknownPropertyKeys
-import org.neo4j.cypher.internal.label_expressions.NodeLabels
-import org.neo4j.cypher.internal.label_expressions.NodeLabels.KnownLabels
 import org.neo4j.cypher.internal.label_expressions.SolvableLabelExpression
 
 object CreateOverlaps {
@@ -34,52 +40,95 @@ object CreateOverlaps {
   /**
    * Checks whether the labels and the property keys on the node being created might overlap with the predicates of the node being matched on.
    * @param predicates Predicates of the node being matched on. All predicates must apply exclusively to the node at hand, there is no checks for variable name.
-   * @param labelsToCreate Labels on the node being created.
+   * @param nodeLabelsToCreate Labels on the node being created.
    * @param propertiesToCreate Keys of the properties being created.
-   * @return Whether or not the existing node and the node to create might overlap.
+   * @return Whether the existing node and the node to create might overlap.
    */
-  def overlap(
+  def findNodeOverlap(
     predicates: Seq[Expression],
-    labelsToCreate: Set[String],
+    nodeLabelsToCreate: CreatesNodeLabels,
     propertiesToCreate: CreatesPropertyKeys
-  ): Result = {
-    val (unsupportedExpressions, nodePredicates) = extractNodePredicates(predicates)
+  ): Option[NodeOverlap] = {
+    val (unsupportedExpressions, nodePredicates) = extractEntityPredicates(predicates)
 
-    val propertiesOverlap = propertyOverlap(propertiesToCreate, nodePredicates.properties)
+    findPropertiesOverlap(propertiesToCreate, nodePredicates.properties).flatMap { propertiesOverlap =>
+      nodeLabelsToCreate match {
+        case CreatesStaticNodeLabels(staticLabels) =>
+          val labelNames = staticLabels.map(_.name)
+          Option.when(nodePredicates.labelExpressions.forall(_.matchesLabels(labelNames))) {
+            NodeOverlap(unsupportedExpressions, propertiesOverlap, NodeLabelsOverlap.Static(staticLabels))
+          }
 
-    propertiesOverlap match {
-      case None => NoPropertyOverlap
-      case Some(propOverlap) =>
-        if (nodePredicates.labelExpressions.forall(_.matchesLabels(labelsToCreate)))
-          Overlap(unsupportedExpressions, propOverlap, KnownLabels(labelsToCreate))
-        else
-          NoLabelOverlap
+        case CreatesDynamicNodeLabels =>
+          Some(NodeOverlap(unsupportedExpressions, propertiesOverlap, NodeLabelsOverlap.Dynamic))
+      }
     }
   }
 
-  sealed trait Result
-
   /**
-   * Proves that there is no overlap because of properties.
+   * Checks whether the relationship type and the property keys on the relationship being created might overlap with the predicates of the relationship being matched on.
+   * @param predicates Predicates of the node relationship matched on. All predicates must apply exclusively to the relationship at hand, there is no checks for variable name.
+   * @param relationshipTypeToCreate Type on the relationship being created.
+   * @param propertiesToCreate Keys of the properties being created.
+   * @return Whether the existing relationship and the relationship to create might overlap.
    */
-  case object NoPropertyOverlap extends Result
+  def findRelationshipOverlap(
+    predicates: Seq[Expression],
+    relationshipTypeToCreate: CreatesRelationshipType,
+    propertiesToCreate: CreatesPropertyKeys
+  ): Option[RelationshipOverlap] = {
+    val (unsupportedExpressions, relationshipPredicates) = extractEntityPredicates(predicates)
+
+    findPropertiesOverlap(propertiesToCreate, relationshipPredicates.properties).flatMap { propertiesOverlap =>
+      relationshipTypeToCreate match {
+        case CreatesStaticRelationshipType(staticRelationshipType) =>
+          val relationshipTypeName = staticRelationshipType.name
+          Option.when(relationshipPredicates.labelExpressions.forall(_.matchesLabels(Set(relationshipTypeName)))) {
+            RelationshipOverlap(
+              unsupportedExpressions,
+              propertiesOverlap,
+              RelationshipTypeOverlap.Static(staticRelationshipType)
+            )
+          }
+        case CreatesDynamicRelationshipType =>
+          Some(RelationshipOverlap(unsupportedExpressions, propertiesOverlap, RelationshipTypeOverlap.Dynamic))
+      }
+    }
+  }
+
+  sealed trait EntityOverlap {
+    def unprocessedExpressions: Seq[Expression]
+    def propertiesOverlap: PropertiesOverlap
+    def nodeLabelsOrRelationshipTypeOverlap: NodeLabelsOrRelationshipTypeOverlap
+  }
 
   /**
-   * Proves that there is no overlap because of labels.
-   */
-  case object NoLabelOverlap extends Result
-
-  /**
-   * Details of the potential overlap on create.
+   * Details of the potential overlap between two nodes on create.
    * @param unprocessedExpressions The expressions that were not processed by the evaluator.
    * @param propertiesOverlap Set of properties responsible for the overlap.
-   * @param labelsOverlap Node labels responsible for the overlap.
+   * @param nodeLabelsOverlap Node labels responsible for the overlap.
    */
-  case class Overlap(
-    unprocessedExpressions: Seq[Expression],
-    propertiesOverlap: PropertiesOverlap,
-    labelsOverlap: NodeLabels
-  ) extends Result
+  case class NodeOverlap(
+    override val unprocessedExpressions: Seq[Expression],
+    override val propertiesOverlap: PropertiesOverlap,
+    nodeLabelsOverlap: NodeLabelsOverlap
+  ) extends EntityOverlap {
+    override def nodeLabelsOrRelationshipTypeOverlap: NodeLabelsOrRelationshipTypeOverlap = nodeLabelsOverlap
+  }
+
+  /**
+   * Details of the potential overlap between two relationships on create.
+   * @param unprocessedExpressions The expressions that were not processed by the evaluator.
+   * @param propertiesOverlap Set of properties responsible for the overlap.
+   * @param relationshipTypeOverlap Relationship type responsible for the overlap.
+   */
+  case class RelationshipOverlap(
+    override val unprocessedExpressions: Seq[Expression],
+    override val propertiesOverlap: PropertiesOverlap,
+    relationshipTypeOverlap: RelationshipTypeOverlap
+  ) extends EntityOverlap {
+    override def nodeLabelsOrRelationshipTypeOverlap: NodeLabelsOrRelationshipTypeOverlap = relationshipTypeOverlap
+  }
 
   /**
    * Details of the overlap between a node being created and an existing node.
@@ -99,66 +148,98 @@ object CreateOverlaps {
     case object UnknownOverlap extends PropertiesOverlap
   }
 
+  sealed trait NodeLabelsOrRelationshipTypeOverlap
+
+  sealed trait NodeLabelsOverlap extends NodeLabelsOrRelationshipTypeOverlap
+
+  object NodeLabelsOverlap {
+
+    /**
+     * Known set of static labels causing the overlap.
+     */
+    case class Static(labelNames: Set[LabelName]) extends NodeLabelsOverlap
+
+    /**
+     * Some dynamic labels are being created, and so an overlap cannot be ruled out.
+     */
+    case object Dynamic extends NodeLabelsOverlap
+  }
+
+  sealed trait RelationshipTypeOverlap extends NodeLabelsOrRelationshipTypeOverlap
+
+  object RelationshipTypeOverlap {
+
+    /**
+     * Known static relation type causing the overlap.
+     */
+    case class Static(relationshipTypeName: RelTypeName) extends RelationshipTypeOverlap
+
+    /**
+     * A dynamic relationship type is being created, and so an overlap cannot be ruled out.
+     */
+    case object Dynamic extends RelationshipTypeOverlap
+  }
+
   /**
-   * Node predicates that are relevant for calculating the overlap.
+   * Predicates that are relevant for calculating the overlap between two entities.
    * @param labelExpressions Conjoint list of label expressions, empty is equivalent to (:%|!%) also known as ().
-   * @param properties Name of the properties that must exist on the node.
+   * @param properties Name of the properties that must exist on the entity.
    */
-  private case class NodePredicates(
+  private case class EntityPredicates(
     labelExpressions: Seq[SolvableLabelExpression],
     properties: Set[PropertyKeyName]
   ) {
 
-    def combine(other: NodePredicates): NodePredicates =
-      NodePredicates(
+    def combine(other: EntityPredicates): EntityPredicates =
+      EntityPredicates(
         labelExpressions = labelExpressions ++ other.labelExpressions,
         properties = properties.union(other.properties)
       )
   }
 
-  private object NodePredicates {
+  private object EntityPredicates {
 
-    def empty: NodePredicates =
-      NodePredicates(labelExpressions = Vector.empty, properties = Set.empty)
+    def empty: EntityPredicates =
+      EntityPredicates(labelExpressions = Vector.empty, properties = Set.empty)
 
-    def fold(nodePredicates: Seq[NodePredicates]): NodePredicates =
+    def fold(nodePredicates: Seq[EntityPredicates]): EntityPredicates =
       nodePredicates.reduceLeftOption(_.combine(_)).getOrElse(empty)
 
-    def withLabelExpression(labelExpression: SolvableLabelExpression): NodePredicates =
+    def withLabelExpression(labelExpression: SolvableLabelExpression): EntityPredicates =
       empty.copy(labelExpressions = Vector(labelExpression))
 
-    def withProperty(propertyKeyName: PropertyKeyName): NodePredicates =
+    def withProperty(propertyKeyName: PropertyKeyName): EntityPredicates =
       empty.copy(properties = Set(propertyKeyName))
   }
 
-  private def extractNodePredicates(expressions: Seq[Expression]): (Seq[Expression], NodePredicates) =
+  private def extractEntityPredicates(expressions: Seq[Expression]): (Seq[Expression], EntityPredicates) =
     expressions.flatMap(Expressions.splitExpression).partitionMap(expression =>
-      Expressions.extractPropertyExpression(expression).map(NodePredicates.withProperty)
-        .orElse(Expressions.extractLabelExpression(expression).map(NodePredicates.withLabelExpression))
+      Expressions.extractPropertyExpression(expression).map(EntityPredicates.withProperty)
+        .orElse(Expressions.extractLabelExpression(expression).map(EntityPredicates.withLabelExpression))
         .toRight(expression)
     ) match {
-      case (unprocessedExpressions, values) => (unprocessedExpressions, NodePredicates.fold(values))
+      case (unprocessedExpressions, values) => (unprocessedExpressions, EntityPredicates.fold(values))
     }
 
   /**
-   * Checks whether there might be an overlap between the properties of the node being created and the ones referred to in the predicates of an existing node.
-   * @param propertiesToCreate Properties of the node being created.
-   * @param nodeProperties Properties that must be present on an existing node based on its predicates.
+   * Checks whether there might be an overlap between the properties of the entity being created and the ones referred to in the predicates of an existing entity.
+   * @param propertiesToCreate Properties of the entity being created.
+   * @param propertyKeyNames Properties that must be present on an existing entity based on its predicates.
    * @return None if there can be no overlap, details of the overlap otherwise.
    */
-  private def propertyOverlap(
+  private def findPropertiesOverlap(
     propertiesToCreate: CreatesPropertyKeys,
-    nodeProperties: Set[PropertyKeyName]
+    propertyKeyNames: Set[PropertyKeyName]
   ): Option[PropertiesOverlap] = {
     propertiesToCreate match {
       case CreatesNoPropertyKeys =>
-        if (nodeProperties.isEmpty)
+        if (propertyKeyNames.isEmpty)
           Some(PropertiesOverlap.Overlap(Set.empty))
         else
           None // If the existing node has at least one property, and the created node has no properties, then there can be no overlap.
       case CreatesKnownPropertyKeys(keys) =>
-        if (nodeProperties.subsetOf(keys)) // Note that the empty set is a subset of any other set.
-          Some(PropertiesOverlap.Overlap(nodeProperties))
+        if (propertyKeyNames.subsetOf(keys)) // Note that the empty set is a subset of any other set.
+          Some(PropertiesOverlap.Overlap(propertyKeyNames))
         else
           None // If the existing node has at least one property that the node being created does not have, then there can be no overlap.
       case CreatesUnknownPropertyKeys =>

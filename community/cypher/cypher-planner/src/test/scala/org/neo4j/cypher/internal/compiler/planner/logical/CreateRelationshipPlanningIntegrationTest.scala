@@ -20,10 +20,17 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DynamicLabelsAndTypes
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection
+import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
+import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationshipWithDynamicType
+import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class CreateRelationshipPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
@@ -132,6 +139,91 @@ class CreateRelationshipPlanningIntegrationTest extends CypherFunSuite with Logi
       )
       .projection("n AS a")
       .allNodeScan("n")
+      .build()
+  }
+
+  test("create a copy of each existing node, copying its labels dynamically, with a relationship to the original") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(10)
+        .build()
+
+    val query =
+      """MATCH (n)
+        |CREATE (copy:Copy:$(labels(n)))-[copy_of:COPY_OF]->(n)
+        |RETURN copy""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults("copy")
+      .create(
+        createNodeFull("copy", labels = Seq("Copy"), dynamicLabels = Seq("labels(n)")),
+        createRelationship("copy_of", "copy", "COPY_OF", "n", OUTGOING)
+      )
+      .allNodeScan("n")
+      .build()
+  }
+
+  test("create a relationship with a dynamic type") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(10)
+        .build()
+
+    val query =
+      """MATCH (n)
+        |CREATE (n)-[:$("Foo")]->(n)
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults()
+      .emptyResult()
+      .create(createRelationshipWithDynamicType("anon_0", "n", "'Foo'", "n", OUTGOING))
+      .allNodeScan("n")
+      .build()
+  }
+
+  test("create a relationship with a dynamic type and then try to read") {
+    val planner =
+      plannerBuilder()
+        .addSemanticFeature(DynamicLabelsAndTypes)
+        .setAllNodesCardinality(10)
+        .setLabelCardinality("A", 1)
+        .setRelationshipCardinality("()-[]->()", 1)
+        .build()
+
+    val query =
+      """CREATE (:A)-[:$("Foo")]->(:A)
+        |WITH *
+        |MATCH (:!A)-[r:!Foo]->(:!A)
+        |RETURN r
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults("r")
+      .filterExpression(
+        not(hasTypes("r", "Foo")),
+        andsReorderableAst(not(hasLabels("anon_3", "A")), not(hasLabels("anon_4", "A")))
+      )
+      .apply()
+      .|.allRelationshipsScan("(anon_3)-[r]->(anon_4)")
+      .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(5), Id(3)))))
+      .create(
+        createNodeFull("anon_0", labels = Seq("A")),
+        createNodeFull("anon_2", labels = Seq("A")),
+        createRelationshipWithDynamicType("anon_1", "anon_0", "'Foo'", "anon_2", OUTGOING)
+      )
+      .argument()
       .build()
   }
 }
