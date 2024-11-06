@@ -1025,6 +1025,7 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
      * Default settings for connectors. The default values are assumes to be default for embedded deployments through the code.
      * This map contains default connector settings that you can pass to the builders.
      */
+    @Deprecated(forRemoval = true)
     public static final Map<Setting<?>, Object> SERVER_DEFAULTS = buildDefaults();
 
     private static Map<Setting<?>, Object> buildDefaults() {

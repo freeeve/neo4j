@@ -40,8 +40,18 @@ public class ConfigurationIT {
     @Test
     void shouldNotDeadlockWhenConcurrentlyAccessingSettings() {
         Race race = new Race();
-        race.addContestant(GraphDatabaseSettings.neo4j_home::defaultValue, 1);
-        race.addContestant(HttpConnector.advertised_address::defaultValue, 1);
+        race.addContestant(
+                () -> {
+                    // Must not be a method reference, as that affects class loading
+                    GraphDatabaseSettings.neo4j_home.defaultValue();
+                },
+                1);
+        race.addContestant(
+                () -> {
+                    // Must not be a method reference, as that affects class loading
+                    HttpConnector.advertised_address.defaultValue();
+                },
+                1);
         assertThatCode(() -> race.go(1, TimeUnit.MINUTES))
                 .doesNotThrowAnyException(); // throws TimeoutException on deadlock
     }
