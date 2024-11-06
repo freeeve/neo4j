@@ -25,16 +25,16 @@ import java.util.List;
 import java.util.Optional;
 import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
-import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointAppender;
 import org.neo4j.kernel.impl.transaction.log.files.RotatableFile;
+import org.neo4j.kernel.impl.transaction.log.files.VersionedFile;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.logging.InternalLog;
 
 /**
  * Access to underlying store checkpoints, that can be stored in multiple log files, separate log files etc.
  */
-public interface CheckpointFile extends Lifecycle, RotatableFile {
+public interface CheckpointFile extends Lifecycle, VersionedFile, RotatableFile {
     /**
      * Last available checkpoint
      * @return last checkpoint
@@ -74,45 +74,4 @@ public interface CheckpointFile extends Lifecycle, RotatableFile {
      * @return checkpoint file that is currently used to store checkpoints into
      */
     Path getCurrentFile() throws IOException;
-
-    /**
-     * @param logVersion version of the checkpoint file to get
-     * @return checkpoint file of the requested version
-     */
-    Path getLogFileForVersion(long logVersion);
-
-    /**
-     * @return set of files that are used to store checkpoints.
-     * Can be empty if there is no specific files for checkpoints and they are stored somewhere else
-     */
-    Path[] getMatchedFiles() throws IOException;
-
-    /**
-     * @return checkpoint file version that is currently used to store checkpoints into
-     */
-    long getCurrentLogVersion();
-
-    /**
-     * @param checkpointLogFile checkpoint log file
-     * @return Version of the provided checkpoint file
-     */
-    long getLogVersion(Path checkpointLogFile);
-
-    /**
-     * @return the highest version found.
-     */
-    long getHighestLogVersion();
-
-    /**
-     * @return the lowest version found.
-     */
-    long getLowestLogVersion();
-
-    /**
-     * Open specific checkpoint log file channel
-     * @param checkpointLogVersion file number to open
-     * @return requested checkpoint log channel
-     * @throws IOException
-     */
-    PhysicalLogVersionedStoreChannel openForVersion(long checkpointLogVersion) throws IOException;
 }

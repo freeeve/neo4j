@@ -42,7 +42,7 @@ import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 /**
  * Sees a log file as bytes, including taking care of rotation of the file into optimal chunks.
  */
-public interface LogFile extends RotatableFile {
+public interface LogFile extends VersionedFile, RotatableFile {
     @FunctionalInterface
     interface LogFileVisitor {
         boolean visit(ReadableLogPositionAwareChannel channel) throws IOException;
@@ -95,8 +95,6 @@ public interface LogFile extends RotatableFile {
 
     TransactionLogFileInformation getLogFileInformation();
 
-    PhysicalLogVersionedStoreChannel openForVersion(long version) throws IOException;
-
     PhysicalLogVersionedStoreChannel openForVersion(long version, boolean raw) throws IOException;
 
     PhysicalLogVersionedStoreChannel createLogChannelForVersion(
@@ -108,17 +106,7 @@ public interface LogFile extends RotatableFile {
 
     PhysicalLogVersionedStoreChannel createLogChannelForExistingVersion(long version) throws IOException;
 
-    long getLogVersion(Path file);
-
-    Path getLogFileForVersion(long version);
-
     Path getHighestLogFile();
-
-    long getHighestLogVersion();
-
-    long getCurrentLogVersion();
-
-    long getLowestLogVersion();
 
     LogHeader extractHeader(long version) throws IOException;
 
@@ -129,8 +117,6 @@ public interface LogFile extends RotatableFile {
     void accept(LogVersionVisitor visitor);
 
     void accept(LogHeaderVisitor visitor) throws IOException;
-
-    Path[] getMatchedFiles() throws IOException;
 
     void combine(Path additionalSource) throws IOException;
 
