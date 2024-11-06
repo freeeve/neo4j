@@ -198,9 +198,7 @@ case object AssignPrivilegeAction extends PrivilegeManagementAction("ASSIGN PRIV
 
 case object RemovePrivilegeAction extends PrivilegeManagementAction("REMOVE PRIVILEGE")
 
-sealed trait UnassignableAction {
-  def customErrorMessage: Option[String] = None
-}
+sealed trait UnassignableAction
 
 case object AssignImmutablePrivilegeAction extends PrivilegeManagementAction("ASSIGN IMMUTABLE PRIVILEGE")
     with UnassignableAction
