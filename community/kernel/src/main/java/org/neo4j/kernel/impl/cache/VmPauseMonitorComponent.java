@@ -30,7 +30,6 @@ import org.neo4j.scheduler.JobScheduler;
 
 public class VmPauseMonitorComponent extends LifecycleAdapter {
     private final Config config;
-    private final InternalLog log;
     private final JobScheduler jobScheduler;
     private final VmPauseMonitor.Monitor monitor;
     private final LoggingVmPauseMonitor loggingVmPauseMonitor;
@@ -39,7 +38,6 @@ public class VmPauseMonitorComponent extends LifecycleAdapter {
 
     public VmPauseMonitorComponent(Config config, InternalLog log, JobScheduler jobScheduler, Monitors globalMonitors) {
         this.config = config;
-        this.log = log;
         this.jobScheduler = jobScheduler;
         this.globalMonitors = globalMonitors;
         monitor = globalMonitors.newMonitor(VmPauseMonitor.Monitor.class);

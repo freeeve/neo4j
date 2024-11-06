@@ -39,7 +39,7 @@ class InternalCursorFactory {
     private final StoreCursors storeCursors;
     private final CursorContext cursorContext;
     private final MemoryTracker memoryTracker;
-    private boolean applyAccessModeToTxState;
+    private final boolean applyAccessModeToTxState;
 
     InternalCursorFactory(
             StorageReader storageReader,

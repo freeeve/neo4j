@@ -23,17 +23,4 @@ import org.neo4j.internal.kernel.api.TokenReadSession;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.index.TokenIndexReader;
 
-class DefaultTokenReadSession implements TokenReadSession {
-    final TokenIndexReader reader;
-    final IndexDescriptor reference;
-
-    DefaultTokenReadSession(TokenIndexReader reader, IndexDescriptor reference) {
-        this.reader = reader;
-        this.reference = reference;
-    }
-
-    @Override
-    public IndexDescriptor reference() {
-        return reference;
-    }
-}
+record DefaultTokenReadSession(TokenIndexReader reader, IndexDescriptor reference) implements TokenReadSession {}

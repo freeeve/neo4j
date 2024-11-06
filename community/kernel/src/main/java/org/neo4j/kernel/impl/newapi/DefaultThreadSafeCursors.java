@@ -41,7 +41,7 @@ public class DefaultThreadSafeCursors extends DefaultCursors implements CursorFa
     private final StorageReader storageReader;
     private final Function<CursorContext, StoreCursors> storeCursorsFactory;
     private final StorageEngineIndexingBehaviour indexingBehaviour;
-    private boolean applyAccessModeToTxState;
+    private final boolean applyAccessModeToTxState;
 
     public DefaultThreadSafeCursors(
             StorageReader storageReader,
