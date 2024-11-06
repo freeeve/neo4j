@@ -19,7 +19,6 @@
  */
 package org.neo4j.lock;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import org.neo4j.kernel.impl.locking.LockAcquisitionTimeoutException;
@@ -36,6 +35,14 @@ public interface ResourceLocker {
      * @return {@code true} if the resource was locked as part of this call, otherwise {@code false} and will return without blocking.
      */
     boolean tryExclusiveLock(ResourceType resourceType, long resourceId);
+
+    /**
+     * Tries to grap shared resource lock.
+     * @param resourceType type or resource to lock.
+     * @param resourceId id of resources to lock.
+     * @return {@code true} if the resource was locked as part of this call, otherwise {@code false}.
+     */
+    boolean trySharedLock(ResourceType resourceType, long resourceId);
 
     /**
      * Can be grabbed when no other client holds locks on the relevant resources. No other clients can hold locks
@@ -88,52 +95,17 @@ public interface ResourceLocker {
      */
     boolean holdsLock(long id, ResourceType resource, LockType lockType);
 
-    ResourceLocker PREVENT = new ResourceLocker() {
+    ResourceLocker IGNORE = new IgnoreResourceLocker();
+
+    class IgnoreResourceLocker implements ResourceLocker {
         @Override
         public boolean tryExclusiveLock(ResourceType resourceType, long resourceId) {
-            throw new UnsupportedOperationException(
-                    "Unexpected call to lock a resource " + resourceType + " " + resourceId);
-        }
-
-        @Override
-        public void acquireExclusive(LockTracer tracer, ResourceType resourceType, long... resourceIds) {
-            throw new UnsupportedOperationException(
-                    "Unexpected call to lock a resource " + resourceType + " " + Arrays.toString(resourceIds));
-        }
-
-        @Override
-        public void releaseExclusive(ResourceType resourceType, long... resourceIds) {
-            throw new UnsupportedOperationException(
-                    "Unexpected call to lock a resource " + resourceType + " " + Arrays.toString(resourceIds));
-        }
-
-        @Override
-        public void acquireShared(LockTracer tracer, ResourceType resourceType, long... resourceIds) {
-            throw new UnsupportedOperationException(
-                    "Unexpected call to lock a resource " + resourceType + " " + Arrays.toString(resourceIds));
-        }
-
-        @Override
-        public void releaseShared(ResourceType resourceType, long... resourceIds) {
-            throw new UnsupportedOperationException(
-                    "Unexpected call to lock a resource " + resourceType + " " + Arrays.toString(resourceIds));
-        }
-
-        @Override
-        public Collection<ActiveLock> activeLocks() {
-            return Collections.emptyList();
-        }
-
-        @Override
-        public boolean holdsLock(long id, ResourceType resource, LockType lockType) {
             return false;
         }
-    };
 
-    ResourceLocker IGNORE = new ResourceLocker() {
         @Override
-        public boolean tryExclusiveLock(ResourceType resourceType, long resourceId) {
-            return true;
+        public boolean trySharedLock(ResourceType resourceType, long resourceId) {
+            return false;
         }
 
         @Override
@@ -157,5 +129,5 @@ public interface ResourceLocker {
         public boolean holdsLock(long id, ResourceType resource, LockType lockType) {
             return false;
         }
-    };
+    }
 }

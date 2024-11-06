@@ -91,6 +91,11 @@ class TrackingResourceLocker implements ResourceLocker {
     }
 
     @Override
+    public boolean trySharedLock(ResourceType resourceType, long resourceId) {
+        return false;
+    }
+
+    @Override
     public void acquireExclusive(LockTracer tracer, ResourceType resourceType, long... resourceIds) {
         acquireLock(resourceType, resourceIds, EXCLUSIVE);
     }
@@ -201,6 +206,11 @@ class TrackingResourceLocker implements ResourceLocker {
             @Override
             public boolean tryExclusiveLock(ResourceType resourceType, long resourceId) {
                 return !actual.hasLock(resourceType, resourceId);
+            }
+
+            @Override
+            public boolean trySharedLock(ResourceType resourceType, long resourceId) {
+                return false;
             }
 
             @Override

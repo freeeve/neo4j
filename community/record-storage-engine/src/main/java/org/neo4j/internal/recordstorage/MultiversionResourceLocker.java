@@ -86,6 +86,11 @@ public class MultiversionResourceLocker implements ResourceLocker {
     }
 
     @Override
+    public boolean trySharedLock(ResourceType resourceType, long resourceId) {
+        return locks.trySharedLock(resourceType, resourceId);
+    }
+
+    @Override
     public void acquireShared(LockTracer tracer, ResourceType resourceType, long... resourceIds) {
         locks.releaseShared(resourceType, resourceIds);
     }

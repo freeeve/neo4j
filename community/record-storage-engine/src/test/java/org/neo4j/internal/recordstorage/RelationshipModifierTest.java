@@ -636,6 +636,14 @@ class RelationshipModifierTest {
         }
 
         @Override
+        public boolean trySharedLock(ResourceType resourceType, long resourceId) {
+            if (ignoreLocks) {
+                return false;
+            }
+            return locker.trySharedLock(resourceType, resourceId);
+        }
+
+        @Override
         public void acquireExclusive(LockTracer tracer, ResourceType resourceType, long... resourceIds) {
             if (ignoreLocks) {
                 return;

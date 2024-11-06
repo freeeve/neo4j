@@ -139,6 +139,7 @@ import org.neo4j.kernel.impl.transaction.log.InMemoryVersionableReadableClosable
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.lock.LockService;
 import org.neo4j.lock.ResourceLocker;
+import org.neo4j.lock.ResourceType;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.CommandReader;
@@ -1881,17 +1882,23 @@ class TransactionRecordStateTest {
         PropertyDeleter propertyDeleter = new PropertyDeleter(
                 propertyTraverser, neoStores, null, logProvider, Config.defaults(), NULL_CONTEXT, storeCursors);
         var allocatorProvider = DynamicAllocatorProviders.nonTransactionalAllocator(neoStores);
+        var resourceLocker = new ResourceLocker.IgnoreResourceLocker() {
+            @Override
+            public boolean tryExclusiveLock(ResourceType resourceType, long resourceId) {
+                return true;
+            }
+        };
         return new TransactionRecordState(
                 kernelVersionProvider,
                 recordChangeSet,
                 neoStores,
-                ResourceLocker.IGNORE,
+                resourceLocker,
                 NONE,
                 new RelationshipModifier(
                         relationshipGroupGetter,
                         propertyDeleter,
                         neoStores.getRelationshipGroupStore().getStoreHeaderInt(),
-                        ResourceLocker.IGNORE,
+                        resourceLocker,
                         NONE,
                         NULL_CONTEXT,
                         EmptyMemoryTracker.INSTANCE,
