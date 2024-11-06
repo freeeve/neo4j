@@ -344,12 +344,17 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     }
 
     @Override
-    public long getCurrentLogVersion() throws IOException {
+    public long getCurrentLogVersion() {
         if (logVersionRepository != null) {
             return logVersionRepository.getCheckpointLogVersion();
         }
         var versionVisitor = new RangeLogVersionVisitor();
-        fileHelper.accept(versionVisitor);
+
+        try {
+            fileHelper.accept(versionVisitor);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
         return versionVisitor.getHighestVersion();
     }
 

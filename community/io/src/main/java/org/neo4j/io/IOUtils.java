@@ -28,7 +28,6 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
-import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.list.MutableList;
@@ -296,20 +295,6 @@ public final class IOUtils {
         return (long l) -> {
             try {
                 consumer.accept(l);
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        };
-    }
-
-    public interface ThrowingLongSupplier<E extends Exception> {
-        long get() throws E;
-    }
-
-    public static LongSupplier uncheckedLongSupplier(ThrowingLongSupplier<IOException> consumer) {
-        return () -> {
-            try {
-                return consumer.get();
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

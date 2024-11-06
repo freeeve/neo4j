@@ -19,8 +19,6 @@
  */
 package org.neo4j.kernel.impl.transaction.log.rotation;
 
-import static org.neo4j.io.IOUtils.uncheckedLongSupplier;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -57,7 +55,7 @@ public class FileLogRotation implements LogRotation {
                 databasePanic,
                 monitor,
                 () -> logFile.getLogFileInformation().getLastEntryAppendIndex(),
-                uncheckedLongSupplier(checkpointLogFile::getCurrentLogVersion));
+                checkpointLogFile::getCurrentLogVersion);
     }
 
     public static LogRotation transactionLogRotation(

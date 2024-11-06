@@ -90,7 +90,7 @@ public interface CheckpointFile extends Lifecycle, RotatableFile {
     /**
      * @return checkpoint file version that is currently used to store checkpoints into
      */
-    long getCurrentLogVersion() throws IOException;
+    long getCurrentLogVersion();
 
     /**
      * @param checkpointLogFile checkpoint log file
