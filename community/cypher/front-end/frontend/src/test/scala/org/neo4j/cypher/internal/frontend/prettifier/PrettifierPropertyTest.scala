@@ -17,12 +17,6 @@
 package org.neo4j.cypher.internal.frontend.prettifier
 
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.CreateConstraint
-import org.neo4j.cypher.internal.ast.NodeKey
-import org.neo4j.cypher.internal.ast.RelationshipKey
-import org.neo4j.cypher.internal.ast.ShowConstraintsClause
-import org.neo4j.cypher.internal.ast.ShowTransactionsClause
-import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.generator.AstGenerator
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
@@ -50,8 +44,7 @@ class PrettifierPropertyTest extends CypherFunSuite
     // To reproduce test failures, enable the following line with the seed from the TC build
     // setScalaCheckInitialSeed(seed)
     forAll(astGeneratorCypher5._statement) { statement =>
-      val onlyAvailableInCypher5 = differsBetweenCypher5and25(statement)
-      roundTripCheck(statement, onlyAvailableInCypher5 = onlyAvailableInCypher5)
+      roundTripCheck(statement, CypherVersion.Cypher5)
     }
   }
 
@@ -59,17 +52,7 @@ class PrettifierPropertyTest extends CypherFunSuite
     // To reproduce test failures, enable the following line with the seed from the TC build
     // setScalaCheckInitialSeed(seed)
     forAll(astGeneratorCypher25._statement) { statement =>
-      val notAvailableInCypher5 = differsBetweenCypher5and25(statement)
-      roundTripCheck(statement, notAvailableInCypher5 = notAvailableInCypher5)
-    }
-  }
-
-  private def differsBetweenCypher5and25(statement: Statement): Boolean = {
-    statement.folder.treeExists {
-      case _: ShowConstraintsClause => true
-      case c: CreateConstraint =>
-        c.constraintType.isInstanceOf[NodeKey] || c.constraintType.isInstanceOf[RelationshipKey]
-      case _: ShowTransactionsClause => true
+      roundTripCheck(statement, CypherVersion.Cypher25)
     }
   }
 }

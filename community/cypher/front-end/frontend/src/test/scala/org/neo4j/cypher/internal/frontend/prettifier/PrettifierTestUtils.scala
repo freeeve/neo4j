@@ -98,13 +98,12 @@ trait PrettifierTestUtils extends Matchers {
   // Otherwise all parsers are tested
   def roundTripCheck(
     original: Statement,
-    notAvailableInCypher5: Boolean = false,
-    onlyAvailableInCypher5: Boolean = false
+    version: CypherVersion
   ): Unit = {
     val pretty = prettifier.asString(original)
     val statements =
       try {
-        parse(pretty, notAvailableInCypher5, onlyAvailableInCypher5)
+        parse(pretty, version)
       } catch {
         case e: Exception =>
           printSeparator("failed query")
@@ -145,21 +144,16 @@ trait PrettifierTestUtils extends Matchers {
 
   private def parse(
     original: String,
-    notAvailableInCypher5: Boolean,
-    onlyAvailableInCypher5: Boolean
+    version: CypherVersion
   ): Seq[Statement] = {
     queriesSinceClearCache = queriesSinceClearCache + 1
-    if (notAvailableInCypher5) {
-      CypherVersion.values().toSeq.diff(Seq(CypherVersion.Cypher5))
-        .map(v => parseAndClearCache(v, original))
-    } else if (onlyAvailableInCypher5) {
-      val javaCcStatement = JavaCCParser.parse(original, OpenCypherExceptionFactory(None))
-      val antlrStatement = parseAndClearCache(CypherVersion.Cypher5, original)
-      Seq(antlrStatement, javaCcStatement)
-    } else {
-      val javaCcStatement = JavaCCParser.parse(original, OpenCypherExceptionFactory(None))
-      val statements = CypherVersion.values().map(v => parseAndClearCache(v, original))
-      statements :+ javaCcStatement
+    version match {
+      case CypherVersion.Cypher5 =>
+        val javaCcStatement = JavaCCParser.parse(original, OpenCypherExceptionFactory(None))
+        val antlrStatement = parseAndClearCache(CypherVersion.Cypher5, original)
+        Seq(antlrStatement, javaCcStatement)
+      case version =>
+        Seq(parseAndClearCache(version, original))
     }
   }
 
