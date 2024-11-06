@@ -79,24 +79,24 @@ public interface CheckpointFile extends Lifecycle, RotatableFile {
      * @param logVersion version of the checkpoint file to get
      * @return checkpoint file of the requested version
      */
-    Path getDetachedCheckpointFileForVersion(long logVersion);
+    Path getLogFileForVersion(long logVersion);
 
     /**
      * @return set of files that are used to store checkpoints.
      * Can be empty if there is no specific files for checkpoints and they are stored somewhere else
      */
-    Path[] getDetachedCheckpointFiles() throws IOException;
+    Path[] getMatchedFiles() throws IOException;
 
     /**
      * @return checkpoint file version that is currently used to store checkpoints into
      */
-    long getCurrentDetachedLogVersion() throws IOException;
+    long getCurrentLogVersion() throws IOException;
 
     /**
      * @param checkpointLogFile checkpoint log file
      * @return Version of the provided checkpoint file
      */
-    long getDetachedCheckpointLogFileVersion(Path checkpointLogFile);
+    long getLogVersion(Path checkpointLogFile);
 
     /**
      * @return the highest version found.

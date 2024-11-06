@@ -118,7 +118,7 @@ public class RecoveryAppendIndexIT {
         Path[] checkpointFiles = db.getDependencyResolver()
                 .resolveDependency(LogFiles.class)
                 .getCheckpointFile()
-                .getDetachedCheckpointFiles();
+                .getMatchedFiles();
 
         restartDbms();
 

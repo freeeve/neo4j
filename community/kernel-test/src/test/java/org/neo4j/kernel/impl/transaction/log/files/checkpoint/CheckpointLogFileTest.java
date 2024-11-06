@@ -129,7 +129,7 @@ class CheckpointLogFileTest {
 
     @Test
     void provideMatchedCheckpointFiles() throws IOException {
-        Path[] matchedFiles = checkpointFile.getDetachedCheckpointFiles();
+        Path[] matchedFiles = checkpointFile.getMatchedFiles();
         assertThat(matchedFiles).hasSize(1);
         assertEquals(matchedFiles[0], checkpointFile.getCurrentFile());
     }

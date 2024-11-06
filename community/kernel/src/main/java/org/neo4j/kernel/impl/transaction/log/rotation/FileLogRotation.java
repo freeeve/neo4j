@@ -57,7 +57,7 @@ public class FileLogRotation implements LogRotation {
                 databasePanic,
                 monitor,
                 () -> logFile.getLogFileInformation().getLastEntryAppendIndex(),
-                uncheckedLongSupplier(checkpointLogFile::getCurrentDetachedLogVersion));
+                uncheckedLongSupplier(checkpointLogFile::getCurrentLogVersion));
     }
 
     public static LogRotation transactionLogRotation(

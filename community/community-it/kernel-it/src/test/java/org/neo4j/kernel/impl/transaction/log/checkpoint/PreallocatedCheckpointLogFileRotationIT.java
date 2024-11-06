@@ -67,7 +67,7 @@ class PreallocatedCheckpointLogFileRotationIT extends CheckpointLogFileRotationI
                     Instant.now(),
                     reason);
         }
-        var matchedFiles = checkpointFile.getDetachedCheckpointFiles();
+        var matchedFiles = checkpointFile.getMatchedFiles();
         assertThat(matchedFiles).hasSize(1);
     }
 
@@ -92,13 +92,13 @@ class PreallocatedCheckpointLogFileRotationIT extends CheckpointLogFileRotationI
                         logPosition,
                         Instant.now(),
                         reason);
-                assertThat(checkpointFile.getDetachedCheckpointFiles())
+                assertThat(checkpointFile.getMatchedFiles())
                         .hasSize(fileCount)
                         .allMatch(this::sizeEqualsToPreallocatedFile);
             }
         }
 
-        assertThat(checkpointFile.getDetachedCheckpointFiles()).hasSize(6).allMatch(this::sizeEqualsToPreallocatedFile);
+        assertThat(checkpointFile.getMatchedFiles()).hasSize(6).allMatch(this::sizeEqualsToPreallocatedFile);
     }
 
     private boolean sizeEqualsToPreallocatedFile(Path path) {

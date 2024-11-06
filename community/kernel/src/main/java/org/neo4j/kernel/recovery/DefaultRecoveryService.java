@@ -194,7 +194,7 @@ public class DefaultRecoveryService implements RecoveryService {
     private void tryRemoveLegacyCheckpointFiles() {
         try {
             CheckpointFile checkpointFile = logFiles.getCheckpointFile();
-            Path[] detachedCheckpointFiles = checkpointFile.getDetachedCheckpointFiles();
+            Path[] detachedCheckpointFiles = checkpointFile.getMatchedFiles();
             for (Path obsoleteCheckpointFile : detachedCheckpointFiles) {
                 FileUtils.deleteFile(obsoleteCheckpointFile);
             }

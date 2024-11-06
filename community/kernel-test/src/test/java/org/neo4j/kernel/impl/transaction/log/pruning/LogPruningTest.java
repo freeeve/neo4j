@@ -131,12 +131,12 @@ class LogPruningTest {
         for (int i = 0; i < checkpointFiles.length; i++) {
             checkpointFiles[i] = Paths.get(String.valueOf(i));
         }
-        when(checkpointFile.getDetachedCheckpointFiles()).thenReturn(checkpointFiles);
-        when(checkpointFile.getDetachedCheckpointLogFileVersion(any())).thenAnswer(invocationOnMock -> {
+        when(checkpointFile.getMatchedFiles()).thenReturn(checkpointFiles);
+        when(checkpointFile.getLogVersion(any())).thenAnswer(invocationOnMock -> {
             Path file = invocationOnMock.getArgument(0);
             return Long.parseLong(file.getFileName().toString());
         });
-        when(checkpointFile.getCurrentDetachedLogVersion()).thenReturn((long) checkpointFiles.length - 1);
+        when(checkpointFile.getCurrentLogVersion()).thenReturn((long) checkpointFiles.length - 1);
         when(logFiles.getCheckpointFile()).thenReturn(checkpointFile);
 
         // when

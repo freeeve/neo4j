@@ -50,8 +50,7 @@ public class LogFileMatcherIT {
 
         LogFilesMatcher logFilesMatcher = new LogFilesMatcher(fs, logsDirectory);
         assertTrue(logFilesMatcher.hasAnyLogFiles());
-        assertThat(logFiles.getCheckpointFile().getDetachedCheckpointFiles())
-                .isEqualTo(logFilesMatcher.getCheckpointLogFiles());
+        assertThat(logFiles.getCheckpointFile().getMatchedFiles()).isEqualTo(logFilesMatcher.getCheckpointLogFiles());
         assertThat(logFiles.getLogFile().getMatchedFiles()).isEqualTo(logFilesMatcher.getTransactionLogFiles());
     }
 
@@ -61,7 +60,7 @@ public class LogFileMatcherIT {
 
         LogFilesMatcher logFilesMatcher = new LogFilesMatcher(fs, logsDirectory);
         assertFalse(logFilesMatcher.hasAnyLogFiles());
-        assertThat(logFiles.getCheckpointFile().getDetachedCheckpointFiles())
+        assertThat(logFiles.getCheckpointFile().getMatchedFiles())
                 .isNotEqualTo(logFilesMatcher.getCheckpointLogFiles());
         assertThat(logFiles.getLogFile().getMatchedFiles()).isNotEqualTo(logFilesMatcher.getTransactionLogFiles());
     }

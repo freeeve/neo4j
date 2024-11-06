@@ -206,8 +206,7 @@ class RecoveryCorruptedTransactionLogIT {
             startStopDbRecoveryOfCorruptedLogs();
 
             assertEquals(numberOfClosedTransactions, recoveryMonitor.getNumberOfRecoveredTransactions());
-            assertThat(logFiles.getCheckpointFile().getDetachedCheckpointFiles())
-                    .hasSize(1);
+            assertThat(logFiles.getCheckpointFile().getMatchedFiles()).hasSize(1);
             assertEquals(0, corruptedFilesMonitor.getNumberOfCorruptedCheckpointFiles());
 
             removeDatabaseDirectories();
@@ -257,8 +256,7 @@ class RecoveryCorruptedTransactionLogIT {
             assertEquals(numberOfClosedTransactions, recoveryMonitor.getNumberOfRecoveredTransactions());
             assertEquals(iteration + 1, corruptedFilesMonitor.getNumberOfCorruptedCheckpointFiles());
 
-            assertThat(logFiles.getCheckpointFile().getDetachedCheckpointFiles())
-                    .hasSize(1);
+            assertThat(logFiles.getCheckpointFile().getMatchedFiles()).hasSize(1);
 
             removeDatabaseDirectories();
         }
@@ -302,7 +300,7 @@ class RecoveryCorruptedTransactionLogIT {
         assertEquals(numberOfClosedTransactions, recoveryMonitor.getNumberOfRecoveredTransactions());
         assertEquals(0, corruptedFilesMonitor.getNumberOfCorruptedCheckpointFiles());
 
-        assertThat(logFiles.getCheckpointFile().getDetachedCheckpointFiles()).hasSize(1);
+        assertThat(logFiles.getCheckpointFile().getMatchedFiles()).hasSize(1);
 
         removeDatabaseDirectories();
     }
@@ -327,7 +325,7 @@ class RecoveryCorruptedTransactionLogIT {
         assertEquals(numberOfClosedTransactions, recoveryMonitor.getNumberOfRecoveredTransactions());
         assertEquals(0, corruptedFilesMonitor.getNumberOfCorruptedCheckpointFiles());
 
-        assertThat(logFiles.getCheckpointFile().getDetachedCheckpointFiles()).hasSize(1);
+        assertThat(logFiles.getCheckpointFile().getMatchedFiles()).hasSize(1);
         assertThat(logFiles.getCheckpointFile().getReachableDetachedCheckpoints())
                 .hasSize(2); // Recovery completed and shutdown
 
@@ -354,7 +352,7 @@ class RecoveryCorruptedTransactionLogIT {
         assertEquals(numberOfClosedTransactions, recoveryMonitor.getNumberOfRecoveredTransactions());
         assertEquals(0, corruptedFilesMonitor.getNumberOfCorruptedCheckpointFiles());
 
-        assertThat(logFiles.getCheckpointFile().getDetachedCheckpointFiles()).hasSize(1);
+        assertThat(logFiles.getCheckpointFile().getMatchedFiles()).hasSize(1);
         assertThat(logFiles.getCheckpointFile().getReachableDetachedCheckpoints())
                 .hasSize(2); // Recovery completed and shutdown
 
@@ -376,7 +374,7 @@ class RecoveryCorruptedTransactionLogIT {
                 transactionIdStore.getLastClosedTransactionId() - TransactionIdStore.BASE_TX_ID;
         managementService.shutdown();
 
-        Path currentCheckpointFile = logFiles.getCheckpointFile().getDetachedCheckpointFileForVersion(0);
+        Path currentCheckpointFile = logFiles.getCheckpointFile().getLogFileForVersion(0);
         fileSystem.truncate(currentCheckpointFile, 12);
 
         startStopDbRecoveryOfCorruptedLogs();
@@ -384,7 +382,7 @@ class RecoveryCorruptedTransactionLogIT {
         assertEquals(numberOfClosedTransactions, recoveryMonitor.getNumberOfRecoveredTransactions());
         assertEquals(0, corruptedFilesMonitor.getNumberOfCorruptedCheckpointFiles());
 
-        assertThat(logFiles.getCheckpointFile().getDetachedCheckpointFiles()).hasSize(1);
+        assertThat(logFiles.getCheckpointFile().getMatchedFiles()).hasSize(1);
         assertThat(logFiles.getCheckpointFile().getReachableDetachedCheckpoints())
                 .hasSize(2); // Recovery completed and shutdown
 
@@ -429,7 +427,7 @@ class RecoveryCorruptedTransactionLogIT {
         assertEquals(numberOfClosedTransactions, recoveryMonitor.getNumberOfRecoveredTransactions());
         assertEquals(0, corruptedFilesMonitor.getNumberOfCorruptedCheckpointFiles());
 
-        assertThat(logFiles.getCheckpointFile().getDetachedCheckpointFiles()).hasSize(1);
+        assertThat(logFiles.getCheckpointFile().getMatchedFiles()).hasSize(1);
     }
 
     @Test
@@ -776,8 +774,7 @@ class RecoveryCorruptedTransactionLogIT {
             assertTrue(context.database().isStarted());
 
             // The appended garbage should have been truncated and a new checkpoint made
-            assertThat(Files.size(logFiles.getCheckpointFile()
-                            .getDetachedCheckpointFileForVersion(logPosition.getLogVersion())))
+            assertThat(Files.size(logFiles.getCheckpointFile().getLogFileForVersion(logPosition.getLogVersion())))
                     .isEqualTo(logPosition.getByteOffset() + CHECKPOINT_RECORD_SIZE);
         } finally {
             dbms.shutdown();
@@ -1164,7 +1161,7 @@ class RecoveryCorruptedTransactionLogIT {
         if (checkpoint.isPresent()) {
             LogPosition logPosition = checkpoint.get().checkpointEntryPosition();
             try (StoreChannel storeChannel =
-                    fileSystem.write(checkpointFile.getDetachedCheckpointFileForVersion(logPosition.getLogVersion()))) {
+                    fileSystem.write(checkpointFile.getLogFileForVersion(logPosition.getLogVersion()))) {
                 storeChannel.truncate(logPosition.getByteOffset());
             }
         }
@@ -1176,7 +1173,7 @@ class RecoveryCorruptedTransactionLogIT {
         if (checkpoint.isPresent()) {
             LogPosition logPosition = checkpoint.get().checkpointEntryPosition();
             try (StoreChannel storeChannel =
-                    fileSystem.write(checkpointFile.getDetachedCheckpointFileForVersion(logPosition.getLogVersion()))) {
+                    fileSystem.write(checkpointFile.getLogFileForVersion(logPosition.getLogVersion()))) {
                 storeChannel.position(logPosition.getByteOffset() + 15);
                 storeChannel.writeAll(ByteBuffers.allocate(
                         CHECKPOINT_RECORD_SIZE, ByteOrder.LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE));
@@ -1190,7 +1187,7 @@ class RecoveryCorruptedTransactionLogIT {
         if (!checkpoints.isEmpty()) {
             LogPosition logPosition = checkpoints.get(0).checkpointEntryPosition();
             try (StoreChannel storeChannel =
-                    fileSystem.write(checkpointFile.getDetachedCheckpointFileForVersion(logPosition.getLogVersion()))) {
+                    fileSystem.write(checkpointFile.getLogFileForVersion(logPosition.getLogVersion()))) {
                 // Assuming they are in same file
                 long corruptionPoint = logPosition.getByteOffset() + 15;
                 long lastPoint = checkpoints
@@ -1210,7 +1207,7 @@ class RecoveryCorruptedTransactionLogIT {
         if (checkpoint.isPresent()) {
             LogPosition logPosition = checkpoint.get().channelPositionAfterCheckpoint();
             try (StoreChannel storeChannel =
-                    fileSystem.write(checkpointFile.getDetachedCheckpointFileForVersion(logPosition.getLogVersion()))) {
+                    fileSystem.write(checkpointFile.getLogFileForVersion(logPosition.getLogVersion()))) {
                 storeChannel.position(logPosition.getByteOffset() + 300);
                 storeChannel.writeAll(ByteBuffer.wrap("DeaD BeaF".getBytes()));
             }
@@ -1225,7 +1222,7 @@ class RecoveryCorruptedTransactionLogIT {
         if (checkpoint.isPresent()) {
             LogPosition logPosition = checkpoint.get().channelPositionAfterCheckpoint();
             try (StoreChannel storeChannel =
-                    fileSystem.write(checkpointFile.getDetachedCheckpointFileForVersion(logPosition.getLogVersion()))) {
+                    fileSystem.write(checkpointFile.getLogFileForVersion(logPosition.getLogVersion()))) {
                 storeChannel.position(logPosition.getByteOffset());
                 var array = new byte[bytesToAdd];
                 do {
@@ -1257,7 +1254,7 @@ class RecoveryCorruptedTransactionLogIT {
         if (checkpoint.isPresent()) {
             LogPosition logPosition = checkpoint.get().channelPositionAfterCheckpoint();
             try (StoreChannel storeChannel =
-                    fileSystem.write(checkpointFile.getDetachedCheckpointFileForVersion(logPosition.getLogVersion()))) {
+                    fileSystem.write(checkpointFile.getLogFileForVersion(logPosition.getLogVersion()))) {
                 storeChannel.truncate(logPosition.getByteOffset() - bytesToTrim);
             }
         }

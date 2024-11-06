@@ -142,7 +142,7 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
         var checkpointReader = new VersionAwareLogEntryReader(NO_COMMANDS, true, binarySupportedKernelVersions);
         while (currentVersion >= lowestVersion) {
             CheckpointEntryInfo checkpointEntry = null;
-            Path currentCheckpointFile = getDetachedCheckpointFileForVersion(currentVersion);
+            Path currentCheckpointFile = getLogFileForVersion(currentVersion);
             FileSystemAbstraction fileSystem = context.getFileSystem();
             var header = readLogHeader(fileSystem, currentCheckpointFile, false, context.getMemoryTracker());
             if (header != null) {
@@ -252,7 +252,7 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     }
 
     private void verifyLastFile(FileSystemAbstraction fileSystem, long currentVersion, Path currentCheckpointFile) {
-        if (fileSystem.fileExists(getDetachedCheckpointFileForVersion(currentVersion + 1))) {
+        if (fileSystem.fileExists(getLogFileForVersion(currentVersion + 1))) {
             throw new IllegalStateException(
                     "Not the last checkpoint file in a sequence contains corrupted header. File with corrupted header : "
                             + currentCheckpointFile);
@@ -330,21 +330,21 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
 
     @Override
     public Path getCurrentFile() throws IOException {
-        return fileHelper.getLogFileForVersion(getCurrentDetachedLogVersion());
+        return fileHelper.getLogFileForVersion(getCurrentLogVersion());
     }
 
     @Override
-    public Path getDetachedCheckpointFileForVersion(long logVersion) {
+    public Path getLogFileForVersion(long logVersion) {
         return fileHelper.getLogFileForVersion(logVersion);
     }
 
     @Override
-    public Path[] getDetachedCheckpointFiles() throws IOException {
+    public Path[] getMatchedFiles() throws IOException {
         return fileHelper.getMatchedFiles();
     }
 
     @Override
-    public long getCurrentDetachedLogVersion() throws IOException {
+    public long getCurrentLogVersion() throws IOException {
         if (logVersionRepository != null) {
             return logVersionRepository.getCheckpointLogVersion();
         }
@@ -354,7 +354,7 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     }
 
     @Override
-    public long getDetachedCheckpointLogFileVersion(Path checkpointLogFile) {
+    public long getLogVersion(Path checkpointLogFile) {
         return TransactionLogFilesHelper.getLogVersion(checkpointLogFile);
     }
 

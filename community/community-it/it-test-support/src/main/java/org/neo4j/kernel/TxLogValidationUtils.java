@@ -99,9 +99,7 @@ public class TxLogValidationUtils {
             FileSystemAbstraction fs, LogFiles logFiles, long logVersion, KernelVersion expectedVersion)
             throws IOException {
         LogHeader logHeader = LogHeaderReader.readLogHeader(
-                fs,
-                logFiles.getCheckpointFile().getDetachedCheckpointFileForVersion(logVersion),
-                EmptyMemoryTracker.INSTANCE);
+                fs, logFiles.getCheckpointFile().getLogFileForVersion(logVersion), EmptyMemoryTracker.INSTANCE);
         assertThat(logHeader.getKernelVersion()).isEqualTo(expectedVersion);
         assertThat(logHeader.getLastAppendIndex()).isEqualTo(AppendIndexProvider.UNKNOWN_APPEND_INDEX);
         return logHeader;

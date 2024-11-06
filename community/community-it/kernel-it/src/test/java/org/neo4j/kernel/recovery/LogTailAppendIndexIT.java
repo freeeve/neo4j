@@ -107,7 +107,7 @@ public class LogTailAppendIndexIT {
 
         var layout = dependencyResolver.resolveDependency(DatabaseLayout.class);
         var originalLogFiles = dependencyResolver.resolveDependency(LogFiles.class);
-        Path[] checkpointFiles = originalLogFiles.getCheckpointFile().getDetachedCheckpointFiles();
+        Path[] checkpointFiles = originalLogFiles.getCheckpointFile().getMatchedFiles();
         dbms.shutdown();
 
         for (Path checkpointFile : checkpointFiles) {
@@ -135,7 +135,7 @@ public class LogTailAppendIndexIT {
         var lastBatchBeforeRestart =
                 dependencyResolver.resolveDependency(TransactionIdStore.class).getLastCommittedBatch();
         var layout = dependencyResolver.resolveDependency(DatabaseLayout.class);
-        Path[] checkpointFiles = originalLogFiles.getCheckpointFile().getDetachedCheckpointFiles();
+        Path[] checkpointFiles = originalLogFiles.getCheckpointFile().getMatchedFiles();
         dbms.shutdown();
 
         for (Path checkpointFile : checkpointFiles) {
@@ -244,7 +244,7 @@ public class LogTailAppendIndexIT {
         }
 
         var layout = dependencyResolver.resolveDependency(DatabaseLayout.class);
-        Path[] checkpointFiles = originalLogFiles.getCheckpointFile().getDetachedCheckpointFiles();
+        Path[] checkpointFiles = originalLogFiles.getCheckpointFile().getMatchedFiles();
         dbms.shutdown();
 
         for (Path checkpointFile : checkpointFiles) {

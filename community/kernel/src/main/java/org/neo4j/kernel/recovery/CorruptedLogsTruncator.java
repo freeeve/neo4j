@@ -118,8 +118,8 @@ public class CorruptedLogsTruncator {
             truncateFilesFromVersion(
                     checkpointPosition.getLogVersion(),
                     checkpointPosition.getByteOffset(),
-                    checkpointFile.getCurrentDetachedLogVersion(),
-                    checkpointFile::getDetachedCheckpointFileForVersion);
+                    checkpointFile.getCurrentLogVersion(),
+                    checkpointFile::getLogFileForVersion);
         }
     }
 
@@ -173,10 +173,10 @@ public class CorruptedLogsTruncator {
                 copyLogsContent(
                         checkpointPosition.getLogVersion(),
                         checkpointPosition.getByteOffset(),
-                        checkpointFile.getCurrentDetachedLogVersion(),
+                        checkpointFile.getCurrentLogVersion(),
                         recoveryContent,
                         bufferScope,
-                        checkpointFile::getDetachedCheckpointFileForVersion);
+                        checkpointFile::getLogFileForVersion);
             }
         }
     }
@@ -268,7 +268,7 @@ public class CorruptedLogsTruncator {
             long recoveredTransactionLogVersion, long recoveredTransactionOffset) throws IOException {
         try {
             CheckpointFile logFile = logFiles.getCheckpointFile();
-            if (fs.getFileSize(logFile.getDetachedCheckpointFileForVersion(recoveredTransactionLogVersion))
+            if (fs.getFileSize(logFile.getLogFileForVersion(recoveredTransactionLogVersion))
                     > recoveredTransactionOffset) {
                 return checkOnlyZeroesAfterPosition(
                         recoveredTransactionOffset, logFile.openForVersion(recoveredTransactionLogVersion));
@@ -314,13 +314,12 @@ public class CorruptedLogsTruncator {
         }
         // We didn't see any checkpoints, but that doesn't mean there isn't unreadable things in the log.
         // Let's do a best effort to see if there is any garbage in the file to remove.
-        if (lastCheckpoint == null
-                && logFiles.getCheckpointFile().getCurrentDetachedLogVersion() >= INITIAL_LOG_VERSION) {
+        if (lastCheckpoint == null && logFiles.getCheckpointFile().getCurrentLogVersion() >= INITIAL_LOG_VERSION) {
             try {
                 long lowestLogVersion = logFiles.getCheckpointFile().getLowestLogVersion();
                 LogPosition startPosition = LogHeaderReader.readLogHeader(
                                 fs,
-                                logFiles.getCheckpointFile().getDetachedCheckpointFileForVersion(lowestLogVersion),
+                                logFiles.getCheckpointFile().getLogFileForVersion(lowestLogVersion),
                                 EmptyMemoryTracker.INSTANCE)
                         .getStartPosition();
                 if (isRecoveredCheckpointLogCorrupted(startPosition.getLogVersion(), startPosition.getByteOffset())) {

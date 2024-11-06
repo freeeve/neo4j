@@ -294,10 +294,10 @@ class CorruptedLogsTruncatorTest {
         logVersionRepository.setCheckpointLogVersion(0);
         assertEquals(7, logFiles.logFiles().length);
         assertEquals(byteOffset, Files.size(highestCorrectLogFile));
-        assertThat(checkpointFile.getDetachedCheckpointFiles()).hasSize(1);
+        assertThat(checkpointFile.getMatchedFiles()).hasSize(1);
         // Truncate assumes that all checkpoints are broken when null is sent in as last checkpoint
         assertEquals(
-                LATEST_LOG_FORMAT.getHeaderSize(), Files.size(checkpointFile.getDetachedCheckpointFiles()[0]));
+                LATEST_LOG_FORMAT.getHeaderSize(), Files.size(checkpointFile.getMatchedFiles()[0]));
 
         Path corruptedLogsDirectory = databaseDirectory.resolve(CORRUPTED_TX_LOGS_BASE_NAME);
         assertTrue(Files.exists(corruptedLogsDirectory));

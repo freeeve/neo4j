@@ -147,7 +147,7 @@ public class TransactionLogInitializer {
             for (long version = checkpointFile.getLowestLogVersion();
                     version <= checkpointFile.getHighestLogVersion();
                     version++) {
-                fs.deleteFile(checkpointFile.getDetachedCheckpointFileForVersion(version));
+                fs.deleteFile(checkpointFile.getLogFileForVersion(version));
             }
             logFile.rotate();
             checkpointFile.rotate();

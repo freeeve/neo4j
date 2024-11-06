@@ -49,8 +49,8 @@ public final class RecoveryHelpers {
         latestCheckpoint.ifPresentOrElse(
                 checkpointInfo -> {
                     LogPosition entryPosition = checkpointInfo.checkpointEntryPosition();
-                    try (StoreChannel storeChannel = fs.write(
-                            checkpointFile.getDetachedCheckpointFileForVersion(entryPosition.getLogVersion()))) {
+                    try (StoreChannel storeChannel =
+                            fs.write(checkpointFile.getLogFileForVersion(entryPosition.getLogVersion()))) {
                         storeChannel.truncate(entryPosition.getByteOffset());
                     } catch (IOException e) {
                         throw new UncheckedIOException(e);

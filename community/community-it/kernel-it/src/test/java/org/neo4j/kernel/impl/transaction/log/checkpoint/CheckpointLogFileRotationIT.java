@@ -71,7 +71,7 @@ public class CheckpointLogFileRotationIT {
         var checkpointFile = logFiles.getCheckpointFile();
         var checkpointAppender = checkpointFile.getCheckpointAppender();
         fillWithCheckpoints(5, checkpointAppender);
-        var matchedFiles = checkpointFile.getDetachedCheckpointFiles();
+        var matchedFiles = checkpointFile.getMatchedFiles();
         assertThat(matchedFiles).hasSize(5); // 5 filled
         for (var fileWithCheckpoints : matchedFiles) {
             assertThat(fileWithCheckpoints).satisfies(new Condition<>() {
@@ -101,7 +101,7 @@ public class CheckpointLogFileRotationIT {
                     Instant.now(),
                     CHECKPOINT_REASON);
         }
-        assertThat(checkpointFile.getDetachedCheckpointFiles()).hasSize(1);
+        assertThat(checkpointFile.getMatchedFiles()).hasSize(1);
     }
 
     @Test
@@ -120,11 +120,11 @@ public class CheckpointLogFileRotationIT {
                 Instant.now(),
                 CHECKPOINT_REASON);
 
-        Path[] matchedFiles = checkpointFile.getDetachedCheckpointFiles();
+        Path[] matchedFiles = checkpointFile.getMatchedFiles();
         assertThat(matchedFiles).hasSize(2);
         boolean headerFileFound = false;
         for (Path matchedFile : matchedFiles) {
-            if (checkpointFile.getDetachedCheckpointLogFileVersion(matchedFile) == 1) {
+            if (checkpointFile.getLogVersion(matchedFile) == 1) {
                 // Should contain header and one checkpoint
                 assertThat(matchedFile.toFile()).hasSize(expectedNewFileSize());
                 headerFileFound = true;

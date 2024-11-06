@@ -745,7 +745,7 @@ class RecoveryIT {
                 db.getDependencyResolver()
                         .resolveDependency(LogFiles.class)
                         .getCheckpointFile()
-                        .getCurrentDetachedLogVersion());
+                        .getCurrentLogVersion());
     }
 
     @Test
@@ -787,7 +787,7 @@ class RecoveryIT {
                 db.getDependencyResolver()
                         .resolveDependency(LogFiles.class)
                         .getCheckpointFile()
-                        .getCurrentDetachedLogVersion());
+                        .getCurrentLogVersion());
     }
 
     @Test
@@ -840,8 +840,8 @@ class RecoveryIT {
         // we have only one checkpoint file now with the highest version
         var restoredCheckpoint =
                 db.getDependencyResolver().resolveDependency(LogFiles.class).getCheckpointFile();
-        assertEquals(12, restoredCheckpoint.getCurrentDetachedLogVersion());
-        assertEquals(1, restoredCheckpoint.getDetachedCheckpointFiles().length);
+        assertEquals(12, restoredCheckpoint.getCurrentLogVersion());
+        assertEquals(1, restoredCheckpoint.getMatchedFiles().length);
     }
 
     @Test
@@ -2468,7 +2468,7 @@ class RecoveryIT {
 
     private int countCheckpointFiles() throws IOException {
         LogFiles logFiles = buildLogFiles();
-        return logFiles.getCheckpointFile().getDetachedCheckpointFiles().length;
+        return logFiles.getCheckpointFile().getMatchedFiles().length;
     }
 
     private static void generateSomeData(GraphDatabaseService database) {

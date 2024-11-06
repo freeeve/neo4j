@@ -72,7 +72,7 @@ public class CheckpointLogPruningIT {
         var checkpointFile = logFiles.getCheckpointFile();
         fillWithCheckpoints(4, checkpointFile.getCheckpointAppender());
         checkPointer.forceCheckPoint(new SimpleTriggerInfo(CHECKPOINT_REASON));
-        var matchedFiles = checkpointFile.getDetachedCheckpointFiles();
+        var matchedFiles = checkpointFile.getMatchedFiles();
         assertThat(matchedFiles).hasSize(2);
         assertThat(matchedFiles)
                 .areAtLeastOne(fileNameCondition("checkpoint.3"))
@@ -84,7 +84,7 @@ public class CheckpointLogPruningIT {
         var checkpointFile = logFiles.getCheckpointFile();
         fillWithCheckpoints(1, checkpointFile.getCheckpointAppender());
         checkPointer.forceCheckPoint(new SimpleTriggerInfo(CHECKPOINT_REASON));
-        var matchedFiles = checkpointFile.getDetachedCheckpointFiles();
+        var matchedFiles = checkpointFile.getMatchedFiles();
         assertThat(matchedFiles).hasSize(2);
         assertThat(matchedFiles)
                 .areAtLeastOne(fileNameCondition("checkpoint.0"))
@@ -96,7 +96,7 @@ public class CheckpointLogPruningIT {
         var checkpointFile = logFiles.getCheckpointFile();
         fillWithCheckpoints(2, checkpointFile.getCheckpointAppender());
         checkPointer.forceCheckPoint(new SimpleTriggerInfo(CHECKPOINT_REASON));
-        var matchedFiles = checkpointFile.getDetachedCheckpointFiles();
+        var matchedFiles = checkpointFile.getMatchedFiles();
         assertThat(matchedFiles).hasSize(2);
         assertThat(matchedFiles)
                 .areAtLeastOne(fileNameCondition("checkpoint.1"))
