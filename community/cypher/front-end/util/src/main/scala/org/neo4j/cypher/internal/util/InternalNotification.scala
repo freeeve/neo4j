@@ -93,6 +93,7 @@ object InternalNotification {
     "ExternalAuthNotEnabled",
     "AggregationSkippedNull",
     "DeprecatedOptionInOptionMap",
+    "DeprecatedIndexProviderOption",
     "DeprecatedSeedingOption",
     "DeprecatedStoreFormat",
     "DeprecatedBooleanCoercion",
@@ -166,6 +167,7 @@ case class DeprecatedRuntimeNotification(msg: String, oldOption: String, newOpti
     extends InternalNotification
 
 case class DeprecatedTextIndexProvider(position: InputPosition) extends InternalNotification
+case class DeprecatedIndexProviderOption() extends InternalNotification
 
 case class DeprecatedIdentifierWhitespaceUnicode(position: InputPosition, unicode: Char, identifier: String)
     extends InternalNotification

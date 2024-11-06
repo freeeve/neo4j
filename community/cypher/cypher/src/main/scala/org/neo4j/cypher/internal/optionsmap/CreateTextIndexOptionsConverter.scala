@@ -37,8 +37,8 @@ case class CreateTextIndexOptionsConverter(context: IndexProviderContext)
     config: Option[Config],
     cypherVersion: CypherVersion
   ): OptionsConverterResult[CreateIndexProviderOnlyOptions] = {
-    val (indexProvider, _) = getOptionsParts(options, schemaType, IndexType.TEXT, cypherVersion)
-    ParsedOptions(CreateIndexProviderOnlyOptions(indexProvider))
+    val (indexProvider, _, notifications) = getOptionsParts(options, schemaType, IndexType.TEXT, cypherVersion)
+    ParsedWithNotifications(CreateIndexProviderOnlyOptions(indexProvider), notifications)
   }
 
   // TEXT indexes has no available config settings

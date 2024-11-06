@@ -269,7 +269,6 @@ object ShowIndexesCommand {
     maybeConstraint: Option[ConstraintDescriptor],
     returnCypher5Values: Boolean
   ): String = {
-    val providerName = provider.name
 
     indexType match {
       case IndexType.RANGE =>
@@ -300,7 +299,7 @@ object ShowIndexesCommand {
       case IndexType.FULLTEXT =>
         val labelsOrTypesWithBars = asEscapedString(labelsOrTypes, barStringJoiner)
         val fulltextConfig = configAsString(indexConfig)
-        val optionsString = optionsAsString(providerName, fulltextConfig)
+        val optionsString = optionsAsString(fulltextConfig)
 
         entityType match {
           case EntityType.NODE =>
@@ -324,18 +323,16 @@ object ShowIndexesCommand {
           case _ => throw new IllegalArgumentException(s"Did not recognize entity type $entityType")
         }
       case IndexType.TEXT =>
-        val optionsString = s"{indexConfig: {}, indexProvider: '$providerName'}"
-
         entityType match {
           case EntityType.NODE =>
-            createNodeIndexCommand("TEXT", name, labelsOrTypes, properties, Some(optionsString))
+            createNodeIndexCommand("TEXT", name, labelsOrTypes, properties)
           case EntityType.RELATIONSHIP =>
-            createRelIndexCommand("TEXT", name, labelsOrTypes, properties, Some(optionsString))
+            createRelIndexCommand("TEXT", name, labelsOrTypes, properties)
           case _ => throw new IllegalArgumentException(s"Did not recognize entity type $entityType")
         }
       case IndexType.POINT =>
         val pointConfig = configAsString(indexConfig)
-        val optionsString = optionsAsString(providerName, pointConfig)
+        val optionsString = optionsAsString(pointConfig)
 
         entityType match {
           case EntityType.NODE =>
@@ -348,7 +345,7 @@ object ShowIndexesCommand {
         val settingsValidator = VectorIndexVersion.fromDescriptor(provider).indexSettingValidator
         val vectorIndexConfig = settingsValidator.trustIsValidToVectorIndexConfig(new IndexConfigAccessor(indexConfig))
         val vectorConfig = configAsString(vectorIndexConfig.config)
-        val optionsString = optionsAsString(providerName, vectorConfig)
+        val optionsString = optionsAsString(vectorConfig)
 
         entityType match {
           case EntityType.NODE =>

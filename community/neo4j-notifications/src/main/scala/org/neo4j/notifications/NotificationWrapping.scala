@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.util.DeprecatedFunctionNotification
 import org.neo4j.cypher.internal.util.DeprecatedIdentifierUnicode
 import org.neo4j.cypher.internal.util.DeprecatedIdentifierWhitespaceUnicode
 import org.neo4j.cypher.internal.util.DeprecatedImportingWithInSubqueryCall
+import org.neo4j.cypher.internal.util.DeprecatedIndexProviderOption
 import org.neo4j.cypher.internal.util.DeprecatedKeywordVariableInWhenOperand
 import org.neo4j.cypher.internal.util.DeprecatedNodesOrRelationshipsInSetClauseNotification
 import org.neo4j.cypher.internal.util.DeprecatedOptionInOptionMap
@@ -313,6 +314,11 @@ object NotificationWrapping {
     case DeprecatedTextIndexProvider(pos) =>
       NotificationCodeWithDescription.deprecatedTextIndexProvider(
         pos.withOffset(offset).asInputPosition
+      )
+
+    case DeprecatedIndexProviderOption() =>
+      NotificationCodeWithDescription.deprecatedIndexProviderOption(
+        graphdb.InputPosition.empty
       )
 
     case DeprecatedDatabaseNameNotification(name, pos) =>

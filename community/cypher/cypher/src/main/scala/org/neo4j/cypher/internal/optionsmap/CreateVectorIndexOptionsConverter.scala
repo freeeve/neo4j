@@ -62,8 +62,9 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
     config: Option[Config],
     cypherVersion: CypherVersion
   ): OptionsConverterResult[CreateIndexWithFullOptions] = {
-    val (indexProvider, indexConfig) = getOptionsParts(options, schemaType, IndexType.VECTOR, cypherVersion)
-    ParsedOptions(CreateIndexWithFullOptions(indexProvider, indexConfig))
+    val (indexProvider, indexConfig, notifications) =
+      getOptionsParts(options, schemaType, IndexType.VECTOR, cypherVersion)
+    ParsedWithNotifications(CreateIndexWithFullOptions(indexProvider, indexConfig), notifications)
   }
 
   // VECTOR indexes has vector config settings

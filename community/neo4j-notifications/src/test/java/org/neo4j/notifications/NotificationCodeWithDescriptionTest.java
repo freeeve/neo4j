@@ -41,6 +41,7 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.deprecated
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedIdentifierUnicode;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedIdentifierWhitespaceUnicode;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedImportingWithInSubqueryCall;
+import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedIndexProviderOption;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedKeywordVariableInWhenOperand;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedNodeOrRelationshipOnRhsSetClause;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedOptionInOptionMap;
@@ -637,6 +638,32 @@ class NotificationCodeWithDescriptionTest {
                                 Map.of("feat1", "text-1.0", "feat2", "text-2.0"))
                         .asMap(),
                 "warn: feature deprecated with replacement. text-1.0 is deprecated. It is replaced by text-2.0.");
+    }
+
+    @Test
+    void shouldConstructNotificationFor_DEPRECATED_INDEX_PROVIDER_OPTION() {
+        NotificationImplementation notification = deprecatedIndexProviderOption(InputPosition.empty);
+
+        verifyNotification(
+                notification,
+                "This feature is deprecated and will be removed in future versions.",
+                SeverityLevel.WARNING,
+                "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
+                "The `indexProvider` option is deprecated and will be removed in a future version. Neo4j does not use the given option but instead selects the most performant index provider available.",
+                NotificationCategory.DEPRECATION,
+                NotificationClassification.DEPRECATION,
+                "01N00",
+                new DiagnosticRecord(
+                                warning,
+                                NotificationClassification.DEPRECATION,
+                                -1,
+                                -1,
+                                -1,
+                                Map.of(
+                                        "item",
+                                        "The `indexProvider` option is deprecated and will be removed in a future version. Neo4j does not use the given option but instead selects the most performant index provider available."))
+                        .asMap(),
+                "warn: feature deprecated. The `indexProvider` option is deprecated and will be removed in a future version. Neo4j does not use the given option but instead selects the most performant index provider available.");
     }
 
     @Test
@@ -1980,8 +2007,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            -22, 2, -112, 73, 11, 74, 44, 78, 94, -111, 108, -12, 43, 33, 52, -76, 1, 81, -43, 2, 31, -13, 77, -10, -38,
-            -41, 11, 1, -64, 96, -70, -65
+            100, 37, 101, -19, -105, 49, 13, 70, -78, 49, 8, -89, -31, -68, 119, -125, -28, -106, -51, 90, -14, 24, 113,
+            98, 114, -66, -67, 20, -114, -59, 84, 79
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {

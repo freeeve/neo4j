@@ -136,8 +136,8 @@ object ShowSchemaCommandHelper {
     VirtualValues.map(optionKeys, optionValues)
   }
 
-  def optionsAsString(providerString: String, configString: String): String = {
-    s"{indexConfig: $configString, indexProvider: '$providerString'}"
+  def optionsAsString(configString: String): String = {
+    s"{indexConfig: $configString}"
   }
 
   def asEscapedString(list: List[String], stringJoiner: StringJoiner): String = {

@@ -893,7 +893,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       provider = pointProvider,
       options = Map("indexProvider" -> Values.stringValue(pointProvider), "indexConfig" -> nodePointConfigMap),
       createStatement = s"CREATE POINT INDEX `index04` FOR (n:`$label`) ON (n.`$prop`) " +
-        s"OPTIONS {indexConfig: $nodePointConfigMapString, indexProvider: '$pointProvider'}"
+        s"OPTIONS {indexConfig: $nodePointConfigMapString}"
     )
     checkResult(
       result(5),
@@ -905,7 +905,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       provider = pointProvider,
       options = Map("indexProvider" -> Values.stringValue(pointProvider), "indexConfig" -> relPointConfigMap),
       createStatement = s"CREATE POINT INDEX `index05` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
-        s"OPTIONS {indexConfig: $relPointConfigMapString, indexProvider: '$pointProvider'}"
+        s"OPTIONS {indexConfig: $relPointConfigMapString}"
     )
     checkResult(
       result(6),
@@ -916,8 +916,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       properties = List(prop),
       provider = textV2Provider,
       options = Map("indexProvider" -> Values.stringValue(textV2Provider), "indexConfig" -> VirtualValues.EMPTY_MAP),
-      createStatement = s"CREATE TEXT INDEX `index06` FOR (n:`$label`) ON (n.`$prop`) " +
-        s"OPTIONS {indexConfig: {}, indexProvider: '$textV2Provider'}"
+      createStatement = s"CREATE TEXT INDEX `index06` FOR (n:`$label`) ON (n.`$prop`)"
     )
     checkResult(
       result(7),
@@ -928,8 +927,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       properties = List(prop),
       provider = textV1Provider,
       options = Map("indexProvider" -> Values.stringValue(textV1Provider), "indexConfig" -> VirtualValues.EMPTY_MAP),
-      createStatement = s"CREATE TEXT INDEX `index07` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
-        s"OPTIONS {indexConfig: {}, indexProvider: '$textV1Provider'}"
+      createStatement = s"CREATE TEXT INDEX `index07` FOR ()-[r:`$relType`]-() ON (r.`$prop`)"
     )
     checkResult(
       result(8),
@@ -941,7 +939,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       provider = fulltextProvider,
       options = Map("indexProvider" -> Values.stringValue(fulltextProvider), "indexConfig" -> nodeFulltextConfigMap),
       createStatement = s"CREATE FULLTEXT INDEX `index08` FOR (n:`$label`) ON EACH [n.`$prop`] " +
-        s"OPTIONS {indexConfig: $nodeFulltextConfigMapString, indexProvider: '$fulltextProvider'}"
+        s"OPTIONS {indexConfig: $nodeFulltextConfigMapString}"
     )
     checkResult(
       result(9),
@@ -953,7 +951,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       provider = fulltextProvider,
       options = Map("indexProvider" -> Values.stringValue(fulltextProvider), "indexConfig" -> relFulltextConfigMap),
       createStatement = s"CREATE FULLTEXT INDEX `index09` FOR ()-[r:`$relType`]-() ON EACH [r.`$prop`] " +
-        s"OPTIONS {indexConfig: $relFulltextConfigMapString, indexProvider: '$fulltextProvider'}"
+        s"OPTIONS {indexConfig: $relFulltextConfigMapString}"
     )
     checkResult(
       result(10),
@@ -968,7 +966,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
         "indexConfig" -> vectorConfigMap(VectorIndexVersion.V1_0)
       ),
       createStatement = s"CREATE VECTOR INDEX `index10` FOR (n:`$label`) ON (n.`$prop`) " +
-        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V1_0)}, indexProvider: '$vectorV1Provider'}"
+        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V1_0)}}"
     )
     checkResult(
       result(11),
@@ -983,7 +981,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
         "indexConfig" -> vectorConfigMap(VectorIndexVersion.V2_0)
       ),
       createStatement = s"CREATE VECTOR INDEX `index11` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
-        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V2_0)}, indexProvider: '$vectorV2Provider'}"
+        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V2_0)}}"
     )
   }
 
@@ -1114,7 +1112,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       provider = pointProvider,
       options = Map("indexProvider" -> Values.stringValue(pointProvider), "indexConfig" -> nodePointConfigMap),
       createStatement = s"CREATE POINT INDEX `index04` FOR (n:`$label`) ON (n.`$prop`) " +
-        s"OPTIONS {indexConfig: $nodePointConfigMapString, indexProvider: '$pointProvider'}"
+        s"OPTIONS {indexConfig: $nodePointConfigMapString}"
     )
     checkResult(
       result.last,
@@ -1126,7 +1124,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       provider = pointProvider,
       options = Map("indexProvider" -> Values.stringValue(pointProvider), "indexConfig" -> relPointConfigMap),
       createStatement = s"CREATE POINT INDEX `index05` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
-        s"OPTIONS {indexConfig: $relPointConfigMapString, indexProvider: '$pointProvider'}"
+        s"OPTIONS {indexConfig: $relPointConfigMapString}"
     )
   }
 
@@ -1162,8 +1160,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       properties = List(prop),
       provider = textV2Provider,
       options = Map("indexProvider" -> Values.stringValue(textV2Provider), "indexConfig" -> VirtualValues.EMPTY_MAP),
-      createStatement = s"CREATE TEXT INDEX `index06` FOR (n:`$label`) ON (n.`$prop`) " +
-        s"OPTIONS {indexConfig: {}, indexProvider: '$textV2Provider'}"
+      createStatement = s"CREATE TEXT INDEX `index06` FOR (n:`$label`) ON (n.`$prop`)"
     )
     checkResult(
       result.last,
@@ -1174,8 +1171,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       properties = List(prop),
       provider = textV1Provider,
       options = Map("indexProvider" -> Values.stringValue(textV1Provider), "indexConfig" -> VirtualValues.EMPTY_MAP),
-      createStatement = s"CREATE TEXT INDEX `index07` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
-        s"OPTIONS {indexConfig: {}, indexProvider: '$textV1Provider'}"
+      createStatement = s"CREATE TEXT INDEX `index07` FOR ()-[r:`$relType`]-() ON (r.`$prop`)"
     )
   }
 
@@ -1212,7 +1208,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       provider = fulltextProvider,
       options = Map("indexProvider" -> Values.stringValue(fulltextProvider), "indexConfig" -> nodeFulltextConfigMap),
       createStatement = s"CREATE FULLTEXT INDEX `index08` FOR (n:`$label`) ON EACH [n.`$prop`] " +
-        s"OPTIONS {indexConfig: $nodeFulltextConfigMapString, indexProvider: '$fulltextProvider'}"
+        s"OPTIONS {indexConfig: $nodeFulltextConfigMapString}"
     )
     checkResult(
       result.last,
@@ -1224,7 +1220,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       provider = fulltextProvider,
       options = Map("indexProvider" -> Values.stringValue(fulltextProvider), "indexConfig" -> relFulltextConfigMap),
       createStatement = s"CREATE FULLTEXT INDEX `index09` FOR ()-[r:`$relType`]-() ON EACH [r.`$prop`] " +
-        s"OPTIONS {indexConfig: $relFulltextConfigMapString, indexProvider: '$fulltextProvider'}"
+        s"OPTIONS {indexConfig: $relFulltextConfigMapString}"
     )
   }
 
@@ -1264,7 +1260,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
         "indexConfig" -> vectorConfigMap(VectorIndexVersion.V1_0)
       ),
       createStatement = s"CREATE VECTOR INDEX `index10` FOR (n:`$label`) ON (n.`$prop`) " +
-        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V1_0)}, indexProvider: '$vectorV1Provider'}"
+        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V1_0)}}"
     )
     checkResult(
       result.last,
@@ -1279,7 +1275,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
         "indexConfig" -> vectorConfigMap(VectorIndexVersion.V2_0)
       ),
       createStatement = s"CREATE VECTOR INDEX `index11` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
-        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V2_0)}, indexProvider: '$vectorV2Provider'}"
+        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V2_0)}}"
     )
   }
 

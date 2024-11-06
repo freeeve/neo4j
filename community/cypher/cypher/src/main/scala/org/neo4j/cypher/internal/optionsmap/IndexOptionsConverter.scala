@@ -22,6 +22,8 @@ package org.neo4j.cypher.internal.optionsmap
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.MapValueOps.Ops
 import org.neo4j.cypher.internal.runtime.IndexProviderContext
+import org.neo4j.cypher.internal.util.DeprecatedIndexProviderOption
+import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.graphdb.schema.IndexSetting
@@ -65,7 +67,7 @@ trait IndexOptionsConverter[T] extends OptionsConverter[T] {
     schemaType: String,
     indexType: IndexType,
     version: CypherVersion
-  ): (Option[IndexProviderDescriptor], IndexConfig) = {
+  ): (Option[IndexProviderDescriptor], IndexConfig, Set[InternalNotification]) = {
     var optionName = ""
     if (
       options.exists { case (k, _) =>
@@ -82,8 +84,11 @@ trait IndexOptionsConverter[T] extends OptionsConverter[T] {
     val indexProvider = maybeIndexProvider.map(assertValidIndexProvider(_, schemaType, indexType, version))
     val indexConfig =
       maybeConfig.map(assertValidAndTransformConfig(_, schemaType, indexProvider)).getOrElse(IndexConfig.empty)
-
-    (indexProvider, indexConfig)
+    if (indexProvider.nonEmpty) {
+      (indexProvider, indexConfig, Set(DeprecatedIndexProviderOption()))
+    } else {
+      (indexProvider, indexConfig, Set())
+    }
   }
 
   protected def toIndexConfig: java.util.Map[String, Object] => IndexConfig =

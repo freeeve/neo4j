@@ -134,6 +134,12 @@ public enum NotificationCodeWithDescription {
                     + "` provider for text indexes is deprecated and will be removed in a future version. "
                     + "Please use `" + AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR.name() + "` instead."),
 
+    DEPRECATED_INDEX_PROVIDER_OPTION(
+            Status.Statement.FeatureDeprecationWarning,
+            GqlStatusInfoCodes.STATUS_01N00,
+            "The `indexProvider` option is deprecated and will be removed in a future version. "
+                    + "Neo4j does not use the given option but instead selects the most performant index provider available."),
+
     DEPRECATED_IDENTIFIER_WHITESPACE_UNICODE(
             Status.Statement.FeatureDeprecationWarning,
             GqlStatusInfoCodes.STATUS_01N00,
@@ -509,6 +515,12 @@ public enum NotificationCodeWithDescription {
     public static NotificationImplementation deprecatedTextIndexProvider(InputPosition position) {
         return DEPRECATED_TEXT_INDEX_PROVIDER.notificationWithParameters(position, new String[] {}, new String[] {
             AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR.name(), AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR.name()
+        });
+    }
+
+    public static NotificationImplementation deprecatedIndexProviderOption(InputPosition position) {
+        return DEPRECATED_INDEX_PROVIDER_OPTION.notificationWithParameters(position, new String[] {}, new String[] {
+            "The `indexProvider` option is deprecated and will be removed in a future version. Neo4j does not use the given option but instead selects the most performant index provider available."
         });
     }
 

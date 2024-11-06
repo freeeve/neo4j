@@ -46,9 +46,10 @@ case class CreatePointIndexOptionsConverter(context: IndexProviderContext)
     options: MapValue,
     config: Option[Config],
     cypherVersion: CypherVersion
-  ): ParsedOptions[CreateIndexWithFullOptions] = {
-    val (indexProvider, indexConfig) = getOptionsParts(options, schemaType, IndexType.POINT, cypherVersion)
-    ParsedOptions(CreateIndexWithFullOptions(indexProvider, indexConfig))
+  ): OptionsConverterResult[CreateIndexWithFullOptions] = {
+    val (indexProvider, indexConfig, notifications) =
+      getOptionsParts(options, schemaType, IndexType.POINT, cypherVersion)
+    ParsedWithNotifications(CreateIndexWithFullOptions(indexProvider, indexConfig), notifications)
   }
 
   // POINT indexes has point config settings

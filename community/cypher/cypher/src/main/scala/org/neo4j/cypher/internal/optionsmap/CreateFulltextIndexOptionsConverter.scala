@@ -43,8 +43,9 @@ case class CreateFulltextIndexOptionsConverter(context: IndexProviderContext)
     config: Option[Config],
     cypherVersion: CypherVersion
   ): OptionsConverterResult[CreateIndexWithFullOptions] = {
-    val (indexProvider, indexConfig) = getOptionsParts(options, schemaType, IndexType.FULLTEXT, cypherVersion)
-    ParsedOptions(CreateIndexWithFullOptions(indexProvider, indexConfig))
+    val (indexProvider, indexConfig, notifications) =
+      getOptionsParts(options, schemaType, IndexType.FULLTEXT, cypherVersion)
+    ParsedWithNotifications(CreateIndexWithFullOptions(indexProvider, indexConfig), notifications)
   }
 
   // FULLTEXT indexes have two config settings:
