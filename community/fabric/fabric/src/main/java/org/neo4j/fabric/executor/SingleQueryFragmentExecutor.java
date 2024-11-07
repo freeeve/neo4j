@@ -67,6 +67,7 @@ import org.neo4j.values.virtual.VirtualRelationshipValue;
 import org.neo4j.values.virtual.VirtualValues;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 abstract class SingleQueryFragmentExecutor {
 
@@ -225,7 +226,8 @@ abstract class SingleQueryFragmentExecutor {
         Mono<StatementResult> statementResult =
                 runRemote(location, executionOptions, queryString, transactionMode, parameters);
         Flux<Record> records = statementResult.flatMapMany(
-                sr -> sr.records().doOnComplete(() -> sr.summary().subscribe(this::updateSummary)));
+                sr -> sr.records().publishOn(Schedulers.boundedElastic()).doOnComplete(() -> sr.summary()
+                        .subscribe(this::updateSummary)));
 
         // 'onComplete' signal coming from an inner stream might cause more data being requested from an upstream
         // operator
@@ -270,6 +272,7 @@ abstract class SingleQueryFragmentExecutor {
                 location, transactionMode, lifecycle, query, parameters, input, executionOptions, targetsComposite);
         Flux<Record> records = localStatementResult
                 .records()
+                .publishOn(Schedulers.boundedElastic())
                 .doOnComplete(() -> localStatementResult.summary().subscribe(this::updateSummary));
 
         Mono<ExecutionPlanDescription> planDescription = localStatementResult
