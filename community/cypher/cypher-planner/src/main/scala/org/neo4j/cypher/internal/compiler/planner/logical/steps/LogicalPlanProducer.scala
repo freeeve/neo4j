@@ -40,6 +40,7 @@ import org.neo4j.cypher.internal.ast.UsingScanHint
 import org.neo4j.cypher.internal.ast.UsingStatefulShortestPathHint
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.helpers.PredicateHelper.coercePredicatesWithAnds
+import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper
 import org.neo4j.cypher.internal.compiler.planner.ProcedureCallProjection
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.CardinalityModel
@@ -2203,7 +2204,7 @@ case class LogicalPlanProducer(
       innerSolved.updateTailOrSelf(_.updateQueryProjection(_.withAddedProjections(reported)))
     }
 
-    planRegularProjectionHelper(inner, expressions, context, solved)
+    planRegularProjectionHelper(inner, expressions, context, solved, cachedPropertiesPerPlan.get(inner.id))
   }
 
   /**
@@ -2233,7 +2234,7 @@ case class LogicalPlanProducer(
       agg,
       solved,
       context.providedOrderFactory.providedOrder(trimmedAndRenamed, ProvidedOrder.Left, Some(agg)),
-      cachedPropertiesPerPlan.get(left.id),
+      cachedPropertiesPerPlan.get(left.id).retain(accessedPropertiesInGroupingKeys(grouping)),
       context
     )
 
@@ -2271,7 +2272,7 @@ case class LogicalPlanProducer(
       agg,
       solved,
       context.providedOrderFactory.providedOrder(trimmedAndRenamed, ProvidedOrder.Left, Some(agg)),
-      cachedPropertiesPerPlan.get(left.id),
+      cachedPropertiesPerPlan.get(left.id).retain(accessedPropertiesInGroupingKeys(grouping)),
       context
     )
     markOrderAsLeveragedBackwardsUntilOrigin(plan, context.providedOrderFactory)
@@ -2994,7 +2995,7 @@ case class LogicalPlanProducer(
       plan,
       solved,
       providedOrder,
-      cachedPropertiesPerPlan.get(left.id),
+      cachedPropertiesPerPlan.get(left.id).retain(accessedPropertiesInGroupingKeys(expressions)),
       context
     )
   }
@@ -3048,8 +3049,20 @@ case class LogicalPlanProducer(
         DistinctQueryProjection(reported)
       ))
 
-    planRegularProjectionHelper(left, expressions, context, solved)
+    planRegularProjectionHelper(
+      left,
+      expressions,
+      context,
+      solved,
+      cachedPropertiesPerPlan.get(left.id).retain(accessedPropertiesInGroupingKeys(expressions))
+    )
   }
+
+  private def accessedPropertiesInGroupingKeys(expressions: Map[LogicalVariable, Expression])
+    : Map[LogicalVariable, Set[PropertyKeyName]] =
+    PropertyAccessHelper.findPropertyAccesses(expressions.values.toSeq).groupMap(_.variable)(propertyAccess =>
+      PropertyKeyName(propertyAccess.propertyName)(InputPosition.NONE)
+    )
 
   /**
    *
@@ -3075,7 +3088,7 @@ case class LogicalPlanProducer(
       distinct,
       solved,
       providedOrder,
-      cachedPropertiesPerPlan.get(left.id),
+      cachedPropertiesPerPlan.get(left.id).retain(accessedPropertiesInGroupingKeys(expressions)),
       context
     )
     markOrderAsLeveragedBackwardsUntilOrigin(plan, context.providedOrderFactory)
@@ -3889,7 +3902,8 @@ case class LogicalPlanProducer(
     inner: LogicalPlan,
     expressions: Map[LogicalVariable, Expression],
     context: LogicalPlanningContext,
-    solved: SinglePlannerQuery
+    solved: SinglePlannerQuery,
+    cachedPropertiesToReport: CachedProperties
   ): Projection = {
     val columnsWithRenames = renameProvidedOrderColumns(providedOrders.get(inner.id).columns, expressions)
     val plan = Projection(inner, expressions)
@@ -3898,7 +3912,7 @@ case class LogicalPlanProducer(
       plan,
       solved,
       providedOrder,
-      cachedPropertiesPerPlan.get(inner.id).rename(renamedVariables(expressions)),
+      cachedPropertiesToReport.rename(renamedVariables(expressions)),
       context
     )
   }

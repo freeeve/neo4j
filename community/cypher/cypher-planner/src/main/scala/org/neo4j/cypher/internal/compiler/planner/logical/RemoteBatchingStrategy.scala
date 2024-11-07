@@ -161,7 +161,9 @@ object RemoteBatchingStrategy {
       orderToLeverage: Seq[Expression]
     ): RemoteBatchingResult = {
       val accessedProperties =
-        context.plannerState.contextualPropertyAccess.interestingOrder ++ context.plannerState.contextualPropertyAccess.horizon
+        PropertyAccessHelper.findPropertyAccesses(
+          aggregations.values.toSeq ++ groupingExpressionsMap.values.toSeq ++ orderToLeverage
+        )
 
       val rewriter = cachedPropertiesRewriter(input, context)
       val rewrittenAggregations = aggregations.map {
@@ -195,7 +197,7 @@ object RemoteBatchingStrategy {
       orderToLeverage: Seq[Expression]
     ): RemoteBatchingResult = {
       val accessedProperties =
-        context.plannerState.contextualPropertyAccess.interestingOrder ++ context.plannerState.contextualPropertyAccess.horizon
+        PropertyAccessHelper.findPropertyAccesses(groupingExpressionsMap.values.toSeq ++ orderToLeverage)
       val rewriter = cachedPropertiesRewriter(input, context)
       val rewrittenGroupExpressions = groupingExpressionsMap.map {
         case (v, e) => v -> e.endoRewrite(rewriter)
@@ -222,8 +224,7 @@ object RemoteBatchingStrategy {
       projections: Map[LogicalVariable, Expression],
       orderToLeverage: Seq[Expression]
     ): RemoteBatchingResult = {
-      val accessedProperties =
-        context.plannerState.contextualPropertyAccess.interestingOrder ++ context.plannerState.contextualPropertyAccess.horizon
+      val accessedProperties = PropertyAccessHelper.findPropertyAccesses(projections.values.toSeq ++ orderToLeverage)
       val rewriter = cachedPropertiesRewriter(input, context)
       val rewrittenProjections = projections.map {
         case (v, e) => v -> e.endoRewrite(rewriter)
@@ -250,7 +251,7 @@ object RemoteBatchingStrategy {
       orderToLeverage: Seq[Expression]
     ): RemoteBatchingResult = {
       val accessedProperties =
-        context.plannerState.contextualPropertyAccess.interestingOrder ++ context.plannerState.contextualPropertyAccess.horizon
+        PropertyAccessHelper.findPropertyAccesses(orderToLeverage)
       val rewriter = cachedPropertiesRewriter(input, context)
       val rewrittenOrderToLeverage = orderToLeverage.map(_.endoRewrite(rewriter))
       RemoteBatchingResult(

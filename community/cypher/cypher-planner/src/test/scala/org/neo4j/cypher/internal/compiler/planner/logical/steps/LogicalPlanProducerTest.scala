@@ -1957,27 +1957,55 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
     )
   }
 
-  test("should propagate cached properties from lhs for planDistinct") {
-    shouldUseCachedPropertiesFromLHS((ctx: PlanCreationContext) =>
-      ctx.producer.planDistinct(
-        ctx.lhs,
-        Map.empty,
-        Map.empty,
-        ctx.context
+  test("should only retain cached properties from grouping expressions for planDistinct") {
+    new givenConfig().withLogicalPlanningContext { (_, context) =>
+      val planCreationContext = buildPlanCreationContext(context)
+      letLHSPlanHaveTheCachedProperties(
+        context,
+        planCreationContext,
+        CachedProperties(Map(
+          v"x" -> CachedProperties.Entry(v"x", NODE_TYPE, Set(propertyKeyName("foo"), propertyKeyName("bar"))),
+          v"y" -> CachedProperties.Entry(v"y", NODE_TYPE, Set(propertyKeyName("foo")))
+        ))
       )
-    )
+      val result = planCreationContext.producer.planDistinct(
+        planCreationContext.lhs,
+        Map(v"x" -> prop("x", "foo")),
+        Map.empty,
+        planCreationContext.context
+      )
+      context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(result.id) should equal(
+        CachedProperties(Map(
+          v"x" -> CachedProperties.Entry(v"x", NODE_TYPE, Set(propertyKeyName("foo")))
+        ))
+      )
+    }
   }
 
   test("should propagate cached properties from lhs for planOrderedDistinct") {
-    shouldUseCachedPropertiesFromLHS((ctx: PlanCreationContext) =>
-      ctx.producer.planOrderedDistinct(
-        ctx.lhs,
-        Map.empty,
+    new givenConfig().withLogicalPlanningContext { (_, context) =>
+      val planCreationContext = buildPlanCreationContext(context)
+      letLHSPlanHaveTheCachedProperties(
+        context,
+        planCreationContext,
+        CachedProperties(Map(
+          v"x" -> CachedProperties.Entry(v"x", NODE_TYPE, Set(propertyKeyName("foo"), propertyKeyName("bar"))),
+          v"y" -> CachedProperties.Entry(v"y", NODE_TYPE, Set(propertyKeyName("foo")))
+        ))
+      )
+      val result = planCreationContext.producer.planOrderedDistinct(
+        planCreationContext.lhs,
+        Map(v"x" -> prop("x", "foo")),
         Seq.empty,
         Map.empty,
-        ctx.context
+        planCreationContext.context
       )
-    )
+      context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(result.id) should equal(
+        CachedProperties(Map(
+          v"x" -> CachedProperties.Entry(v"x", NODE_TYPE, Set(propertyKeyName("foo")))
+        ))
+      )
+    }
   }
 
   test("should propagate cached properties from lhs for planEager") {

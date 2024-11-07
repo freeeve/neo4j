@@ -676,9 +676,10 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest extends CypherFun
       .planBuilder()
       .produceResults("`person.name`")
       .projection("cacheN[person.name] AS `person.name`")
+      .remoteBatchProperties("cacheNFromStore[person.name]")
       .filter("person.age = maxAge")
       .aggregation(Seq("person AS person"), Seq("MAX(cacheN[person.age]) AS maxAge"))
-      .remoteBatchProperties("cacheNFromStore[person.age]", "cacheNFromStore[person.name]")
+      .remoteBatchProperties("cacheNFromStore[person.age]")
       .allNodeScan("person")
       .build()
   }
@@ -695,9 +696,10 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest extends CypherFun
       .planBuilder()
       .produceResults("`person.name`", "ageDifference")
       .projection("cacheN[person.name] AS `person.name`")
+      .remoteBatchProperties("cacheNFromStore[person.name]")
       .projection("anon_0 - anon_1 AS ageDifference")
       .aggregation(Seq("cacheN[person.age] AS anon_1", "person AS person"), Seq("max(cacheN[person.age]) AS anon_0"))
-      .remoteBatchProperties("cacheNFromStore[person.age]", "cacheNFromStore[person.name]")
+      .remoteBatchProperties("cacheNFromStore[person.age]")
       .allNodeScan("person")
       .build()
   }
@@ -718,9 +720,10 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest extends CypherFun
         Seq("count(cacheN[person.age]) AS `count(person.age)`"),
         Seq("cacheN[person.age]")
       )
+      .remoteBatchProperties("cacheNFromStore[person.name]")
       .sort("`person.age` ASC")
       .projection("cacheN[person.age] AS `person.age`")
-      .remoteBatchProperties("cacheNFromStore[person.name]", "cacheNFromStore[person.age]")
+      .remoteBatchProperties("cacheNFromStore[person.age]")
       .allNodeScan("person")
       .build()
   }
@@ -1186,6 +1189,53 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest extends CypherFun
         HasDegreeGreaterThan(v"o1", None, OUTGOING, literalInt(10))(pos)
       )
       .nodeIndexOperator("o1:Person(firstName)", getValue = Map("firstName" -> GetValue))
+      .build()
+  }
+
+  test("should insert remoteBatchProperties between an aggregation and projection on the same property") {
+    val query =
+      """
+        |MATCH (subject:Person { firstName: $firstName })
+        |MATCH p=(subject)<-[:POST_HAS_CREATOR]-()-[:KNOWS*0..2]-()<-[:POST_HAS_CREATOR]-(person)-[:KNOWS]->(friend)
+        |WHERE person<>subject AND friend.firstName IN $interests
+        |WITH person, friend, min(length(p)) AS pathLength
+        |ORDER BY friend.firstName
+        |RETURN person.name AS name, count(friend) AS score, collect(friend.firstName) AS interests,((pathLength - 1)/2) AS distance
+        |ORDER BY score DESC LIMIT 20
+        |""".stripMargin
+
+    planner.plan(query).stripProduceResults shouldEqual planner
+      .subPlanBuilder()
+      .top(20, "score DESC")
+      .aggregation(
+        Seq("cacheN[person.name] AS name", "(pathLength - 1) / 2 AS distance"),
+        Seq("count(friend) AS score", "collect(cacheN[friend.firstName]) AS interests")
+      )
+      .remoteBatchProperties("cacheNFromStore[person.name]")
+      .sort("`friend.firstName` ASC")
+      .projection("cacheN[friend.firstName] AS `friend.firstName`")
+      .remoteBatchProperties(
+        "cacheNFromStore[friend.firstName]"
+      ) // we need to plan this friend.firstName again, otherwise projection is very slow.
+      .aggregation(
+        Map("person" -> v"person", "friend" -> v"friend"),
+        Map("pathLength" -> min(length(PathExpressionBuilder.node("subject").inTo("anon_0", "anon_1").bothToVarLength(
+          "anon_2",
+          "anon_3"
+        ).inTo("anon_4", "person").outTo("anon_5", "friend").build())))
+      )
+      .filter("NOT anon_5 IN anon_2", "cacheN[friend.firstName] IN $interests")
+      .remoteBatchProperties("cacheNFromStore[friend.firstName]")
+      .expandAll("(person)-[anon_5:KNOWS]->(friend)")
+      .filter("NOT person = subject", "NOT anon_4 = anon_0")
+      .expandAll("(anon_3)<-[anon_4:POST_HAS_CREATOR]-(person)")
+      .expand("(anon_1)-[anon_2:KNOWS*0..2]-(anon_3)", expandMode = ExpandAll, projectedDir = OUTGOING)
+      .expandAll("(subject)<-[anon_0:POST_HAS_CREATOR]-(anon_1)")
+      .nodeIndexOperator(
+        "subject:Person(firstName = ???)",
+        paramExpr = Some(parameter("firstName", CTAny)),
+        getValue = Map("firstName" -> DoNotGetValue)
+      )
       .build()
   }
 }

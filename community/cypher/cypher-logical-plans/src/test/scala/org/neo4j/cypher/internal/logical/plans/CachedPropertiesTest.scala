@@ -388,7 +388,7 @@ class CachedPropertiesTest extends CypherFunSuite {
   }
 
   test("contain: should identify presence by variable and property") {
-    // given a non-empty caches with the variable a and b
+    // given a non-empty caches with the variable a
     val cache = CachedProperties(Map(
       v"a" -> CachedProperties.Entry(v"a", NODE_TYPE, Set(propName("foo"), propName("bar")))
     ))
@@ -397,5 +397,20 @@ class CachedPropertiesTest extends CypherFunSuite {
     cache.contains(v"a", propName("foo")) shouldBe true
     cache.contains(v"a", propName("unknown")) shouldBe false
     cache.contains(v"unknown", propName("foo")) shouldBe false
+  }
+
+  test("retain: should only retain properties and variables in the map") {
+    // given a non-empty caches with the variable a and b
+    val cache = CachedProperties(Map(
+      v"a" -> CachedProperties.Entry(v"a", NODE_TYPE, Set(propName("foo"), propName("bar"))),
+      v"b" -> CachedProperties.Entry(v"b", NODE_TYPE, Set(propName("foo"), propName("bar")))
+    ))
+
+    // then retain a->foo should only keep property foo for a
+    cache.retain(Map(v"a" -> Set(propName("foo")))).entries shouldEqual Map(v"a" -> CachedProperties.Entry(
+      v"a",
+      NODE_TYPE,
+      Set(propName("foo"))
+    ))
   }
 }
