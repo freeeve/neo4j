@@ -28,6 +28,7 @@ import org.neo4j.kernel.impl.locking.LockManager;
 import org.neo4j.kernel.impl.store.NeoStores;
 import org.neo4j.kernel.impl.store.StoreType;
 import org.neo4j.lock.ActiveLock;
+import org.neo4j.lock.ResourceType;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.storageengine.api.txstate.validation.TransactionValidator;
@@ -66,6 +67,9 @@ public class VerboseValidationLogDumper implements ValidationLockDumper {
             var storyTypeRecords = new EnumMap<StoreType, Integer>(StoreType.class);
 
             for (ActiveLock activeLock : locks) {
+                if (activeLock.resourceType() != ResourceType.PAGE) {
+                    continue;
+                }
                 long resourceId = activeLock.resourceId();
                 var storeType = StoreType.values()[(int) (resourceId >> PAGE_ID_BITS)];
                 int recordsPerPage = storyTypeRecords.computeIfAbsent(

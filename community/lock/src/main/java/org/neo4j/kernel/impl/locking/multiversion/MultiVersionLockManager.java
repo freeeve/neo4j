@@ -19,7 +19,10 @@
  */
 package org.neo4j.kernel.impl.locking.multiversion;
 
+import static org.neo4j.lock.ResourceType.LABEL;
 import static org.neo4j.lock.ResourceType.PAGE;
+import static org.neo4j.lock.ResourceType.RELATIONSHIP_TYPE;
+import static org.neo4j.lock.ResourceType.SCHEMA_NAME;
 
 import java.util.Collection;
 import org.neo4j.configuration.Config;
@@ -114,18 +117,18 @@ public class MultiVersionLockManager implements LockManager {
 
         @Override
         public void acquireExclusive(LockTracer tracer, ResourceType resourceType, long... resourceIds) {
-            if (resourceType != PAGE) {
-                return;
+            switch (resourceType) {
+                case PAGE, RELATIONSHIP_TYPE, LABEL, SCHEMA_NAME -> delegate.acquireExclusive(
+                        tracer, resourceType, resourceIds);
             }
-            delegate.acquireExclusive(tracer, resourceType, resourceIds);
         }
 
         @Override
         public void releaseExclusive(ResourceType resourceType, long... resourceIds) {
-            if (resourceType != PAGE) {
-                return;
+            switch (resourceType) {
+                case PAGE, RELATIONSHIP_TYPE, LABEL, SCHEMA_NAME -> delegate.releaseExclusive(
+                        resourceType, resourceIds);
             }
-            delegate.releaseExclusive(resourceType, resourceIds);
         }
 
         @Override
