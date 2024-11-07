@@ -69,8 +69,6 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
   def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck
   def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck
 
-  def returnVariableCheck(outer: SemanticState): SemanticCheck
-
   /**
    * True if this query part starts with an importing WITH (has incoming arguments)
    */
@@ -220,13 +218,6 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
       SemanticCheck.fromState(state =>
         SemanticCheck.setState(state.recordWorkingGraph(workingGraph))
       ) // resetWorkingGraph
-  }
-
-  override def returnVariableCheck(outer: SemanticState): SemanticCheck = {
-    semanticCheckAbstractInScopeSubquery(
-      partitionedClauses.clausesExceptInitialGraphSelection,
-      checkClauses(_, Some(outer.currentScope.scope))
-    )
   }
 
   override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck = {
@@ -742,9 +733,6 @@ sealed trait Union extends Query {
 
   def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck =
     checkRecursively(_.semanticCheckInSubqueryContext(outer, current))
-
-  override def returnVariableCheck(outer: SemanticState): SemanticCheck =
-    checkRecursively(_.returnVariableCheck(outer))
 
   def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
     checkRecursively(_.semanticCheckImportingWithSubQueryContext(outer))
