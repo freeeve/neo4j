@@ -20,6 +20,7 @@
 package org.neo4j.index.internal.gbptree;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.neo4j.function.Predicates.alwaysFalse;
 import static org.neo4j.test.Race.throwing;
 
 import java.io.IOException;
@@ -80,6 +81,117 @@ public class GBPTreeWithUndefinedValuesTest {
                             .is(new Condition<>(
                                     GBPTreeWithUndefinedValuesTest::evenLong, "seeker should see only even values"));
                 }
+            }
+        }
+    }
+
+    @Test
+    void seekerShouldSkipThroughUndefinedValuesGoingBackward() throws IOException {
+        try (var tree = makeTree(new ConditionalReadLayoutFactory<>(m -> m.longValue() == 1, MutableLong.class))) {
+            try (var writer = tree.writer(CursorContext.NULL_CONTEXT)) {
+                for (int i = 0; i < MAX_NUMBERS; i++) {
+                    writer.put(new MutableLong(i), new MutableLong(i));
+                }
+            }
+
+            try (var seeker = tree.seek(
+                    new MutableLong(Long.MAX_VALUE), new MutableLong(Long.MIN_VALUE), CursorContext.NULL_CONTEXT)) {
+                assertThat(seeker.next()).isTrue();
+                assertThat(seeker.value().longValue()).isEqualTo(1);
+                assertThat(seeker.next()).isFalse();
+            }
+        }
+    }
+
+    @Test
+    void seekerShouldSkipThroughUndefinedValuesGoingBackwardBetweenValues() throws IOException {
+        try (var tree = makeTree(new ConditionalReadLayoutFactory<>(
+                m -> m.longValue() == 1 || m.longValue() == MAX_NUMBERS - 1, MutableLong.class))) {
+            try (var writer = tree.writer(CursorContext.NULL_CONTEXT)) {
+                for (int i = 0; i < MAX_NUMBERS; i++) {
+                    writer.put(new MutableLong(i), new MutableLong(i));
+                }
+            }
+
+            try (var seeker = tree.seek(
+                    new MutableLong(Long.MAX_VALUE), new MutableLong(Long.MIN_VALUE), CursorContext.NULL_CONTEXT)) {
+                assertThat(seeker.next()).isTrue();
+                assertThat(seeker.value().longValue()).isEqualTo(MAX_NUMBERS - 1);
+                assertThat(seeker.next()).isTrue();
+                assertThat(seeker.value().longValue()).isEqualTo(1);
+                assertThat(seeker.next()).isFalse();
+            }
+        }
+    }
+
+    @Test
+    void seekerShouldSkipThroughUndefinedValuesGoingForward() throws IOException {
+        try (var tree = makeTree(
+                new ConditionalReadLayoutFactory<>(m -> m.longValue() == MAX_NUMBERS - 1, MutableLong.class))) {
+            try (var writer = tree.writer(CursorContext.NULL_CONTEXT)) {
+                for (int i = 0; i < MAX_NUMBERS; i++) {
+                    writer.put(new MutableLong(i), new MutableLong(i));
+                }
+            }
+
+            try (var seeker = tree.seek(
+                    new MutableLong(Long.MIN_VALUE), new MutableLong(Long.MAX_VALUE), CursorContext.NULL_CONTEXT)) {
+                assertThat(seeker.next()).isTrue();
+                assertThat(seeker.value().longValue()).isEqualTo(MAX_NUMBERS - 1);
+                assertThat(seeker.next()).isFalse();
+            }
+        }
+    }
+
+    @Test
+    void seekerShouldSkipThroughUndefinedValuesGoingForwardBetweenValue() throws IOException {
+        try (var tree = makeTree(new ConditionalReadLayoutFactory<>(
+                m -> m.longValue() == 1 || m.longValue() == MAX_NUMBERS - 1, MutableLong.class))) {
+            try (var writer = tree.writer(CursorContext.NULL_CONTEXT)) {
+                for (int i = 0; i < MAX_NUMBERS; i++) {
+                    writer.put(new MutableLong(i), new MutableLong(i));
+                }
+            }
+
+            try (var seeker = tree.seek(
+                    new MutableLong(Long.MIN_VALUE), new MutableLong(Long.MAX_VALUE), CursorContext.NULL_CONTEXT)) {
+                assertThat(seeker.next()).isTrue();
+                assertThat(seeker.value().longValue()).isEqualTo(1);
+                assertThat(seeker.next()).isTrue();
+                assertThat(seeker.value().longValue()).isEqualTo(MAX_NUMBERS - 1);
+                assertThat(seeker.next()).isFalse();
+            }
+        }
+    }
+
+    @Test
+    void seekerShouldSkipThroughAllUndefinedValuesGoingBackward() throws IOException {
+        try (var tree = makeTree(new ConditionalReadLayoutFactory<>(alwaysFalse(), MutableLong.class))) {
+            try (var writer = tree.writer(CursorContext.NULL_CONTEXT)) {
+                for (int i = 0; i < MAX_NUMBERS; i++) {
+                    writer.put(new MutableLong(i), new MutableLong(i));
+                }
+            }
+
+            try (var seeker = tree.seek(
+                    new MutableLong(Long.MAX_VALUE), new MutableLong(Long.MIN_VALUE), CursorContext.NULL_CONTEXT)) {
+                assertThat(seeker.next()).isFalse();
+            }
+        }
+    }
+
+    @Test
+    void seekerShouldSkipThroughAllUndefinedValuesGoingForward() throws IOException {
+        try (var tree = makeTree(new ConditionalReadLayoutFactory<>(alwaysFalse(), MutableLong.class))) {
+            try (var writer = tree.writer(CursorContext.NULL_CONTEXT)) {
+                for (int i = 0; i < MAX_NUMBERS; i++) {
+                    writer.put(new MutableLong(i), new MutableLong(i));
+                }
+            }
+
+            try (var seeker = tree.seek(
+                    new MutableLong(Long.MIN_VALUE), new MutableLong(Long.MAX_VALUE), CursorContext.NULL_CONTEXT)) {
+                assertThat(seeker.next()).isFalse();
             }
         }
     }

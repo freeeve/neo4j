@@ -655,7 +655,9 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
                     }
                     if (isResultKey()) {
                         resultOnTrack = true;
-                        return true;
+                        if (isValueDefined()) {
+                            return true;
+                        }
                     }
                     continue;
                 } else { // SLOW, next batch of keys/values needs to be read
@@ -676,14 +678,16 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
                         continue;
                     }
 
-                    if ((seekForward && pos >= keyCount) || (!seekForward && pos <= 0 && !insidePrevKey(cachedIndex))) {
+                    if (seekForward && pos >= keyCount || !seekForward && pos <= 0 && !insidePrevKey(cachedIndex)) {
                         if (goToNextSibling()) {
                             continue; // in the read loop above so that we can continue reading from next sibling
                         }
                     } else if (0 <= pos && pos < keyCount && insideEndRange(exactMatch, 0)) {
                         if (isResultKey()) {
                             resultOnTrack = true;
-                            return true; // which marks this read a hit that user can see
+                            if (isValueDefined()) {
+                                return true; // which marks this read a hit that user can see
+                            }
                         }
                         continue;
                     }
@@ -1096,11 +1100,6 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
         } else if (!first && !insidePrevKey(cachedIndex)) {
             // We've come across a bad read in the middle of a split
             // This is outlined in InternalTreeLogic, skip this value (it's fine)
-            return false;
-        }
-
-        // key found, but value is undefined, skip it
-        if (!isValueDefined()) {
             return false;
         }
         // A hit, it's within the range we search for
