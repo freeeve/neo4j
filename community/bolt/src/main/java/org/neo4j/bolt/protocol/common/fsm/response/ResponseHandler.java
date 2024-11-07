@@ -46,6 +46,8 @@ public interface ResponseHandler extends MetadataConsumer {
     void onStatementPrepared(
             TransactionType transactionType, long statementId, long timeSpentPreparingResults, List<String> fieldNames);
 
+    void onTransactionDatabase(String database);
+
     /**
      * Initiates a stream of records.
      * <p />

@@ -54,6 +54,11 @@ public abstract class AbstractMetadataAwareResponseHandler implements ResponseHa
     }
 
     @Override
+    public void onTransactionDatabase(String database) {
+        this.metadataHandler.onTransactionDatabase(this, database);
+    }
+
+    @Override
     public void onStreamingMetadata(
             long timeSpentStreaming,
             QueryExecutionType executionType,

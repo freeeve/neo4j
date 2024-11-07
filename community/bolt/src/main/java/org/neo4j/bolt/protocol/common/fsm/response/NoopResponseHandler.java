@@ -51,6 +51,9 @@ public final class NoopResponseHandler implements ResponseHandler {
             List<String> fieldNames) {}
 
     @Override
+    public void onTransactionDatabase(String database) {}
+
+    @Override
     public RecordHandler onBeginStreaming(List<String> fieldNames) {
         return NoopRecordHandler.getInstance();
     }

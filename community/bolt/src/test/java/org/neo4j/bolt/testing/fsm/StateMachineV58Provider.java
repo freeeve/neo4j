@@ -19,31 +19,33 @@
  */
 package org.neo4j.bolt.testing.fsm;
 
-import java.util.stream.Stream;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
 import org.neo4j.bolt.protocol.common.BoltProtocol;
+import org.neo4j.bolt.protocol.v58.BoltProtocolV58;
 import org.neo4j.bolt.testing.messages.BoltMessages;
+import org.neo4j.bolt.testing.messages.BoltV58Messages;
 
-public interface StateMachineProvider {
+public class StateMachineV58Provider implements StateMachineProvider {
+    private static final StateMachineProvider INSTANCE = new StateMachineV58Provider();
 
-    static Stream<StateMachineProvider> versions() {
-        return Stream.of(
-                StateMachineV40Provider.getInstance(),
-                StateMachineV41Provider.getInstance(),
-                StateMachineV42Provider.getInstance(),
-                StateMachineV43Provider.getInstance(),
-                StateMachineV44Provider.getInstance(),
-                StateMachineV50Provider.getInstance(),
-                StateMachineV51Provider.getInstance(),
-                StateMachineV52Provider.getInstance(),
-                StateMachineV58Provider.getInstance());
+    private StateMachineV58Provider() {}
+
+    public static StateMachineProvider getInstance() {
+        return INSTANCE;
     }
 
-    default ProtocolVersion version() {
-        return this.messages().version();
+    @Override
+    public ProtocolVersion version() {
+        return BoltProtocolV58.VERSION;
     }
 
-    BoltMessages messages();
+    @Override
+    public BoltMessages messages() {
+        return BoltV58Messages.getInstance();
+    }
 
-    BoltProtocol protocol();
+    @Override
+    public BoltProtocol protocol() {
+        return BoltProtocolV58.getInstance();
+    }
 }

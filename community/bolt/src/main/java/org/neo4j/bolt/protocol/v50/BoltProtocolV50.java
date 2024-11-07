@@ -26,7 +26,12 @@ import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.fsm.response.metadata.MetadataHandler;
 import org.neo4j.bolt.protocol.common.fsm.transition.authentication.AuthenticationStateTransition;
+import org.neo4j.bolt.protocol.common.fsm.transition.authentication.LogoffStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.transition.negotiation.HelloStateTransition;
+import org.neo4j.bolt.protocol.common.fsm.transition.ready.CreateAutocommitStatementStateTransition;
+import org.neo4j.bolt.protocol.common.fsm.transition.ready.CreateTransactionStateTransition;
+import org.neo4j.bolt.protocol.common.fsm.transition.ready.RouteStateTransition;
+import org.neo4j.bolt.protocol.common.fsm.transition.ready.TelemetryStateTransition;
 import org.neo4j.bolt.protocol.common.message.decoder.authentication.DefaultLogoffMessageDecoder;
 import org.neo4j.bolt.protocol.common.message.decoder.authentication.DefaultLogonMessageDecoder;
 import org.neo4j.bolt.protocol.common.message.decoder.generic.TelemetryMessageDecoder;
@@ -64,7 +69,14 @@ public final class BoltProtocolV50 extends AbstractBoltProtocol {
                 .withoutState(States.NEGOTIATION)
                 .withInitialState(
                         States.AUTHENTICATION,
-                        HelloStateTransition.getInstance().andThen(AuthenticationStateTransition.getInstance()));
+                        HelloStateTransition.getInstance().andThen(AuthenticationStateTransition.getInstance()))
+                .withState(
+                        States.READY,
+                        CreateTransactionStateTransition.getInstance(),
+                        RouteStateTransition.getInstance(),
+                        CreateAutocommitStatementStateTransition.getInstance(),
+                        LogoffStateTransition.getInstance(),
+                        TelemetryStateTransition.getInstance());
     }
 
     @Override

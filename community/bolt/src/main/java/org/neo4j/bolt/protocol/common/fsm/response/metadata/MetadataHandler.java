@@ -80,6 +80,13 @@ public interface MetadataHandler {
     void onDatabase(MetadataConsumer consumer, DatabaseReference reference);
 
     /**
+     * Consumes the resolved database after a transaction has been started without a specified database.
+     *
+     * @param name the database name.
+     */
+    void onTransactionDatabase(MetadataConsumer consumer, String name);
+
+    /**
      * Consumes the query statistics for a given statement.
      *
      * @param statistics a set of statistics.

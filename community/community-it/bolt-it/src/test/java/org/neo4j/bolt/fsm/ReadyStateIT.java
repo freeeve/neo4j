@@ -22,6 +22,8 @@ package org.neo4j.bolt.fsm;
 import static org.neo4j.bolt.testing.assertions.ResponseRecorderAssertions.assertThat;
 import static org.neo4j.bolt.testing.assertions.StateMachineAssertions.assertThat;
 
+import java.util.List;
+import org.mockito.Mockito;
 import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
@@ -33,7 +35,10 @@ import org.neo4j.bolt.testing.assertions.MapValueAssertions;
 import org.neo4j.bolt.testing.assertions.StateMachineAssertions;
 import org.neo4j.bolt.testing.messages.BoltMessages;
 import org.neo4j.bolt.testing.response.ResponseRecorder;
+import org.neo4j.bolt.tx.Transaction;
+import org.neo4j.bolt.tx.statement.Statement;
 import org.neo4j.kernel.api.exceptions.Status;
+import org.neo4j.values.storable.Values;
 
 @CommunityStateMachineTestExtension
 class ReadyStateIT {
@@ -83,8 +88,8 @@ class ReadyStateIT {
         shouldCloseConnectionOnMessage(fsm, messages.goodbye());
     }
 
-    @StateMachineTest
-    void shouldMoveToAutoCommitOnRun_succ(
+    @StateMachineTest(until = @Version(major = 5, minor = 7))
+    void shouldMoveToAutoCommitOnRunNoDb_succ(
             @Authenticated StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws Throwable {
         // When
         fsm.process(messages.run("CREATE (n {k:'k'}) RETURN n.k"), recorder);
@@ -92,19 +97,116 @@ class ReadyStateIT {
         // Then
         assertThat(recorder).hasSuccessResponse(meta -> MapValueAssertions.assertThat(meta)
                 .containsKey("fields")
-                .containsKey("t_first"));
+                .containsKey("t_first")
+                .doesNotContainKey("db"));
+
+        StateMachineAssertions.assertThat(fsm).isInState(States.AUTO_COMMIT);
+    }
+
+    static void mockTransaction(StateMachine fsm, String homeDb) throws Throwable {
+        var txMock = Mockito.mock(Transaction.class);
+        var statementMock = Mockito.mock(Statement.class);
+        Mockito.doReturn(homeDb).when(fsm.connection()).selectedDefaultDatabase();
+        Mockito.doReturn(txMock)
+                .when(fsm.connection())
+                .beginTransaction(
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any());
+        Mockito.doReturn(statementMock).when(txMock).run(Mockito.any(), Mockito.any());
+        Mockito.doReturn(1L).when(statementMock).id();
+        Mockito.doReturn(List.of("coolField")).when(statementMock).fieldNames();
+    }
+
+    @StateMachineTest(since = @Version(major = 5, minor = 8))
+    void shouldMoveToAutoCommitOnRunWithDb_succ(
+            @Authenticated StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws Throwable {
+        // Given
+        final var expectedHomeDb = "neo5j";
+        mockTransaction(fsm, expectedHomeDb);
+
+        // When
+        fsm.process(messages.run("CREATE (n {k:'k'}) RETURN n.k"), recorder);
+
+        // Then
+        assertThat(recorder).hasSuccessResponse(meta -> MapValueAssertions.assertThat(meta)
+                .containsKey("fields")
+                .containsKey("t_first")
+                .containsEntry("db", Values.of(expectedHomeDb)));
+
+        Mockito.verify(fsm.connection()).resolveDefaultDatabase();
 
         StateMachineAssertions.assertThat(fsm).isInState(States.AUTO_COMMIT);
     }
 
     @StateMachineTest
-    void shouldMoveToInTransactionOnBegin_succ(
+    void shouldMoveToAutoCommitOnRunOnSelectedDb_succ(
+            @Authenticated StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws Throwable {
+        // Given
+        mockTransaction(fsm, "someOtherDb");
+
+        // When
+        fsm.process(messages.run("CREATE (n {k:'k'}) RETURN n.k", "neo5j"), recorder);
+
+        // Then
+        assertThat(recorder).hasSuccessResponse(meta -> MapValueAssertions.assertThat(meta)
+                .containsKey("fields")
+                .containsKey("t_first")
+                .doesNotContainKey("db"));
+
+        Mockito.verify(fsm.connection(), Mockito.never()).resolveDefaultDatabase();
+
+        StateMachineAssertions.assertThat(fsm).isInState(States.AUTO_COMMIT);
+    }
+
+    @StateMachineTest(until = @Version(major = 5, minor = 7))
+    void shouldMoveToInTransactionOnBeginNoDb_succ(
             @Authenticated StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws Throwable {
         // When
         fsm.process(messages.begin(), recorder);
 
         // Then
-        assertThat(recorder).hasSuccessResponse();
+        assertThat(recorder)
+                .hasSuccessResponse(meta -> MapValueAssertions.assertThat(meta).doesNotContainKey("db"));
+
+        Mockito.verify(fsm.connection(), Mockito.never()).resolveDefaultDatabase();
+
+        StateMachineAssertions.assertThat(fsm).isInState(States.IN_TRANSACTION);
+    }
+
+    @StateMachineTest(since = @Version(major = 5, minor = 8))
+    void shouldMoveToInTransactionWithBeginWithDb_succ(
+            @Authenticated StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws Throwable {
+        // When
+        fsm.process(messages.begin(), recorder);
+
+        // Then
+        assertThat(recorder).hasSuccessResponse(meta -> MapValueAssertions.assertThat(meta)
+                .containsEntry("db", Values.of(fsm.connection().selectedDefaultDatabase())));
+
+        Mockito.verify(fsm.connection()).resolveDefaultDatabase();
+
+        StateMachineAssertions.assertThat(fsm).isInState(States.IN_TRANSACTION);
+    }
+
+    @StateMachineTest()
+    void shouldMoveToInTransactionWithBeginOnSelectedDb_succ(
+            @Authenticated StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws Throwable {
+        // Given
+        mockTransaction(fsm, "someOtherDb");
+
+        // When
+        fsm.process(messages.begin("neo4j"), recorder);
+
+        // Then
+        assertThat(recorder)
+                .hasSuccessResponse(meta -> MapValueAssertions.assertThat(meta).doesNotContainKey("db"));
+
+        Mockito.verify(fsm.connection(), Mockito.never()).resolveDefaultDatabase();
 
         StateMachineAssertions.assertThat(fsm).isInState(States.IN_TRANSACTION);
     }

@@ -29,6 +29,7 @@ import org.neo4j.bolt.protocol.common.fsm.transition.authentication.LogoffStateT
 import org.neo4j.bolt.protocol.common.fsm.transition.negotiation.HelloStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.transition.ready.CreateAutocommitStatementStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.transition.ready.CreateTransactionStateTransition;
+import org.neo4j.bolt.protocol.common.fsm.transition.ready.ResolveHomeDatabaseStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.transition.ready.RouteStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.transition.ready.TelemetryStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.transition.transaction.CommitTransactionalStateTransition;
@@ -95,9 +96,11 @@ public abstract class AbstractBoltProtocol implements BoltProtocol {
                                 .also(AppendAdvertisedAddressOnStateTransition.getInstance()))
                 .withState(
                         States.READY,
-                        CreateTransactionStateTransition.getInstance(),
+                        ResolveHomeDatabaseStateTransition.getInstanceForBegin()
+                                .andThen(CreateTransactionStateTransition.getInstance()),
                         RouteStateTransition.getInstance(),
-                        CreateAutocommitStatementStateTransition.getInstance(),
+                        ResolveHomeDatabaseStateTransition.getInstanceForAutoCommit()
+                                .andThen(CreateAutocommitStatementStateTransition.getInstance()),
                         LogoffStateTransition.getInstance(),
                         TelemetryStateTransition.getInstance())
                 .withState(

@@ -80,6 +80,9 @@ public final class CreateAutocommitStatementStateTransition extends AbstractStat
             long end = ctx.clock().millis();
 
             handler.onStatementPrepared(TransactionType.IMPLICIT, statement.id(), end - start, statement.fieldNames());
+            if (message.databaseName() == null) {
+                handler.onTransactionDatabase(ctx.connection().selectedDefaultDatabase());
+            }
         } catch (TransactionException ex) {
             throw new TransactionStateTransitionException(ex);
         }

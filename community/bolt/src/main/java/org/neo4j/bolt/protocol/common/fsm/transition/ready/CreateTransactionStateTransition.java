@@ -68,6 +68,9 @@ public final class CreateTransactionStateTransition extends AbstractStateTransit
                             message.transactionTimeout(),
                             message.transactionMetadata(),
                             message.notificationsConfig());
+            if (message.databaseName() == null) {
+                handler.onTransactionDatabase(ctx.connection().selectedDefaultDatabase());
+            }
         } catch (TransactionException ex) {
             throw new TransactionStateTransitionException(ex);
         }

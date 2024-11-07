@@ -26,6 +26,8 @@ import org.mockito.Mockito;
 import org.neo4j.bolt.fsm.Context;
 import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.fsm.state.transition.StateTransition;
+import org.neo4j.bolt.negotiation.ProtocolVersion;
+import org.neo4j.bolt.protocol.common.BoltProtocol;
 import org.neo4j.bolt.protocol.common.connector.connection.ConnectionHandle;
 import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
@@ -34,6 +36,7 @@ import org.neo4j.bolt.testing.mock.ConnectionMockFactory;
 
 public abstract class AbstractStateTransitionTest<R extends RequestMessage, T extends StateTransition<R>> {
 
+    protected BoltProtocol protocol;
     protected Context context;
     protected ConnectionHandle connection;
     protected Clock clock;
@@ -43,11 +46,14 @@ public abstract class AbstractStateTransitionTest<R extends RequestMessage, T ex
 
     @BeforeEach
     protected void prepareContext() throws Exception {
+        this.protocol = Mockito.mock(BoltProtocol.class);
         this.context = Mockito.mock(Context.class);
         this.connection = ConnectionMockFactory.newInstance();
         this.clock = Mockito.mock(Clock.class);
         this.responseHandler = Mockito.mock(ResponseHandler.class);
 
+        Mockito.doReturn(new ProtocolVersion(5, 8)).when(this.protocol).version();
+        Mockito.doReturn(this.protocol).when(this.connection).protocol();
         Mockito.doReturn(this.connection).when(this.context).connection();
         Mockito.doReturn(this.clock).when(this.context).clock();
         Mockito.doReturn(this.initialState()).when(this.context).state();

@@ -69,4 +69,9 @@ public abstract class AbstractLegacyMetadataHandler extends DefaultMetadataHandl
 
         handler.onMetadata("notifications", children.build());
     }
+
+    @Override
+    public void onTransactionDatabase(MetadataConsumer handler, String name) {
+        // not available pre Bolt V58
+    }
 }

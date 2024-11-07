@@ -106,6 +106,11 @@ public class DefaultMetadataHandler implements MetadataHandler {
     }
 
     @Override
+    public void onTransactionDatabase(MetadataConsumer handler, String name) {
+        handler.onMetadata("db", Values.stringValue(name));
+    }
+
+    @Override
     public void onQueryStatistics(MetadataConsumer handler, QueryStatistics statistics) {
         // the statistics key is only present when statistics for at least one known type of update
         // are populated

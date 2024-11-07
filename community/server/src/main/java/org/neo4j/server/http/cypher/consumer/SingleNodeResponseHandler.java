@@ -56,6 +56,9 @@ public class SingleNodeResponseHandler implements ResponseHandler {
             List<String> fieldNames) {}
 
     @Override
+    public void onTransactionDatabase(String database) {}
+
+    @Override
     public RecordHandler onBeginStreaming(List<String> fieldNames) {
         return new SingleNodeRecordHandler(cachingWriter, nodeConsumer);
     }

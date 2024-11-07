@@ -50,6 +50,7 @@ class CreateAutocommitStatementStateTransitionTest
 
     private Transaction transaction;
     private Statement statement;
+    private final String homeDatabaseName = "coolHomeDb";
 
     @Override
     protected CreateAutocommitStatementStateTransition getTransition() {
@@ -65,13 +66,13 @@ class CreateAutocommitStatementStateTransitionTest
                 .when(this.connection)
                 .beginTransaction(
                         Mockito.eq(TransactionType.IMPLICIT),
-                        Mockito.anyString(),
+                        Mockito.nullable(String.class),
                         Mockito.any(),
                         Mockito.anyList(),
                         Mockito.any(),
                         Mockito.anyMap(),
                         Mockito.any());
-
+        Mockito.doReturn(this.homeDatabaseName).when(this.connection).selectedDefaultDatabase();
         Mockito.doReturn(this.statement).when(this.transaction).run(Mockito.anyString(), Mockito.any());
     }
 
@@ -85,7 +86,7 @@ class CreateAutocommitStatementStateTransitionTest
                 .flatMap(statement -> Stream.of(Collections.<String>emptyList(), List.of("bookmark-1234"))
                         .flatMap(bookmarks -> Stream.of(null, Duration.ofSeconds(42))
                                 .flatMap(timeout -> Stream.of(AccessMode.values())
-                                        .flatMap(mode -> Stream.of("neo4j", "foo")
+                                        .flatMap(mode -> Stream.of(null, "neo4j", "foo")
                                                 .flatMap(db -> Stream.of(null, "bob")
                                                         .map(impersonatedUser -> new TestParameters(
                                                                 statement,
@@ -106,7 +107,7 @@ class CreateAutocommitStatementStateTransitionTest
                             null,
                             AccessMode.WRITE,
                             Collections.emptyMap(),
-                            "neo5j",
+                            parameters.databaseName,
                             parameters.impersonatedUser,
                             null);
 
@@ -120,6 +121,7 @@ class CreateAutocommitStatementStateTransitionTest
                     if (parameters.impersonatedUser != null) {
                         inOrder.verify(this.connection).impersonate(parameters.impersonatedUser);
                     }
+                    Mockito.verify(this.connection, Mockito.never()).resolveDefaultDatabase();
 
                     inOrder.verify(this.connection)
                             .beginTransaction(
@@ -131,7 +133,7 @@ class CreateAutocommitStatementStateTransitionTest
                                     request.transactionMetadata(),
                                     null);
 
-                    inOrder.verify(this.transaction).run(parameters.statement, MapValue.EMPTY);
+                    inOrder.verify(this.transaction).run(parameters.statement, request.params());
 
                     inOrder.verify(this.statement).id();
                     inOrder.verify(this.statement).fieldNames();
@@ -142,6 +144,12 @@ class CreateAutocommitStatementStateTransitionTest
                                     Mockito.anyLong(),
                                     Mockito.anyLong(),
                                     Mockito.any());
+
+                    if (parameters.databaseName == null) {
+                        inOrder.verify(this.responseHandler).onTransactionDatabase(this.homeDatabaseName);
+                    } else {
+                        Mockito.verify(this.responseHandler, Mockito.never()).onTransactionDatabase(Mockito.any());
+                    }
 
                     inOrder.verifyNoMoreInteractions();
                 }));
@@ -225,7 +233,7 @@ class CreateAutocommitStatementStateTransitionTest
                     + accessMode + ", bookmarks="
                     + bookmarks + ", timeout="
                     + timeout + ", impersonatedUser='"
-                    + impersonatedUser + '\'' + ", metadata="
+                    + impersonatedUser + '\'' + '\'' + ", metadata="
                     + metadata;
         }
     }

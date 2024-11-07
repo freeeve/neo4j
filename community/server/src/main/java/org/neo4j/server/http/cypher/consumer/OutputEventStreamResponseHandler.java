@@ -78,6 +78,9 @@ public class OutputEventStreamResponseHandler extends AbstractMetadataAwareRespo
             List<String> fieldNames) {}
 
     @Override
+    public void onTransactionDatabase(String database) {}
+
+    @Override
     public RecordHandler onBeginStreaming(List<String> fieldNames) {
         outputEventStream.writeStatementStart(statement, fieldNames);
         return new OutputEventStreamRecordHandler(fieldNames, outputEventStream, valueMapper);

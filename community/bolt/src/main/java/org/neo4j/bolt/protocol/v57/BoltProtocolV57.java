@@ -23,7 +23,14 @@ import org.neo4j.bolt.fsm.StateMachineConfiguration;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
 import org.neo4j.bolt.protocol.AbstractBoltProtocol;
 import org.neo4j.bolt.protocol.common.fsm.States;
+import org.neo4j.bolt.protocol.common.fsm.response.metadata.MetadataHandler;
 import org.neo4j.bolt.protocol.common.fsm.transition.authentication.AuthenticationStateTransition;
+import org.neo4j.bolt.protocol.common.fsm.transition.authentication.LogoffStateTransition;
+import org.neo4j.bolt.protocol.common.fsm.transition.ready.CreateAutocommitStatementStateTransition;
+import org.neo4j.bolt.protocol.common.fsm.transition.ready.CreateTransactionStateTransition;
+import org.neo4j.bolt.protocol.common.fsm.transition.ready.RouteStateTransition;
+import org.neo4j.bolt.protocol.common.fsm.transition.ready.TelemetryStateTransition;
+import org.neo4j.bolt.protocol.v56.metadata.MetadataHandlerV56;
 
 public final class BoltProtocolV57 extends AbstractBoltProtocol {
     public static final ProtocolVersion VERSION = new ProtocolVersion(5, 7);
@@ -43,6 +50,19 @@ public final class BoltProtocolV57 extends AbstractBoltProtocol {
 
     @Override
     protected StateMachineConfiguration.Factory createStateMachine() {
-        return super.createStateMachine().withState(States.AUTHENTICATION, AuthenticationStateTransition.getInstance());
+        return super.createStateMachine()
+                .withState(States.AUTHENTICATION, AuthenticationStateTransition.getInstance())
+                .withState(
+                        States.READY,
+                        CreateTransactionStateTransition.getInstance(),
+                        RouteStateTransition.getInstance(),
+                        CreateAutocommitStatementStateTransition.getInstance(),
+                        LogoffStateTransition.getInstance(),
+                        TelemetryStateTransition.getInstance());
+    }
+
+    @Override
+    public MetadataHandler metadataHandler() {
+        return MetadataHandlerV56.getInstance();
     }
 }

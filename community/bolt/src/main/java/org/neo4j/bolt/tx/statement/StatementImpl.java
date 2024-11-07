@@ -363,6 +363,9 @@ public class StatementImpl implements Statement {
         }
 
         @Override
+        public void onTransactionDatabase(String database) {}
+
+        @Override
         public void onMetadata(String key, AnyValue value) {
             // TODO: Technically unused - Hide MetadataConsumer from this context
             this.delegate.onMetadata(key, value);

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
@@ -43,10 +44,16 @@ import org.neo4j.kernel.api.exceptions.Status.Request;
 
 class CreateTransactionalStateTransitionTest
         extends AbstractStateTransitionTest<BeginMessage, CreateTransactionStateTransition> {
+    private final String homeDatabaseName = "coolHomeDb";
 
     @Override
     protected CreateTransactionStateTransition getTransition() {
         return CreateTransactionStateTransition.getInstance();
+    }
+
+    @BeforeEach
+    void prepareDefaultDatabase() {
+        Mockito.doReturn(this.homeDatabaseName).when(this.connection).selectedDefaultDatabase();
     }
 
     /**
@@ -56,7 +63,8 @@ class CreateTransactionalStateTransitionTest
     @TestFactory
     Stream<DynamicTest> shouldProcessMessage() {
         return Stream.of(TransactionType.values())
-                .flatMap(type -> Stream.of("neo4j", "somedb").flatMap(db -> Stream.of(AccessMode.READ, AccessMode.WRITE)
+                .flatMap(type -> Stream.of(null, "neo4j", "somedb").flatMap(db -> Stream.of(
+                                AccessMode.READ, AccessMode.WRITE)
                         .flatMap(accessMode -> Stream.of(Collections.<String>emptyList(), List.of("bookmark-1234"))
                                 .flatMap(bookmarks -> Stream.of(null, Duration.ofSeconds(42))
                                         .flatMap(timeout -> Stream.of(null, "bob", "alice")
@@ -70,6 +78,8 @@ class CreateTransactionalStateTransitionTest
                                                         Collections.emptyMap())))))))
                 .map(parameters -> DynamicTest.dynamicTest(parameters.toString(), () -> {
                     this.prepareContext();
+                    this.prepareDefaultDatabase();
+                    ;
 
                     var request = new BeginMessage(
                             parameters.bookmarks,
@@ -85,11 +95,13 @@ class CreateTransactionalStateTransitionTest
 
                     Assertions.assertThat(targetState).isEqualTo(States.IN_TRANSACTION);
 
-                    var inOrder = Mockito.inOrder(this.connection);
+                    var inOrder = Mockito.inOrder(this.connection, this.responseHandler);
 
                     if (parameters.impersonatedUser != null) {
                         inOrder.verify(this.connection).impersonate(parameters.impersonatedUser());
                     }
+
+                    Mockito.verify(this.connection, Mockito.never()).resolveDefaultDatabase();
 
                     inOrder.verify(this.connection)
                             .beginTransaction(
@@ -100,6 +112,13 @@ class CreateTransactionalStateTransitionTest
                                     parameters.timeout,
                                     parameters.metadata,
                                     null);
+
+                    if (parameters.databaseName == null) {
+                        inOrder.verify(this.responseHandler).onTransactionDatabase(this.homeDatabaseName);
+                    } else {
+                        Mockito.verify(this.responseHandler, Mockito.never()).onTransactionDatabase(Mockito.any());
+                    }
+
                     inOrder.verifyNoMoreInteractions();
                 }));
     }
@@ -162,7 +181,7 @@ class CreateTransactionalStateTransitionTest
                     + accessMode + ", bookmarks="
                     + bookmarks + ", timeout="
                     + timeout + ", impersonatedUser='"
-                    + impersonatedUser + '\'' + ", metadata="
+                    + impersonatedUser + '\'' + '\'' + ", metadata="
                     + metadata;
         }
     }

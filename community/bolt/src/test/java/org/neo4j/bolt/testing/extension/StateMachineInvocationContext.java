@@ -68,7 +68,9 @@ public class StateMachineInvocationContext implements TestTemplateInvocationCont
                 new StateMachineParameterResolver(this.dependencyProvider, this.fsmProvider, this.connectionRegistry),
                 new ConnectionParameterResolver(this.connectionRegistry),
                 new StaticParameterResolver<>(ConnectionProvider.class, this.connectionRegistry),
-                new SupplierParameterResolver<>(ResponseRecorder.class, () -> new ResponseRecorder()),
+                new SupplierParameterResolver<>(
+                        ResponseRecorder.class,
+                        () -> new ResponseRecorder(this.fsmProvider.protocol().metadataHandler())),
                 new SupplierParameterResolver<>(
                         TransactionIdProvider.class, ctx -> new TransactionIdProvider(ctx, this.dependencyProvider)),
                 new SupplierParameterResolver(TransactionManager.class, ctx -> this.dependencyProvider
