@@ -25,7 +25,7 @@ import java.io.IOException;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
-import org.neo4j.kernel.impl.transaction.log.files.LogFile;
+import org.neo4j.kernel.impl.transaction.log.files.VersionedFile;
 import org.neo4j.memory.MemoryTracker;
 
 public final class ReadAheadUtils {
@@ -101,7 +101,7 @@ public final class ReadAheadUtils {
      * @param memoryTracker memory tracker for the read-ahead buffer
      * @return the appropriate read-ahead checksum channel for the log-version channel provided
      */
-    public static ReadableLogChannel newChannel(LogFile logFile, long version, MemoryTracker memoryTracker)
+    public static ReadableLogChannel newChannel(VersionedFile logFile, long version, MemoryTracker memoryTracker)
             throws IOException {
         return newChannel(logFile, version, NO_MORE_CHANNELS, memoryTracker);
     }
@@ -115,7 +115,7 @@ public final class ReadAheadUtils {
      * @return the appropriate read-ahead checksum channel for the log-version channel provided
      */
     public static ReadableLogChannel newChannel(
-            LogFile logFile, long version, LogVersionBridge logVersionBridge, MemoryTracker memoryTracker)
+            VersionedFile logFile, long version, LogVersionBridge logVersionBridge, MemoryTracker memoryTracker)
             throws IOException {
         final var channel = logFile.openForVersion(version);
         LogFormat formatVersion = channel.getLogFormatVersion();

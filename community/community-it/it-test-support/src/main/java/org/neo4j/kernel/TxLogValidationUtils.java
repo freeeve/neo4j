@@ -31,8 +31,6 @@ import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
-import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
-import org.neo4j.kernel.impl.transaction.log.ReadAheadUtils;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.ReaderLogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
@@ -227,13 +225,9 @@ public class TxLogValidationUtils {
             int expectedNbrCheckpoints)
             throws IOException {
         int nbrCheckpoints = 0;
-        PhysicalLogVersionedStoreChannel logChannel = checkpointFile.openForVersion(logVersion);
-        logChannel.position(0);
-        LogHeader logHeader = LogHeaderReader.readLogHeader(logChannel, true, null, EmptyMemoryTracker.INSTANCE);
-        logChannel.position(logHeader.getStartPosition().getByteOffset());
 
-        try (ReadableLogChannel reader =
-                ReadAheadUtils.newChannel(logChannel, bridge, logHeader, EmptyMemoryTracker.INSTANCE, false)) {
+        try (ReadableLogChannel reader = checkpointFile.getReader(
+                checkpointFile.extractHeader(logVersion).getStartPosition(), bridge)) {
             LogEntryReader entryReader = new VersionAwareLogEntryReader(
                     commandReaderFactory,
                     new BinarySupportedKernelVersions(Config.defaults(

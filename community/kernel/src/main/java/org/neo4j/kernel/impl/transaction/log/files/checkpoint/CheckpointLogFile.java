@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log.files.checkpoint;
 
 import static java.util.Collections.emptyList;
+import static org.neo4j.kernel.impl.transaction.log.LogVersionBridge.NO_MORE_CHANNELS;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.BIGGEST_HEADER;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
 import static org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointInfoFactory.ofLogEntry;
@@ -144,9 +145,8 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
             FileSystemAbstraction fileSystem = context.getFileSystem();
             var header = readLogHeader(fileSystem, currentCheckpointFile, false, context.getMemoryTracker());
             if (header != null) {
-                try (var channel = channelAllocator.openLogChannel(currentVersion);
-                        var reader =
-                                ReadAheadUtils.newChannel(channel, logHeader(channel), context.getMemoryTracker());
+                try (var reader = ReadAheadUtils.newChannel(
+                                this, currentVersion, NO_MORE_CHANNELS, context.getMemoryTracker());
                         var logEntryCursor = new LogEntryCursor(checkpointReader, reader)) {
                     log.info("Scanning log file with version %d for checkpoint entries", currentVersion);
                     try {
@@ -262,9 +262,7 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
         var checkpoints = new ArrayList<CheckpointInfo>();
 
         final var readerBridge = ReaderLogVersionBridge.forFile(this);
-        try (var channel = channelAllocator.openLogChannel(currentVersion);
-                var reader = ReadAheadUtils.newChannel(
-                        channel, readerBridge, logHeader(channel), context.getMemoryTracker());
+        try (var reader = ReadAheadUtils.newChannel(this, currentVersion, readerBridge, context.getMemoryTracker());
                 var logEntryCursor = new LogEntryCursor(checkpointReader, reader)) {
             log.info("Start scanning log files from version %d for checkpoint entries", currentVersion);
             readCheckpoints(reader, logEntryCursor, checkpoints);
@@ -286,10 +284,6 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
             checkpoints.add(ofLogEntry(
                     checkpoint, lastCheckpointLocation, lastLocation, lastLocation, context, logFiles.getLogFile()));
         }
-    }
-
-    private LogHeader logHeader(PhysicalLogVersionedStoreChannel channel) throws IOException {
-        return channelAllocator.readLogHeaderForVersion(channel.getLogVersion());
     }
 
     @Override
