@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.impl.util;
 
+import static org.neo4j.kernel.impl.util.TransactionLogChecker.FileType.CHECKPOINT_LOG;
+import static org.neo4j.kernel.impl.util.TransactionLogChecker.FileType.TX_LOG;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.io.IOException;
@@ -34,16 +36,16 @@ import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.LogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
+import org.neo4j.kernel.impl.transaction.log.entry.AbstractVersionAwareLogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
-import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
-import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
+import org.neo4j.kernel.impl.transaction.log.files.VersionedFile;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
@@ -61,53 +63,74 @@ public class TransactionLogChecker {
             throws IOException, InconsistentTransactionLogException {
         LogFiles logFiles = LogFilesBuilder.readOnlyBuilder(layout, fs, KernelVersionProvider.THROWING_PROVIDER)
                 .build();
-        LogFile logFile = logFiles.getLogFile();
 
         Optional<StorageEngineFactory> storageEngineFactory = StorageEngineFactory.selectStorageEngine(fs, layout);
         CommandReaderFactory commandReaderFactory = storageEngineFactory
                 .orElseThrow(() -> new IllegalStateException("Couldn't figure out storage engine from store files"))
                 .commandReaderFactory();
 
+        verifyLogFiles(fs, config, logFiles.getLogFile(), commandReaderFactory, TX_LOG);
+        verifyLogFiles(fs, config, logFiles.getCheckpointFile(), commandReaderFactory, CHECKPOINT_LOG);
+    }
+
+    private static void verifyLogFiles(
+            FileSystemAbstraction fs,
+            Config config,
+            VersionedFile logFile,
+            CommandReaderFactory commandReaderFactory,
+            FileType fileType)
+            throws IOException {
+
         KernelVersion versionSeen = KernelVersion.EARLIEST;
         for (long i = logFile.getLowestLogVersion(); i <= logFile.getHighestLogVersion(); i++) {
-            LogHeader logHeader = LogHeaderReader.readLogHeader(
-                    fs, logFiles.getLogFile().getLogFileForVersion(i), EmptyMemoryTracker.INSTANCE);
+            LogHeader logHeader =
+                    LogHeaderReader.readLogHeader(fs, logFile.getLogFileForVersion(i), EmptyMemoryTracker.INSTANCE);
             if (logHeader == null) {
                 throw new InconsistentTransactionLogException(
-                        "Could not read log header of log file version %d".formatted(i));
+                        "Could not read log header of %s file version %d".formatted(fileType.lowerCase, i));
             }
 
             KernelVersion logHeaderKernelVersion = logHeader.getKernelVersion();
             if (versionLessThan(logHeaderKernelVersion, versionSeen)) {
                 throw new InconsistentTransactionLogException(
-                        "Log file version %d contains entry with lower kernel version (%s) than version seen in file with version %d (%s)"
-                                .formatted(i, logHeaderKernelVersion.name(), i - 1, versionSeen.name()));
+                        "%s file version %d contains entry with lower kernel version (%s) than version seen in file with version %d (%s)"
+                                .formatted(
+                                        fileType.capitalized,
+                                        i,
+                                        logHeaderKernelVersion.name(),
+                                        i - 1,
+                                        versionSeen.name()));
             }
 
             versionSeen = verifyVersionInOneFile(
-                    logHeader, logFile, logHeaderKernelVersion, versionSeen, commandReaderFactory, config);
+                    logHeader, logFile, logHeaderKernelVersion, versionSeen, commandReaderFactory, config, fileType);
         }
     }
 
     private static KernelVersion verifyVersionInOneFile(
             LogHeader logHeader,
-            LogFile logFile,
+            VersionedFile logFile,
             KernelVersion logHeaderKernelVersion,
             KernelVersion previouslySeenVersion,
             CommandReaderFactory commandReaderFactory,
-            Config config)
+            Config config,
+            FileType fileType)
             throws IOException {
         KernelVersion versionSeenInFile = logHeader.getLogFormatVersion().usesSegments()
-                ? verifyVersionInSegmentedFile(logFile, logHeader, logHeaderKernelVersion)
-                : verifyVersionInOldFile(logFile, logHeader, logHeaderKernelVersion, commandReaderFactory, config);
+                ? verifyVersionInSegmentedFile(logFile, logHeader, logHeaderKernelVersion, fileType)
+                : verifyVersionInOldFile(
+                        logFile, logHeader, logHeaderKernelVersion, commandReaderFactory, config, fileType);
 
         // If there was no version in the header we have only checked that the file contains a single version so far.
         // Let's check that the version in the file is at least as great as the version seen in the previous file.
         if (logHeaderKernelVersion == null && versionLessThan(versionSeenInFile, previouslySeenVersion)) {
             throw new InconsistentTransactionLogException(
-                    "Log file version %d contains entry with lower kernel version (%s) than version seen in previous file (%s)"
+                    "%s file version %d contains entry with lower kernel version (%s) than version seen in previous file (%s)"
                             .formatted(
-                                    logHeader.getLogVersion(), versionSeenInFile.name(), previouslySeenVersion.name()));
+                                    fileType.capitalized,
+                                    logHeader.getLogVersion(),
+                                    versionSeenInFile.name(),
+                                    previouslySeenVersion.name()));
         }
         // File with just header is allowed. Keep the latest version we've seen for further comparisons if that happens.
         return versionSeenInFile != null
@@ -119,9 +142,10 @@ public class TransactionLogChecker {
         return version != null && comparable != null && version.isLessThan(comparable);
     }
 
-    public static KernelVersion verifyVersionInSegmentedFile(
-            LogFile logFile, LogHeader logHeader, KernelVersion expectedVersion) throws IOException {
-        PhysicalLogVersionedStoreChannel logChannel = logFile.openForVersion(logHeader.getLogVersion(), false);
+    private static KernelVersion verifyVersionInSegmentedFile(
+            VersionedFile logFile, LogHeader logHeader, KernelVersion expectedVersion, FileType fileType)
+            throws IOException {
+        PhysicalLogVersionedStoreChannel logChannel = logFile.openForVersion(logHeader.getLogVersion());
         logChannel.position(logHeader.getStartPosition().getByteOffset());
 
         try (VersionCheckingEnvelopeReadChannel versionCheckingEnvelopeReadChannel =
@@ -131,11 +155,12 @@ public class TransactionLogChecker {
                         LogVersionBridge.NO_MORE_CHANNELS,
                         INSTANCE,
                         false,
-                        expectedVersion)) {
+                        expectedVersion,
+                        fileType)) {
 
             if (findEnvelopeVersionErrors(versionCheckingEnvelopeReadChannel)) {
-                throw new InconsistentTransactionLogException(
-                        "Log file version %d malformed, could not read until end".formatted(logHeader.getLogVersion()));
+                throw new InconsistentTransactionLogException("%s file version %d malformed, could not read until end"
+                        .formatted(fileType.capitalized, logHeader.getLogVersion()));
             }
             return versionCheckingEnvelopeReadChannel.expectedVersion;
         }
@@ -156,12 +181,13 @@ public class TransactionLogChecker {
         return true;
     }
 
-    public static KernelVersion verifyVersionInOldFile(
-            LogFile logFile,
+    private static KernelVersion verifyVersionInOldFile(
+            VersionedFile logFile,
             LogHeader logHeader,
             KernelVersion expectedVersion,
             CommandReaderFactory commandReaderFactory,
-            Config config)
+            Config config,
+            FileType fileType)
             throws IOException {
         KernelVersion seenVersion = expectedVersion;
         try (ReadableLogChannel reader =
@@ -171,14 +197,18 @@ public class TransactionLogChecker {
 
             LogEntry entry;
             while ((entry = entryReader.readLogEntry(reader)) != null) {
-                if (entry instanceof LogEntryStart start) {
-                    KernelVersion startVersion = start.kernelVersion();
+                if (entry instanceof AbstractVersionAwareLogEntry versionedEntry) {
+                    KernelVersion startVersion = versionedEntry.kernelVersion();
                     if (seenVersion == null) {
                         seenVersion = startVersion;
                     } else if (seenVersion != startVersion) {
                         throw new InconsistentTransactionLogException(
-                                "Log file version %d contains entry with other kernel version (%s) than version seen earlier in the file (%s)"
-                                        .formatted(logHeader.getLogVersion(), startVersion.name(), seenVersion.name()));
+                                "%s file version %d contains entry with other kernel version (%s) than version seen earlier in the file (%s)"
+                                        .formatted(
+                                                fileType.capitalized,
+                                                logHeader.getLogVersion(),
+                                                startVersion.name(),
+                                                seenVersion.name()));
                     }
                 }
             }
@@ -191,6 +221,7 @@ public class TransactionLogChecker {
         private final long logVersion;
         private KernelVersion expectedVersion;
         private byte expectedVersionByte;
+        private final FileType fileType;
 
         protected VersionCheckingEnvelopeReadChannel(
                 LogVersionedStoreChannel startingChannel,
@@ -198,12 +229,14 @@ public class TransactionLogChecker {
                 LogVersionBridge bridge,
                 MemoryTracker memoryTracker,
                 boolean raw,
-                KernelVersion expectedVersion)
+                KernelVersion expectedVersion,
+                FileType fileType)
                 throws IOException {
             super(startingChannel, segmentBlockSize, bridge, memoryTracker, raw);
             this.logVersion = startingChannel.getLogVersion();
             this.expectedVersion = expectedVersion;
             this.expectedVersionByte = expectedVersion != null ? expectedVersion.version() : -1;
+            this.fileType = fileType;
         }
 
         @Override
@@ -214,13 +247,27 @@ public class TransactionLogChecker {
                 expectedVersionByte = payloadVersion;
             } else if (expectedVersionByte != payloadVersion) {
                 throw new InconsistentTransactionLogException(
-                        "Log file version %d contains entry with other kernel version (%s) than version seen earlier in the file (%s)"
+                        "%s file version %d contains entry with other kernel version (%s) than version seen earlier in the file (%s)"
                                 .formatted(
+                                        fileType.capitalized,
                                         logVersion,
                                         KernelVersion.getForVersion(payloadVersion)
                                                 .name(),
                                         expectedVersion.name()));
             }
+        }
+    }
+
+    enum FileType {
+        TX_LOG("Log", "log"),
+        CHECKPOINT_LOG("Checkpoint", "checkpoint");
+
+        final String capitalized;
+        final String lowerCase;
+
+        FileType(String capitalized, String lowerCase) {
+            this.capitalized = capitalized;
+            this.lowerCase = lowerCase;
         }
     }
 }

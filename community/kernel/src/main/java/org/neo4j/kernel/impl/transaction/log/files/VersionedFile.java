@@ -21,7 +21,12 @@ package org.neo4j.kernel.impl.transaction.log.files;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import org.neo4j.io.fs.ReadableChannel;
+import org.neo4j.kernel.impl.transaction.log.LogPosition;
+import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
+import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
+import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 
 public interface VersionedFile {
 
@@ -38,4 +43,17 @@ public interface VersionedFile {
     long getCurrentLogVersion();
 
     long getLowestLogVersion();
+
+    LogHeader extractHeader(long version) throws IOException;
+
+    /**
+     * Opens a {@link ReadableLogChannel reader} at the desired {@link LogPosition}, capable of reading log entries
+     * from that position and onwards, with the given {@link LogVersionBridge}.
+     *
+     * @param position {@link LogPosition} to position the returned reader at.
+     * @param logVersionBridge {@link LogVersionBridge} how to bridge log versions.
+     * @return {@link ReadableChannel} capable of reading log data, starting from {@link LogPosition position}.
+     * @throws IOException on I/O error.
+     */
+    ReadableLogChannel getReader(LogPosition position, LogVersionBridge logVersionBridge) throws IOException;
 }

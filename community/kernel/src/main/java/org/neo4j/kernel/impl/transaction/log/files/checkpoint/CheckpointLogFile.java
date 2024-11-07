@@ -45,6 +45,7 @@ import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
 import org.neo4j.kernel.impl.transaction.log.LogEntryCursor;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
+import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.ReadAheadUtils;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
@@ -394,6 +395,19 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     @Override
     public long getLowestLogVersion() {
         return visitLogFiles(new RangeLogVersionVisitor()).getLowestVersion();
+    }
+
+    @Override
+    public LogHeader extractHeader(long version) throws IOException {
+        return readLogHeader(context.getFileSystem(), getLogFileForVersion(version), true, context.getMemoryTracker());
+    }
+
+    @Override
+    public ReadableLogChannel getReader(LogPosition position, LogVersionBridge logVersionBridge) throws IOException {
+        PhysicalLogVersionedStoreChannel logChannel = openForVersion(position.getLogVersion());
+        logChannel.position(position.getByteOffset());
+        final var logHeader = extractHeader(logChannel.getLogVersion());
+        return ReadAheadUtils.newChannel(logChannel, logVersionBridge, logHeader, context.getMemoryTracker());
     }
 
     @Override

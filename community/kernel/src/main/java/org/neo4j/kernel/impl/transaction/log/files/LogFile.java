@@ -31,12 +31,10 @@ import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogForceEvents;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
-import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.TransactionLogWriter;
-import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 
 /**
@@ -80,17 +78,6 @@ public interface LogFile extends VersionedFile, RotatableFile {
      */
     ReadableLogChannel getRawReader(LogPosition position) throws IOException;
 
-    /**
-     * Opens a {@link ReadableLogChannel reader} at the desired {@link LogPosition}, capable of reading log entries
-     * from that position and onwards, with the given {@link LogVersionBridge}.
-     *
-     * @param position {@link LogPosition} to position the returned reader at.
-     * @param logVersionBridge {@link LogVersionBridge} how to bridge log versions.
-     * @return {@link ReadableChannel} capable of reading log data, starting from {@link LogPosition position}.
-     * @throws IOException on I/O error.
-     */
-    ReadableLogChannel getReader(LogPosition position, LogVersionBridge logVersionBridge) throws IOException;
-
     void accept(LogFileVisitor visitor, LogPosition startingFromPosition) throws IOException;
 
     TransactionLogFileInformation getLogFileInformation();
@@ -107,8 +94,6 @@ public interface LogFile extends VersionedFile, RotatableFile {
     PhysicalLogVersionedStoreChannel createLogChannelForExistingVersion(long version) throws IOException;
 
     Path getHighestLogFile();
-
-    LogHeader extractHeader(long version) throws IOException;
 
     boolean versionExists(long version);
 
