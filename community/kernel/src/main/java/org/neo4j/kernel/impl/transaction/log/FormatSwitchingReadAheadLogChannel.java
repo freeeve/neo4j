@@ -33,7 +33,7 @@ import org.neo4j.memory.MemoryTracker;
 public class FormatSwitchingReadAheadLogChannel implements ReadableLogChannel {
     ReadableLogChannel delegate;
 
-    FormatSwitchingReadAheadLogChannel(
+    public FormatSwitchingReadAheadLogChannel(
             LogVersionedStoreChannel startingChannel,
             LogVersionBridge bridge,
             MemoryTracker memoryTracker,
@@ -45,17 +45,23 @@ public class FormatSwitchingReadAheadLogChannel implements ReadableLogChannel {
                 if (!next.getLogFormatVersion().usesSegments()) {
                     return next;
                 }
-                delegate = new EnvelopeReadChannel(
-                        next,
-                        /* Not entirely correct to use the default size from the format since tests can
-                        have other segment sizes. If ever a problem, switch to reading the size from header. */
-                        next.getLogFormatVersion().getDefaultSegmentBlockSize(),
-                        bridge,
-                        memoryTracker,
-                        raw);
+                delegate = getEnvelopeReadChannel(next, bridge, memoryTracker, raw);
                 throw FormatSwitchingReadAheadLogChannelException.INSTANCE;
             }
         };
+    }
+
+    protected EnvelopeReadChannel getEnvelopeReadChannel(
+            LogVersionedStoreChannel next, LogVersionBridge bridge, MemoryTracker memoryTracker, boolean raw)
+            throws IOException {
+        return new EnvelopeReadChannel(
+                next,
+                /* Not entirely correct to use the default size from the format since tests can
+                have other segment sizes. If ever a problem, switch to reading the size from header. */
+                next.getLogFormatVersion().getDefaultSegmentBlockSize(),
+                bridge,
+                memoryTracker,
+                raw);
     }
 
     @Override
