@@ -84,7 +84,8 @@ public class ValueIndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplier> e
     @Override
     public String toString() {
         return "ValueIndexEntryUpdate{" + "entity=" + getEntityId() + ", before=" + Arrays.toString(before)
-                + ", values=" + Arrays.toString(values) + ", updateMode=" + updateMode() + '}';
+                + ", values=" + Arrays.toString(values) + ", updateMode=" + updateMode() + ", index:" + indexKey()
+                + '}';
     }
 
     @Override
