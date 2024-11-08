@@ -1593,4 +1593,11 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     public static final Setting<CypherVersion> default_cypher_version = newBuilder(
                     "internal.dbms.cypher.version", ofEnum(CypherVersion.class), Cypher5)
             .build();
+
+    @Internal
+    @Description("The maximum amount of time to wait for terminated transactions to start closing before allowing "
+            + "initiated database shutdown to continue")
+    public static final Setting<Duration> shutdown_terminated_transaction_wait_timeout = newBuilder(
+                    "internal.db.transaction.shutdown_terminated_transaction_wait_timeout", DURATION, ofSeconds(1))
+            .build();
 }

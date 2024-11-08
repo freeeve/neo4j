@@ -414,6 +414,11 @@ public class KernelTransactions extends LifecycleAdapter
     }
 
     @Override
+    public boolean haveActiveTransaction() {
+        return allTransactions.stream().anyMatch(KernelTransactionImplementation::isOpen);
+    }
+
+    @Override
     public void init() throws Exception {
         this.transactionMemoryPool = transactionsMemoryPool.newDatabasePool(
                 namedDatabaseId.name(),

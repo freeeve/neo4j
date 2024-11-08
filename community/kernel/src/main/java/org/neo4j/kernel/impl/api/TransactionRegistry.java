@@ -48,4 +48,9 @@ public interface TransactionRegistry {
      * Checks whether any transactions are in closing state
      */
     boolean haveClosingTransaction();
+
+    /**
+     * Checks whether any transactions are in active state
+     */
+    boolean haveActiveTransaction();
 }

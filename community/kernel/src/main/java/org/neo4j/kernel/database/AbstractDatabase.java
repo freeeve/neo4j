@@ -19,6 +19,9 @@
  */
 package org.neo4j.kernel.database;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.shutdown_terminated_transaction_wait_timeout;
+
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -58,6 +61,7 @@ import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StoreFileMetadata;
 import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.time.SystemNanoClock;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.ElementIdMapper;
@@ -75,6 +79,7 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
     protected final Monitors parentMonitors;
     protected final DatabaseLogService databaseLogService;
     protected final DatabaseLogProvider internalLogProvider;
+    protected final SystemNanoClock clock;
     protected final DatabaseLogProvider userLogProvider;
     protected final InternalLog internalLog;
     protected final JobScheduler scheduler;
@@ -95,7 +100,8 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
             DatabaseLogService databaseLogService,
             JobScheduler scheduler,
             LongFunction<DatabaseAvailabilityGuard> databaseAvailabilityGuardFactory,
-            Factory<DatabaseHealth> databaseHealthFactory) {
+            Factory<DatabaseHealth> databaseHealthFactory,
+            SystemNanoClock clock) {
         this.globalDependencies = globalDependencies;
         this.namedDatabaseId = namedDatabaseId;
         this.databaseConfig = databaseConfig;
@@ -103,6 +109,7 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
         this.parentMonitors = monitors;
         this.databaseLogService = databaseLogService;
         this.internalLogProvider = databaseLogService.getInternalLogProvider();
+        this.clock = clock;
         this.internalLog = internalLogProvider.getLog(getClass());
         this.userLogProvider = databaseLogService.getUserLogProvider();
         this.scheduler = scheduler;
@@ -221,6 +228,14 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
 
         var transactionRegistry = transactionRegistry();
         transactionRegistry.terminateTransactions();
+
+        // Give transactions a short time to detect they are terminated
+        long waitTime =
+                databaseConfig.get(shutdown_terminated_transaction_wait_timeout).toMillis();
+        long deadline = clock.millis() + waitTime;
+        while (transactionRegistry.haveActiveTransaction() && clock.millis() < deadline) {
+            LockSupport.parkNanos(MILLISECONDS.toNanos(10));
+        }
 
         while (transactionRegistry.haveClosingTransaction()) {
             LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
