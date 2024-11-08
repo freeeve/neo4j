@@ -142,11 +142,11 @@ public class SchemaCache {
         }
     }
 
-    public void removeSchemaRule(long id) {
+    public void removeSchemaRule(SchemaRule rule) {
         cacheUpdateLock.lock();
         try {
             SchemaCacheState updatedSchemaState = new SchemaCacheState(schemaCacheState);
-            updatedSchemaState.removeSchemaRule(id);
+            updatedSchemaState.removeSchemaRule(rule);
             this.schemaCacheState = updatedSchemaState;
         } finally {
             cacheUpdateLock.unlock();
@@ -535,27 +535,29 @@ public class SchemaCache {
             return Sets.union(left, right).asUnmodifiable();
         }
 
-        void removeSchemaRule(long id) {
-            if (constraintsById.containsKey(id)) {
-                ConstraintDescriptor constraint = constraintsById.remove(id);
-                constrainsByName.remove(constraint.getName());
-                constraints.remove(constraint);
-                if (constraint.enforcesUniqueness()) {
-                    selectUniquenessConstraintSetByEntityType(
-                                    constraint.schema().entityType())
-                            .remove(constraint.asIndexBackedConstraint());
-                }
+        void removeSchemaRule(SchemaRule rule) {
+            if (rule instanceof ConstraintDescriptor constraint) {
+                if (constraintsById.remove(rule.getId()) != null) {
+                    constrainsByName.remove(constraint.getName());
+                    constraints.remove(constraint);
+                    if (constraint.enforcesUniqueness()) {
+                        selectUniquenessConstraintSetByEntityType(
+                                        constraint.schema().entityType())
+                                .remove(constraint.asIndexBackedConstraint());
+                    }
 
-                logicalKeyConstraints.computeIfPresent(
-                        LogicalEntityKey.create(constraint.schema()),
-                        (key, state) -> state.removeConstraint(constraint));
-            } else if (indexesById.containsKey(id)) {
-                IndexDescriptor index = indexesById.remove(id);
-                SchemaDescriptor schema = index.schema();
-                indexesBySchema.computeIfPresent(schema, (key, value) -> removeFromImmutable(value, index));
-                indexesBySchemaAndType.remove(new TypeDescriptorKey(index.getIndexType(), schema));
-                indexesByName.remove(index.getName(), index);
-                selectIndexSetByEntityType(schema.entityType()).remove(index);
+                    logicalKeyConstraints.computeIfPresent(
+                            LogicalEntityKey.create(constraint.schema()),
+                            (key, state) -> state.removeConstraint(constraint));
+                }
+            } else if (rule instanceof IndexDescriptor index) {
+                if (indexesById.remove(rule.getId()) != null) {
+                    SchemaDescriptor schema = index.schema();
+                    indexesBySchema.computeIfPresent(schema, (key, value) -> removeFromImmutable(value, index));
+                    indexesBySchemaAndType.remove(new TypeDescriptorKey(index.getIndexType(), schema));
+                    indexesByName.remove(index.getName(), index);
+                    selectIndexSetByEntityType(schema.entityType()).remove(index);
+                }
             }
         }
 

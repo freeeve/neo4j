@@ -25,7 +25,7 @@ import org.neo4j.token.api.NamedToken;
 public interface CacheAccessBackDoor {
     void addSchemaRule(SchemaRule schemaRule);
 
-    void removeSchemaRuleFromCache(long id);
+    void removeSchemaRuleFromCache(SchemaRule rule);
 
     void addRelationshipTypeToken(NamedToken type, boolean atomic);
 

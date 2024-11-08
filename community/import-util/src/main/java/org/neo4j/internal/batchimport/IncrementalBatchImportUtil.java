@@ -309,7 +309,7 @@ public class IncrementalBatchImportUtil {
         for (var entry : idMapperIndexes.entrySet()) {
             var indexDescriptor = schemaCache.getIndex(entry.getValue());
             // Remove this from the schema cache so that it won't be part of detecting other affected index changes
-            schemaCache.removeSchemaRule(entry.getValue());
+            schemaCache.removeSchemaRule(indexDescriptor);
             var accessor = indexProviders
                     .lookup(indexDescriptor.getIndexProvider())
                     .getOnlineAccessor(

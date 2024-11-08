@@ -809,7 +809,7 @@ class LockGuardedNeoStoreTransactionApplierTest {
 
         verify(schemaStore).updateRecord(eq(after), any(), any(), any(), any());
         verify(indexingService).dropIndex(rule);
-        verify(cacheAccess).removeSchemaRuleFromCache(command.getKey());
+        verify(cacheAccess).removeSchemaRuleFromCache(command.getSchemaRule());
     }
 
     @Test
@@ -831,7 +831,7 @@ class LockGuardedNeoStoreTransactionApplierTest {
         verify(schemaStore.getIdGenerator()).setHighestPossibleIdInUse(after.getId());
         verify(schemaStore).updateRecord(eq(after), any(), any(), any(), any());
         verify(indexingService).dropIndex(rule);
-        verify(cacheAccess).removeSchemaRuleFromCache(command.getKey());
+        verify(cacheAccess).removeSchemaRuleFromCache(command.getSchemaRule());
     }
 
     @Test
@@ -939,7 +939,7 @@ class LockGuardedNeoStoreTransactionApplierTest {
         assertFalse(result);
 
         verify(schemaStore).updateRecord(eq(after), any(), any(), any(), any());
-        verify(cacheAccess).removeSchemaRuleFromCache(command.getKey());
+        verify(cacheAccess).removeSchemaRuleFromCache(command.getSchemaRule());
     }
 
     @Test
@@ -960,7 +960,7 @@ class LockGuardedNeoStoreTransactionApplierTest {
 
         verify(schemaStore.getIdGenerator()).setHighestPossibleIdInUse(after.getId());
         verify(schemaStore).updateRecord(eq(after), any(), any(), any(), any());
-        verify(cacheAccess).removeSchemaRuleFromCache(command.getKey());
+        verify(cacheAccess).removeSchemaRuleFromCache(command.getSchemaRule());
     }
 
     private TransactionApplierFactory newApplier(boolean recovery) {

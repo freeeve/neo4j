@@ -144,13 +144,13 @@ public class NeoStoreTransactionApplier extends TransactionApplier.Adapter {
         //    entries for the same property
         updateStore(neoStores.getSchemaStore(), command, SCHEMA_CURSOR);
         SchemaRule schemaRule = command.getSchemaRule();
-        onSchemaRuleChange(command.getMode(), command.getKey(), schemaRule);
+        onSchemaRuleChange(command.getMode(), schemaRule);
         return false;
     }
 
-    private void onSchemaRuleChange(Command.Mode commandMode, long schemaRuleId, SchemaRule schemaRule) {
+    private void onSchemaRuleChange(Command.Mode commandMode, SchemaRule schemaRule) {
         if (commandMode == Command.Mode.DELETE) {
-            cacheAccess.removeSchemaRuleFromCache(schemaRuleId);
+            cacheAccess.removeSchemaRuleFromCache(schemaRule);
         } else {
             cacheAccess.addSchemaRule(schemaRule);
         }
