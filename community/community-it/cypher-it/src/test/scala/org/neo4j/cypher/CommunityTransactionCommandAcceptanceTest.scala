@@ -1253,52 +1253,47 @@ class CommunityTransactionCommandAcceptanceTest extends TransactionCommandAccept
     }
   }
 
-  test("terminate transactions with Cypher versions") {
-    // GIVEN
-    createUser()
+  cypherVersions.foreach { case (cypherVersionString, _) =>
+    val titleVersion = if (cypherVersionString.isEmpty) "" else s" - $cypherVersionString"
 
-    cypherVersions.foreach { case (cypherVersionString, _) =>
-      selectDatabase(DEFAULT_DATABASE_NAME)
-      withClue(cypherVersionString + "user database") {
-        // GIVEN
-        val (unwindQuery, latch) = setupUserWithOneTransaction(usePreExistingUser = true)
+    test(s"terminate transactions with Cypher versions (against user database)$titleVersion") {
+      // GIVEN
+      val (unwindQuery, latch) = setupUserWithOneTransaction()
 
-        try {
-          // WHEN
-          val unwindTransactionId = getTransactionIdExecutingQuery(unwindQuery)
-          val result = execute(cypherVersionString + s"TERMINATE TRANSACTION '$unwindTransactionId'").toList
+      try {
+        // WHEN
+        val unwindTransactionId = getTransactionIdExecutingQuery(unwindQuery)
+        val result = execute(cypherVersionString + s"TERMINATE TRANSACTION '$unwindTransactionId'").toList
 
-          // THEN
-          result should be(List(Map(
-            "message" -> "Transaction terminated.",
-            "transactionId" -> unwindTransactionId,
-            "username" -> username
-          )))
-        } finally {
-          latch.finishAndWaitForAllToFinish()
-        }
+        // THEN
+        result should be(List(Map(
+          "message" -> "Transaction terminated.",
+          "transactionId" -> unwindTransactionId,
+          "username" -> username
+        )))
+      } finally {
+        latch.finishAndWaitForAllToFinish()
       }
+    }
 
-      withClue(cypherVersionString + "system database") {
-        // GIVEN
-        selectDatabase(DEFAULT_DATABASE_NAME)
-        val (unwindQuery, latch) = setupUserWithOneTransaction(usePreExistingUser = true)
+    test(s"terminate transactions with Cypher versions (against system database)$titleVersion") {
+      // GIVEN
+      val (unwindQuery, latch) = setupUserWithOneTransaction()
 
-        try {
-          // WHEN
-          val unwindTransactionId = getTransactionIdExecutingQuery(unwindQuery)
-          selectDatabase(SYSTEM_DATABASE_NAME)
-          val result = execute(cypherVersionString + s"TERMINATE TRANSACTION '$unwindTransactionId'").toList
+      try {
+        // WHEN
+        val unwindTransactionId = getTransactionIdExecutingQuery(unwindQuery)
+        selectDatabase(SYSTEM_DATABASE_NAME)
+        val result = execute(cypherVersionString + s"TERMINATE TRANSACTION '$unwindTransactionId'").toList
 
-          // THEN
-          result should be(List(Map(
-            "message" -> "Transaction terminated.",
-            "transactionId" -> unwindTransactionId,
-            "username" -> username
-          )))
-        } finally {
-          latch.finishAndWaitForAllToFinish()
-        }
+        // THEN
+        result should be(List(Map(
+          "message" -> "Transaction terminated.",
+          "transactionId" -> unwindTransactionId,
+          "username" -> username
+        )))
+      } finally {
+        latch.finishAndWaitForAllToFinish()
       }
     }
   }
