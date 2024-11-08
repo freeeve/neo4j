@@ -376,13 +376,20 @@ public enum ValueRepresentation {
                         "Neo4j only supports a subset of Cypher types for storage as singleton or array properties. "
                                 + "Please refer to section cypher/syntax/values of the manual for more details.");
             } else if (!value.valueRepresentation().canCreateArrayOfValueGroup()) {
-                throw new CypherTypeException(String.format(
-                        "Property values can only be of primitive types or arrays thereof. Encountered: %s.", value));
+                if (value instanceof Value v)
+                    throw CypherTypeException.expectedPrimitivePropertyValue(
+                            String.valueOf(v), v.prettyPrint(), v.getTypeName().toUpperCase(), true);
+                else
+                    throw CypherTypeException.expectedPrimitivePropertyValue(
+                            String.valueOf(value),
+                            String.valueOf(value),
+                            value.getTypeName().toUpperCase(),
+                            true);
             }
             prev = value;
         }
 
-        throw failure();
+        throw failureOld(); // TODO: figure out what gql to use with SequenceValue here
     }
 
     /**
@@ -408,11 +415,20 @@ public enum ValueRepresentation {
         } else if (value instanceof SequenceValue) {
             throw new CypherTypeException("Collections containing collections can not be stored in properties.");
         } else {
-            throw failure();
+            throw failure(value);
         }
     }
 
-    private static CypherTypeException failure() {
-        return new CypherTypeException("Property values can only be of primitive types or arrays thereof");
+    private static CypherTypeException failureOld() {
+        throw new CypherTypeException("Property values can only be of primitive types or arrays thereof");
+    }
+
+    private static CypherTypeException failure(AnyValue got) {
+        if (got instanceof Value v)
+            throw CypherTypeException.expectedPrimitivePropertyValue(
+                    String.valueOf(v), v.prettyPrint(), v.getTypeName().toUpperCase(), false);
+        else
+            throw CypherTypeException.expectedPrimitivePropertyValue(
+                    String.valueOf(got), String.valueOf(got), got.getTypeName().toUpperCase(), false);
     }
 }

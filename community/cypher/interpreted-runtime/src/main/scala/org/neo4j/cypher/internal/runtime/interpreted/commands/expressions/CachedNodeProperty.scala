@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.commands.values.KeyToken
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.kernel.api.StatementConstants
 import org.neo4j.values.AnyValue
@@ -141,7 +142,18 @@ case class CachedNodeProperty(nodeName: String, propertyKey: KeyToken, key: ASTC
     ctx.getByName(nodeName) match {
       case IsNoValue()         => StatementConstants.NO_SUCH_NODE
       case n: VirtualNodeValue => n.id()
-      case other               => throw new CypherTypeException(s"Type mismatch: expected a node but was $other")
+      case value: Value =>
+        throw CypherTypeException.typeMismatchExpectedANode(
+          String.valueOf(value),
+          value.prettyPrint(),
+          CypherTypeValueMapper.valueType(value)
+        )
+      case other =>
+        throw CypherTypeException.typeMismatchExpectedANode(
+          String.valueOf(other),
+          String.valueOf(other),
+          CypherTypeValueMapper.valueType(other)
+        )
     }
 
   override def getCachedProperty(ctx: ReadableRow): Value = ctx.getCachedProperty(key)
@@ -162,7 +174,18 @@ case class CachedNodeHasProperty(nodeName: String, propertyKey: KeyToken, key: A
     ctx.getByName(nodeName) match {
       case IsNoValue()         => StatementConstants.NO_SUCH_NODE
       case n: VirtualNodeValue => n.id()
-      case other               => throw new CypherTypeException(s"Type mismatch: expected a node but was $other")
+      case value: Value =>
+        throw CypherTypeException.typeMismatchExpectedANode(
+          String.valueOf(value),
+          value.prettyPrint(),
+          CypherTypeValueMapper.valueType(value)
+        )
+      case other =>
+        throw CypherTypeException.typeMismatchExpectedANode(
+          String.valueOf(other),
+          String.valueOf(other),
+          CypherTypeValueMapper.valueType(other)
+        )
     }
 
   override def getCachedProperty(ctx: ReadableRow): Value = ctx.getCachedProperty(key)
@@ -183,7 +206,18 @@ case class CachedRelationshipProperty(nodeName: String, propertyKey: KeyToken, k
     ctx.getByName(nodeName) match {
       case IsNoValue()                 => StatementConstants.NO_SUCH_RELATIONSHIP
       case r: VirtualRelationshipValue => r.id()
-      case other => throw new CypherTypeException(s"Type mismatch: expected a relationship but was $other")
+      case value: Value =>
+        throw CypherTypeException.typeMismatchExpectedARel(
+          value.prettyPrint(),
+          String.valueOf(value),
+          CypherTypeValueMapper.valueType(value)
+        )
+      case other =>
+        throw CypherTypeException.typeMismatchExpectedARel(
+          String.valueOf(other),
+          String.valueOf(other),
+          CypherTypeValueMapper.valueType(other)
+        )
     }
 
   override def getCachedProperty(ctx: ReadableRow): Value = ctx.getCachedProperty(key)
@@ -204,7 +238,18 @@ case class CachedRelationshipHasProperty(nodeName: String, propertyKey: KeyToken
     ctx.getByName(nodeName) match {
       case IsNoValue()                 => StatementConstants.NO_SUCH_RELATIONSHIP
       case r: VirtualRelationshipValue => r.id()
-      case other => throw new CypherTypeException(s"Type mismatch: expected a relationship but was $other")
+      case value: Value =>
+        throw CypherTypeException.typeMismatchExpectedARel(
+          value.prettyPrint(),
+          String.valueOf(value),
+          CypherTypeValueMapper.valueType(value)
+        )
+      case other =>
+        throw CypherTypeException.typeMismatchExpectedARel(
+          String.valueOf(other),
+          String.valueOf(other),
+          CypherTypeValueMapper.valueType(other)
+        )
     }
 
   override def getCachedProperty(ctx: ReadableRow): Value = ctx.getCachedProperty(key)

@@ -19,27 +19,41 @@
  */
 package org.neo4j.cypher.internal.runtime
 
+import org.neo4j.cypher.internal.util.symbols.CypherType
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.Value
 
 import scala.reflect.ClassTag
 
 object CastSupport {
 
-  def castOrFail[A](value: Any)(implicit ev: ClassTag[A]): A = value match {
-    case v: A => v
-    case _ => throw new CypherTypeException(
-        s"Expected $value to be a ${ev.runtimeClass.getName}, but it was a ${value.getClass.getName}"
-      )
-  }
+  private val CYPHER_TYPE_NAME_VALUE_MAPPER = new CypherTypeValueMapper
+
+  def valueType(in: AnyValue): String = CypherType.normalizeTypes(in.map(CYPHER_TYPE_NAME_VALUE_MAPPER)).description
 
   def castOrFail[A <: AnyValue](value: AnyValue)(implicit ev: ClassTag[A]): A = value match {
     case v: A => v
     case _    => throw typeError[A](value)
   }
 
-  def typeError[A <: AnyValue](value: AnyValue)(implicit ev: ClassTag[A]): CypherTypeException =
-    throw new CypherTypeException(
-      s"Expected $value to be a ${ev.runtimeClass.getName}, but it was a ${value.getClass.getName}"
-    )
+  def typeError[A <: AnyValue](value: AnyValue)(implicit ev: ClassTag[A]): CypherTypeException = {
+    value match {
+      case value: Value => throw CypherTypeException.expectedOtherType(
+          String.valueOf(value),
+          ev.runtimeClass.getName,
+          value.getClass.getName,
+          value.prettyPrint(),
+          CypherTypeValueMapper.valueType(value)
+        )
+      case other => throw CypherTypeException.expectedOtherType(
+          String.valueOf(other),
+          ev.runtimeClass.getName,
+          other.getClass.getName,
+          String.valueOf(other),
+          CypherTypeValueMapper.valueType(other)
+        )
+    }
+  }
 }

@@ -801,7 +801,7 @@ object SemanticError {
     legacyMessage: String,
     pos: InputPosition
   ): SemanticError = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G12)
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
       .atPosition(pos.line, pos.column, pos.offset)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
         .atPosition(pos.line, pos.column, pos.offset)

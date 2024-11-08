@@ -26,8 +26,10 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.CheckD
 import org.neo4j.cypher.internal.runtime.interpreted.commands.values.KeyToken
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.operations.CypherFunctions.asIntExact
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
 import org.neo4j.values.storable.Values.NO_VALUE
 import org.neo4j.values.storable.Values.booleanValue
@@ -67,8 +69,19 @@ object CheckDegree {
   private def nodeIdOrDefaultId(node: AnyValue): Long = node match {
     case node: VirtualNodeValue          => node.id()
     case node if node eq Values.NO_VALUE => -1L
-    case other => throw new CypherTypeException(
-        s"Type mismatch: expected a node but was $other of type ${other.getClass.getSimpleName}"
+    case value: Value =>
+      throw CypherTypeException.typeMismatchExpectedANodeWasType(
+        String.valueOf(value),
+        value.getClass.getSimpleName,
+        value.prettyPrint(),
+        CypherTypeValueMapper.valueType(value)
+      )
+    case other =>
+      throw CypherTypeException.typeMismatchExpectedANodeWasType(
+        String.valueOf(other),
+        other.getClass.getSimpleName,
+        String.valueOf(other),
+        CypherTypeValueMapper.valueType(other)
       )
   }
 }

@@ -562,7 +562,12 @@ public final class CypherFunctions {
         if (anyValue instanceof VirtualRelationshipValue rel) {
             return otherNode(rel, access, node, cursor);
         } else {
-            throw new CypherTypeException(format("Expected %s to be a RelationshipValue", anyValue));
+            if (anyValue instanceof Value v)
+                throw CypherTypeException.expectedRelValue(
+                        String.valueOf(v), v.prettyPrint(), CypherTypeValueMapper.valueType(anyValue));
+            else
+                throw CypherTypeException.expectedRelValue(
+                        String.valueOf(anyValue), String.valueOf(anyValue), CypherTypeValueMapper.valueType(anyValue));
         }
     }
 
@@ -598,7 +603,14 @@ public final class CypherFunctions {
         } else if (container instanceof PointValue point) {
             return point.get(key);
         } else {
-            throw new CypherTypeException(format("Type mismatch: expected a map but was %s", container));
+            if (container instanceof Value value)
+                throw CypherTypeException.expectedMap(
+                        String.valueOf(value), value.prettyPrint(), CypherTypeValueMapper.valueType(container));
+            else
+                throw CypherTypeException.expectedMap(
+                        String.valueOf(container),
+                        String.valueOf(container),
+                        CypherTypeValueMapper.valueType(container));
         }
     }
 
@@ -641,10 +653,15 @@ public final class CypherFunctions {
         } else if (container instanceof SequenceValue seq) {
             return listAccess(seq, index);
         } else {
-            throw new CypherTypeException(format(
-                    "`%s` is not a collection or a map. Element access is only possible by performing a collection "
-                            + "lookup using an integer index, or by performing a map lookup using a string key (found: %s[%s])",
-                    container, container, index));
+            if (container instanceof Value v)
+                throw CypherTypeException.notCollectionOrMap(
+                        String.valueOf(v), v.prettyPrint(), CypherTypeValueMapper.valueType(v), index);
+            else
+                throw CypherTypeException.notCollectionOrMap(
+                        String.valueOf(container),
+                        String.valueOf(container),
+                        CypherTypeValueMapper.valueType(container),
+                        index);
         }
     }
 
@@ -673,10 +690,15 @@ public final class CypherFunctions {
                             // operation went wrong
                             "Cannot use non string value as or in map keys. It was " + index.toString())));
         } else {
-            throw new CypherTypeException(format(
-                    "`%s` is not a map. Element access is only possible by performing a collection "
-                            + "lookup by performing a map lookup using a string key (found: %s[%s])",
-                    container, container, index));
+            if (container instanceof Value v)
+                throw CypherTypeException.notMap(
+                        String.valueOf(v), v.prettyPrint(), CypherTypeValueMapper.valueType(v), index);
+            else
+                throw CypherTypeException.notMap(
+                        String.valueOf(container),
+                        String.valueOf(container),
+                        CypherTypeValueMapper.valueType(container),
+                        index);
         }
     }
 
@@ -1150,7 +1172,12 @@ public final class CypherFunctions {
         if (entity instanceof VirtualNodeValue node) {
             return access.isLabelSetOnNode(labelToken, node.id(), nodeCursor);
         } else {
-            throw new CypherTypeException("Expected a Node, got: " + entity);
+            if (entity instanceof Value v)
+                throw CypherTypeException.expectedNode(
+                        String.valueOf(v), v.prettyPrint(), CypherTypeValueMapper.valueType(v));
+            else
+                throw CypherTypeException.expectedNode(
+                        String.valueOf(entity), String.valueOf(entity), CypherTypeValueMapper.valueType(entity));
         }
     }
 
@@ -1160,7 +1187,12 @@ public final class CypherFunctions {
         if (entity instanceof VirtualNodeValue node) {
             return access.areLabelsSetOnNode(labelTokens, node.id(), nodeCursor);
         } else {
-            throw new CypherTypeException("Expected a Node, got: " + entity);
+            if (entity instanceof Value v)
+                throw CypherTypeException.expectedNode(
+                        String.valueOf(v), v.prettyPrint(), CypherTypeValueMapper.valueType(v));
+            else
+                throw CypherTypeException.expectedNode(
+                        String.valueOf(entity), String.valueOf(entity), CypherTypeValueMapper.valueType(entity));
         }
     }
 
@@ -1261,7 +1293,12 @@ public final class CypherFunctions {
         if (entity instanceof VirtualNodeValue virtualNodeValue) {
             return access.isALabelSetOnNode(virtualNodeValue.id(), nodeCursor);
         } else {
-            throw new CypherTypeException("Expected a Node, got: " + entity);
+            if (entity instanceof Value v)
+                throw CypherTypeException.expectedNode(
+                        String.valueOf(v), v.prettyPrint(), CypherTypeValueMapper.valueType(v));
+            else
+                throw CypherTypeException.expectedNode(
+                        String.valueOf(entity), String.valueOf(entity), CypherTypeValueMapper.valueType(entity));
         }
     }
 
@@ -1305,7 +1342,12 @@ public final class CypherFunctions {
         if (entity instanceof VirtualNodeValue node) {
             return access.isAnyLabelSetOnNode(labels, node.id(), nodeCursor);
         } else {
-            throw new CypherTypeException("Expected a Node, got: " + entity);
+            if (entity instanceof Value v)
+                throw CypherTypeException.expectedNode(
+                        String.valueOf(v), v.prettyPrint(), CypherTypeValueMapper.valueType(v));
+            else
+                throw CypherTypeException.expectedNode(
+                        String.valueOf(entity), String.valueOf(entity), CypherTypeValueMapper.valueType(entity));
         }
     }
 
@@ -1384,7 +1426,12 @@ public final class CypherFunctions {
                 return typeToken == relationship.relationshipTypeId(consumer(access, relCursor));
             }
         } else {
-            throw new CypherTypeException("Expected a Relationship, got: " + entity);
+            if (entity instanceof Value v)
+                throw CypherTypeException.expectedRel(
+                        String.valueOf(v), v.prettyPrint(), CypherTypeValueMapper.valueType(v));
+            else
+                throw CypherTypeException.expectedRel(
+                        String.valueOf(entity), String.valueOf(entity), CypherTypeValueMapper.valueType(entity));
         }
     }
 
@@ -1395,7 +1442,12 @@ public final class CypherFunctions {
         if (entity instanceof VirtualRelationshipValue relationship) {
             return access.areTypesSetOnRelationship(typeTokens, relationship, relCursor);
         } else {
-            throw new CypherTypeException("Expected a Relationship, got: " + entity);
+            if (entity instanceof Value v)
+                throw CypherTypeException.expectedRel(
+                        String.valueOf(v), v.prettyPrint(), CypherTypeValueMapper.valueType(v));
+            else
+                throw CypherTypeException.expectedRel(
+                        String.valueOf(entity), String.valueOf(entity), CypherTypeValueMapper.valueType(entity));
         }
     }
 
@@ -1923,8 +1975,12 @@ public final class CypherFunctions {
                         TextValue.class.getName(),
                         value.getClass().getName());
             }
-
-            throw new CypherTypeException(errorMessage);
+            if (value instanceof Value v)
+                throw CypherTypeException.expectedString(
+                        errorMessage, v.prettyPrint(), CypherTypeValueMapper.valueType(v));
+            else
+                throw CypherTypeException.expectedString(
+                        errorMessage, String.valueOf(value), CypherTypeValueMapper.valueType(value));
         }
         return (TextValue) value;
     }
@@ -2003,8 +2059,8 @@ public final class CypherFunctions {
                 () -> "Cannot access a list '" + container.toString() + "' using a non-number index, got "
                         + index.toString());
         if (!(number instanceof IntegralValue)) {
-            throw new CypherTypeException(
-                    format("Cannot access a list using an non-integer number index, got %s", number), null);
+            throw CypherTypeException.nonIntegerListIndex(
+                    String.valueOf(number), number.prettyPrint(), CypherTypeValueMapper.valueType(number));
         }
         long idx = number.longValue();
 
@@ -2059,12 +2115,17 @@ public final class CypherFunctions {
 
     private static NumberValue asNumberValue(AnyValue value, Supplier<String> contextForErrorMessage) {
         if (!(value instanceof NumberValue)) {
-            throw new CypherTypeException(format(
+            var msg = format(
                     "%s: Expected %s to be a %s, but it was a %s",
                     contextForErrorMessage.get(),
                     value,
                     NumberValue.class.getName(),
-                    value.getClass().getName()));
+                    value.getClass().getName());
+            if (value instanceof Value v)
+                throw CypherTypeException.expectedNumber(msg, v.prettyPrint(), CypherTypeValueMapper.valueType(v));
+            else
+                throw CypherTypeException.expectedNumber(
+                        msg, String.valueOf(value), CypherTypeValueMapper.valueType(value));
         }
         return (NumberValue) value;
     }
@@ -2087,7 +2148,11 @@ public final class CypherFunctions {
             } else {
                 errorMsg = contextForErrorMessage.get() + ": Expected a numeric value but got: " + value;
             }
-            throw new CypherTypeException(errorMsg);
+            if (value instanceof Value v)
+                throw CypherTypeException.expectedNumber(errorMsg, v.prettyPrint(), CypherTypeValueMapper.valueType(v));
+            else
+                throw CypherTypeException.expectedNumber(
+                        errorMsg, String.valueOf(value), CypherTypeValueMapper.valueType(value));
         }
     }
 
@@ -2115,8 +2180,12 @@ public final class CypherFunctions {
         if (value instanceof VirtualNodeValue) {
             return ((VirtualNodeValue) value).id();
         } else {
-            throw new CypherTypeException(
-                    "Expected VirtualNodeValue got " + value.getClass().getName());
+            if (value instanceof Value v)
+                throw CypherTypeException.expectedVirtualNode(
+                        v.prettyPrint(), value.getClass().getName(), CypherTypeValueMapper.valueType(value));
+            else
+                throw CypherTypeException.expectedVirtualNode(
+                        String.valueOf(value), value.getClass().getName(), CypherTypeValueMapper.valueType(value));
         }
     }
 
@@ -2318,7 +2387,12 @@ public final class CypherFunctions {
         } else if (item instanceof VirtualNodeValue) {
             return TRUE;
         } else {
-            throw new CypherTypeException("Expected a Node, got: " + item);
+            if (item instanceof Value v)
+                throw CypherTypeException.expectedNode(
+                        String.valueOf(v), v.prettyPrint(), CypherTypeValueMapper.valueType(v));
+            else
+                throw CypherTypeException.expectedNode(
+                        String.valueOf(item), String.valueOf(item), CypherTypeValueMapper.valueType(item));
         }
     }
 

@@ -117,7 +117,8 @@ case class ShortestPathExpression(
     try {
       start.value.map(_(ctx, state)) match {
         case Some(node: VirtualNodeValue) => node.id()
-        case _                            => throw new CypherTypeException(s"${start.name} is not a node")
+        case _ =>
+          throw CypherTypeException.notNode(start.name, start.getClass.getTypeName)
       }
     } catch {
       case _: NotFoundException =>

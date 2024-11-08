@@ -23,9 +23,11 @@ import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.ProjectedPath.Projector
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.cypher.operations.PathValueBuilder
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values.NO_VALUE
 import org.neo4j.values.virtual.ListValue
 import org.neo4j.values.virtual.VirtualValues
@@ -131,7 +133,17 @@ object ProjectedPath {
         case x if x eq NO_VALUE =>
           builder.addNoValue()
           builder
-        case value => throw new CypherTypeException(s"Expected ListValue but got ${value}")
+        case value: Value =>
+          throw CypherTypeException.expectedListValue(
+            String.valueOf(value),
+            value.prettyPrint(),
+            CypherTypeValueMapper.valueType(value)
+          )
+        case other => throw CypherTypeException.expectedListValue(
+            String.valueOf(other),
+            String.valueOf(other),
+            CypherTypeValueMapper.valueType(other)
+          )
       }
     }
   }
@@ -165,7 +177,19 @@ object ProjectedPath {
         case x if x eq NO_VALUE =>
           builder.addNoValue()
           builder
-        case value => throw new CypherTypeException(s"Expected ListValue but got $value")
+        case value: Value =>
+          throw CypherTypeException.expectedListValue(
+            String.valueOf(value),
+            value.prettyPrint(),
+            CypherTypeValueMapper.valueType(value)
+          )
+        case other =>
+          throw CypherTypeException.expectedListValue(
+            String.valueOf(other),
+            String.valueOf(other),
+            CypherTypeValueMapper.valueType(other)
+          )
+
       }
     }
   }
@@ -195,7 +219,18 @@ object ProjectedPath {
         case x if x eq NO_VALUE =>
           builder.addNoValue()
           builder
-        case value => throw new CypherTypeException(s"Expected ListValue but got ${value}")
+        case value: Value =>
+          throw CypherTypeException.expectedListValue(
+            String.valueOf(value),
+            value.prettyPrint(),
+            CypherTypeValueMapper.valueType(value)
+          )
+        case other =>
+          throw CypherTypeException.expectedListValue(
+            String.valueOf(other),
+            String.valueOf(other),
+            CypherTypeValueMapper.valueType(other)
+          )
       }
     }
   }
@@ -207,7 +242,18 @@ object ProjectedPath {
       val listValues = variables.map(ctx.getByName(_) match {
         case value: ListValue   => value
         case x if x eq NO_VALUE => VirtualValues.EMPTY_LIST
-        case value              => throw new CypherTypeException(s"Expected ListValue but got ${value}")
+        case value: Value =>
+          throw CypherTypeException.expectedListValue(
+            String.valueOf(value),
+            value.prettyPrint(),
+            CypherTypeValueMapper.valueType(value)
+          )
+        case other =>
+          throw CypherTypeException.expectedListValue(
+            String.valueOf(other),
+            String.valueOf(other),
+            CypherTypeValueMapper.valueType(other)
+          )
       }).map(_.asScala).transpose.flatten
 
       if (listValues.nonEmpty) {

@@ -45,6 +45,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.PointB
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.PointDistanceSeekRangeExpression
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.PrefixSeekRangeExpression
 import org.neo4j.cypher.internal.runtime.makeValueNeoSafe
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.kernel.api.IndexReadSession
@@ -323,7 +324,18 @@ trait EntityIndexSeeker {
               }
             }).toIndexedSeq
           case v if v eq Values.NO_VALUE => Array[Seq[PropertyIndexQuery.ExactPredicate]]()
-          case other                     => throw new CypherTypeException(s"Expected list, got $other")
+          case value: Value =>
+            throw CypherTypeException.expectedList(
+              String.valueOf(value),
+              value.prettyPrint(),
+              CypherTypeValueMapper.valueType(value)
+            )
+          case other =>
+            throw CypherTypeException.expectedList(
+              String.valueOf(other),
+              String.valueOf(other),
+              CypherTypeValueMapper.valueType(other)
+            )
         }
 
       // Index exact value seek on multiple values, making use of a composite index over all values
@@ -360,7 +372,18 @@ trait EntityIndexSeeker {
         val expr: Seq[AnyValue] = inner(row, state) match {
           case IsList(coll) => coll.asArray()
           case null         => Seq.empty
-          case _ => throw new CypherTypeException(s"Expected the value for $inner to be a collection but it was not.")
+          case value: Value =>
+            throw CypherTypeException.expectedCollectionWasNot(
+              String.valueOf(value),
+              value.prettyPrint(),
+              CypherTypeValueMapper.valueType(value)
+            )
+          case other =>
+            throw CypherTypeException.expectedCollectionWasNot(
+              String.valueOf(other),
+              String.valueOf(other),
+              CypherTypeValueMapper.valueType(other)
+            )
         }
         expr.flatMap(e =>
           makeValueNeoSafe.safeOrEmpty(e).map(value => PropertyIndexQuery.exact(propertyId, value))

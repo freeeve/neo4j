@@ -27,8 +27,10 @@ import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.ParameterWrongTypeException
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualValues
@@ -61,9 +63,20 @@ abstract class OptionalExpandAllPipe(
 
           case value if value eq Values.NO_VALUE =>
             ClosingIterator.single(withNulls(row))
-
-          case value =>
-            throw new ParameterWrongTypeException(s"Expected to find a node at '$fromName' but found $value instead")
+          case value: Value =>
+            throw ParameterWrongTypeException.expectedNodeAtFoundInstead(
+              fromName,
+              String.valueOf(value),
+              value.prettyPrint(),
+              CypherTypeValueMapper.valueType(value)
+            )
+          case other =>
+            throw ParameterWrongTypeException.expectedNodeAtFoundInstead(
+              fromName,
+              String.valueOf(other),
+              String.valueOf(other),
+              CypherTypeValueMapper.valueType(other)
+            )
         }
     }
   }

@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.util.symbols.CTNumber
 import org.neo4j.cypher.internal.util.symbols.NumberType
 import org.neo4j.cypher.operations.CypherFunctions
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.kernel.api.StatementConstants
 import org.neo4j.values.AnyValue
@@ -35,6 +36,7 @@ import org.neo4j.values.storable.IntegralValue
 import org.neo4j.values.storable.LongValue
 import org.neo4j.values.storable.NumberValue
 import org.neo4j.values.storable.NumberValues
+import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
 import org.neo4j.values.storable.Values.NO_VALUE
 
@@ -83,11 +85,25 @@ object NumericHelper {
   def asPrimitiveLong(a: AnyValue): Long = asNumber(a).longValue()
 
   def asNumber(a: AnyValue): NumberValue = a match {
-    case null => throw new CypherTypeException("Expected a numeric value for " + toString + ", but got null")
+    case null =>
+      throw CypherTypeException.expectedNumericGotNull(toString)
     case x if x eq NO_VALUE =>
-      throw new CypherTypeException("Expected a numeric value for " + toString + ", but got null")
+      throw CypherTypeException.expectedNumericGotNull(toString)
     case n: NumberValue => n
-    case _ => throw new CypherTypeException("Expected a numeric value for " + toString + ", but got: " + a.toString)
+    case value: Value =>
+      throw CypherTypeException.expectedNumericGot(
+        toString,
+        String.valueOf(value),
+        value.prettyPrint(),
+        CypherTypeValueMapper.valueType(value)
+      )
+    case other =>
+      throw CypherTypeException.expectedNumericGot(
+        toString,
+        String.valueOf(other),
+        String.valueOf(other),
+        CypherTypeValueMapper.valueType(other)
+      )
   }
 
   def evaluateStaticallyKnownNumber(exp: Expression, state: QueryState): NumberValue = {

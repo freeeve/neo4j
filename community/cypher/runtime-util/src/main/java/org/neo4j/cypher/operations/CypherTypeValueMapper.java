@@ -44,6 +44,7 @@ import org.neo4j.cypher.internal.util.symbols.RelationshipType;
 import org.neo4j.cypher.internal.util.symbols.StringType;
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType;
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType;
+import org.neo4j.values.AnyValue;
 import org.neo4j.values.SequenceValue;
 import org.neo4j.values.ValueMapper;
 import org.neo4j.values.storable.ArrayValue;
@@ -113,6 +114,12 @@ public final class CypherTypeValueMapper implements ValueMapper<CypherType> {
     private static final ListType LIST_DURATION_CYPHER_TYPE_NAME =
             new ListType(DURATION_CYPHER_TYPE_NAME, false, dummyPos);
     private static final ListType LIST_POINT_CYPHER_TYPE_NAME = new ListType(POINT_CYPHER_TYPE_NAME, false, dummyPos);
+
+    private static final CypherTypeValueMapper CYPHER_TYPE_NAME_VALUE_MAPPER = new CypherTypeValueMapper();
+
+    public static String valueType(AnyValue in) {
+        return in == null ? "NULL" : in.map(CYPHER_TYPE_NAME_VALUE_MAPPER).description();
+    }
 
     @Override
     public CypherType mapNoValue() {

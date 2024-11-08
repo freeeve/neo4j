@@ -58,6 +58,7 @@ import org.neo4j.cypher.internal.runtime.RuntimeMetadataValue
 import org.neo4j.cypher.internal.runtime.slotted.helpers.NullChecker.entityIsNull
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.InternalException
 import org.neo4j.graphdb.NotFoundException
@@ -82,9 +83,21 @@ object SlottedRow {
     if (isReference) {
       row.getRefAt(offset) match {
         case node: VirtualNodeValue => node.id()
-        case NO_VALUE               => StatementConstants.NO_SUCH_NODE
-        case null                   => throw new CypherTypeException(s"Expected a node, but got null ")
-        case other                  => throw new CypherTypeException(s"Expected a node, but got ${other.getTypeName} ")
+        case Values.NO_VALUE        => StatementConstants.NO_SUCH_NODE
+        case null =>
+          throw CypherTypeException.expectedNodeButGotNull()
+        case value: Value =>
+          throw CypherTypeException.expectedANodeButGot(
+            value.prettyPrint(),
+            value.getTypeName,
+            CypherTypeValueMapper.valueType(value)
+          )
+        case other =>
+          throw CypherTypeException.expectedANodeButGot(
+            String.valueOf(other),
+            other.getTypeName,
+            CypherTypeValueMapper.valueType(other)
+          )
       }
     } else {
       row.getLongAt(offset)

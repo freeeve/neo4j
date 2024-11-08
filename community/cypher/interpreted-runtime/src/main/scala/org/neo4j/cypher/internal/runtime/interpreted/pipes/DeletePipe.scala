@@ -25,8 +25,10 @@ import org.neo4j.cypher.internal.runtime.IsNoValue
 import org.neo4j.cypher.internal.runtime.interpreted.GraphElementPropertyFunctions
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.Value
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualPathValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
@@ -55,8 +57,18 @@ object DeletePipe {
       deleteNode(n, state, forced)
     case p: VirtualPathValue =>
       deletePath(p, state, forced)
+    case value: Value =>
+      throw CypherTypeException.expectedNodeRelPath(
+        value.prettyPrint(),
+        value.getClass.getSimpleName,
+        CypherTypeValueMapper.valueType(value)
+      )
     case other =>
-      throw new CypherTypeException(s"Expected a Node, Relationship or Path, but got a ${other.getClass.getSimpleName}")
+      throw CypherTypeException.expectedNodeRelPath(
+        String.valueOf(other),
+        other.getClass.getSimpleName,
+        CypherTypeValueMapper.valueType(other)
+      )
   }
 
   private def deleteNode(n: VirtualNodeValue, state: QueryState, forced: Boolean) =
@@ -76,8 +88,18 @@ object DeletePipe {
           deleteNode(n, state, forced)
         case r: VirtualRelationshipValue =>
           deleteRelationship(r, state)
+        case value: Value =>
+          throw CypherTypeException.expectedNodeRel(
+            value.getClass.getSimpleName,
+            value.prettyPrint,
+            CypherTypeValueMapper.valueType(value)
+          )
         case other =>
-          throw new CypherTypeException(s"Expected a Node or Relationship, but got a ${other.getClass.getSimpleName}")
+          throw CypherTypeException.expectedNodeRel(
+            other.getClass.getSimpleName,
+            String.valueOf(other),
+            CypherTypeValueMapper.valueType(other)
+          )
       }
     }
   }

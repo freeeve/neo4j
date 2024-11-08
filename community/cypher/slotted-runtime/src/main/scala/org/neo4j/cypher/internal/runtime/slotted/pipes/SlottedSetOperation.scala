@@ -40,6 +40,7 @@ import org.neo4j.cypher.operations.CypherFunctions
 import org.neo4j.internal.kernel.api.NodeCursor
 import org.neo4j.internal.kernel.api.RelationshipScanCursor
 import org.neo4j.kernel.api.StatementConstants
+import org.neo4j.values.AnyValue
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
 
@@ -159,7 +160,7 @@ abstract class SlottedSetNodeOrRelPropertyFromMapOperation[T, CURSOR](expression
 
   protected def getItemId(executionContext: CypherRow): Long
 
-  protected def id(item: Any): Long
+  protected def id(item: AnyValue): Long
 
   protected def operations(qtx: QueryContext): Operations[T, CURSOR]
 
@@ -251,7 +252,7 @@ case class SlottedSetNodePropertyFromMapOperation(
 
   override def name = "SetNodePropertyFromMap"
 
-  override protected def id(item: Any): Long = CastSupport.castOrFail[VirtualNodeValue](item).id()
+  override protected def id(item: AnyValue): Long = CastSupport.castOrFail[VirtualNodeValue](item).id()
 
   override protected def operations(qtx: QueryContext): NodeOperations = qtx.nodeWriteOps
 
@@ -277,7 +278,7 @@ case class SlottedSetRelationshipPropertyFromMapOperation(
 
   override def name = "SetRelationshipPropertyFromMap"
 
-  override protected def id(item: Any): Long = CastSupport.castOrFail[VirtualRelationshipValue](item).id()
+  override protected def id(item: AnyValue): Long = CastSupport.castOrFail[VirtualRelationshipValue](item).id()
 
   override protected def operations(qtx: QueryContext): RelationshipOperations = qtx.relationshipWriteOps
 

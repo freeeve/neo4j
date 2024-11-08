@@ -329,4 +329,10 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
                         "Failed to %s: Invalid driver settings value for '%s'. Zero is not allowed.",
                         operation, pool_max_size));
     }
+
+    public static InvalidArgumentsException optionRequiresInteger(String option, Object value) {
+        var gql = GqlHelper.getGql22G03_22N27(option, value.getClass().getTypeName(), List.of("INTEGER"));
+        return new InvalidArgumentsException(
+                gql, String.format("Option `%s` requires integer argument, got `%s`", option, value));
+    }
 }

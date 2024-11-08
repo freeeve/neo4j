@@ -21,16 +21,20 @@ package org.neo4j.cypher.internal.runtime
 
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.CypherTypeException
+import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.IntValue
+import org.neo4j.values.storable.Values
+import org.neo4j.values.virtual.VirtualValues
 
 class CastSupportTest extends CypherFunSuite {
 
   test("downcastAppMatchTest") {
-    val one: Any = 1
-    CastSupport.castOrFail[java.lang.Integer](one) should equal(1)
+    val one: AnyValue = Values.intValue(1)
+    CastSupport.castOrFail[IntValue](one) should equal(one)
   }
 
   test("downcastAppMismatchTest") {
-    val seqOne: Any = Seq(1)
-    intercept[CypherTypeException](CastSupport.castOrFail[Int](seqOne))
+    val seqOne: AnyValue = VirtualValues.list(Values.intValue(1))
+    intercept[CypherTypeException](CastSupport.castOrFail[IntValue](seqOne))
   }
 }

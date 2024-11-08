@@ -35,12 +35,14 @@ import org.neo4j.cypher.internal.runtime.makeValueNeoSafe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.CreateNodeSlottedCommand
 import org.neo4j.cypher.internal.runtime.slotted.pipes.CreateRelationshipSlottedCommand
 import org.neo4j.cypher.operations.CypherFunctions
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.InternalException
 import org.neo4j.kernel.api.StatementConstants
 import org.neo4j.kernel.api.StatementConstants.NO_SUCH_RELATIONSHIP
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.FloatingPointValue
+import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -73,8 +75,11 @@ case class CreateSlottedNode(command: CreateNodeSlottedCommand, allowNullOrNaNPr
               query.nodeWriteOps.setProperty(node, propId, makeValueNeoSafe(v))
           }
 
-        case value =>
-          throw new CypherTypeException(s"Parameter provided for node creation is not a Map, instead got $value")
+        case value: Value =>
+          throw CypherTypeException.nodeCreationNotAMap(value.prettyPrint(), CypherTypeValueMapper.valueType(value))
+
+        case other =>
+          throw CypherTypeException.nodeCreationNotAMap(String.valueOf(other), CypherTypeValueMapper.valueType(other))
 
       }
     )
@@ -113,8 +118,17 @@ case class CreateSlottedRelationship(command: CreateRelationshipSlottedCommand, 
                   state.query.relationshipWriteOps.setProperty(relationship, propId, makeValueNeoSafe(v))
               }
 
-            case value =>
-              throw new CypherTypeException(s"Parameter provided for node creation is not a Map, instead got $value")
+            case value: Value =>
+              throw CypherTypeException.nodeCreationNotAMap(
+                value.prettyPrint(),
+                CypherTypeValueMapper.valueType(value)
+              )
+
+            case other =>
+              throw CypherTypeException.nodeCreationNotAMap(
+                String.valueOf(other),
+                CypherTypeValueMapper.valueType(other)
+              )
           }
         )
         relationship

@@ -358,4 +358,9 @@ public class InvalidArgumentException extends Neo4jException {
                 .build();
         return new InvalidArgumentException(gql, legacyMessage, cause);
     }
+
+    public static InvalidArgumentException needIntegerOrFloat(String gotPretty, String gotType) {
+        var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of("INTEGER", "FLOAT"), gotType);
+        return new InvalidArgumentException(gql, "Factor must be either integer of floating point number.");
+    }
 }

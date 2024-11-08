@@ -304,7 +304,6 @@ public class GqlStatusInfoCodesTest {
     @Test
     void verifyConditionSubconditionIsUnique() {
         var whiteList = EnumSet.noneOf(GqlStatusInfoCodes.class);
-        whiteList.add(GqlStatusInfoCodes.STATUS_22G12);
         whiteList.add(GqlStatusInfoCodes.STATUS_22N12);
         var errorMessages = new ArrayList<String>();
         var knownCombinations = new HashMap<TotalCondition, GqlStatusInfoCodes>();
@@ -448,8 +447,8 @@ public class GqlStatusInfoCodesTest {
         byte[] gqlHash = DigestUtils.sha256(gqlBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            -80, 51, -36, 19, -28, 91, -119, -65, 87, 69, -35, 67, -64, -123, -50, 31, -72, 63, -12, -46, 35, -23, 104,
-            -84, 57, -58, -4, 16, 59, -7, 78, -6
+            -25, 81, -58, 73, 72, -100, 93, -44, -108, 98, 54, 30, -11, -109, 110, 102, 24, 40, -3, 64, 67, 117, 65,
+            -99, -114, 122, -7, -56, 122, 5, 91, -111
         };
 
         if (!Arrays.equals(gqlHash, expectedHash)) {

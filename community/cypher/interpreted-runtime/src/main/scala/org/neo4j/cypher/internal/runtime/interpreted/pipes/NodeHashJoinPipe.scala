@@ -24,9 +24,11 @@ import org.neo4j.cypher.internal.runtime.ClosingIterator.JavaIteratorAsClosingIt
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IsNoValue
 import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.kernel.impl.util.collection
 import org.neo4j.values.storable.LongArray
+import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualNodeValue
 
@@ -97,7 +99,10 @@ case class NodeHashJoinPipe(nodeVariables: Set[String], left: Pipe, right: Pipe)
       key(idx) = context.getByName(cachedVariables(idx)) match {
         case n: VirtualNodeValue => n.id()
         case IsNoValue()         => return ClosingIterator.empty
-        case _ => throw new CypherTypeException("Created a plan that uses non-nodes when expecting a node")
+        case value: Value =>
+          throw CypherTypeException.planExpectedNode(value.prettyPrint(), CypherTypeValueMapper.valueType(value))
+        case other =>
+          throw CypherTypeException.planExpectedNode(String.valueOf(other), CypherTypeValueMapper.valueType(other))
       }
     }
     ClosingIterator.single(Values.longArray(key))

@@ -24,9 +24,11 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.operations.CypherFunctions.startNode
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.cypher.operations.PathValueBuilder
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values.NO_VALUE
 import org.neo4j.values.virtual.ListValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
@@ -125,7 +127,18 @@ object SlottedProjectedPath {
         case x if x eq NO_VALUE =>
           builder.addNoValue()
           tailProjector(ctx, state, builder)
-        case value => throw new CypherTypeException(s"Expected ListValue but got ${value.getTypeName}")
+        case value: Value =>
+          throw CypherTypeException.expectedListValue(
+            value.getTypeName,
+            value.prettyPrint(),
+            CypherTypeValueMapper.valueType(value)
+          )
+        case other =>
+          throw CypherTypeException.expectedListValue(
+            other.getTypeName,
+            String.valueOf(other),
+            CypherTypeValueMapper.valueType(other)
+          )
       }
 
     override def arguments: Seq[Expression] = Seq(rel, node) ++ tailProjector.arguments
@@ -156,7 +169,18 @@ object SlottedProjectedPath {
         case x if x eq NO_VALUE =>
           builder.addNoValue()
           tailProjector(ctx, state, builder)
-        case value => throw new CypherTypeException(s"Expected ListValue but got ${value.getTypeName}")
+        case value: Value =>
+          throw CypherTypeException.expectedListValue(
+            value.getTypeName,
+            value.prettyPrint(),
+            CypherTypeValueMapper.valueType(value)
+          )
+        case other =>
+          throw CypherTypeException.expectedListValue(
+            other.getTypeName,
+            String.valueOf(other),
+            CypherTypeValueMapper.valueType(other)
+          )
       }
 
     override def arguments: Seq[Expression] = Seq(rel, node) ++ tailProjector.arguments
@@ -187,7 +211,18 @@ object SlottedProjectedPath {
         case x if x eq NO_VALUE =>
           builder.addNoValue()
           tailProjector(ctx, state, builder)
-        case value => throw new CypherTypeException(s"Expected ListValue but got ${value.getTypeName}")
+        case value: Value =>
+          throw CypherTypeException.expectedListValue(
+            value.getTypeName,
+            value.prettyPrint(),
+            CypherTypeValueMapper.valueType(value)
+          )
+        case other =>
+          throw CypherTypeException.expectedListValue(
+            other.getTypeName,
+            String.valueOf(other),
+            CypherTypeValueMapper.valueType(other)
+          )
       }
 
     override def arguments: Seq[Expression] = Seq(rel, node) ++ tailProjector.arguments
@@ -245,7 +280,18 @@ object SlottedProjectedPath {
         _.apply(ctx, state) match {
           case value: ListValue   => value
           case x if x eq NO_VALUE => VirtualValues.EMPTY_LIST
-          case value              => throw new CypherTypeException(s"Expected ListValue but got ${value.getTypeName}")
+          case value: Value =>
+            throw CypherTypeException.expectedListValue(
+              value.getTypeName,
+              value.prettyPrint(),
+              CypherTypeValueMapper.valueType(value)
+            )
+          case other =>
+            throw CypherTypeException.expectedListValue(
+              other.getTypeName,
+              String.valueOf(other),
+              CypherTypeValueMapper.valueType(other)
+            )
         }
       )
       val patternSize = values.size
@@ -284,7 +330,18 @@ object SlottedProjectedPath {
     case x if x eq NO_VALUE =>
       builder.addNoValue()
       builder
-    case _ => throw new CypherTypeException(s"Expected RelationshipValue but got ${relValue.getTypeName}")
+    case value: Value =>
+      throw CypherTypeException.expectedRelValueGotType(
+        value.getTypeName,
+        value.prettyPrint(),
+        CypherTypeValueMapper.valueType(value)
+      )
+    case other =>
+      throw CypherTypeException.expectedRelValueGotType(
+        other.getTypeName,
+        String.valueOf(other),
+        CypherTypeValueMapper.valueType(other)
+      )
   }
 
   private def addOutgoing(relValue: AnyValue, state: QueryState, builder: PathValueBuilder) = relValue match {
@@ -294,7 +351,18 @@ object SlottedProjectedPath {
     case x if x eq NO_VALUE =>
       builder.addNoValue()
       builder
-    case _ => throw new CypherTypeException(s"Expected RelationshipValue but got ${relValue.getTypeName}")
+    case value: Value =>
+      throw CypherTypeException.expectedRelValueGotType(
+        value.getTypeName,
+        value.prettyPrint(),
+        CypherTypeValueMapper.valueType(value)
+      )
+    case other =>
+      throw CypherTypeException.expectedRelValueGotType(
+        other.getTypeName,
+        String.valueOf(other),
+        CypherTypeValueMapper.valueType(other)
+      )
   }
 
   private def addUndirected(relValue: AnyValue, state: QueryState, builder: PathValueBuilder) = relValue match {
@@ -305,7 +373,18 @@ object SlottedProjectedPath {
     case x if x eq NO_VALUE =>
       builder.addNoValue()
       builder
-    case _ => throw new CypherTypeException(s"Expected RelationshipValue but got ${relValue.getTypeName}")
+    case value: Value =>
+      throw CypherTypeException.expectedRelValueGotType(
+        value.getTypeName,
+        value.prettyPrint(),
+        CypherTypeValueMapper.valueType(value)
+      )
+    case other =>
+      throw CypherTypeException.expectedRelValueGotType(
+        other.getTypeName,
+        String.valueOf(other),
+        CypherTypeValueMapper.valueType(other)
+      )
   }
 
   private def addAllExceptLast(

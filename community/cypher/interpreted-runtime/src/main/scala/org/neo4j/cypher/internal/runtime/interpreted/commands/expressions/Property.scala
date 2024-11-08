@@ -24,12 +24,14 @@ import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.interpreted.IsMap
 import org.neo4j.cypher.internal.runtime.interpreted.commands.values.KeyToken
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.DurationValue
 import org.neo4j.values.storable.PointValue
 import org.neo4j.values.storable.TemporalValue
+import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
@@ -73,7 +75,18 @@ case class Property(mapExpr: Expression, propertyKey: KeyToken)
         case Success(v) => v
         case Failure(e) => throw new InvalidArgumentException(e.getMessage, e)
       }
-    case other => throw new CypherTypeException(s"Type mismatch: expected a map but was $other")
+    case value: Value =>
+      throw CypherTypeException.expectedMap(
+        String.valueOf(value),
+        value.prettyPrint(),
+        CypherTypeValueMapper.valueType(value)
+      )
+    case other =>
+      throw CypherTypeException.expectedMap(
+        String.valueOf(other),
+        String.valueOf(other),
+        CypherTypeValueMapper.valueType(other)
+      )
   }
 
   override def rewrite(f: Expression => Expression): Expression =

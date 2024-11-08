@@ -27,9 +27,11 @@ import org.neo4j.cypher.internal.util.AssertionRunner
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CypherType
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.ParameterWrongTypeException
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
@@ -102,11 +104,25 @@ object SlotConfigurationUtils {
             value.asInstanceOf[VirtualNodeValue].id()
           } catch {
             case _: java.lang.ClassCastException =>
-              throw new ParameterWrongTypeException(
-                s"Expected to find a node at ref slot $offset but found $value instead"
-              )
+              value match {
+                case value: Value =>
+                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
+                    offset,
+                    "node",
+                    String.valueOf(value),
+                    value.prettyPrint(),
+                    CypherTypeValueMapper.valueType(value)
+                  )
+                case other =>
+                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
+                    offset,
+                    "node",
+                    String.valueOf(other),
+                    String.valueOf(other),
+                    CypherTypeValueMapper.valueType(other)
+                  )
+              }
           }
-
       case (RefSlot(offset, false, _), CTRelationship, true) =>
         (context: ReadableRow) =>
           val value = context.getRefAt(offset)
@@ -114,9 +130,24 @@ object SlotConfigurationUtils {
             value.asInstanceOf[VirtualRelationshipValue].id()
           } catch {
             case _: java.lang.ClassCastException =>
-              throw new ParameterWrongTypeException(
-                s"Expected to find a relationship at ref slot $offset but found $value instead"
-              )
+              value match {
+                case value: Value =>
+                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
+                    offset,
+                    "relationship",
+                    String.valueOf(value),
+                    value.prettyPrint(),
+                    CypherTypeValueMapper.valueType(value)
+                  )
+                case other =>
+                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
+                    offset,
+                    "relationship",
+                    String.valueOf(other),
+                    String.valueOf(other),
+                    CypherTypeValueMapper.valueType(other)
+                  )
+              }
           }
 
       case (RefSlot(offset, true, _), CTNode, true) =>
@@ -129,9 +160,24 @@ object SlotConfigurationUtils {
               value.asInstanceOf[VirtualNodeValue].id()
           } catch {
             case _: java.lang.ClassCastException =>
-              throw new ParameterWrongTypeException(
-                s"Expected to find a node at ref slot $offset but found $value instead"
-              )
+              value match {
+                case value: Value =>
+                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
+                    offset,
+                    "node",
+                    String.valueOf(value),
+                    value.prettyPrint(),
+                    CypherTypeValueMapper.valueType(value)
+                  )
+                case other =>
+                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
+                    offset,
+                    "node",
+                    String.valueOf(other),
+                    String.valueOf(other),
+                    CypherTypeValueMapper.valueType(other)
+                  )
+              }
           }
 
       case (RefSlot(offset, true, _), CTRelationship, true) =>
@@ -144,9 +190,24 @@ object SlotConfigurationUtils {
               value.asInstanceOf[VirtualRelationshipValue].id()
           } catch {
             case _: java.lang.ClassCastException =>
-              throw new ParameterWrongTypeException(
-                s"Expected to find a relationship at ref slot $offset but found $value instead"
-              )
+              value match {
+                case value: Value =>
+                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
+                    offset,
+                    "relationship",
+                    String.valueOf(value),
+                    value.prettyPrint(),
+                    CypherTypeValueMapper.valueType(value)
+                  )
+                case other =>
+                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
+                    offset,
+                    "relationship",
+                    String.valueOf(other),
+                    String.valueOf(other),
+                    CypherTypeValueMapper.valueType(other)
+                  )
+              }
           }
 
       case (RefSlot(offset, _, _), CTNode, false) =>
@@ -201,9 +262,24 @@ object SlotConfigurationUtils {
             context.setLongAt(offset, value.asInstanceOf[VirtualNodeValue].id())
           } catch {
             case _: java.lang.ClassCastException =>
-              throw new ParameterWrongTypeException(
-                s"Expected to find a node at long slot $offset but found $value instead"
-              )
+              value match {
+                case value: Value =>
+                  throw ParameterWrongTypeException.expectedEntityAtLongSlotFoundInstead(
+                    offset,
+                    "node",
+                    String.valueOf(value),
+                    value.prettyPrint(),
+                    CypherTypeValueMapper.valueType(value)
+                  )
+                case other =>
+                  throw ParameterWrongTypeException.expectedEntityAtLongSlotFoundInstead(
+                    offset,
+                    "node",
+                    String.valueOf(other),
+                    String.valueOf(other),
+                    CypherTypeValueMapper.valueType(other)
+                  )
+              }
           }
 
       case LongSlot(offset, false, CTRelationship) =>
@@ -212,9 +288,24 @@ object SlotConfigurationUtils {
             context.setLongAt(offset, value.asInstanceOf[VirtualRelationshipValue].id())
           } catch {
             case _: java.lang.ClassCastException =>
-              throw new ParameterWrongTypeException(
-                s"Expected to find a relationship at long slot $offset but found $value instead"
-              )
+              value match {
+                case value: Value =>
+                  throw ParameterWrongTypeException.expectedEntityAtLongSlotFoundInstead(
+                    offset,
+                    "relationship",
+                    String.valueOf(value),
+                    value.prettyPrint(),
+                    CypherTypeValueMapper.valueType(value)
+                  )
+                case other =>
+                  throw ParameterWrongTypeException.expectedEntityAtLongSlotFoundInstead(
+                    offset,
+                    "relationship",
+                    String.valueOf(other),
+                    String.valueOf(other),
+                    CypherTypeValueMapper.valueType(other)
+                  )
+              }
           }
 
       case LongSlot(offset, true, CTNode) =>
@@ -226,9 +317,24 @@ object SlotConfigurationUtils {
               context.setLongAt(offset, value.asInstanceOf[VirtualNodeValue].id())
             } catch {
               case _: java.lang.ClassCastException =>
-                throw new ParameterWrongTypeException(
-                  s"Expected to find a node at long slot $offset but found $value instead"
-                )
+                value match {
+                  case value: Value =>
+                    throw ParameterWrongTypeException.expectedEntityAtLongSlotFoundInstead(
+                      offset,
+                      "node",
+                      String.valueOf(value),
+                      value.prettyPrint(),
+                      CypherTypeValueMapper.valueType(value)
+                    )
+                  case other =>
+                    throw ParameterWrongTypeException.expectedEntityAtLongSlotFoundInstead(
+                      offset,
+                      "node",
+                      String.valueOf(other),
+                      String.valueOf(other),
+                      CypherTypeValueMapper.valueType(other)
+                    )
+                }
             }
           }
 
@@ -241,9 +347,24 @@ object SlotConfigurationUtils {
               context.setLongAt(offset, value.asInstanceOf[VirtualRelationshipValue].id())
             } catch {
               case _: java.lang.ClassCastException =>
-                throw new ParameterWrongTypeException(
-                  s"Expected to find a relationship at long slot $offset but found $value instead"
-                )
+                value match {
+                  case value: Value =>
+                    throw ParameterWrongTypeException.expectedEntityAtLongSlotFoundInstead(
+                      offset,
+                      "relationship",
+                      String.valueOf(value),
+                      value.prettyPrint(),
+                      CypherTypeValueMapper.valueType(value)
+                    )
+                  case other =>
+                    throw ParameterWrongTypeException.expectedEntityAtLongSlotFoundInstead(
+                      offset,
+                      "relationship",
+                      String.valueOf(other),
+                      String.valueOf(other),
+                      CypherTypeValueMapper.valueType(other)
+                    )
+                }
             }
           }
 

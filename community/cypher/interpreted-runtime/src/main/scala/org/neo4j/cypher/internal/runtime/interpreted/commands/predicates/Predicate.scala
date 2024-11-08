@@ -40,6 +40,7 @@ import org.neo4j.cypher.internal.util.DeprecatedBooleanCoercion
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.operations.CypherFunctions
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.internal.kernel.api.NodeCursor
 import org.neo4j.internal.kernel.api.PropertyCursor
@@ -74,7 +75,18 @@ object IsMatchResult {
     case IsNoValue()  => IsUnknown
     case Values.TRUE  => IsTrue
     case Values.FALSE => IsFalse
-    case _            => throw new CypherTypeException(s"$boolean is not a boolean value")
+    case value: Value =>
+      throw CypherTypeException.notBool(
+        String.valueOf(value),
+        value.prettyPrint(),
+        CypherTypeValueMapper.valueType(value)
+      )
+    case other =>
+      throw CypherTypeException.notBool(
+        String.valueOf(other),
+        String.valueOf(other),
+        CypherTypeValueMapper.valueType(other)
+      )
   }
 }
 
@@ -533,7 +545,18 @@ case class NonEmpty(collection: Expression) extends Predicate {
     collection(ctx, state) match {
       case IsList(x)   => IsMatchResult(x.nonEmpty)
       case IsNoValue() => IsUnknown
-      case x           => throw new CypherTypeException(s"Expected a collection, got `$x`")
+      case value: Value =>
+        throw CypherTypeException.expectedCollection(
+          String.valueOf(value),
+          value.prettyPrint(),
+          CypherTypeValueMapper.valueType(value)
+        )
+      case other =>
+        throw CypherTypeException.expectedCollection(
+          String.valueOf(other),
+          String.valueOf(other),
+          CypherTypeValueMapper.valueType(other)
+        )
     }
   }
 
@@ -585,9 +608,20 @@ case class HasALabelOrType(entity: Expression) extends Predicate {
     case _: VirtualRelationshipValue =>
       IsTrue
 
-    case value =>
-      throw new CypherTypeException(
-        s"Expected $value to be a Node or Relationship, but it was a ${value.getClass.getName}"
+    case value: Value =>
+      throw CypherTypeException.expectedNodeRelWas(
+        String.valueOf(value),
+        value.getClass.getName,
+        value.prettyPrint(),
+        CypherTypeValueMapper.valueType(value)
+      )
+
+    case other =>
+      throw CypherTypeException.expectedNodeRelWas(
+        String.valueOf(other),
+        other.getClass.getName,
+        String.valueOf(other),
+        CypherTypeValueMapper.valueType(other)
       )
   }
 
@@ -621,9 +655,20 @@ case class HasLabelOrType(entity: Expression, labelOrType: String) extends Predi
       if (token == StatementConstants.NO_SUCH_RELATIONSHIP_TYPE) IsFalse
       else IsMatchResult(queryCtx.isTypeSetOnRelationship(token, relId, state.cursors.relationshipScanCursor))
 
-    case value =>
-      throw new CypherTypeException(
-        s"Expected $value to be a Node or Relationship, but it was a ${value.getClass.getName}"
+    case value: Value =>
+      throw CypherTypeException.expectedNodeRelWas(
+        String.valueOf(value),
+        value.getClass.getName,
+        value.prettyPrint(),
+        CypherTypeValueMapper.valueType(value)
+      )
+
+    case other =>
+      throw CypherTypeException.expectedNodeRelWas(
+        String.valueOf(other),
+        other.getClass.getName,
+        String.valueOf(other),
+        CypherTypeValueMapper.valueType(other)
       )
   }
 
@@ -833,7 +878,18 @@ case class CoercedPredicate(inner: Expression) extends Predicate {
     case IsList(coll) =>
       state.newRuntimeNotification(DeprecatedBooleanCoercion)
       IsMatchResult(coll.nonEmpty)
-    case x => throw new CypherTypeException(s"Don't know how to treat that as a predicate: $x")
+    case value: Value =>
+      throw CypherTypeException.howTreatAsPredicate(
+        String.valueOf(value),
+        value.prettyPrint(),
+        CypherTypeValueMapper.valueType(value)
+      )
+    case other =>
+      throw CypherTypeException.howTreatAsPredicate(
+        String.valueOf(other),
+        String.valueOf(other),
+        CypherTypeValueMapper.valueType(other)
+      )
   }
 
   override def rewrite(f: Expression => Expression): Expression = f(CoercedPredicate(inner.rewrite(f)))

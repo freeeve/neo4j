@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expres
 import org.neo4j.cypher.internal.runtime.makeValueNeoSafe
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherFunctions
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.InternalException
 import org.neo4j.values.AnyValue
@@ -60,7 +61,10 @@ abstract class BaseCreatePipe(src: Pipe) extends PipeWithSource(src) {
     val value = properties(context, state)
     value match {
       case _: VirtualNodeValue | _: VirtualRelationshipValue =>
-        throw new CypherTypeException(s"Parameter provided for node creation is not a Map, instead got $value")
+        throw CypherTypeException.nodeCreationNotAMap(
+          String.valueOf(value),
+          CypherTypeValueMapper.valueType(value)
+        )
       case IsMap(map) =>
         val propertyMap = map(state)
         val propertiesToSet = IntObjectMaps.mutable.withInitialCapacity[Value](propertyMap.size())
@@ -70,8 +74,17 @@ abstract class BaseCreatePipe(src: Pipe) extends PipeWithSource(src) {
         }
         ops.setProperties(entityId, propertiesToSet)
 
-      case _ =>
-        throw new CypherTypeException(s"Parameter provided for node creation is not a Map, instead got $value")
+      case value: Value =>
+        throw CypherTypeException.nodeCreationNotAMap(
+          value.prettyPrint(),
+          CypherTypeValueMapper.valueType(value)
+        )
+
+      case other =>
+        throw CypherTypeException.nodeCreationNotAMap(
+          String.valueOf(other),
+          CypherTypeValueMapper.valueType(other)
+        )
     }
   }
 }

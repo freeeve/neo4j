@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.ProjectEndpoints.vali
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ProjectEndpoints.validateRels
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ProjectEndpoints.validateRelsUndirectedNothingInScope
 import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.internal.kernel.api.RelationshipDataAccessor
 import org.neo4j.internal.kernel.api.RelationshipScanCursor
@@ -41,6 +42,7 @@ import org.neo4j.kernel.api.StatementConstants
 import org.neo4j.storageengine.api.LongReference.NULL
 import org.neo4j.util.CalledFromGeneratedCode
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
@@ -147,7 +149,18 @@ case class ProjectEndpointsPipe(
     node match {
       case n: VirtualNodeValue       => n.id()
       case x if x eq Values.NO_VALUE => StatementConstants.NO_SUCH_NODE
-      case value => throw new CypherTypeException(s"Expected NodeValue but got ${value.getTypeName}")
+      case value: Value =>
+        throw CypherTypeException.expectedNodeValue(
+          value.prettyPrint(),
+          value.getTypeName,
+          CypherTypeValueMapper.valueType(value)
+        )
+      case value =>
+        throw CypherTypeException.expectedNodeValue(
+          String.valueOf(value),
+          value.getTypeName,
+          CypherTypeValueMapper.valueType(value)
+        )
     }
 
 }

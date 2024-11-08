@@ -834,7 +834,8 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
         } catch (java.lang.ArithmeticException | org.neo4j.exceptions.ArithmeticException e) {
             throw invalidDurationMultiply(this, number, e);
         }
-        throw new InvalidArgumentException("Factor must be either integer of floating point number.");
+        // Should be unreachable unless someone adds a NumberValue that is not IntegralValue or FloatingPointValue
+        throw InvalidArgumentException.needIntegerOrFloat(number.prettyPrint(), number.getTypeName());
     }
 
     public DurationValue div(NumberValue number) {

@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.operations;
 
-import static java.lang.String.format;
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_INT_ARRAY;
 import static org.apache.commons.lang3.ArrayUtils.indexOf;
 import static org.neo4j.kernel.api.StatementConstants.NO_SUCH_LABEL;
@@ -647,7 +646,14 @@ public final class CursorUtils {
         } else if (container instanceof PointValue point) {
             return point.get(key);
         } else {
-            throw new CypherTypeException(format("Type mismatch: expected a map but was %s", container), null);
+            if (container instanceof Value value)
+                throw CypherTypeException.expectedMap(
+                        String.valueOf(value), value.prettyPrint(), CypherTypeValueMapper.valueType(container));
+            else
+                throw CypherTypeException.expectedMap(
+                        String.valueOf(container),
+                        String.valueOf(container),
+                        CypherTypeValueMapper.valueType(container));
         }
     }
 
@@ -681,7 +687,14 @@ public final class CursorUtils {
         } else if (container instanceof PointValue point) {
             return propertiesGet(keys, point);
         } else {
-            throw new CypherTypeException(format("Type mismatch: expected a map but was %s", container), null);
+            if (container instanceof Value value)
+                throw CypherTypeException.expectedMap(
+                        String.valueOf(value), value.prettyPrint(), CypherTypeValueMapper.valueType(container));
+            else
+                throw CypherTypeException.expectedMap(
+                        String.valueOf(container),
+                        String.valueOf(container),
+                        CypherTypeValueMapper.valueType(container));
         }
     }
 

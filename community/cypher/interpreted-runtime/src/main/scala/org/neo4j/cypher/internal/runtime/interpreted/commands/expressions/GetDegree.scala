@@ -24,8 +24,10 @@ import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.commands.values.KeyToken
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualNodeValue
 
@@ -44,8 +46,19 @@ case class GetDegree(node: Expression, typ: Option[KeyToken], direction: Semanti
   override def apply(row: ReadableRow, state: QueryState): AnyValue = node(row, state) match {
     case x if x eq Values.NO_VALUE => Values.ZERO_INT
     case n: VirtualNodeValue       => Values.longValue(getDegree(state, n.id()))
-    case other => throw new CypherTypeException(
-        s"Type mismatch: expected a node but was $other of type ${other.getClass.getSimpleName}"
+    case value: Value =>
+      throw CypherTypeException.typeMismatchExpectedANodeWasType(
+        String.valueOf(value),
+        value.getClass.getSimpleName,
+        value.prettyPrint(),
+        CypherTypeValueMapper.valueType(value)
+      )
+    case other =>
+      throw CypherTypeException.typeMismatchExpectedANodeWasType(
+        String.valueOf(other),
+        other.getClass.getSimpleName,
+        String.valueOf(other),
+        CypherTypeValueMapper.valueType(other)
       )
   }
 

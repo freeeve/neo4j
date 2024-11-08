@@ -92,8 +92,15 @@ public final class CypherCoercions {
         } else if (anyValue instanceof ListValue list) {
             return list.toStorableArray();
         } else {
-            throw new CypherTypeException(
-                    "Property values can only be of primitive types or arrays thereof. Encountered: " + anyValue + ".");
+            if (anyValue instanceof Value v)
+                throw CypherTypeException.expectedPrimitivePropertyValue(
+                        String.valueOf(v), v.prettyPrint(), CypherTypeValueMapper.valueType(v), true);
+            else
+                throw CypherTypeException.expectedPrimitivePropertyValue(
+                        String.valueOf(anyValue),
+                        String.valueOf(anyValue),
+                        CypherTypeValueMapper.valueType(anyValue),
+                        true);
         }
     }
 

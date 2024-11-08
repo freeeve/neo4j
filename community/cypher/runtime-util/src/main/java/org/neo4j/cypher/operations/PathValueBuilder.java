@@ -29,6 +29,7 @@ import org.neo4j.exceptions.CypherTypeException;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.util.CalledFromGeneratedCode;
 import org.neo4j.values.AnyValue;
+import org.neo4j.values.storable.Value;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.RelationshipVisitor;
 import org.neo4j.values.virtual.VirtualNodeValue;
@@ -81,7 +82,12 @@ public class PathValueBuilder implements Consumer<RelationshipVisitor> {
             if (value instanceof ListValue listValue) {
                 addNode(listValue.value(offset));
             } else {
-                throw new CypherTypeException("Expected list but found: " + value);
+                if (value instanceof Value v)
+                    throw CypherTypeException.expectedListFound(
+                            String.valueOf(v), v.prettyPrint(), CypherTypeValueMapper.valueType(value));
+                else
+                    throw CypherTypeException.expectedListFound(
+                            String.valueOf(value), String.valueOf(value), CypherTypeValueMapper.valueType(value));
             }
         }
     }
@@ -110,7 +116,12 @@ public class PathValueBuilder implements Consumer<RelationshipVisitor> {
             if (value instanceof ListValue listValue) {
                 addRelationship(listValue.value(offset));
             } else {
-                throw new CypherTypeException("Expected list but found: " + value);
+                if (value instanceof Value v)
+                    throw CypherTypeException.expectedListFound(
+                            String.valueOf(v), v.prettyPrint(), CypherTypeValueMapper.valueType(value));
+                else
+                    throw CypherTypeException.expectedListFound(
+                            String.valueOf(value), String.valueOf(value), CypherTypeValueMapper.valueType(value));
             }
         }
     }

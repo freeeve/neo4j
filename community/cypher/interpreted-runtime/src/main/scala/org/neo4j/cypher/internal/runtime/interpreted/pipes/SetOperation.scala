@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expres
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.SideEffect
 import org.neo4j.cypher.internal.runtime.makeValueNeoSafe
 import org.neo4j.cypher.operations.CypherFunctions
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.internal.kernel.api.NodeCursor
@@ -66,7 +67,20 @@ object SetOperation {
     /* Make the map expression look like a map */
     expression(executionContext, state) match {
       case IsMap(map) => map(state)
-      case x          => throw new CypherTypeException(s"Expected $expression to be a map, but it was :`$x`")
+      case value: Value =>
+        throw CypherTypeException.expectedExpressionToBeMap(
+          String.valueOf(expression),
+          String.valueOf(value),
+          value.prettyPrint(),
+          CypherTypeValueMapper.valueType(value)
+        )
+      case other =>
+        throw CypherTypeException.expectedExpressionToBeMap(
+          String.valueOf(expression),
+          String.valueOf(other),
+          String.valueOf(other),
+          CypherTypeValueMapper.valueType(other)
+        )
     }
   }
 }
@@ -174,7 +188,7 @@ abstract class SetEntityPropertyOperation[T](itemName: String, propertyKey: Lazy
     }
   }
 
-  protected def id(item: Any): Long
+  protected def id(item: AnyValue): Long
 
   protected def operations(qtx: QueryContext): Operations[T, _]
 
@@ -206,7 +220,7 @@ abstract class SetEntityPropertiesOperation[T](
     }
   }
 
-  protected def id(item: Any): Long
+  protected def id(item: AnyValue): Long
 
   protected def operations(qtx: QueryContext): Operations[T, _]
 
@@ -222,7 +236,7 @@ case class SetNodePropertyOperation(
 
   override def name = "SetNodeProperty"
 
-  override protected def id(item: Any): Long = CastSupport.castOrFail[VirtualNodeValue](item).id()
+  override protected def id(item: AnyValue): Long = CastSupport.castOrFail[VirtualNodeValue](item).id()
 
   override protected def operations(qtx: QueryContext): NodeOperations = qtx.nodeWriteOps
 
@@ -239,7 +253,7 @@ case class SetNodePropertiesOperation(
 
   override def name = "SetNodeProperties"
 
-  override protected def id(item: Any): Long = CastSupport.castOrFail[VirtualNodeValue](item).id()
+  override protected def id(item: AnyValue): Long = CastSupport.castOrFail[VirtualNodeValue](item).id()
 
   override protected def operations(qtx: QueryContext): NodeOperations = qtx.nodeWriteOps
 
@@ -256,7 +270,7 @@ case class SetRelationshipPropertyOperation(
 
   override def name = "SetRelationshipProperty"
 
-  override protected def id(item: Any): Long = CastSupport.castOrFail[VirtualRelationshipValue](item).id()
+  override protected def id(item: AnyValue): Long = CastSupport.castOrFail[VirtualRelationshipValue](item).id()
 
   override protected def operations(qtx: QueryContext): RelationshipOperations = qtx.relationshipWriteOps
 
@@ -273,7 +287,7 @@ case class SetRelationshipPropertiesOperation(
 
   override def name = "SetRelationshipProperties"
 
-  override protected def id(item: Any): Long = CastSupport.castOrFail[VirtualRelationshipValue](item).id()
+  override protected def id(item: AnyValue): Long = CastSupport.castOrFail[VirtualRelationshipValue](item).id()
 
   override protected def operations(qtx: QueryContext): RelationshipOperations = qtx.relationshipWriteOps
 
@@ -506,7 +520,7 @@ abstract class SetNodeOrRelPropertyFromMapOperation[T, CURSOR](
     }
   }
 
-  protected def id(item: Any): Long
+  protected def id(item: AnyValue): Long
 
   protected def operations(qtx: QueryContext): Operations[T, CURSOR]
 
@@ -524,7 +538,7 @@ case class SetNodePropertyFromMapOperation(
 
   override def name = "SetNodePropertyFromMap"
 
-  override protected def id(item: Any): Long = CastSupport.castOrFail[VirtualNodeValue](item).id()
+  override protected def id(item: AnyValue): Long = CastSupport.castOrFail[VirtualNodeValue](item).id()
 
   override protected def operations(qtx: QueryContext): NodeOperations = qtx.nodeWriteOps
 
@@ -547,7 +561,7 @@ case class SetRelationshipPropertyFromMapOperation(
 
   override def name = "SetRelationshipPropertyFromMap"
 
-  override protected def id(item: Any): Long = CastSupport.castOrFail[VirtualRelationshipValue](item).id()
+  override protected def id(item: AnyValue): Long = CastSupport.castOrFail[VirtualRelationshipValue](item).id()
 
   override protected def operations(qtx: QueryContext): RelationshipOperations = qtx.relationshipWriteOps
 

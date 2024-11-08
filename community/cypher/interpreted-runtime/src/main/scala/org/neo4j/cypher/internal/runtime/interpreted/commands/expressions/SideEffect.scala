@@ -33,11 +33,13 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyLabel
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.runtime.makeValueNeoSafe
 import org.neo4j.cypher.operations.CypherFunctions
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.InvalidSemanticsException
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.FloatingPointValue
+import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualValues
@@ -72,8 +74,10 @@ case class CreateNode(command: CreateNodeCommand, allowNullOrNaNProperty: Boolea
               query.nodeWriteOps.setProperty(node, propId, makeValueNeoSafe(v))
           }
 
-        case value =>
-          throw new CypherTypeException(s"Parameter provided for node creation is not a Map, instead got $value")
+        case value: Value =>
+          throw CypherTypeException.nodeCreationNotAMap(value.prettyPrint(), CypherTypeValueMapper.valueType(value))
+        case other =>
+          throw CypherTypeException.nodeCreationNotAMap(String.valueOf(other), CypherTypeValueMapper.valueType(other))
 
       }
     )
@@ -126,9 +130,11 @@ case class CreateRelationship(command: CreateRelationshipCommand, allowNullOrNaN
                 val propId = state.query.getOrCreatePropertyKeyId(k)
                 state.query.relationshipWriteOps.setProperty(relationship, propId, makeValueNeoSafe(v))
             }
+          case value: Value =>
+            throw CypherTypeException.nodeCreationNotAMap(value.prettyPrint(), CypherTypeValueMapper.valueType(value))
 
-          case value =>
-            throw new CypherTypeException(s"Parameter provided for node creation is not a Map, instead got $value")
+          case other =>
+            throw CypherTypeException.nodeCreationNotAMap(String.valueOf(other), CypherTypeValueMapper.valueType(other))
 
         }
       )

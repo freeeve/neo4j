@@ -38,7 +38,7 @@ public class MergeConstraintConflictException extends Neo4jException {
     }
 
     public static MergeConstraintConflictException nodeConflict(String node) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G12)
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N41)
                         .withParam(GqlParams.StringParam.variable, node)
                         .build())
@@ -51,7 +51,7 @@ public class MergeConstraintConflictException extends Neo4jException {
     }
 
     public static MergeConstraintConflictException relationshipConflict(String relationship) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G12)
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N42)
                         .withParam(GqlParams.StringParam.variable, relationship)
                         .build())

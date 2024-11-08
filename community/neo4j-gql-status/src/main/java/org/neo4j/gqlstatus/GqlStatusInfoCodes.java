@@ -1027,15 +1027,6 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "reference value, referent deleted",
             ErrorClassification.UNKNOWN),
-    STATUS_22G12(
-            new GqlStatus("22G12"),
-            """
-                    """,
-            new GqlParams.GqlParam[] {},
-            emptyMap(),
-            Condition.DATA_EXCEPTION,
-            "invalid value type",
-            ErrorClassification.CLIENT_ERROR),
     STATUS_22G13(
             new GqlStatus("22G13"),
             """

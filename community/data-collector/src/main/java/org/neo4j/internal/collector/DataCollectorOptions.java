@@ -66,8 +66,7 @@ class DataCollectorOptions {
             if (value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long) {
                 return ((Number) value).intValue();
             }
-            throw new InvalidArgumentsException(
-                    String.format("Option `%s` requires integer argument, got `%s`", name, value));
+            throw InvalidArgumentsException.optionRequiresInteger(name, value);
         }
     }
 }
