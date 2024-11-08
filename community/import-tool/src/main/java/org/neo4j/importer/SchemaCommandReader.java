@@ -24,6 +24,8 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import org.eclipse.collections.api.factory.Lists;
+import org.eclipse.collections.api.list.MutableList;
 import org.neo4j.configuration.Config;
 import org.neo4j.cypher.internal.PreParser;
 import org.neo4j.cypher.internal.ast.Statement;
@@ -31,6 +33,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext;
 import org.neo4j.cypher.internal.ast.semantics.SemanticState;
 import org.neo4j.cypher.internal.config.CypherConfiguration;
 import org.neo4j.cypher.internal.parser.AstParserFactory$;
+import org.neo4j.cypher.internal.util.InputPosition;
 import org.neo4j.cypher.internal.util.InternalNotificationLogger;
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory;
 import org.neo4j.cypher.internal.util.devNullLogger$;
@@ -48,8 +51,6 @@ import scala.Option;
  * Reads a file that contains Cypher schema commands and converts them into the appropriate {@link SchemaCommand}s.
  */
 public class SchemaCommandReader {
-
-    private static final String ERROR_SUFFIX = " in import change commands.";
 
     private static final InternalNotificationLogger NOTIFICATION_LOGGER = devNullLogger$.MODULE$;
 
@@ -76,8 +77,6 @@ public class SchemaCommandReader {
             return List.of();
         }
 
-        var semanticState = SemanticState.clean();
-
         final var preParsedQuery = preParser.preParse(cypherText, NOTIFICATION_LOGGER);
         final var cypherVersion =
                 preParsedQuery.options().queryOptions().cypherVersion().actualVersion();
@@ -92,11 +91,18 @@ public class SchemaCommandReader {
 
         final var changesBuilder = new SchemaCommandsBuilder(readerConfig, cypherVersion);
 
+        final var errors = Lists.mutable.<String>empty();
         final var checkContext = SemanticCheckContext.empty();
         for (int i = 0, length = statements.size(); i < length; i++) {
-            semanticState = transform(changesBuilder, statements.get(i), semanticState, checkContext);
+            transform(changesBuilder, statements.get(i), errors, checkContext);
         }
-        return changesBuilder.build();
+
+        if (errors.isEmpty()) {
+            return changesBuilder.build();
+        }
+
+        errors.add(0, "Unable to parse the Cypher in import change commands.");
+        throw new SchemaCommandReaderException(String.join(System.lineSeparator(), errors));
     }
 
     private String parseFile(Path cypherPath) throws SchemaCommandReaderException {
@@ -110,43 +116,45 @@ public class SchemaCommandReader {
         }
     }
 
-    private SemanticState transform(
+    private void transform(
             SchemaCommandsBuilder changesBuilder,
             Statement statement,
-            SemanticState semanticState,
+            MutableList<String> errors,
             SemanticCheckContext checkContext)
             throws SchemaCommandReaderException {
         if (statement instanceof org.neo4j.cypher.internal.ast.SchemaCommand command) {
-            if (!command.useGraph().isEmpty()) {
-                throw new SchemaCommandReaderException("Schema commands are only applied to the database to be imported"
-                        + " into so graph names are not allowed: "
-                        + command.useGraph().get().graphReference().print());
+            if (command.useGraph().isEmpty()) {
+                if (checkStatement(statement, errors, checkContext)) {
+                    changesBuilder.withCommand(command);
+                }
+            } else {
+                errors.add(errorMessage(
+                        statement.position(),
+                        "Schema commands are only applied to the database to be imported into so graph names are not allowed: "
+                                + command.useGraph().get().graphReference().print()));
             }
-
-            final var nextState = checkStatement(statement, semanticState, checkContext);
-            changesBuilder.withCommand(command);
-            return nextState;
         } else {
-            throw new SchemaCommandReaderException("Only schema change clauses are allowed here but found: "
-                    + statement.getClass().getSimpleName());
+            errors.add(errorMessage(
+                    statement.position(),
+                    "Only schema change clauses are allowed here but found: "
+                            + statement.getClass().getSimpleName()));
         }
     }
 
-    private static SemanticState checkStatement(
-            Statement statement, SemanticState semanticState, SemanticCheckContext checkContext)
+    private static boolean checkStatement(
+            Statement statement, MutableList<String> errors, SemanticCheckContext checkContext)
             throws SchemaCommandReaderException {
-        final var checkResult = statement.semanticCheck().run(semanticState, checkContext);
+        final var checkResult = statement.semanticCheck().run(SemanticState.clean(), checkContext);
         if (!checkResult.errors().isEmpty()) {
-            final var errorText = new StringBuilder("Unable to parse the Cypher").append(ERROR_SUFFIX);
-            checkResult.errors().foreach(error -> {
-                errorText.append(System.lineSeparator()).append(error.msg());
-                return null;
-            });
-
-            throw new SchemaCommandReaderException(errorText.toString());
+            checkResult.errors().foreach(error -> errors.add(errorMessage(error.position(), error.msg())));
+            return false;
+        } else {
+            return true;
         }
+    }
 
-        return checkResult.state();
+    private static String errorMessage(InputPosition position, String message) {
+        return "Problem on line %d, column %d: %s".formatted(position.line(), position.column(), message);
     }
 
     public record ReaderConfig(

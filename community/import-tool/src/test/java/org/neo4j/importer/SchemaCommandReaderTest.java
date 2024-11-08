@@ -137,6 +137,34 @@ class SchemaCommandReaderTest {
         assertThatThrownBy(() -> reader.parse(cypher)).hasMessageContainingAll(errors);
     }
 
+    @Test
+    void reportsUsefulErrorLocation() throws IOException {
+        final var cypher = createCypher(
+                """
+                CREATE INDEX testing1
+                FOR (n1:LabelName1)
+                ON (n1.propertyName);
+                CREATE INDEX testing2
+                FOR (n2:LabelName2)
+                ON (n1.propertyName);
+                CREATE INDEX testing3
+                   FOR (n:LabelName1)
+                   ON (n.propertyName);
+                CREATE INDEX testing4
+                   FOR (n:LabelName2)
+                   ON (n2.propertyName);
+                """);
+        final var reader = new SchemaCommandReader(
+                fs, Config.defaults(), new ReaderConfig(true, true, true, VECTOR_INDEX_VERSION));
+        assertThatThrownBy(() -> reader.parse(cypher))
+                .hasMessageContainingAll(
+                        "Unable to parse the Cypher in import change commands.",
+                        "Problem on line 6, column 5:",
+                        "Variable `n1` not defined",
+                        "Problem on line 12, column 8:",
+                        "Variable `n2` not defined");
+    }
+
     @ParameterizedTest
     @MethodSource
     void disallowDropIfConfigDenies(String cypherText) throws IOException {
@@ -1187,6 +1215,18 @@ class SchemaCommandReaderTest {
                     """,
                         List.of(
                                 new NodeUniqueness("testing1", "LabelName", List.of("propString"), false),
+                                new NodeRange("testing2", "LabelName", List.of("propInt"), false))),
+                Arguments.of(
+                        """
+                    CREATE CONSTRAINT testing1
+                    FOR (n:LabelName)
+                    REQUIRE n.propString IS UNIQUE;
+                    CREATE INDEX testing2
+                    FOR (n:LabelName)
+                    ON (n.propInt);
+                    """,
+                        List.of(
+                                new NodeUniqueness("testing1", "LabelName", List.of("propString"), false),
                                 new NodeRange("testing2", "LabelName", List.of("propInt"), false))));
     }
 
@@ -1207,13 +1247,13 @@ class SchemaCommandReaderTest {
                 arguments(
                         """
                     CREATE INDEX testing1
-                    FOR (n:LabelName1)
-                    ON (n.propertyName);
+                    FOR (n1:LabelName1)
+                    ON (n1.propertyName);
                     CREATE INDEX testing2
-                    FOR (n:LabelName2)
-                    ON (n.propertyName);
+                    FOR (n2:LabelName2)
+                    ON (n1.propertyName);
                     """,
-                        "Variable `n` already declared"),
+                        "Variable `n1` not defined"),
                 // drop
                 arguments("DROP CONSTRAINT $testing", "Parameters are not allowed to be used as a constraint name"),
                 arguments(

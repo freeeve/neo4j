@@ -76,6 +76,7 @@ import org.neo4j.importer.FileImporter.CsvImportException;
 import org.neo4j.importer.SchemaCommandReader.ReaderConfig;
 import org.neo4j.internal.batchimport.DefaultAdditionalIds;
 import org.neo4j.internal.schema.SchemaCommand;
+import org.neo4j.internal.schema.SchemaCommand.SchemaCommandReaderException;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
@@ -606,7 +607,11 @@ public class ImportCommand {
                     config,
                     schemaCommandsReaderConfig(
                             VectorIndexVersion.latestSupportedVersion(KernelVersion.getLatestVersion(config))));
-            return reader.parse(schemaCommands);
+            try {
+                return reader.parse(schemaCommands);
+            } catch (SchemaCommandReaderException ex) {
+                throw new CommandFailedException(ex.getMessage(), ex, ExitCode.SOFTWARE);
+            }
         }
 
         private LogTailMetadata getLogTail(
