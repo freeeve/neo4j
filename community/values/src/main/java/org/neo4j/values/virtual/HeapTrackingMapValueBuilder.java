@@ -24,6 +24,8 @@ import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
 import org.neo4j.collection.trackable.HeapTrackingCollections;
 import org.neo4j.collection.trackable.HeapTrackingUnifiedMap;
+import org.neo4j.memory.DeduplicateLargeObjectsHeapEstimatorCache;
+import org.neo4j.memory.HeapEstimatorCache;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.AnyValue;
@@ -54,6 +56,7 @@ public class HeapTrackingMapValueBuilder implements AutoCloseable {
 
     private final HeapTrackingUnifiedMap<String, AnyValue> values;
     private final MemoryTracker scopedMemoryTracker;
+    private final HeapEstimatorCache heapEstimatorCache;
 
     /*
      * Estimated heap usage in bytes of items that has been added to the
@@ -69,10 +72,11 @@ public class HeapTrackingMapValueBuilder implements AutoCloseable {
         scopedMemoryTracker = memoryTracker.getScopedMemoryTracker();
         scopedMemoryTracker.allocateHeap(SHALLOW_SIZE + SCOPED_MEMORY_TRACKER_SHALLOW_SIZE);
         values = HeapTrackingCollections.newMap(scopedMemoryTracker);
+        heapEstimatorCache = new DeduplicateLargeObjectsHeapEstimatorCache();
     }
 
     public void put(String key, AnyValue value) {
-        unAllocatedHeapSize += value.estimatedHeapUsage();
+        unAllocatedHeapSize += value.estimatedHeapUsage(heapEstimatorCache);
         if (unAllocatedHeapSize >= HEAP_SIZE_ALLOCATION_THRESHOLD) {
             scopedMemoryTracker.allocateHeap(unAllocatedHeapSize);
             unAllocatedHeapSize = 0;
@@ -84,6 +88,7 @@ public class HeapTrackingMapValueBuilder implements AutoCloseable {
     public MapValue build() {
         scopedMemoryTracker.allocateHeap(unAllocatedHeapSize);
         unAllocatedHeapSize = 0;
+        heapEstimatorCache.fullReset();
         return new MapValue.MapWrappingMapValue(values, payloadSize());
     }
 

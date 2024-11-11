@@ -24,6 +24,7 @@ import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
 import org.github.jamm.Unmetered;
 import org.neo4j.collection.trackable.HeapTrackingArrayList;
+import org.neo4j.memory.DeduplicateLargeObjectsHeapEstimatorCache;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.AnyValue;
@@ -55,6 +56,7 @@ public class HeapTrackingListValueBuilder implements AutoCloseable {
 
     private final HeapTrackingArrayList<AnyValue> values;
     private final MemoryTracker scopedMemoryTracker;
+    private final DeduplicateLargeObjectsHeapEstimatorCache heapEstimatorCache;
 
     @Unmetered
     private ValueRepresentation representation;
@@ -76,6 +78,7 @@ public class HeapTrackingListValueBuilder implements AutoCloseable {
         scopedMemoryTracker.allocateHeap(SHALLOW_SIZE + SCOPED_MEMORY_TRACKER_SHALLOW_SIZE);
         values = HeapTrackingArrayList.newArrayList(16, scopedMemoryTracker);
         representation = ValueRepresentation.ANYTHING;
+        heapEstimatorCache = new DeduplicateLargeObjectsHeapEstimatorCache();
     }
 
     public void addAll(Iterable<AnyValue> values) {
@@ -85,7 +88,7 @@ public class HeapTrackingListValueBuilder implements AutoCloseable {
     }
 
     public void add(AnyValue value) {
-        unAllocatedHeapSize += value.estimatedHeapUsage();
+        unAllocatedHeapSize += value.estimatedHeapUsage(heapEstimatorCache);
         if (unAllocatedHeapSize >= HEAP_SIZE_ALLOCATION_THRESHOLD) {
             scopedMemoryTracker.allocateHeap(unAllocatedHeapSize);
             unAllocatedHeapSize = 0;
@@ -98,6 +101,7 @@ public class HeapTrackingListValueBuilder implements AutoCloseable {
     public ListValue build() {
         scopedMemoryTracker.allocateHeap(unAllocatedHeapSize);
         unAllocatedHeapSize = 0;
+        heapEstimatorCache.fullReset();
         return new ListValue.JavaListListValue(values, payloadSize(), representation);
     }
 

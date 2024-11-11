@@ -85,4 +85,12 @@ public interface MemoryTracker extends AutoCloseable, HeapMemoryTracker {
      * @return The scoped memory tracker.
      */
     MemoryTracker getScopedMemoryTracker();
+
+    default MemoryTracker getScopedMemoryTracker(HeapEstimatorCache estimatorCache) {
+        return getScopedMemoryTracker();
+    }
+
+    default HeapEstimatorCache getHeapEstimatorCache() {
+        return HeapEstimatorCache.NoHeapEstimatorCache.INSTANCE;
+    }
 }

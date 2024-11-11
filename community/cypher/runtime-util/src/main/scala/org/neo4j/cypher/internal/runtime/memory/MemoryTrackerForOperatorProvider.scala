@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.runtime.memory
 
 import org.neo4j.cypher.internal.runtime.memory.TransactionBoundMemoryTrackerForOperatorProvider.TransactionBoundMemoryTracker
 import org.neo4j.cypher.result.OperatorProfile
+import org.neo4j.memory.DeduplicateLargeObjectsHeapEstimatorCache
 import org.neo4j.memory.DefaultScopedMemoryTracker
 import org.neo4j.memory.EmptyMemoryTracker
 import org.neo4j.memory.HeapHighWaterMarkTracker
@@ -78,7 +79,7 @@ object TransactionBoundMemoryTrackerForOperatorProvider {
   class TransactionBoundMemoryTracker(
     transactionMemoryTracker: MemoryTracker,
     queryGlobalMemoryTracker: HeapMemoryTracker
-  ) extends DefaultScopedMemoryTracker(transactionMemoryTracker) {
+  ) extends DefaultScopedMemoryTracker(transactionMemoryTracker, new DeduplicateLargeObjectsHeapEstimatorCache()) {
 
     override def allocateHeap(bytes: Long): Unit = {
       // Forward to transaction memory tracker

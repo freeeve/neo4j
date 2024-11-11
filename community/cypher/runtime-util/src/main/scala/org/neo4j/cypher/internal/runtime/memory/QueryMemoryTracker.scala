@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.runtime.memory.TrackingQueryMemoryTracker.Memor
 import org.neo4j.cypher.internal.runtime.memory.TrackingQueryMemoryTracker.OperatorMemoryTracker
 import org.neo4j.cypher.internal.runtime.memory.TransactionWorkerThreadDelegatingMemoryTracker.threadLocalExecutionContextMemoryTracker
 import org.neo4j.memory.EmptyMemoryTracker
+import org.neo4j.memory.HeapEstimatorCache
 import org.neo4j.memory.HeapHighWaterMarkTracker
 import org.neo4j.memory.HeapMemoryTracker
 import org.neo4j.memory.LocalMemoryTracker
@@ -318,6 +319,10 @@ class WorkerThreadDelegatingMemoryTracker extends MemoryTracker with MemoryTrack
     _initializationMemoryTracker = memoryTracker
   }
 
+  override def getHeapEstimatorCache: HeapEstimatorCache = {
+    delegateMemoryTracker.getHeapEstimatorCache
+  }
+
   @VisibleForTesting
   def initializationMemoryTracker: MemoryTracker = {
     _initializationMemoryTracker
@@ -450,6 +455,7 @@ private class ProfilingParallelHighWaterMarkTrackingWorkerMemoryTracker(
 
   override def releaseNative(bytes: Long): Unit = delegate.releaseNative(bytes)
 
+  override def getHeapEstimatorCache: HeapEstimatorCache = delegate.getHeapEstimatorCache
 }
 
 class ParallelDebugMemoryTracker(delegate: MemoryTracker with MemoryTrackerForOperatorProvider) extends MemoryTracker
@@ -510,6 +516,7 @@ class ParallelDebugMemoryTracker(delegate: MemoryTracker with MemoryTrackerForOp
   override def heapHighWaterMark(): Long = delegate.heapHighWaterMark()
   override def reset(): Unit = delegate.reset()
   override def getScopedMemoryTracker: MemoryTracker = delegate.getScopedMemoryTracker
+  override def getHeapEstimatorCache: HeapEstimatorCache = delegate.getHeapEstimatorCache
 
   private def stackTraceKey(t: Throwable): String = {
     // Make a key of the stack trace
@@ -631,4 +638,13 @@ private class ParallelScopedMemoryTracker(delegate: MemoryTracker) extends Scope
   }
 
   override def isClosed: Boolean = _isClosed.get()
+
+  override def getHeapEstimatorCache: HeapEstimatorCache = {
+    Thread.currentThread() match {
+      case workerThread: ExecutionContextMemoryTrackerProvider =>
+        workerThread.executionContextMemoryTracker().getHeapEstimatorCache
+      case _ =>
+        HeapEstimatorCache.NoHeapEstimatorCache.INSTANCE
+    }
+  }
 }

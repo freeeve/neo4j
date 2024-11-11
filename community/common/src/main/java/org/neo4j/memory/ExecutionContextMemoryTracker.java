@@ -108,6 +108,8 @@ public class ExecutionContextMemoryTracker implements LimitedMemoryTracker {
      */
     private long allocatedBytesNative;
 
+    private final HeapEstimatorCache heapEstimatorCache;
+
     public ExecutionContextMemoryTracker() {
         this(NO_TRACKING);
     }
@@ -143,6 +145,8 @@ public class ExecutionContextMemoryTracker implements LimitedMemoryTracker {
 
         // NOTE: We do not want the threshold to apply on the first grab
         this.clientCallsSinceLastPoolInteraction = CLIENT_CALLS_PER_POOL_INTERACTION_THRESHOLD;
+
+        this.heapEstimatorCache = new DeduplicateLargeObjectsHeapEstimatorCache();
     }
 
     @Override
@@ -245,6 +249,7 @@ public class ExecutionContextMemoryTracker implements LimitedMemoryTracker {
 
     @Override
     public void reset() {
+        heapEstimatorCache.fullReset();
         // Only release or reserve heap if the transaction is still open
         if (openCheck.getAsBoolean()) {
             long localHeapToRelease = localHeapPool;
@@ -259,7 +264,7 @@ public class ExecutionContextMemoryTracker implements LimitedMemoryTracker {
 
     @Override
     public MemoryTracker getScopedMemoryTracker() {
-        return new DefaultScopedMemoryTracker(this);
+        return new DefaultScopedMemoryTracker(this, getHeapEstimatorCache());
     }
 
     @Override
