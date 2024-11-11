@@ -3777,11 +3777,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42NA6(
             new GqlStatus("42NA6"),
             """
-                    Composite databases do not support `DUMP DATA`. Create a dump of each constituent database instead.""",
+                   Aliases are not allowed to target composite databases.""",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "dump is not supported on composite databases",
+            "invalid alias target",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NA7(
             new GqlStatus("42NA7"),
