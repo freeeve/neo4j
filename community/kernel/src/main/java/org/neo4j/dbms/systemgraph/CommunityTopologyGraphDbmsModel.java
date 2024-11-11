@@ -35,6 +35,7 @@ import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.database.DatabaseReferenceImpl;
 import org.neo4j.kernel.database.NamedDatabaseId;
+import org.neo4j.kernel.database.NormalizedCatalogEntry;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
 
 public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
@@ -116,6 +117,31 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
                 .or(() -> getSPDPropertyShardReferenceInRoot(normalizedDatabaseName))
                 .or(() -> CommunityTopologyGraphDbmsModelUtil.getInternalDatabaseReference(tx, normalizedDatabaseName))
                 .or(() -> CommunityTopologyGraphDbmsModelUtil.getExternalDatabaseReference(tx, normalizedDatabaseName));
+    }
+
+    @Override
+    public Optional<DatabaseReference> getDatabaseRefByAlias(NormalizedCatalogEntry catalogEntry) {
+        if (catalogEntry.compositeDb().isPresent()) {
+            return resolveConstituent(catalogEntry.compositeDb().get(), catalogEntry.databaseAlias());
+        } else {
+            return resolveRootReference(catalogEntry.databaseAlias());
+        }
+    }
+
+    private Optional<DatabaseReference> resolveConstituent(String composite, String constituent) {
+        return Optional.<DatabaseReference>empty()
+                .or(() -> CommunityTopologyGraphDbmsModelUtil.getInternalDatabaseReference(tx, composite, constituent))
+                .or(() -> CommunityTopologyGraphDbmsModelUtil.getExternalDatabaseReference(tx, composite, constituent));
+    }
+
+    private Optional<DatabaseReference> resolveRootReference(String normalizedDatabaseAlias) {
+        return Optional.<DatabaseReference>empty()
+                .or(() -> getCompositeDatabaseReferenceInRoot(normalizedDatabaseAlias))
+                .or(() -> getSPDEntityShardReferenceInRoot(normalizedDatabaseAlias))
+                .or(() -> getSPDPropertyShardReferenceInRoot(normalizedDatabaseAlias))
+                .or(() -> CommunityTopologyGraphDbmsModelUtil.getInternalDatabaseReference(tx, normalizedDatabaseAlias))
+                .or(() ->
+                        CommunityTopologyGraphDbmsModelUtil.getExternalDatabaseReference(tx, normalizedDatabaseAlias));
     }
 
     @Override

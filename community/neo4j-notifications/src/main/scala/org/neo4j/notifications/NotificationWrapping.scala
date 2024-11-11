@@ -82,6 +82,13 @@ import scala.jdk.CollectionConverters.SetHasAsJava
 
 object NotificationWrapping {
 
+  def asKernelNotificationJava(
+    offset: Option[InputPosition],
+    notification: InternalNotification
+  ): NotificationImplementation = {
+    asKernelNotification(offset)(notification)
+  }
+
   def asKernelNotification(offset: Option[InputPosition])(notification: InternalNotification)
     : NotificationImplementation = notification match {
     case CartesianProductNotification(pos, variables, pattern) =>

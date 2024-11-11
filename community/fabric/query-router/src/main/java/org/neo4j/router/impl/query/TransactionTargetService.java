@@ -21,7 +21,6 @@ package org.neo4j.router.impl.query;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.router.query.TargetService;
 
 /**
@@ -31,7 +30,7 @@ import org.neo4j.router.query.TargetService;
  */
 public class TransactionTargetService implements TargetService {
 
-    private final Map<CatalogInfo, DatabaseReference> cache = new HashMap<>();
+    private final Map<CatalogInfo, QueryTarget> cache = new HashMap<>();
     private final TargetService delegate;
 
     public TransactionTargetService(TargetService delegate) {
@@ -39,7 +38,7 @@ public class TransactionTargetService implements TargetService {
     }
 
     @Override
-    public DatabaseReference target(CatalogInfo catalogInfo) {
+    public QueryTarget target(CatalogInfo catalogInfo) {
         return cache.computeIfAbsent(catalogInfo, delegate::target);
     }
 }

@@ -20,6 +20,10 @@ import org.neo4j.cypher.internal.ast.CatalogName.quote
 import org.neo4j.cypher.internal.ast.CatalogName.separatorChar
 import org.neo4j.cypher.internal.ast.CatalogName.separatorString
 
+import java.util
+
+import scala.jdk.CollectionConverters.SeqHasAsJava
+
 object CatalogName {
 
   def apply(head: String, tail: List[String]): CatalogName = {
@@ -35,7 +39,7 @@ object CatalogName {
 
   val separatorChar: Char = '.'
   val separatorString: String = separatorChar.toString
-  val quoteChar = "`"
+  private val quoteChar = "`"
 
   def quote(str: String): String = quoteChar ++ str.replace("`", "``") ++ quoteChar
 }
@@ -65,6 +69,10 @@ case class CatalogName(parts: List[String]) {
       case _ =>
         false
     }
+  }
+
+  def names(): util.List[String] = {
+    parts.asJava
   }
 
   override def hashCode(): Int = qualifiedNameString.toLowerCase.hashCode

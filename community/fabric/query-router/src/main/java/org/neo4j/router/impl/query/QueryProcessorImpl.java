@@ -104,30 +104,31 @@ public class QueryProcessorImpl implements QueryProcessor {
 
         var cachedValue = getFromCache(query, cancellationChecker, sessionDatabase);
 
-        var databaseReference = targetService.target(cachedValue.catalogInfo());
+        QueryTarget queryTarget = targetService.target(cachedValue.catalogInfo());
 
         maybePutInTargetDatabaseCache(
                 locationService,
-                databaseReference,
+                queryTarget.reference(),
                 query,
                 cachedValue.preParsedQuery(),
                 cachedValue.parsedQuery(),
                 cachedValue.parsingNotifications());
 
         var rewrittenQuery = query;
-        if (shouldRewriteQuery(databaseReference)) {
+        if (shouldRewriteQuery(queryTarget.reference())) {
             rewrittenQuery = Query.of(
                     cachedValue.rewrittenQueryText(),
                     query.parameters().updatedWith(cachedValue.maybeExtractedParams()));
         }
 
         return new ProcessedQueryInfo(
-                databaseReference,
+                queryTarget.reference(),
                 rewrittenQuery,
                 toJava(cachedValue.parsedQuery().maybeObfuscationMetadata()),
                 cachedValue.statementType(),
                 cachedValue.preParsedQuery().options(),
-                cachedValue.parsingNotifications());
+                cachedValue.parsingNotifications(),
+                queryTarget.routingNotifications());
     }
 
     @Override

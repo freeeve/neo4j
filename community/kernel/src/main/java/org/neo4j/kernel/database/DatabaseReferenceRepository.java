@@ -30,6 +30,12 @@ import org.neo4j.kernel.database.DatabaseReferenceImpl.Internal;
  * Implementations of this interface allow for the retrieval of {@link DatabaseReference}s for databases which have not yet been dropped.
  */
 public interface DatabaseReferenceRepository {
+
+    /**
+     * Given a database alias, return the corresponding {@link DatabaseReference} from the system database, if one exists.
+     */
+    Optional<DatabaseReference> getByAlias(NormalizedCatalogEntry catalogEntry);
+
     /**
      * Given a database alias, return the corresponding {@link DatabaseReference} from the system database, if one exists.
      */

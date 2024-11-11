@@ -39,6 +39,7 @@ import org.neo4j.kernel.GraphDatabaseQueryService
 import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.api.exceptions.Status.HasStatus
 import org.neo4j.kernel.database.DatabaseReference
+import org.neo4j.kernel.database.NormalizedCatalogEntry
 import org.neo4j.kernel.database.NormalizedDatabaseName
 import org.neo4j.kernel.impl.query.FunctionInformation
 import org.neo4j.kernel.impl.query.FunctionInformation.InputInformation
@@ -418,6 +419,8 @@ abstract class ExecutionEngine(
              *         their permissions from the "owning" graph shard.
              */
             override def owningDatabaseName: String = fullName().name();
+
+            override def catalogEntry(): NormalizedCatalogEntry = throw new NotImplementedError()
           }
         )
 

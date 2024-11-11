@@ -17,21 +17,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.router.query;
+package org.neo4j.router.impl.query;
 
-import org.neo4j.cypher.internal.ast.CatalogName;
+import java.util.HashSet;
+import java.util.Set;
+import org.neo4j.cypher.internal.util.InternalNotification;
 import org.neo4j.kernel.database.DatabaseReference;
-import org.neo4j.kernel.database.NormalizedDatabaseName;
-import org.neo4j.router.impl.query.QueryTarget;
 
-/**
- * Allows resolving database references from database aliases or database names
- */
-public interface DatabaseReferenceResolver {
-
-    QueryTarget resolve(DatabaseReference reference, CatalogName name);
-
-    DatabaseReference resolve(String name);
-
-    DatabaseReference resolve(NormalizedDatabaseName name);
+public record QueryTarget(DatabaseReference reference, Set<InternalNotification> routingNotifications) {
+    public QueryTarget(DatabaseReference reference) {
+        this(reference, new HashSet<>());
+    }
 }

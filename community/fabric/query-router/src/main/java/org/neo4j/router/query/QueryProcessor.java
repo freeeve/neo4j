@@ -43,7 +43,8 @@ public interface QueryProcessor {
             Optional<ObfuscationMetadata> obfuscationMetadata,
             StatementType statementType,
             QueryOptions queryOptions,
-            Set<InternalNotification> parsingNotifications) {}
+            Set<InternalNotification> parsingNotifications,
+            Set<InternalNotification> routingNotifications) {}
 
     ProcessedQueryInfo processQuery(
             Query query,

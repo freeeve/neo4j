@@ -132,11 +132,14 @@ public final class TestDatabaseReferenceRepository {
                 new NormalizedDatabaseName(SYSTEM_DATABASE_NAME), NAMED_SYSTEM_DATABASE_ID, true);
 
         private final Map<NormalizedDatabaseName, DatabaseReference> databaseReferences;
+        private final Map<NormalizedCatalogEntry, DatabaseReference> catalogDatabaseReferences;
         private final Map<UUID, DatabaseReference> databaseReferencesByUUID;
 
         public Fixed(Collection<DatabaseReference> databaseReferences) {
             this.databaseReferences =
                     databaseReferences.stream().collect(Collectors.toMap(DatabaseReference::alias, identity()));
+            this.catalogDatabaseReferences =
+                    databaseReferences.stream().collect(Collectors.toMap(DatabaseReference::catalogEntry, identity()));
             this.databaseReferencesByUUID =
                     databaseReferences.stream().collect(Collectors.toMap(DatabaseReference::id, identity()));
         }
@@ -144,9 +147,16 @@ public final class TestDatabaseReferenceRepository {
         public Fixed(DatabaseReference... databaseReferences) {
             this.databaseReferences =
                     Arrays.stream(databaseReferences).collect(Collectors.toMap(DatabaseReference::alias, identity()));
+            this.catalogDatabaseReferences = Arrays.stream(databaseReferences)
+                    .collect(Collectors.toMap(DatabaseReference::catalogEntry, identity()));
             this.databaseReferencesByUUID = Arrays.stream(databaseReferences)
                     .filter(dbRef -> dbRef.isPrimary() || dbRef.isComposite())
                     .collect(Collectors.toMap(DatabaseReference::id, identity()));
+        }
+
+        @Override
+        public Optional<DatabaseReference> getByAlias(NormalizedCatalogEntry entry) {
+            return Optional.ofNullable(catalogDatabaseReferences.get(entry));
         }
 
         @Override
@@ -190,10 +200,6 @@ public final class TestDatabaseReferenceRepository {
                     .filter(type::isInstance)
                     .map(type::cast)
                     .collect(Collectors.toSet());
-        }
-
-        public void setDatabaseReference(NormalizedDatabaseName databaseName, DatabaseReference databaseRef) {
-            databaseReferences.put(databaseName, databaseRef);
         }
 
         public void removeDatabaseReference(NormalizedDatabaseName databaseName) {

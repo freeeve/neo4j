@@ -32,6 +32,7 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.database.DatabaseReferenceImpl;
 import org.neo4j.kernel.database.NamedDatabaseId;
+import org.neo4j.kernel.database.NormalizedCatalogEntry;
 
 public interface TopologyGraphDbmsModel {
     enum HostedOnMode {
@@ -311,6 +312,14 @@ public interface TopologyGraphDbmsModel {
      * @return the corresponding {@link DatabaseReference}
      */
     Optional<DatabaseReference> getDatabaseRefByAlias(String databaseName);
+
+    /**
+     * Fetches the {@link DatabaseReference} corresponding to the provided catalog entry.
+     *
+     * @param catalogEntry the catalog entry to resolve a {@link DatabaseReference} for.
+     * @return the corresponding {@link DatabaseReference}
+     */
+    Optional<DatabaseReference> getDatabaseRefByAlias(NormalizedCatalogEntry catalogEntry);
 
     /**
      * Fetches the {@link DriverSettings} corresponding to the provided database name

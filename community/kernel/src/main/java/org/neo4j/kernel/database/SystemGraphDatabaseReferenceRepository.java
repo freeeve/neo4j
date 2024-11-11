@@ -45,6 +45,14 @@ public class SystemGraphDatabaseReferenceRepository implements DatabaseReference
     }
 
     @Override
+    public Optional<DatabaseReference> getByAlias(NormalizedCatalogEntry catalogEntry) {
+        if (catalogEntry.compositeDb().isEmpty() && catalogEntry.databaseAlias().equals(SYSTEM_DATABASE_NAME)) {
+            return Optional.of(SYSTEM_DATABASE_REFERENCE);
+        }
+        return execute(model -> model.getDatabaseRefByAlias(catalogEntry));
+    }
+
+    @Override
     public Optional<DatabaseReference> getByAlias(NormalizedDatabaseName databaseAlias) {
         if (Objects.equals(SYSTEM_DATABASE_NAME, databaseAlias.name())) {
             return Optional.of(SYSTEM_DATABASE_REFERENCE);

@@ -23,6 +23,8 @@ import static org.neo4j.fabric.executor.FabricExecutor.WRITING_IN_READ_NOT_ALLOW
 
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.configuration.Config;
 import org.neo4j.cypher.internal.QueryOptions;
@@ -261,7 +263,10 @@ public class QueryRouterImpl implements QueryRouter {
                     processedQueryInfo.obfuscationMetadata().get(),
                     queryOptions.offset(),
                     target.isComposite(),
-                    processedQueryInfo.parsingNotifications());
+                    Stream.concat(
+                                    processedQueryInfo.routingNotifications().stream(),
+                                    processedQueryInfo.parsingNotifications().stream())
+                            .collect(Collectors.toSet()));
 
             RouterTransaction routerTransaction = context.routerTransaction();
             var constituentTransactionFactory = getConstituentTransactionFactory(context, queryOptions);
@@ -276,7 +281,10 @@ public class QueryRouterImpl implements QueryRouter {
                         .setConstituentTransactionFactory(constituentTransactionFactory);
             }
             return databaseTransaction.executeQuery(
-                    processedQueryInfo.rewrittenQuery(), subscriber, statementLifecycle);
+                    processedQueryInfo.rewrittenQuery(),
+                    subscriber,
+                    statementLifecycle,
+                    processedQueryInfo.routingNotifications());
         } catch (RuntimeException e) {
             statementLifecycle.endFailure(e);
 
@@ -295,7 +303,7 @@ public class QueryRouterImpl implements QueryRouter {
         statementLifecycle.startProcessing();
         statementLifecycle.doneRouterProcessing(ObfuscationMetadata.empty(), InputPosition.NONE(), false, Set.of());
         try {
-            return context.sessionTransaction().executeQuery(query, subscriber, statementLifecycle);
+            return context.sessionTransaction().executeQuery(query, subscriber, statementLifecycle, Set.of());
         } catch (RuntimeException e) {
             statementLifecycle.endFailure(e);
             throw e;

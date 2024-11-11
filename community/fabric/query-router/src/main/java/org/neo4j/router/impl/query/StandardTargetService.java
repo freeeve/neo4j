@@ -40,20 +40,20 @@ public class StandardTargetService implements TargetService {
     }
 
     @Override
-    public DatabaseReference target(CatalogInfo catalogInfo) {
+    public QueryTarget target(CatalogInfo catalogInfo) {
         var parsedTarget = toCatalogName(catalogInfo)
-                .map(CatalogName::qualifiedNameString)
-                .map(databaseReferenceResolver::resolve);
+                .map(catalogName -> databaseReferenceResolver.resolve(sessionDatabase, catalogName));
         if (parsedTarget
-                .filter(target -> target.isComposite()
-                        || (!target.isPrimary() && target.namespace().isPresent()))
+                .filter(target -> target.reference().isComposite()
+                        || (!target.reference().isPrimary()
+                                && target.reference().namespace().isPresent()))
                 .isPresent()) {
             var message = "Accessing a composite database and its constituents is only allowed when connected to it. "
                     + "Attempted to access '%s' while connected to '%s'";
-            throw new InvalidSemanticsException(
-                    String.format(message, parsedTarget.get().toPrettyString(), sessionDatabase.toPrettyString()));
+            throw new InvalidSemanticsException(String.format(
+                    message, parsedTarget.get().reference().toPrettyString(), sessionDatabase.toPrettyString()));
         }
-        return parsedTarget.orElse(sessionDatabase);
+        return parsedTarget.orElse(new QueryTarget(sessionDatabase));
     }
 
     private Optional<CatalogName> toCatalogName(CatalogInfo catalogInfo) {

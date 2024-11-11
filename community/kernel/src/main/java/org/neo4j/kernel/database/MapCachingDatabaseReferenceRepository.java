@@ -28,10 +28,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MapCachingDatabaseReferenceRepository implements DatabaseReferenceRepository.Caching {
     private DatabaseReferenceRepository delegate;
     private volatile Map<NormalizedDatabaseName, DatabaseReference> databaseRefsByName;
+    private volatile Map<NormalizedCatalogEntry, DatabaseReference> databaseRefsByCatalogEntry;
     private volatile Map<UUID, DatabaseReference> databaseRefsByUUID;
 
     public MapCachingDatabaseReferenceRepository(DatabaseReferenceRepository delegate) {
         this.databaseRefsByName = new ConcurrentHashMap<>();
+        this.databaseRefsByCatalogEntry = new ConcurrentHashMap<>();
         this.databaseRefsByUUID = new ConcurrentHashMap<>();
         this.delegate = delegate;
     }
@@ -45,6 +47,20 @@ public class MapCachingDatabaseReferenceRepository implements DatabaseReferenceR
     }
 
     @Override
+    public Optional<DatabaseReference> getByAlias(NormalizedCatalogEntry catalogEntry) {
+        return Optional.ofNullable(databaseRefsByCatalogEntry.computeIfAbsent(catalogEntry, (entry) -> {
+            var databaseRef = lookupReferenceOnDelegate(entry);
+            if (databaseRef == null) {
+                return null;
+            }
+
+            databaseRefsByName.putIfAbsent(databaseRef.fullName(), databaseRef);
+            databaseRefsByUUID.putIfAbsent(databaseRef.id(), databaseRef);
+            return databaseRef;
+        }));
+    }
+
+    @Override
     public Optional<DatabaseReference> getByAlias(NormalizedDatabaseName databaseAlias) {
         return Optional.ofNullable(databaseRefsByName.computeIfAbsent(databaseAlias, (alias) -> {
             var databaseRef = lookupReferenceOnDelegate(alias);
@@ -52,7 +68,8 @@ public class MapCachingDatabaseReferenceRepository implements DatabaseReferenceR
                 return null;
             }
 
-            databaseRefsByUUID.put(databaseRef.id(), databaseRef);
+            databaseRefsByCatalogEntry.putIfAbsent(databaseRef.catalogEntry(), databaseRef);
+            databaseRefsByUUID.putIfAbsent(databaseRef.id(), databaseRef);
             return databaseRef;
         }));
     }
@@ -65,7 +82,8 @@ public class MapCachingDatabaseReferenceRepository implements DatabaseReferenceR
                 return null;
             }
 
-            databaseRefsByName.putIfAbsent(databaseRef.alias(), databaseRef);
+            databaseRefsByName.putIfAbsent(databaseRef.fullName(), databaseRef);
+            databaseRefsByCatalogEntry.putIfAbsent(databaseRef.catalogEntry(), databaseRef);
             return databaseRef;
         }));
     }
@@ -75,6 +93,10 @@ public class MapCachingDatabaseReferenceRepository implements DatabaseReferenceR
      */
     private DatabaseReference lookupReferenceOnDelegate(NormalizedDatabaseName databaseName) {
         return delegate.getByAlias(databaseName).orElse(null);
+    }
+
+    private DatabaseReference lookupReferenceOnDelegate(NormalizedCatalogEntry catalogEntry) {
+        return delegate.getByAlias(catalogEntry).orElse(null);
     }
 
     /**
@@ -111,5 +133,7 @@ public class MapCachingDatabaseReferenceRepository implements DatabaseReferenceR
     @Override
     public void invalidateAll() {
         this.databaseRefsByName = new ConcurrentHashMap<>();
+        this.databaseRefsByCatalogEntry = new ConcurrentHashMap<>();
+        this.databaseRefsByUUID = new ConcurrentHashMap<>();
     }
 }

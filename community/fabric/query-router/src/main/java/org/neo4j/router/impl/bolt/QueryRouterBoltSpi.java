@@ -104,7 +104,6 @@ public class QueryRouterBoltSpi {
                 Map<String, Object> txMetadata,
                 RoutingContext routingContext,
                 QueryExecutionConfiguration queryExecutionConfiguration) {
-            var normalizedSessionDatabaseName = new NormalizedDatabaseName(sessionDatabaseName);
             var sessionDatabaseReference =
                     databaseReferenceResolver.resolve(new NormalizedDatabaseName(sessionDatabaseName));
 

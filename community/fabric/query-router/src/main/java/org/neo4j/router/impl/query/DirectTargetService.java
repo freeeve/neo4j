@@ -31,7 +31,7 @@ public class DirectTargetService implements TargetService {
     }
 
     @Override
-    public DatabaseReference target(CatalogInfo catalogInfo) {
-        return database;
+    public QueryTarget target(CatalogInfo catalogInfo) {
+        return new QueryTarget(database);
     }
 }

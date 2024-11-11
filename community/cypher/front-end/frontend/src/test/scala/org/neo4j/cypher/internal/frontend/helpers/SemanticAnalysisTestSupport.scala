@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.util._
 import org.neo4j.kernel.database.DatabaseReference
+import org.neo4j.kernel.database.NormalizedCatalogEntry
 import org.neo4j.kernel.database.NormalizedDatabaseName
 import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher
@@ -78,6 +79,8 @@ class ErrorCollectingContext(
       override def isComposite: Boolean = outerComposite
 
       override def owningDatabaseName: String = ???
+
+      override def catalogEntry(): NormalizedCatalogEntry = ???
     }
   }
 }

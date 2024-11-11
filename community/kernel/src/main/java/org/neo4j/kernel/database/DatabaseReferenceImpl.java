@@ -55,9 +55,13 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
 
     @Override
     public String toPrettyString() {
-        var namespace = namespace().map(ns -> ns.name() + ".").orElse("");
-        var name = alias().name();
+        var namespace = namespace().map(ns -> quoteIfNeeded(ns.name()) + ".").orElse("");
+        var name = quoteIfNeeded(alias().name());
         return namespace + name;
+    }
+
+    private String quoteIfNeeded(String name) {
+        return name.contains(".") ? "`" + name + "`" : name;
     }
 
     @Override
@@ -132,6 +136,14 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
         @Override
         public UUID id() {
             return uuid;
+        }
+
+        @Override
+        public NormalizedCatalogEntry catalogEntry() {
+            if (namespace != null) {
+                return new NormalizedCatalogEntry(namespace.name(), alias.name());
+            }
+            return new NormalizedCatalogEntry(alias.name());
         }
 
         @Override
@@ -222,6 +234,14 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
         @Override
         public UUID id() {
             return namedDatabaseId.databaseId().uuid();
+        }
+
+        @Override
+        public NormalizedCatalogEntry catalogEntry() {
+            if (namespace != null) {
+                return new NormalizedCatalogEntry(namespace.name(), alias.name());
+            }
+            return new NormalizedCatalogEntry(alias.name());
         }
 
         @Override

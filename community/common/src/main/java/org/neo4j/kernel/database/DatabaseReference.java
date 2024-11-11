@@ -50,6 +50,8 @@ public interface DatabaseReference extends Comparable<DatabaseReference>, Privil
      */
     String toPrettyString();
 
+    NormalizedCatalogEntry catalogEntry();
+
     /**
      * @return the full normalized name of the dataspace, including the namespace.
      */

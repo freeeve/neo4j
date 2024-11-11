@@ -21,6 +21,7 @@ package org.neo4j.router.impl.transaction.database;
 
 import java.util.HashSet;
 import java.util.Set;
+import org.neo4j.cypher.internal.util.InternalNotification;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.fabric.bookmark.LocalBookmark;
 import org.neo4j.fabric.bookmark.LocalGraphTransactionIdTracker;
@@ -32,7 +33,10 @@ import org.neo4j.fabric.executor.TaggingPlanDescriptionWrapper;
 import org.neo4j.function.ThrowingAction;
 import org.neo4j.function.ThrowingSupplier;
 import org.neo4j.graphdb.ExecutionPlanDescription;
+import org.neo4j.graphdb.GqlStatusObject;
+import org.neo4j.graphdb.Notification;
 import org.neo4j.graphdb.QueryStatistics;
+import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.query.ConstituentTransactionFactory;
@@ -42,11 +46,13 @@ import org.neo4j.kernel.impl.query.QueryExecutionMonitor;
 import org.neo4j.kernel.impl.query.QuerySubscriber;
 import org.neo4j.kernel.impl.query.TransactionalContext;
 import org.neo4j.kernel.impl.query.TransactionalContextFactory;
+import org.neo4j.notifications.NotificationWrapping;
 import org.neo4j.router.impl.subscriber.DelegatingQueryExecution;
 import org.neo4j.router.impl.subscriber.StatementLifecycleQuerySubscriber;
 import org.neo4j.router.query.Query;
 import org.neo4j.router.transaction.DatabaseTransaction;
 import org.neo4j.router.transaction.TransactionInfo;
+import scala.Option;
 
 public class LocalDatabaseTransaction implements DatabaseTransaction {
     private final Location.Local location;
@@ -130,7 +136,8 @@ public class LocalDatabaseTransaction implements DatabaseTransaction {
     public QueryExecution executeQuery(
             Query query,
             QuerySubscriber querySubscriber,
-            QueryStatementLifecycles.StatementLifecycle statementLifecycle) {
+            QueryStatementLifecycles.StatementLifecycle statementLifecycle,
+            Set<InternalNotification> routerNotifications) {
         return translateLocalError(() -> {
             var transactionalContext = transactionalContextFactory.newContextForQuery(
                     internalTransaction,
@@ -146,7 +153,7 @@ public class LocalDatabaseTransaction implements DatabaseTransaction {
                     true,
                     new QuerySubscriberImpl(transactionalContext, querySubscriber, statementLifecycle),
                     QueryExecutionMonitor.NO_OP);
-            return new TransactionalContextQueryExecution(execution, transactionalContext);
+            return new TransactionalContextQueryExecution(execution, transactionalContext, routerNotifications);
         });
     }
 
@@ -177,10 +184,15 @@ public class LocalDatabaseTransaction implements DatabaseTransaction {
     private class TransactionalContextQueryExecution extends DelegatingQueryExecution {
 
         private final TransactionalContext transactionalContext;
+        private final Set<InternalNotification> notifications;
 
-        TransactionalContextQueryExecution(QueryExecution queryExecution, TransactionalContext transactionalContext) {
+        TransactionalContextQueryExecution(
+                QueryExecution queryExecution,
+                TransactionalContext transactionalContext,
+                Set<InternalNotification> notifications) {
             super(queryExecution);
             this.transactionalContext = transactionalContext;
+            this.notifications = notifications;
         }
 
         @Override
@@ -193,6 +205,22 @@ public class LocalDatabaseTransaction implements DatabaseTransaction {
         @Override
         public ExecutionPlanDescription executionPlanDescription() {
             return new TaggingPlanDescriptionWrapper(super.executionPlanDescription(), location.getDatabaseName());
+        }
+
+        @Override
+        public Iterable<Notification> getNotifications() {
+            var additionalNotifications = notifications.stream()
+                    .map(n -> NotificationWrapping.asKernelNotificationJava(Option.empty(), n))
+                    .toList();
+            return Iterables.concat(super.getNotifications(), additionalNotifications);
+        }
+
+        @Override
+        public Iterable<GqlStatusObject> getGqlStatusObjects() {
+            var additionalNotifications = notifications.stream()
+                    .map(n -> NotificationWrapping.asKernelNotificationJava(Option.empty(), n))
+                    .toList();
+            return Iterables.concat(super.getGqlStatusObjects(), additionalNotifications);
         }
     }
 

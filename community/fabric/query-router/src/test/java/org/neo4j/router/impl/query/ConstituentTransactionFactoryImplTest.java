@@ -71,7 +71,7 @@ class ConstituentTransactionFactoryImplTest {
         transaction.executeQuery("MATCH (n) RETURN n", MapValue.EMPTY, QuerySubscriber.DO_NOTHING_SUBSCRIBER);
 
         var query = Query.of("MATCH (n) RETURN n");
-        verify(innerTransaction, times(1)).executeQuery(eq(query), any(), any());
+        verify(innerTransaction, times(1)).executeQuery(eq(query), any(), any(), any());
     }
 
     @Test
@@ -90,7 +90,7 @@ class ConstituentTransactionFactoryImplTest {
         transaction.executeQuery("MATCH (n) RETURN n", MapValue.EMPTY, QuerySubscriber.DO_NOTHING_SUBSCRIBER);
 
         var query = Query.of("CYPHER runtime=interpreted" + NL + "MATCH (n) RETURN n");
-        verify(innerTransaction, times(1)).executeQuery(eq(query), any(), any());
+        verify(innerTransaction, times(1)).executeQuery(eq(query), any(), any(), any());
     }
 
     @Test
@@ -111,7 +111,7 @@ class ConstituentTransactionFactoryImplTest {
 
         var query =
                 Query.of("CYPHER planner=dp runtime=interpreted debug=ast debug=tostring" + NL + "MATCH (n) RETURN n");
-        verify(innerTransaction, times(1)).executeQuery(eq(query), any(), any());
+        verify(innerTransaction, times(1)).executeQuery(eq(query), any(), any(), any());
     }
 
     @Test

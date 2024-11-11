@@ -22,14 +22,14 @@ package org.neo4j.router.query;
 import java.util.List;
 import java.util.Optional;
 import org.neo4j.cypher.internal.ast.CatalogName;
-import org.neo4j.kernel.database.DatabaseReference;
+import org.neo4j.router.impl.query.QueryTarget;
 
 /**
  * Determines the target database for the given catalog information.
  */
 public interface TargetService {
 
-    DatabaseReference target(CatalogInfo catalogInfo);
+    QueryTarget target(CatalogInfo catalogInfo);
 
     sealed interface CatalogInfo permits SingleQueryCatalogInfo, UnionQueryCatalogInfo, CompositeCatalogInfo {
         boolean canBeCached();
