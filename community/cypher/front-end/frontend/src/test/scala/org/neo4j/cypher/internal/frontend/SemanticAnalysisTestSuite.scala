@@ -179,7 +179,7 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     def hasError(gql: GqlError, msg: String, pos: Pos): Self = hasErrors(SemanticError(gql, msg, pos))
 
     def hasErrorMessages(expected: String*): Self =
-      assert(_.errorMessages.distinct should contain theSameElementsAs expected)
+      assert(_.errorMessages.distinct.map(normalizeNewLines) should contain theSameElementsAs expected)
 
     def hasNotifications(expected: Notification*): Self =
       assert(_.notifications should contain theSameElementsAs expected)
@@ -196,7 +196,7 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
 
     def failsWithMessageContaining(msg: String): Any = assertTry { res =>
       res should be a Symbol("failure")
-      res.failed.get.getMessage should include(msg)
+      normalizeNewLines(res.failed.get.getMessage) should include(msg)
     }
 
     def assert(assertion: SemanticAnalysisResult => Unit): AnalysisAssertions = {
