@@ -22,12 +22,9 @@ package org.neo4j.fabric.executor;
 import static scala.jdk.javaapi.CollectionConverters.asJava;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicReference;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.cypher.internal.FullyParsedQuery;
 import org.neo4j.cypher.internal.ast.SubqueryCall;
@@ -44,11 +41,9 @@ import org.neo4j.fabric.stream.Prefetcher;
 import org.neo4j.fabric.stream.Record;
 import org.neo4j.fabric.stream.Records;
 import org.neo4j.fabric.stream.StatementResult;
-import org.neo4j.fabric.stream.summary.MergedQueryStatistics;
+import org.neo4j.fabric.stream.summary.MergedSummaryBuilder;
 import org.neo4j.fabric.transaction.FabricTransaction;
 import org.neo4j.fabric.transaction.TransactionMode;
-import org.neo4j.graphdb.GqlStatusObject;
-import org.neo4j.graphdb.Notification;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.query.QueryRoutingMonitor;
 import org.neo4j.logging.InternalLog;
@@ -83,13 +78,10 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
             FabricPlan plan,
             MapValue queryParams,
             AccessMode accessMode,
-            Set<Notification> notifications,
-            Set<GqlStatusObject> gqlStatusObjects,
-            AtomicReference<Collection<GqlStatusObject>> lastAddedGqlStatusObjects,
+            MergedSummaryBuilder summaryBuilder,
             QueryStatementLifecycles.StatementLifecycle lifecycle,
             Prefetcher prefetcher,
             QueryRoutingMonitor queryRoutingMonitor,
-            MergedQueryStatistics statistics,
             Tracer tracer,
             FragmentExecutor fragmentExecutor,
             InternalLog log) {
@@ -101,13 +93,10 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
                 plan,
                 queryParams,
                 accessMode,
-                notifications,
-                gqlStatusObjects,
-                lastAddedGqlStatusObjects,
+                summaryBuilder,
                 lifecycle,
                 prefetcher,
                 queryRoutingMonitor,
-                statistics,
                 tracer,
                 fragmentExecutor,
                 log);

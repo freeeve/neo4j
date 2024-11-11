@@ -22,14 +22,10 @@ package org.neo4j.fabric.executor;
 import static org.neo4j.fabric.stream.StatementResults.withErrorMapping;
 import static scala.jdk.javaapi.CollectionConverters.asJava;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -51,12 +47,9 @@ import org.neo4j.fabric.stream.Record;
 import org.neo4j.fabric.stream.Records;
 import org.neo4j.fabric.stream.StatementResult;
 import org.neo4j.fabric.stream.StatementResults;
-import org.neo4j.fabric.stream.summary.MergedQueryStatistics;
-import org.neo4j.fabric.stream.summary.MergedSummary;
+import org.neo4j.fabric.stream.summary.MergedSummaryBuilder;
 import org.neo4j.fabric.stream.summary.Summary;
 import org.neo4j.fabric.transaction.FabricTransaction;
-import org.neo4j.graphdb.GqlStatusObject;
-import org.neo4j.graphdb.Notification;
 import org.neo4j.graphdb.QueryExecutionType;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
 import org.neo4j.kernel.impl.query.NotificationConfiguration;
@@ -191,14 +184,10 @@ public class FabricExecutor {
         private final UseEvaluation.Instance useEvaluator;
         private final MapValue queryParams;
         private final FabricTransaction.FabricExecutionContext ctx;
-        private final MergedQueryStatistics statistics = new MergedQueryStatistics();
-        private final Set<Notification> notifications = ConcurrentHashMap.newKeySet();
-        private final Set<GqlStatusObject> gqlStatusObjects = ConcurrentHashMap.newKeySet();
-        private final AtomicReference<Collection<GqlStatusObject>> lastAddedGqlStatusObjects = new AtomicReference<>();
+        private final MergedSummaryBuilder summaryBuilder;
         private final StatementLifecycle lifecycle;
         private final Prefetcher prefetcher;
         private final AccessMode accessMode;
-        private final NotificationConfiguration notificationConfiguration;
 
         FabricStatementExecution(
                 FabricPlan plan,
@@ -218,16 +207,13 @@ public class FabricExecutor {
             this.lifecycle = lifecycle;
             this.prefetcher = new Prefetcher(dataStreamConfig);
             this.accessMode = accessMode;
-            this.notificationConfiguration = notificationConfiguration;
-        }
-
-        StatementResult run() {
             var filteredNotifications = plan.notifications()
                     .filter(notificationConfiguration::includes)
                     .toList();
-            notifications.addAll(asJava(filteredNotifications));
-            gqlStatusObjects.addAll(asJava(filteredNotifications));
+            summaryBuilder = new MergedSummaryBuilder(asJava(filteredNotifications));
+        }
 
+        StatementResult run() {
             lifecycle.startExecution(false);
             var query = plan.query();
 
@@ -235,15 +221,11 @@ public class FabricExecutor {
             // because it is very hard to produce anything better without actually executing the query
             if (plan.executionType() == FabricPlan.EXPLAIN() && plan.inCompositeContext()) {
                 lifecycle.endSuccess();
+
                 return StatementResults.create(
                         asJava(query.outputColumns()),
                         Flux.empty(),
-                        Mono.just(new MergedSummary(
-                                Mono.just(plan.query().description()),
-                                statistics,
-                                notifications,
-                                gqlStatusObjects,
-                                lastAddedGqlStatusObjects)),
+                        summaryBuilder.build(Mono.just(plan.query().description())),
                         Mono.just(EffectiveQueryType.queryExecutionType(plan, accessMode)));
             } else {
                 FragmentResult fragmentResult = run(query, null);
@@ -259,12 +241,7 @@ public class FabricExecutor {
                             fragmentResult.records().then(Mono.<Record>empty()).flux();
                 }
 
-                Mono<Summary> summary = Mono.just(new MergedSummary(
-                        fragmentResult.planDescription(),
-                        statistics,
-                        notifications,
-                        gqlStatusObjects,
-                        lastAddedGqlStatusObjects));
+                Mono<Summary> summary = summaryBuilder.build(fragmentResult.planDescription());
 
                 return StatementResults.create(
                         columns,
@@ -347,13 +324,10 @@ public class FabricExecutor {
                             plan,
                             queryParams,
                             accessMode,
-                            notifications,
-                            gqlStatusObjects,
-                            lastAddedGqlStatusObjects,
+                            summaryBuilder,
                             lifecycle,
                             prefetcher,
                             queryRoutingMonitor,
-                            statistics,
                             tracer(),
                             FabricStatementExecution.this::run,
                             log)
@@ -370,13 +344,10 @@ public class FabricExecutor {
                             plan,
                             queryParams,
                             accessMode,
-                            notifications,
-                            gqlStatusObjects,
-                            lastAddedGqlStatusObjects,
+                            summaryBuilder,
                             lifecycle,
                             prefetcher,
                             queryRoutingMonitor,
-                            statistics,
                             tracer(),
                             FabricStatementExecution.this::run,
                             log)

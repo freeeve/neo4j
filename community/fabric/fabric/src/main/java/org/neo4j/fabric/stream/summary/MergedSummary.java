@@ -23,7 +23,6 @@ import static org.neo4j.notifications.StandardGqlStatusObject.isStandardGqlStatu
 
 import java.util.Collection;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.graphdb.GqlStatusObject;
 import org.neo4j.graphdb.Notification;
@@ -34,7 +33,7 @@ public class MergedSummary implements Summary {
     private final MergedQueryStatistics statistics;
     private final Set<Notification> notifications;
     private final Set<GqlStatusObject> gqlStatusObjects;
-    private final AtomicReference<Collection<GqlStatusObject>> lastUpdatedGqlStatusObjects;
+    private final Collection<GqlStatusObject> lastUpdatedGqlStatusObjects;
     private Mono<ExecutionPlanDescription> executionPlanDescription;
 
     public MergedSummary(
@@ -42,7 +41,7 @@ public class MergedSummary implements Summary {
             MergedQueryStatistics statistics,
             Set<Notification> notifications,
             Set<GqlStatusObject> gqlStatusObjects,
-            AtomicReference<Collection<GqlStatusObject>> lastUpdatedGqlStatusObjects) {
+            Collection<GqlStatusObject> lastUpdatedGqlStatusObjects) {
         this.executionPlanDescription = executionPlanDescription;
         this.statistics = statistics;
         this.notifications = notifications;
@@ -64,9 +63,9 @@ public class MergedSummary implements Summary {
     public Collection<GqlStatusObject> getGqlStatusObjects() {
         // Want to only keep the "standard" gql status from the last set of objects added
         // so remove all standard statuses and then add the last statuses to the set again.
-        if (lastUpdatedGqlStatusObjects.get() != null) {
+        if (lastUpdatedGqlStatusObjects != null) {
             gqlStatusObjects.removeIf(gso -> isStandardGqlStatusCode(gso.gqlStatus()));
-            gqlStatusObjects.addAll(lastUpdatedGqlStatusObjects.get());
+            gqlStatusObjects.addAll(lastUpdatedGqlStatusObjects);
         }
 
         return gqlStatusObjects;

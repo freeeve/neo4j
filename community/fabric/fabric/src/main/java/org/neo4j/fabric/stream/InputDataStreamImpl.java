@@ -60,7 +60,7 @@ public class InputDataStreamImpl implements InputDataStream {
 
         @Override
         public void close() {
-            // TODO what exactly is close on the cursor supposed to do?
+            wrappedStream.close();
         }
     }
 }

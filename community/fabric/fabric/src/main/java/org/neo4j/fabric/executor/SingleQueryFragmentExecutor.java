@@ -21,11 +21,8 @@ package org.neo4j.fabric.executor;
 
 import static scala.jdk.javaapi.CollectionConverters.asJava;
 
-import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.cypher.internal.FullyParsedQuery;
@@ -46,13 +43,11 @@ import org.neo4j.fabric.stream.Prefetcher;
 import org.neo4j.fabric.stream.Record;
 import org.neo4j.fabric.stream.Records;
 import org.neo4j.fabric.stream.StatementResult;
-import org.neo4j.fabric.stream.summary.MergedQueryStatistics;
+import org.neo4j.fabric.stream.summary.MergedSummaryBuilder;
 import org.neo4j.fabric.stream.summary.Summary;
 import org.neo4j.fabric.transaction.FabricTransaction;
 import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.graphdb.ExecutionPlanDescription;
-import org.neo4j.graphdb.GqlStatusObject;
-import org.neo4j.graphdb.Notification;
 import org.neo4j.graphdb.QueryExecutionType;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.database.DatabaseReference;
@@ -67,7 +62,6 @@ import org.neo4j.values.virtual.VirtualRelationshipValue;
 import org.neo4j.values.virtual.VirtualValues;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 abstract class SingleQueryFragmentExecutor {
 
@@ -78,13 +72,10 @@ abstract class SingleQueryFragmentExecutor {
     private final FabricPlan plan;
     private final MapValue queryParams;
     private final AccessMode accessMode;
-    private final Set<Notification> notifications;
-    private final Set<GqlStatusObject> gqlStatusObjects;
-    private final AtomicReference<Collection<GqlStatusObject>> lastAddedGqlStatusObjects;
+    private final MergedSummaryBuilder summaryBuilder;
     private final QueryStatementLifecycles.StatementLifecycle lifecycle;
     private final Prefetcher prefetcher;
     private final QueryRoutingMonitor queryRoutingMonitor;
-    private final MergedQueryStatistics statistics;
     private final Tracer tracer;
     private final FragmentExecutor fragmentExecutor;
     private final InternalLog log;
@@ -97,13 +88,10 @@ abstract class SingleQueryFragmentExecutor {
             FabricPlan plan,
             MapValue queryParams,
             AccessMode accessMode,
-            Set<Notification> notifications,
-            Set<GqlStatusObject> gqlStatusObjects,
-            AtomicReference<Collection<GqlStatusObject>> lastAddedGqlStatusObjects,
+            MergedSummaryBuilder summaryBuilder,
             QueryStatementLifecycles.StatementLifecycle lifecycle,
             Prefetcher prefetcher,
             QueryRoutingMonitor queryRoutingMonitor,
-            MergedQueryStatistics statistics,
             Tracer tracer,
             FragmentExecutor fragmentExecutor,
             InternalLog log) {
@@ -114,13 +102,10 @@ abstract class SingleQueryFragmentExecutor {
         this.plan = plan;
         this.queryParams = queryParams;
         this.accessMode = accessMode;
-        this.notifications = notifications;
-        this.gqlStatusObjects = gqlStatusObjects;
-        this.lastAddedGqlStatusObjects = lastAddedGqlStatusObjects;
+        this.summaryBuilder = summaryBuilder;
         this.lifecycle = lifecycle;
         this.prefetcher = prefetcher;
         this.queryRoutingMonitor = queryRoutingMonitor;
-        this.statistics = statistics;
         this.tracer = tracer;
         this.fragmentExecutor = fragmentExecutor;
         this.log = log;
@@ -225,9 +210,8 @@ abstract class SingleQueryFragmentExecutor {
         lifecycle.startExecution(true);
         Mono<StatementResult> statementResult =
                 runRemote(location, executionOptions, queryString, transactionMode, parameters);
-        Flux<Record> records = statementResult.flatMapMany(
-                sr -> sr.records().publishOn(Schedulers.boundedElastic()).doOnComplete(() -> sr.summary()
-                        .subscribe(this::updateSummary)));
+        Flux<Record> records = statementResult.flatMapMany(StatementResult::records);
+        summaryBuilder.addSummary(statementResult.flatMap(StatementResult::summary));
 
         // 'onComplete' signal coming from an inner stream might cause more data being requested from an upstream
         // operator
@@ -270,10 +254,9 @@ abstract class SingleQueryFragmentExecutor {
 
         StatementResult localStatementResult = runLocal(
                 location, transactionMode, lifecycle, query, parameters, input, executionOptions, targetsComposite);
-        Flux<Record> records = localStatementResult
-                .records()
-                .publishOn(Schedulers.boundedElastic())
-                .doOnComplete(() -> localStatementResult.summary().subscribe(this::updateSummary));
+
+        Flux<Record> records = localStatementResult.records();
+        summaryBuilder.addSummary(localStatementResult.summary());
 
         Mono<ExecutionPlanDescription> planDescription = localStatementResult
                 .summary()
@@ -369,27 +352,6 @@ abstract class SingleQueryFragmentExecutor {
                 .map(both -> QueryTypes.merge(both.getT1(), both.getT2()))
                 .switchIfEmpty(lhs)
                 .switchIfEmpty(rhs);
-    }
-
-    private void updateSummary(Summary summary) {
-        if (summary == null) {
-            log.debug("Result summary for single query fragment was null for query:" + plan.queryString());
-            return;
-        }
-        try {
-            this.statistics.add(summary.getQueryStatistics());
-            this.notifications.addAll(summary.getNotifications());
-            mergeGqlStatusObjects(summary.getGqlStatusObjects());
-        } catch (Exception e) {
-            log.error("Error while updating summary", e);
-            throw e;
-        }
-    }
-
-    private void mergeGqlStatusObjects(Collection<GqlStatusObject> newGqlStatusObjects) {
-        // The standard statuses of the inner queries should be overwritten by the one from the outer query
-        this.gqlStatusObjects.addAll(newGqlStatusObjects);
-        this.lastAddedGqlStatusObjects.set(newGqlStatusObjects);
     }
 
     record PrepareResult(Catalog.Graph graph, Map<String, AnyValue> argumentValues, TransactionMode transactionMode) {}
