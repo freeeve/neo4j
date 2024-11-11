@@ -171,6 +171,7 @@ public interface TopologyGraphDbmsModel {
     String DATABASE_SEED_CREDENTIALS_ENCRYPTED_PROPERTY = "seedCredentialsEncrypted";
     String DATABASE_SEED_CREDENTIALS_IV_PROPERTY = "seedCredentialsIv";
     String DATABASE_SEED_CONFIG_PROPERTY = "seedConfig";
+    String DATABASE_SEED_RESTORE_UNTIL_PROPERTY = "seedRestoreUntil";
     String DATABASE_CREATED_AT_PROPERTY = "created_at";
     String DATABASE_STARTED_AT_PROPERTY = "started_at";
     String DATABASE_UPDATED_AT_PROPERTY = "updated_at";
