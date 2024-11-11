@@ -21,9 +21,8 @@ package org.neo4j.internal.batchimport.input.parquet;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Path;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import org.neo4j.batchimport.api.InputIterator;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.InputChunk;
@@ -31,44 +30,35 @@ import org.neo4j.internal.batchimport.input.Groups;
 
 class ParquetGroupInputIterator implements InputIterator {
 
-    private final ParquetDataFactory source;
+    private final Iterator<ParquetData> files;
     private final Groups groups;
     private final IdType idType;
-    private final ParquetMonitor monitor;
-    private final Map<Path, List<ParquetColumn>> columnInfo;
     private final String arrayDelimiter;
+    private ParquetData currentData;
     private ParquetInputIterator current;
 
-    ParquetGroupInputIterator(
-            ParquetDataFactory source,
-            Groups groups,
-            IdType idType,
-            String arrayDelimiter,
-            Map<Path, List<ParquetColumn>> columnInfo,
-            ParquetMonitor monitor) {
-        this.monitor = monitor;
-        this.source = source;
+    ParquetGroupInputIterator(List<ParquetData> files, Groups groups, IdType idType, String arrayDelimiter) {
+        this.files = files.iterator();
         this.groups = groups;
         this.idType = idType;
         this.arrayDelimiter = arrayDelimiter;
-        this.columnInfo = columnInfo;
     }
 
     @Override
     public InputChunk newChunk() {
-        return new ParquetProxyInputChunk();
+        return new ParquetDataInputChunk();
     }
 
     @Override
     public synchronized boolean next(InputChunk chunk) throws IOException {
         while (true) {
-            if (!source.hasNextFile()) {
+            if (!files.hasNext()) {
                 return false;
             }
             if (current == null) {
-                ParquetData data = source.getNextFile();
+                currentData = files.next();
                 current = new ParquetInputIterator(
-                        data, groups, idType, columnInfo, data.defaultTimezoneSupplier(), arrayDelimiter);
+                        currentData, groups, idType, currentData.defaultTimezoneSupplier(), arrayDelimiter);
             }
 
             if (current.next((ParquetInputChunk) chunk)) {
@@ -76,6 +66,7 @@ class ParquetGroupInputIterator implements InputIterator {
             }
             current.close();
             current = null;
+            currentData = null;
         }
     }
 

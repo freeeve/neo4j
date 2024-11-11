@@ -28,6 +28,8 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -37,7 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.Supplier;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.hadoop.metadata.BlockMetaData;
 import org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
@@ -64,15 +66,16 @@ import org.neo4j.token.api.TokenConstants;
  * Provides {@link Input} from data contained in Parquet files.
  */
 public class ParquetInput implements Input {
+    private static final Supplier<ZoneId> defaultTimezoneSupplier = () -> ZoneOffset.UTC;
 
-    private final ParquetDataFactory nodeDataFactory;
-    private final ParquetDataFactory relationshipDataFactory;
+    private final List<ParquetData> nodeDatas;
+    private final List<ParquetData> relationshipDatas;
     private final IdType idType;
     private final Groups groups;
     private final ParquetMonitor monitor;
-    private final Map<Path, List<ParquetColumn>> columnInfo;
     private final Map<Set<String>, List<Path[]>> nodeFiles;
     private final Map<String, List<Path[]>> relationshipFiles;
+    private final Map<Path, List<ParquetColumn>> verifiedColumns;
     private final String arrayDelimiter;
 
     public ParquetInput(
@@ -88,28 +91,30 @@ public class ParquetInput implements Input {
         this.arrayDelimiter = arrayDelimiter.toString();
         this.nodeFiles = nodeFiles;
         this.relationshipFiles = relationshipFiles;
-        this.nodeDataFactory = new ParquetDataFactory(nodeFiles.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().stream()
-                        .flatMap(Arrays::stream)
-                        .toList())));
-        this.relationshipDataFactory = new ParquetDataFactory(relationshipFiles.entrySet().stream()
-                .collect(Collectors.toMap(entry -> Set.of(entry.getKey()), entry -> entry.getValue().stream()
-                        .flatMap(Arrays::stream)
-                        .toList())));
 
-        this.columnInfo = verifyColumns(nodeFiles, relationshipFiles);
+        this.verifiedColumns = verifyColumns(nodeFiles, relationshipFiles);
+        this.nodeDatas = nodeFiles.entrySet().stream()
+                .flatMap(e -> e.getValue().stream().map(p -> Map.entry(e.getKey(), p)))
+                .flatMap(e -> Arrays.stream(e.getValue()).map(p -> Map.entry(e.getKey(), p)))
+                .map(e -> new ParquetData(
+                        e.getKey(), e.getValue(), verifiedColumns.get(e.getValue()), defaultTimezoneSupplier))
+                .toList();
+        this.relationshipDatas = relationshipFiles.entrySet().stream()
+                .flatMap(e -> e.getValue().stream().map(p -> Map.entry(e.getKey(), p)))
+                .flatMap(e -> Arrays.stream(e.getValue()).map(p -> Map.entry(e.getKey(), p)))
+                .map(e -> new ParquetData(
+                        Set.of(e.getKey()), e.getValue(), verifiedColumns.get(e.getValue()), defaultTimezoneSupplier))
+                .toList();
     }
 
     @Override
     public InputIterable nodes(Collector badCollector) {
-        return () ->
-                new ParquetGroupInputIterator(nodeDataFactory, groups, idType, arrayDelimiter, columnInfo, monitor);
+        return () -> new ParquetGroupInputIterator(nodeDatas, groups, idType, arrayDelimiter);
     }
 
     @Override
     public InputIterable relationships(Collector badCollector) {
-        return () -> new ParquetGroupInputIterator(
-                relationshipDataFactory, groups, idType, arrayDelimiter, columnInfo, monitor);
+        return () -> new ParquetGroupInputIterator(relationshipDatas, groups, idType, arrayDelimiter);
     }
 
     @Override
@@ -150,7 +155,7 @@ public class ParquetInput implements Input {
                     for (ColumnDescriptor columnDescriptor : columns) {
                         var columnName = columnDescriptor.getPath()[0];
                         if (columnName.isBlank()) {
-                            throw new InputException("column name is must not be blank");
+                            throw new InputException("column name must not be blank");
                         }
                         try {
                             var parquetColumn = ParquetColumn.from(columnName, EntityType.NODE);
@@ -280,7 +285,7 @@ public class ParquetInput implements Input {
 
     @Override
     public Map<String, SchemaDescriptor> referencedNodeSchema(TokenHolders tokenHolders) {
-        List<ParquetColumn> idColumns = columnInfo.values().stream()
+        List<ParquetColumn> idColumns = verifiedColumns.values().stream()
                 .flatMap(Collection::stream)
                 .filter(ParquetColumn::isIdColumn)
                 .toList();

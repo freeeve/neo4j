@@ -19,55 +19,48 @@
  */
 package org.neo4j.internal.batchimport.input.parquet;
 
-import blue.strategic.parquet.Hydrator;
-import blue.strategic.parquet.ParquetReader;
 import java.io.Closeable;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import org.apache.parquet.ParquetReadOptions;
+import org.apache.parquet.column.ColumnDescriptor;
+import org.apache.parquet.column.ColumnReader;
+import org.apache.parquet.column.impl.ColumnReadStoreImpl;
+import org.apache.parquet.column.page.PageReadStore;
+import org.apache.parquet.example.DummyRecordConverter;
+import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.parquet.io.api.GroupConverter;
+import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.PrimitiveType;
 import org.neo4j.batchimport.api.input.IdType;
-import org.neo4j.batchimport.api.input.InputEntityVisitor;
 import org.neo4j.internal.batchimport.input.Groups;
-import org.neo4j.internal.batchimport.input.InputException;
-import org.neo4j.values.storable.DateTimeValue;
-import org.neo4j.values.storable.DateValue;
-import org.neo4j.values.storable.DurationValue;
-import org.neo4j.values.storable.LocalDateTimeValue;
-import org.neo4j.values.storable.LocalTimeValue;
-import org.neo4j.values.storable.PointValue;
-import org.neo4j.values.storable.TimeValue;
 
 /**
  * There should be a 1:1 match between Reader and file for now.
  */
 class ParquetDataReader implements Closeable {
 
-    private final Iterator<List<Object>> data;
     private final ParquetData parquetDataFile;
     private final Groups groups;
     private final IdType idType;
     private final Supplier<ZoneId> defaultTimezoneSupplier;
     private final String arrayDelimiter;
-    private final String groupName;
-    private final String relationshipStartIdGroupName;
-    private final String relationshipEndIdGroupName;
-    private final List<ParquetColumn> columns;
-    private final Stream<List<Object>> dataStream;
+    private final ParquetFileReader reader;
+    private final AtomicInteger blockCounter;
+    private final MessageType schema;
+    private final GroupConverter recordConverter;
+    private final String createdBy;
+    private final List<ColumnDescriptor> parquetColumns;
 
     ParquetDataReader(
             ParquetData parquetDataFile,
             Groups groups,
             IdType idType,
-            Map<Path, List<ParquetColumn>> columnInfo,
             Supplier<ZoneId> defaultTimezoneSupplier,
             String arrayDelimiter) {
         this.parquetDataFile = parquetDataFile;
@@ -76,202 +69,122 @@ class ParquetDataReader implements Closeable {
         this.defaultTimezoneSupplier = defaultTimezoneSupplier;
         this.arrayDelimiter = arrayDelimiter;
         var path = parquetDataFile.file();
-        this.columns = columnInfo.get(path);
+
         try {
-            groupName = columns.stream()
-                    .filter(ParquetColumn::isIdColumn)
-                    .findFirst()
-                    .map(ParquetColumn::groupName)
-                    .orElse(null);
-            relationshipStartIdGroupName = columns.stream()
-                    .filter(ParquetColumn::isStartId)
-                    .findFirst()
-                    .map(ParquetColumn::groupName)
-                    .orElse(null);
-            relationshipEndIdGroupName = columns.stream()
-                    .filter(ParquetColumn::isEndId)
-                    .findFirst()
-                    .map(ParquetColumn::groupName)
-                    .orElse(null);
-            this.dataStream = ParquetReader.stream(ParquetReader.spliterator(
+            this.reader = ParquetFileReader.open(
                     ParquetInput.ParquetImportInputFile.of(path),
-                    columns -> new Hydrator<List<Object>, List<Object>>() {
-                        @Override
-                        public List<Object> start() {
-                            return new ArrayList<>();
-                        }
+                    ParquetReadOptions.builder().build());
+            var metadata = this.reader.getFileMetaData();
+            this.schema = metadata.getSchema();
+            this.recordConverter = new DummyRecordConverter(this.schema).getRootConverter();
+            this.createdBy = metadata.getCreatedBy();
 
-                        @Override
-                        public List<Object> add(List<Object> target, String heading, Object value) {
-                            target.add(value);
-                            return target;
-                        }
+            var columnsToRead = parquetDataFile.columns().stream()
+                    .map(ParquetColumn::columnName)
+                    .toList();
+            this.parquetColumns = schema.getColumns().stream()
+                    .filter(c -> columnsToRead.contains(c.getPath()[0]))
+                    .toList();
 
-                        @Override
-                        public List<Object> finish(List<Object> target) {
-                            return target;
-                        }
-                    }));
-            data = dataStream.iterator();
-
+            this.blockCounter = new AtomicInteger(0);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    /**
-     * has a next column in a file
-     */
-    public boolean hasNext() {
-        return data.hasNext();
-    }
-
-    public synchronized boolean next(InputEntityVisitor entityToHydrate) throws IOException {
-        if (!data.hasNext()) {
-            return false;
+    public Iterator<List<Object>> next() throws IOException {
+        var nextRowGroupIndex = blockCounter.getAndIncrement();
+        if (nextRowGroupIndex >= reader.getRowGroups().size()) {
+            return null;
         }
 
-        List<Object> readData = data.next();
+        return new ParquetRowGroupReader(reader.readRowGroup(nextRowGroupIndex));
+    }
 
-        List<String> labels = new ArrayList<>(filterEmptyLabelsAndTrim(parquetDataFile.labelsOrType()));
-        StringBuilder idValue = new StringBuilder();
-        Collection<String> typeCandidates = filterEmptyLabelsAndTrim(parquetDataFile.labelsOrType());
-        var type = typeCandidates.isEmpty() ? "" : typeCandidates.iterator().next();
-        var isRelationshipEntity = false;
-        for (int i = 0; i < readData.size(); i++) {
-            var parquetColumn = columns.get(i);
-            Object readDatum = readData.get(i);
-            if (readDatum == null || isEmptyString(readDatum) || parquetColumn.isIgnoredColumn()) {
-                continue;
-            }
-            // node
-            if (parquetColumn.isIdColumn()) {
-                if (idType == IdType.STRING
-                        && (parquetColumn.columnIdType() == IdType.STRING || parquetColumn.columnIdType() == null)) {
-                    idValue.append(resolveIdByType(readDatum, null));
-                } else if (idType == IdType.INTEGER || parquetColumn.columnIdType() == IdType.INTEGER) {
-                    entityToHydrate.id(resolveIdByType(readDatum, parquetColumn.columnIdType()), groups.get(groupName));
-                } else {
-                    entityToHydrate.id((Long) resolveIdByType(readDatum, parquetColumn.columnIdType()));
+    public ParquetData getParquetDataFile() {
+        return parquetDataFile;
+    }
+
+    public Groups getGroups() {
+        return groups;
+    }
+
+    public IdType getIdType() {
+        return idType;
+    }
+
+    public Supplier<ZoneId> getDefaultTimezoneSupplier() {
+        return defaultTimezoneSupplier;
+    }
+
+    public String getArrayDelimiter() {
+        return arrayDelimiter;
+    }
+
+    private class ParquetRowGroupReader implements Iterator<List<Object>> {
+        private final List<ColumnReader> columnReaders;
+        private final long rowCount;
+        private long rowIndex;
+
+        ParquetRowGroupReader(PageReadStore store) {
+            this.rowCount = store.getRowCount();
+
+            var columnReadStore = new ColumnReadStoreImpl(
+                    store,
+                    ParquetDataReader.this.recordConverter,
+                    ParquetDataReader.this.schema,
+                    ParquetDataReader.this.createdBy);
+            this.columnReaders = parquetColumns.stream()
+                    .map(columnReadStore::getColumnReader)
+                    .toList();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return rowIndex < rowCount;
+        }
+
+        @Override
+        public List<Object> next() {
+            var result = new ArrayList<>();
+
+            for (ColumnReader columnReader : this.columnReaders) {
+                result.add(readValue(columnReader));
+                columnReader.consume();
+                if (columnReader.getCurrentRepetitionLevel() != 0) {
+                    throw new IllegalStateException("Unexpected repetition");
                 }
-                boolean isActualIdColumn = idType == IdType.ACTUAL && parquetColumn.isIdColumn();
-                if (!isActualIdColumn && parquetColumn.hasPropertyName()) {
-                    entityToHydrate.property(parquetColumn.propertyName(), convertType(readDatum, parquetColumn));
-                }
-            }
-            if (parquetColumn.isLabelColumn()) {
-                labels.addAll(readLabelFromEntry(readDatum));
-            }
-            // common
-            if (parquetColumn.hasPropertyName()
-                    && parquetColumn.logicalColumnType() == ParquetLogicalColumnType.PROPERTY) {
-                entityToHydrate.property(parquetColumn.propertyName(), convertType(readDatum, parquetColumn));
-            }
-            // relationship
-            if (parquetColumn.isStartId()) {
-                entityToHydrate.startId(resolveIdByType(readDatum, null), groups.get(relationshipStartIdGroupName));
-                isRelationshipEntity = true;
-            }
-            if (parquetColumn.isEndId()) {
-                entityToHydrate.endId(resolveIdByType(readDatum, null), groups.get(relationshipEndIdGroupName));
-                isRelationshipEntity = true;
-            }
-            if (parquetColumn.isType()) {
-                if (readDatum instanceof String typeColumnData && !typeColumnData.isBlank()) {
-                    type = typeColumnData;
-                }
-            }
-        }
-        if (!isRelationshipEntity && !labels.isEmpty()) {
-            entityToHydrate.labels(labels.toArray(new String[] {}));
-        }
-        if (isRelationshipEntity && type != null && !type.isBlank()) {
-            entityToHydrate.type(type);
-        }
-        if (idType == IdType.STRING && !idValue.isEmpty()) {
-            entityToHydrate.id(idValue.toString(), groups.get(groupName));
-        }
-        entityToHydrate.endOfEntity();
-        return true;
-    }
-
-    private Object convertType(Object object, ParquetColumn parquetColumn) {
-        try {
-            if (parquetColumn.isRaw()) {
-                return object;
             }
 
-            // for now there is only support for String-based arrays
-            if (parquetColumn.isArray()) {
-                String[] parts = object.toString().split(arrayDelimiter);
-                Object[] values = new Object[parts.length];
-                ParquetColumn nonArrayType = parquetColumn.withoutArray();
-                for (int i = 0; i < parts.length; i++) {
-                    values[i] = convertType(parts[i], nonArrayType);
-                }
-                return values;
-            }
+            this.rowIndex++;
 
-            return switch (parquetColumn.columnType()) {
-                case POINT -> {
-                    if (parquetColumn.hasConfiguration()) {
-                        yield PointValue.parse(
-                                object.toString(), PointValue.parseHeaderInformation(parquetColumn.rawConfiguration()));
-                    }
-                    yield PointValue.parse(object.toString());
-                }
-                case DATE -> DateValue.parse(object.toString());
-                case TIME -> TimeValue.parse(
-                        object.toString(), parquetColumn.getTimezone(defaultTimezoneSupplier), null);
-                case DATE_TIME -> DateTimeValue.parse(
-                        object.toString(), parquetColumn.getTimezone(defaultTimezoneSupplier), null);
-                case LOCAL_TIME -> LocalTimeValue.parse(object.toString());
-                case LOCAL_DATE_TIME -> LocalDateTimeValue.parse(object.toString());
-                case DURATION -> DurationValue.parse(object.toString());
-                case INT -> Integer.valueOf(object.toString());
-                case SHORT -> Short.valueOf(object.toString());
-                case STRING -> object.toString();
-                case LONG -> Long.valueOf(object.toString());
-                case BYTE -> Byte.parseByte(object.toString());
-                case DOUBLE -> Double.parseDouble(object.toString());
-                case FLOAT -> Float.parseFloat(object.toString());
-                default -> object;
-            };
-        } catch (RuntimeException e) {
-            throw new InputException(
-                    "could not convert %s to %s".formatted(object.toString(), parquetColumn.columnType()), e);
-        }
-    }
-
-    private boolean isEmptyString(Object object) {
-        return object instanceof String stringValue && stringValue.isEmpty();
-    }
-
-    private Object resolveIdByType(Object id, IdType columnIdType) {
-        if (id instanceof String stringId) {
-            return stringId;
-        } else if (id instanceof Long longId) {
-            return longId;
-        } else if (id instanceof Integer intId) {
-            if (columnIdType == IdType.INTEGER) {
-                return intId;
-            }
-            return intId.longValue();
+            return result;
         }
 
-        throw new IllegalArgumentException("Cannot convert id of type " + id.getClass());
-    }
+        private static Object readValue(ColumnReader columnReader) {
+            ColumnDescriptor column = columnReader.getDescriptor();
+            PrimitiveType primitiveType = column.getPrimitiveType();
+            int maxDefinitionLevel = column.getMaxDefinitionLevel();
 
-    private Collection<String> filterEmptyLabelsAndTrim(Collection<String> labels) {
-        return labels.stream().filter(s -> !s.isEmpty()).map(String::trim).collect(Collectors.toSet());
-    }
-
-    private Collection<String> readLabelFromEntry(Object readDatum) {
-        return filterEmptyLabelsAndTrim(Arrays.asList(readDatum.toString().split(arrayDelimiter)));
+            if (columnReader.getCurrentDefinitionLevel() == maxDefinitionLevel) {
+                return switch (primitiveType.getPrimitiveTypeName()) {
+                    case BINARY, FIXED_LEN_BYTE_ARRAY, INT96 -> primitiveType
+                            .stringifier()
+                            .stringify(columnReader.getBinary());
+                    case BOOLEAN -> columnReader.getBoolean();
+                    case DOUBLE -> columnReader.getDouble();
+                    case FLOAT -> columnReader.getFloat();
+                    case INT32 -> columnReader.getInteger();
+                    case INT64 -> columnReader.getLong();
+                };
+            } else {
+                return null;
+            }
+        }
     }
 
     @Override
     public void close() throws IOException {
-        dataStream.close();
+        this.reader.close();
     }
 }

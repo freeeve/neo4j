@@ -21,10 +21,7 @@ package org.neo4j.internal.batchimport.input.parquet;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.time.ZoneId;
-import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.internal.batchimport.input.Groups;
@@ -37,11 +34,9 @@ class ParquetInputIterator implements Closeable {
             ParquetData parquetData,
             Groups groups,
             IdType idType,
-            Map<Path, List<ParquetColumn>> columnInfo,
             Supplier<ZoneId> defaultTimezoneSupplier,
             String arrayDelimiter) {
-        this.reader =
-                new ParquetDataReader(parquetData, groups, idType, columnInfo, defaultTimezoneSupplier, arrayDelimiter);
+        this.reader = new ParquetDataReader(parquetData, groups, idType, defaultTimezoneSupplier, arrayDelimiter);
     }
 
     @Override

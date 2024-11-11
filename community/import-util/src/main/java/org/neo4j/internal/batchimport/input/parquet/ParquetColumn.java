@@ -33,6 +33,7 @@ import org.neo4j.values.storable.Value;
  * Those metadata _should_ only get created once per file.
  */
 record ParquetColumn(
+        String columnName,
         String propertyName,
         String groupName,
         ParquetLogicalColumnType logicalColumnType,
@@ -42,6 +43,7 @@ record ParquetColumn(
         Map<String, String> configuration) {
 
     static ParquetColumn from(String columnNameValue, EntityType knownEntityType) {
+        var columnName = columnNameValue;
         boolean isArray = hasArrayDefinition(columnNameValue);
         // get rid of the array definition after we looked for its presence
         columnNameValue = columnNameValue.replace("[]", "");
@@ -61,6 +63,7 @@ record ParquetColumn(
         String rawConfiguration = configurationMatch.getMatch();
         Map<String, String> configuration = parseConfiguration(rawConfiguration);
         return new ParquetColumn(
+                columnName,
                 propertyName,
                 groupNameMatch.getMatch(),
                 logicalColumnType,
@@ -144,6 +147,7 @@ record ParquetColumn(
 
     ParquetColumn withoutArray() {
         return new ParquetColumn(
+                columnName(),
                 propertyName(),
                 groupName(),
                 logicalColumnType(),

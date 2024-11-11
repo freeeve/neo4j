@@ -21,10 +21,45 @@ package org.neo4j.internal.batchimport.input.parquet;
 
 import java.nio.file.Path;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
  * Represents labels / type and one file that was declared for these labels / type.
  */
-public record ParquetData(Set<String> labelsOrType, Path file, Supplier<ZoneId> defaultTimezoneSupplier) {}
+record ParquetData(
+        Set<String> labelsOrType,
+        Path file,
+        List<ParquetColumn> columns,
+        Supplier<ZoneId> defaultTimezoneSupplier,
+        String groupName,
+        String relationshipStartIdGroupName,
+        String relationshipEndIdGroupName) {
+
+    ParquetData(
+            Set<String> labelsOrType,
+            Path file,
+            List<ParquetColumn> columns,
+            Supplier<ZoneId> defaultTimezoneSupplier) {
+        this(
+                labelsOrType,
+                file,
+                columns,
+                defaultTimezoneSupplier,
+                findColumnGroupName(columns, ParquetColumn::isIdColumn),
+                findColumnGroupName(columns, ParquetColumn::isStartId),
+                findColumnGroupName(columns, ParquetColumn::isEndId));
+    }
+
+    private static String findColumnGroupName(List<ParquetColumn> columns, Predicate<ParquetColumn> filter) {
+        for (var column : columns) {
+            if (filter.test(column)) {
+                return column.groupName();
+            }
+        }
+
+        return null;
+    }
+}
