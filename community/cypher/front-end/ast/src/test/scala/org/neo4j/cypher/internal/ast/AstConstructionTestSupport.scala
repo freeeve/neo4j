@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.expressions.CachedHasProperty
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.CaseExpression
 import org.neo4j.cypher.internal.expressions.CoerceTo
+import org.neo4j.cypher.internal.expressions.CollectDistinct
 import org.neo4j.cypher.internal.expressions.Concatenate
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.Contains
@@ -475,6 +476,8 @@ trait AstConstructionTestSupport {
 
   def collect(expression: Expression, distinct: Boolean = false): FunctionInvocation =
     FunctionInvocation(FunctionName(Collect.name)(pos), distinct, IndexedSeq(expression))(pos)
+
+  def collectDistinct(expression: Expression): CollectDistinct = CollectDistinct(expression)(pos)
 
   def max(expression: Expression): FunctionInvocation =
     FunctionInvocation(expression, FunctionName(Max.name)(pos))
