@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.compiler.planner.BeLikeMatcher.beLike
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.ExistenceConstraintDefinition
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.IndexCapabilities
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.IndexDefinition
+import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.RelDef
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.getProvidesOrder
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.getWithValues
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPQueryGraphSolver
@@ -358,5 +359,113 @@ class StatisticsBackedLogicalPlanningConfigurationBuilderTest extends CypherFunS
     plannerWithDebugFlag.queryGraphSolver() should beLike {
       case IDPQueryGraphSolver(_, _, ExistsSubqueryPlanner) => ()
     }
+  }
+
+  test("should accumulate graph counts for all relationships if relType is empty") {
+    val knowsCount = 5
+    val worksWithCount = 5
+    val worksWithCountAdditionalValue = 7
+    val ownsCount = 5
+    val json =
+      s"""
+         |{
+         |  "indexes": [],
+         |  "nodes": [
+         |    {
+         |      "count": 50
+         |    },
+         |    {
+         |      "count": 40,
+         |      "label": "Person"
+         |    },
+         |    {
+         |      "count": 10,
+         |      "label": "Pet"
+         |    }
+         |  ],
+         |  "relationships": [
+         |    {
+         |      "count": 25
+         |    },
+         |    {
+         |      "count": $knowsCount,
+         |      "relationshipType": "knows"
+         |    },
+         |    {
+         |      "count": $knowsCount,
+         |      "startLabel": "Person",
+         |      "relationshipType": "knows"
+         |    },
+         |    {
+         |      "count": $knowsCount,
+         |      "relationshipType": "knows",
+         |      "startLabel": "Person",
+         |      "endLabel": "Person"
+         |    },
+         |    {
+         |      "count": $knowsCount,
+         |      "relationshipType": "knows",
+         |      "endLabel": "Person"
+         |    },
+         |    {
+         |      "count": $worksWithCountAdditionalValue,
+         |      "relationshipType": "works_with"
+         |    },
+         |    {
+         |      "count": $worksWithCount,
+         |      "startLabel": "Person",
+         |      "relationshipType": "works_with"
+         |    },
+         |    {
+         |      "count": $worksWithCount,
+         |      "relationshipType": "works_with",
+         |      "endLabel": "Person"
+         |    },
+         |    {
+         |      "count": $worksWithCount,
+         |      "relationshipType": "works_with",
+         |      "startLabel": "Person",
+         |      "endLabel": "Person"
+         |    },
+         |    {
+         |      "count": $ownsCount,
+         |      "relationshipType": "owns"
+         |    },
+         |    {
+         |      "count": $ownsCount,
+         |      "startLabel": "Person",
+         |      "relationshipType": "owns"
+         |    },
+         |    {
+         |      "count": $ownsCount,
+         |      "relationshipType": "owns",
+         |      "endLabel": "Pet"
+         |    },
+         |    {
+         |      "count": $ownsCount,
+         |      "startLabel": "Person",
+         |      "relationshipType": "owns",
+         |      "endLabel": "Pet"
+         |    }
+         |  ]
+         |}
+         |""".stripMargin
+
+    val graphCountData = GraphCountsJson.parseAsGraphCountDataFromString(json)
+    val planner = plannerBuilder().processGraphCounts(graphCountData)
+
+    planner.cardinalities.getRelCount(
+      RelDef(Some("Person"), None, Some("Person"))
+    ) shouldEqual (knowsCount + worksWithCount)
+    planner.cardinalities.getRelCount(
+      RelDef(Some("Person"), Some("works_with"), Some("Person"))
+    ) shouldEqual (worksWithCount)
+    planner.cardinalities.getRelCount(RelDef(None, None, Some("Person"))) shouldEqual (knowsCount + worksWithCount)
+    planner.cardinalities.getRelCount(
+      RelDef(Some("Person"), None, None)
+    ) shouldEqual (knowsCount + worksWithCount + ownsCount)
+    planner.cardinalities.getRelCount(
+      RelDef(None, Some("works_with"), None)
+    ) shouldEqual (worksWithCountAdditionalValue)
   }
 }

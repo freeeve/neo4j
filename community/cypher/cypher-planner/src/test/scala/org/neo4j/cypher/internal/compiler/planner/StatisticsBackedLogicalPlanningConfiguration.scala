@@ -154,14 +154,21 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
   ) {
 
     def getRelCount(relDef: RelDef): Double = {
-      def orElse: Double =
+      def defaultOrThrow: Double =
         if (defaultRelationshipCardinalityTo0) 0.0
         else throw new IllegalStateException(
           s"""No cardinality set for relationship $relDef. Please specify using
              |.setRelationshipCardinality("$relDef", cardinality)""".stripMargin
         )
+      def getForAllRelationshipsMatching: Option[Double] = {
+        if (relDef.relType.isEmpty)
+          Some(relationships.filter(r =>
+            r._1.fromLabel == relDef.fromLabel && r._1.toLabel == relDef.toLabel
+          ).values.sum)
+        else None
+      }
 
-      relationships.getOrElse(relDef, orElse)
+      relationships.get(relDef).orElse(getForAllRelationshipsMatching).getOrElse(defaultOrThrow)
     }
   }
 
