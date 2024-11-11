@@ -46,6 +46,7 @@ import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.NullLog;
+import org.neo4j.logging.internal.LogMessageUtil;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobScheduler;
@@ -57,6 +58,7 @@ public class DbmsDiagnosticsManager {
     private static final int CONCISE_DATABASE_DUMP_THRESHOLD =
             getInteger(DbmsDiagnosticsManager.class, "conciseDumpThreshold", 10);
     private static final int CONCISE_DATABASE_NAMES_PER_ROW = 5;
+    private static final int SPLIT_THRESHOLD = LogMessageUtil.LOG_LINE_MAX_LENGTH;
     private final Dependencies dependencies;
     private final boolean enabled;
     private final InternalLog internalLog;
@@ -134,11 +136,9 @@ public class DbmsDiagnosticsManager {
         for (int i = CONCISE_DATABASE_NAMES_PER_ROW; i < databases.size(); i += CONCISE_DATABASE_NAMES_PER_ROW) {
             var subList = databases.subList(lastIndex, i);
             logDatabases(log, subList);
-            log.newSegment();
             lastIndex = i;
         }
         var lastDbs = databases.subList(lastIndex, databases.size());
-        log.newSegment();
         logDatabases(log, lastDbs);
     }
 
@@ -233,10 +233,14 @@ public class DbmsDiagnosticsManager {
         String message = diagnosticsLogger.asMessage();
         HeapDumpDiagnostics.addDiagnostics(prefix, message);
 
-        if (splitIntoSections) {
+        if (message.length() >= SPLIT_THRESHOLD && splitIntoSections) {
             List<String> segments = diagnosticsLogger.asSegments();
             List<String> chunksToLog = new ArrayList<>();
             for (String segment : segments) {
+                if (segment.length() < SPLIT_THRESHOLD) {
+                    chunksToLog.add(segment);
+                    continue;
+                }
                 // Segments can be long. Allow at most 50 lines per message
                 String[] split = segment.split(System.lineSeparator());
                 int chunkSize = 50;
@@ -245,7 +249,7 @@ public class DbmsDiagnosticsManager {
                 } else {
                     for (int i = 0; i < split.length; i += chunkSize) {
                         String[] chunk = Arrays.copyOfRange(split, i, Math.min(i + chunkSize, split.length));
-                        chunksToLog.add(String.join(System.lineSeparator(), chunk));
+                        chunksToLog.add(System.lineSeparator() + String.join(System.lineSeparator(), chunk));
                     }
                 }
             }

@@ -71,6 +71,7 @@ import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.Race;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
+import org.neo4j.test.scheduler.CallingThreadJobScheduler;
 import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
@@ -101,7 +102,7 @@ class DbmsDiagnosticsManagerTest {
         defaultDatabase = prepareDatabase();
         when(storageEngineFactory.listStorageFiles(any(), any())).thenReturn(Collections.emptyList());
 
-        dependencies = dependenciesOf(Config.defaults(), databaseContextProvider);
+        dependencies = dependenciesOf(Config.defaults(), databaseContextProvider, new CallingThreadJobScheduler());
 
         when(defaultContext.database()).thenReturn(defaultDatabase);
         when(defaultContext.optionalDatabase()).thenReturn(Optional.of(defaultDatabase));

@@ -71,6 +71,7 @@ public final class LogUtils {
         private LogTimeZone timezone = LogTimeZone.UTC;
         private boolean includeCategory = true;
         private String jsonLayout;
+        private int jsonStringMaxLength;
         private long rotationThreshold = ByteUnit.mebiBytes(20);
         private int maxArchives = 7;
         private boolean forDebugLog = false;
@@ -111,6 +112,11 @@ public final class LogUtils {
             return this;
         }
 
+        public Log4jXmlLoggerBuilder withJsonStringMaxLength(int jsonStringMaxLength) {
+            this.jsonStringMaxLength = jsonStringMaxLength;
+            return this;
+        }
+
         public Log4jXmlLoggerBuilder forDebugLog(boolean forDebugLog) {
             this.forDebugLog = forDebugLog;
             return this;
@@ -130,6 +136,7 @@ public final class LogUtils {
                     timezone,
                     includeCategory,
                     jsonLayout,
+                    jsonStringMaxLength,
                     rotationThreshold,
                     maxArchives,
                     forDebugLog);
@@ -144,6 +151,7 @@ public final class LogUtils {
             LogTimeZone timezone,
             boolean includeCategory,
             String jsonLayout,
+            int jsonStringMaxLength,
             long rotationThreshold,
             int maxArchives,
             boolean forDebugLog) {
@@ -241,7 +249,13 @@ public final class LogUtils {
                 if (logger.jsonLayout != null) {
                     sb.append("      <JsonTemplateLayout eventTemplateUri=\"")
                             .append(logger.jsonLayout)
-                            .append("\" />\n");
+                            .append("\"");
+                    if (logger.jsonStringMaxLength > 0) {
+                        sb.append(" maxStringLength=\"")
+                                .append(logger.jsonStringMaxLength)
+                                .append("\"");
+                    }
+                    sb.append(" />\n");
                 } else if (logger.forDebugLog) {
                     sb.append("      <Neo4jDebugLogLayout pattern=\"")
                             .append(logger.getPattern())

@@ -416,7 +416,8 @@ class MigrateConfigCommandTest {
                 "-Djdk.tls.rejectClientInitiatedRenegotiation=true",
                 "-XX:FlightRecorderOptions=stackdepth=256",
                 "-XX:+UnlockDiagnosticVMOptions",
-                "-XX:+DebugNonSafepoints");
+                "-XX:+DebugNonSafepoints",
+                "-Dlog4j.layout.jsonTemplate.maxStringLength=32768");
         templateSettings.removeAll(ignoredFromTemplate);
         Collection<String> jvmArgs = ConfigFileMigrator.recommendedJvmAdditionals().stream()
                 .map(ConfigFileMigrator.JvmArg::arg)

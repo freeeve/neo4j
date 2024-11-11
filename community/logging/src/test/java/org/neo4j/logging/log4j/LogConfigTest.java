@@ -34,8 +34,10 @@ import static org.neo4j.logging.log4j.LoggerTarget.ROOT_LOGGER;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 import org.apache.logging.log4j.spi.ExtendedLogger;
@@ -306,6 +308,31 @@ class LogConfigTest {
 
         assertThat(Files.readString(targetFile))
                 .matches(DATE_PATTERN + format(" %-5s \\[o\\.n\\.classname] 1c%n", Level.WARN));
+    }
+
+    @Test
+    void jsonFormatBigMessage() throws IOException {
+        Path targetFile = dir.homePath().resolve("debug.log");
+
+        int size = 1024 * 20;
+        Path xmlConfig = newTemporaryXmlConfigBuilder(fs)
+                .withLogger(newLoggerBuilder(ROOT_LOGGER, targetFile)
+                        .withLevel(Level.INFO)
+                        .withCategory(true)
+                        .withJsonFormatTemplate(STRUCTURED_LOG_JSON_TEMPLATE_WITH_MESSAGE)
+                        .withJsonStringMaxLength(32768)
+                        .build())
+                .create();
+
+        ctx = createLoggerFromXmlConfig(fs, xmlConfig);
+        ExtendedLogger logger = ctx.getLogger("org.neo4j.classname");
+
+        byte[] bytes = new byte[size];
+        Arrays.fill(bytes, (byte) 'x');
+
+        logger.info(new String(bytes, StandardCharsets.UTF_8));
+        String actual = Files.readString(targetFile);
+        assertThat(actual.length()).isGreaterThan(size);
     }
 
     @Test
