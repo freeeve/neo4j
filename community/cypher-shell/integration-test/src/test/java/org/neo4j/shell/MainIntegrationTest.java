@@ -1530,7 +1530,11 @@ class MainIntegrationTest extends TestHarness {
     @Test
     void showNotificationsIfEnabled() throws Exception {
         final String expected;
-        if (serverVersion.compareTo(Versions.version("5.0.0")) >= 0) {
+        if (protocolVersion.compareTo(Versions.version("5.6")) >= 0) {
+            expected =
+                    "info: If a part of a query contains multiple disconnected patterns, this will build a cartesian product between all those parts. This may produce a large amount of data and slow down query processing. While occasionally intended, it may often be possible to reformulate the query that avoids the use of this cross product, perhaps by adding a relationship between the different parts or by using OPTIONAL MATCH (identifier is: (b))\n"
+                            + "03N90 (Neo.ClientNotification.Statement.CartesianProduct)";
+        } else if (serverVersion.compareTo(Versions.version("5.0.0")) >= 0) {
             expected =
                     "info: If a part of a query contains multiple disconnected patterns, this will build a cartesian product between all those parts. This may produce a large amount of data and slow down query processing. While occasionally intended, it may often be possible to reformulate the query that avoids the use of this cross product, perhaps by adding a relationship between the different parts or by using OPTIONAL MATCH (identifier is: (b)) (Neo.ClientNotification.Statement.CartesianProduct)";
         } else {
@@ -1549,14 +1553,23 @@ class MainIntegrationTest extends TestHarness {
     @Test
     void showNotificationsIfEnabledWarn() throws Exception {
         assumeAtLeastVersion("5.2");
+
+        final String expected;
+
+        if (protocolVersion.compareTo(Versions.version("5.6")) >= 0) {
+            expected = "warn: The query used a deprecated function: `id`.\n"
+                    + "01N02 (Neo.ClientNotification.Statement.FeatureDeprecationWarning)";
+        } else {
+            expected =
+                    "warn: The query used a deprecated function: `id`. (Neo.ClientNotification.Statement.FeatureDeprecationWarning)";
+        }
+
         buildTest()
                 .addArgs("-u", USER, "-p", PASSWORD, "--format", "verbose", "--notifications")
                 .userInputLines("match (n) return id(n);", ":exit")
                 .run()
                 .assertSuccessAndConnected(true)
-                .assertThatOutput(
-                        contains(
-                                "\nwarn: The query used a deprecated function: `id`. (Neo.ClientNotification.Statement.FeatureDeprecationWarning)\n"));
+                .assertThatOutput(contains(String.format("\n%s\n", expected)));
     }
 
     @Test

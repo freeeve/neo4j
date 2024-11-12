@@ -44,7 +44,7 @@ public class PrettyPrinter {
         this.displayNotifications = prettyConfig.displayNotifications();
     }
 
-    public void format(final BoltResult result, LinePrinter linePrinter) {
+    public void format(final BoltResult result, LinePrinter linePrinter, String protocolVersion) {
         Set<OutputFormatter.Capabilities> capabilities = outputFormatter.capabilities();
 
         int numberOfRows = 0;
@@ -66,18 +66,28 @@ public class PrettyPrinter {
             printIfNotEmpty(statisticsCollector.collect(summary), linePrinter);
         }
         if (displayNotifications && capabilities.contains(NOTIFICATIONS)) {
-            printIfNotEmpty(outputFormatter.formatNotifications(summary.notifications()), linePrinter);
+            printIfNotEmpty(outputFormatter.formatNotifications(summary.notifications(), protocolVersion), linePrinter);
         }
     }
 
-    // Helper for testing
+    // Helpers for testing
+
+    private static final String PROTOCOL_VERSION_WITH_GQLSTATUS = "5.6";
+
+    void format(final BoltResult result, LinePrinter line) {
+        format(result, line, PROTOCOL_VERSION_WITH_GQLSTATUS);
+    }
+
     String format(final BoltResult result) {
         StringBuilder sb = new StringBuilder();
-        format(result, line -> {
-            if (line != null && !line.trim().isEmpty()) {
-                sb.append(line).append(OutputFormatter.NEWLINE);
-            }
-        });
+        format(
+                result,
+                line -> {
+                    if (line != null && !line.trim().isEmpty()) {
+                        sb.append(line).append(OutputFormatter.NEWLINE);
+                    }
+                },
+                PROTOCOL_VERSION_WITH_GQLSTATUS);
         return sb.toString();
     }
 

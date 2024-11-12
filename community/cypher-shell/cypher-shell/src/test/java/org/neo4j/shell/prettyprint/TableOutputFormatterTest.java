@@ -725,22 +725,51 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
     @Test
     void formatNotifications() {
         final var notifications = List.of(
-                notification("code1", "desc1", "INFORMATION"),
-                notification("code1", "desc1", "INFORMATION"),
-                notification("code2", "desc2", "WARNING"));
+                notification("12345", "code1", "desc1", "INFORMATION"),
+                notification("12345", "code1", "desc1", "INFORMATION"),
+                notification("03N63", "code2", "desc2", "WARNING"));
 
-        assertThat(formatNotifications(notifications))
+        // Old style for Bolt version without GQLSTSTATUS
+        assertThat(formatNotifications(notifications, "5.5"))
                 .isEqualTo("""
 
             info: desc1 (code1)
 
             warn: desc2 (code2)
             """);
+
+        // Old style for unparsable Bolt version
+        assertThat(formatNotifications(notifications, null))
+                .isEqualTo("""
+
+            info: desc1 (code1)
+
+            warn: desc2 (code2)
+            """);
+
+        // New style for Bolt with GQLSTATUS
+        assertThat(formatNotifications(notifications, "5.6"))
+                .isEqualTo(
+                        """
+
+            info: desc1
+            12345 (code1)
+
+            warn: desc2
+            03N63 (code2)
+            """);
     }
 
     @Test
     void formatEmptyNotifications() {
-        assertThat(formatNotifications(List.of())).isEmpty();
+        // Bolt version without GQLSTSTATUS
+        assertThat(formatNotifications(List.of(), "5.5")).isEmpty();
+
+        // Bolt version with GQLSTSTATUS
+        assertThat(formatNotifications(List.of(), "5.6")).isEmpty();
+
+        // Empty Bolt version
+        assertThat(formatNotifications(List.of(), "")).isEmpty();
     }
 
     private static String formatResult(Result result) {
@@ -750,8 +779,8 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         return printer.result();
     }
 
-    private static String formatNotifications(List<Notification> notifications) {
-        return new TableOutputFormatter(true, 1000).formatNotifications(notifications);
+    private static String formatNotifications(List<Notification> notifications, String version) {
+        return new TableOutputFormatter(true, 1000).formatNotifications(notifications, version);
     }
 
     private static String formatResultWithHeading(Result result, String heading) {
@@ -784,8 +813,9 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         return result;
     }
 
-    private Notification notification(String code, String description, String severity) {
+    private Notification notification(String gqlstatus, String code, String description, String severity) {
         final var n = mock(Notification.class);
+        when(n.gqlStatus()).thenReturn(gqlstatus);
         when(n.code()).thenReturn(code);
         when(n.description()).thenReturn(description);
         when(n.rawSeverityLevel()).thenReturn(Optional.of(severity));

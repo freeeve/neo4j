@@ -241,7 +241,7 @@ public interface OutputFormatter {
         return "";
     }
 
-    default String formatNotifications(List<Notification> notifications) {
+    default String formatNotifications(List<Notification> notifications, String protocolVersion) {
         return "";
     }
 

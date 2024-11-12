@@ -23,6 +23,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyIterator;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.neo4j.shell.prettyprint.OutputFormatter.repeat;
+import static org.neo4j.shell.util.Versions.version;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -316,14 +317,23 @@ public class TableOutputFormatter implements OutputFormatter {
     }
 
     @Override
-    public String formatNotifications(List<Notification> notifications) {
+    public String formatNotifications(List<Notification> notifications, String protocolVersion) {
         if (notifications.isEmpty()) {
             return "";
         } else {
             final var messages = new HashSet<String>();
             final var builder = new StringBuilder();
+
+            // GQLSTATUS was added in Bolt 5.6. For earlier versions, or if the version is not parsable, use old format
+            boolean legacyVersion;
+            try {
+                legacyVersion = version(protocolVersion).compareTo(version("5.6")) < 0;
+            } catch (AssertionError e) {
+                legacyVersion = true;
+            }
+
             for (final var notification : notifications) {
-                final var message = formatNotification(notification);
+                final var message = formatNotification(notification, legacyVersion);
                 if (messages.add(message)) {
                     builder.append('\n').append(message).append('\n');
                 }
@@ -332,9 +342,14 @@ public class TableOutputFormatter implements OutputFormatter {
         }
     }
 
-    private String formatNotification(Notification notification) {
+    private String formatNotification(Notification notification, boolean legacyFormat) {
         final var severity = severityString(notification);
-        return String.format("%s: %s (%s)", severity, notification.description(), notification.code());
+
+        if (legacyFormat) {
+            return String.format("%s: %s (%s)", severity, notification.description(), notification.code());
+        }
+        return String.format(
+                "%s: %s%n%s (%s)", severity, notification.description(), notification.gqlStatus(), notification.code());
     }
 
     private static String severityString(Notification notification) {

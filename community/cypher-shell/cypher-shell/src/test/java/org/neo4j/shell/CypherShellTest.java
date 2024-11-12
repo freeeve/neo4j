@@ -158,7 +158,7 @@ class CypherShellTest {
                     return null;
                 })
                 .when(mockedPrettyPrinter)
-                .format(any(BoltResult.class), any());
+                .format(any(BoltResult.class), any(), any());
 
         OfflineTestShell shell = new OfflineTestShell(printer, boltStateHandler, mockedDbInfo, mockedPrettyPrinter);
         shell.execute(new CypherStatement("RETURN 999;", true, 0, 0));

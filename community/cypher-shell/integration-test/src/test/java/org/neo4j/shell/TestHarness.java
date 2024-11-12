@@ -53,6 +53,7 @@ public class TestHarness {
     public static final String PASSWORD = "neo";
 
     protected final Version serverVersion = Versions.version(runInDbAndReturn("", CypherShell::getServerVersion));
+    protected final Version protocolVersion = Versions.version(runInDbAndReturn("", CypherShell::getProtocolVersion));
 
     AssertableMain.AssertableMainBuilder buildTest() {
         return new TestBuilder().outputInteractive(true);
