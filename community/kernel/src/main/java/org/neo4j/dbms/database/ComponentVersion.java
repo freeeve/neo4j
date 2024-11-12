@@ -94,5 +94,6 @@ public interface ComponentVersion {
         public static final String VERSION_522 = "Neo4j 5.22";
         public static final String VERSION_523 = "Neo4j 5.23";
         public static final String VERSION_525 = "Neo4j 5.25";
+        public static final String VERSION_526 = "Neo4j 5.26";
     }
 }
