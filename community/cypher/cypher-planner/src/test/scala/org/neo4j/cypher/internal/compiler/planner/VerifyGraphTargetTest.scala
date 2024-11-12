@@ -40,6 +40,7 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
@@ -269,6 +270,7 @@ class VerifyGraphTargetTest extends CypherFunSuite {
     when(plannerContext.databaseReferenceRepository).thenReturn(databaseReferenceRepository)
     when(plannerContext.databaseId).thenReturn(sessionDb)
     when(plannerContext.cancellationChecker).thenReturn(mock[CancellationChecker])
+    when(plannerContext.notificationLogger).thenReturn(mock[InternalNotificationLogger])
     val phaseTracer = mock[CompilationPhaseTracer]
     when(phaseTracer.beginPhase(any())).thenReturn(mock[CompilationPhaseTracer.CompilationPhaseEvent])
     when(plannerContext.tracer).thenReturn(phaseTracer)

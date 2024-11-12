@@ -19,14 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner
 
-import org.neo4j.cypher.internal.ast.CatalogName
-import org.neo4j.cypher.internal.ast.GraphDirectReference
-import org.neo4j.cypher.internal.ast.GraphFunctionReference
-import org.neo4j.cypher.internal.ast.GraphSelection
-import org.neo4j.cypher.internal.ast.SingleQuery
-import org.neo4j.cypher.internal.ast.Statement
-import org.neo4j.cypher.internal.ast.Union
-import org.neo4j.cypher.internal.ast.UseGraph
+import org.neo4j.cypher.internal.ast._
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.UseAsMultipleGraphsSelector
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
@@ -40,6 +33,8 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase
 import org.neo4j.cypher.internal.frontend.phases.VisitorPhase
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
+import org.neo4j.cypher.internal.util.DeprecatedDatabaseNameNotification
+import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.DefaultPostCondition
 import org.neo4j.cypher.messages.MessageUtilProvider
@@ -82,7 +77,8 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
         value.statement(),
         context.databaseId,
         context.config.queryRouterForCompositeQueriesEnabled,
-        context.params
+        context.params,
+        context.notificationLogger
       )
     }
   }
@@ -105,10 +101,18 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
     statement: Statement,
     databaseId: NamedDatabaseId,
     allowCompositeQueries: Boolean,
-    params: MapValue
+    params: MapValue,
+    notificationLogger: InternalNotificationLogger
   ): Unit = {
     evaluateGraphSelection(statement, databaseReferenceRepository, params) match {
       case Some(graphNameWithContext) =>
+        // add deprecation for aliases that need to be quoted if it's not a composite. This needs to be updated when we pass here for composite databases
+        if (!allowCompositeQueries && graphNameWithContext.graphName.names().size() > 1) {
+          notificationLogger.log(DeprecatedDatabaseNameNotification(
+            graphNameWithContext.graphName.qualifiedNameString,
+            Option.empty
+          ))
+        }
         val normalizedDatabaseName = new NormalizedDatabaseName(graphNameWithContext.graphName.qualifiedNameString)
         toScala(
           databaseReferenceRepository.getInternalByAlias(
