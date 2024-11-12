@@ -32,6 +32,7 @@ regularQuery
 
 singleQuery
    : clause+
+   | useClause? LCURLY regularQuery RCURLY
    ;
 
 clause

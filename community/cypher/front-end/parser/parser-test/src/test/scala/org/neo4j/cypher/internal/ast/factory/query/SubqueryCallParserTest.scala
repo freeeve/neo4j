@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.util.InputPosition
@@ -59,8 +60,13 @@ class SubqueryCallParserTest extends AstParsingTestBase {
   test("CALL { }") {
     failsParsing[Statements].in {
       case Cypher5JavaCc => _.withMessageStart("Invalid input '}'")
-      case _ => _.withMessage(
+      case Cypher5 => _.withMessage(
           """Invalid input '}': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE' or 'WITH' (line 1, column 8 (offset: 7))
+            |"CALL { }"
+            |        ^""".stripMargin
+        )
+      case _ => _.withMessage(
+          """Invalid input '}': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE', 'WITH' or '{' (line 1, column 8 (offset: 7))
             |"CALL { }"
             |        ^""".stripMargin
         )
@@ -173,8 +179,13 @@ class SubqueryCallParserTest extends AstParsingTestBase {
   test("OPTIONAL CALL { }") {
     failsParsing[Statements].in {
       case Cypher5JavaCc => _.withMessageStart("Invalid input '}'")
-      case _ => _.withMessage(
+      case Cypher5 => _.withMessage(
           """Invalid input '}': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE' or 'WITH' (line 1, column 17 (offset: 16))
+            |"OPTIONAL CALL { }"
+            |                 ^""".stripMargin
+        )
+      case _ => _.withMessage(
+          """Invalid input '}': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE', 'WITH' or '{' (line 1, column 17 (offset: 16))
             |"OPTIONAL CALL { }"
             |                 ^""".stripMargin
         )

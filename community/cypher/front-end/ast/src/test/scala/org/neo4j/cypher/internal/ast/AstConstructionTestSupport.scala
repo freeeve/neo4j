@@ -1227,7 +1227,7 @@ trait AstConstructionTestSupport {
     UseGraph(graphReference)(pos)
   }
 
-  def union(lhs: Query, rhs: SingleQuery, differentReturnOrderAllowed: Boolean = false): UnionDistinct =
+  def union(lhs: Query, rhs: UnionArgument, differentReturnOrderAllowed: Boolean = false): UnionDistinct =
     UnionDistinct(lhs, rhs, differentReturnOrderAllowed)(pos)
 
   def yieldClause(

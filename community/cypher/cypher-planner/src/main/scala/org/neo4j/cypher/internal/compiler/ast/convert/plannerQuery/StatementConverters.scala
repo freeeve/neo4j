@@ -205,7 +205,7 @@ object StatementConverters {
           )
         val rhs: SinglePlannerQuery =
           toSinglePlannerQuery(
-            unionQuery.rhs,
+            unionQuery.rhs.getSingleQuery,
             semanticTable,
             anonymousVariableNameGenerator,
             cancellationChecker,

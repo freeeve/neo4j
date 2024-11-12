@@ -61,8 +61,10 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsConcurrencyParam
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.UnionAll
+import org.neo4j.cypher.internal.ast.UnionArgument
 import org.neo4j.cypher.internal.ast.UnionDistinct
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.Unwind
@@ -135,14 +137,14 @@ trait StatementBuilder extends Cypher25ParserListener {
   }
 
   final override def exitRegularQuery(ctx: Cypher25Parser.RegularQueryContext): Unit = {
-    var result: Query = ctxChild(ctx, 0).ast[SingleQuery]()
+    var result: Query = ctxChild(ctx, 0).ast[UnionArgument]()
     val size = ctx.children.size()
     if (size != 1) {
       var i = 1; var all = false; var p: InputPosition = null
       while (i < size) {
         ctx.children.get(i) match {
           case sqCtx: Cypher25Parser.SingleQueryContext =>
-            val rhs = sqCtx.ast[SingleQuery]()
+            val rhs = sqCtx.ast[UnionArgument]()
             result = if (all) UnionAll(result, rhs, differentReturnOrderAllowed = false)(p)
             else UnionDistinct(result, rhs, differentReturnOrderAllowed = false)(p)
             all = false
@@ -161,7 +163,11 @@ trait StatementBuilder extends Cypher25ParserListener {
   }
 
   final override def exitSingleQuery(ctx: Cypher25Parser.SingleQueryContext): Unit = {
-    ctx.ast = SingleQuery(astSeq[Clause](ctx.children))(pos(ctx))
+    ctx.ast = if (ctx.regularQuery() != null) {
+      TopLevelBraces(ctx.regularQuery().ast[Query], astOpt[UseGraph](ctx.useClause()))(pos(ctx))
+    } else {
+      SingleQuery(astSeq[Clause](ctx.children))(pos(ctx))
+    }
   }
 
   final override def exitClause(ctx: Cypher25Parser.ClauseContext): Unit = {

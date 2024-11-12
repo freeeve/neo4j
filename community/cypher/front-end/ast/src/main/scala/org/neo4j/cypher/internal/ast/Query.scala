@@ -58,7 +58,7 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
   def finalScope(scope: Scope): Scope
 
   /**
-   * Check this query part if it start with an importing WITH
+   * Check this query part if it starts with an importing WITH
    */
   def checkImportingWith: SemanticCheck
 
@@ -99,13 +99,23 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
    * to each single query, regardless if this a single query or a union query.
    */
   def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query
+
+  def getQuery(fromUnion: Boolean): Query
+}
+
+sealed trait UnionArgument extends Query {
+  def getSingleQuery: SingleQuery
 }
 
 case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extends Query
-    with SemanticAnalysisTooling {
+    with UnionArgument with SemanticAnalysisTooling {
   assert(clauses.nonEmpty)
 
   lazy val partitionedClauses: SingleQuery.PartitionedClauses = SingleQuery.partitionClauses(clauses)
+
+  override def getQuery(fromUnion: Boolean): Query = this
+
+  override def getSingleQuery: SingleQuery = this
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query = f(this)
 
@@ -655,10 +665,12 @@ object Union {
 
 sealed trait Union extends Query {
   def lhs: Query
-  def rhs: SingleQuery
+  def rhs: UnionArgument
   def differentReturnOrderAllowed: Boolean = true
 
   def unionMappings: List[UnionMapping]
+
+  override def getQuery(fromUnion: Boolean): Query = this
 
   override def returnVariables: ReturnVariables = ReturnVariables(
     // If either side of the UNION has a RETURN *,
@@ -677,15 +689,15 @@ sealed trait Union extends Query {
   def containsUpdates: Boolean = lhs.containsUpdates || rhs.containsUpdates
 
   private def checkRecursively(semanticCheck: Query => SemanticCheck): SemanticCheck = {
-    def checkSingleQuery(singleQuery: SingleQuery): SemanticCheck = withScopedState {
+    def checkSingleQuery(singleQuery: UnionArgument): SemanticCheck = withScopedState {
       semanticCheck(singleQuery) chain
-        checkNoInputDataStreamInsideUnionElement(singleQuery) chain
-        checkNoCallInTransactionInsideUnionElement(singleQuery)
+        checkNoInputDataStreamInsideUnionElement(singleQuery.getSingleQuery) chain
+        checkNoCallInTransactionInsideUnionElement(singleQuery.getSingleQuery)
     }
 
     def checkNestedQuery(query: Query): SemanticCheck =
       query match {
-        case single: SingleQuery => checkSingleQuery(single)
+        case unionArgument: UnionArgument => checkSingleQuery(unionArgument)
         case union: Union =>
           withScopedState {
             SemanticCheck.nestedCheck(union.checkRecursively(semanticCheck))
@@ -893,34 +905,139 @@ sealed trait ProjectingUnion extends Union {
   override def checkColumnNamesAgree: SemanticCheck = SemanticCheck.success
 }
 
-final case class UnionAll(lhs: Query, rhs: SingleQuery, override val differentReturnOrderAllowed: Boolean)(
+final case class UnionAll(lhs: Query, rhs: UnionArgument, override val differentReturnOrderAllowed: Boolean)(
   val position: InputPosition
 ) extends UnmappedUnion {
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
-    copy(lhs.mapEachSingleQuery(f), f(rhs))(position)
+    copy(lhs.mapEachSingleQuery(f), f(rhs.getSingleQuery))(position)
 }
 
-final case class UnionDistinct(lhs: Query, rhs: SingleQuery, override val differentReturnOrderAllowed: Boolean)(
+final case class UnionDistinct(lhs: Query, rhs: UnionArgument, override val differentReturnOrderAllowed: Boolean)(
   val position: InputPosition
 ) extends UnmappedUnion {
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
-    copy(lhs.mapEachSingleQuery(f), f(rhs))(position)
+    copy(lhs.mapEachSingleQuery(f), f(rhs.getSingleQuery))(position)
 }
 
-final case class ProjectingUnionAll(lhs: Query, rhs: SingleQuery, unionMappings: List[UnionMapping])(
+final case class ProjectingUnionAll(lhs: Query, rhs: UnionArgument, unionMappings: List[UnionMapping])(
   val position: InputPosition
 ) extends ProjectingUnion {
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
-    copy(lhs.mapEachSingleQuery(f), f(rhs))(position)
+    copy(lhs.mapEachSingleQuery(f), f(rhs.getSingleQuery))(position)
 }
 
-final case class ProjectingUnionDistinct(lhs: Query, rhs: SingleQuery, unionMappings: List[UnionMapping])(
+final case class ProjectingUnionDistinct(lhs: Query, rhs: UnionArgument, unionMappings: List[UnionMapping])(
   val position: InputPosition
 ) extends ProjectingUnion {
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
-    copy(lhs.mapEachSingleQuery(f), f(rhs))(position)
+    copy(lhs.mapEachSingleQuery(f), f(rhs.getSingleQuery))(position)
+}
+
+case class TopLevelBraces(query: Query, use: Option[UseGraph])(val position: InputPosition) extends Query
+    with UnionArgument {
+
+  override def getQuery(fromUnion: Boolean): Query = if (fromUnion) {
+    wrapUnionArgument(query)
+  } else {
+    query.getQuery(fromUnion) match {
+      case u @ UnionDistinct(lhs, rhs, _) => u.copy(lhs = lhs.getQuery(true), rhs = rhs.getSingleQuery)(u.position)
+      case u @ UnionAll(lhs, rhs, _)      => u.copy(lhs = lhs.getQuery(true), rhs = rhs.getSingleQuery)(u.position)
+      case q                              => q
+    }
+
+  }
+
+  override def getSingleQuery: SingleQuery = {
+    wrapUnionArgument(query)
+  }
+
+  private def wrapUnionArgument(innerQuery: Query): SingleQuery = {
+    val lastClause =
+      if (innerQuery.isReturning)
+        Return(ReturnItems(includeExisting = true, Seq.empty)(position))(position)
+          .copy(inTopLevelBraces = true)(position)
+      else Finish()(position)
+
+    val sq = SingleQuery(
+      Seq(
+        ScopeClauseSubqueryCall(
+          innerQuery,
+          isImportingAll = true,
+          Seq.empty,
+          None,
+          optional = false
+        )(position),
+        lastClause
+      )
+    )(position)
+    sq
+  }
+
+  def containsUpdates: Boolean = query.containsUpdates
+
+  /**
+   * All variables that are explicitly listed to be returned from this statement.
+   * This also includes the information whether all other potentially existing variables in scope are also returned.
+   */
+  def returnVariables: ReturnVariables = query.returnVariables
+
+  /**
+   * Given the root scope for this query part,
+   * looks up the final scope after the last clause
+   */
+  def finalScope(scope: Scope): Scope = query.finalScope(scope)
+
+  /**
+   * Check this query part if it starts with an importing WITH
+   */
+  def checkImportingWith: SemanticCheck = query.checkImportingWith
+
+  /**
+   * Semantic check for when this `Query` is in a subquery, and might import
+   * variables from the `outer` scope
+   */
+  def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck =
+    query.semanticCheckInSubqueryContext(outer, current)
+
+  def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
+    query.semanticCheckImportingWithSubQueryContext(outer)
+
+  /**
+   * True if this query part starts with an importing WITH (has incoming arguments)
+   */
+  def isCorrelated: Boolean = query.isCorrelated
+
+  /**
+   * True iff this query part ends with a return clause.
+   */
+  def isReturning: Boolean = query.isReturning
+
+  def getReturns: Seq[Return] = query.getReturns
+
+  /**
+   * True iff this query part ends with a finish clause.
+   */
+  def endsWithFinish: Boolean = query.endsWithFinish
+
+  def importColumns: Seq[String] = query.importColumns
+
+  /**
+   * Exists and Count can omit the Return Statement
+   * Count still requires it for Distinct Unions as in this case the count
+   * changes based on which rows are distinct vs not
+   */
+  def semanticCheckInSubqueryExpressionContext(canOmitReturn: Boolean): SemanticCheck =
+    query.semanticCheckInSubqueryExpressionContext(canOmitReturn)
+
+  /**
+   * Return a copy of this query where the mapping function f is applied
+   * to each single query, regardless if this a single query or a union query.
+   */
+  def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query = query.mapEachSingleQuery(f)
+
+  def semanticCheck: SemanticCheck = query.semanticCheck chain recordCurrentScope(this)
 }

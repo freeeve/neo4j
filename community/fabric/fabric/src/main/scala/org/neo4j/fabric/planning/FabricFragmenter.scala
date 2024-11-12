@@ -62,7 +62,7 @@ class FabricFragmenter(
   ): Fragment = part match {
     case sq: ast.SingleQuery => fragmentSingle(input, sq)
     case uq: ast.Union =>
-      Union(input, isDistinct(uq), fragmentQuery(input, uq.lhs), fragmentSingle(input, uq.rhs))(
+      Union(input, isDistinct(uq), fragmentQuery(input, uq.lhs), fragmentSingle(input, uq.rhs.getSingleQuery))(
         uq.position
       )
   }

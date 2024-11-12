@@ -66,19 +66,35 @@ object CompositeQueryFragmenter {
         CompositeQuery.Union(
           unionType = CompositeQuery.Union.Type.All,
           lhs = fragmentQuery(cancellationChecker, nameGenerator, existingParameterNames, lhs, scopeImports),
-          rhs = fragmentSingleQuery(cancellationChecker, nameGenerator, existingParameterNames, rhs, scopeImports),
+          rhs = fragmentSingleQuery(
+            cancellationChecker,
+            nameGenerator,
+            existingParameterNames,
+            rhs.getSingleQuery,
+            scopeImports
+          ),
           unionMappings = mappings
         )
       case ast.ProjectingUnionDistinct(lhs, rhs, mappings) =>
         CompositeQuery.Union(
           unionType = CompositeQuery.Union.Type.Distinct,
           lhs = fragmentQuery(cancellationChecker, nameGenerator, existingParameterNames, lhs, scopeImports),
-          rhs = fragmentSingleQuery(cancellationChecker, nameGenerator, existingParameterNames, rhs, scopeImports),
+          rhs = fragmentSingleQuery(
+            cancellationChecker,
+            nameGenerator,
+            existingParameterNames,
+            rhs.getSingleQuery,
+            scopeImports
+          ),
           unionMappings = mappings
         )
       case _: ast.UnmappedUnion =>
         throw new IllegalStateException(
           "Unmapped union should have been rewritten to projecting union by the namespacer."
+        )
+      case _: ast.TopLevelBraces =>
+        throw new IllegalStateException(
+          "TopLevelBraces should have been rewritten to single queries by preparatory rewriting."
         )
     }
   }

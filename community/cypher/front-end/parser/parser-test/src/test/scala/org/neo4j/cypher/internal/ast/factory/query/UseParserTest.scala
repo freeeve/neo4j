@@ -16,6 +16,8 @@
  */
 package org.neo4j.cypher.internal.ast.factory.query
 
+import org.neo4j.cypher.internal.ast.CatalogName
+import org.neo4j.cypher.internal.ast.GraphDirectReference
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
@@ -103,6 +105,33 @@ class UseParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport 
     parsesIn[Statements] {
       case Cypher5JavaCc => _.withAnyFailure
       case _ => _.toAst(Statements(Seq(singleQuery(use(List("GRAPH")), return_(returnItem(literal(1), "1"))))))
+    }
+  }
+
+  test(
+    """USE db.products
+      |MATCH (product)
+      |RETURN product
+      |UNION
+      |USE db.products_bis
+      |MATCH (product)
+      |RETURN product""".stripMargin
+  ) {
+    val lhs = singleQuery(
+      use(graphReference = GraphDirectReference(CatalogName("db", "products"))(pos)),
+      match_(Seq(nodePat(Some("product"))), None),
+      return_(returnItem(varFor("product"), "product"))
+    )
+    val rhs = singleQuery(
+      use(graphReference = GraphDirectReference(CatalogName("db", "products_bis"))(pos)),
+      match_(Seq(nodePat(Some("product"))), None),
+      return_(returnItem(varFor("product"), "product"))
+    )
+    parsesIn[Statements] {
+      case Cypher25 => _.toAst(
+          Statements(Seq(union(lhs, rhs)))
+        )
+      case _ => _.toAst(Statements(Seq(union(lhs, rhs, differentReturnOrderAllowed = true))))
     }
   }
 }

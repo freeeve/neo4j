@@ -193,6 +193,7 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsParameters
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause
+import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.Topology
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.Union
@@ -906,6 +907,9 @@ case class Prettifier(
             case _: UnionDistinct | _: ProjectingUnionDistinct => s"${INDENT}UNION"
           }
           Seq(lhs, operation, rhs).mkString(NL)
+        case TopLevelBraces(innerQuery, use) =>
+          val useStr = use.map(asString(_) ++ " ").getOrElse("")
+          useStr ++ Seq("{", indented().query(innerQuery), "}").mkString(NL)
       }
 
     def asString(clause: Clause): String = dispatch(clause)

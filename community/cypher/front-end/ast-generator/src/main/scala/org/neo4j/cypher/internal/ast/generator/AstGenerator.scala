@@ -309,6 +309,7 @@ import org.neo4j.cypher.internal.ast.TerminateTransactionAction
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause
 import org.neo4j.cypher.internal.ast.TextIndexes
 import org.neo4j.cypher.internal.ast.TimeoutAfter
+import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.Topology
 import org.neo4j.cypher.internal.ast.TransactionManagementAction
 import org.neo4j.cypher.internal.ast.TraverseAction
@@ -1637,10 +1638,21 @@ class AstGenerator(
     )
   } yield union
 
-  def _query: Gen[Query] = frequency(
-    5 -> lzy(_singleQuery),
-    1 -> lzy(_union)
-  )
+  def _topLevelBraces: Gen[TopLevelBraces] = for {
+    inner <- _query
+    use <- option(_use)
+  } yield TopLevelBraces(inner, use)(pos)
+
+  def _query: Gen[Query] =
+    if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) frequency(
+      5 -> lzy(_singleQuery),
+      1 -> lzy(_union)
+    )
+    else frequency(
+      5 -> lzy(_singleQuery),
+      1 -> lzy(_union),
+      1 -> lzy(_topLevelBraces)
+    )
 
   // Show commands
   // ----------------------------------

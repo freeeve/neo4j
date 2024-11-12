@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.rewriting.rewriters.removeSyntaxTracking
 import org.neo4j.cypher.internal.rewriting.rewriters.rewriteShortestPathWithFixedLengthRelationship
 import org.neo4j.cypher.internal.rewriting.rewriters.rewriteShowQuery
 import org.neo4j.cypher.internal.rewriting.rewriters.timestampRewriter
+import org.neo4j.cypher.internal.rewriting.rewriters.unwrapTopLevelBraces
 import org.neo4j.cypher.internal.rewriting.rewriters.wrapOptionalCallProcedure
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.AccumulatedSteps
@@ -58,7 +59,8 @@ case object PreparatoryRewriting extends Phase[BaseContext, BaseState, BaseState
         mergeInPredicates,
         timestampRewriter,
         rewriteShortestPathWithFixedLengthRelationship,
-        nullIfFunctionRewriter
+        nullIfFunctionRewriter,
+        unwrapTopLevelBraces
       )
     )
 

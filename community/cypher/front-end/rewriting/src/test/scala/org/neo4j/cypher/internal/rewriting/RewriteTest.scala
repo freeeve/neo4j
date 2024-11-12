@@ -16,10 +16,13 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -39,12 +42,83 @@ trait RewriteTest extends AstRewritingTestSupport {
     )
   }
 
+  protected def assertRewrite(version: CypherVersion, originalQuery: String, expectedQuery: String): Unit = {
+    val (expected, result) = getRewrite(version, originalQuery, expectedQuery)
+    assert(
+      result === expected,
+      s"\n$originalQuery\nshould be rewritten to:\n${prettifier.asString(expected)}\nbut was rewritten to:\n${prettifier.asString(result.asInstanceOf[Statement])}"
+    )
+  }
+
+  protected def assertRewriteWithFeatures(originalQuery: String, expectedQuery: String): Unit = {
+    val (expected, result) = getRewriteWithFeatures(originalQuery, expectedQuery)
+    assert(
+      result === expected,
+      s"\n$originalQuery\nshould be rewritten to:\n${prettifier.asString(expected)}\nbut was rewritten to:\n${prettifier.asString(result.asInstanceOf[Statement])}"
+    )
+  }
+
+  protected def assertRewriteWithFeatures(
+    version: CypherVersion,
+    originalQuery: String,
+    expectedQuery: String
+  ): Unit = {
+    val (expected, result) = getRewriteWithFeatures(version, originalQuery, expectedQuery)
+    assert(
+      result === expected,
+      s"\n$originalQuery\nshould be rewritten to:\n${prettifier.asString(expected)}\nbut was rewritten to:\n${prettifier.asString(result.asInstanceOf[Statement])}"
+    )
+  }
+
+  protected def getRewrite(
+    version: CypherVersion,
+    originalQuery: String,
+    expectedQuery: String
+  ): (Statement, AnyRef) = {
+    val original = parseForRewriting(version, originalQuery)
+    val expected = parseForRewriting(version, expectedQuery)
+    SemanticChecker.check(original)
+    val result = rewrite(original)
+    (expected, result)
+  }
+
   protected def getRewrite(originalQuery: String, expectedQuery: String): (Statement, AnyRef) = {
     val original = parseForRewriting(originalQuery)
     val expected = parseForRewriting(expectedQuery)
     SemanticChecker.check(original)
     val result = rewrite(original)
     (expected, result)
+  }
+
+  protected def getRewriteWithFeatures(originalQuery: String, expectedQuery: String): (Statement, AnyRef) = {
+    val original = parseForRewriting(originalQuery)
+    val expected = parseForRewriting(expectedQuery)
+    SemanticChecker.check(
+      original,
+      SemanticState.clean.withFeatures(SemanticFeature.MultipleGraphs, SemanticFeature.UseAsSingleGraphSelector)
+    )
+    val result = rewrite(original)
+    (expected, result)
+  }
+
+  protected def getRewriteWithFeatures(
+    version: CypherVersion,
+    originalQuery: String,
+    expectedQuery: String
+  ): (Statement, AnyRef) = {
+    val original = parseForRewriting(version, originalQuery)
+    val expected = parseForRewriting(version, expectedQuery)
+    SemanticChecker.check(
+      original,
+      SemanticState.clean.withFeatures(SemanticFeature.MultipleGraphs, SemanticFeature.UseAsSingleGraphSelector)
+    )
+    val result = rewrite(original)
+    (expected, result)
+  }
+
+  protected def parseForRewriting(version: CypherVersion, queryText: String): Statement = {
+    val preparedQuery = queryText.replace("\r\n", "\n")
+    parse(version, preparedQuery, OpenCypherExceptionFactory(None))
   }
 
   protected def parseForRewriting(queryText: String): Statement = {

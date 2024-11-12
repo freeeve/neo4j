@@ -1471,9 +1471,9 @@ object ProjectionClause {
   def unapply(arg: ProjectionClause)
     : Option[(Boolean, ReturnItems, Option[OrderBy], Option[Skip], Option[Limit], Option[Where])] = {
     arg match {
-      case With(distinct, ri, orderBy, skip, limit, where, _) => Some((distinct, ri, orderBy, skip, limit, where))
-      case Return(distinct, ri, orderBy, skip, limit, _, _)   => Some((distinct, ri, orderBy, skip, limit, None))
-      case Yield(ri, orderBy, skip, limit, where)             => Some((false, ri, orderBy, skip, limit, where))
+      case With(distinct, ri, orderBy, skip, limit, where, _)  => Some((distinct, ri, orderBy, skip, limit, where))
+      case Return(distinct, ri, orderBy, skip, limit, _, _, _) => Some((distinct, ri, orderBy, skip, limit, None))
+      case Yield(ri, orderBy, skip, limit, where)              => Some((false, ri, orderBy, skip, limit, where))
     }
   }
 
@@ -1726,7 +1726,8 @@ case class Return(
   skip: Option[Skip],
   limit: Option[Limit],
   excludedNames: Set[String] = Set.empty,
-  addedInRewrite: Boolean = false // used for SHOW/TERMINATE commands
+  addedInRewrite: Boolean = false, // used for SHOW/TERMINATE commands
+  inTopLevelBraces: Boolean = false
 )(val position: InputPosition) extends ProjectionClause with ClauseAllowedOnSystem {
 
   override def name = "RETURN"
@@ -1740,7 +1741,10 @@ case class Return(
   override def clauseSpecificSemanticCheck: SemanticCheck =
     super.clauseSpecificSemanticCheck chain
       checkVariableScope chain
-      ProjectionClause.checkAliasedReturnItems(returnItems, "CALL { RETURN ... }") chain
+      ProjectionClause.checkAliasedReturnItems(
+        returnItems,
+        if (inTopLevelBraces) "{ RETURN ... }" else "CALL { RETURN ... }"
+      ) chain
       SemanticPatternCheck.checkValidPropertyKeyNamesInReturnItems(returnItems)
 
   override def withReturnItems(items: Seq[ReturnItem]): Return =

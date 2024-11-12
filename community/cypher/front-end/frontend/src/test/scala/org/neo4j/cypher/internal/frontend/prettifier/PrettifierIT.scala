@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.frontend.prettifier
 
 import PrettifierTestSupport.ChangedBetween5And25
+import PrettifierTestSupport.FailsInCypher5
 import PrettifierTestSupport.SameAcrossVersions
 import PrettifierTestSupport.Test
 import PrettifierTestSupport.TestConverter
@@ -365,6 +366,66 @@ class PrettifierIT extends CypherFunSuite {
         |MATCH (n)
         |UNION ALL
         |RETURN $node AS n""".stripMargin,
+    FailsInCypher5(
+      "{ match (n) UNION match (n) }",
+      """{
+        |  MATCH (n)
+        |  UNION
+        |  MATCH (n)
+        |}""".stripMargin
+    ),
+    FailsInCypher5(
+      "{ match (n) } UNION ALL { match (n) }",
+      """{
+        |  MATCH (n)
+        |}
+        |UNION ALL
+        |{
+        |  MATCH (n)
+        |}""".stripMargin
+    ),
+    FailsInCypher5(
+      "{ match (n) UNION match (n) } UNION ALL { RETURN $node AS n }",
+      """{
+        |  MATCH (n)
+        |  UNION
+        |  MATCH (n)
+        |}
+        |UNION ALL
+        |{
+        |  RETURN $node AS n
+        |}""".stripMargin
+    ),
+    FailsInCypher5(
+      "USE graph { match (n) UNION match (n) }",
+      """USE `graph` {
+        |  MATCH (n)
+        |  UNION
+        |  MATCH (n)
+        |}""".stripMargin
+    ),
+    FailsInCypher5(
+      "USE graph { match (n) } UNION ALL { match (n) }",
+      """USE `graph` {
+        |  MATCH (n)
+        |}
+        |UNION ALL
+        |{
+        |  MATCH (n)
+        |}""".stripMargin
+    ),
+    FailsInCypher5(
+      "{ match (n) UNION match (n) } UNION ALL USE graph { RETURN $node AS n }",
+      """{
+        |  MATCH (n)
+        |  UNION
+        |  MATCH (n)
+        |}
+        |UNION ALL
+        |USE `graph` {
+        |  RETURN $node AS n
+        |}""".stripMargin
+    ),
     "load csv from '/import/data.csv' AS row create ({key: row[0]})" ->
       """LOAD CSV FROM "/import/data.csv" AS row
         |CREATE ({key: row[0]})""".stripMargin,
@@ -3145,6 +3206,13 @@ class PrettifierIT extends CypherFunSuite {
           }
         }
       }
+    case FailsInCypher5(inputString, expected) =>
+      test(inputString) {
+        CypherVersion.values().filter(_ > CypherVersion.Cypher5).foreach { version =>
+          val statement = parseAntlr(version, inputString)
+          prettifier.asString(statement) should equal(expected)
+        }
+      }
   }
 
   private def parseAntlr(version: CypherVersion, cypher: String): Statement =
@@ -3158,5 +3226,8 @@ object PrettifierTestSupport {
 
   case class ChangedBetween5And25(inputString: String, outputCypher5: String, outputCypher25AndLater: String)
       extends Test
+
+  case class FailsInCypher5(inputString: String, output: String) extends Test
+
   implicit class TestConverter(tuple: (String, String)) extends SameAcrossVersions(tuple._1, tuple._2)
 }

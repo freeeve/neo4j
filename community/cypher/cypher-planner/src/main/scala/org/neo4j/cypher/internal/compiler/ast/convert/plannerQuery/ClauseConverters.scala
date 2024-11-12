@@ -248,7 +248,7 @@ object ClauseConverters extends LabelExpressionConversion {
     position: QueryProjection.Position
   ): PlannerQueryBuilder =
     clause match {
-      case Return(distinct, ReturnItems(star, items, _), optOrderBy, skip, limit, _, _) if !star =>
+      case Return(distinct, ReturnItems(star, items, _), optOrderBy, skip, limit, _, _, _) if !star =>
         val queryPagination = QueryPagination().withSkip(skip).withLimit(limit)
 
         val projection =

@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.ast.ShowSupportedPrivilegeCommand
 import org.neo4j.cypher.internal.ast.ShowUsers
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.SortItem
+import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.UnionAll
 import org.neo4j.cypher.internal.ast.UnionDistinct
@@ -132,9 +133,15 @@ case class normalizeWithAndReturnClauses(
     query match {
       case sq: SingleQuery => rewriteTopLevelSingleQuery(sq)
       case union @ UnionAll(lhs, rhs, _) =>
-        union.copy(lhs = rewriteTopLevelQuery(lhs), rhs = rewriteTopLevelSingleQuery(rhs))(union.position)
+        union.copy(lhs = rewriteTopLevelQuery(lhs), rhs = rewriteTopLevelSingleQuery(rhs.getSingleQuery))(
+          union.position
+        )
       case union @ UnionDistinct(lhs, rhs, _) =>
-        union.copy(lhs = rewriteTopLevelQuery(lhs), rhs = rewriteTopLevelSingleQuery(rhs))(union.position)
+        union.copy(lhs = rewriteTopLevelQuery(lhs), rhs = rewriteTopLevelSingleQuery(rhs.getSingleQuery))(
+          union.position
+        )
+      case _: TopLevelBraces =>
+        throw new IllegalStateException("Didn't expect TopLevelBraces, only SingleQuery, UnionAll, or UnionDistinct.")
       case _: ProjectingUnion =>
         throw new IllegalStateException("Didn't expect ProjectingUnion, only SingleQuery, UnionAll, or UnionDistinct.")
     }
@@ -289,7 +296,7 @@ case object normalizeWithAndReturnClauses extends Step with PreparatoryRewriting
     normalizeWithAndReturnClauses(cypherExceptionFactory)
   }
 
-  override def preConditions: Set[StepSequencer.Condition] = Set.empty
+  override def preConditions: Set[StepSequencer.Condition] = Set(TopLevelBracesUnwrapped)
 
   override def postConditions: Set[StepSequencer.Condition] = Set(
     ReturnItemsAreAliased,

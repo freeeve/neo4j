@@ -53,7 +53,7 @@ case class expandStar(state: SemanticState) extends Rewriter {
         if (values.includeExisting) returnItems(clause, values.items, values.defaultOrderOnColumns) else values
       clause.copy(returnItems = newReturnItems)(clause.position)
 
-    case clause @ Return(_, values, _, _, _, excludedNames, _) if values.includeExisting =>
+    case clause @ Return(_, values, _, _, _, excludedNames, _, _) if values.includeExisting =>
       val newReturnItems =
         if (values.includeExisting) returnItems(clause, values.items, values.defaultOrderOnColumns, excludedNames)
         else values

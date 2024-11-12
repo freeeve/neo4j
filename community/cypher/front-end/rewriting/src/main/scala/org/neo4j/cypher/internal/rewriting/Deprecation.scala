@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.ast.SetIncludingPropertiesFromMapItem
 import org.neo4j.cypher.internal.ast.SetProperty
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.TextCreateIndex
+import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.UnionAll
 import org.neo4j.cypher.internal.ast.UnionDistinct
@@ -314,8 +315,9 @@ object Deprecations {
             q match {
               case sq: SingleQuery => sq.partitionedClauses.importingWith.exists(w => w.returnItems.includeExisting)
               case un: Union =>
-                un.rhs.partitionedClauses.importingWith.exists(w => w.returnItems.includeExisting) ||
+                un.rhs.getSingleQuery.partitionedClauses.importingWith.exists(w => w.returnItems.includeExisting) ||
                 includesExisting(un.lhs)
+              case tlb: TopLevelBraces => includesExisting(tlb.query)
             }
           }
 

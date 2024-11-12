@@ -16,10 +16,6 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters
 
-import org.neo4j.cypher.internal.ast.Statement
-import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
-import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.rewriting.RewriteTest
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -29,11 +25,11 @@ class RemoveUseRewriterTest extends CypherFunSuite with RewriteTest {
   override val rewriterUnderTest: Rewriter = RemoveUseRewriter.instance
 
   test("USE x RETURN 1") {
-    assertRewrite("USE x RETURN 1", "RETURN 1")
+    assertRewriteWithFeatures("USE x RETURN 1", "RETURN 1")
   }
 
   test("USE GRAPH(x) RETURN 1 as y") {
-    assertRewrite(
+    assertRewriteWithFeatures(
       """USE GRAPH(x)
         |RETURN 1 as y
       """.stripMargin,
@@ -42,7 +38,7 @@ class RemoveUseRewriterTest extends CypherFunSuite with RewriteTest {
   }
 
   test("WITH i USE GRAPH(foo) RETURN i as a") {
-    assertRewrite(
+    assertRewriteWithFeatures(
       """WITH i USE GRAPH(foo)
         |RETURN i AS a
       """.stripMargin,
@@ -51,7 +47,7 @@ class RemoveUseRewriterTest extends CypherFunSuite with RewriteTest {
   }
 
   test("USE foo UNWIND") {
-    assertRewrite(
+    assertRewriteWithFeatures(
       """USE foo
         |UNWIND [1, 2, 3] AS i
         |CALL {
@@ -71,7 +67,7 @@ class RemoveUseRewriterTest extends CypherFunSuite with RewriteTest {
   }
 
   test("USE foo UNION") {
-    assertRewrite(
+    assertRewriteWithFeatures(
       """USE foo
         |RETURN 1
         |UNION
@@ -81,16 +77,5 @@ class RemoveUseRewriterTest extends CypherFunSuite with RewriteTest {
         |UNION
         |RETURN 1""".stripMargin
     )
-  }
-
-  override protected def getRewrite(originalQuery: String, expectedQuery: String): (Statement, AnyRef) = {
-    val original = parseForRewriting(originalQuery)
-    val expected = parseForRewriting(expectedQuery)
-    SemanticChecker.check(
-      original,
-      SemanticState.clean.withFeatures(SemanticFeature.MultipleGraphs, SemanticFeature.UseAsSingleGraphSelector)
-    )
-    val result = rewrite(original)
-    (expected, result)
   }
 }

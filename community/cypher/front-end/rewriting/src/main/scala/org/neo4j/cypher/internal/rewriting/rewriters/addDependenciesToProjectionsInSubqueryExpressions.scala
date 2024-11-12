@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.SingleQuery
+import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.UnionAll
 import org.neo4j.cypher.internal.ast.UnionDistinct
 import org.neo4j.cypher.internal.ast.With
@@ -80,13 +81,15 @@ case object addDependenciesToProjectionsInSubqueryExpressions extends StepSequen
       case union @ UnionAll(lhs, rhs, _) =>
         union.copy(
           lhs = rewriteQuery(lhs, scopeDependencies, shouldSplitReturn),
-          rhs = rewriteSingleQuery(rhs, scopeDependencies, shouldSplitReturn)
+          rhs = rewriteSingleQuery(rhs.getSingleQuery, scopeDependencies, shouldSplitReturn)
         )(union.position)
       case union @ UnionDistinct(lhs, rhs, _) =>
         union.copy(
           lhs = rewriteQuery(lhs, scopeDependencies, shouldSplitReturn),
-          rhs = rewriteSingleQuery(rhs, scopeDependencies, shouldSplitReturn)
+          rhs = rewriteSingleQuery(rhs.getSingleQuery, scopeDependencies, shouldSplitReturn)
         )(union.position)
+      case _: TopLevelBraces =>
+        throw new IllegalStateException("Didn't expect TopLevelBraces, only SingleQuery, UnionAll, or UnionDistinct.")
       case _: ProjectingUnion =>
         throw new IllegalStateException("Didn't expect ProjectingUnion, only SingleQuery, UnionAll, or UnionDistinct.")
     }
