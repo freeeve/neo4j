@@ -54,7 +54,7 @@ case object collectDistinctRewriter extends Rewriter {
   ) =
     aggregationExpressions.map {
       case (v, f @ FunctionInvocation(FunctionName(_, name), true, IndexedSeq(in), _, _))
-        if name.equalsIgnoreCase(Collect.name) && !unsafeVariables(v) =>
+        if !f.isOrdered && name.equalsIgnoreCase(Collect.name) && !unsafeVariables(v) =>
         v -> CollectDistinct(in)(f.position)
       case (v, e) => v -> e
     }

@@ -23,6 +23,8 @@ import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.CollectDistinct
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentAsc
+import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -149,6 +151,16 @@ class collectDistinctRewriterTest extends CypherFunSuite with LogicalPlanningTes
       .projection("set AS sneaky1")
       .aggregation(Seq.empty, Seq("collect(distinct a.prop) AS set"))
       .allNodeScan("a")
+      .build()
+
+    assertNotRewritten(before)
+  }
+
+  test("should not rewrite collect when ordered") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("set")
+      .aggregation(Map.empty[String, Expression], Map("set" -> distinctFunction("collect", order = ArgumentAsc)))
+      .nodeIndexOperator("a:L(prop)", indexOrder = IndexOrderAscending)
       .build()
 
     assertNotRewritten(before)
