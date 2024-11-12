@@ -157,7 +157,7 @@ public class ConstraintDescriptorImplementation
 
     private String userDescription(TokenNameLookup tokenNameLookup, Mask mask) {
         return SchemaUserDescription.forConstraint(
-                tokenNameLookup, id, name, type, schema(), ownedIndex, propertyType, null, mask);
+                tokenNameLookup, id, name, type, schema(), ownedIndex, propertyType, null, null, mask);
     }
 
     @Override
@@ -319,6 +319,26 @@ public class ConstraintDescriptorImplementation
         }
 
         return true;
+    }
+
+    // The constraints implementing this class must be unique on the combined fields constraintType, entityToken and
+    // propertyToken(s)
+    // It is also disallowed to have identical schema (entityToken and propertyToken(s)) and identical index type
+    public boolean conflictsWith(ConstraintDescriptor other) {
+        if (!this.schema().equals(other.schema())) {
+            return false;
+        }
+
+        if (this.isIndexBackedConstraint() && other.isIndexBackedConstraint()) {
+            return this.asIndexBackedConstraint().indexType()
+                    == other.asIndexBackedConstraint().indexType();
+        }
+
+        if (this.type == other.type()) {
+            return true;
+        }
+
+        return false;
     }
 
     @Override

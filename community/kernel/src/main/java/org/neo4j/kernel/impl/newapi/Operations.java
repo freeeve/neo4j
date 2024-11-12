@@ -44,6 +44,7 @@ import static org.neo4j.lock.ResourceType.INDEX_ENTRY;
 import static org.neo4j.lock.ResourceType.SCHEMA_NAME;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -1915,24 +1916,72 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         assertNoConflictingGraphTypeDependence(constraint);
     }
 
-    private void assertNoConflictingGraphTypeDependence(ConstraintDescriptor constraint)
-            throws IncompatibleGraphTypeDependenceException {
-        GraphTypeDependence thisDependence = constraint.graphTypeDependence();
-        if (thisDependence == GraphTypeDependence.UNDESIGNATED) {
-            return;
-        }
-        SchemaDescriptor schema = constraint.schema();
-        Iterator<ConstraintDescriptor> constraintsWithSameEntityToken =
-                switch (schema.entityType()) {
-                    case NODE -> schemaRead.constraintsGetForLabel(schema.getLabelId());
-                    case RELATIONSHIP -> schemaRead.constraintsGetForRelationshipType(schema.getRelTypeId());
-                };
+    private void assertNoEquivalentConstraintExist(
+            ConstraintDescriptor constraint, List<ConstraintDescriptor> constraintsWithSameSchema)
+            throws EquivalentSchemaRuleAlreadyExistsException {
 
-        while (constraintsWithSameEntityToken.hasNext()) {
-            ConstraintDescriptor constraintWithSameEntityToken = constraintsWithSameEntityToken.next();
-            GraphTypeDependence thatDependence = constraintWithSameEntityToken.graphTypeDependence();
-            if (thatDependence != GraphTypeDependence.UNDESIGNATED && thisDependence != thatDependence) {
-                throw new IncompatibleGraphTypeDependenceException(constraint, constraintWithSameEntityToken, token);
+        for (ConstraintDescriptor constraintWithSameSchema : constraintsWithSameSchema) {
+            if (constraint.equals(constraintWithSameSchema)
+                    && constraint.getName().equals(constraintWithSameSchema.getName())) {
+                throw new EquivalentSchemaRuleAlreadyExistsException(
+                        constraintWithSameSchema, CONSTRAINT_CREATION, token);
+            }
+        }
+    }
+
+    private void assertSchemaRuleWithNameDoesNotExist(String name)
+            throws IndexWithNameAlreadyExistsException, ConstraintWithNameAlreadyExistsException {
+        // Check constraints first because some of them will also be backed by indexes
+        final ConstraintDescriptor constraintWithSameName = schemaRead.constraintGetForName(name);
+        if (constraintWithSameName != null) {
+            throw ConstraintWithNameAlreadyExistsException.duplicatedConstraintName(name);
+        }
+        final IndexDescriptor indexWithSameName = schemaRead.indexGetForName(name);
+        if (indexWithSameName != IndexDescriptor.NO_INDEX) {
+            throw IndexWithNameAlreadyExistsException.duplicateIndexName(name);
+        }
+    }
+
+    private void assertNoConflictingConstraints(
+            ConstraintDescriptor constraint, List<ConstraintDescriptor> constraintsWithSameSchema)
+            throws ConflictingConstraintException, AlreadyConstrainedException {
+        List<ConstraintDescriptor> potentialConflicts;
+        if (constraint.isNodeLabelExistenceConstraint()) {
+            Iterator<ConstraintDescriptor> allConstraintsItr = schemaRead.constraintsGetAll();
+            potentialConflicts = new ArrayList<>();
+            while (allConstraintsItr.hasNext()) {
+                ConstraintDescriptor otherConstraint = allConstraintsItr.next();
+                if (otherConstraint.isNodeLabelExistenceConstraint()) {
+                    // Collect all other node label existence constraints as potential conflicts,
+                    // since they may conflict with each other.
+                    potentialConflicts.add(otherConstraint);
+                }
+            }
+        } else {
+            // Check all constraints with the same schema as the new constraint
+            potentialConflicts = constraintsWithSameSchema;
+        }
+        for (ConstraintDescriptor maybeConflictingConstraints : potentialConflicts) {
+            // Do equal check first because ConflictingConstraint is a relaxation of equals
+            if (constraint.equals(maybeConflictingConstraints)) {
+                throw new AlreadyConstrainedException(maybeConflictingConstraints, CONSTRAINT_CREATION, token);
+            }
+
+            if (constraint.conflictsWith(maybeConflictingConstraints)) {
+                throw ConflictingConstraintException.conflictingConstraint(maybeConflictingConstraints, token);
+            }
+        }
+    }
+
+    private void assertNotAlreadyIndexed(ConstraintDescriptor constraint) throws AlreadyIndexedException {
+        // A node-key or uniqueness constraint with relationship schema is not counted as index-backed so we don't check
+        // blocking indexes for them. But that will fail later anyway since we don't support such constraints.
+        if (constraint.isIndexBackedConstraint()) {
+            IndexDescriptor existingIndex = schemaRead.index(
+                    constraint.schema(), constraint.asIndexBackedConstraint().indexType());
+            // An index of the same type on the schema blocks constraint creation.
+            if (existingIndex != IndexDescriptor.NO_INDEX) {
+                throw new AlreadyIndexedException(existingIndex.schema(), CONSTRAINT_CREATION, token);
             }
         }
     }
@@ -1958,68 +2007,25 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         }
     }
 
-    private void assertNotAlreadyIndexed(ConstraintDescriptor constraint) throws AlreadyIndexedException {
-        // A node-key or uniqueness constraint with relationship schema is not counted as index-backed so we don't check
-        // blocking indexes for them. But that will fail later anyway since we don't support such constraints.
-        if (constraint.isIndexBackedConstraint()) {
-            IndexDescriptor existingIndex = schemaRead.index(
-                    constraint.schema(), constraint.asIndexBackedConstraint().indexType());
-            // An index of the same type on the schema blocks constraint creation.
-            if (existingIndex != IndexDescriptor.NO_INDEX) {
-                throw new AlreadyIndexedException(existingIndex.schema(), CONSTRAINT_CREATION, token);
-            }
+    private void assertNoConflictingGraphTypeDependence(ConstraintDescriptor constraint)
+            throws IncompatibleGraphTypeDependenceException {
+        GraphTypeDependence thisDependence = constraint.graphTypeDependence();
+        if (thisDependence == GraphTypeDependence.UNDESIGNATED) {
+            return;
         }
-    }
+        SchemaDescriptor schema = constraint.schema();
+        Iterator<ConstraintDescriptor> constraintsWithSameEntityToken =
+                switch (schema.entityType()) {
+                    case NODE -> schemaRead.constraintsGetForLabel(schema.getLabelId());
+                    case RELATIONSHIP -> schemaRead.constraintsGetForRelationshipType(schema.getRelTypeId());
+                };
 
-    private void assertNoConflictingConstraints(
-            ConstraintDescriptor constraint, List<ConstraintDescriptor> constraintsWithSameSchema)
-            throws ConflictingConstraintException, AlreadyConstrainedException {
-        for (ConstraintDescriptor constraintWithSameSchema : constraintsWithSameSchema) {
-            // For Type Constraints, verify that no prior constraints conflict with the addition.
-            if (constraint.isPropertyTypeConstraint()
-                    && constraintWithSameSchema.isPropertyTypeConstraint()
-                    && !constraint.equals(constraintWithSameSchema)) {
-                throw ConflictingConstraintException.conflictingConstraint(constraintWithSameSchema, token);
+        while (constraintsWithSameEntityToken.hasNext()) {
+            ConstraintDescriptor constraintWithSameEntityToken = constraintsWithSameEntityToken.next();
+            GraphTypeDependence thatDependence = constraintWithSameEntityToken.graphTypeDependence();
+            if (thatDependence != GraphTypeDependence.UNDESIGNATED && thisDependence != thatDependence) {
+                throw new IncompatibleGraphTypeDependenceException(constraint, constraintWithSameEntityToken, token);
             }
-
-            boolean creatingIndexBackedConstraint = constraint.isIndexBackedConstraint();
-            boolean existingIndexBackedConstraint = constraintWithSameSchema.isIndexBackedConstraint();
-            if (creatingIndexBackedConstraint == existingIndexBackedConstraint) {
-                // Only index-backed constraints of the same index type block each other.
-                if (creatingIndexBackedConstraint
-                                && constraintWithSameSchema
-                                                .asIndexBackedConstraint()
-                                                .indexType()
-                                        == constraint.asIndexBackedConstraint().indexType()
-                        || !creatingIndexBackedConstraint && constraint.type() == constraintWithSameSchema.type()) {
-                    throw new AlreadyConstrainedException(constraintWithSameSchema, CONSTRAINT_CREATION, token);
-                }
-            }
-        }
-    }
-
-    private void assertNoEquivalentConstraintExist(
-            ConstraintDescriptor constraint, List<ConstraintDescriptor> constraintsWithSameSchema)
-            throws EquivalentSchemaRuleAlreadyExistsException {
-        for (ConstraintDescriptor constraintWithSameSchema : constraintsWithSameSchema) {
-            if (constraint.equals(constraintWithSameSchema)
-                    && constraint.getName().equals(constraintWithSameSchema.getName())) {
-                throw new EquivalentSchemaRuleAlreadyExistsException(
-                        constraintWithSameSchema, CONSTRAINT_CREATION, token);
-            }
-        }
-    }
-
-    private void assertSchemaRuleWithNameDoesNotExist(String name)
-            throws IndexWithNameAlreadyExistsException, ConstraintWithNameAlreadyExistsException {
-        // Check constraints first because some of them will also be backed by indexes
-        final ConstraintDescriptor constraintWithSameName = schemaRead.constraintGetForName(name);
-        if (constraintWithSameName != null) {
-            throw ConstraintWithNameAlreadyExistsException.duplicatedConstraintName(name);
-        }
-        final IndexDescriptor indexWithSameName = schemaRead.indexGetForName(name);
-        if (indexWithSameName != IndexDescriptor.NO_INDEX) {
-            throw IndexWithNameAlreadyExistsException.duplicateIndexName(name);
         }
     }
 
@@ -2390,7 +2396,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             assertValidDescriptor(schemaDescriptor, CONSTRAINT_CREATION);
         } catch (SchemaKernelException e) {
             exclusiveSchemaUnlock(schemaDescriptor);
-            throw new RuntimeException(e);
+            throw e;
         }
 
         RelationshipEndpointLabelConstraintDescriptor constraint =
@@ -2441,7 +2447,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             assertValidDescriptor(schemaDescriptor, CONSTRAINT_CREATION);
         } catch (SchemaKernelException e) {
             exclusiveSchemaUnlock(schemaDescriptor);
-            throw new RuntimeException(e);
+            throw e;
         }
         var constraint = ConstraintDescriptorFactory.nodeLabelExistenceForSchema(schemaDescriptor, requiredLabelId)
                 .withName(name)

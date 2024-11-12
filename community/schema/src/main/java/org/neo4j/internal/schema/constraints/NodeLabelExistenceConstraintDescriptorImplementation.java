@@ -239,6 +239,18 @@ final class NodeLabelExistenceConstraintDescriptorImplementation implements Node
         return Objects.hash(schema);
     }
 
+    // It is not allowed to have a label be the constrained label for one constraint and required label for another
+    // constraint
+    @Override
+    public boolean conflictsWith(ConstraintDescriptor other) {
+        if (other.isNodeLabelExistenceConstraint()) {
+            var that = other.asNodeLabelExistenceConstraint();
+            return this.schema().getLabelId() == that.requiredLabelId()
+                    || this.requiredLabelId() == that.schema().getLabelId();
+        }
+        return false;
+    }
+
     @Override
     public long getId() {
         if (id == NO_ID) {
@@ -278,6 +290,7 @@ final class NodeLabelExistenceConstraintDescriptorImplementation implements Node
                 null,
                 null,
                 tokenNameLookup.labelGetName(requiredLabelId),
+                null,
                 mask);
     }
 

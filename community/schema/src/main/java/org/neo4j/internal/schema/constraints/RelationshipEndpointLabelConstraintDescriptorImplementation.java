@@ -247,6 +247,20 @@ final class RelationshipEndpointLabelConstraintDescriptorImplementation
         return true;
     }
 
+    // For RelationshipEndpointConstraints we are allowed to have at most one constraint per EndpointType and RelType
+    // There is no limitation on the other metadata fields.
+    // Therefore, we only check for conflicts on EndpointType.
+    @Override
+    public boolean conflictsWith(ConstraintDescriptor other) {
+        if (other.isRelationshipEndpointLabelConstraint()) {
+            var that = other.asRelationshipEndpointLabelConstraint();
+            if (this.endpointType == that.endpointType() && this.schema().equals(that.schema())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(schema);
@@ -281,9 +295,23 @@ final class RelationshipEndpointLabelConstraintDescriptorImplementation
         return userDescription(TOKEN_ID_NAME_LOOKUP, mask);
     }
 
+    @Override
+    public String userDescription(TokenNameLookup tokenNameLookup) {
+        return userDescription(tokenNameLookup, Mask.NO);
+    }
+
     private String userDescription(TokenNameLookup tokenNameLookup, Mask mask) {
         return SchemaUserDescription.forConstraint(
-                tokenNameLookup, id, name, ConstraintType.RELATIONSHIP_ENDPOINT_LABEL, schema, null, null, null, mask);
+                tokenNameLookup,
+                id,
+                name,
+                ConstraintType.RELATIONSHIP_ENDPOINT_LABEL,
+                schema,
+                null,
+                null,
+                tokenNameLookup.labelGetName(endpointLabelId),
+                endpointType,
+                mask);
     }
 
     private IllegalStateException conversionException(Class<? extends ConstraintDescriptor> targetType) {

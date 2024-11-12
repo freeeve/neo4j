@@ -59,15 +59,24 @@ public enum ConstraintType {
         return isType;
     }
 
-    public String userDescription(EntityType entityType) {
+    public String userDescription(EntityType entityType, EndpointType endpointType) {
         String name = entityType.name();
+        String endpointTypeCypherName = null;
+
+        if (endpointType != null) {
+            endpointTypeCypherName = switch (endpointType) {
+                case START -> "SOURCE";
+                case END -> "TARGET";
+            };
+        }
+
         return switch (this) {
             case EXISTS -> name + " PROPERTY EXISTENCE";
             case UNIQUE -> entityType == NODE ? "UNIQUENESS" : name + " UNIQUENESS";
             case UNIQUE_EXISTS -> name + " KEY";
             case PROPERTY_TYPE -> name + " PROPERTY TYPE";
-            case RELATIONSHIP_ENDPOINT_LABEL -> name + " ENDPOINT";
-            case NODE_LABEL_EXISTENCE -> name + " NODE LABEL EXISTENCE";
+            case RELATIONSHIP_ENDPOINT_LABEL -> "RELATIONSHIP " + endpointTypeCypherName + " LABEL";
+            case NODE_LABEL_EXISTENCE -> "NODE LABEL EXISTENCE";
         };
     }
 }

@@ -101,30 +101,19 @@ public final class SchemaUserDescription {
             SchemaDescriptor schema,
             Long ownedIndex,
             PropertyTypeSet propertyType,
-            String requiredLabel) {
-        return forConstraint(tokenNameLookup, id, name, type, schema, ownedIndex, propertyType, requiredLabel, Mask.NO);
-    }
-
-    public static String forConstraint(
-            TokenNameLookup tokenNameLookup,
-            long id,
-            String name,
-            ConstraintType type,
-            SchemaDescriptor schema,
-            Long ownedIndex,
-            PropertyTypeSet propertyType,
-            String requiredLabel,
+            String enforcedLabel,
+            EndpointType endpointType,
             Mask mask) {
         StringJoiner joiner = new StringJoiner(", ", "Constraint( ", " )");
         maybeAddId(id, joiner);
         maybeAddName(name, joiner, mask);
-        addType(type.userDescription(schema.entityType()), joiner);
+        addType(type.userDescription(schema.entityType(), endpointType), joiner);
         addSchema(tokenNameLookup, schema, joiner);
         if (ownedIndex != null) {
             joiner.add("ownedIndex=" + ownedIndex);
         }
         maybeAddAllowedPropertyTypes(propertyType, joiner);
-        maybeAddRequiredLabel(requiredLabel, joiner);
+        maybeAddEnforcedLabel(enforcedLabel, joiner);
         return joiner.toString();
     }
 
@@ -146,9 +135,9 @@ public final class SchemaUserDescription {
         }
     }
 
-    private static void maybeAddRequiredLabel(String label, StringJoiner joiner) {
+    private static void maybeAddEnforcedLabel(String label, StringJoiner joiner) {
         if (label != null) {
-            joiner.add("requiredLabel=" + label);
+            joiner.add("enforcedLabel=" + label);
         }
     }
 

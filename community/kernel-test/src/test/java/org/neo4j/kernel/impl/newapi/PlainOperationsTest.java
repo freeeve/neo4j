@@ -58,6 +58,7 @@ import java.util.Iterator;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
+import org.mockito.stubbing.Answer;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.DbmsRuntimeVersionProvider;
 import org.neo4j.exceptions.KernelException;
@@ -1258,7 +1259,8 @@ public class PlainOperationsTest extends OperationsTest {
     }
 
     private void storageReaderWithConstraints(ConstraintDescriptor constraint) {
-        when(storageReader.constraintsGetForSchema(constraint.schema())).thenReturn(asIterator(constraint));
+        when(storageReader.constraintsGetForSchema(constraint.schema()))
+                .thenAnswer((Answer) invocationOnMock -> asIterator(constraint));
         when(storageReader.constraintExists(constraint)).thenReturn(true);
     }
 

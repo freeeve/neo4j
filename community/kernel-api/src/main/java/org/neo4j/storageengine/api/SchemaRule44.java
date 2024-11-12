@@ -30,6 +30,7 @@ import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaRule;
 import org.neo4j.internal.schema.SchemaUserDescription;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
+import org.neo4j.string.Mask;
 import org.neo4j.util.Preconditions;
 
 public interface SchemaRule44 {
@@ -91,7 +92,16 @@ public interface SchemaRule44 {
         @Override
         public String userDescription(TokenNameLookup tokenNameLookup) {
             return SchemaUserDescription.forConstraint(
-                    tokenNameLookup, id, name, constraintRuleType.asConstraintType(), schema, ownedIndex, null, null);
+                    tokenNameLookup,
+                    id,
+                    name,
+                    constraintRuleType.asConstraintType(),
+                    schema,
+                    ownedIndex,
+                    null,
+                    null,
+                    null,
+                    Mask.NO);
         }
 
         @Override

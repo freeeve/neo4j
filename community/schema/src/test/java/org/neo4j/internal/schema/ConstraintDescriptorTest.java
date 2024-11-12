@@ -206,6 +206,26 @@ class ConstraintDescriptorTest extends SchemaRuleTestBase {
                 .isFalse();
     }
 
+    @Test
+    void sameSchemaDifferentIndexTypesShouldNotConflict() {
+        LabelSchemaDescriptor schemaDescriptor = SchemaDescriptors.forLabel(LABEL_ID, PROPERTY_ID_1);
+        UniquenessConstraintDescriptor range =
+                ConstraintDescriptorFactory.uniqueForSchema(schemaDescriptor, IndexType.RANGE);
+        UniquenessConstraintDescriptor text =
+                ConstraintDescriptorFactory.uniqueForSchema(schemaDescriptor, IndexType.TEXT);
+        assertThat(range.conflictsWith(text)).isFalse();
+    }
+
+    @Test
+    void sameSchemaSameIndexTypesShouldConflict() {
+        LabelSchemaDescriptor schemaDescriptor = SchemaDescriptors.forLabel(LABEL_ID, PROPERTY_ID_1);
+        UniquenessConstraintDescriptor range =
+                ConstraintDescriptorFactory.uniqueForSchema(schemaDescriptor, IndexType.RANGE);
+        UniquenessConstraintDescriptor range2 =
+                ConstraintDescriptorFactory.uniqueForSchema(schemaDescriptor, IndexType.RANGE);
+        assertThat(range.conflictsWith(range2)).isTrue();
+    }
+
     private static void assertEqualityByDescriptor(UniquenessConstraintDescriptor descriptor) {
         ConstraintDescriptor rule1 = descriptor.withId(RULE_ID).withOwnedIndexId(RULE_ID_2);
         ConstraintDescriptor rule2 = descriptor.withId(RULE_ID_2);
