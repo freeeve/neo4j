@@ -477,7 +477,8 @@ trait AstConstructionTestSupport {
   def collect(expression: Expression, distinct: Boolean = false): FunctionInvocation =
     FunctionInvocation(FunctionName(Collect.name)(pos), distinct, IndexedSeq(expression))(pos)
 
-  def collectDistinct(expression: Expression): CollectDistinct = CollectDistinct(expression)(pos)
+  def collectDistinct(expression: Expression, ordered: Boolean = false): CollectDistinct =
+    CollectDistinct(expression, ordered)(pos)
 
   def max(expression: Expression): FunctionInvocation =
     FunctionInvocation(expression, FunctionName(Max.name)(pos))

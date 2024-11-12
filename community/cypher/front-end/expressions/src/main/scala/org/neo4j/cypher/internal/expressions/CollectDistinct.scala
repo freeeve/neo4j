@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.util.InputPosition
  *
  * @param expr the expression to collect
   */
-case class CollectDistinct(expr: Expression)(val position: InputPosition) extends Expression {
+case class CollectDistinct(expr: Expression, isOrdered: Boolean)(val position: InputPosition) extends Expression {
   override def asCanonicalStringVal: String = s"collect_distinct(${expr.asCanonicalStringVal})"
 
   override def isConstantForQuery: Boolean = expr.isConstantForQuery

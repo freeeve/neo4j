@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
-import org.neo4j.cypher.internal.expressions.CollectDistinct
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentAsc
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
@@ -39,7 +38,7 @@ class collectDistinctRewriterTest extends CypherFunSuite with LogicalPlanningTes
 
     val after = new LogicalPlanBuilder()
       .produceResults("set")
-      .aggregation(Map.empty[String, Expression], Map("set" -> CollectDistinct(prop("a", "prop"))(pos)))
+      .aggregation(Map.empty[String, Expression], Map("set" -> collectDistinct(prop("a", "prop"))))
       .allNodeScan("a")
       .build()
 
@@ -55,7 +54,7 @@ class collectDistinctRewriterTest extends CypherFunSuite with LogicalPlanningTes
 
     val after = new LogicalPlanBuilder()
       .produceResults("set")
-      .orderedAggregation(Map("a" -> varFor("a")), Map("set" -> CollectDistinct(prop("a", "prop"))(pos)), Seq("a"))
+      .orderedAggregation(Map("a" -> varFor("a")), Map("set" -> collectDistinct(prop("a", "prop"))), Seq("a"))
       .allNodeScan("a")
       .build()
 
@@ -120,7 +119,7 @@ class collectDistinctRewriterTest extends CypherFunSuite with LogicalPlanningTes
         Map.empty[String, Expression],
         Map(
           "set1" -> distinctFunction("collect", prop("a", "prop1")),
-          "set2" -> CollectDistinct(prop("a", "prop2"))(pos)
+          "set2" -> collectDistinct(prop("a", "prop2"))
         )
       )
       .allNodeScan("a")

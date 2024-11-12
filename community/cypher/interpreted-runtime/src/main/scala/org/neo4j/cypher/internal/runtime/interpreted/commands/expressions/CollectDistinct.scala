@@ -22,20 +22,26 @@ package org.neo4j.cypher.internal.runtime.interpreted.commands.expressions
 import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation.AggregationFunction
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation.CollectDistinctFunction
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation.OrderedDistinctFunction
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.memory.MemoryTracker
 
-case class CollectDistinct(anInner: Expression) extends AggregationWithInnerExpression(anInner) {
+case class CollectDistinct(anInner: Expression, isOrdered: Boolean) extends AggregationWithInnerExpression(anInner) {
 
   override def createAggregationFunction(memoryTracker: MemoryTracker): AggregationFunction = {
     memoryTracker.allocateHeap(CollectDistinctFunction.SHALLOW_SIZE)
-    new CollectDistinctFunction(anInner)
+    if (isOrdered) {
+      memoryTracker.allocateHeap(OrderedDistinctFunction.SHALLOW_SIZE)
+      new OrderedDistinctFunction(anInner, new CollectDistinctFunction(anInner))
+    } else {
+      new CollectDistinctFunction(anInner)
+    }
   }
 
   override val expectedInnerType: CypherType = CTAny
 
-  override def rewrite(f: Expression => Expression): Expression = f(CollectDistinct(anInner.rewrite(f)))
+  override def rewrite(f: Expression => Expression): Expression = f(CollectDistinct(anInner.rewrite(f), isOrdered))
 
   override def children: Seq[AstNode[_]] = Seq(anInner)
 }
