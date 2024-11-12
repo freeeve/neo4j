@@ -195,6 +195,7 @@ class FileImporter {
             case PARQUET -> new ParquetInput(
                     nodeFiles,
                     relationshipFiles,
+                    schemaCommands,
                     idType,
                     csvConfig.arrayDelimiter(),
                     new Groups(),

@@ -57,6 +57,7 @@ import org.neo4j.cloud.storage.io.ReadableChannel;
 import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.internal.batchimport.input.HeaderException;
 import org.neo4j.internal.batchimport.input.InputException;
+import org.neo4j.internal.schema.SchemaCommand;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.token.TokenHolders;
@@ -70,6 +71,7 @@ public class ParquetInput implements Input {
 
     private final List<ParquetData> nodeDatas;
     private final List<ParquetData> relationshipDatas;
+    private final List<SchemaCommand> schemaCommands;
     private final IdType idType;
     private final Groups groups;
     private final ParquetMonitor monitor;
@@ -85,12 +87,24 @@ public class ParquetInput implements Input {
             Character arrayDelimiter,
             Groups groups,
             ParquetMonitor monitor) {
+        this(nodeFiles, relationshipFiles, Collections.emptyList(), idType, arrayDelimiter, groups, monitor);
+    }
+
+    public ParquetInput(
+            Map<Set<String>, List<Path[]>> nodeFiles,
+            Map<String, List<Path[]>> relationshipFiles,
+            List<SchemaCommand> schemaCommands,
+            IdType idType,
+            Character arrayDelimiter,
+            Groups groups,
+            ParquetMonitor monitor) {
         this.idType = idType;
         this.groups = groups;
         this.monitor = monitor;
         this.arrayDelimiter = arrayDelimiter.toString();
         this.nodeFiles = nodeFiles;
         this.relationshipFiles = relationshipFiles;
+        this.schemaCommands = schemaCommands;
 
         this.verifiedColumns = verifyColumns(nodeFiles, relationshipFiles);
         this.nodeDatas = nodeFiles.entrySet().stream()
@@ -125,6 +139,11 @@ public class ParquetInput implements Input {
     @Override
     public ReadableGroups groups() {
         return groups;
+    }
+
+    @Override
+    public List<SchemaCommand> schemaCommands() {
+        return schemaCommands;
     }
 
     private Map<Path, List<ParquetColumn>> verifyColumns(
