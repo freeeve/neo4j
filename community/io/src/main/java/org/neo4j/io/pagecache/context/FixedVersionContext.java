@@ -43,6 +43,14 @@ public class FixedVersionContext implements VersionContext {
     }
 
     @Override
+    public void initAppendIndex(long committingAppendIndex) {}
+
+    @Override
+    public long committingAppendIndex() {
+        return committingTransactionId;
+    }
+
+    @Override
     public long lastClosedTransactionId() {
         return Long.MAX_VALUE;
     }

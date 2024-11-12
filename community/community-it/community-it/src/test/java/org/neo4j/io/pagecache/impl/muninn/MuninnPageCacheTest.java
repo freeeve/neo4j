@@ -2602,6 +2602,14 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
         }
 
         @Override
+        public void initAppendIndex(long committingAppendIndex) {}
+
+        @Override
+        public long committingAppendIndex() {
+            return 0;
+        }
+
+        @Override
         public long lastClosedTransactionId() {
             return lastClosedTxId;
         }

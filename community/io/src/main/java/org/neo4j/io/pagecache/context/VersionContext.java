@@ -64,6 +64,16 @@ public interface VersionContext {
     long committingTransactionId();
 
     /**
+     * Initialise write context with committingAppendIndex
+     */
+    void initAppendIndex(long committingAppendIndex);
+
+    /**
+     * @return id of currently committing chunk
+     */
+    long committingAppendIndex();
+
+    /**
      * Last closed transaction id that read context was initialised with.
      * Used in snapshot execution engine as visibility guard.
      * @return last closed transaction id

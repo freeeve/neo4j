@@ -171,8 +171,9 @@ public class ChunkedTransaction implements StorageEngineTransaction {
 
     @Override
     public void batchAppended(long appendIndex, LogPosition beforeStart, LogPosition positionAfter, int checksum) {
+        var versionContext = this.cursorContext.getVersionContext();
         if (chunk.isFirst()) {
-            this.cursorContext.getVersionContext().initWrite(transactionId);
+            versionContext.initWrite(transactionId);
             this.firstAppendIndex = appendIndex;
         }
         this.commitment.commit(
@@ -185,6 +186,7 @@ public class ChunkedTransaction implements StorageEngineTransaction {
                 positionAfter,
                 checksum,
                 chunk.chunkMetadata().consensusIndex().longValue());
+        versionContext.initAppendIndex(appendIndex);
         chunk.setAppendIndex(appendIndex);
         lastBatchAppendIndex = appendIndex;
     }
@@ -219,6 +221,7 @@ public class ChunkedTransaction implements StorageEngineTransaction {
             cursorContext.getVersionContext().initWrite(transactionId);
             idGenerated = true;
         }
+        cursorContext.getVersionContext().initAppendIndex(appendIndex);
         lastBatchAppendIndex = appendIndex;
     }
 }

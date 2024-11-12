@@ -61,6 +61,7 @@ final class RecoveryVisitor implements RecoveryApplier {
                 ? new CompleteTransaction(batch, cursorContext, storeCursors)
                 : new ChunkedTransaction(batch, cursorContext, storeCursors);
         cursorContext.getVersionContext().initWrite(commandsToApply.transactionId());
+        cursorContext.getVersionContext().initAppendIndex(batch.appendIndex());
         return commandsToApply;
     }
 

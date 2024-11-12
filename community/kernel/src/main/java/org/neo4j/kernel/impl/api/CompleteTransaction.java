@@ -157,7 +157,9 @@ public class CompleteTransaction implements StorageEngineTransaction {
                 positionAfter,
                 checksum,
                 commandBatch.consensusIndex());
-        this.cursorContext.getVersionContext().initWrite(transactionId);
+        var versionContext = this.cursorContext.getVersionContext();
+        versionContext.initWrite(transactionId);
+        versionContext.initAppendIndex(appendIndex);
         commandBatch.setAppendIndex(appendIndex);
     }
 
