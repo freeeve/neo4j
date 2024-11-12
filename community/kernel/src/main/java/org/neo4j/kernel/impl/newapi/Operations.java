@@ -113,7 +113,7 @@ import org.neo4j.internal.schema.NodeLabelExistenceSchemaDescriptor;
 import org.neo4j.internal.schema.RelationTypeSchemaDescriptor;
 import org.neo4j.internal.schema.RelationshipEndpointLabelSchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
-import org.neo4j.internal.schema.SchemaDescriptorImplementationNode;
+import org.neo4j.internal.schema.SchemaDescriptorImplementation;
 import org.neo4j.internal.schema.SchemaDescriptorSupplier;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.SchemaNameUtil;
@@ -2608,7 +2608,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     private void sharedTokenSchemaLock(ResourceType rt) {
         // this guards label or relationship type token indexes from being dropped during write operations
-        sharedSchemaLock(rt, SchemaDescriptorImplementationNode.TOKEN_INDEX_LOCKING_ID);
+        sharedSchemaLock(rt, SchemaDescriptorImplementation.TOKEN_INDEX_LOCKING_ID);
     }
 
     private void exclusiveSchemaLock(SchemaDescriptor schema) {

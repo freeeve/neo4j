@@ -117,27 +117,26 @@ final class SchemaDescriptorImplementationTest {
     }
 
     private static final Supplier<SchemaDescriptor> LABEL_SCHEMA_DESCRIPTOR_SUPPLIER = supplierFor(
-            new SchemaDescriptorImplementationNode(NODE, COMPLETE_ALL_TOKENS, new int[] {1}, new int[] {1}),
+            new SchemaDescriptorImplementation(NODE, COMPLETE_ALL_TOKENS, new int[] {1}, new int[] {1}),
             "NODE_PROPERTY_SCHEME");
 
     private static final Supplier<SchemaDescriptor> RELATIONSHIP_SCHEMA_DESCRIPTOR_SUPPLIER = supplierFor(
-            new SchemaDescriptorImplementationNode(RELATIONSHIP, COMPLETE_ALL_TOKENS, new int[] {1}, new int[] {1}),
+            new SchemaDescriptorImplementation(RELATIONSHIP, COMPLETE_ALL_TOKENS, new int[] {1}, new int[] {1}),
             "RELATIONSHIP_PROPERTY_SCHEME");
 
     private static final Supplier<SchemaDescriptor> FULLTEXT_SCHEMA_DESCRIPTOR_SUPPLIER = supplierFor(
-            new SchemaDescriptorImplementationNode(NODE, PARTIAL_ANY_TOKEN, new int[] {1}, new int[] {1}), "FULL_TEXT");
+            new SchemaDescriptorImplementation(NODE, PARTIAL_ANY_TOKEN, new int[] {1}, new int[] {1}), "FULL_TEXT");
 
     private static final Supplier<SchemaDescriptor> ANY_TOKEN_SCHEMA_DESCRIPTOR_SUPPLIER = supplierFor(
-            new SchemaDescriptorImplementationNode(NODE, ENTITY_TOKENS, new int[] {}, new int[] {}), "ANY_TOKEN");
+            new SchemaDescriptorImplementation(NODE, ENTITY_TOKENS, new int[] {}, new int[] {}), "ANY_TOKEN");
 
     private static final Supplier<SchemaDescriptor> RELATIONSHIP_ENDPOINT_LABEL_SCHEMA_DESCRIPTOR_SUPPLIER =
             supplierFor(
-                    new SchemaDescriptorImplementationNode(
-                            RELATIONSHIP, SINGLE_ENTITY_TOKEN, new int[] {1}, new int[] {}),
+                    new SchemaDescriptorImplementation(RELATIONSHIP, SINGLE_ENTITY_TOKEN, new int[] {1}, new int[] {}),
                     "RELATIONSHIP_ENDPOINT");
 
     private static final Supplier<SchemaDescriptor> NODE_LABEL_EXISTENCE_SCHEMA_DESCRIPTOR_SUPPLIER = supplierFor(
-            new SchemaDescriptorImplementationNode(NODE, SINGLE_ENTITY_TOKEN, new int[] {1}, new int[] {}),
+            new SchemaDescriptorImplementation(NODE, SINGLE_ENTITY_TOKEN, new int[] {1}, new int[] {}),
             "NODE_LABEL_EXISTENCE");
 
     private static Supplier<SchemaDescriptor> supplierFor(SchemaDescriptor schemaDescriptor, String name) {

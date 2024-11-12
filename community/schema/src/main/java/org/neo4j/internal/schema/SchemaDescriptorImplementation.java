@@ -36,7 +36,7 @@ import org.neo4j.lock.ResourceType;
 import org.neo4j.token.api.TokenConstants;
 import org.neo4j.util.Preconditions;
 
-public final class SchemaDescriptorImplementationNode
+public final class SchemaDescriptorImplementation
         implements SchemaDescriptor,
                 LabelSchemaDescriptor,
                 RelationTypeSchemaDescriptor,
@@ -58,7 +58,7 @@ public final class SchemaDescriptorImplementationNode
      * This constructor is only public so that it can be called directly from the SchemaStore.
      * Use the static methods on {@link SchemaDescriptors} to create the usual kinds of schemas.
      */
-    public SchemaDescriptorImplementationNode(
+    public SchemaDescriptorImplementation(
             EntityType entityType,
             SchemaPatternMatchingType schemaPatternMatchingType,
             int[] entityTokens,

@@ -37,28 +37,28 @@ import org.neo4j.token.api.TokenConstants;
 public class SchemaDescriptors {
 
     public static final AnyTokenSchemaDescriptor ANY_TOKEN_NODE_SCHEMA_DESCRIPTOR =
-            new SchemaDescriptorImplementationNode(NODE, ENTITY_TOKENS, EMPTY_INT_ARRAY, EMPTY_INT_ARRAY);
+            new SchemaDescriptorImplementation(NODE, ENTITY_TOKENS, EMPTY_INT_ARRAY, EMPTY_INT_ARRAY);
     public static final AnyTokenSchemaDescriptor ANY_TOKEN_RELATIONSHIP_SCHEMA_DESCRIPTOR =
-            new SchemaDescriptorImplementationNode(RELATIONSHIP, ENTITY_TOKENS, EMPTY_INT_ARRAY, EMPTY_INT_ARRAY);
+            new SchemaDescriptorImplementation(RELATIONSHIP, ENTITY_TOKENS, EMPTY_INT_ARRAY, EMPTY_INT_ARRAY);
 
     public static SchemaDescriptor noSchema() {
         return NoSchemaDescriptor.NO_SCHEMA;
     }
 
     public static FulltextSchemaDescriptor fulltext(EntityType entityType, int[] entityTokenIds, int[] propertyKeyIds) {
-        return new SchemaDescriptorImplementationNode(entityType, PARTIAL_ANY_TOKEN, entityTokenIds, propertyKeyIds);
+        return new SchemaDescriptorImplementation(entityType, PARTIAL_ANY_TOKEN, entityTokenIds, propertyKeyIds);
     }
 
     public static LabelSchemaDescriptor forLabel(int labelId, int... propertyIds) {
         validateLabelIds(labelId);
         validatePropertyIds(propertyIds);
-        return new SchemaDescriptorImplementationNode(NODE, COMPLETE_ALL_TOKENS, new int[] {labelId}, propertyIds);
+        return new SchemaDescriptorImplementation(NODE, COMPLETE_ALL_TOKENS, new int[] {labelId}, propertyIds);
     }
 
     public static RelationTypeSchemaDescriptor forRelType(int relTypeId, int... propertyIds) {
         validateRelationshipTypeIds(relTypeId);
         validatePropertyIds(propertyIds);
-        return new SchemaDescriptorImplementationNode(
+        return new SchemaDescriptorImplementation(
                 RELATIONSHIP, COMPLETE_ALL_TOKENS, new int[] {relTypeId}, propertyIds);
     }
 
@@ -75,7 +75,7 @@ public class SchemaDescriptors {
      * @return {@link RelationshipEndpointLabelSchemaDescriptor} with the provided relationship type id
      */
     public static RelationshipEndpointLabelSchemaDescriptor forRelationshipEndpointLabel(int relationshipTypeId) {
-        return new SchemaDescriptorImplementationNode(
+        return new SchemaDescriptorImplementation(
                 RELATIONSHIP, SINGLE_ENTITY_TOKEN, new int[] {relationshipTypeId}, EMPTY_INT_ARRAY);
     }
 
@@ -85,7 +85,7 @@ public class SchemaDescriptors {
      * @return {@link NodeLabelExistenceSchemaDescriptor} with the provided label id
      */
     public static NodeLabelExistenceSchemaDescriptor forNodeLabelExistence(int labelId) {
-        return new SchemaDescriptorImplementationNode(NODE, SINGLE_ENTITY_TOKEN, new int[] {labelId}, EMPTY_INT_ARRAY);
+        return new SchemaDescriptorImplementation(NODE, SINGLE_ENTITY_TOKEN, new int[] {labelId}, EMPTY_INT_ARRAY);
     }
 
     /**

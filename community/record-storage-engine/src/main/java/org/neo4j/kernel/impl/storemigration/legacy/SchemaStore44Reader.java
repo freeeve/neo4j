@@ -40,7 +40,7 @@ import org.neo4j.internal.schema.IndexConfig;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
-import org.neo4j.internal.schema.SchemaDescriptorImplementationNode;
+import org.neo4j.internal.schema.SchemaDescriptorImplementation;
 import org.neo4j.internal.schema.SchemaPatternMatchingType;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
@@ -324,7 +324,7 @@ public class SchemaStore44Reader implements AutoCloseable {
         int[] entityIds = getIntArray(PROP_SCHEMA_DESCRIPTOR_ENTITY_IDS, props);
         int[] propertyIds = getIntArray(PROP_SCHEMA_DESCRIPTOR_PROPERTY_IDS, props);
 
-        return new SchemaDescriptorImplementationNode(entityType, schemaPatternMatchingType, entityIds, propertyIds);
+        return new SchemaDescriptorImplementation(entityType, schemaPatternMatchingType, entityIds, propertyIds);
     }
 
     private static IndexConfig extractIndexConfig(Map<String, Value> props) {

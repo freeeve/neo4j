@@ -80,7 +80,7 @@ import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.LabelSchemaDescriptor;
 import org.neo4j.internal.schema.NodeLabelExistenceSchemaDescriptor;
 import org.neo4j.internal.schema.RelationshipEndpointLabelSchemaDescriptor;
-import org.neo4j.internal.schema.SchemaDescriptorImplementationNode;
+import org.neo4j.internal.schema.SchemaDescriptorImplementation;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.SchemaState;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
@@ -346,7 +346,7 @@ abstract class OperationsTest {
         verify(locks).acquireShared(any(), eq(ResourceType.LABEL), eq(3L));
         verify(locks)
                 .acquireShared(
-                        any(), eq(ResourceType.LABEL), eq(SchemaDescriptorImplementationNode.TOKEN_INDEX_LOCKING_IDS));
+                        any(), eq(ResourceType.LABEL), eq(SchemaDescriptorImplementation.TOKEN_INDEX_LOCKING_IDS));
         verify(locks).acquireShared(any(), eq(ResourceType.LABEL), eq(1L), eq(2L));
         verify(storageLocks).acquireNodeLabelChangeLock(any(), eq(node), eq(1));
         verify(storageLocks).acquireNodeLabelChangeLock(any(), eq(node), eq(3));

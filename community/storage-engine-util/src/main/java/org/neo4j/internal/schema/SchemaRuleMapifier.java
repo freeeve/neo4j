@@ -399,7 +399,7 @@ public class SchemaRuleMapifier {
         int[] entityIds = getIntArray(PROP_SCHEMA_DESCRIPTOR_ENTITY_IDS, props);
         int[] propertyIds = getIntArray(PROP_SCHEMA_DESCRIPTOR_PROPERTY_IDS, props);
 
-        return new SchemaDescriptorImplementationNode(entityType, schemaPatternMatchingType, entityIds, propertyIds);
+        return new SchemaDescriptorImplementation(entityType, schemaPatternMatchingType, entityIds, propertyIds);
     }
 
     private static IndexConfig extractIndexConfig(Map<String, Value> props) {
