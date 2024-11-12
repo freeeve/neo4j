@@ -178,6 +178,9 @@ public class ParquetInput implements Input {
                         }
                         try {
                             var parquetColumn = ParquetColumn.from(columnName, EntityType.NODE);
+                            if (parquetColumn.isIgnoredColumn()) {
+                                continue;
+                            }
                             String propertyName = parquetColumn.propertyName() != null
                                     ? parquetColumn.propertyName()
                                     : parquetColumn.logicalColumnType().name();
@@ -252,6 +255,9 @@ public class ParquetInput implements Input {
                         var columnName = columnDescriptor.getPath()[0];
                         try {
                             var parquetColumn = ParquetColumn.from(columnName, EntityType.RELATIONSHIP);
+                            if (parquetColumn.isIgnoredColumn()) {
+                                continue;
+                            }
                             String propertyName = parquetColumn.propertyName() != null
                                     ? parquetColumn.propertyName()
                                     : parquetColumn.logicalColumnType().name();
