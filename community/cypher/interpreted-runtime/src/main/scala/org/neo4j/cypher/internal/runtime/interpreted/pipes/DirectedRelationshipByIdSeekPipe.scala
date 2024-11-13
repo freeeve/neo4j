@@ -43,7 +43,7 @@ case class DirectedRelationshipByIdSeekPipe(ident: String, relIdExpr: SeekArgs, 
         rowFactory.copyWith(
           ctx,
           ident,
-          VirtualValues.relationship(r, relationships.startNodeId(), relationships.endNodeId(), relationships.typeId()),
+          relationships.relationship(),
           fromNode,
           VirtualValues.node(relationships.startNodeId()),
           toNode,
