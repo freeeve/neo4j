@@ -21,6 +21,7 @@ package org.neo4j.exceptions;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -76,6 +77,11 @@ public class InvalidSemanticsException extends Neo4jException {
                         .build())
                 .build();
         return new InvalidSemanticsException(gql, legacyMessage);
+    }
+
+    public static InvalidSemanticsException invalidRegex(String errorMsg, String regex) {
+        var gql = GqlHelper.getGql22000_22N11(regex);
+        return new InvalidSemanticsException(gql, "Invalid Regex: " + errorMsg, null);
     }
 
     public static InvalidSemanticsException accessingMultipleGraphsOnlySupportedOnCompositeDatabases(

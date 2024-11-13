@@ -170,8 +170,9 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
                 if (selectingDateTime) {
                     AnyValue dtField = fields.get(TemporalFields.datetime);
                     if (!(dtField instanceof TemporalValue dt)) {
-                        throw new InvalidArgumentException(
-                                String.format("Cannot construct local date time from: %s", dtField));
+                        String prettyVal = dtField instanceof Value v ? v.prettyPrint() : String.valueOf(dtField);
+                        throw InvalidArgumentException.cannotConstructTemporal(
+                                "local date time", String.valueOf(dtField), prettyVal);
                     }
                     result = LocalDateTime.of(dt.getDatePart(), dt.getLocalTimePart());
                 } else if (selectingTime || selectingDate) {
@@ -179,8 +180,10 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
                     if (selectingTime) {
                         AnyValue timeField = fields.get(TemporalFields.time);
                         if (!(timeField instanceof TemporalValue t)) {
-                            throw new InvalidArgumentException(
-                                    String.format("Cannot construct local time from: %s", timeField));
+                            String prettyVal =
+                                    timeField instanceof Value v ? v.prettyPrint() : String.valueOf(timeField);
+                            throw InvalidArgumentException.cannotConstructTemporal(
+                                    "local time", String.valueOf(timeField), prettyVal);
                         }
                         time = t.getLocalTimePart();
                     } else {
@@ -190,8 +193,10 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
                     if (selectingDate) {
                         AnyValue dateField = fields.get(TemporalFields.date);
                         if (!(dateField instanceof TemporalValue t)) {
-                            throw new InvalidArgumentException(
-                                    String.format("Cannot construct date from: %s", dateField));
+                            String prettyVal =
+                                    dateField instanceof Value v ? v.prettyPrint() : String.valueOf(dateField);
+                            throw InvalidArgumentException.cannotConstructTemporal(
+                                    "date", String.valueOf(dateField), prettyVal);
                         }
                         date = t.getDatePart();
                     } else {
@@ -225,7 +230,8 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
                     LocalTime timePart = v.getLocalTimePart();
                     return LocalDateTime.of(datePart, timePart);
                 }
-                throw new InvalidArgumentException(String.format("Cannot construct date from: %s", temporal));
+                String prettyVal = temporal instanceof Value v ? v.prettyPrint() : String.valueOf(temporal);
+                throw InvalidArgumentException.cannotConstructTemporal("date", String.valueOf(temporal), prettyVal);
             }
 
             @Override
@@ -307,7 +313,7 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
 
     @Override
     public String prettyPrint() {
-        return assertPrintable(() -> value.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        return assertPrintable(String.valueOf(value), () -> value.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
     }
 
     @Override

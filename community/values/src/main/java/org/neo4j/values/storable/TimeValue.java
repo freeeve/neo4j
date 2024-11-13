@@ -139,7 +139,7 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
     public static TimeValue truncate(
             TemporalUnit unit, TemporalValue input, MapValue fields, Supplier<ZoneId> defaultZone) {
         OffsetTime time = input.getTimePart(defaultZone);
-        OffsetTime truncatedOT = assertValidUnit(() -> time.truncatedTo(unit));
+        OffsetTime truncatedOT = assertValidUnit(unit, () -> time.truncatedTo(unit));
         if (fields.size() == 0) {
             return time(truncatedOT);
         } else {
@@ -187,7 +187,8 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
                 if (selectingTime) {
                     AnyValue time = fields.get(TemporalFields.time);
                     if (!(time instanceof TemporalValue t)) {
-                        throw new InvalidArgumentException(String.format("Cannot construct time from: %s", time));
+                        String prettyVal = time instanceof Value v ? v.prettyPrint() : String.valueOf(time);
+                        throw InvalidArgumentException.cannotConstructTemporal("time", String.valueOf(time), prettyVal);
                     }
                     result = t.getTimePart(defaultZone);
                     selectingTimeZone = t.supportsTimeZone();
@@ -219,7 +220,8 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
             @Override
             protected TimeValue selectTime(AnyValue temporal) {
                 if (!(temporal instanceof TemporalValue v)) {
-                    throw new InvalidArgumentException(String.format("Cannot construct time from: %s", temporal));
+                    String prettyVal = temporal instanceof Value v ? v.prettyPrint() : String.valueOf(temporal);
+                    throw InvalidArgumentException.cannotConstructTemporal("time", String.valueOf(temporal), prettyVal);
                 }
                 if (temporal instanceof TimeValue && timezone == null) {
                     return (TimeValue) temporal;
@@ -295,7 +297,7 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
 
     @Override
     public String prettyPrint() {
-        return assertPrintable(() -> value.format(DateTimeFormatter.ISO_TIME));
+        return assertPrintable(String.valueOf(value), () -> value.format(DateTimeFormatter.ISO_TIME));
     }
 
     @Override

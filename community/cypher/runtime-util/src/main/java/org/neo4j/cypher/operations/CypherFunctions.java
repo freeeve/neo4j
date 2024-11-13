@@ -294,9 +294,8 @@ public final class CypherFunctions {
         if (in instanceof NumberValue inNumber && precisionValue instanceof NumberValue) {
             int precision = asIntExact(precisionValue, () -> "Invalid input for precision value in function 'round()'");
             boolean explicitMode = ((BooleanValue) explicitModeValue).booleanValue();
-
             if (precision < 0) {
-                throw new InvalidArgumentException("Precision argument to 'round()' cannot be negative");
+                throw InvalidArgumentException.negRoundPrecision(precision);
             } else {
                 double value = inNumber.doubleValue();
                 if (Double.isInfinite(value) || Double.isNaN(value)) {
@@ -407,7 +406,7 @@ public final class CypherFunctions {
     public static ListValue range(AnyValue startValue, AnyValue endValue, AnyValue stepValue) {
         long step = asLong(stepValue, () -> "Invalid input for step value in function 'range()'");
         if (step == 0L) {
-            throw new InvalidArgumentException("Step argument to 'range()' cannot be zero");
+            throw InvalidArgumentException.zeroStepRange();
         }
 
         return VirtualValues.range(

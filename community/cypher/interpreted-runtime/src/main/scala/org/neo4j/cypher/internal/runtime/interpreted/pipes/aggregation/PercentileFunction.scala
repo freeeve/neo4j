@@ -78,10 +78,9 @@ trait OnePercentile extends InitiateOnFirstRow {
 
   override protected def onFirstRow(data: ReadableRow, state: QueryState): Unit = {
     perc = CypherCoercions.asNumberValue(percentile(data, state)).doubleValue()
-    if (perc < 0 || perc > 1.0)
-      throw new InvalidArgumentException(
-        s"Invalid input '$perc' is not a valid argument, must be a number in the range 0.0 to 1.0"
-      )
+    if (perc < 0 || perc > 1.0) {
+      throw InvalidArgumentException.invalidPercentage(perc)
+    }
   }
 }
 
@@ -214,10 +213,9 @@ class PercentilesFunction(
     while (i < percsValue.intSize()) {
       val perc = CypherCoercions.asNumberValue(percsValue.value(i)).doubleValue()
       percs(i) = perc
-      if (perc < 0 || perc > 1.0)
-        throw new InvalidArgumentException(
-          s"Invalid input '$perc' is not a valid argument, must be a number in the range 0.0 to 1.0"
-        )
+      if (perc < 0 || perc > 1.0) {
+        throw InvalidArgumentException.invalidPercentage(perc)
+      }
       i += 1
     }
 

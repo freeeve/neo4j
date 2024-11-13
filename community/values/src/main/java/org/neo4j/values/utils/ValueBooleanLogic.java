@@ -88,7 +88,7 @@ public final class ValueBooleanLogic {
                     Pattern.compile(regexString).matcher(lhs.stringValue()).matches();
             return matches ? TRUE : FALSE;
         } catch (PatternSyntaxException e) {
-            throw new InvalidSemanticsException("Invalid Regex: " + e.getMessage(), null);
+            throw InvalidSemanticsException.invalidRegex(e.getMessage(), regexString);
         }
     }
 

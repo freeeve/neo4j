@@ -221,7 +221,7 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
 
     @Override
     public String prettyPrint() {
-        return assertPrintable(() -> value.format(DateTimeFormatter.ISO_DATE));
+        return assertPrintable(String.valueOf(value), () -> value.format(DateTimeFormatter.ISO_DATE));
     }
 
     @Override
@@ -390,27 +390,26 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
              * to ordinal dates, we fail in this validation.
              */
             if (day == null && month.length() == 1) {
-                throw new TemporalParseException(
-                        "Text cannot be parsed to a Date. Hint, year+month needs to have two digits for "
-                                + "month (e.g. 2015-02) and " + "ordinal dates three digits (e.g. 2015-032).",
-                        null);
+                throw TemporalParseException.cannotParseToDateHint(matcher.group());
             }
 
-            return assertParsable(() -> LocalDate.of(year, parseInt(month), optInt(day)));
+            return assertParsable(matcher.group(), () -> LocalDate.of(year, parseInt(month), optInt(day)));
         }
         String week = matcher.group(WEEK);
         if (week != null) {
-            return assertParsable(() -> localWeekDate(year, parseInt(week), optInt(matcher.group(DOW))));
+            return assertParsable(
+                    matcher.group(), () -> localWeekDate(year, parseInt(week), optInt(matcher.group(DOW))));
         }
         String quarter = matcher.group(QUARTER);
         if (quarter != null) {
-            return assertParsable(() -> localQuarterDate(year, parseInt(quarter), optInt(matcher.group(DOQ))));
+            return assertParsable(
+                    matcher.group(), () -> localQuarterDate(year, parseInt(quarter), optInt(matcher.group(DOQ))));
         }
         String doy = matcher.group(DOY);
         if (doy != null) {
-            return assertParsable(() -> LocalDate.ofYearDay(year, parseInt(doy)));
+            return assertParsable(matcher.group(), () -> LocalDate.ofYearDay(year, parseInt(doy)));
         }
-        return assertParsable(() -> LocalDate.of(year, 1, 1));
+        return assertParsable(matcher.group(), () -> LocalDate.of(year, 1, 1));
     }
 
     private static DateValue parse(Matcher matcher) {
@@ -427,21 +426,21 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
         // the implementation of WEEK_OF_WEEK_BASED_YEAR uses addition to adjust the date, this means that it accepts
         // week 53 of years that don't have 53 weeks, so we have to guard for this:
         if (week == 53 && withWeek.get(IsoFields.WEEK_BASED_YEAR) != year) {
-            throw new InvalidArgumentException(String.format("Year %d does not contain %d weeks.", year, week));
+            throw InvalidArgumentException.tooManyWeeksThisYear(week, year);
         }
         return withWeek.with(ChronoField.DAY_OF_WEEK, dayOfWeek);
     }
 
     private static LocalDate localQuarterDate(int year, int quarter, int dayOfQuarter) {
         // special handling for the range of Q1 and Q2, since they are shorter than Q3 and Q4
-        if (quarter == 2 && dayOfQuarter == 92) {
-            throw new InvalidArgumentException("Quarter 2 only has 91 days.");
+        if (quarter == 2 && dayOfQuarter == 92) { // TODO: Decide if you want > 91 here - might be more correct
+            throw InvalidArgumentException.only91DaysInQuarter2(year, dayOfQuarter);
         }
         // instantiate the yearDate now, because we use it to know if it is a leap year
         LocalDate yearDate = LocalDate.ofYearDay(year, dayOfQuarter); // guess on the day
         if (quarter == 1 && dayOfQuarter > 90 && (!yearDate.isLeapYear() || dayOfQuarter == 92)) {
-            throw new InvalidArgumentException(
-                    String.format("Quarter 1 of %d only has %d days.", year, yearDate.isLeapYear() ? 91 : 90));
+            var dayLimit = yearDate.isLeapYear() ? 91 : 90;
+            throw InvalidArgumentException.only90Or91DaysInQuarter1(year, dayOfQuarter, dayLimit);
         }
         return yearDate.with(IsoFields.QUARTER_OF_YEAR, quarter).with(IsoFields.DAY_OF_QUARTER, dayOfQuarter);
     }
@@ -478,7 +477,8 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
             if (temporal instanceof TemporalValue v) {
                 return v.getDatePart();
             }
-            throw new InvalidArgumentException(String.format("Cannot construct date from: %s", temporal));
+            String prettyVal = temporal instanceof Value v ? v.prettyPrint() : String.valueOf(temporal);
+            throw InvalidArgumentException.cannotConstructTemporal("date", String.valueOf(temporal), prettyVal);
         }
 
         @Override

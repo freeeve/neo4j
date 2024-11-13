@@ -21,10 +21,12 @@ package org.neo4j.exceptions;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 public class InvalidTemporalArgumentException extends InvalidArgumentException {
 
+    @Deprecated
     public InvalidTemporalArgumentException(String message) {
         super(message);
     }
@@ -44,6 +46,7 @@ public class InvalidTemporalArgumentException extends InvalidArgumentException {
     }
 
     public static InvalidTemporalArgumentException invalidOffset(String offset) {
-        return new InvalidTemporalArgumentException("Not a valid offset: " + offset);
+        var gql = GqlHelper.getGql22007_22N12(offset);
+        return new InvalidTemporalArgumentException(gql, "Not a valid offset: " + offset);
     }
 }

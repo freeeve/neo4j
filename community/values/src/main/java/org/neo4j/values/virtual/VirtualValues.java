@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.ArrayValue;
@@ -113,8 +114,13 @@ public final class VirtualValues {
         return new MapValue.MapWrappingMapValue(map, mapSize, payloadSize);
     }
 
+    @Deprecated
     public static ErrorValue error(Exception e) {
         return new ErrorValue(e);
+    }
+
+    public static ErrorValue error(ErrorGqlStatusObject gqlStatusObject, Exception e) {
+        return new ErrorValue(gqlStatusObject, e);
     }
 
     public static NodeIdReference node(long id) {

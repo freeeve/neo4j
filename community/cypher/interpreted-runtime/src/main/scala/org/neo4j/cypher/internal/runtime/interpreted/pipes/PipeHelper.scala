@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expres
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.NumericHelper
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.values.storable.FloatingPointValue
+import org.neo4j.values.storable.Value
 
 object PipeHelper {
 
@@ -30,7 +31,7 @@ object PipeHelper {
    * Evaluate a statically known expressions. Assert that it is a long value.
    *
    * @param exp      the expression
-   * @param validate validation method to check if `exp` is a valid long.
+   * @param minValue validation number to check if `exp` is a valid long. (Larger than min)
    * @param state    the query state
    * @param prefix   a prefix for error messages
    * @param suffix   a suffix for error messages
@@ -38,13 +39,20 @@ object PipeHelper {
    */
   def evaluateStaticLongOrThrow(
     exp: Expression,
-    validate: Long => Boolean,
+    minValue: Long,
     state: QueryState,
     prefix: String,
     suffix: String
   ): Long = {
     def fail(n: Any): Unit = {
-      throw new InvalidArgumentException(s"$prefix: Invalid input. '$n' is not a valid value.$suffix")
+      val nValue = n match {
+        case value: Value => value.prettyPrint()
+        case other        => String.valueOf(other)
+      }
+      if (n.isInstanceOf[FloatingPointValue]) {
+        throw InvalidArgumentException.invalidDoubleValuePrefixSuffix(String.valueOf(n), prefix, suffix, nValue)
+      } else
+        throw InvalidArgumentException.invalidValuePrefixSuffix(minValue, String.valueOf(n), prefix, suffix, nValue)
     }
 
     val number = NumericHelper.evaluateStaticallyKnownNumber(exp, state)
@@ -53,7 +61,7 @@ object PipeHelper {
       fail(n)
     }
     val res = number.longValue()
-    if (!validate(res)) {
+    if (res < minValue) {
       fail(res)
     }
     res

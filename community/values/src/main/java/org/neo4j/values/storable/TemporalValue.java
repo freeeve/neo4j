@@ -197,7 +197,8 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         try {
             until = from.temporal().until(to, unit);
         } catch (UnsupportedTemporalTypeException e) {
-            throw new UnsupportedTemporalUnitException(e.getMessage(), e);
+            String prettyVal = unit instanceof Value v ? v.prettyPrint() : String.valueOf(unit);
+            throw UnsupportedTemporalUnitException.cannotProcess(prettyVal, e);
         }
         return until;
     }
@@ -251,7 +252,8 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         try {
             accessor = temporal().get(field);
         } catch (UnsupportedTemporalTypeException e) {
-            throw new UnsupportedTemporalUnitException(e.getMessage(), e);
+            String prettyVal = field instanceof Value v ? v.prettyPrint() : String.valueOf(field);
+            throw UnsupportedTemporalUnitException.cannotProcess(prettyVal, e);
         }
         return accessor;
     }
@@ -342,7 +344,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         Matcher matcher = pattern.matcher(text);
         VALUE result = matcher.matches() ? parser.apply(matcher) : null;
         if (result == null) {
-            throw new TemporalParseException("Text cannot be parsed to a " + valueName(type), text.toString(), 0);
+            throw TemporalParseException.cannotParseText(valueName(type), text.toString());
         }
         return result;
     }
@@ -351,7 +353,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         Matcher matcher = text.matcher(pattern);
         VALUE result = matcher != null && matcher.matches() ? parser.apply(matcher) : null;
         if (result == null) {
-            throw new TemporalParseException("Text cannot be parsed to a " + valueName(type), text.stringValue(), 0);
+            throw TemporalParseException.cannotParseText(valueName(type), text.stringValue());
         }
         return result;
     }
@@ -365,7 +367,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         Matcher matcher = pattern.matcher(text);
         VALUE result = matcher.matches() ? parser.apply(matcher, defaultZone) : null;
         if (result == null) {
-            throw new TemporalParseException("Text cannot be parsed to a " + valueName(type), text.toString(), 0);
+            throw TemporalParseException.cannotParseText(valueName(type), text.toString());
         }
         return result;
     }
@@ -460,7 +462,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         public final StructureBuilder<AnyValue, Result> add(String fieldName, AnyValue value) {
             TemporalFields field = TemporalFields.fields.get(fieldName.toLowerCase(Locale.ROOT));
             if (field == null) {
-                throw new InvalidArgumentException("No such field: " + fieldName);
+                throw InvalidArgumentException.noSuchTemporalField(fieldName);
             }
             // Change state
             field.assign(this, value);
@@ -571,7 +573,10 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
                             "Cannot assign time zone if also assigning other fields.");
                 }
                 if (builder.timezone != null) {
-                    throw new InvalidArgumentException("Cannot assign timezone twice.");
+                    String timeZ;
+                    if (builder.timezone instanceof Value v) timeZ = v.prettyPrint();
+                    else timeZ = String.valueOf(builder.timezone);
+                    throw InvalidArgumentException.assignTimezoneTwice(timeZ);
                 }
                 builder.timezone = value;
             }
@@ -736,7 +741,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
                     if (date != null) {
                         date.assertFullyAssigned();
                     } else {
-                        throw new InvalidArgumentException(TemporalFields.year.name() + " must be specified");
+                        throw InvalidArgumentException.mustSpecifyField(TemporalFields.year.name());
                     }
                 }
                 time.checkAssignments();
@@ -935,7 +940,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         @Override
         void assertFullyAssigned() {
             if (date == null) {
-                throw new InvalidArgumentException(TemporalFields.month.name() + " must be specified");
+                throw InvalidArgumentException.mustSpecifyField(TemporalFields.month.name());
             }
         }
     }
@@ -1113,7 +1118,8 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
 
     private static AnyValue assignment(TemporalFields field, AnyValue oldValue, AnyValue newValue) {
         if (oldValue != null) {
-            throw new InvalidArgumentException("cannot re-assign " + field);
+            String prettyVal = newValue instanceof Value v ? v.prettyPrint() : String.valueOf(newValue);
+            throw InvalidArgumentException.cannotReassign(prettyVal, String.valueOf(field));
         }
         return newValue;
     }
@@ -1121,7 +1127,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
     @SafeVarargs
     static void assertDefinedInOrder(Pair<org.neo4j.values.AnyValue, String>... values) {
         if (values[0].first() == null) {
-            throw new InvalidArgumentException(values[0].other() + " must be specified");
+            throw InvalidArgumentException.mustSpecifyField(values[0].other());
         }
 
         String firstNotAssigned = null;
@@ -1132,7 +1138,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
                     firstNotAssigned = value.other();
                 }
             } else if (firstNotAssigned != null) {
-                throw new InvalidArgumentException(value.other() + " cannot be specified without " + firstNotAssigned);
+                throw InvalidArgumentException.cannotSpecifyWithout(value.other(), firstNotAssigned);
             }
         }
     }
@@ -1141,7 +1147,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
     static void assertAllDefined(Pair<org.neo4j.values.AnyValue, String>... values) {
         for (Pair<org.neo4j.values.AnyValue, String> value : values) {
             if (value.first() == null) {
-                throw new InvalidArgumentException(value.other() + " must be specified");
+                throw InvalidArgumentException.mustSpecifyField(value.other());
             }
         }
     }
@@ -1163,13 +1169,16 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         long us = safeCastIntegral("microsecond", microsecond, TemporalFields.microsecond.defaultValue);
         long ns = safeCastIntegral("nanosecond", nanosecond, TemporalFields.nanosecond.defaultValue);
         if (ms < 0 || ms >= 1000) {
-            throw new InvalidArgumentException("Invalid value for Millisecond: " + ms);
+            final long milliLimit = 1000L;
+            throw InvalidArgumentException.invalidMillisecondValue(milliLimit, ms);
         }
-        if (us < 0 || us >= (millisecond != null ? 1000 : 1000_000)) {
-            throw new InvalidArgumentException("Invalid value for Microsecond: " + us);
+        final long microLimit = (millisecond != null ? 1000L : 1000_000L);
+        if (us < 0 || us >= microLimit) {
+            throw InvalidArgumentException.invalidMicrosecondValue(microLimit, us);
         }
-        if (ns < 0 || ns >= (microsecond != null ? 1000 : millisecond != null ? 1000_000 : 1000_000_000)) {
-            throw new InvalidArgumentException("Invalid value for Nanosecond: " + ns);
+        final long nanoLimit = (microsecond != null ? 1000L : millisecond != null ? 1000_000L : 1000_000_000L);
+        if (ns < 0 || ns >= nanoLimit) {
+            throw InvalidArgumentException.invalidNanosecondValue(nanoLimit, ns);
         }
         return (int) (ms * 1000_000 + us * 1000 + ns);
     }
@@ -1210,11 +1219,12 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         }
     }
 
-    static <TEMP extends Temporal> TEMP assertValidUnit(Supplier<TEMP> func) {
+    static <TEMP extends Temporal> TEMP assertValidUnit(TemporalUnit unit, Supplier<TEMP> func) {
         try {
             return func.get();
         } catch (DateTimeException e) {
-            throw new UnsupportedTemporalUnitException(e.getMessage(), e);
+            String prettyVal = unit instanceof Value v ? v.prettyPrint() : String.valueOf(unit);
+            throw UnsupportedTemporalUnitException.cannotProcess(prettyVal, e);
         }
     }
 
@@ -1226,19 +1236,19 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         }
     }
 
-    static <TEMP extends Temporal> TEMP assertParsable(Supplier<TEMP> func) {
+    static <TEMP extends Temporal> TEMP assertParsable(String input, Supplier<TEMP> func) {
         try {
             return func.get();
         } catch (DateTimeException e) {
-            throw new TemporalParseException(e.getMessage(), e);
+            throw TemporalParseException.cannotProcessDateTime(input, e);
         }
     }
 
-    static String assertPrintable(Supplier<String> func) {
+    static String assertPrintable(String input, Supplier<String> func) {
         try {
             return func.get();
         } catch (DateTimeException e) {
-            throw new TemporalParseException(e.getMessage(), e);
+            throw TemporalParseException.cannotProcessDateTime(input, e);
         }
     }
 
@@ -1276,16 +1286,17 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         @Override
         public void assign(String key, Object valueObj) {
             if (!(valueObj instanceof String value)) {
-                throw new InvalidArgumentException(String.format("Cannot assign %s to field %s", valueObj, key));
+                String prettyVal = valueObj instanceof Value v ? v.prettyPrint() : String.valueOf(valueObj);
+                throw InvalidArgumentException.cannotAssignNonStringTimezone(String.valueOf(valueObj), prettyVal, key);
             }
             if ("timezone".equalsIgnoreCase(key)) {
                 if (timezone == null) {
                     timezone = value;
                 } else {
-                    throw new InvalidArgumentException("Cannot set timezone twice");
+                    throw InvalidArgumentException.setTimeZoneTwice(value);
                 }
             } else {
-                throw new InvalidArgumentException("Unsupported header field: " + value);
+                throw InvalidArgumentException.unsupportedHeader(key, value);
             }
         }
 

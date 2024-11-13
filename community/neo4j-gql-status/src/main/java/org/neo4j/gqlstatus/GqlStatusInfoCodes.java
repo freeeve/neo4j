@@ -1083,7 +1083,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
                 GqlParams.StringParam.valueType,
                 GqlParams.NumberParam.lower,
                 GqlParams.NumberParam.upper,
-                GqlParams.NumberParam.value
+                GqlParams.StringParam.value
             },
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1372,7 +1372,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N35(
             new GqlStatus("22N35"),
             """
-                    Cannot parse { %s } as a DATE. Calendar dates need to be specified using the format 'YYYY-MM', while ordinal dates need to be specified using the format 'YYYY-DDD'. """,
+                    Cannot parse { %s } as a DATE. Calendar dates need to be specified using the format 'YYYY-MM', while ordinal dates need to be specified using the format 'YYYY-DDD'.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1399,16 +1399,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N38(
             new GqlStatus("22N38"),
             """
-                    Expected argument to the { %s } function to be one of { %s }, but provided argument { %s } is of type { %s }.""",
-            new GqlParams.GqlParam[] {
-                GqlParams.StringParam.fun,
-                GqlParams.ListParam.valueTypeList,
-                GqlParams.NumberParam.value,
-                GqlParams.StringParam.valueType
-            },
-            Map.of(GqlParams.ListParam.valueTypeList, GqlParams.JoinStyle.ORED),
+                    Invalid argument to the function { %s }.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            emptyMap(),
             Condition.DATA_EXCEPTION,
-            "invalid function argument type",
+            "invalid function argument",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N39(
             new GqlStatus("22N39"),

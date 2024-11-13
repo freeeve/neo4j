@@ -100,7 +100,7 @@ public enum PointFields {
             case "srid":
                 return SRID;
             default:
-                throw new InvalidArgumentException("No such field: " + fieldName);
+                throw InvalidArgumentException.noSuchPointField(fieldName);
         }
     }
 

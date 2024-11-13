@@ -881,7 +881,7 @@ object AdministrationCommandRuntime {
           .withParam(GqlParams.StringParam.valueType, value.getTypeName)
           .withParam(GqlParams.NumberParam.lower, lower)
           .withParam(GqlParams.NumberParam.upper, upper)
-          .withParam(GqlParams.NumberParam.value, value.value())
+          .withParam(GqlParams.StringParam.value, String.valueOf(value.value()))
           .build()
       )
       .build()

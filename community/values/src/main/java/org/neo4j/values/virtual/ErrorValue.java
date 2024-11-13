@@ -24,6 +24,11 @@ import static org.neo4j.memory.HeapEstimator.sizeOf;
 
 import java.util.Comparator;
 import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.gqlstatus.ErrorClassification;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.AnyValueWriter;
 import org.neo4j.values.Comparison;
@@ -42,8 +47,24 @@ public final class ErrorValue extends VirtualValue {
             shallowSizeOfInstance(ErrorValue.class) + INVALID_ARGUMENT_EXCEPTION_SHALLOW_SIZE;
     private final InvalidArgumentException e;
 
+    @Deprecated
     ErrorValue(Exception e) {
         this.e = new InvalidArgumentException(e.getMessage());
+    }
+
+    ErrorValue(ErrorGqlStatusObject gqlStatusObject, Exception e) {
+        this.e = new InvalidArgumentException(gqlStatusObject, e.getMessage());
+    }
+
+    public static ErrorValue cannotProcess(String unprocessable, Exception e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
+                .withClassification(ErrorClassification.CLIENT_ERROR)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N11)
+                        .withClassification(ErrorClassification.CLIENT_ERROR)
+                        .withParam(GqlParams.StringParam.input, unprocessable)
+                        .build())
+                .build();
+        return new ErrorValue(gql, e);
     }
 
     @Override

@@ -24,6 +24,7 @@ import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.neo4j.values.storable.DateValue.date;
 import static org.neo4j.values.storable.DateValue.ordinalDate;
@@ -41,6 +42,8 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.TemporalParseException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlParams;
 
 class DateValueTest {
     @Test
@@ -60,6 +63,16 @@ class DateValueTest {
         assertCannotParse("2018-00");
         assertCannotParse("2018-13");
         assertCannotParse("2015-3"); // Ambiguous if this should be interpreted as a year+month or ordinal date
+    }
+
+    @Test
+    void shouldGetCorrectGqlStatus() {
+        String badDate = "2015-3";
+        assertCorrectGqlDescr(
+                badDate,
+                String.format(
+                        "error: data exception - invalid date format. Cannot parse %s as a DATE. Calendar dates need to be specified using the format 'YYYY-MM', while ordinal dates need to be specified using the format 'YYYY-DDD'.",
+                        GqlParams.StringParam.input.process(badDate)));
     }
 
     @Test
@@ -212,5 +225,18 @@ class DateValueTest {
 
     private static void assertCannotParse(String text) {
         assertThrows(TemporalParseException.class, () -> parse(text), format("'%s' parsed to value", text));
+    }
+
+    private static void assertCorrectGqlDescr(String text, String expectedCauseGqlStatusDescription) {
+        var e = assertThrows(Exception.class, () -> parse(text));
+        try {
+            parse(text);
+        } catch (Exception ex) {
+            if (e instanceof ErrorGqlStatusObject gso && gso.cause().isPresent()) {
+                assertEquals(gso.cause().get().statusDescription(), expectedCauseGqlStatusDescription);
+            } else {
+                fail("Expected exception to have a gql-code with cause");
+            }
+        }
     }
 }

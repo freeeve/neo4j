@@ -47,6 +47,7 @@ import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.virtual.ErrorValue;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.ListValueBuilder;
 import org.neo4j.values.virtual.MapValue;
@@ -265,7 +266,7 @@ public final class ValueUtils {
             try {
                 builder.add(entry.getKey(), ValueUtils.of(entry.getValue(), true));
             } catch (IllegalArgumentException e) {
-                builder.add(entry.getKey(), VirtualValues.error(e));
+                builder.add(entry.getKey(), ErrorValue.cannotProcess(String.valueOf(entry.getValue()), e));
             }
         }
 

@@ -51,6 +51,6 @@ object SkipPipe {
   }
 
   def evaluateStaticSkipOrLimitNumberOrThrow(skipExp: Expression, state: QueryState, prefix: String): Long = {
-    PipeHelper.evaluateStaticLongOrThrow(skipExp, _ >= 0, state, prefix, " Must be a non-negative integer.")
+    PipeHelper.evaluateStaticLongOrThrow(skipExp, 0, state, prefix, " Must be a non-negative integer.")
   }
 }

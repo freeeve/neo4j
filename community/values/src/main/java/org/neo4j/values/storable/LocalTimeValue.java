@@ -104,7 +104,7 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
     public static LocalTimeValue truncate(
             TemporalUnit unit, TemporalValue input, MapValue fields, Supplier<ZoneId> defaultZone) {
         LocalTime localTime = input.getLocalTimePart();
-        LocalTime truncatedLT = assertValidUnit(() -> localTime.truncatedTo(unit));
+        LocalTime truncatedLT = assertValidUnit(unit, () -> localTime.truncatedTo(unit));
         if (fields.size() == 0) {
             return localTime(truncatedLT);
         } else {
@@ -134,7 +134,9 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
                 if (fields.containsKey(TemporalFields.time)) {
                     AnyValue time = fields.get(TemporalFields.time);
                     if (!(time instanceof TemporalValue)) {
-                        throw new InvalidArgumentException(String.format("Cannot construct local time from: %s", time));
+                        String prettyVal = time instanceof Value v ? v.prettyPrint() : String.valueOf(time);
+                        throw InvalidArgumentException.cannotConstructTemporal(
+                                "local time", String.valueOf(time), prettyVal);
                     }
                     result = ((TemporalValue) time).getLocalTimePart();
                 } else {
@@ -149,7 +151,9 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
             protected LocalTimeValue selectTime(AnyValue time) {
 
                 if (!(time instanceof TemporalValue v)) {
-                    throw new InvalidArgumentException(String.format("Cannot construct local time from: %s", time));
+                    String prettyVal = time instanceof Value v ? v.prettyPrint() : String.valueOf(time);
+                    throw InvalidArgumentException.cannotConstructTemporal(
+                            "local time", String.valueOf(time), prettyVal);
                 }
                 LocalTime lt = v.getLocalTimePart();
                 return localTime(lt);
@@ -222,7 +226,7 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
 
     @Override
     public String prettyPrint() {
-        return assertPrintable(() -> value.format(DateTimeFormatter.ISO_LOCAL_TIME));
+        return assertPrintable(String.valueOf(value), () -> value.format(DateTimeFormatter.ISO_LOCAL_TIME));
     }
 
     @Override
@@ -288,7 +292,7 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
             second = optInt(matcher.group("shortSecond"));
             fraction = parseNanos(matcher.group("shortFraction"));
         }
-        return assertParsable(() -> LocalTime.of(hour, minute, second, fraction));
+        return assertParsable(matcher.group(), () -> LocalTime.of(hour, minute, second, fraction));
     }
 
     private static int parseNanos(String value) {

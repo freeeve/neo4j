@@ -141,7 +141,7 @@ public class IllegalStructArgumentException extends PackstreamStructException {
                 .withParam(GqlParams.StringParam.valueType, expectedType)
                 .withParam(GqlParams.NumberParam.lower, lowerLimit)
                 .withParam(GqlParams.NumberParam.upper, upperLimit)
-                .withParam(GqlParams.NumberParam.value, actualValue)
+                .withParam(GqlParams.StringParam.value, String.valueOf(actualValue))
                 .build());
         return new IllegalStructArgumentException(gql, fieldName, message);
     }

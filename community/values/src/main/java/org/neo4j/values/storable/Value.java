@@ -245,14 +245,13 @@ public abstract class Value extends AnyValue {
      */
     public static Map<String, String> parseStringMap(CharSequence text) {
         Matcher mapMatcher = MAP_PATTERN.matcher(text);
-        String errorMessage = format("Failed to parse map value: '%s'", text);
         if (!(mapMatcher.find() && mapMatcher.groupCount() == 1)) {
-            throw new InvalidArgumentException(errorMessage);
+            throw InvalidArgumentException.parseMapValue(String.valueOf(text));
         }
 
         String mapContents = mapMatcher.group(1);
         if (mapContents.isEmpty()) {
-            throw new InvalidArgumentException(errorMessage);
+            throw InvalidArgumentException.parseMapValue(String.valueOf(text));
         }
 
         Map<String, String> data = new HashMap<>();
@@ -287,7 +286,7 @@ public abstract class Value extends AnyValue {
             var value = mapContents.substring(i, end);
 
             if (data.containsKey(key)) {
-                throw new InvalidArgumentException(format("Duplicate field '%s'", key));
+                throw InvalidArgumentException.duplicateField(key);
             }
             data.put(key, value);
             i = end + 1;

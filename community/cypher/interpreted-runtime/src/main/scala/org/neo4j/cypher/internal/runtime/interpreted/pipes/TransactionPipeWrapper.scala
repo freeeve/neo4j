@@ -304,7 +304,7 @@ object TransactionPipeWrapper {
   }
 
   def evaluateBatchSize(batchSize: Expression, state: QueryState): Long = {
-    PipeHelper.evaluateStaticLongOrThrow(batchSize, _ > 0, state, "OF ... ROWS", " Must be a positive integer.")
+    PipeHelper.evaluateStaticLongOrThrow(batchSize, 1, state, "OF ... ROWS", " Must be a positive integer.")
   }
 
   def evaluateConcurrency(concurrency: Option[Expression], state: QueryState): Long = {
@@ -312,7 +312,7 @@ object TransactionPipeWrapper {
       case Some(c) =>
         PipeHelper.evaluateStaticLongOrThrow(
           c,
-          _ => true,
+          Long.MinValue,
           state,
           "IN ... CONCURRENT TRANSACTIONS",
           ""

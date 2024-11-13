@@ -473,7 +473,7 @@ public class PointValue extends HashMemoizingScalarValue implements Point, Compa
 
                 case "srid" -> {
                     if (srid != -1) {
-                        throw new InvalidArgumentException(String.format("Duplicate field '%s' is not allowed.", key));
+                        throw InvalidArgumentException.duplicateFieldNotAllowed(key);
                     }
                     assignIntegral(key, value, i -> srid = i);
                 }
@@ -499,7 +499,9 @@ public class PointValue extends HashMemoizingScalarValue implements Point, Compa
             } else if (value instanceof TextValue) {
                 assigner.accept(((TextValue) value).stringValue());
             } else {
-                throw new InvalidArgumentException(String.format("Cannot assign %s to field %s", value, key));
+                String prettyVal = value instanceof Value v ? v.prettyPrint() : String.valueOf(value);
+                throw InvalidArgumentException.cannotAssignPointField(
+                        String.valueOf(value), prettyVal, key, List.of("STRING"));
             }
         }
 
@@ -511,7 +513,10 @@ public class PointValue extends HashMemoizingScalarValue implements Point, Compa
             } else if (value instanceof FloatingPointValue) {
                 assigner.accept(((FloatingPointValue) value).doubleValue());
             } else {
-                throw new InvalidArgumentException(String.format("Cannot assign %s to field %s", value, key));
+                String prettyVal = value instanceof Value v ? v.prettyPrint() : String.valueOf(value);
+
+                throw InvalidArgumentException.cannotAssignPointField(
+                        String.valueOf(value), prettyVal, key, List.of("FLOAT", "INTEGER"));
             }
         }
 
@@ -521,7 +526,9 @@ public class PointValue extends HashMemoizingScalarValue implements Point, Compa
             } else if (value instanceof IntegralValue) {
                 assigner.accept((int) ((IntegralValue) value).longValue());
             } else {
-                throw new InvalidArgumentException(String.format("Cannot assign %s to field %s", value, key));
+                String prettyVal = value instanceof Value v ? v.prettyPrint() : String.valueOf(value);
+                throw InvalidArgumentException.cannotAssignPointField(
+                        String.valueOf(value), prettyVal, key, List.of("INTEGER"));
             }
         }
 
@@ -535,7 +542,7 @@ public class PointValue extends HashMemoizingScalarValue implements Point, Compa
 
         private static void checkUnassigned(Object key, String fieldName) {
             if (key != null) {
-                throw new InvalidArgumentException(String.format("Duplicate field '%s' is not allowed.", fieldName));
+                throw InvalidArgumentException.duplicateFieldNotAllowed(fieldName);
             }
         }
 

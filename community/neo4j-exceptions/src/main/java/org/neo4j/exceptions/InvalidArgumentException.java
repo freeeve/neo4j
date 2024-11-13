@@ -21,6 +21,7 @@ package org.neo4j.exceptions;
 
 import static java.lang.String.format;
 
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
@@ -159,6 +160,31 @@ public class InvalidArgumentException extends Neo4jException {
                 "Incorrect format of encrypted password. Correct format is '<encryption-version>,<hash>,<salt>'.");
         var gql = GqlHelper.getGql42001_22N04("*", "password format", List.of("'<encryption-version>,<hash>,<salt>'"));
         return new InvalidArgumentException(gql, innerException.getMessage(), innerException);
+    }
+
+    public static InvalidArgumentException duplicateFieldNotAllowed(String key) {
+        var gql = GqlHelper.getGql22007_22N12(key);
+        return new InvalidArgumentException(gql, String.format("Duplicate field '%s' is not allowed.", key));
+    }
+
+    public static InvalidArgumentException duplicateField(String key) {
+        var gql = GqlHelper.getGql22007_22N12(key);
+        return new InvalidArgumentException(gql, format("Duplicate field '%s'", key));
+    }
+
+    public static InvalidArgumentException parseMapValue(String text) {
+        var gql = GqlHelper.getGql22007_22N12(text);
+        return new InvalidArgumentException(gql, format("Failed to parse map value: '%s'", text));
+    }
+
+    public static InvalidArgumentException setTimeZoneTwice(String value) {
+        var gql = GqlHelper.getGql22007_22N12(value);
+        return new InvalidArgumentException(gql, "Cannot set timezone twice");
+    }
+
+    public static InvalidArgumentException unsupportedHeader(String key, String value) {
+        var gql = GqlHelper.getGql22007_22N12(key);
+        return new InvalidArgumentException(gql, "Unsupported header field: " + value);
     }
 
     public static InvalidArgumentException alterRemoteAliasToLocal(String alias) {
@@ -359,6 +385,200 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, legacyMessage, cause);
     }
 
+    public static InvalidArgumentException mustSpecifyField(String mustAssign) {
+        var gql = GqlHelper.getGql22007_22N12(mustAssign);
+        return new InvalidArgumentException(gql, mustAssign + " must be specified");
+    }
+
+    public static InvalidArgumentException cannotReassign(String newValue, String field) {
+        var gql = GqlHelper.getGql22007_22N12(newValue);
+        return new InvalidArgumentException(gql, "cannot re-assign " + field);
+    }
+
+    public static InvalidArgumentException cannotAssignNonStringTimezone(
+            String value, String field, String prettyValue) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22007)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N27)
+                        .withParam(GqlParams.StringParam.input, prettyValue)
+                        .withParam(GqlParams.StringParam.variable, "timezone")
+                        .withParam(GqlParams.ListParam.valueTypeList, List.of("STRING"))
+                        .build())
+                .build();
+        return new InvalidArgumentException(gql, String.format("Cannot assign %s to field %s", value, field));
+    }
+
+    public static InvalidArgumentException cannotAssignPointField(
+            String value, String field, String prettyValue, List<String> expectedTypes) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N27)
+                        .withParam(GqlParams.StringParam.input, prettyValue)
+                        .withParam(GqlParams.StringParam.variable, "coordinate " + field.toLowerCase(Locale.ROOT))
+                        .withParam(GqlParams.ListParam.valueTypeList, expectedTypes)
+                        .build())
+                .build();
+        return new InvalidArgumentException(gql, String.format("Cannot assign %s to field %s", value, field));
+    }
+
+    public static InvalidArgumentException assignTimezoneTwice(String timezone) {
+        var gql = GqlHelper.getGql22007_22N12(timezone);
+        return new InvalidArgumentException(gql, "Cannot assign timezone twice.");
+    }
+
+    public static InvalidArgumentException noSuchTemporalField(String field) {
+        var gql = GqlHelper.getGql22007_22N12(field);
+        return new InvalidArgumentException(gql, "No such field: " + field);
+    }
+
+    public static InvalidArgumentException noSuchPointField(String field) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N11)
+                .withParam(GqlParams.StringParam.input, field)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N04)
+                        .withParam(GqlParams.StringParam.input, field)
+                        .withParam(GqlParams.StringParam.context, "coordinate")
+                        .withParam(
+                                GqlParams.ListParam.inputList,
+                                List.of("x", "y", "z", "longitude", "latitude", "height", "crs", "srid"))
+                        .build())
+                .build();
+        return new InvalidArgumentException(gql, "No such field: " + field);
+    }
+
+    public static InvalidArgumentException cannotSpecifyWithout(String value, String missing) {
+        var gql = GqlHelper.getGql22007_22N12(value);
+        return new InvalidArgumentException(gql, value + " cannot be specified without " + missing);
+    }
+
+    public static InvalidArgumentException invalidMillisecondValue(long upper, long value) {
+        var gql = GqlHelper.getGql22007_22N03("Millisecond", "INTEGER", 0, upper, value);
+        return new InvalidArgumentException(gql, "Invalid value for Millisecond: " + value);
+    }
+
+    public static InvalidArgumentException invalidMicrosecondValue(long upper, long value) {
+        var gql = GqlHelper.getGql22007_22N03("Microsecond", "INTEGER", 0, upper, value);
+        return new InvalidArgumentException(gql, "Invalid value for Microsecond: " + value);
+    }
+
+    public static InvalidArgumentException invalidNanosecondValue(long upper, long value) {
+        var gql = GqlHelper.getGql22007_22N03("Nanosecond", "INTEGER", 0, upper, value);
+        return new InvalidArgumentException(gql, "Invalid value for Nanosecond: " + value);
+    }
+
+    public static InvalidArgumentException invalidNanosecond(long upper, long value) {
+        var gql = GqlHelper.getGql22007_22N03("Nanosecond", "INTEGER", 0, upper, value);
+        return new InvalidArgumentException(gql, "Invalid nanosecond: " + value);
+    }
+
+    public static InvalidArgumentException zeroStepRange() {
+        var gql = GqlHelper.getGql22N38_22N03("range", "step", "INTEGER", 1, Long.MAX_VALUE, String.valueOf(0));
+        return new InvalidArgumentException(gql, "Step argument to 'range()' cannot be zero");
+    }
+
+    public static InvalidArgumentException negRoundPrecision(int precision) {
+        var gql = GqlHelper.getGql22N38_22N03("round", "precision", "INTEGER", 0, Long.MAX_VALUE, precision);
+        return new InvalidArgumentException(gql, "Precision argument to 'round()' cannot be negative");
+    }
+
+    public static InvalidArgumentException tooManyWeeksThisYear(int week, int year) {
+        var gql = GqlHelper.getGql22007_22N03("week of year " + year, "INTEGER", 1, 52, week);
+        return new InvalidArgumentException(gql, String.format("Year %d does not contain %d weeks.", year, week));
+    }
+
+    public static InvalidArgumentException temporalOutOfRange(ChronoUnit unit, long value) {
+        String msg;
+        ErrorGqlStatusObject gql;
+        switch (unit) {
+            case MONTHS -> {
+                msg = "months is out of range: " + value;
+                gql = GqlHelper.getGql22007_22N03("month", "INTEGER", 1, 12, value);
+            }
+            case DAYS -> {
+                msg = "days is out of range: " + value;
+                gql = GqlHelper.getGql22007_22N03("day", "INTEGER", 1, 31, value);
+            }
+            case HOURS -> {
+                msg = "hours out of range: " + value;
+                gql = GqlHelper.getGql22007_22N03("hours", "INTEGER", 0, 24, value);
+            }
+            case MINUTES -> {
+                msg = "minutes out of range: " + value;
+                gql = GqlHelper.getGql22007_22N03("minutes", "INTEGER", 0, 60, value);
+            }
+            case SECONDS -> {
+                msg = "seconds out of range: " + value;
+                gql = GqlHelper.getGql22007_22N03("seconds", "INTEGER", 0, 60, value);
+            }
+            default -> {
+                msg = unit.name().toLowerCase() + "out of range: " + value;
+                gql = GqlHelper.getGql22007_22N03(unit.name().toLowerCase(), "INTEGER", -1, -1, value);
+            }
+        }
+        ;
+        return new InvalidArgumentException(gql, msg);
+    }
+
+    public static InvalidArgumentException only91DaysInQuarter2(int year, int quarterDay) {
+        var gql = GqlHelper.getGql22007_22N03("Day of Quarter 2 of year " + year, "INTEGER", 1, 91, quarterDay);
+        return new InvalidArgumentException(gql, "Quarter 2 only has 91 days.");
+    }
+
+    public static InvalidArgumentException only90Or91DaysInQuarter1(int year, int quarterDay, int dayLimit) {
+        var gql = GqlHelper.getGql22007_22N03("Day of Quarter 1 of year " + year, "INTEGER", 1, dayLimit, quarterDay);
+        return new InvalidArgumentException(gql, String.format("Quarter 1 of %d only has %d days.", year, dayLimit));
+    }
+
+    public static InvalidArgumentException invalidValuePrefixSuffix(
+            long minValue, String actualValue, String prefix, String suffix, String actualValuePretty) {
+        var gql = GqlHelper.getGql22003_22N03("value", "INTEGER", minValue, Long.MAX_VALUE, actualValuePretty);
+        return new InvalidArgumentException(
+                gql, String.format("%s: Invalid input. '%s' is not a valid value.%s", prefix, actualValue, suffix));
+    }
+
+    public static InvalidArgumentException invalidDoubleValuePrefixSuffix(
+            String actualValue, String prefix, String suffix, String actualValuePretty) {
+        var gql = GqlHelper.getGql22G03_22N01(actualValuePretty, List.of("INTEGER"), "FLOAT");
+        return new InvalidArgumentException(
+                gql, String.format("%s: Invalid input. '%s' is not a valid value.%s", prefix, actualValue, suffix));
+    }
+
+    public static InvalidArgumentException countNotPosInt(Number actualCount) {
+        var gql = GqlHelper.getGql22003_22N03("value", "INTEGER", 0, Long.MAX_VALUE, String.valueOf(actualCount));
+        return new InvalidArgumentException(
+                gql,
+                String.format(
+                        "Invalid input. '%s' is not a valid value. Must be a non-negative integer.", actualCount));
+    }
+
+    public static InvalidArgumentException countDoubleNotPosInt(double actualCount) {
+        var gql = GqlHelper.getGql22G03_22N01(String.valueOf(actualCount), List.of("INTEGER"), "FLOAT");
+        return new InvalidArgumentException(
+                gql,
+                String.format(
+                        "Invalid input. '%s' is not a valid value. Must be a non-negative integer.", actualCount));
+    }
+
+    public static InvalidArgumentException invalidPercentage(double faultyPercentage) {
+        var gql = GqlHelper.getGql22003_22N03("percentage", "FLOAT", 0, 1, String.valueOf(faultyPercentage));
+        return new InvalidArgumentException(
+                gql,
+                String.format(
+                        "Invalid input '%s' is not a valid argument, must be a number in the range 0.0 to 1.0",
+                        faultyPercentage));
+    }
+
+    public static InvalidArgumentException cannotConstructTemporal(String temporal, String got, String gotPretty) {
+        String cypherType =
+                switch (temporal) {
+                    case "date" -> "DATE";
+                    case "time" -> "ZONED TIME";
+                    case "date time" -> "ZONED DATETIME";
+                    case "local date time" -> "LOCAL DATETIME";
+                    case "local time" -> "LOCAL TIME";
+                    default -> temporal;
+                };
+        var gql = GqlHelper.getGql22007_22N25(cypherType, gotPretty);
+        return new InvalidArgumentException(gql, String.format("Cannot construct %s from: %s", temporal, got));
+    }
+
     public static InvalidArgumentException needIntegerOrFloat(String gotPretty, String gotType) {
         var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of("INTEGER", "FLOAT"), gotType);
         return new InvalidArgumentException(gql, "Factor must be either integer of floating point number.");
@@ -375,5 +595,10 @@ public class InvalidArgumentException extends Neo4jException {
                         .build())
                 .build();
         return new InvalidArgumentException(gql, legacyMessage);
+    }
+
+    public static InvalidArgumentException failedConvertFunction(String function, Throwable cause) {
+        var gql = GqlHelper.getGql22000_22N11(function);
+        return new InvalidArgumentException(gql, cause.getMessage(), cause);
     }
 }
