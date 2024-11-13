@@ -1505,6 +1505,89 @@ Feature: SubqueryAcceptance
       | 2 | 2    |
     And no side effects
 
+  Scenario: Non-grouping aggregation with empty driving table should output a single row
+    When executing query:
+      """
+      UNWIND [0, 1, 2] AS x
+      CALL(x) {
+        UNWIND range(1, 3) AS i
+        WITH i WHERE i < 0
+        WITH count(*) AS c
+        RETURN x + c AS result
+      }
+      RETURN x, result
+      """
+    Then the result should be, in any order:
+      | x | result |
+      | 0 | 0      |
+      | 1 | 1      |
+      | 2 | 2      |
+    And no side effects
+
+  Scenario: Non-grouping aggregation with empty driving table should output a single row, UNION subquery
+    When executing query:
+      """
+      UNWIND [0, 1, 2] AS x
+      CALL(x) {
+        UNWIND range(1, 3) AS i
+        WITH i WHERE i < 0
+        WITH count(*) AS c
+        RETURN x + c AS result
+       UNION
+        UNWIND range(1, 3) AS i
+        WITH i WHERE i < 0
+        WITH count(*) AS c
+        RETURN c - x AS result
+      }
+      RETURN x, result
+      """
+    Then the result should be, in any order:
+      | x | result |
+      | 0 | 0      |
+      | 1 | 1      |
+      | 1 | -1     |
+      | 2 | 2      |
+      | 2 | -2     |
+    And no side effects
+
+  Scenario: Non-grouping aggregation with empty driving table should output a single row, nested subquery
+    When executing query:
+      """
+      UNWIND [0, 1, 2] AS x
+      CALL(x) {
+        WITH 1 AS y
+        CALL(*) {
+          UNWIND range(1, 3) AS i
+          WITH i WHERE i < 0
+          WITH count(*) AS c
+          RETURN x + c + y AS result
+        }
+        RETURN result
+      }
+      RETURN x, result
+      """
+    Then the result should be, in any order:
+      | x | result |
+      | 0 | 1      |
+      | 1 | 2      |
+      | 2 | 3      |
+    And no side effects
+
+  Scenario: Grouping aggregation with empty driving table should not output any rows
+    When executing query:
+      """
+      UNWIND [0, 1, 2] AS x
+      CALL(x) {
+        UNWIND range(1, 3) AS i
+        WITH i WHERE i < 0
+        WITH x, count(*) AS c
+        RETURN x + c AS result
+      }
+      RETURN x, result
+      """
+    Then the result should be, in any order:
+      | x | result |
+
   # Negative tests
 
   Scenario: Scope clause disables IMPORTING WITH

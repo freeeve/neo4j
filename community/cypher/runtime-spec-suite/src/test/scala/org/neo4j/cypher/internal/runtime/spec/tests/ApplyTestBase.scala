@@ -474,4 +474,113 @@ abstract class ApplyTestBase[CONTEXT <: RuntimeContext](
         .toArray
     }
   }
+
+  test("argument variables are available on RHS of Apply directly after aggregation with filtered-out input") {
+    // given
+    val nodes = givenGraph {
+      nodePropertyGraph(
+        sizeHint,
+        {
+          case i: Int => Map("prop" -> i)
+        },
+        "Label"
+      )
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x", "str")
+      .apply()
+      .|.projection("toString(x.prop) AS str")
+      .|.aggregation(Seq.empty, Seq("count(*) as c"))
+      .|.filter("x.prop < 0")
+      .|.argument("x")
+      .allNodeScan("x")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val expected = nodes.zipWithIndex.map {
+      case (n, i) => Array(n, i.toString)
+    }
+    runtimeResult should beColumns("x", "str").withRows(expected)
+  }
+
+  test(
+    "argument variables are available on RHS of Apply directly after aggregation with filtered-out input, nested Apply"
+  ) {
+    // given
+    val nodes = givenGraph {
+      nodePropertyGraph(
+        sizeHint,
+        {
+          case i: Int => Map("prop" -> i)
+        },
+        "Label"
+      )
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x", "str")
+      .apply()
+      .|.apply()
+      .|.|.projection("'n_' + toString(x.prop) AS str")
+      .|.|.aggregation(Seq.empty, Seq("count(*) as c"))
+      .|.|.filter("x.prop < 0")
+      .|.|.argument("x")
+      .|.argument("x")
+      .allNodeScan("x")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val expected = nodes.zipWithIndex.map {
+      case (n, i) => Array(n, "n_" + i.toString)
+    }
+    runtimeResult should beColumns("x", "str").withRows(expected)
+  }
+
+  test("argument variables are available on RHS of Apply directly after aggregation with filtered-out input, UNION") {
+    // given
+    val nodes = givenGraph {
+      nodePropertyGraph(
+        sizeHint,
+        {
+          case i: Int => Map("prop" -> i)
+        },
+        "Label"
+      )
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x", "str")
+      .apply()
+      .|.distinct("str AS str")
+      .|.union()
+      .|.|.projection("reverse(toString(x.prop)) AS str")
+      .|.|.aggregation(Seq.empty, Seq("count(*) as c"))
+      .|.|.filter("x.prop < 0")
+      .|.|.argument("x")
+      .|.projection("toString(x.prop) AS str")
+      .|.aggregation(Seq.empty, Seq("count(*) as c"))
+      .|.filter("x.prop < 0")
+      .|.argument("x")
+      .allNodeScan("x")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val expected = nodes.zipWithIndex.flatMap {
+      case (n, i) => Seq(
+          Seq(n, i.toString),
+          Seq(n, i.toString.reverse)
+        ).distinct.map(_.toArray)
+    }
+    runtimeResult should beColumns("x", "str").withRows(expected)
+  }
 }

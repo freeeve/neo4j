@@ -415,6 +415,17 @@ class LivenessAnalysisTest extends CypherFunSuite {
       .allNodeScan("n").expectLive("n")
       .assertCorrectLiveness()
   }
+
+  test("aggregation does not remove argument on RHS of Apply") {
+    new PlanWithLiveAsserts()
+      .produceResults("result").expectLive("result")
+      .apply().expectLive("result")
+      .|.projection("n.prop + c AS result").expectLive("c", "n", "result")
+      .|.aggregation(Seq.empty, Seq("count(*) AS c")).expectLive("c", "n", "result")
+      .|.argument("n").expectLive("n", "result")
+      .allNodeScan("n").expectLive("n")
+      .assertCorrectLiveness()
+  }
 }
 
 object LivenessAnalysisTest {
