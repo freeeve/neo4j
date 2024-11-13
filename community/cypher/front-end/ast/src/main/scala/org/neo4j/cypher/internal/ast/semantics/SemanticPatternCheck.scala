@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.PatternStringifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.success
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
+import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck.TypeMismatchContext
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FixedQuantifier
 import org.neo4j.cypher.internal.expressions.GraphPatternQuantifier
@@ -307,13 +308,13 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
       case x: RelationshipChain =>
         check(ctx, x.element) chain
           check(ctx, x.relationship) chain
-          checkDynamicLabels(ctx, x.relationship.labelExpression) chain
+          checkDynamicLabels(ctx, x.relationship.labelExpression, isLabels = false) chain
           check(ctx, x.rightNode)
 
       case x: NodePattern =>
         checkNodeProperties(ctx, x.properties) chain
           checkLabelExpressions(ctx, x.labelExpression) chain
-          checkDynamicLabels(ctx, x.labelExpression) chain
+          checkDynamicLabels(ctx, x.labelExpression, isLabels = true) chain
           checkPredicate(ctx, x)
 
       case PathConcatenation(factors) =>
@@ -849,23 +850,22 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
         SemanticExpressionCheck.checkLabelExpression(Some(NODE_TYPE), labelExpression)
     }
 
-  private def checkDynamicLabels(ctx: SemanticContext, labelExpression: Option[LabelExpression]): SemanticCheck = {
+  private def checkDynamicLabels(
+    ctx: SemanticContext,
+    labelExpression: Option[LabelExpression],
+    isLabels: Boolean
+  ): SemanticCheck = {
     labelExpression.foldSemanticCheck { labelExpression =>
       val dynamicLabelExpressions = labelExpression.folder.findAllByClass[LabelExpressionDynamicLeafExpression]
       val dynamicLabels = dynamicLabelExpressions.map(_.expression)
-      whenState(
-        !_.features.contains(SemanticFeature.DynamicLabelsAndTypes)
-      ) {
-        dynamicLabels.map {
-          e => SemanticError("Setting labels or types dynamically is not supported.", e.position)
-        }
-      } chain when(
+      when(
         ctx != SemanticContext.Match && ctx != SemanticContext.Expression
       ) {
         { (state: SemanticState) =>
           val errors = dynamicLabelExpressions.filter(!_.all).map { dynamicLabel =>
             SemanticError(
-              s"""Dynamic labels using `$$any()` are not allowed in CREATE or MERGE.""".stripMargin,
+              s"""Dynamic ${if (isLabels) "labels"
+                else "types"} using `$$any()` are not allowed in CREATE or MERGE.""".stripMargin,
               dynamicLabel.position
             )
           }
@@ -874,7 +874,11 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
       } chain
         SemanticExpressionCheck.simple(dynamicLabels) chain
         SemanticPatternCheck.checkValidDynamicLabels(dynamicLabels, labelExpression.position) chain
-        SemanticExpressionCheck.expectType(CTString.covariant | CTList(CTString).covariant, dynamicLabels)
+        SemanticExpressionCheck.expectType(
+          CTString.covariant | CTList(CTString).covariant,
+          dynamicLabels,
+          if (isLabels) TypeMismatchContext.DYNAMIC_LABEL else TypeMismatchContext.DYNAMIC_TYPE
+        )
     }
   }
 

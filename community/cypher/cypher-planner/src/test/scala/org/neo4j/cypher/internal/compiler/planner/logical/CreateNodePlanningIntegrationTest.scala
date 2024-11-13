@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DynamicLabelsAndTypes
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
@@ -378,7 +377,6 @@ class CreateNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlann
   test("create a single node with a combination of static and dynamic labels") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(10)
         .build()
 
@@ -399,7 +397,6 @@ class CreateNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlann
   test("insert an eager between creating a node with a dynamic label and reading nodes") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
         .build()
@@ -426,7 +423,6 @@ class CreateNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlann
   test("insert an eager between reading nodes and creating a node with a dynamic label") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
         .build()

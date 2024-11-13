@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DynamicLabelsAndTypes
 import org.neo4j.cypher.internal.compiler.planner.BeLikeMatcher.beLike
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -372,7 +371,6 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   test("merge a single node with a combination of static and dynamic labels") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
         .build()
@@ -397,7 +395,6 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   test("insert an eager between merging a node with a dynamic label and reading nodes") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
         .build()
@@ -425,7 +422,6 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   test("insert an eager between reading nodes and merging a node with a dynamic label") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
         .build()
@@ -456,7 +452,6 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   test("Eager should be inserted between MATCH and MERGE ON CREATE with dynamic label") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
         .build()
@@ -488,7 +483,6 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   test("Eager should be inserted between MATCH and MERGE ON MATCH with dynamic label") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
         .build()
@@ -520,7 +514,6 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   test("Eager should be inserted between MERGE ON CREATE and MATCH with dynamic label") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(100)
         .setLabelCardinality("Account", 50)
         .setLabelCardinality("Person", 50)
@@ -558,7 +551,6 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   test("Eager should be inserted between MERGE ON MATCH and MATCH with dynamic label") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(100)
         .setLabelCardinality("Account", 50)
         .setLabelCardinality("Person", 50)
@@ -596,7 +588,6 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   test("Eager should be inserted between MATCH and subquery containing MERGE ON CREATE with dynamic label") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(100)
         .setLabelCardinality("A", 20)
         .setLabelCardinality("B", 20)

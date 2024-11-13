@@ -22,7 +22,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.hasAnyDynamicLabel
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.hasDynamicLabels
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.varFor
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DynamicLabelsAndTypes
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.ir.EagernessReason
@@ -139,7 +138,6 @@ class ForeachPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
 
   test("Eager should be inserted between FOREACH REMOVE with dynamic label and MATCH") {
     val planner = plannerBuilder()
-      .addSemanticFeature(DynamicLabelsAndTypes)
       .setAllNodesCardinality(100)
       .setLabelCardinality("100", 50)
       .build()

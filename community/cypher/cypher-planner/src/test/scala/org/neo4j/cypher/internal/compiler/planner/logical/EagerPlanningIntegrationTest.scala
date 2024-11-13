@@ -22,7 +22,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.EagerAnalysisImplementation
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DynamicLabelsAndTypes
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
@@ -1910,7 +1909,6 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
 
   test("eagerness should handle matching on dynamic labels - Create overlap") {
     val planner = plannerBuilder()
-      .addSemanticFeature(DynamicLabelsAndTypes)
       .setAllNodesCardinality(100)
       .setLabelCardinality("C", 10)
       .build()
@@ -1940,7 +1938,6 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
 
   test("eagerness should handle matching on dynamic labels - Set overlap") {
     val planner = plannerBuilder()
-      .addSemanticFeature(DynamicLabelsAndTypes)
       .setAllNodesCardinality(100)
       .setLabelCardinality("Z", 10)
       .build()
@@ -1978,7 +1975,6 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
 
   test("eagerness should handle matching on Dynamic Labels - Delete overlap") {
     val planner = plannerBuilder()
-      .addSemanticFeature(DynamicLabelsAndTypes)
       .setAllNodesCardinality(100)
       .setLabelCardinality("Z", 10)
       .setRelationshipCardinality("()-[]->()", 10)
@@ -2020,7 +2016,6 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
 
   test("eagerness should handle matching on Dynamic Types - Create overlap") {
     val planner = plannerBuilder()
-      .addSemanticFeature(DynamicLabelsAndTypes)
       .setAllNodesCardinality(100)
       .setLabelCardinality("Z", 10)
       .setRelationshipCardinality("()-[]->()", 10)
@@ -2059,7 +2054,6 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
   test("insert an eager between creating a node with a dynamic label and reading nodes") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
         .build()
@@ -2086,7 +2080,6 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
   test("insert an eager between reading nodes and creating a node with a dynamic label") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
         .build()
@@ -2114,7 +2107,6 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
   test("insert an eager between reading a relationship and creating a relationship with a dynamic type") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(10)
         .setLabelCardinality("A", 1)
         .setRelationshipCardinality("()-[]->()", 1)
@@ -2151,7 +2143,6 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
   test("insert an eager between reading nodes and merging a node with a dynamic label") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
         .build()
@@ -2182,7 +2173,6 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
   test("insert an eager between reading relationships and merging a relationship with a dynamic type") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(1000)
         .setLabelCardinality("A", 100)
         .setLabelCardinality("B", 100)
@@ -2259,7 +2249,6 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
 
   test("Eager should be inserted between FOREACH REMOVE with dynamic label and MATCH") {
     val planner = plannerBuilder()
-      .addSemanticFeature(DynamicLabelsAndTypes)
       .setAllNodesCardinality(100)
       .setLabelCardinality("100", 50)
       .build()
@@ -2304,7 +2293,6 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
   test("Eager should be inserted between MATCH and MERGE ON CREATE with dynamic label") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
         .build()
@@ -2336,7 +2324,6 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
   test("Eager should be inserted between MATCH and MERGE ON MATCH with dynamic label") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
         .build()
@@ -2368,7 +2355,6 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
   test("Eager should be inserted between MERGE ON CREATE and MATCH with dynamic label") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(100)
         .setLabelCardinality("Account", 50)
         .setLabelCardinality("Person", 50)
@@ -2406,7 +2392,6 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
   test("Eager should be inserted between MERGE ON MATCH and MATCH with dynamic label") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(100)
         .setLabelCardinality("Account", 50)
         .setLabelCardinality("Person", 50)
@@ -2444,7 +2429,6 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
   test("Eager should be inserted between MATCH and subquery containing MERGE ON CREATE with dynamic label") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(100)
         .setLabelCardinality("A", 20)
         .setLabelCardinality("B", 20)

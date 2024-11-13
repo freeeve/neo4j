@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.label_expressions
 
 import org.neo4j.cypher.internal.expressions.BooleanExpression
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.HasMappableExpressions
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.SymbolicName
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonConjunction
@@ -85,7 +86,7 @@ object LabelExpressionPredicate {
   case object UnparenthesizedLabelPredicateOnRhsOfAdd extends DeprecatedFeature.DeprecatedIn5ErrorIn25
 }
 
-sealed trait LabelExpression extends ASTNode {
+sealed trait LabelExpression extends ASTNode with HasMappableExpressions[LabelExpression] {
 
   /**
    * Whether this label expression was defined using the IS syntax
@@ -158,7 +159,8 @@ sealed trait LabelExpression extends ASTNode {
 
 trait LabelExpressionLeafName extends SymbolicName
 
-trait LabelExpressionDynamicLeafExpression extends ASTNode {
+trait LabelExpressionDynamicLeafExpression extends ASTNode
+    with HasMappableExpressions[LabelExpressionDynamicLeafExpression] {
   def expression: Expression
   def all: Boolean
 }
@@ -193,6 +195,10 @@ object LabelExpression {
         this
       }
     }
+
+    override def mapExpressions(f: Expression => Expression): LabelExpression = copy(
+      children = children.map(_.mapExpressions(f))
+    )(this.position)
   }
 
   object Disjunctions {
@@ -217,6 +223,10 @@ object LabelExpression {
         this
       }
     }
+
+    override def mapExpressions(f: Expression => Expression): LabelExpression = copy(
+      children = children.map(_.mapExpressions(f))
+    )(this.position)
   }
 
   object Conjunctions {
@@ -233,13 +243,25 @@ object LabelExpression {
    */
   case class ColonConjunction(lhs: LabelExpression, rhs: LabelExpression, override val containsIs: Boolean = false)(
     val position: InputPosition
-  ) extends BinaryLabelExpression
+  ) extends BinaryLabelExpression {
+
+    override def mapExpressions(f: Expression => Expression): LabelExpression = copy(
+      lhs = lhs.mapExpressions(f),
+      rhs = rhs.mapExpressions(f)
+    )(this.position)
+  }
 
   /* This is the old now deprecated relationship type disjunction [r:A|:B]
    */
   case class ColonDisjunction(lhs: LabelExpression, rhs: LabelExpression, override val containsIs: Boolean = false)(
     val position: InputPosition
-  ) extends BinaryLabelExpression
+  ) extends BinaryLabelExpression {
+
+    override def mapExpressions(f: Expression => Expression): LabelExpression = copy(
+      lhs = lhs.mapExpressions(f),
+      rhs = rhs.mapExpressions(f)
+    )(this.position)
+  }
 
   case class Negation(e: LabelExpression, override val containsIs: Boolean = false)(val position: InputPosition)
       extends LabelExpression {
@@ -251,10 +273,16 @@ object LabelExpression {
         case e           => e.flatten
       }
     }
+
+    override def mapExpressions(f: Expression => Expression): LabelExpression = copy(
+      e = e.mapExpressions(f)
+    )(this.position)
   }
 
   case class Wildcard(override val containsIs: Boolean = false)(val position: InputPosition) extends LabelExpression {
     override def flatten: Seq[LabelExpressionLeafName] = Seq.empty
+
+    override def mapExpressions(f: Expression => Expression): LabelExpression = this
   }
 
   case class Leaf(name: LabelExpressionLeafName, override val containsIs: Boolean = false) extends LabelExpression {
@@ -268,6 +296,8 @@ object LabelExpression {
       case Seq(dupName, dupContainsIs, _: InputPosition) => super.dup(Seq(dupName, dupContainsIs))
       case _                                             => super.dup(children)
     }
+
+    override def mapExpressions(f: Expression => Expression): LabelExpression = this
   }
 
   case class DynamicLeaf(expr: LabelExpressionDynamicLeafExpression, override val containsIs: Boolean = false)
@@ -282,6 +312,10 @@ object LabelExpression {
       case Seq(name, containsIs, _: InputPosition) => super.dup(Seq(name, containsIs))
       case _                                       => super.dup(children)
     }
+
+    override def mapExpressions(f: Expression => Expression): DynamicLeaf = copy(
+      expr = expr.mapExpressions(f)
+    )
   }
 
   def getRelTypes(relTypes: Option[LabelExpression]): Seq[RelTypeName] = {

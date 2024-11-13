@@ -40,6 +40,8 @@ import org.neo4j.cypher.internal.frontend.phases.ListCoercedToBooleanCheck.listC
 import org.neo4j.cypher.internal.frontend.phases.PatternExpressionInNonExistenceCheck.patternExpressionInNonExistenceCheck
 import org.neo4j.cypher.internal.frontend.phases.SemanticTypeCheck.SemanticErrorCheck
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
+import org.neo4j.cypher.internal.label_expressions.LabelExpression
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.util.ASTNode
@@ -158,12 +160,21 @@ trait VariableReferenceCheck {
     def findRefVariables(e: Option[Expression]): Set[LogicalVariable] =
       e.fold(Set.empty[LogicalVariable])(_.dependencies)
 
+    def findDynamicVariables(e: Option[LabelExpression]): Set[LogicalVariable] =
+      e.folder.findAllByClass[DynamicLeaf].flatten(_.expr.expression.dependencies).toSet
+
     val (declaredVariables, referencedVariables) =
       ast.folder.treeFold[(Set[LogicalVariable], Set[LogicalVariable])]((Set.empty, Set.empty)) {
-        case NodePattern(maybeVariable, _, maybeProperties, _) => acc =>
-            SkipChildren((acc._1 ++ maybeVariable.filter(isDefinition), acc._2 ++ findRefVariables(maybeProperties)))
-        case RelationshipPattern(maybeVariable, _, _, maybeProperties, _, _) => acc =>
-            SkipChildren((acc._1 ++ maybeVariable.filter(isDefinition), acc._2 ++ findRefVariables(maybeProperties)))
+        case NodePattern(maybeVariable, labelExpression, maybeProperties, _) => acc =>
+            SkipChildren((
+              acc._1 ++ maybeVariable.filter(isDefinition),
+              acc._2 ++ findRefVariables(maybeProperties) ++ findDynamicVariables(labelExpression)
+            ))
+        case RelationshipPattern(maybeVariable, labelExpression, _, maybeProperties, _, _) => acc =>
+            SkipChildren((
+              acc._1 ++ maybeVariable.filter(isDefinition),
+              acc._2 ++ findRefVariables(maybeProperties) ++ findDynamicVariables(labelExpression)
+            ))
         case NamedPatternPart(variable, _) => acc => TraverseChildren((acc._1 + variable, acc._2))
       }
     referencedVariables.intersect(declaredVariables)

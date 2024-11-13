@@ -52,6 +52,30 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
     )
   }
 
+  test("Rewrites subquery expression in dynamic labels in CREATE") {
+    assertRewritten(
+      "CREATE (a:$(COLLECT { MATCH (b) RETURN b.name }))",
+      """WITH COLLECT { MATCH (b) RETURN b.name } AS `  UNNAMED0`
+        |CREATE (a:$all(`  UNNAMED0`))""".stripMargin
+    )
+  }
+
+  test("Rewrites subquery expression in dynamic types in CREATE") {
+    assertRewritten(
+      "CREATE (a)-[b:$(COLLECT { MATCH (n) RETURN n.name })]->(c)",
+      """WITH COLLECT { MATCH (n) RETURN n.name } AS `  UNNAMED0`
+        |CREATE (a)-[b:$all(`  UNNAMED0`)]->(c)""".stripMargin
+    )
+  }
+
+  test("Rewrites subquery expression for all dynamic labels/types in CREATE") {
+    assertRewritten(
+      "CREATE (a:$(COLLECT { MATCH (n) RETURN n.label }))-[b:$(COLLECT { MATCH (n) RETURN n.name })]->(c:$(toString(1)))",
+      """WITH COLLECT { MATCH (n) RETURN n.label } AS `  UNNAMED0`, COLLECT { MATCH (n) RETURN n.name } AS `  UNNAMED1`
+        |CREATE (a:$all(`  UNNAMED0`))-[b:$all(`  UNNAMED1`)]->(c:$all(toString(1)))""".stripMargin
+    )
+  }
+
   test("Rewrites subquery expression in CREATE that has a dependency on the previous clause") {
     assertRewritten(
       """MATCH (b)

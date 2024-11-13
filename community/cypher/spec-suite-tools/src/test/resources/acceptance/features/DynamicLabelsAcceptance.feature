@@ -19,7 +19,6 @@
 #
 
 #encoding: utf-8
-@EnableSemanticFeature(DynamicProperties)
 Feature: DynamicLabelsAcceptance
 
   Scenario Outline: Set dynamic labels
@@ -885,3 +884,52 @@ Feature: DynamicLabelsAcceptance
     And the side effects should be:
       | +labels        | 3 |
       | +nodes         | 1 |
+
+  @allowCustomErrors
+  Scenario: Node self reference in CREATE inside dynamic labels is not allowed
+    Given an empty graph
+    When executing query:
+    """
+    CREATE (n:$(labels(n)))
+    """
+    Then a SyntaxError should be raised at compile time: The Node variable 'n' is referencing a Node that is created in the same CREATE clause which is not allowed. Please only reference variables created in earlier clauses.
+    
+  @allowCustomErrors
+  Scenario: Node self reference in CREATE of properties inside dynamic labels is not allowed
+    Given an empty graph
+    When executing query:
+    """
+    CREATE (n:$(n.prop) {prop:5})
+    """
+    Then a SyntaxError should be raised at compile time: The Node variable 'n' is referencing a Node that is created in the same CREATE clause which is not allowed. Please only reference variables created in earlier clauses.
+    
+  @allowCustomErrors
+  Scenario: Relationship self reference in CREATE inside dynamic labels is not allowed
+    Given an empty graph
+    When executing query:
+    """
+    CREATE ()-[r:$(type(r))]->()
+    """
+    Then a SyntaxError should be raised at compile time: The Relationship variable 'r' is referencing a Relationship that is created in the same CREATE clause which is not allowed. Please only reference variables created in earlier clauses.
+    
+  @allowCustomErrors
+  Scenario: Relationship self reference in CREATE of properties inside dynamic labels is not allowed
+    Given an empty graph
+    When executing query:
+    """
+    CREATE ()-[r:$(r.prop) {prop:5}]->()
+    """
+    Then a SyntaxError should be raised at compile time: The Relationship variable 'r' is referencing a Relationship that is created in the same CREATE clause which is not allowed. Please only reference variables created in earlier clauses.
+    
+  @allowCustomErrors
+  Scenario: Node self reference inside subqueries inside dynamic labels is not allowed
+    Given an empty graph
+    When executing query:
+    """
+    CREATE (:_1)
+    CREATE (n:$(COLLECT { 
+      MATCH (n) WITH COUNT(n) AS cnt RETURN "_"+cnt 
+    })) 
+    RETURN substring(labels(n)[0], 1)
+    """
+    Then a SyntaxError should be raised at compile time: The Node variable 'n' is referencing a Node that is created in the same CREATE clause which is not allowed. Please only reference variables created in earlier clauses.

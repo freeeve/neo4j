@@ -53,17 +53,30 @@ case class LabelOrRelTypeName(name: String)(val position: InputPosition) extends
 }
 
 case class DynamicLabelExpression(expression: Expression, all: Boolean = true)(val position: InputPosition)
-    extends LabelExpressionDynamicLeafExpression with ElementTypeName
+    extends LabelExpressionDynamicLeafExpression with ElementTypeName {
+
+  override def mapExpressions(f: Expression => Expression): LabelExpressionDynamicLeafExpression = copy(
+    expression = f(expression)
+  )(this.position)
+}
 
 case class DynamicRelTypeExpression(expression: Expression, all: Boolean = true)(val position: InputPosition)
     extends LabelExpressionDynamicLeafExpression
     with ElementTypeName
     with RelTypeExpression {
   override def asCanonicalStringVal: String = s"$$${if (all) "all" else "any"}(${expression.asCanonicalStringVal})"
+
+  override def mapExpressions(f: Expression => Expression): LabelExpressionDynamicLeafExpression = copy(
+    expression = f(expression)
+  )(this.position)
 }
 
 case class DynamicLabelOrRelTypeExpression(expression: Expression, all: Boolean = true)(val position: InputPosition)
     extends LabelExpressionDynamicLeafExpression {
   def asDynamicLabelExpression: DynamicLabelExpression = DynamicLabelExpression(expression, all)(position)
   def asDynamicRelTypeExpression: DynamicRelTypeExpression = DynamicRelTypeExpression(expression, all)(position)
+
+  override def mapExpressions(f: Expression => Expression): LabelExpressionDynamicLeafExpression = copy(
+    expression = f(expression)
+  )(this.position)
 }

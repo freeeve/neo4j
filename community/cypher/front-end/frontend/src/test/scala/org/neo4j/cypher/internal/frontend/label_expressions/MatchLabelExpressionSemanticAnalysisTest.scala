@@ -18,7 +18,6 @@ package org.neo4j.cypher.internal.frontend.label_expressions
 
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DynamicLabelsAndTypes
 import org.neo4j.cypher.internal.frontend.NameBasedSemanticAnalysisTestSuite
 import org.scalatest.LoneElement
 
@@ -639,19 +638,19 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   }
 
   test("MATCH (n)-[r1:$([\"Z\"])]->(m:!Z) RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[r1 IS $([\"Z\"])]->(m IS !Z) RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[r1 IS $([\"Z\"])]->(m:!Z) RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("MATCH (n:A:$([\"B\"]))-[r IS $([\"A\"])|B]->(m) RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasErrorMessages(
+    run().hasErrorMessages(
       "Mixing the IS keyword with colon (':') between labels is not allowed. These expressions could be expressed as :A&$all([\"B\"]), IS $all([\"A\"])|B."
     )
   }
@@ -675,115 +674,106 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
 
   // Dynamic labels and types
   test("MATCH (n:$(\"label\")) RETURN *") {
-    run().hasErrorMessages(
-      "Setting labels or types dynamically is not supported."
-    )
-
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("MATCH (n:A&B&$(\"label\")) RETURN *") {
-    run().hasErrorMessages(
-      "Setting labels or types dynamically is not supported."
-    )
-
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[:$(\"label\")]->() RETURN *") {
-    run().hasErrorMessages(
-      "Setting labels or types dynamically is not supported."
-    )
-
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("MATCH (n:$(1)) RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasErrors(SemanticError.typeMismatch(
-      List("String", "List<String>"),
+    run().hasErrors(SemanticError.invalidEntityType(
       "Integer",
+      "dynamic label",
+      List("String", "List<String>"),
       "Type mismatch: expected String or List<String> but was Integer",
       p(11, 1, 12)
     ))
   }
 
   test("MATCH (n:$(null)) RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasError(
+    run().hasError(
       "Null is not a valid token name. Token names cannot be empty or contain any null-bytes.",
       p(9, 1, 10)
     )
   }
 
   test("MATCH (n:$([\"A\", \"\"])) RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasError(
+    run().hasError(
       "'' is not a valid token name. Token names cannot be empty or contain any null-bytes.",
       p(9, 1, 10)
     )
   }
 
   test("MATCH (n)-[:$(point({x:22, y:44}))]-() RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasErrors(SemanticError.typeMismatch(
-      List("String", "List<String>"),
+    run().hasErrors(SemanticError.invalidEntityType(
       "Point",
+      "dynamic type",
+      List("String", "List<String>"),
       "Type mismatch: expected String or List<String> but was Point",
       p(14, 1, 15)
     ))
   }
 
   test("MATCH (n:$([1])) RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasErrors(SemanticError.typeMismatch(
-      List("String", "List<String>"),
+    run().hasErrors(SemanticError.invalidEntityType(
       "List<Integer>",
+      "dynamic label",
+      List("String", "List<String>"),
       "Type mismatch: expected String or List<String> but was List<Integer>",
       p(11, 1, 12)
     ))
   }
 
   test("MATCH (n:$([''])) RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasError(
+    run().hasError(
       "'' is not a valid token name. Token names cannot be empty or contain any null-bytes.",
       p(9, 1, 10)
     )
   }
 
   test("MATCH (n:$all(['Foo', 'Bar'])) RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("MATCH (n:$any(['Foo', 'Bar'])) RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("MATCH (n:$(['Foo', 'Bar'])) RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[:$all(['Foo', 'Bar'])]-() RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[:$any(['Foo', 'Bar'])]-() RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[:$(['Foo', 'Bar'])]-() RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("MATCH (n)-[:!$('R')]-() RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasNoNotifications
+    run().hasNoNotifications
   }
 
   test("MATCH (n)-[:A&$('R')]-() RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasNoNotifications
+    run().hasNoNotifications
   }
 
   test("MATCH (n)-[:$('R2')&$('R')]-() RETURN *") {
-    runWith(DynamicLabelsAndTypes).hasNoNotifications
+    run().hasNoNotifications
   }
 
   test("MATCH (n)-[:A&!%]-() RETURN *") {
-    runWith(DynamicLabelsAndTypes)
+    run()
       .assert(_.notifications.map(_.notificationName) shouldBe Set("UnsatisfiableRelationshipTypeExpression"))
   }
 }

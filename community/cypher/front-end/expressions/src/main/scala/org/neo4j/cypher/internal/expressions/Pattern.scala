@@ -504,6 +504,7 @@ case class NodePattern(
     copy(
       variable = variable.map(f).asInstanceOf[Option[LogicalVariable]],
       properties = mappedProperties,
+      labelExpression = labelExpression.map(_.mapExpressions(f)),
       predicate = predicate.map(f)
     )(this.position)
   }
@@ -558,6 +559,7 @@ case class RelationshipPattern(
     copy(
       variable = variable.map(f).asInstanceOf[Option[LogicalVariable]],
       length = length.map(_.map(_.mapExpressions(f))),
+      labelExpression = labelExpression.map(_.mapExpressions(f)),
       properties = mappedProperties,
       predicate = predicate.map(f)
     )(this.position)

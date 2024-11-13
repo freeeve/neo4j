@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DynamicLabelsAndTypes
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfiguration
 import org.neo4j.cypher.internal.compiler.planner.UsingMatcher.using
@@ -345,7 +344,6 @@ class MergeRelationshipPlanningIntegrationTest
   test("merge a copy of each existing node, copying its labels dynamically, with a relationship to the original") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Copy", 1)
         .setRelationshipCardinality("()-[:COPY_OF]->()", 1)
@@ -381,7 +379,6 @@ class MergeRelationshipPlanningIntegrationTest
   test("merge a relationship with a dynamic type and then try to read") {
     val planner =
       plannerBuilder()
-        .addSemanticFeature(DynamicLabelsAndTypes)
         .setAllNodesCardinality(1000)
         .setLabelCardinality("A", 100)
         .setLabelCardinality("B", 100)

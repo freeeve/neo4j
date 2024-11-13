@@ -179,6 +179,8 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
     val ACCUMULATOR: TypeMismatchContextVal = TypeMismatchContextVal("accumulator")
     val LIST_INDEX: TypeMismatchContextVal = TypeMismatchContextVal("list index")
     val MAP_KEY: TypeMismatchContextVal = TypeMismatchContextVal("map key")
+    val DYNAMIC_LABEL: TypeMismatchContextVal = TypeMismatchContextVal("dynamic label")
+    val DYNAMIC_TYPE: TypeMismatchContextVal = TypeMismatchContextVal("dynamic type")
 
     val NODE_OR_RELATIONSHIP_PROPERTY_KEY: TypeMismatchContextVal =
       TypeMismatchContextVal("node or relationship property key")

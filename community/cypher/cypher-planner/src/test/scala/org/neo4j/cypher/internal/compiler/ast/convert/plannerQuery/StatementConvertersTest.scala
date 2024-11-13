@@ -85,8 +85,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSupport with AstConstructionTestSupport {
 
   override val semanticFeatures: List[SemanticFeature] = List(
-    SemanticFeature.MatchModes,
-    SemanticFeature.DynamicLabelsAndTypes
+    SemanticFeature.MatchModes
   )
   private val patternRel = PatternRelationship(v"r", (v"a", v"b"), OUTGOING, Seq.empty, SimplePatternLength)
   private val nProp = prop("n", "prop")

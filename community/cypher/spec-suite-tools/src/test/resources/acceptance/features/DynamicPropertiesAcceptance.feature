@@ -19,7 +19,6 @@
 #
 
 #encoding: utf-8
-@EnableSemanticFeature(DynamicProperties)
 Feature: DynamicPropertiesAcceptance
 
   Scenario: Set single dynamic property on nodes

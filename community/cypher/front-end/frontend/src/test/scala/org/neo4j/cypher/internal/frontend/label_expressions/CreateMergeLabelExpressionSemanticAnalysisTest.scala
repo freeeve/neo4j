@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.frontend.label_expressions
 
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DynamicLabelsAndTypes
 import org.neo4j.cypher.internal.frontend.SemanticAnalysisTestSuiteWithDefaultQuery
 import org.neo4j.cypher.internal.util.test_helpers.TestName
 import org.scalatest.LoneElement
@@ -194,73 +193,69 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(state
 
   // Dynamic labels and types
   test("(n:$(\"label\"))") {
-    run().hasErrorMessages("Setting labels or types dynamically is not supported.")
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("(n:A&B&$(\"label\"))") {
-    run().hasErrorMessages("Setting labels or types dynamically is not supported.")
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("(n)-[:$(\"label\")]->()") {
-    run().hasErrorMessages("Setting labels or types dynamically is not supported.")
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("(n:$(1))") {
-    runWith(DynamicLabelsAndTypes)
-      .hasErrorMessages("Type mismatch: expected String or List<String> but was Integer")
+    run().hasErrorMessages("Type mismatch: expected String or List<String> but was Integer")
   }
 
   test("(n)-[:$(1 + 3.0)]->()") {
-    runWith(DynamicLabelsAndTypes)
+    run()
       .hasErrorMessages("Type mismatch: expected String or List<String> but was Float")
   }
 
   test("(n:$([1]))") {
-    runWith(DynamicLabelsAndTypes).hasErrorMessages(
+    run().hasErrorMessages(
       "Type mismatch: expected String or List<String> but was List<Integer>"
     )
   }
 
   test("(n:$(['']))") {
-    runWith(DynamicLabelsAndTypes)
+    run()
       .hasErrorMessages("'' is not a valid token name. Token names cannot be empty or contain any null-bytes.")
   }
 
   test("(n:$([null]))") {
-    runWith(DynamicLabelsAndTypes)
+    run()
       .hasErrorMessages("Null is not a valid token name. Token names cannot be empty or contain any null-bytes.")
   }
 
   test("(n:$all(['Foo', 'Bar']))") {
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("(n:$any(['Foo', 'Bar']))") {
-    runWith(DynamicLabelsAndTypes).hasErrorMessages(
+    run().hasErrorMessages(
       "Dynamic labels using `$any()` are not allowed in CREATE or MERGE."
     )
   }
 
   test("(n:$(['Foo', 'Bar']))") {
-    runWith(DynamicLabelsAndTypes).hasNoErrors
+    run().hasNoErrors
   }
 
   test("(n)-[:$any('Foo')]->()") {
-    runWith(DynamicLabelsAndTypes).hasErrorMessages(
-      "Dynamic labels using `$any()` are not allowed in CREATE or MERGE."
+    run().hasErrorMessages(
+      "Dynamic types using `$any()` are not allowed in CREATE or MERGE."
     )
   }
 
   test("(n)-[:$(['Foo', 'Bar'])]->()") {
-    runWith(DynamicLabelsAndTypes)
+    run()
       .hasErrorMessages(s"A single relationship type must be specified for $statement")
   }
 
   test("(n)-[:$([])]->()") {
-    runWith(DynamicLabelsAndTypes).hasErrorMessages(
+    run().hasErrorMessages(
       s"Exactly one relationship type must be specified for $statement. Did you forget to prefix your relationship type with a ':'?"
     )
   }

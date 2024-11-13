@@ -100,6 +100,13 @@ trait SemanticAnalysisTooling {
     (s: SemanticState) => expectType(s, typeGen(s), expression, typeMismatch, messageGen)
 
   def expectType[Exp <: Expression](possibleTypes: TypeSpec, expressions: Iterable[Exp]): SemanticCheck =
+    expectType(possibleTypes, expressions, TypeMismatchContext.EMPTY)
+
+  def expectType[Exp <: Expression](
+    possibleTypes: TypeSpec,
+    expressions: Iterable[Exp],
+    typeMismatchContext: TypeMismatchContext.TypeMismatchContextVal
+  ): SemanticCheck =
     (state: SemanticState) =>
       expressions.foldLeft(SemanticCheckResult.success(state)) {
         (r1: SemanticCheckResult, o: Exp) =>
@@ -112,7 +119,7 @@ trait SemanticAnalysisTooling {
                   o,
                   TypeMismatchContext.TypeMismatchContextVal(GqlParams.StringParam.ident.process(v.name))
                 )
-              case _ => expectType(r1.state, possibleTypes, o, TypeMismatchContext.EMPTY)
+              case _ => expectType(r1.state, possibleTypes, o, typeMismatchContext)
             }
             SemanticCheckResult(r2.state, r1.errors ++ r2.errors)
           }

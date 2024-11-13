@@ -63,8 +63,6 @@ object Neo4jAdapter {
   // This method will allow introducing semanticfeatures (feature flags) for a set of feature files
   // When the semantic feature is made generally available, we will just need to update the case statements.
   def featureDependentSettings(featureName: String): collection.Map[Setting[_], Object] = featureName match {
-    case "DynamicLabelsAcceptance" =>
-      enableSemanticFeatures(Set(SemanticFeature.DynamicLabelsAndTypes))
     case _ =>
       Map.empty
   }
