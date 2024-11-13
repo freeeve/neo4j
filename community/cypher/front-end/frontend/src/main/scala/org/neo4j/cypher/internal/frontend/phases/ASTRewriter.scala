@@ -49,7 +49,6 @@ import org.neo4j.cypher.internal.rewriting.rewriters.normalizePredicates
 import org.neo4j.cypher.internal.rewriting.rewriters.parameterValueTypeReplacement
 import org.neo4j.cypher.internal.rewriting.rewriters.replaceLiteralDynamicPropertyLookups
 import org.neo4j.cypher.internal.rewriting.rewriters.rewriteOrderById
-import org.neo4j.cypher.internal.rewriting.rewriters.simplifyIterablePredicates
 import org.neo4j.cypher.internal.rewriting.rewriters.unwrapParenthesizedPath
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
@@ -78,7 +77,6 @@ object ASTRewriter {
         normalizeArgumentOrder,
         AddUniquenessPredicates,
         AddVarLengthPredicates,
-        simplifyIterablePredicates,
         replaceLiteralDynamicPropertyLookups,
         parameterValueTypeReplacement,
         rewriteOrderById,

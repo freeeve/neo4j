@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 
-class simplifyIterablePredicatesTest extends CypherFunSuite with Matchers with RewriteTest
+class SimplifyPredicatesTest extends CypherFunSuite with Matchers with RewriteTest
     with AstRewritingTestSupport {
 
   test("should rewrite simple any with literal") {
@@ -157,7 +157,7 @@ class simplifyIterablePredicatesTest extends CypherFunSuite with Matchers with R
     shouldNotRewrite(expr(parameter("p", CTString, Some(1))))
   }
 
-  override def rewriterUnderTest: Rewriter = simplifyIterablePredicates.instance
+  override def rewriterUnderTest: Rewriter = SimplifyPredicates
 
   private def rewrite(e: Expression): Expression = e.endoRewrite(rewriterUnderTest)
 

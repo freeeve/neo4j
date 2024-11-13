@@ -2786,4 +2786,28 @@ class IndexPlanningIntegrationTest
       .nodeIndexOperator("n:L(x)", indexOrder = IndexOrderAscending, getValue = Map("x" -> GetValue))
       .build()
   }
+
+  test("should not plan an index for negated predicate") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(2)
+      .setLabelCardinality("N0", 2)
+      .setLabelCardinality("N1", 0)
+      .addNodeIndex("N0", Seq("p1"), 0.0, 0.0)
+      .build()
+
+    val q = """
+              |MATCH (n:N1) WITH collect(n.p0) AS c0
+              |MATCH (n:N0)
+              |WHERE NOT (any(v IN c0 WHERE n.p1 = v))
+              |RETURN *""".stripMargin
+
+    val plan = planner.plan(q).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("NOT n.p1 IN c0")
+      .apply()
+      .|.nodeByLabelScan("n", "N0", IndexOrderNone, "c0")
+      .aggregation(Seq(), Seq("collect(n.p0) AS c0"))
+      .nodeByLabelScan("n", "N1")
+      .build()
+  }
 }
