@@ -82,16 +82,28 @@ public class AuthorizationViolationException extends GqlRuntimeException impleme
                 gql, "Not allowed to run updating system commands when impersonating a user.");
     }
 
-    public static AuthorizationViolationException revokingImmutablePrivileges() {
+    public static AuthorizationViolationException revokingImmutablePrivileges(String role) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
                 .build();
-        return new AuthorizationViolationException(gql, "Immutable privileges cannot be revoked.");
+        return new AuthorizationViolationException(
+                gql,
+                "Immutable privileges cannot be revoked. Use `SHOW ROLE %s PRIVILEGES AS COMMANDS YIELD *` to inspect %s's privileges."
+                        .formatted(role, role));
     }
 
-    public static AuthorizationViolationException grantingImmutablePrivileges(String action) {
+    public static AuthorizationViolationException grantingImmutablePrivileges() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
                 .build();
-        return new AuthorizationViolationException(gql, String.format("Permission cannot be granted for %s.", action));
+        return new AuthorizationViolationException(
+                gql,
+                "Immutable privileges cannot be granted. Try granting the privilege without the IMMUTABLE keyword.");
+    }
+
+    public static AuthorizationViolationException denyingImmutablePrivileges() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
+                .build();
+        return new AuthorizationViolationException(
+                gql, "Immutable privileges cannot be denied. Try denying the privilege without the IMMUTABLE keyword.");
     }
 
     public static AuthorizationViolationException droppingImmutableRoles() {
@@ -127,8 +139,8 @@ public class AuthorizationViolationException extends GqlRuntimeException impleme
 
     public static AuthorizationViolationException copyingRoleWithImmutablePrivileges(String role) {
         return authorizationViolation(
-                "The role '%s' cannot be copied because it has one or more Immutable Privileges assigned to it. Permission cannot be granted for ASSIGN IMMUTABLE PRIVILEGE."
-                        .formatted(role));
+                "'$role' cannot be copied because it has one or more immutable privileges assigned to it and immutable privileges cannot be copied. Use `SHOW ROLE $role PRIVILEGES AS COMMANDS YIELD *` to inspect $role's privileges."
+                        .replace("$role", role));
     }
 
     /** The Neo4j status code associated with this exception type. */

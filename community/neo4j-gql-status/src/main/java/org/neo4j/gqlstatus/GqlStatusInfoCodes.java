@@ -3605,15 +3605,6 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "database or alias with similar name exists",
             ErrorClassification.CLIENT_ERROR),
-    STATUS_42N88(
-            new GqlStatus("42N88"),
-            """
-                    Permission cannot be granted for 'REMOVE IMMUTABLE PRIVILEGE'.""",
-            new GqlParams.GqlParam[] {},
-            emptyMap(),
-            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "cannot grant privilege",
-            ErrorClassification.CLIENT_ERROR),
     STATUS_42N89(
             new GqlStatus("42N89"),
             """

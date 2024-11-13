@@ -426,11 +426,6 @@ case class AssertLoadPrivilegeCanBeMutated(
   revokeType: String
 )(implicit idGen: IdGen) extends PrivilegePlan(Some(source))
 
-case class AssertDbmsActionIsAssignable(
-  source: Option[PrivilegePlan],
-  action: DbmsAction
-)(implicit idGen: IdGen) extends PrivilegePlan(source)
-
 case class ShowSupportedPrivileges(
   override val returnColumns: List[LogicalVariable],
   yields: Option[Yield],

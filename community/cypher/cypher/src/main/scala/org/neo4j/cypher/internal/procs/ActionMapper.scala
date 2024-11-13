@@ -36,7 +36,6 @@ import org.neo4j.cypher.internal.ast.AllUserActions
 import org.neo4j.cypher.internal.ast.AlterAliasAction
 import org.neo4j.cypher.internal.ast.AlterDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterUserAction
-import org.neo4j.cypher.internal.ast.AssignImmutablePrivilegeAction
 import org.neo4j.cypher.internal.ast.AssignPrivilegeAction
 import org.neo4j.cypher.internal.ast.AssignRoleAction
 import org.neo4j.cypher.internal.ast.CompositeDatabaseManagementActions
@@ -71,7 +70,6 @@ import org.neo4j.cypher.internal.ast.LoadUrlAction
 import org.neo4j.cypher.internal.ast.MatchAction
 import org.neo4j.cypher.internal.ast.MergeAdminAction
 import org.neo4j.cypher.internal.ast.ReadAction
-import org.neo4j.cypher.internal.ast.RemoveImmutablePrivilegeAction
 import org.neo4j.cypher.internal.ast.RemoveLabelAction
 import org.neo4j.cypher.internal.ast.RemovePrivilegeAction
 import org.neo4j.cypher.internal.ast.RemoveRoleAction
@@ -177,12 +175,10 @@ object ActionMapper {
     case AlterAliasAction          => security.PrivilegeAction.ALTER_ALIAS
     case ShowAliasAction           => security.PrivilegeAction.SHOW_ALIAS
 
-    case AllPrivilegeActions            => security.PrivilegeAction.PRIVILEGE_MANAGEMENT
-    case ShowPrivilegeAction            => security.PrivilegeAction.SHOW_PRIVILEGE
-    case AssignPrivilegeAction          => security.PrivilegeAction.ASSIGN_PRIVILEGE
-    case RemovePrivilegeAction          => security.PrivilegeAction.REMOVE_PRIVILEGE
-    case AssignImmutablePrivilegeAction => security.PrivilegeAction.ASSIGN_IMMUTABLE_PRIVILEGE
-    case RemoveImmutablePrivilegeAction => security.PrivilegeAction.REMOVE_IMMUTABLE_PRIVILEGE
+    case AllPrivilegeActions   => security.PrivilegeAction.PRIVILEGE_MANAGEMENT
+    case ShowPrivilegeAction   => security.PrivilegeAction.SHOW_PRIVILEGE
+    case AssignPrivilegeAction => security.PrivilegeAction.ASSIGN_PRIVILEGE
+    case RemovePrivilegeAction => security.PrivilegeAction.REMOVE_PRIVILEGE
 
     case ExecuteProcedureAction        => security.PrivilegeAction.EXECUTE
     case ExecuteBoostedProcedureAction => security.PrivilegeAction.EXECUTE_BOOSTED

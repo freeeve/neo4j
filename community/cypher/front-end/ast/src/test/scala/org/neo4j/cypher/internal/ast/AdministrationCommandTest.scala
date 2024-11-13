@@ -65,7 +65,6 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
-import org.scalatest.prop.TableDrivenPropertyChecks._
 
 import java.nio.charset.StandardCharsets
 
@@ -145,66 +144,6 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       allAuthAttributes,
       allAuthAttr.allAuthsAttributes.map(_.name).toSet
     ) // Note: if this fails allAuthAttributes in Administration is probably out of date
-  }
-
-  test("it should not be possible to administer privileges pertaining to an unassignable action") {
-
-    val privilegeManagementActions =
-      Table("PrivilegeManagementActions", AssignImmutablePrivilegeAction, RemoveImmutablePrivilegeAction)
-
-    val grant = (pma: PrivilegeManagementAction) =>
-      new GrantPrivilege(
-        DbmsPrivilege(pma)(p),
-        false,
-        Some(DatabaseResource()(p)),
-        List(AllQualifier()(p)),
-        Seq(literalString("role1"))
-      )(p)
-
-    val deny = (pma: PrivilegeManagementAction) =>
-      new DenyPrivilege(
-        DbmsPrivilege(pma)(p),
-        false,
-        Some(DatabaseResource()(p)),
-        List(AllQualifier()(p)),
-        Seq(literalString("role1"))
-      )(p)
-
-    val revoke = (pma: PrivilegeManagementAction, rt: RevokeType) =>
-      new RevokePrivilege(
-        DbmsPrivilege(pma)(p),
-        false,
-        Some(DatabaseResource()(p)),
-        List(AllQualifier()(p)),
-        Seq(literalString("role1")),
-        rt
-      )(p)
-
-    val revokeBoth = revoke(_, RevokeBothType()(p))
-    val revokeGrant = revoke(_, RevokeGrantType()(p))
-    val revokeDeny = revoke(_, RevokeDenyType()(p))
-    val privilegeCommands = Table("PrivilegeCommand", grant, deny, revokeBoth, revokeGrant, revokeDeny)
-
-    forAll(privilegeManagementActions) { pma =>
-      forAll(privilegeCommands) { privilegeCommand =>
-        val privilege = privilegeCommand(pma)
-        privilege.semanticCheck.run(initialState, SemanticCheckContext.default) shouldBe SemanticCheckResult
-          .error(
-            initialState,
-            SemanticError(
-              GqlHelper.getGql42001_42N14(
-                "GRANT, DENY and REVOKE",
-                pma.name,
-                p.line,
-                p.column,
-                p.offset
-              ),
-              s"`GRANT`, `DENY` and `REVOKE` are not supported for `${pma.name}`",
-              p
-            )
-          )
-      }
-    }
   }
 
   // Property Rules

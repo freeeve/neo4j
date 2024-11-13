@@ -1067,8 +1067,6 @@ sealed abstract class PrivilegeCommand(
     }
 
     (privilege match {
-      case DbmsPrivilege(u: UnassignableAction) =>
-        SemanticCheck.error(SemanticError.grantDenyRevokeUnsupported(u.name, position))
       case _: LoadPrivilege =>
         qualifier match {
           case LoadUrlQualifier(_) :: _ =>

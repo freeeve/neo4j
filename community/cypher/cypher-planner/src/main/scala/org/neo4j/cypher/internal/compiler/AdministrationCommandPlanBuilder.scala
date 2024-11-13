@@ -30,7 +30,6 @@ import org.neo4j.cypher.internal.ast.AlterLocalDatabaseAlias
 import org.neo4j.cypher.internal.ast.AlterRemoteDatabaseAlias
 import org.neo4j.cypher.internal.ast.AlterServer
 import org.neo4j.cypher.internal.ast.AlterUser
-import org.neo4j.cypher.internal.ast.AssignImmutablePrivilegeAction
 import org.neo4j.cypher.internal.ast.AssignPrivilegeAction
 import org.neo4j.cypher.internal.ast.AssignRoleAction
 import org.neo4j.cypher.internal.ast.CallClause
@@ -164,6 +163,7 @@ import org.neo4j.cypher.internal.logical.plans.DatabaseTypeFilter.CompositeDatab
 import org.neo4j.cypher.internal.logical.plans.DatabaseTypeFilter.DatabaseOrLocalAlias
 import org.neo4j.cypher.internal.logical.plans.DenyLoadAction
 import org.neo4j.cypher.internal.logical.plans.GrantLoadAction
+import org.neo4j.cypher.internal.logical.plans.PrivilegePlan
 import org.neo4j.cypher.internal.planner.spi.AdministrationPlannerName
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.InputPosition
@@ -271,8 +271,11 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
     def getCommandClausesNotAllowedOnSystem(clauses: Seq[Clause]) =
       clauses.filter(clause => clause.isInstanceOf[CommandClause] && !clause.isInstanceOf[ClauseAllowedOnSystem])
 
-    def assignPrivilegeAction(immutable: Boolean) =
-      if (immutable) AssignImmutablePrivilegeAction else AssignPrivilegeAction
+    def checkCanMutateImmutablePlan(
+      immutable: Boolean,
+      onViolation: () => AuthorizationViolationException
+    ): Option[PrivilegePlan] =
+      if (immutable) Some(plans.AssertSecurityDisabled(onViolation)) else None
 
     val mapDatabaseScope: PartialFunction[DatabaseScope, plans.PrivilegeCommandScope] = {
       case SingleNamedDatabaseScope(db) => plans.NamedScope(db)
@@ -533,8 +536,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           (roleName, simpleQualifier)
         }).foldLeft(
           plans.AssertAllowedDbmsActions(
-            plans.AssertDbmsActionIsAssignable(None, action), // this is the privilege being assigned
-            assignPrivilegeAction(immutable) // this is the action of assigning a privilege
+            checkCanMutateImmutablePlan(immutable, () => AuthorizationViolationException.grantingImmutablePrivileges()),
+            Seq(AssignPrivilegeAction)
           ).asInstanceOf[plans.PrivilegePlan]
         ) {
           case (source, (roleName, simpleQualifier)) =>
@@ -561,8 +564,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           (roleName, simpleQualifier)
         }).foldLeft(
           plans.AssertAllowedDbmsActions(
-            plans.AssertDbmsActionIsAssignable(None, action), // this is the privilege being assigned
-            assignPrivilegeAction(immutable) // this is the action of assigning a privilege
+            checkCanMutateImmutablePlan(immutable, () => AuthorizationViolationException.denyingImmutablePrivileges()),
+            Seq(AssignPrivilegeAction)
           ).asInstanceOf[plans.PrivilegePlan]
         ) {
           case (source, (roleName, simpleQualifier)) =>
@@ -626,7 +629,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         ) yield {
           (roleName, simpleQualifiers, dbScope, mapDatabaseScope(dbScope))
         }).foldLeft(
-          plans.AssertAllowedDbmsActions(assignPrivilegeAction(immutable)).asInstanceOf[plans.PrivilegePlan]
+          plans.AssertAllowedDbmsActions(
+            checkCanMutateImmutablePlan(immutable, () => AuthorizationViolationException.grantingImmutablePrivileges()),
+            Seq(AssignPrivilegeAction)
+          ).asInstanceOf[plans.PrivilegePlan]
         ) {
           case (source, (role, qualifier, dbScope, runtimeScope)) =>
             val subCommand = c.copy(
@@ -655,7 +661,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         ) yield {
           (roleName, simpleQualifiers, dbScope, mapDatabaseScope(dbScope))
         }).foldLeft(
-          plans.AssertAllowedDbmsActions(assignPrivilegeAction(immutable)).asInstanceOf[plans.PrivilegePlan]
+          plans.AssertAllowedDbmsActions(
+            checkCanMutateImmutablePlan(immutable, () => AuthorizationViolationException.denyingImmutablePrivileges()),
+            Seq(AssignPrivilegeAction)
+          ).asInstanceOf[plans.PrivilegePlan]
         ) {
           case (source, (role, qualifier, dbScope, runtimeScope)) =>
             val subCommand = c.copy(
@@ -737,7 +746,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         ) yield {
           (roleName, simpleQualifier, resource, graphScope, mapGraphScope(graphScope))
         }).foldLeft(
-          plans.AssertAllowedDbmsActions(assignPrivilegeAction(immutable)).asInstanceOf[plans.PrivilegePlan]
+          plans.AssertAllowedDbmsActions(
+            checkCanMutateImmutablePlan(immutable, () => AuthorizationViolationException.grantingImmutablePrivileges()),
+            Seq(AssignPrivilegeAction)
+          ).asInstanceOf[plans.PrivilegePlan]
         ) {
           case (source, (roleName, simpleQualifier, resource, graphScope, runtimeScope)) =>
             val subCommand = c.copy(
@@ -775,7 +787,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         ) yield {
           (roleName, simpleQualifier, resource, graphScope, mapGraphScope(graphScope))
         }).foldLeft(
-          plans.AssertAllowedDbmsActions(assignPrivilegeAction(immutable)).asInstanceOf[plans.PrivilegePlan]
+          plans.AssertAllowedDbmsActions(
+            checkCanMutateImmutablePlan(immutable, () => AuthorizationViolationException.denyingImmutablePrivileges()),
+            Seq(AssignPrivilegeAction)
+          ).asInstanceOf[plans.PrivilegePlan]
         ) {
           case (source, (roleName, simpleQualifier, resource, graphScope, runtimeScope)) =>
             val subCommand = c.copy(
@@ -870,7 +885,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         ) yield {
           (roleName, simpleQualifiers, resource)
         }).foldLeft(
-          plans.AssertAllowedDbmsActions(assignPrivilegeAction(immutable)).asInstanceOf[plans.PrivilegePlan]
+          plans.AssertAllowedDbmsActions(
+            checkCanMutateImmutablePlan(immutable, () => AuthorizationViolationException.grantingImmutablePrivileges()),
+            Seq(AssignPrivilegeAction)
+          ).asInstanceOf[plans.PrivilegePlan]
         ) { case (source, (roleName, qualifier, resource)) =>
           val subCommand = g.copy(
             privilege = privilege,
@@ -896,7 +914,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         ) yield {
           (roleName, simpleQualifiers, resource)
         }).foldLeft(
-          plans.AssertAllowedDbmsActions(assignPrivilegeAction(immutable)).asInstanceOf[plans.PrivilegePlan]
+          plans.AssertAllowedDbmsActions(
+            checkCanMutateImmutablePlan(immutable, () => AuthorizationViolationException.denyingImmutablePrivileges()),
+            Seq(AssignPrivilegeAction)
+          ).asInstanceOf[plans.PrivilegePlan]
         ) { case (source, (roleName, qualifier, resource)) =>
           val subCommand = d.copy(
             privilege = privilege,
