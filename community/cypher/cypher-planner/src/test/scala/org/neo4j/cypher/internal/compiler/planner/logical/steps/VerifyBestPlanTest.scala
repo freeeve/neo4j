@@ -493,7 +493,8 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
           correlated = false,
           yielding = true,
           inTransactionsParameters = None,
-          optional = false
+          optional = false,
+          importedVariables = Set.empty
         )
       )
     }
@@ -523,7 +524,8 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
           correlated = false,
           yielding = true,
           inTransactionsParameters = None,
-          optional = false
+          optional = false,
+          importedVariables = Set.empty
         )
       )
     }

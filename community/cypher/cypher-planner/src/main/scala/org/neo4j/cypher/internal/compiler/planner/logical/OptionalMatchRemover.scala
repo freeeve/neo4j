@@ -80,7 +80,7 @@ case object OptionalMatchRemover extends PlannerQueryRewriter with StepSequencer
         case RegularSinglePlannerQuery(
             graph,
             interestingOrder,
-            proj @ AggregatingQueryProjection(distinctExpressions, aggregations, _, _, _),
+            proj @ AggregatingQueryProjection(distinctExpressions, aggregations, _, _, _, _),
             tail,
             queryInput
           )
@@ -92,7 +92,7 @@ case object OptionalMatchRemover extends PlannerQueryRewriter with StepSequencer
         case RegularSinglePlannerQuery(
             graph,
             interestingOrder,
-            proj @ DistinctQueryProjection(distinctExpressions, _, _, _),
+            proj @ DistinctQueryProjection(distinctExpressions, _, _, _, _),
             tail,
             queryInput
           ) if noOptionalShortestPathOrQpp(graph) && graph.mutatingPatterns.isEmpty =>
@@ -334,7 +334,9 @@ case object OptionalMatchRemover extends PlannerQueryRewriter with StepSequencer
         patternRelationships = Set(pattern),
         selections = Selections.from(innerPreds)
       ),
-      horizon = RegularQueryProjection()
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = arguments
+      )
     )
 
     val whereString = innerPreds match {

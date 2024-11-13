@@ -199,7 +199,7 @@ object QuerySolvableByGetDegree {
           SetExtractor()
         ),
         InterestingOrder.empty,
-        RegularQueryProjection(_, QueryPagination.empty, Selections.empty, _) | _: AggregatingQueryProjection,
+        RegularQueryProjection(_, QueryPagination.empty, Selections.empty, _, _) | _: AggregatingQueryProjection,
         None,
         None
       ) if patternNodes.contains(argument) && patternNodes == Set(firstNode, secondNode) =>
@@ -219,10 +219,11 @@ object ExistsQuerySolvableByGetDegree {
         _,
         QueryPagination.empty,
         Selections.empty,
+        _,
         _
       ) => true
-    case AggregatingQueryProjection(groups, _, _, _, _) if groups.nonEmpty => true
-    case _                                                                 => false
+    case AggregatingQueryProjection(groups, _, _, _, _, _) if groups.nonEmpty => true
+    case _                                                                    => false
   }
 
   def unapply(arg: Any)

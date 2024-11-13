@@ -62,7 +62,8 @@ object CompositeQueryConverter {
         queryString = QueryRenderer.render(foreign.clauses),
         parameters = foreign.parameters,
         importsAsParameters = foreign.importsAsParameters,
-        columns = foreign.clauses.last.returnVariables.explicitVariables.toSet
+        columns = foreign.clauses.last.returnVariables.explicitVariables.toSet,
+        importedExposedSymbols = Set.empty
       ))
       .build()
   }
@@ -196,7 +197,8 @@ object CompositeQueryConverter {
             correlated = subQuery.isCorrelated,
             yielding = subQuery.isYielding,
             inTransactionsParameters = subQuery.inTransactionsParameters,
-            optional = subQuery.optional
+            optional = subQuery.optional,
+            importedVariables = Set.empty
           )
       }
     }

@@ -266,7 +266,8 @@ class MutatingStatementConvertersTest extends CypherFunSuite with LogicalPlannin
           projections = Map(v"m" -> v"m")
         )
       ),
-      optional = false
+      optional = false,
+      importedVariables = Set.empty
     )
   }
 
@@ -285,7 +286,8 @@ class MutatingStatementConvertersTest extends CypherFunSuite with LogicalPlannin
           )
         )
       ),
-      optional = false
+      optional = false,
+      importedVariables = Set.empty
     )
   }
 

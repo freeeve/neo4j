@@ -429,6 +429,37 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
     )
   }
 
+  test(
+    "should plan limit 0 + projection for query with multiple references to same relationship in subquery with scope clause"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[]->()", 100)
+      .build()
+
+    val query =
+      """MATCH (c)-->(d)
+        |CALL (c, d) {
+        |  MATCH (a)-[r]->()<-[r]-(b)
+        |  WITH a, r, b, 1 AS dummy
+        |  RETURN a, r, b, dummy, 2 as dummy2
+        |}
+        |RETURN *""".stripMargin
+
+    planner.plan(query) should equal(
+      planner.planBuilder()
+        .produceResults("a", "b", "c", "d", "dummy", "dummy2", "r")
+        .projection("2 AS dummy2")
+        .projection("1 AS dummy")
+        .projection("NULL AS a", "NULL AS anon_1", "NULL AS b", "NULL AS r")
+        .apply()
+        .|.limit(0)
+        .|.argument("c", "d")
+        .allRelationshipsScan("(c)-[anon_0]->(d)")
+        .build()
+    )
+  }
+
   test("should plan limit 0 + projection for query with multiple references to same relationship in complex EXISTS") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)

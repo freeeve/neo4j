@@ -397,7 +397,8 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
               correlated = true,
               yielding = true,
               inTransactionsParameters = None,
-              optional = false
+              optional = false,
+              importedVariables = Set.empty
             )).withTail(
               SinglePlannerQuery
                 .empty
@@ -510,7 +511,8 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
                             correlated = true,
                             yielding = true,
                             inTransactionsParameters = None,
-                            optional = false
+                            optional = false,
+                            importedVariables = Set.empty
                           )
                         ).withTail(
                           SinglePlannerQuery
@@ -581,7 +583,8 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
               correlated = true,
               yielding = true,
               inTransactionsParameters = None,
-              optional = false
+              optional = false,
+              importedVariables = Set.empty
             )).withTail(
               SinglePlannerQuery
                 .empty
@@ -644,7 +647,8 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
             correlated = true,
             yielding = true,
             inTransactionsParameters = None,
-            optional = false
+            optional = false,
+            importedVariables = Set.empty
           )).withTail(
             SinglePlannerQuery
               .empty
@@ -757,7 +761,8 @@ object StandardFixtures extends AstConstructionTestSupport {
             correlated = true,
             yielding = true,
             inTransactionsParameters = None,
-            optional = false
+            optional = false,
+            importedVariables = Set.empty
           )).withTail(
             SinglePlannerQuery
               .empty

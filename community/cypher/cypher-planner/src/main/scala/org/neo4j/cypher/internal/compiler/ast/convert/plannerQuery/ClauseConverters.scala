@@ -111,7 +111,6 @@ import org.neo4j.cypher.internal.ir.QueryHorizon
 import org.neo4j.cypher.internal.ir.QueryPagination
 import org.neo4j.cypher.internal.ir.QueryProjection
 import org.neo4j.cypher.internal.ir.RegularQueryProjection
-import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.ir.RemoveLabelPattern
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SetDynamicPropertyPattern
@@ -127,7 +126,6 @@ import org.neo4j.cypher.internal.ir.SetRelationshipPropertiesFromMapPattern
 import org.neo4j.cypher.internal.ir.SetRelationshipPropertiesPattern
 import org.neo4j.cypher.internal.ir.SetRelationshipPropertyPattern
 import org.neo4j.cypher.internal.ir.SimplePatternLength
-import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.UnwindProjection
 import org.neo4j.cypher.internal.ir.converters.PatternConverters
 import org.neo4j.cypher.internal.ir.helpers.ExpressionConverters.PredicateConverter
@@ -202,7 +200,7 @@ object ClauseConverters extends LabelExpressionConversion {
         format = if (clause.withHeaders) HasHeaders else NoHeaders,
         clause.fieldTerminator
       )
-    ).withTail(SinglePlannerQuery.empty)
+    ).withTail(acc.emptySinglePlannerQuery)
 
   private def addInputDataStreamToLogicalPlanInput(
     acc: PlannerQueryBuilder,
@@ -216,7 +214,8 @@ object ClauseConverters extends LabelExpressionConversion {
   private def asQueryProjection(
     distinct: Boolean,
     items: Seq[AliasedReturnItem],
-    position: QueryProjection.Position
+    position: QueryProjection.Position,
+    acc: PlannerQueryBuilder
   ): QueryProjection = {
     val (aggregatingItems: Seq[AliasedReturnItem], groupingKeys: Seq[AliasedReturnItem]) =
       items.partition(item => IsAggregate(item.expression))
@@ -234,12 +233,21 @@ object ClauseConverters extends LabelExpressionConversion {
       AggregatingQueryProjection(
         groupingExpressions = projectionMap,
         aggregationExpressions = aggregationsMap,
-        position = position
+        position = position,
+        importedExposedSymbols = acc.importedVariables
       )
     else if (distinct)
-      DistinctQueryProjection(groupingExpressions = projectionMap, position = position)
+      DistinctQueryProjection(
+        groupingExpressions = projectionMap,
+        position = position,
+        importedExposedSymbols = acc.importedVariables
+      )
     else
-      RegularQueryProjection(projections = projectionMap, position = position)
+      RegularQueryProjection(
+        projections = projectionMap,
+        position = position,
+        importedExposedSymbols = acc.importedVariables
+      )
   }
 
   private def addReturnToLogicalPlanInput(
@@ -256,7 +264,8 @@ object ClauseConverters extends LabelExpressionConversion {
             distinct,
             // Return items have been aliased at this point
             items.asInstanceOf[Seq[AliasedReturnItem]],
-            position
+            position,
+            acc
           ).withPagination(queryPagination)
         val requiredOrder = findRequiredOrder(projection, optOrderBy)
 
@@ -272,18 +281,18 @@ object ClauseConverters extends LabelExpressionConversion {
 
     val sortItems = if (optOrderBy.isDefined) optOrderBy.get.sortItems else Seq.empty
     val (requiredOrderCandidate, interestingOrderCandidates: Seq[InterestingOrderCandidate]) = horizon match {
-      case RegularQueryProjection(projections, _, _, _) =>
+      case RegularQueryProjection(projections, _, _, _, _) =>
         val requiredOrderCandidate =
           extractColumnOrderFromOrderBy(sortItems, projections)
         (requiredOrderCandidate, Seq.empty)
-      case AggregatingQueryProjection(groupingExpressions, aggregationExpressions, _, _, _) =>
+      case AggregatingQueryProjection(groupingExpressions, aggregationExpressions, _, _, _, _) =>
         val requiredOrderCandidate =
           extractColumnOrderFromOrderBy(sortItems, groupingExpressions)
         val interestingCandidates =
           interestingOrderCandidatesForGroupingExpressions(groupingExpressions) ++
             interestingOrderCandidateForAggregations(groupingExpressions, aggregationExpressions)
         (requiredOrderCandidate, interestingCandidates)
-      case DistinctQueryProjection(groupingExpressions, _, _, _) =>
+      case DistinctQueryProjection(groupingExpressions, _, _, _, _) =>
         val requiredOrderCandidate =
           extractColumnOrderFromOrderBy(sortItems, groupingExpressions)
         val interestingCandidates = interestingOrderCandidatesForGroupingExpressions(groupingExpressions)
@@ -572,7 +581,7 @@ object ClauseConverters extends LabelExpressionConversion {
     def addHorizon(acc: PlannerQueryBuilder): PlannerQueryBuilder =
       acc
         .withHorizon(PassthroughAllHorizon())
-        .withTail(RegularSinglePlannerQuery(QueryGraph()))
+        .withTail(acc.emptySinglePlannerQuery)
 
     val selections = asSelections(clause.where)
 
@@ -620,31 +629,29 @@ object ClauseConverters extends LabelExpressionConversion {
     cancellationChecker: CancellationChecker
   ): PlannerQueryBuilder = {
     val subquery = clause.innerQuery
-    val callSubquery = clause match {
-      case c: ScopeClauseSubqueryCall =>
-        StatementConverters.convertToNestedPlannerQuery(
-          subquery,
-          acc.semanticTable,
-          anonymousVariableNameGenerator,
-          cancellationChecker,
-          position = QueryProjection.Position.Intermediate,
-          importedVariables = c.importedVariables.toSet
-        )
-      case _: ImportingWithSubqueryCall =>
-        StatementConverters.convertToNestedPlannerQuery(
-          subquery,
-          acc.semanticTable,
-          anonymousVariableNameGenerator,
-          cancellationChecker,
-          position = QueryProjection.Position.Intermediate
-        )
+
+    val importedVariables: Set[LogicalVariable] = clause match {
+      case sc: ScopeClauseSubqueryCall  => sc.importedVariables.toSet
+      case _: ImportingWithSubqueryCall => Set.empty
     }
+
+    val callSubquery =
+      StatementConverters.convertToNestedPlannerQuery(
+        subquery,
+        acc.semanticTable,
+        anonymousVariableNameGenerator,
+        cancellationChecker,
+        position = QueryProjection.Position.Intermediate,
+        importedVariables = importedVariables
+      )
+
     acc.withCallSubquery(
       callSubquery,
       clause.isCorrelated,
       subquery.isReturning,
       clause.inTransactionsParameters,
-      clause.optional
+      clause.optional,
+      importedVariables = importedVariables
     )
   }
 
@@ -654,7 +661,7 @@ object ClauseConverters extends LabelExpressionConversion {
   ): PlannerQueryBuilder = {
     acc
       .withHorizon(CommandProjection(clause))
-      .withTail(SinglePlannerQuery.empty)
+      .withTail(acc.emptySinglePlannerQuery)
   }
 
   private def addYieldToLogicalPlanInput(builder: PlannerQueryBuilder, `yield`: Yield): PlannerQueryBuilder = {
@@ -667,16 +674,15 @@ object ClauseConverters extends LabelExpressionConversion {
       asQueryProjection(
         distinct = false,
         returnItems,
-        position = QueryProjection.Position.Intermediate
+        position = QueryProjection.Position.Intermediate,
+        builder
       )
         .withPagination(queryPagination)
         .withSelection(selections)
 
     val requiredOrder = findRequiredOrder(queryProjection, `yield`.orderBy)
 
-    builder.withHorizon(queryProjection).withInterestingOrder(requiredOrder).withTail(RegularSinglePlannerQuery(
-      QueryGraph()
-    ))
+    builder.withHorizon(queryProjection).withInterestingOrder(requiredOrder).withTail(builder.emptySinglePlannerQuery)
   }
 
   private def toPropertyMap(expr: Option[Expression]): Map[PropertyKeyName, Expression] = expr match {
@@ -780,9 +786,9 @@ object ClauseConverters extends LabelExpressionConversion {
 
         builder
           .withHorizon(PassthroughAllHorizon())
-          .withTail(RegularSinglePlannerQuery(queryGraph = queryGraph))
+          .withTail(builder.emptySinglePlannerQuery.withQueryGraph(queryGraph = queryGraph))
           .withHorizon(PassthroughAllHorizon())
-          .withTail(RegularSinglePlannerQuery())
+          .withTail(builder.emptySinglePlannerQuery)
 
       // MERGE (n)-[r: R]->(m) / MERGE (n)-[r: $('R')]->(m)
       case PathPatternPart(pattern: RelationshipChain) =>
@@ -867,9 +873,9 @@ object ClauseConverters extends LabelExpressionConversion {
           ))
 
         builder.withHorizon(PassthroughAllHorizon())
-          .withTail(RegularSinglePlannerQuery(queryGraph = queryGraph))
+          .withTail(builder.emptySinglePlannerQuery.withQueryGraph(queryGraph = queryGraph))
           .withHorizon(PassthroughAllHorizon())
-          .withTail(RegularSinglePlannerQuery())
+          .withTail(builder.emptySinglePlannerQuery)
 
       case x => throw new InternalException(s"Received an AST-clause that has no representation the QG: $x")
     }
@@ -941,7 +947,12 @@ object ClauseConverters extends LabelExpressionConversion {
         val queryPagination = QueryPagination().withLimit(limit).withSkip(skip)
 
         val queryProjection =
-          asQueryProjection(distinct, returnItems, position = QueryProjection.Position.Intermediate).withPagination(
+          asQueryProjection(
+            distinct,
+            returnItems,
+            position = QueryProjection.Position.Intermediate,
+            builder
+          ).withPagination(
             queryPagination
           ).withSelection(selections)
 
@@ -951,7 +962,7 @@ object ClauseConverters extends LabelExpressionConversion {
           .withHorizon(queryProjection)
           .withInterestingOrder(requiredOrder)
           .withPropagatedTailInterestingOrder()
-          .withTail(RegularSinglePlannerQuery(QueryGraph()))
+          .withTail(builder.emptySinglePlannerQuery)
 
       case _ =>
         throw new InternalException("AST needs to be rewritten before it can be used for planning. Got: " + clause)
@@ -964,12 +975,12 @@ object ClauseConverters extends LabelExpressionConversion {
         variable = clause.variable,
         exp = clause.expression
       )
-    ).withTail(SinglePlannerQuery.empty)
+    ).withTail(builder.emptySinglePlannerQuery)
 
   private def addCallToLogicalPlanInput(builder: PlannerQueryBuilder, call: ResolvedCall): PlannerQueryBuilder = {
     builder
       .withHorizon(ProcedureCallProjection(call))
-      .withTail(SinglePlannerQuery.empty)
+      .withTail(builder.emptySinglePlannerQuery)
   }
 
   private def addForeachToLogicalPlanInput(
@@ -983,7 +994,7 @@ object ClauseConverters extends LabelExpressionConversion {
 
     val innerBuilder = StatementConverters.addClausesToPlannerQueryBuilder(
       clause.updates,
-      new PlannerQueryBuilder(SinglePlannerQuery.empty, builder.semanticTable)
+      new PlannerQueryBuilder(builder.emptySinglePlannerQuery, builder.semanticTable, builder.importedVariables)
         // First, set all available symbols as arguments. Will be fixed a little further down.
         .amendQueryGraph(_.withArgumentIds(availableToInnerClauses))
         .withHorizon(PassthroughAllHorizon()),
@@ -1016,9 +1027,9 @@ object ClauseConverters extends LabelExpressionConversion {
     // to maintain the strict ordering of reads followed by writes within a single planner query
     builder
       .withHorizon(PassthroughAllHorizon())
-      .withTail(RegularSinglePlannerQuery(queryGraph = foreachGraph))
+      .withTail(builder.emptySinglePlannerQuery.withQueryGraph(queryGraph = foreachGraph))
       .withHorizon(PassthroughAllHorizon()) // NOTE: We do not expose anything from foreach itself
-      .withTail(RegularSinglePlannerQuery())
+      .withTail(builder.emptySinglePlannerQuery)
   }
 
   private def addRemoveToLogicalPlanInput(acc: PlannerQueryBuilder, clause: Remove): PlannerQueryBuilder = {

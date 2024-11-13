@@ -100,12 +100,13 @@ case class CreateIrExpressions(
           case query: RegularSinglePlannerQuery =>
             query.tailOrSelf.horizon match {
               // Simply some Return items but no SKIP, LIMIT, WHERE, DISTINCT, aggregation, etc.
-              case RegularQueryProjection(_, QueryPagination(None, None), Selections(SetExtractor()), _) =>
+              case RegularQueryProjection(_, QueryPagination(None, None), Selections(SetExtractor()), _, _) =>
                 // We can simply override the final horizon with our aggregation.
                 plannerQuery.asSinglePlannerQuery
                   .updateTailOrSelf(_.withHorizon(
-                    AggregatingQueryProjection(aggregationExpressions =
-                      Map(countVariable -> CountStar()(q.position))
+                    AggregatingQueryProjection(
+                      aggregationExpressions = Map(countVariable -> CountStar()(q.position)),
+                      importedExposedSymbols = arguments
                     )
                   ))
                   // And also remove any ORDER BY since that won't have any impact in a COUNT subquery anyway.
@@ -114,8 +115,9 @@ case class CreateIrExpressions(
                 // In any other case we add another tail with our aggregation.
                 plannerQuery.asSinglePlannerQuery
                   .updateTailOrSelf(_.withTail(RegularSinglePlannerQuery(
-                    horizon = AggregatingQueryProjection(aggregationExpressions =
-                      Map(countVariable -> CountStar()(q.position))
+                    horizon = AggregatingQueryProjection(
+                      aggregationExpressions = Map(countVariable -> CountStar()(q.position)),
+                      importedExposedSymbols = arguments
                     )
                   )))
             }
@@ -128,12 +130,14 @@ case class CreateIrExpressions(
                 correlated = true,
                 yielding = true,
                 inTransactionsParameters = None,
-                optional = false
+                optional = false,
+                importedVariables = arguments
               ),
               tail = Some(
                 RegularSinglePlannerQuery(
-                  horizon = AggregatingQueryProjection(aggregationExpressions =
-                    Map(countVariable -> CountStar()(countExpression.position))
+                  horizon = AggregatingQueryProjection(
+                    aggregationExpressions = Map(countVariable -> CountStar()(countExpression.position)),
+                    importedExposedSymbols = arguments
                   )
                 )
               )

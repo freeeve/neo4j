@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.ir.CallSubqueryHorizon
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.QueryHorizon
+import org.neo4j.cypher.internal.ir.RegularQueryProjection
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
@@ -37,7 +38,11 @@ import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 
-case class PlannerQueryBuilder(q: SinglePlannerQuery, semanticTable: SemanticTable) {
+case class PlannerQueryBuilder(
+  q: SinglePlannerQuery,
+  semanticTable: SemanticTable,
+  importedVariables: Set[LogicalVariable]
+) {
 
   def amendQueryGraph(f: QueryGraph => QueryGraph): PlannerQueryBuilder =
     copy(q = q.updateTailOrSelf(_.amendQueryGraph(f)))
@@ -53,11 +58,18 @@ case class PlannerQueryBuilder(q: SinglePlannerQuery, semanticTable: SemanticTab
     correlated: Boolean,
     yielding: Boolean,
     inTransactionsParameters: Option[InTransactionsParameters],
-    optional: Boolean
+    optional: Boolean,
+    importedVariables: Set[LogicalVariable]
   ): PlannerQueryBuilder = {
-    withHorizon(CallSubqueryHorizon(subquery, correlated, yielding, inTransactionsParameters, optional)).withTail(
-      SinglePlannerQuery.empty
-    )
+    withHorizon(CallSubqueryHorizon(
+      subquery,
+      correlated,
+      yielding,
+      inTransactionsParameters,
+      optional,
+      importedVariables
+    ))
+      .withTail(emptySinglePlannerQuery)
   }
 
   def withTail(newTail: SinglePlannerQuery): PlannerQueryBuilder = {
@@ -108,6 +120,10 @@ case class PlannerQueryBuilder(q: SinglePlannerQuery, semanticTable: SemanticTab
     qg.allPatternNodes ++ qg.argumentIds
   }
 
+  def emptySinglePlannerQuery: SinglePlannerQuery = {
+    RegularSinglePlannerQuery(horizon = RegularQueryProjection(importedExposedSymbols = importedVariables))
+  }
+
   def readOnly: Boolean = q.queryGraph.readOnly
 
   def build(): SinglePlannerQuery = {
@@ -118,10 +134,28 @@ case class PlannerQueryBuilder(q: SinglePlannerQuery, semanticTable: SemanticTab
 object PlannerQueryBuilder {
 
   def apply(semanticTable: SemanticTable): PlannerQueryBuilder =
-    PlannerQueryBuilder(SinglePlannerQuery.empty, semanticTable)
+    PlannerQueryBuilder(SinglePlannerQuery.empty, semanticTable, Set.empty)
 
   def apply(semanticTable: SemanticTable, argumentIds: Set[LogicalVariable]): PlannerQueryBuilder =
-    PlannerQueryBuilder(RegularSinglePlannerQuery(queryGraph = QueryGraph(argumentIds = argumentIds)), semanticTable)
+    PlannerQueryBuilder(
+      RegularSinglePlannerQuery(queryGraph = QueryGraph(argumentIds = argumentIds)),
+      semanticTable,
+      Set.empty
+    )
+
+  def apply(
+    semanticTable: SemanticTable,
+    argumentIds: Set[LogicalVariable],
+    importedVars: Set[LogicalVariable]
+  ): PlannerQueryBuilder =
+    PlannerQueryBuilder(
+      RegularSinglePlannerQuery(
+        queryGraph = QueryGraph(argumentIds = argumentIds),
+        horizon = RegularQueryProjection(importedExposedSymbols = importedVars)
+      ),
+      semanticTable,
+      importedVars
+    )
 
   def finalizeQuery(q: SinglePlannerQuery): SinglePlannerQuery = {
 

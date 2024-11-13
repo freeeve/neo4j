@@ -143,7 +143,8 @@ case class CallSubqueryHorizon(
   correlated: Boolean,
   yielding: Boolean,
   inTransactionsParameters: Option[InTransactionsParameters],
-  optional: Boolean
+  optional: Boolean,
+  importedVariables: Set[LogicalVariable]
 ) extends QueryHorizon {
 
   override def exposedSymbols(coveredIds: Set[LogicalVariable]): Set[LogicalVariable] = {
@@ -178,6 +179,13 @@ sealed abstract class QueryProjection extends QueryHorizon {
   def withAddedProjections(projections: Map[LogicalVariable, Expression]): QueryProjection
   def withPagination(queryPagination: QueryPagination): QueryProjection
   def markAsFinal: QueryProjection
+
+  def localExposedSymbols(coveredIds: Set[LogicalVariable]): Set[LogicalVariable]
+  def importedExposedSymbols: Set[LogicalVariable]
+  def withImportedExposedSymbols(symbols: Set[LogicalVariable]): QueryProjection
+
+  final override def exposedSymbols(coveredIds: Set[LogicalVariable]): Set[LogicalVariable] =
+    localExposedSymbols(coveredIds) ++ importedExposedSymbols
 
   override def dependingExpressions: Iterable[Expression] = projections.view.values ++ selections.predicates.map(_.expr)
 
@@ -231,7 +239,7 @@ object QueryProjection {
     }
   }
 
-  def empty: RegularQueryProjection = RegularQueryProjection()
+  def empty: RegularQueryProjection = RegularQueryProjection(importedExposedSymbols = Set.empty)
 
   def forVariables(variables: Set[LogicalVariable]): Seq[AliasedReturnItem] =
     variables.toIndexedSeq.map(variable =>
@@ -243,7 +251,8 @@ final case class RegularQueryProjection(
   projections: Map[LogicalVariable, Expression] = Map.empty,
   queryPagination: QueryPagination = QueryPagination.empty,
   selections: Selections = Selections(),
-  position: QueryProjection.Position = QueryProjection.Position.Intermediate
+  position: QueryProjection.Position = QueryProjection.Position.Intermediate,
+  importedExposedSymbols: Set[LogicalVariable] = Set.empty
 ) extends QueryProjection {
   def keySet: Set[LogicalVariable] = projections.keySet
 
@@ -252,7 +261,8 @@ final case class RegularQueryProjection(
       projections = projections ++ other.projections,
       queryPagination = queryPagination ++ other.queryPagination,
       selections = selections ++ other.selections,
-      position = position.combine(other.position)
+      position = position.combine(other.position),
+      importedExposedSymbols = importedExposedSymbols ++ other.importedExposedSymbols
     )
 
   override def withAddedProjections(projections: Map[LogicalVariable, Expression]): RegularQueryProjection =
@@ -261,7 +271,7 @@ final case class RegularQueryProjection(
   def withPagination(queryPagination: QueryPagination): RegularQueryProjection =
     copy(queryPagination = queryPagination)
 
-  override def exposedSymbols(coveredIds: Set[LogicalVariable]): Set[LogicalVariable] = projections.keySet
+  override def localExposedSymbols(coveredIds: Set[LogicalVariable]): Set[LogicalVariable] = projections.keySet
 
   override def withSelection(selections: Selections): QueryProjection = copy(selections = selections)
 
@@ -269,6 +279,9 @@ final case class RegularQueryProjection(
    * @return a copy of the projection marked as being at the end of a top-level single planner query.
    */
   override def markAsFinal: QueryProjection = copy(position = QueryProjection.Position.Final)
+
+  override def withImportedExposedSymbols(symbols: Set[LogicalVariable]): QueryProjection =
+    copy(importedExposedSymbols = symbols)
 }
 
 final case class AggregatingQueryProjection(
@@ -276,7 +289,8 @@ final case class AggregatingQueryProjection(
   aggregationExpressions: Map[LogicalVariable, Expression] = Map.empty,
   queryPagination: QueryPagination = QueryPagination.empty,
   selections: Selections = Selections(),
-  position: QueryProjection.Position = QueryProjection.Position.Intermediate
+  position: QueryProjection.Position = QueryProjection.Position.Intermediate,
+  importedExposedSymbols: Set[LogicalVariable] = Set.empty
 ) extends QueryProjection {
 
   assert(
@@ -296,19 +310,23 @@ final case class AggregatingQueryProjection(
   override def withPagination(queryPagination: QueryPagination): AggregatingQueryProjection =
     copy(queryPagination = queryPagination)
 
-  override def exposedSymbols(coveredIds: Set[LogicalVariable]): Set[LogicalVariable] =
+  override def localExposedSymbols(coveredIds: Set[LogicalVariable]): Set[LogicalVariable] =
     groupingExpressions.keySet ++ aggregationExpressions.keySet
 
   override def withSelection(selections: Selections): QueryProjection = copy(selections = selections)
 
   override def markAsFinal: QueryProjection = copy(position = QueryProjection.Position.Final)
+
+  override def withImportedExposedSymbols(symbols: Set[LogicalVariable]): QueryProjection =
+    copy(importedExposedSymbols = symbols)
 }
 
 final case class DistinctQueryProjection(
   groupingExpressions: Map[LogicalVariable, Expression] = Map.empty,
   queryPagination: QueryPagination = QueryPagination.empty,
   selections: Selections = Selections(),
-  position: QueryProjection.Position = QueryProjection.Position.Intermediate
+  position: QueryProjection.Position = QueryProjection.Position.Intermediate,
+  importedExposedSymbols: Set[LogicalVariable] = Set.empty
 ) extends QueryProjection {
 
   def projections: Map[LogicalVariable, Expression] = groupingExpressions
@@ -321,11 +339,14 @@ final case class DistinctQueryProjection(
   override def withPagination(queryPagination: QueryPagination): DistinctQueryProjection =
     copy(queryPagination = queryPagination)
 
-  override def exposedSymbols(coveredIds: Set[LogicalVariable]): Set[LogicalVariable] = groupingExpressions.keySet
+  override def localExposedSymbols(coveredIds: Set[LogicalVariable]): Set[LogicalVariable] = groupingExpressions.keySet
 
   override def withSelection(selections: Selections): QueryProjection = copy(selections = selections)
 
   override def markAsFinal: QueryProjection = copy(position = QueryProjection.Position.Final)
+
+  override def withImportedExposedSymbols(symbols: Set[LogicalVariable]): QueryProjection =
+    copy(importedExposedSymbols = symbols)
 }
 
 /**
@@ -342,9 +363,10 @@ case class RunQueryAtProjection(
   queryString: String,
   parameters: Set[Parameter],
   importsAsParameters: Map[Parameter, LogicalVariable],
-  columns: Set[LogicalVariable]
+  columns: Set[LogicalVariable],
+  importedExposedSymbols: Set[LogicalVariable] = Set.empty
 ) extends QueryProjection {
-  override def exposedSymbols(coveredIds: Set[LogicalVariable]): Set[LogicalVariable] = coveredIds ++ columns
+  override def localExposedSymbols(coveredIds: Set[LogicalVariable]): Set[LogicalVariable] = coveredIds ++ columns
   override def selections: Selections = Selections.empty
   override def projections: Map[LogicalVariable, Expression] = columns.view.map(column => column -> column).toMap
   override def queryPagination: QueryPagination = QueryPagination.empty
@@ -362,6 +384,9 @@ case class RunQueryAtProjection(
   override def withPagination(queryPagination: QueryPagination): QueryProjection =
     throw new UnsupportedOperationException("Cannot modify the pagination of a RunQueryAt projection")
   override def markAsFinal: QueryProjection = this // No eagerness analysis for composite queries as it stands
+
+  override def withImportedExposedSymbols(symbols: Set[LogicalVariable]): QueryProjection =
+    copy(importedExposedSymbols = symbols)
 }
 
 case class CommandProjection(clause: CommandClause) extends QueryHorizon {

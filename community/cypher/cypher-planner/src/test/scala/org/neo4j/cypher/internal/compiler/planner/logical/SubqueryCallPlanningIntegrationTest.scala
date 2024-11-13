@@ -2710,4 +2710,82 @@ class SubqueryCallPlanningIntegrationTest
       .allNodeScan("a")
       .build()
   }
+
+  test("should plan Sort on RHS of CALL () subquery after aggregation") {
+    val query =
+      """WITH 1 AS x
+        |CALL (x) {
+        |  WITH count(*) AS c
+        |  RETURN c
+        |  ORDER BY x
+        |}
+        |RETURN x, c
+        |""".stripMargin
+
+    planFor(query) shouldEqual
+      new LogicalPlanBuilder()
+        .produceResults("x", "c")
+        .apply()
+        .|.sort("x ASC")
+        .|.aggregation(Seq.empty, Seq("count(*) AS c"))
+        .|.argument("x")
+        .projection("1 AS x")
+        .argument()
+        .build()
+  }
+
+  test("should not re-match imported node on RHS of CALL () subquery after aggregation") {
+    val query =
+      """MATCH (x)
+        |CALL (x) {
+        |  WITH count(*) AS c
+        |  MATCH (x), (y)
+        |  RETURN y
+        |}
+        |RETURN x, y
+        |""".stripMargin
+
+    planFor(query) shouldEqual
+      new LogicalPlanBuilder()
+        .produceResults("x", "y")
+        .apply()
+        .|.apply()
+        .|.|.cartesianProduct()
+        .|.|.|.allNodeScan("y", "c", "x")
+        .|.|.filterExpression(assertIsNode("x"))
+        .|.|.argument("x", "c")
+        .|.aggregation(Seq.empty, Seq("count(*) AS c"))
+        .|.argument("x")
+        .allNodeScan("x")
+        .build()
+  }
+
+  test("should not re-match imported relationship on RHS of CALL () subquery after aggregation") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setAllRelationshipsCardinality(2000)
+      .build()
+
+    val query =
+      """MATCH (x)-[r]->(y)
+        |CALL (r) {
+        |  WITH count(*) AS c
+        |  MATCH (a)-[r]->(b)
+        |  RETURN a, b
+        |}
+        |RETURN x, y, a, b, r
+        |""".stripMargin
+
+    planner.plan(query) shouldEqual
+      planner.planBuilder()
+        .produceResults("x", "y", "a", "b", "r")
+        .apply()
+        .|.apply()
+        .|.|.projectEndpoints("(a)-[r]->(b)", startInScope = false, endInScope = false)
+        .|.|.argument("r", "c")
+        .|.aggregation(Seq.empty, Seq("count(*) AS c"))
+        .|.argument("r")
+        .allRelationshipsScan("(x)-[r]->(y)")
+        .build()
+  }
 }

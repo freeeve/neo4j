@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransform
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.QueryPagination
+import org.neo4j.cypher.internal.ir.QueryProjection
 import org.neo4j.cypher.internal.ir.RegularQueryProjection
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.util.InputPosition
@@ -65,7 +66,11 @@ case object UnfulfillableQueryRewriter extends PlannerQueryRewriter with StepSeq
           .map(_ -> Null()(InputPosition.NONE)).toMap
         val projection = RegularQueryProjection(
           projectionMap,
-          queryPagination = QueryPagination(limit = Some(SignedDecimalIntegerLiteral("0")(InputPosition.NONE)))
+          queryPagination = QueryPagination(limit = Some(SignedDecimalIntegerLiteral("0")(InputPosition.NONE))),
+          importedExposedSymbols = horizon match {
+            case projection: QueryProjection => projection.importedExposedSymbols
+            case _                           => Set.empty
+          }
         )
         RegularSinglePlannerQuery(
           QueryGraph.apply(argumentIds = queryGraph.argumentIds),

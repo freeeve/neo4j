@@ -100,6 +100,7 @@ import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.QueryProjection
+import org.neo4j.cypher.internal.ir.RegularQueryProjection
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.ir.RemoveLabelPattern
 import org.neo4j.cypher.internal.ir.RunQueryAtProjection
@@ -325,7 +326,9 @@ case class LogicalPlanProducer(
         context.plannerState.previouslyCachedProperties
       annotate(
         Argument(argumentIds),
-        SinglePlannerQuery.empty,
+        SinglePlannerQuery.empty.updateQueryProjection(
+          _.withImportedExposedSymbols(context.plannerState.importedSubqueryVariables)
+        ),
         ProvidedOrder.empty,
         previouslyCachedProperties,
         context
@@ -418,7 +421,12 @@ case class LogicalPlanProducer(
     context: LogicalPlanningContext
   ): LogicalPlan = {
     val solved =
-      RegularSinglePlannerQuery(queryGraph = QueryGraph(argumentIds = argumentIds, patternNodes = Set(variable)))
+      RegularSinglePlannerQuery(
+        queryGraph = QueryGraph(argumentIds = argumentIds, patternNodes = Set(variable)),
+        horizon = RegularQueryProjection(
+          importedExposedSymbols = context.plannerState.importedSubqueryVariables
+        )
+      )
 
     annotate(
       AllNodesScan(variable, argumentIds),
@@ -449,11 +457,15 @@ case class LogicalPlanProducer(
     def planLeaf: LogicalPlan = {
       val (firstNode, secondNode) = patternForLeafPlan.inOrder
       val solved =
-        RegularSinglePlannerQuery(queryGraph =
-          QueryGraph(
-            argumentIds = argumentIds,
-            patternNodes = Set(firstNode, secondNode),
-            patternRelationships = Set(patternForLeafPlan)
+        RegularSinglePlannerQuery(
+          queryGraph =
+            QueryGraph(
+              argumentIds = argumentIds,
+              patternNodes = Set(firstNode, secondNode),
+              patternRelationships = Set(patternForLeafPlan)
+            ),
+          horizon = RegularQueryProjection(
+            importedExposedSymbols = context.plannerState.importedSubqueryVariables
           )
         )
 
@@ -936,12 +948,16 @@ case class LogicalPlanProducer(
     context: LogicalPlanningContext,
     cachedProperties: CachedProperties
   ): RelationshipLogicalLeafPlan = {
-    val solved = RegularSinglePlannerQuery(queryGraph =
-      QueryGraph.empty
-        .addPatternRelationship(patternForLeafPlan)
-        .addPredicates(solvedPredicates: _*)
-        .addHints(solvedHint)
-        .addArgumentIds(argumentIds.toIndexedSeq)
+    val solved = RegularSinglePlannerQuery(
+      queryGraph =
+        QueryGraph.empty
+          .addPatternRelationship(patternForLeafPlan)
+          .addPredicates(solvedPredicates: _*)
+          .addHints(solvedHint)
+          .addArgumentIds(argumentIds.toIndexedSeq),
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
     )
 
     annotate(leafPlan, solved, providedOrder, cachedProperties, context)
@@ -1035,7 +1051,8 @@ case class LogicalPlanProducer(
     correlated: Boolean,
     yielding: Boolean,
     inTransactionsParameters: Option[InTransactionsParameters],
-    optional: Boolean
+    optional: Boolean,
+    importedVariables: Set[LogicalVariable]
   ): LogicalPlan = {
     val solvedLeft = solveds.get(left.id)
     val solvedRight = solveds.get(right.id)
@@ -1044,7 +1061,8 @@ case class LogicalPlanProducer(
       correlated,
       yielding,
       inTransactionsParameters,
-      optional
+      optional,
+      importedVariables
     )))
 
     val plan =
@@ -1263,7 +1281,13 @@ case class LogicalPlanProducer(
   ): LogicalPlan = {
     // Ensure that innerPlan does conform with the pattern contained inside of the quantified path pattern before we mark it as solved
     try {
-      VerifyBestPlan(innerPlan, SinglePlannerQuery.empty.withQueryGraph(pattern.asQueryGraph), context)
+      VerifyBestPlan(
+        plan = innerPlan,
+        expected = SinglePlannerQuery.empty
+          .withHorizon(RegularQueryProjection(importedExposedSymbols = context.plannerState.importedSubqueryVariables))
+          .withQueryGraph(pattern.asQueryGraph),
+        context = context
+      )
     } catch {
       case planVerificationException: InternalException => throw new InternalException(
           "The provided inner plan doesn't conform with the quantified path pattern being planned",
@@ -1354,11 +1378,15 @@ case class LogicalPlanProducer(
     argumentIds: Set[LogicalVariable],
     context: LogicalPlanningContext
   ): LogicalPlan = {
-    val solved = RegularSinglePlannerQuery(queryGraph =
-      QueryGraph.empty
-        .addPatternNodes(variable)
-        .addPredicates(solvedPredicates: _*)
-        .addArgumentIds(argumentIds.toIndexedSeq)
+    val solved = RegularSinglePlannerQuery(
+      queryGraph =
+        QueryGraph.empty
+          .addPatternNodes(variable)
+          .addPredicates(solvedPredicates: _*)
+          .addArgumentIds(argumentIds.toIndexedSeq),
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
     )
     val solver = SubqueryExpressionSolver.solverForLeafPlan(argumentIds, context)
     val rewrittenNodeIds = nodeIds.mapValues(solver.solve(_))
@@ -1382,12 +1410,16 @@ case class LogicalPlanProducer(
     providedOrder: ProvidedOrder,
     context: LogicalPlanningContext
   ): LogicalPlan = {
-    val solved = RegularSinglePlannerQuery(queryGraph =
-      QueryGraph.empty
-        .addPatternNodes(variable)
-        .addPredicates(solvedPredicates: _*)
-        .addHints(solvedHint)
-        .addArgumentIds(argumentIds.toIndexedSeq)
+    val solved = RegularSinglePlannerQuery(
+      queryGraph =
+        QueryGraph.empty
+          .addPatternNodes(variable)
+          .addPredicates(solvedPredicates: _*)
+          .addHints(solvedHint)
+          .addArgumentIds(argumentIds.toIndexedSeq),
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
     )
     annotate(
       NodeByLabelScan(variable, label, argumentIds, toIndexOrder(providedOrder)),
@@ -1407,12 +1439,16 @@ case class LogicalPlanProducer(
     providedOrder: ProvidedOrder,
     context: LogicalPlanningContext
   ): LogicalPlan = {
-    val solved = RegularSinglePlannerQuery(queryGraph =
-      QueryGraph.empty
-        .addPatternNodes(variable)
-        .addPredicates(solvedPredicates: _*)
-        .addHints(solvedHints)
-        .addArgumentIds(argumentIds.toIndexedSeq)
+    val solved = RegularSinglePlannerQuery(
+      queryGraph =
+        QueryGraph.empty
+          .addPatternNodes(variable)
+          .addPredicates(solvedPredicates: _*)
+          .addHints(solvedHints)
+          .addArgumentIds(argumentIds.toIndexedSeq),
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
     )
     annotate(
       UnionNodeByLabelsScan(variable, labels, argumentIds, toIndexOrder(providedOrder)),
@@ -1432,12 +1468,16 @@ case class LogicalPlanProducer(
     providedOrder: ProvidedOrder,
     context: LogicalPlanningContext
   ): LogicalPlan = {
-    val solved = RegularSinglePlannerQuery(queryGraph =
-      QueryGraph.empty
-        .addPatternNodes(variable)
-        .addPredicates(solvedPredicates: _*)
-        .addHints(solvedHints)
-        .addArgumentIds(argumentIds.toIndexedSeq)
+    val solved = RegularSinglePlannerQuery(
+      queryGraph =
+        QueryGraph.empty
+          .addPatternNodes(variable)
+          .addPredicates(solvedPredicates: _*)
+          .addHints(solvedHints)
+          .addArgumentIds(argumentIds.toIndexedSeq),
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
     )
     annotate(
       IntersectionNodeByLabelsScan(variable, labels, argumentIds, toIndexOrder(providedOrder)),
@@ -1458,12 +1498,16 @@ case class LogicalPlanProducer(
     providedOrder: ProvidedOrder,
     context: LogicalPlanningContext
   ): LogicalPlan = {
-    val solved = RegularSinglePlannerQuery(queryGraph =
-      QueryGraph.empty
-        .addPatternNodes(variable)
-        .addPredicates(solvedPredicates: _*)
-        .addHints(solvedHints)
-        .addArgumentIds(argumentIds.toIndexedSeq)
+    val solved = RegularSinglePlannerQuery(
+      queryGraph =
+        QueryGraph.empty
+          .addPatternNodes(variable)
+          .addPredicates(solvedPredicates: _*)
+          .addHints(solvedHints)
+          .addArgumentIds(argumentIds.toIndexedSeq),
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
     )
     annotate(
       SubtractionNodeByLabelsScan(variable, positiveLabels, negativeLabels, argumentIds, toIndexOrder(providedOrder)),
@@ -1494,7 +1538,12 @@ case class LogicalPlanProducer(
       .addHints(solvedHint)
       .addArgumentIds(argumentIds.toIndexedSeq)
 
-    val solved = RegularSinglePlannerQuery(queryGraph = queryGraph)
+    val solved = RegularSinglePlannerQuery(
+      queryGraph = queryGraph,
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
+    )
 
     val solver = SubqueryExpressionSolver.solverForLeafPlan(argumentIds, context)
     val rewrittenValueExpr = valueExpr.map(solver.solve(_))
@@ -1536,12 +1585,16 @@ case class LogicalPlanProducer(
     indexType: IndexType,
     supportPartitionedScan: Boolean
   ): LogicalPlan = {
-    val solved = RegularSinglePlannerQuery(queryGraph =
-      QueryGraph.empty
-        .addPatternNodes(variable)
-        .addPredicates(solvedPredicates: _*)
-        .addHints(solvedHint)
-        .addArgumentIds(argumentIds.toIndexedSeq)
+    val solved = RegularSinglePlannerQuery(
+      queryGraph =
+        QueryGraph.empty
+          .addPatternNodes(variable)
+          .addPredicates(solvedPredicates: _*)
+          .addHints(solvedHint)
+          .addArgumentIds(argumentIds.toIndexedSeq),
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
     )
     annotate(
       NodeIndexScan(
@@ -1574,12 +1627,16 @@ case class LogicalPlanProducer(
     context: LogicalPlanningContext,
     indexType: IndexType
   ): LogicalPlan = {
-    val solved = RegularSinglePlannerQuery(queryGraph =
-      QueryGraph.empty
-        .addPatternNodes(variable)
-        .addPredicates(solvedPredicates: _*)
-        .addHints(solvedHint)
-        .addArgumentIds(argumentIds.toIndexedSeq)
+    val solved = RegularSinglePlannerQuery(
+      queryGraph =
+        QueryGraph.empty
+          .addPatternNodes(variable)
+          .addPredicates(solvedPredicates: _*)
+          .addHints(solvedHint)
+          .addArgumentIds(argumentIds.toIndexedSeq),
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
     )
     val solver = SubqueryExpressionSolver.solverForLeafPlan(argumentIds, context)
     val rewrittenValueExpr = solver.solve(valueExpr)
@@ -1671,7 +1728,12 @@ case class LogicalPlanProducer(
       .addHints(solvedHint)
       .addArgumentIds(argumentIds.toIndexedSeq)
 
-    val solved = RegularSinglePlannerQuery(queryGraph = queryGraph)
+    val solved = RegularSinglePlannerQuery(
+      queryGraph = queryGraph,
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
+    )
 
     val solver = SubqueryExpressionSolver.solverForLeafPlan(argumentIds, context)
     val rewrittenValueExpr = valueExpr.map(solver.solve(_))
@@ -1786,10 +1848,14 @@ case class LogicalPlanProducer(
         .addPatternNodes(patternNodes: _*)
         .addPatternRelationships(patternRelationships)
 
-    val solved = RegularSinglePlannerQuery(queryGraph =
-      QueryGraph.empty
-        .addOptionalMatch(optionalMatchQG)
-        .withArgumentIds(ids)
+    val solved = RegularSinglePlannerQuery(
+      queryGraph =
+        QueryGraph.empty
+          .addOptionalMatch(optionalMatchQG)
+          .withArgumentIds(ids),
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
     )
 
     annotate(
@@ -2146,11 +2212,15 @@ case class LogicalPlanProducer(
   ): LogicalPlan = {
     val coveredIds = patternNodes ++ patternRels ++ other
 
-    val solved = RegularSinglePlannerQuery(queryGraph =
-      QueryGraph(
-        argumentIds = coveredIds,
-        patternNodes = patternNodes,
-        patternRelationships = Set.empty
+    val solved = RegularSinglePlannerQuery(
+      queryGraph =
+        QueryGraph(
+          argumentIds = coveredIds,
+          patternNodes = patternNodes,
+          patternRelationships = Set.empty
+        ),
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
       )
     )
 
@@ -2160,7 +2230,9 @@ case class LogicalPlanProducer(
   def planArgument(context: LogicalPlanningContext): LogicalPlan =
     annotate(
       Argument(Set.empty),
-      SinglePlannerQuery.empty,
+      RegularSinglePlannerQuery(horizon =
+        RegularQueryProjection(importedExposedSymbols = context.plannerState.importedSubqueryVariables)
+      ),
       ProvidedOrder.empty,
       context.plannerState.previouslyCachedProperties,
       context
@@ -2223,7 +2295,11 @@ case class LogicalPlanProducer(
     context: LogicalPlanningContext
   ): LogicalPlan = {
     val solved = solveds.get(left.id).asSinglePlannerQuery.updateTailOrSelf(_.withHorizon(
-      AggregatingQueryProjection(groupingExpressions = reportedGrouping, aggregationExpressions = reportedAggregation)
+      AggregatingQueryProjection(
+        groupingExpressions = reportedGrouping,
+        aggregationExpressions = reportedAggregation,
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
     ))
 
     // NOTE: aggregation order is not used here as it is lost after aggregation
@@ -2261,7 +2337,11 @@ case class LogicalPlanProducer(
     context: LogicalPlanningContext
   ): LogicalPlan = {
     val solved = solveds.get(left.id).asSinglePlannerQuery.updateTailOrSelf(_.withHorizon(
-      AggregatingQueryProjection(groupingExpressions = reportedGrouping, aggregationExpressions = reportedAggregation)
+      AggregatingQueryProjection(
+        groupingExpressions = reportedGrouping,
+        aggregationExpressions = reportedAggregation,
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
     ))
 
     // NOTE: aggregation order is not used here as it is lost after aggregation
@@ -2392,7 +2472,12 @@ case class LogicalPlanProducer(
   }
 
   def planInput(symbols: Seq[Variable], context: LogicalPlanningContext): LogicalPlan = {
-    val solved = RegularSinglePlannerQuery(queryInput = Some(symbols))
+    val solved = RegularSinglePlannerQuery(
+      queryInput = Some(symbols),
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
+    )
     annotate(Input(symbols.map(_.name)), solved, ProvidedOrder.empty, CachedProperties.empty, context)
   }
 
@@ -2604,7 +2689,11 @@ case class LogicalPlanProducer(
     context: LogicalPlanningContext
   ): LogicalPlan = {
     val solved = solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.withHorizon(
-      AggregatingQueryProjection(groupingExpressions = reportedGrouping, aggregationExpressions = reportedAggregation)
+      AggregatingQueryProjection(
+        groupingExpressions = reportedGrouping,
+        aggregationExpressions = reportedAggregation,
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
     ).withInterestingOrder(interestingOrder))
     val providedOrderRule = ProvidedOrder.Left
     val limitPlan = planLimitOnTopOf(inner, SignedDecimalIntegerLiteral("1")(InputPosition.NONE))
@@ -2904,7 +2993,7 @@ case class LogicalPlanProducer(
   }
 
   def planDistinctForUnion(left: LogicalPlan, context: LogicalPlanningContext): LogicalPlan = {
-    val returnAll = left.availableSymbols.map { s => s -> s }
+    val returnAll = left.localAvailableSymbols.map { s => s -> s }
 
     val solved = solveds.get(left.id) match {
       case u: UnionQuery => markDistinctInUnion(u)
@@ -2934,7 +3023,7 @@ case class LogicalPlanProducer(
     orderToLeverage: Seq[Expression],
     context: LogicalPlanningContext
   ): LogicalPlan = {
-    val returnAll = left.availableSymbols.map { s => s -> s }
+    val returnAll = left.localAvailableSymbols.map { s => s -> s }
 
     val solved = solveds.get(left.id) match {
       case u: UnionQuery => markDistinctInUnion(u)
@@ -2986,7 +3075,7 @@ case class LogicalPlanProducer(
   ): LogicalPlan = {
     val solved: SinglePlannerQuery =
       solveds.get(left.id).asSinglePlannerQuery.updateTailOrSelf(_.updateQueryProjection(_ =>
-        DistinctQueryProjection(reported)
+        DistinctQueryProjection(reported, importedExposedSymbols = context.plannerState.importedSubqueryVariables)
       ))
     val columnsWithRenames = renameProvidedOrderColumns(providedOrders.get(left.id).columns, expressions)
     val plan = Distinct(left, expressions)
@@ -3012,7 +3101,7 @@ case class LogicalPlanProducer(
 
     val solved: SinglePlannerQuery =
       solveds.get(left.id).asSinglePlannerQuery.updateTailOrSelf(_.updateQueryProjection(_ =>
-        DistinctQueryProjection(reported)
+        DistinctQueryProjection(reported, importedExposedSymbols = context.plannerState.importedSubqueryVariables)
       ))
 
     val cardinality = cardinalityModel(
@@ -3046,7 +3135,7 @@ case class LogicalPlanProducer(
   ): LogicalPlan = {
     val solved: SinglePlannerQuery =
       solveds.get(left.id).asSinglePlannerQuery.updateTailOrSelf(_.updateQueryProjection(_ =>
-        DistinctQueryProjection(reported)
+        DistinctQueryProjection(reported, importedExposedSymbols = context.plannerState.importedSubqueryVariables)
       ))
 
     planRegularProjectionHelper(
@@ -3078,7 +3167,7 @@ case class LogicalPlanProducer(
   ): LogicalPlan = {
     val solved: SinglePlannerQuery =
       solveds.get(left.id).asSinglePlannerQuery.updateTailOrSelf(_.updateQueryProjection(_ =>
-        DistinctQueryProjection(reported)
+        DistinctQueryProjection(reported, importedExposedSymbols = context.plannerState.importedSubqueryVariables)
       ))
     val columnsWithRenames = renameProvidedOrderColumns(providedOrders.get(left.id).columns, expressions)
     val distinct = OrderedDistinct(left, expressions, orderToLeverage)
@@ -3657,7 +3746,14 @@ case class LogicalPlanProducer(
     columns: Set[LogicalVariable],
     context: LogicalPlanningContext
   ): LogicalPlan = {
-    val horizon = RunQueryAtProjection(graphReference, queryString, parameters, importsAsParameters, columns)
+    val horizon = RunQueryAtProjection(
+      graphReference,
+      queryString,
+      parameters,
+      importsAsParameters,
+      columns,
+      importedExposedSymbols = context.plannerState.importedSubqueryVariables
+    )
     val solved =
       solveds
         .get(inner.id)

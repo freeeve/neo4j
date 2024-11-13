@@ -277,8 +277,14 @@ case object plannerQueryPlanner {
   /**
    * Plan a subquery from an IRExpression with the given context.
    */
-  def planSubquery(subqueryExpression: IRExpression, context: LogicalPlanningContext): LogicalPlan =
-    plan(subqueryExpression.query, context.withModifiedPlannerState(_.forSubquery()))
+  def planSubquery(subqueryExpression: IRExpression, context: LogicalPlanningContext): LogicalPlan = {
+    plan(
+      subqueryExpression.query,
+      context.withModifiedPlannerState(_.forSubquery(
+        subqueryExpression.computedScopeDependencies.getOrElse(Set.empty)
+      ))
+    )
+  }
 }
 
 trait SingleQueryPlanner {

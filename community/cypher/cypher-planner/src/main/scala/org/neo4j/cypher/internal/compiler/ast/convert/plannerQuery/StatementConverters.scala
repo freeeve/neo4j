@@ -74,7 +74,7 @@ object StatementConverters {
       wth.returnItems.items.map(_.asInstanceOf[AliasedReturnItem].variable).toSet
     ).getOrElse(Set.empty)
 
-    val builder = PlannerQueryBuilder(semanticTable, allImportedVars)
+    val builder = PlannerQueryBuilder(semanticTable, allImportedVars, importedVariables)
     addClausesToPlannerQueryBuilder(
       q.clauses,
       builder,

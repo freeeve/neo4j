@@ -68,6 +68,7 @@ import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
 import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.SimplePatternLength
+import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.UnionQuery
 import org.neo4j.cypher.internal.ir.UnwindProjection
 import org.neo4j.cypher.internal.ir.VarPatternLength
@@ -81,8 +82,11 @@ import org.neo4j.cypher.internal.util.UpperBound
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.scalatest.Inside
+import org.scalatest.OptionValues
 
-class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSupport with AstConstructionTestSupport {
+class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSupport with AstConstructionTestSupport
+    with OptionValues with Inside {
 
   override val semanticFeatures: List[SemanticFeature] = List(
     SemanticFeature.MatchModes
@@ -99,7 +103,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       correlated = false,
       yielding = true,
       inTransactionsParameters = None,
-      optional = false
+      optional = false,
+      importedVariables = Set.empty
     ))
 
     query.tail should not be empty
@@ -120,7 +125,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       correlated = false,
       yielding = false,
       inTransactionsParameters = None,
-      optional = false
+      optional = false,
+      importedVariables = Set.empty
     ))
 
     query.tail should not be empty
@@ -149,7 +155,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           queryGraph = QueryGraph(argumentIds = Set(v"x")),
           horizon = RegularQueryProjection(Map(v"y" -> v"x"))
         ),
-        optional = false
+        optional = false,
+        importedVariables = Set.empty
       )
     )
 
@@ -176,7 +183,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           queryGraph = QueryGraph(argumentIds = Set(v"x")),
           horizon = QueryProjection.empty
         ),
-        optional = false
+        optional = false,
+        importedVariables = Set.empty
       )
     )
 
@@ -198,7 +206,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       correlated = false,
       yielding = true,
       inTransactionsParameters = None,
-      optional = false
+      optional = false,
+      importedVariables = Set.empty
     ))
 
     query.tail should not be empty
@@ -223,7 +232,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       correlated = false,
       yielding = true,
       inTransactionsParameters = None,
-      optional = false
+      optional = false,
+      importedVariables = Set.empty
     ))
 
     query.tail should not be empty
@@ -251,7 +261,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       correlated = false,
       yielding = false,
       inTransactionsParameters = None,
-      optional = false
+      optional = false,
+      importedVariables = Set.empty
     ))
 
     query.tail should not be empty
@@ -287,7 +298,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
         distinct = true,
         List(UnionMapping(v"y", v"y", v"y"))
       ),
-      optional = false
+      optional = false,
+      importedVariables = Set.empty
     ))
 
     subquery.tail should not be empty
@@ -320,7 +332,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
         distinct = true,
         List()
       ),
-      optional = false
+      optional = false,
+      importedVariables = Set.empty
     ))
 
     subquery.tail should not be empty
@@ -348,7 +361,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       correlated = false,
       yielding = true,
       inTransactionsParameters = None,
-      optional = false
+      optional = false,
+      importedVariables = Set.empty
     ))
 
     query.tail should not be empty
@@ -366,7 +380,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       correlated = false,
       yielding = false,
       inTransactionsParameters = Some(inTransactionsParameters(None, None, None, None)),
-      optional = false
+      optional = false,
+      importedVariables = Set.empty
     )
 
     query.tail should not be empty
@@ -395,7 +410,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       correlated = true,
       yielding = false,
       inTransactionsParameters = Some(inTransactionsParameters(None, None, None, None)),
-      optional = false
+      optional = false,
+      importedVariables = Set.empty
     )
 
     subQuery.tail should not be empty
@@ -417,7 +433,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       correlated = false,
       yielding = true,
       inTransactionsParameters = Some(inTransactionsParameters(None, None, None, None)),
-      optional = false
+      optional = false,
+      importedVariables = Set.empty
     )
 
     query.tail should not be empty
@@ -447,7 +464,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       correlated = true,
       yielding = true,
       inTransactionsParameters = Some(inTransactionsParameters(None, None, None, None)),
-      optional = false
+      optional = false,
+      importedVariables = Set.empty
     )
 
     subQuery.tail should not be empty
@@ -987,7 +1005,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           patternRelationships =
             Set(PatternRelationship(rel, (v"a", node), OUTGOING, Seq(), SimplePatternLength))
         )
-      ),
+      ).updateQueryProjection(_.withImportedExposedSymbols(Set(v"a"))),
       existsVariable,
       v"EXISTS { MATCH (a)-[`$rel`]->(`$node`) }".name
     )(pos, None, None)
@@ -1049,7 +1067,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           patternRelationships =
             Set(PatternRelationship(rel, (v"a", node), OUTGOING, Seq(), SimplePatternLength))
         )
-      ),
+      ).updateQueryProjection(_.withImportedExposedSymbols(Set(v"a"))),
       existsVariable,
       v"EXISTS { MATCH (a)-[`$rel`]->(`$node`) }".name
     )(pos, None, None)
@@ -1079,7 +1097,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           patternRelationships =
             Set(PatternRelationship(rel, (v"a", node), OUTGOING, Seq(), SimplePatternLength))
         )
-      ),
+      ).updateQueryProjection(_.withImportedExposedSymbols(Set(v"a"))),
       existsVariable,
       v"EXISTS { MATCH (a)-[`$rel`]->(`$node`) }".name
     )(pos, None, None)
@@ -1109,7 +1127,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           patternRelationships =
             Set(PatternRelationship(rel, (v"a", node), OUTGOING, Seq(), SimplePatternLength))
         )
-      ),
+      ).updateQueryProjection(_.withImportedExposedSymbols(Set(v"a"))),
       existsVariable,
       v"EXISTS { MATCH (a)-[`$rel`]->(`$node`) }".name
     )(pos, None, None)
@@ -1183,7 +1201,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     query.horizon should equal(
       RegularQueryProjection(
         projections = Map(v"a" -> v"a"),
-        QueryPagination(
+        queryPagination = QueryPagination(
           skip = None,
           limit = Some(literalInt(1))
         )
@@ -1331,6 +1349,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           aggregationExpression,
           QueryPagination(limit, skip),
           where,
+          _,
           _
         ) =>
         groupingKeys should be(empty)
@@ -1357,6 +1376,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           aggregationExpression,
           QueryPagination(limit, skip),
           where,
+          _,
           _
         ) =>
         groupingKeys should equal(Map(v"n.prop" -> nProp))
@@ -1481,7 +1501,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           patternRelationships =
             Set(PatternRelationship(rel, (v"owner", node), BOTH, Seq(), SimplePatternLength))
         )
-      ),
+      ).updateQueryProjection(_.withImportedExposedSymbols(Set(v"owner"))),
       existsVariable,
       v"EXISTS { MATCH (owner)-[`$rel`]-(`$node`) }".name
     )(pos, Some(Set(node, rel)), Some(Set(v"owner")))
@@ -1782,7 +1802,11 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     )
   }
 
-  private def queryWith(qg: QueryGraph, horizon: QueryHorizon = RegularQueryProjection()): PlannerQuery = {
+  private def queryWith(
+    qg: QueryGraph,
+    horizon: QueryHorizon = RegularQueryProjection(
+    )
+  ): RegularSinglePlannerQuery = {
     RegularSinglePlannerQuery(
       queryGraph = qg,
       horizon = horizon,
@@ -1813,7 +1837,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
               differentRelationships(r3, r2)
             ))
           )
-        )
+        ).updateQueryProjection(_.withImportedExposedSymbols(Set(v"m")))
       )
   }
 
@@ -1831,7 +1855,11 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
         argumentIds = Set(v"m", v"n"),
         selections = Selections(Set(Predicate(Set(v"n"), assertIsNode("n"))))
       ),
-      horizon = RegularQueryProjection(Map(v"name" -> v"n"), position = QueryProjection.Position.Final)
+      horizon = RegularQueryProjection(
+        Map(v"name" -> v"n"),
+        position = QueryProjection.Position.Final,
+        importedExposedSymbols = Set(v"n", v"m")
+      )
     )
     val secondQuery = RegularSinglePlannerQuery(
       QueryGraph(
@@ -1840,7 +1868,11 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
         argumentIds = Set(v"m", v"n"),
         selections = Selections(Set(Predicate(Set(v"m"), assertIsNode("m"))))
       ),
-      horizon = RegularQueryProjection(Map(v"name" -> v"m"), position = QueryProjection.Position.Final)
+      horizon = RegularQueryProjection(
+        Map(v"name" -> v"m"),
+        position = QueryProjection.Position.Final,
+        importedExposedSymbols = Set(v"n", v"m")
+      )
     )
 
     query.queryGraph.selections.predicates.headOption.map(_.expr.asInstanceOf[ExistsIRExpression].query) shouldBe
@@ -2223,7 +2255,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
             quantifiedPathPatterns = Set(qpp),
             selections = Selections.from(unique(v"r"))
           )
-        )
+        ).updateQueryProjection(_.withImportedExposedSymbols(Set(v"a")))
       )
   }
 
@@ -2927,6 +2959,158 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     )
   }
 
+  test("CALL () should record imported variables") {
+    val query = buildSinglePlannerQuery("WITH 1 AS x CALL (x) { RETURN x AS y } RETURN y AS z")
+    query.tail.value.horizon shouldEqual CallSubqueryHorizon(
+      importedVariables = Set(v"x"),
+      callSubquery = RegularSinglePlannerQuery(
+        queryGraph =
+          QueryGraph.empty
+            .withArgumentIds(Set(v"x")),
+        horizon =
+          QueryProjection.empty
+            .withImportedExposedSymbols(Set(v"x"))
+            .withAddedProjections(Map(v"y" -> v"x"))
+      ),
+      correlated = true,
+      yielding = true,
+      inTransactionsParameters = None,
+      optional = false
+    )
+  }
+
+  test("CALL () should propagate imported variables through multiple inner horizons") {
+    val queryText =
+      """
+        |WITH 1 AS x
+        |CALL (x) {
+        |  WITH 1 AS y
+        |  WITH count(*) AS c
+        |  WITH DISTINCT c
+        |  RETURN x AS t
+        |}
+        |RETURN t AS result
+        |""".stripMargin
+
+    val query = buildSinglePlannerQuery(queryText)
+
+    inside(query.tail.value.horizon) {
+      case cs: CallSubqueryHorizon =>
+        val horizons = cs.callSubquery.assertSinglePlannerQuery.allPlannerQueries.map(_.horizon)
+        horizons.size shouldBe 4
+        horizons.foreach { h =>
+          inside(h) {
+            case proj: QueryProjection =>
+              proj.importedExposedSymbols shouldEqual Set(v"x")
+              proj.exposedSymbols(Set.empty) should contain(v"x")
+          }
+        }
+    }
+  }
+
+  test("CALL () should propagate imported variables through multiple inner horizons, UNION subquery") {
+    val queryText =
+      """
+        |WITH 1 AS x
+        |CALL (x) {
+        |  WITH 1 AS y
+        |  WITH count(*) AS c
+        |  WITH DISTINCT c
+        |  RETURN x AS t
+        |  UNION
+        |  WITH 1 AS q
+        |  WITH collect(q) AS c
+        |  WITH DISTINCT c
+        |  RETURN x AS t
+        |}
+        |RETURN t AS result
+        |""".stripMargin
+
+    val query = buildSinglePlannerQuery(queryText)
+
+    inside(query.tail.value.horizon) {
+      case cs: CallSubqueryHorizon =>
+        val union = cs.callSubquery.assertUnionQuery
+        for (singleQuery <- Seq(union.lhs.assertSinglePlannerQuery, union.rhs)) {
+          val horizons = singleQuery.allPlannerQueries.map(_.horizon)
+          horizons.size shouldBe 4
+          horizons.foreach { h =>
+            inside(h) {
+              case proj: QueryProjection =>
+                proj.importedExposedSymbols shouldEqual Set(v"x")
+                proj.exposedSymbols(Set.empty) should contain(v"x")
+            }
+          }
+        }
+    }
+  }
+
+  test("nested CALL () should override imported variables") {
+    val queryText =
+      """
+        |WITH 1 AS x
+        |CALL (x) {
+        |  WITH 1 AS y
+        |  CALL (x, y) {
+        |    WITH x + y AS z
+        |    CALL (z) {
+        |      RETURN z+1 AS t
+        |    }
+        |    RETURN DISTINCT t AS q
+        |  }
+        |  RETURN max(q) AS p
+        |}
+        |RETURN p AS result
+        |""".stripMargin
+
+    val query = buildSinglePlannerQuery(queryText)
+
+    // CALL (x)
+    inside(query.tail.value.horizon) {
+      case cs: CallSubqueryHorizon =>
+        cs.importedVariables shouldBe Set(v"x")
+        val singleQuery = cs.callSubquery.assertSinglePlannerQuery
+
+        // WITH 1 AS y
+        inside(singleQuery.horizon) {
+          case proj: QueryProjection => proj.importedExposedSymbols shouldBe Set(v"x")
+        }
+
+        // CALL (x, y)
+        inside(singleQuery.tail.value.horizon) {
+          case cs: CallSubqueryHorizon =>
+            cs.importedVariables shouldBe Set(v"x", v"y")
+            val singleQuery = cs.callSubquery.assertSinglePlannerQuery
+
+            // WITH x + y AS z
+            inside(singleQuery.horizon) {
+              case proj: QueryProjection => proj.importedExposedSymbols shouldBe Set(v"x", v"y")
+            }
+
+            // CALL (z)
+            inside(singleQuery.tail.value.horizon) {
+              case cs: CallSubqueryHorizon =>
+                cs.importedVariables shouldBe Set(v"z")
+
+                // RETURN z+1 AS t
+                inside(cs.callSubquery.assertSinglePlannerQuery.horizon) {
+                  case proj: QueryProjection => proj.importedExposedSymbols shouldBe Set(v"z")
+                }
+            }
+
+            // RETURN DISTINCT t AS q
+            inside(singleQuery.tail.value.tail.value.horizon) {
+              case proj: QueryProjection => proj.importedExposedSymbols shouldBe Set(v"x", v"y")
+            }
+        }
+
+        // RETURN max(q) AS p
+        inside(singleQuery.tail.value.tail.value.horizon) {
+          case proj: QueryProjection => proj.importedExposedSymbols shouldBe Set(v"x")
+        }
+    }
+  }
+
   private def createNodeIr(node: String, properties: Option[String] = None): org.neo4j.cypher.internal.ir.CreateNode =
     org.neo4j.cypher.internal.ir.CreateNode(varFor(node), Set.empty, Set.empty, properties.map(Parser.parseExpression))
 
@@ -2950,4 +3134,24 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       properties.map(Parser.parseExpression)
     )
   }
+
+  implicit private class PlannerQueryCastAssertions(pq: PlannerQuery) {
+
+    def assertSinglePlannerQuery: SinglePlannerQuery = {
+      pq match {
+        case query: SinglePlannerQuery => query
+        case _: UnionQuery =>
+          fail(s"Expected ${SinglePlannerQuery.getClass.getSimpleName}, was ${UnionQuery.getClass.getSimpleName}")
+      }
+    }
+
+    def assertUnionQuery: UnionQuery = {
+      pq match {
+        case query: UnionQuery => query
+        case _: SinglePlannerQuery =>
+          fail(s"Expected ${UnionQuery.getClass.getSimpleName}, was ${SinglePlannerQuery.getClass.getSimpleName}")
+      }
+    }
+  }
+
 }

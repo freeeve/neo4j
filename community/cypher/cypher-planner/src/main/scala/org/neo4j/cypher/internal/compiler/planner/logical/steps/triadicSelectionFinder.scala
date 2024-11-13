@@ -267,7 +267,7 @@ case object triadicSelectionFinder extends SelectionCandidateGenerator {
             SetExtractor()
           ),
           InterestingOrder.empty,
-          RegularQueryProjection(_, QueryPagination.empty, Selections.empty, _),
+          RegularQueryProjection(_, QueryPagination.empty, Selections.empty, _, _),
           None,
           None
         ),

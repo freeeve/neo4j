@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.limit.LimitSelectivity
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.CostComparisonListener
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.LogicalPlanProducer
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
+import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
@@ -241,7 +242,7 @@ object LogicalPlanningContext {
   case class PlannerState(
     input: QueryGraphSolverInput = QueryGraphSolverInput.empty,
     outerPlan: Option[LogicalPlan] = None,
-    isInSubquery: Boolean = false,
+    maybeImportedSubqueryVariables: Option[Set[LogicalVariable]] = None,
     indexCompatiblePredicatesProviderContext: IndexCompatiblePredicatesProviderContext =
       IndexCompatiblePredicatesProviderContext.default,
     accessedProperties: Set[PropertyAccess] = Set.empty,
@@ -278,8 +279,8 @@ object LogicalPlanningContext {
       copy(outerPlan = Some(outerPlan))
     }
 
-    def forSubquery(): PlannerState = {
-      copy(isInSubquery = true)
+    def forSubquery(importedVariables: Set[LogicalVariable]): PlannerState = {
+      copy(maybeImportedSubqueryVariables = Some(importedVariables))
     }
 
     def withActivePlanner(planner: PlannerType): PlannerState =
@@ -301,6 +302,12 @@ object LogicalPlanningContext {
 
     def withPreviouslyCachedProperties(cachedProperties: CachedProperties): PlannerState =
       copy(previouslyCachedProperties = cachedProperties)
+
+    def isInSubquery: Boolean =
+      maybeImportedSubqueryVariables.nonEmpty
+
+    def importedSubqueryVariables: Set[LogicalVariable] =
+      maybeImportedSubqueryVariables.getOrElse(Set.empty)
   }
 
 }

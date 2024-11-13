@@ -255,17 +255,24 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         val projected = context.staticComponents.logicalPlanProducer.planPassAll(plan, context)
         SortPlanner.ensureSortedPlanWithSolved(projected, interestingOrderConfig, context, updateSolvedOrdering)
 
-      case CallSubqueryHorizon(callSubquery, correlated, yielding, inTransactionsParameters, optional) =>
+      case CallSubqueryHorizon(
+          callSubquery,
+          correlated,
+          yielding,
+          inTransactionsParameters,
+          optional,
+          importedVariables
+        ) =>
         val subqueryContext =
           if (correlated)
             context.withModifiedPlannerState(_
-              .forSubquery()
+              .forSubquery(importedVariables)
               .withUpdatedLabelInfo(plan, context.staticComponents.planningAttributes.solveds)
               .withPreviouslyCachedProperties(
                 context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(plan.id)
               ))
           else
-            context.withModifiedPlannerState(_.forSubquery()
+            context.withModifiedPlannerState(_.forSubquery(importedVariables)
               .withPreviouslyCachedProperties(
                 context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(plan.id)
               ))
@@ -287,7 +294,8 @@ case object PlanEventHorizon extends EventHorizonPlanner {
           correlated,
           yielding,
           inTransactionsParameters,
-          optional
+          optional,
+          importedVariables
         )
         SortPlanner.ensureSortedPlanWithSolved(projected, interestingOrderConfig, context, updateSolvedOrdering)
 
@@ -295,7 +303,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         val commandPlan = context.staticComponents.logicalPlanProducer.planCommand(plan, clause, context)
         SortPlanner.ensureSortedPlanWithSolved(commandPlan, interestingOrderConfig, context, updateSolvedOrdering)
 
-      case RunQueryAtProjection(graphReference, queryString, parameters, importsAsParameters, columns) =>
+      case RunQueryAtProjection(graphReference, queryString, parameters, importsAsParameters, columns, _) =>
         val runQueryAt =
           context
             .staticComponents

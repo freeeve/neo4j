@@ -53,7 +53,10 @@ case class CountIRExpression(
     copy(
       countVariable = newVariable,
       query = query.asSinglePlannerQuery.updateTailOrSelf(_.withHorizon(
-        AggregatingQueryProjection(aggregationExpressions = Map(newVariable -> CountStar()(position)))
+        AggregatingQueryProjection(
+          aggregationExpressions = Map(newVariable -> CountStar()(position)),
+          importedExposedSymbols = computedScopeDependencies.getOrElse(Set.empty)
+        )
       ))
     )(position, computedIntroducedVariables, computedScopeDependencies)
   }
