@@ -20,7 +20,6 @@ import org.neo4j.cypher.internal.ast.ShowTransactionsClause
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.IntegerType
@@ -711,9 +710,8 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
         withFromYield(returnAllItems)
       )
     parsesIn[Statement] {
-      case Cypher5JavaCc => _.toAst(expected(yieldIsEscaped = false, returnCypher5Types = true))
-      case Cypher5       => _.toAst(expected(yieldIsEscaped = true, returnCypher5Types = true))
-      case _             => _.toAst(expected(yieldIsEscaped = false, returnCypher5Types = false))
+      case Cypher5 => _.toAst(expected(yieldIsEscaped = true, returnCypher5Types = true))
+      case _       => _.toAst(expected(yieldIsEscaped = false, returnCypher5Types = false))
     }
   }
 
@@ -729,9 +727,8 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
         )(pos)
       )
     parsesIn[Statement] {
-      case Cypher5JavaCc => _.toAst(expected(whereIsEscaped = false, returnCypher5Types = true))
-      case Cypher5       => _.toAst(expected(whereIsEscaped = true, returnCypher5Types = true))
-      case _             => _.toAst(expected(whereIsEscaped = false, returnCypher5Types = false))
+      case Cypher5 => _.toAst(expected(whereIsEscaped = true, returnCypher5Types = true))
+      case _       => _.toAst(expected(whereIsEscaped = false, returnCypher5Types = false))
     }
   }
 
@@ -1001,16 +998,11 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
   }
 
   test("SHOW USER user TRANSACTION") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          """Invalid input 'TRANSACTION': expected ",", "PRIVILEGE" or "PRIVILEGES" (line 1, column 16 (offset: 15))""".stripMargin
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'TRANSACTION': expected 'PRIVILEGE' or 'PRIVILEGES' (line 1, column 16 (offset: 15))
-            |"SHOW USER user TRANSACTION"
-            |                ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'TRANSACTION': expected 'PRIVILEGE' or 'PRIVILEGES' (line 1, column 16 (offset: 15))
+        |"SHOW USER user TRANSACTION"
+        |                ^""".stripMargin
+    )
   }
 
   test("SHOW TRANSACTION EXECUTED BY USER user") {
@@ -1026,101 +1018,70 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
   for (prefix <- Seq("USE neo4j", "")) {
     test(s"$prefix SHOW TRANSACTIONS YIELD * WITH * MATCH (n) RETURN n") {
       // Can't parse WITH after SHOW
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'WITH': expected")
-        // Antlr parses YIELD * WITH * MATCH (n) as an expression
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'RETURN': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'RETURN': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
+      )
     }
 
     test(s"$prefix UNWIND range(1,10) as b SHOW TRANSACTIONS YIELD * RETURN *") {
       // Can't parse SHOW  after UNWIND
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'SHOW': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>""".stripMargin
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'SHOW': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>""".stripMargin
+      )
     }
 
     test(s"$prefix SHOW TRANSACTIONS WITH name, type RETURN *") {
       // Can't parse WITH after SHOW
       // parses varFor("WITH")
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'name': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'name': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'name': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
+      )
     }
 
     test(s"$prefix WITH 'n' as n SHOW TRANSACTIONS YIELD name RETURN name as numIndexes") {
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'SHOW': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>"""
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'SHOW': expected 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>"""
+      )
     }
 
     test(s"$prefix SHOW TRANSACTIONS RETURN name as numIndexes") {
       // parses varFor("RETURN")
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'name': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'name': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'name': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
+      )
     }
 
     test(s"$prefix SHOW TRANSACTIONS WITH 1 as c RETURN name as numIndexes") {
       // parses varFor("WITH")
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input '1': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input '1': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input '1': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
+      )
     }
 
     test(s"$prefix SHOW TRANSACTIONS WITH 1 as c") {
       // parses varFor("WITH")
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input '1': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input '1': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input '1': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
+      )
     }
 
     test(s"$prefix SHOW TRANSACTIONS YIELD a WITH a RETURN a") {
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'WITH': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>"""
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>"""
+      )
     }
 
     test(s"$prefix SHOW TRANSACTIONS YIELD as UNWIND as as a RETURN a") {
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'UNWIND': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>"""
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>"""
+      )
     }
 
     test(s"$prefix SHOW TRANSACTIONS RETURN id2 YIELD id2") {
       // parses varFor("RETURN")
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'id2': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'id2': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'id2': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
+      )
     }
   }
 

@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.User
 import org.neo4j.cypher.internal.ast.UserDefinedFunctions
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 
@@ -488,57 +487,6 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
 
   test("SHOW EXECUTABLE FUNCTION") {
     failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(
-          """Invalid input 'EXECUTABLE': expected
-            |  "ALIAS"
-            |  "ALIASES"
-            |  "ALL"
-            |  "BTREE"
-            |  "BUILT"
-            |  "CONSTRAINT"
-            |  "CONSTRAINTS"
-            |  "CURRENT"
-            |  "DATABASE"
-            |  "DATABASES"
-            |  "DEFAULT"
-            |  "EXIST"
-            |  "EXISTENCE"
-            |  "EXISTS"
-            |  "FULLTEXT"
-            |  "FUNCTION"
-            |  "FUNCTIONS"
-            |  "HOME"
-            |  "INDEX"
-            |  "INDEXES"
-            |  "KEY"
-            |  "LOOKUP"
-            |  "NODE"
-            |  "POINT"
-            |  "POPULATED"
-            |  "PRIVILEGE"
-            |  "PRIVILEGES"
-            |  "PROCEDURE"
-            |  "PROCEDURES"
-            |  "PROPERTY"
-            |  "RANGE"
-            |  "REL"
-            |  "RELATIONSHIP"
-            |  "ROLE"
-            |  "ROLES"
-            |  "SERVER"
-            |  "SERVERS"
-            |  "SETTING"
-            |  "SETTINGS"
-            |  "SUPPORTED"
-            |  "TEXT"
-            |  "TRANSACTION"
-            |  "TRANSACTIONS"
-            |  "UNIQUE"
-            |  "UNIQUENESS"
-            |  "USER"
-            |  "USERS"
-            |  "VECTOR" (line 1, column 6 (offset: 5))""".stripMargin
-        )
       case Cypher5 => _.withSyntaxError(
           """Invalid input 'EXECUTABLE': expected 'ALIAS', 'ALIASES', 'ALL', 'BTREE', 'CONSTRAINT', 'CONSTRAINTS', 'DATABASE', 'DEFAULT DATABASE', 'HOME DATABASE', 'DATABASES', 'EXIST', 'EXISTENCE', 'EXISTS', 'FULLTEXT', 'FUNCTION', 'FUNCTIONS', 'BUILT IN', 'INDEX', 'INDEXES', 'KEY', 'LOOKUP', 'NODE', 'POINT', 'POPULATED', 'PRIVILEGE', 'PRIVILEGES', 'PROCEDURE', 'PROCEDURES', 'PROPERTY', 'RANGE', 'REL', 'RELATIONSHIP', 'ROLE', 'ROLES', 'SERVER', 'SERVERS', 'SETTING', 'SETTINGS', 'SUPPORTED', 'TEXT', 'TRANSACTION', 'TRANSACTIONS', 'UNIQUE', 'UNIQUENESS', 'USER', 'CURRENT USER', 'USERS' or 'VECTOR' (line 1, column 6 (offset: 5))
             |"SHOW EXECUTABLE FUNCTION"
@@ -629,16 +577,11 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
   }
 
   test("SHOW USER FUNCTIONS") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(
-          """Invalid input '': expected ",", "PRIVILEGE" or "PRIVILEGES" (line 1, column 20 (offset: 19))"""
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected 'PRIVILEGE' or 'PRIVILEGES' (line 1, column 20 (offset: 19))
-            |"SHOW USER FUNCTIONS"
-            |                    ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected 'PRIVILEGE' or 'PRIVILEGES' (line 1, column 20 (offset: 19))
+        |"SHOW USER FUNCTIONS"
+        |                    ^""".stripMargin
+    )
   }
 
   test("SHOW USER-DEFINED FUNCTIONS") {
@@ -675,7 +618,6 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
 
   test("SHOW UNKNOWN FUNCTIONS") {
     failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input 'UNKNOWN': expected""")
       case Cypher5 => _.withMessage(
           """Invalid input 'UNKNOWN': expected 'ALIAS', 'ALIASES', 'ALL', 'BTREE', 'CONSTRAINT', 'CONSTRAINTS', 'DATABASE', 'DEFAULT DATABASE', 'HOME DATABASE', 'DATABASES', 'EXIST', 'EXISTENCE', 'EXISTS', 'FULLTEXT', 'FUNCTION', 'FUNCTIONS', 'BUILT IN', 'INDEX', 'INDEXES', 'KEY', 'LOOKUP', 'NODE', 'POINT', 'POPULATED', 'PRIVILEGE', 'PRIVILEGES', 'PROCEDURE', 'PROCEDURES', 'PROPERTY', 'RANGE', 'REL', 'RELATIONSHIP', 'ROLE', 'ROLES', 'SERVER', 'SERVERS', 'SETTING', 'SETTINGS', 'SUPPORTED', 'TEXT', 'TRANSACTION', 'TRANSACTIONS', 'UNIQUE', 'UNIQUENESS', 'USER', 'CURRENT USER', 'USERS' or 'VECTOR' (line 1, column 6 (offset: 5))
             |"SHOW UNKNOWN FUNCTIONS"
@@ -690,14 +632,11 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
   }
 
   test("SHOW LOOKUP FUNCTIONS") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input 'FUNCTIONS': expected "INDEX" or "INDEXES"""")
-      case _ => _.withMessage(
-          """Invalid input 'FUNCTIONS': expected 'INDEX' or 'INDEXES' (line 1, column 13 (offset: 12))
-            |"SHOW LOOKUP FUNCTIONS"
-            |             ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input 'FUNCTIONS': expected 'INDEX' or 'INDEXES' (line 1, column 13 (offset: 12))
+        |"SHOW LOOKUP FUNCTIONS"
+        |             ^""".stripMargin
+    )
   }
 
   // Invalid clause order
@@ -705,95 +644,65 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
   for (prefix <- Seq("USE neo4j", "")) {
     test(s"$prefix SHOW FUNCTIONS YIELD * WITH * MATCH (n) RETURN n") {
       // Can't parse WITH after SHOW
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'WITH': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected 'ORDER BY'""".stripMargin
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'WITH': expected 'ORDER BY'""".stripMargin
+      )
     }
 
     test(s"$prefix UNWIND range(1,10) as b SHOW FUNCTIONS YIELD * RETURN *") {
       // Can't parse SHOW  after UNWIND
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'SHOW': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>""".stripMargin
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'SHOW': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>""".stripMargin
+      )
     }
 
     test(s"$prefix SHOW FUNCTIONS WITH name, type RETURN *") {
       // Can't parse WITH after SHOW
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'WITH': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected 'EXECUTABLE'""".stripMargin
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'WITH': expected 'EXECUTABLE'""".stripMargin
+      )
     }
 
     test(s"$prefix WITH 'n' as n SHOW FUNCTIONS YIELD name RETURN name as numIndexes") {
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'SHOW': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>""".stripMargin
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'SHOW': expected 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>""".stripMargin
+      )
     }
 
     test(s"$prefix SHOW FUNCTIONS RETURN name as numIndexes") {
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'RETURN': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'RETURN': expected 'EXECUTABLE'""".stripMargin
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'RETURN': expected 'EXECUTABLE'""".stripMargin
+      )
     }
 
     test(s"$prefix SHOW FUNCTIONS WITH 1 as c RETURN name as numIndexes") {
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'WITH': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected 'EXECUTABLE'""".stripMargin
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'WITH': expected 'EXECUTABLE'""".stripMargin
+      )
     }
 
     test(s"$prefix SHOW FUNCTIONS WITH 1 as c") {
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'WITH': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected 'EXECUTABLE'""".stripMargin
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'WITH': expected 'EXECUTABLE'""".stripMargin
+      )
     }
 
     test(s"$prefix SHOW FUNCTIONS YIELD a WITH a RETURN a") {
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'WITH': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>""".stripMargin
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>""".stripMargin
+      )
     }
 
     test(s"$prefix SHOW FUNCTIONS YIELD as UNWIND as as a RETURN a") {
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'UNWIND': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>""".stripMargin
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>""".stripMargin
+      )
     }
 
     test(s"$prefix SHOW FUNCTIONS RETURN name2 YIELD name2") {
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'RETURN': expected")
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'RETURN': expected 'EXECUTABLE'""".stripMargin
-          )
-      }
+      failsParsing[Statements].withSyntaxErrorContaining(
+        """Invalid input 'RETURN': expected 'EXECUTABLE'""".stripMargin
+      )
     }
   }
 

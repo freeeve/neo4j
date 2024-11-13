@@ -19,8 +19,8 @@
  */
 package org.neo4j.cypher.internal.compiler
 
+import org.neo4j.cypher.internal.Neo4jASTExceptionFactory
 import org.neo4j.cypher.internal.PreParserOption
-import org.neo4j.cypher.internal.ast.factory.neo4j.Neo4jASTExceptionFactory
 import org.neo4j.cypher.internal.options.CypherExecutionMode
 import org.neo4j.cypher.internal.preparser.javacc.CypherPreParser
 import org.neo4j.cypher.internal.preparser.javacc.PreParserCharStream

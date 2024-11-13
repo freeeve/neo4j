@@ -19,7 +19,6 @@ package org.neo4j.cypher.internal.ast.factory.ddl
 import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.SignedHexIntegerLiteral
 import org.neo4j.cypher.internal.expressions.SignedOctalIntegerLiteral
@@ -564,19 +563,15 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   private def assertAst(expectedClauses: ast.Clause*): Unit = {
     parsesIn[ast.Statements] {
-      case Cypher5 | Cypher5JavaCc =>
-        _.toAstPositioned(ast.Statements(Seq(singleQuery(expectedClauses.map(updateForCypher5): _*))))
-      case _ =>
-        _.toAstPositioned(ast.Statements(Seq(singleQuery(expectedClauses: _*))))
+      case Cypher5 => _.toAstPositioned(ast.Statements(Seq(singleQuery(expectedClauses.map(updateForCypher5): _*))))
+      case _       => _.toAstPositioned(ast.Statements(Seq(singleQuery(expectedClauses: _*))))
     }
   }
 
   private def assertAstDontComparePos(expectedClauses: ast.Clause*): Unit = {
     parsesIn[ast.Statements] {
-      case Cypher5 | Cypher5JavaCc =>
-        _.toAst(ast.Statements(Seq(singleQuery(expectedClauses.map(updateForCypher5): _*))))
-      case _ =>
-        _.toAst(ast.Statements(Seq(singleQuery(expectedClauses: _*))))
+      case Cypher5 => _.toAst(ast.Statements(Seq(singleQuery(expectedClauses.map(updateForCypher5): _*))))
+      case _       => _.toAst(ast.Statements(Seq(singleQuery(expectedClauses: _*))))
     }
   }
 
@@ -1345,9 +1340,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         )
       )
     parsesIn[Statement] {
-      case Cypher5JavaCc => _.toAst(expected(variablesAreEscaped = false, returnCypher5Types = true))
-      case Cypher5       => _.toAst(expected(variablesAreEscaped = true, returnCypher5Types = true))
-      case _             => _.toAst(expected(variablesAreEscaped = false, returnCypher5Types = false))
+      case Cypher5 => _.toAst(expected(variablesAreEscaped = true, returnCypher5Types = true))
+      case _       => _.toAst(expected(variablesAreEscaped = false, returnCypher5Types = false))
     }
   }
 
@@ -1847,258 +1841,212 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
   // show indexes/constraints brief/verbose when combined with other commands
 
   test("SHOW CONSTRAINTS BRIEF SHOW CONSTRAINTS") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ =>
+        _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
+    }
   }
 
   test("SHOW CONSTRAINTS VERBOSE SHOW CONSTRAINTS") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining(
-            "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
-          )
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
+        )
+    }
   }
 
   test("SHOW CONSTRAINTS SHOW CONSTRAINTS BRIEF") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ =>
+        _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
+    }
   }
 
   test("SHOW CONSTRAINTS SHOW CONSTRAINTS VERBOSE") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining(
-            "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
-          )
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
+        )
+    }
   }
 
   test("SHOW CONSTRAINTS BRIEF SHOW CONSTRAINTS VERBOSE") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ =>
+        _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
+    }
   }
 
   test("SHOW CONSTRAINTS BRIEF SHOW PROCEDURES") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ =>
+        _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
+    }
   }
 
   test("SHOW CONSTRAINTS VERBOSE SHOW FUNCTIONS") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining(
-            "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
-          )
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
+        )
+    }
   }
 
   test("SHOW FUNCTIONS SHOW CONSTRAINTS BRIEF") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ =>
+        _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
+    }
   }
 
   test("SHOW PROCEDURES SHOW CONSTRAINTS VERBOSE") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining(
-            "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
-          )
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
+        )
+    }
   }
 
   test("SHOW INDEXES BRIEF SHOW INDEXES") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ =>
+        _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
+    }
   }
 
   test("SHOW INDEXES VERBOSE SHOW INDEXES") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining(
-            "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
-          )
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
+        )
+    }
   }
 
   test("SHOW INDEXES SHOW INDEXES BRIEF") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ =>
+        _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
+    }
   }
 
   test("SHOW INDEXES SHOW INDEXES VERBOSE") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining(
-            "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
-          )
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
+        )
+    }
   }
 
   test("SHOW BTREE INDEXES VERBOSE SHOW BTREE INDEXES BRIEF") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining(
-            "Invalid input 'BTREE': expected 'ALIAS', 'ALIASES', 'ALL', 'CONSTRAINT', 'CONSTRAINTS', 'DATABASE', 'DEFAULT DATABASE', 'HOME DATABASE', 'DATABASES', " +
-              "'EXIST', 'EXISTENCE', 'FULLTEXT', 'FUNCTION', 'FUNCTIONS', 'BUILT IN', 'INDEX', 'INDEXES', 'KEY', 'LOOKUP', 'NODE', 'POINT', 'POPULATED', 'PRIVILEGE', 'PRIVILEGES', " +
-              "'PROCEDURE', 'PROCEDURES', 'PROPERTY', 'RANGE', 'REL', 'RELATIONSHIP', 'ROLE', 'ROLES', 'SERVER', 'SERVERS', 'SETTING', 'SETTINGS', 'SUPPORTED', 'TEXT', " +
-              "'TRANSACTION', 'TRANSACTIONS', 'UNIQUE', 'UNIQUENESS', 'USER', 'CURRENT USER', 'USERS' or 'VECTOR'"
-          )
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input 'BTREE': expected 'ALIAS', 'ALIASES', 'ALL', 'CONSTRAINT', 'CONSTRAINTS', 'DATABASE', 'DEFAULT DATABASE', 'HOME DATABASE', 'DATABASES', " +
+            "'EXIST', 'EXISTENCE', 'FULLTEXT', 'FUNCTION', 'FUNCTIONS', 'BUILT IN', 'INDEX', 'INDEXES', 'KEY', 'LOOKUP', 'NODE', 'POINT', 'POPULATED', 'PRIVILEGE', 'PRIVILEGES', " +
+            "'PROCEDURE', 'PROCEDURES', 'PROPERTY', 'RANGE', 'REL', 'RELATIONSHIP', 'ROLE', 'ROLES', 'SERVER', 'SERVERS', 'SETTING', 'SETTINGS', 'SUPPORTED', 'TEXT', " +
+            "'TRANSACTION', 'TRANSACTIONS', 'UNIQUE', 'UNIQUENESS', 'USER', 'CURRENT USER', 'USERS' or 'VECTOR'"
+        )
+    }
   }
 
   test("SHOW INDEXES BRIEF SHOW PROCEDURES") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ =>
+        _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
+    }
   }
 
   test("SHOW INDEXES VERBOSE SHOW FUNCTIONS") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining(
-            "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
-          )
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ =>
+        _.withSyntaxErrorContaining("Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
+    }
   }
 
   test("SHOW FUNCTIONS SHOW INDEXES BRIEF") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ =>
+        _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
+    }
   }
 
   test("SHOW PROCEDURES SHOW INDEXES VERBOSE") {
-    failsParsing[ast.Statements]
-      .in {
-        case Cypher5JavaCc | Cypher5 =>
-          _.withSyntaxErrorContaining(
-            """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
-              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
-          )
-        case _ =>
-          _.withSyntaxErrorContaining(
-            "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
-          )
-      }
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
+        )
+    }
   }
 
   // combined with other commands
@@ -2182,48 +2130,34 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
   }
 
   test("TERMINATE TRANSACTION SHOW SETTINGS") {
-    failsParsing[ast.Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'SETTINGS'")
-      case _ => _.withSyntaxError(
-          """Invalid input 'SETTINGS': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 28 (offset: 27))
-            |"TERMINATE TRANSACTION SHOW SETTINGS"
-            |                            ^""".stripMargin
-        )
-    }
+    failsParsing[ast.Statements].withSyntaxError(
+      """Invalid input 'SETTINGS': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 28 (offset: 27))
+        |"TERMINATE TRANSACTION SHOW SETTINGS"
+        |                            ^""".stripMargin
+    )
   }
 
   test("SHOW FUNCTIONS TERMINATE TRANSACTION") {
-    failsParsing[ast.Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input ''")
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a string or an expression (line 1, column 37 (offset: 36))
-            |"SHOW FUNCTIONS TERMINATE TRANSACTION"
-            |                                     ^""".stripMargin
-        )
-    }
+    failsParsing[ast.Statements].withSyntaxError(
+      """Invalid input '': expected a string or an expression (line 1, column 37 (offset: 36))
+        |"SHOW FUNCTIONS TERMINATE TRANSACTION"
+        |                                     ^""".stripMargin
+    )
   }
 
   test("SHOW TRANSACTIONS TERMINATE TRANSACTION") {
-    failsParsing[ast.Statements].in {
-      // javaCC parses TERMINATE as a variable
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'TRANSACTION'")
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a string or an expression (line 1, column 40 (offset: 39))
-            |"SHOW TRANSACTIONS TERMINATE TRANSACTION"
-            |                                        ^""".stripMargin
-        )
-    }
+    failsParsing[ast.Statements].withSyntaxError(
+      """Invalid input '': expected a string or an expression (line 1, column 40 (offset: 39))
+        |"SHOW TRANSACTIONS TERMINATE TRANSACTION"
+        |                                        ^""".stripMargin
+    )
   }
 
   test("MATCH (n) TERMINATE TRANSACTION") {
-    failsParsing[ast.Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input")
-      case _ => _.withSyntaxError(
-          """Invalid input 'TERMINATE': expected a graph pattern, 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'USING', 'WHERE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
-            |"MATCH (n) TERMINATE TRANSACTION"
-            |           ^""".stripMargin
-        )
-    }
+    failsParsing[ast.Statements].withSyntaxError(
+      """Invalid input 'TERMINATE': expected a graph pattern, 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'USING', 'WHERE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
+        |"MATCH (n) TERMINATE TRANSACTION"
+        |           ^""".stripMargin
+    )
   }
-
 }

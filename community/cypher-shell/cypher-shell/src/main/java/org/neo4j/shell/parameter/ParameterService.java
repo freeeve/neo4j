@@ -266,9 +266,7 @@ class ShellParameterService implements ParameterService {
         }
 
         /*
-         * Converts JavaCC parser output to driver values.
-         * JavaCC returns std lib java classes most of the time,
-         * but there are some exceptions where it returns neo4j values.
+         * Converts some AST literals to driver values.
          */
         private static org.neo4j.driver.Value toDriverValue(Object input) {
             if (input == null) {

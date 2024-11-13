@@ -135,8 +135,7 @@ case class FabricFrontEnd(
             GraphDatabaseInternalSettings.graph_type_enabled -> SemanticFeature.GraphTypes.productPrefix
           ))
         ) ++ semanticFeatures,
-      obfuscateLiterals = cypherConfig.obfuscateLiterals,
-      antlrParserEnabled = cypherConfig.cypherParserAntlrEnabled
+      obfuscateLiterals = cypherConfig.obfuscateLiterals
     )
 
     object parseAndPrepare {

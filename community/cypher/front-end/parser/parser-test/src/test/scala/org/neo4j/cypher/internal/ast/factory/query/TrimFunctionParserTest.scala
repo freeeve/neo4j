@@ -17,7 +17,6 @@
 package org.neo4j.cypher.internal.ast.factory.query
 
 import org.neo4j.cypher.internal.ast.Statements
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.Expression
 
@@ -86,14 +85,11 @@ class TrimFunctionParserTest extends AstParsingTestBase {
 
   // Failing tests
   test("RETURN trim(' ' \"hello\")") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'hello'")
-      case _ => _.withMessage(
-          """Invalid input '"hello"': expected an expression (line 1, column 17 (offset: 16))
-            |"RETURN trim(' ' "hello")"
-            |                 ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input '"hello"': expected an expression (line 1, column 17 (offset: 16))
+        |"RETURN trim(' ' "hello")"
+        |                 ^""".stripMargin
+    )
   }
 
   Seq("BOTH", "LEADING", "TRAILING").foreach { trimSpec =>
@@ -104,10 +100,7 @@ class TrimFunctionParserTest extends AstParsingTestBase {
 
   Seq("BOTH", "LEADING", "TRAILING").foreach { trimSpec =>
     test(s"RETURN trim($trimSpec ' ' \"hello\")") {
-      failsParsing[Statements].in {
-        case Cypher5JavaCc => _.withMessageStart("Invalid input 'hello'")
-        case _             => _.withMessageStart("Invalid input '\"hello\"'")
-      }
+      failsParsing[Statements].withMessageStart("Invalid input '\"hello\"'")
     }
   }
 }

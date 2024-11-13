@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.ast.TraverseAction
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
 class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -663,33 +662,29 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
 
           test(s"$verb$immutableString TRAVERSE ON DEFAULT GRAPH $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5JavaCc | Cypher5 =>
-                _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
-              case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
+              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
           test(s"$verb$immutableString TRAVERSE ON DEFAULT GRAPH NODE A $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5JavaCc | Cypher5 =>
-                _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
-              case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
+              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
           test(s"$verb$immutableString TRAVERSE ON DEFAULT GRAPH RELATIONSHIP * $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5JavaCc | Cypher5 =>
-                _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
-              case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
+              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
           test(s"$verb$immutableString TRAVERSE ON DEFAULT GRAPH ELEMENT A $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5JavaCc | Cypher5 =>
-                _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
-              case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
+              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
@@ -708,9 +703,6 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           test(s"$verb$immutableString TRAVERSE ON DATABASES * $preposition role") {
             val offset = verb.length + immutableString.length + 13
             failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessage(
-                  s"""Invalid input 'DATABASES': expected "DEFAULT", "GRAPH", "GRAPHS" or "HOME" (line 1, column ${offset + 1} (offset: $offset))""".stripMargin
-                )
               case Cypher5 => _.withSyntaxErrorContaining(
                   s"""Invalid input 'DATABASES': expected 'GRAPH', 'DEFAULT GRAPH', 'HOME GRAPH' or 'GRAPHS' (line 1, column ${offset + 1} (offset: $offset))"""
                 )
@@ -723,9 +715,6 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           test(s"$verb$immutableString TRAVERSE ON DATABASE foo $preposition role") {
             val offset = verb.length + immutableString.length + 13
             failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessage(
-                  s"""Invalid input 'DATABASE': expected "DEFAULT", "GRAPH", "GRAPHS" or "HOME" (line 1, column ${offset + 1} (offset: $offset))""".stripMargin
-                )
               case Cypher5 => _.withSyntaxErrorContaining(
                   s"""Invalid input 'DATABASE': expected 'GRAPH', 'DEFAULT GRAPH', 'HOME GRAPH' or 'GRAPHS' (line 1, column ${offset + 1} (offset: $offset))"""
                 )

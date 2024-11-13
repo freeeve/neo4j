@@ -85,9 +85,7 @@ class CypherQueryObfuscatorFactory {
   )
 
   private val pipeline =
-    Parse(
-      useAntlr = GraphDatabaseInternalSettings.cypher_parser_antlr_enabled.defaultValue()
-    ) andThen
+    Parse andThen
       RewriteProcedureCalls andThen
       ObfuscationMetadataCollection
 

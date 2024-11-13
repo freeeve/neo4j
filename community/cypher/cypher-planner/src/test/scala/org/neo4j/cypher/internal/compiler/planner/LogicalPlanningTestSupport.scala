@@ -26,7 +26,6 @@ import org.mockito.Mockito.when
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
 import org.neo4j.common
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionHelpers.randomVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
@@ -523,9 +522,7 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
   lazy val cnfNormalizerTransformer = CNFNormalizerTest.getTransformer(semanticFeatures)
 
   private lazy val pipeLine: Transformer[PlannerContext, BaseState, LogicalPlanState] =
-    Parse(
-      useAntlr = GraphDatabaseInternalSettings.cypher_parser_antlr_enabled.defaultValue()
-    ) andThen
+    Parse andThen
       PreparatoryRewriting andThen
       SemanticAnalysis(warn = true, semanticFeatures: _*) andThen
       AstRewriting() andThen

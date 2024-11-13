@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
 class AllGraphPrivilegeAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -170,49 +169,37 @@ class AllGraphPrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString GRAPH ON GRAPH foo $preposition role") {
-            failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessageStart("Invalid input 'GRAPH': expected\n  \"ACCESS\"")
-              case _             => _.withSyntaxErrorContaining("Invalid input 'GRAPH': expected")
-            }
+            failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'GRAPH': expected")
           }
 
           test(s"$verb$immutableString GRAPH PRIVILEGES ON GRAPH foo $preposition role") {
-            failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessageStart("Invalid input 'GRAPH': expected\n  \"ACCESS\"")
-              case _             => _.withSyntaxErrorContaining("Invalid input 'GRAPH': expected")
-            }
+            failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'GRAPH': expected")
           }
 
           test(s"$verb$immutableString PRIVILEGES ON GRAPH foo $preposition role") {
-            failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessageStart("Invalid input 'PRIVILEGES': expected\n  \"ACCESS\"")
-              case _             => _.withSyntaxErrorContaining("Invalid input 'PRIVILEGES': expected")
-            }
+            failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'PRIVILEGES': expected")
           }
 
           // Default graph should not be allowed
 
           test(s"$verb$immutableString ALL ON DEFAULT GRAPH $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5JavaCc | Cypher5 =>
-                _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
-              case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
+              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
           test(s"$verb$immutableString ALL PRIVILEGES ON DEFAULT GRAPH $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5JavaCc | Cypher5 =>
-                _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
-              case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
+              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
           test(s"$verb$immutableString ALL GRAPH PRIVILEGES ON DEFAULT GRAPH $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5JavaCc | Cypher5 =>
-                _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
-              case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
+              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
@@ -220,48 +207,28 @@ class AllGraphPrivilegeAdministrationCommandParserTest extends AdministrationAnd
 
           test(s"$verb$immutableString ALL GRAPH PRIVILEGES ON DATABASES * $preposition role") {
             val offset = verb.length + immutableString.length + 25
-            failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessageStart(
-                  s"""Invalid input 'DATABASES': expected "GRAPH" (line 1, column ${offset + 1} (offset: $offset))"""
-                )
-              case _ => _.withSyntaxErrorContaining(
-                  s"""Invalid input 'DATABASES': expected "GRAPH" (line 1, column ${offset + 1} (offset: $offset))"""
-                )
-            }
+            failsParsing[Statements].withSyntaxErrorContaining(
+              s"""Invalid input 'DATABASES': expected "GRAPH" (line 1, column ${offset + 1} (offset: $offset))"""
+            )
           }
 
           test(s"$verb$immutableString ALL GRAPH PRIVILEGES ON DATABASE foo $preposition role") {
             val offset = verb.length + immutableString.length + 25
-            failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessageStart(
-                  s"""Invalid input 'DATABASE': expected "GRAPH" (line 1, column ${offset + 1} (offset: $offset))"""
-                )
-              case _ => _.withSyntaxErrorContaining(
-                  s"""Invalid input 'DATABASE': expected "GRAPH" (line 1, column ${offset + 1} (offset: $offset))"""
-                )
-            }
+            failsParsing[Statements].withSyntaxErrorContaining(
+              s"""Invalid input 'DATABASE': expected "GRAPH" (line 1, column ${offset + 1} (offset: $offset))"""
+            )
           }
 
           test(s"$verb$immutableString ALL GRAPH PRIVILEGES ON HOME DATABASE $preposition role") {
-            val offset = verb.length + immutableString.length + 25
             val antlrOffset = verb.length + immutableString.length + 30
-            failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessageStart(
-                  s"""Invalid input 'HOME': expected "GRAPH" (line 1, column ${offset + 1} (offset: $offset))"""
-                )
-              case _ => _.withSyntaxErrorContaining(
-                  s"""Invalid input 'DATABASE': expected "GRAPH" (line 1, column ${antlrOffset + 1} (offset: $antlrOffset))"""
-                )
-            }
+            failsParsing[Statements].withSyntaxErrorContaining(
+              s"""Invalid input 'DATABASE': expected "GRAPH" (line 1, column ${antlrOffset + 1} (offset: $antlrOffset))"""
+            )
           }
 
           test(s"$verb$immutableString ALL GRAPH PRIVILEGES ON DEFAULT DATABASE $preposition role") {
-            val offset = verb.length + immutableString.length + 25
             val antlrOffset = verb.length + immutableString.length + 33
             failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessageStart(
-                  s"""Invalid input 'DEFAULT': expected "GRAPH" (line 1, column ${offset + 1} (offset: $offset))"""
-                )
               case Cypher5 => _.withSyntaxErrorContaining(
                   s"""Invalid input 'DATABASE': expected "GRAPH" (line 1, column ${antlrOffset + 1} (offset: $antlrOffset))"""
                 )
@@ -271,14 +238,9 @@ class AllGraphPrivilegeAdministrationCommandParserTest extends AdministrationAnd
 
           test(s"$verb$immutableString ALL GRAPH PRIVILEGES ON DBMS $preposition role") {
             val offset = verb.length + immutableString.length + 25
-            failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessageStart(
-                  s"""Invalid input 'DBMS': expected "GRAPH" (line 1, column ${offset + 1} (offset: $offset))"""
-                )
-              case _ => _.withSyntaxErrorContaining(
-                  s"""Invalid input 'DBMS': expected "GRAPH" (line 1, column ${offset + 1} (offset: $offset))"""
-                )
-            }
+            failsParsing[Statements].withSyntaxErrorContaining(
+              s"""Invalid input 'DBMS': expected "GRAPH" (line 1, column ${offset + 1} (offset: $offset))"""
+            )
           }
 
           // Alias with too many components

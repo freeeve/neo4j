@@ -19,7 +19,6 @@ package org.neo4j.cypher.internal.ast.factory.expression
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.parser.v5.Cypher5Parser
@@ -80,31 +79,24 @@ class VariableParserTest extends AstParsingTestBase
   }
 
   test("variables are not allowed uneven number of backticks") {
-    "RETURN `a`b`" should notParse[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'b'")
-      case _ => _.withSyntaxError(
-          """Invalid input 'b': expected an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
-            |"RETURN `a`b`"
-            |           ^""".stripMargin
-        )
-    }
+    "RETURN `a`b`" should notParse[Statements].withSyntaxError(
+      """Invalid input 'b': expected an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
+        |"RETURN `a`b`"
+        |           ^""".stripMargin
+    )
   }
 
   test("variables are now allowed start with number") {
-    "1bcd" should notParse[Variable].in {
-      case Cypher5JavaCc => _.withMessageContaining("Was expecting one of:")
-      case _ => _.withSyntaxError(
-          """Invalid input '1bcd': expected an identifier (line 1, column 1 (offset: 0))
-            |"1bcd"
-            | ^""".stripMargin
-        )
-    }
+    "1bcd" should notParse[Variable].withSyntaxError(
+      """Invalid input '1bcd': expected an identifier (line 1, column 1 (offset: 0))
+        |"1bcd"
+        | ^""".stripMargin
+    )
   }
 
   test("variables are not allowed to start with currency symbols") {
     Seq("$", "¢", "£", "₲", "₶", "\u20BD", "＄", "﹩").foreach { curr =>
       s"${curr}var" should notParse[Variable].in {
-        case Cypher5JavaCc => _.withMessageContaining("Was expecting one of:")
         case Cypher5 => _.withSyntaxError(
             s"""Invalid input '$curr': expected an identifier (line 1, column 1 (offset: 0))
                |"${curr}var"

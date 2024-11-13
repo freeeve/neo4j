@@ -17,7 +17,6 @@
 package org.neo4j.cypher.internal.ast.factory.query
 
 import org.neo4j.cypher.internal.ast.Statements
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
 import org.neo4j.cypher.internal.expressions.NodePattern
@@ -84,17 +83,11 @@ class IsWhereNodePatternParserTest extends AstParsingTestBase with LegacyAstPars
         }
 
         test(s"MATCH ($maybeVariable WHERE $isOrWhere WHERE $isOrWhere2) RETURN *") {
-          failsParsing[Statements].in {
-            case Cypher5JavaCc => _.withMessageStart("Invalid input")
-            case _             => _.throws[SyntaxException]
-          }
+          failsParsing[Statements].throws[SyntaxException]
         }
 
         test(s"MATCH ($maybeVariable IS $isOrWhere IS $isOrWhere2) RETURN *") {
-          failsParsing[Statements].in {
-            case Cypher5JavaCc => _.withMessageStart("Invalid input")
-            case _             => _.throws[SyntaxException]
-          }
+          failsParsing[Statements].throws[SyntaxException]
         }
         for {
           isOrWhere3 <- Seq("IS", "WHERE")

@@ -17,13 +17,9 @@
 package org.neo4j.cypher.internal.frontend.prettifier
 
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.factory.neo4j.Neo4jASTExceptionFactory
-import org.neo4j.cypher.internal.ast.factory.neo4j.Neo4jASTFactory
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.parser.AstParserFactory
-import org.neo4j.cypher.internal.parser.javacc.Cypher
-import org.neo4j.cypher.internal.parser.javacc.CypherCharStream
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
@@ -175,15 +171,11 @@ class ExpressionStringifierIT extends CypherFunSuite {
   tests foreach {
     case (inputString, expected) =>
       test(inputString) {
-        val expressionJavaCc = parseJavaCc(inputString)
-        stringifier(expressionJavaCc) should equal(expected)
-
         // Quick and dirty hack to try to make sure we have sufficient coverage of all cypher versions.
         // Feel free to improve ¯\_(ツ)_/¯.
         CypherVersion.values().toSeq.foreach { version =>
           withClue(s"Parser $version") {
             val expression = parseAntlr(version, inputString)
-            expression shouldBe expressionJavaCc
             stringifier(expression) should equal(expected)
           }
         }
@@ -192,12 +184,4 @@ class ExpressionStringifierIT extends CypherFunSuite {
 
   private def parseAntlr(version: CypherVersion, cypher: String): Expression =
     AstParserFactory(version)(cypher, Neo4jCypherExceptionFactory(cypher, None), None).expression()
-
-  // noinspection TypeAnnotation
-  private def parseJavaCc(cypher: String): Expression = {
-    val charStream = new CypherCharStream(cypher)
-    val astExceptionFactory = new Neo4jASTExceptionFactory(Neo4jCypherExceptionFactory(cypher, None))
-    val astFactory = new Neo4jASTFactory(cypher, astExceptionFactory, null)
-    new Cypher(astFactory, astExceptionFactory, charStream).Expression()
-  }
 }

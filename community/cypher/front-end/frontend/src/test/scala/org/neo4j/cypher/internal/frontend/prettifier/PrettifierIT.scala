@@ -23,12 +23,10 @@ import PrettifierTestSupport.Test
 import PrettifierTestSupport.TestConverter
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
-import org.neo4j.cypher.internal.ast.factory.neo4j.JavaCCParser
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
 
@@ -3177,31 +3175,19 @@ class PrettifierIT extends CypherFunSuite {
   tests foreach {
     case SameAcrossVersions(inputString, expected) =>
       test(inputString) {
-        val statementJavaCc = JavaCCParser.parse(inputString, OpenCypherExceptionFactory(None))
-        prettifier.asString(statementJavaCc) should equal(expected)
-
         CypherVersion.values().foreach { version =>
           val statement = parseAntlr(version, inputString)
-          if (version == CypherVersion.Cypher5) {
-            // The two Cypher 5 parsers should get the same values
-            statement shouldBe statementJavaCc
-          }
           prettifier.asString(statement) should equal(expected)
         }
       }
     case ChangedBetween5And25(inputString, expectedCypher5, expectedCypher25AndLater) =>
       test(inputString) {
-        val statementJavaCc = JavaCCParser.parse(inputString, OpenCypherExceptionFactory(None))
-        prettifier.asString(statementJavaCc) should equal(expectedCypher5)
-
         CypherVersion.values().foreach { version =>
           if (version >= CypherVersion.Cypher25) {
             val statement = parseAntlr(version, inputString)
             prettifier.asString(statement) should equal(expectedCypher25AndLater)
           } else {
             val statement = parseAntlr(CypherVersion.Cypher5, inputString)
-            // The two Cypher 5 parsers should get the same values
-            statement shouldBe statementJavaCc
             prettifier.asString(statement) should equal(expectedCypher5)
           }
         }

@@ -26,7 +26,6 @@ import org.neo4j.cypher.internal.ast.WriteAction
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
 class WritePrivilegeAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -217,23 +216,15 @@ class WritePrivilegeAdministrationCommandParserTest extends AdministrationAndSch
 
           test(s"$verb$immutableString WRITE ON HOME GRAPHS $preposition role") {
             val offset = verb.length + immutableString.length + 15
-            failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessage(
-                  s"""Invalid input 'GRAPHS': expected "GRAPH" (line 1, column ${offset + 1} (offset: $offset))"""
-                )
-              case _ => _.withSyntaxErrorContaining(
-                  s"""Invalid input 'GRAPHS': expected 'GRAPH' (line 1, column ${offset + 1} (offset: $offset))"""
-                )
-            }
+            failsParsing[Statements].withSyntaxErrorContaining(
+              s"""Invalid input 'GRAPHS': expected 'GRAPH' (line 1, column ${offset + 1} (offset: $offset))"""
+            )
           }
 
           test(s"$verb$immutableString WRITE ON DEFAULT GRAPHS $preposition role") {
             val offset = verb.length + immutableString.length + 18
             val antlr6Offset = verb.length + immutableString.length + 10
             failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessage(
-                  s"""Invalid input 'GRAPHS': expected "GRAPH" (line 1, column ${offset + 1} (offset: $offset))"""
-                )
               case Cypher5 => _.withSyntaxErrorContaining(
                   s"""Invalid input 'GRAPHS': expected 'GRAPH' (line 1, column ${offset + 1} (offset: $offset))"""
                 )
@@ -267,9 +258,8 @@ class WritePrivilegeAdministrationCommandParserTest extends AdministrationAndSch
 
           test(s"$verb$immutableString WRITE ON DEFAULT GRAPH $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5JavaCc | Cypher5 =>
-                _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
-              case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
+              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
@@ -278,9 +268,6 @@ class WritePrivilegeAdministrationCommandParserTest extends AdministrationAndSch
           test(s"$verb$immutableString WRITE ON DATABASES * $preposition role") {
             val offset = verb.length + immutableString.length + 10
             failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessage(
-                  s"""Invalid input 'DATABASES': expected "DEFAULT", "GRAPH", "GRAPHS" or "HOME" (line 1, column ${offset + 1} (offset: $offset))"""
-                )
               case Cypher5 => _.withSyntaxErrorContaining(
                   s"""Invalid input 'DATABASES': expected 'GRAPH', 'DEFAULT GRAPH', 'HOME GRAPH' or 'GRAPHS' (line 1, column ${offset + 1} (offset: $offset))"""
                 )
@@ -293,9 +280,6 @@ class WritePrivilegeAdministrationCommandParserTest extends AdministrationAndSch
           test(s"$verb$immutableString WRITE ON DATABASE foo $preposition role") {
             val offset = verb.length + immutableString.length + 10
             failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessage(
-                  s"""Invalid input 'DATABASE': expected "DEFAULT", "GRAPH", "GRAPHS" or "HOME" (line 1, column ${offset + 1} (offset: $offset))"""
-                )
               case Cypher5 => _.withSyntaxErrorContaining(
                   s"""Invalid input 'DATABASE': expected 'GRAPH', 'DEFAULT GRAPH', 'HOME GRAPH' or 'GRAPHS' (line 1, column ${offset + 1} (offset: $offset))"""
                 )

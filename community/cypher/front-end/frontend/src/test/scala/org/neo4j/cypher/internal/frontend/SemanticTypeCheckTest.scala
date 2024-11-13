@@ -37,7 +37,7 @@ import org.scalatest.LoneElement
 
 class SemanticTypeCheckTest extends CypherFunSuite with LoneElement with CypherVersionTestSupport {
 
-  private def pipeline = Parse(useAntlr = true) andThen
+  private def pipeline = Parse andThen
     PreparatoryRewriting andThen
     SemanticAnalysis(warn = false) andThen
     SemanticTypeCheck

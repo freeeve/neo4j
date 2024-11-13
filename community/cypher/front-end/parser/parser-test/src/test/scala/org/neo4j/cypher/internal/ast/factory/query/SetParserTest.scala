@@ -20,7 +20,6 @@ import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.SetDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.SetPropertyItem
 import org.neo4j.cypher.internal.ast.Statements
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.util.symbols.CTAny
 
@@ -240,36 +239,27 @@ class SetParserTest extends AstParsingTestBase {
   }
 
   test("SET listOfNodes[0][toUpper(\"prop\")] = 'neo4j'") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input '['")
-      case _ => _.withSyntaxError(
-          """Invalid input '[': expected '=' (line 1, column 19 (offset: 18))
-            |"SET listOfNodes[0][toUpper("prop")] = 'neo4j'"
-            |                   ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '[': expected '=' (line 1, column 19 (offset: 18))
+        |"SET listOfNodes[0][toUpper("prop")] = 'neo4j'"
+        |                   ^""".stripMargin
+    )
   }
 
   test("SET :A") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input ':'")
-      case _ => _.withMessage(
-          """Invalid input ':': expected an expression (line 1, column 5 (offset: 4))
-            |"SET :A"
-            |     ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input ':': expected an expression (line 1, column 5 (offset: 4))
+        |"SET :A"
+        |     ^""".stripMargin
+    )
   }
 
   test("SET IS A") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'A': expected \"IS\"")
-      case _ => _.withMessage(
-          """Invalid input 'A': expected an expression, '+=', '.', ':', '=', 'IS' or '[' (line 1, column 8 (offset: 7))
-            |"SET IS A"
-            |        ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input 'A': expected an expression, '+=', '.', ':', '=', 'IS' or '[' (line 1, column 8 (offset: 7))
+        |"SET IS A"
+        |        ^""".stripMargin
+    )
   }
 
   // Invalid mix of colon conjunction and IS, this will be disallowed in semantic checking

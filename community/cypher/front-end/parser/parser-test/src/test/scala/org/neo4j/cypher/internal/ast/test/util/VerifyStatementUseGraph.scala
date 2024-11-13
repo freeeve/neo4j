@@ -34,7 +34,6 @@ object VerifyStatementUseGraph {
          |Actual  : $actual
          |          with graph ${actual.useGraph}
          |""".stripMargin
-
   }
 
   def findUseGraphMismatch(expected: Any, actual: Any): Option[Mismatch] = {

@@ -28,7 +28,6 @@ import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
 class LabelPrivilegeAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
   private val labelResource = LabelsResource(Seq("label"))(_)
@@ -174,7 +173,7 @@ class LabelPrivilegeAdministrationCommandParserTest extends AdministrationAndSch
 
               test(s"$verb$immutableString $setOrRemove LABEL label ON DEFAULT GRAPH $preposition role") {
                 failsParsing[Statements].in {
-                  case Cypher5JavaCc | Cypher5 =>
+                  case Cypher5 =>
                     _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
                 }
@@ -182,7 +181,7 @@ class LabelPrivilegeAdministrationCommandParserTest extends AdministrationAndSch
 
               test(s"$verb$immutableString $setOrRemove LABEL * ON DEFAULT GRAPH $preposition role") {
                 failsParsing[Statements].in {
-                  case Cypher5JavaCc | Cypher5 =>
+                  case Cypher5 =>
                     _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
                 }
@@ -191,21 +190,15 @@ class LabelPrivilegeAdministrationCommandParserTest extends AdministrationAndSch
               // Database instead of graph keyword
 
               test(s"$verb$immutableString $setOrRemove LABEL label ON DATABASES * $preposition role") {
-                failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessageStart("""Invalid input 'DATABASES': expected""")
-                  case _ => _.withSyntaxErrorContaining(
-                      """Invalid input 'DATABASES': expected"""
-                    )
-                }
+                failsParsing[Statements].withSyntaxErrorContaining(
+                  """Invalid input 'DATABASES': expected"""
+                )
               }
 
               test(s"$verb$immutableString $setOrRemove LABEL label ON DATABASE foo $preposition role") {
-                failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessageStart("""Invalid input 'DATABASE': expected""")
-                  case _ => _.withSyntaxErrorContaining(
-                      """Invalid input 'DATABASE': expected"""
-                    )
-                }
+                failsParsing[Statements].withSyntaxErrorContaining(
+                  """Invalid input 'DATABASE': expected"""
+                )
               }
 
               test(s"$verb$immutableString $setOrRemove LABEL label ON HOME DATABASE $preposition role") {

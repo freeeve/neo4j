@@ -21,7 +21,6 @@ import org.neo4j.cypher.internal.ast.GraphDirectReference
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
 
@@ -103,7 +102,6 @@ class UseParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport 
   // Should be able to have database name "graph" (only works in Antlr).
   test("USE GRAPH RETURN 1") {
     parsesIn[Statements] {
-      case Cypher5JavaCc => _.withAnyFailure
       case _ => _.toAst(Statements(Seq(singleQuery(use(List("GRAPH")), return_(returnItem(literal(1), "1"))))))
     }
   }

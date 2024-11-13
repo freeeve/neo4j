@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTestSupport {
 
   private def pipeline =
-    Parse(useAntlr = true) andThen CollectSyntaxUsageMetrics
+    Parse andThen CollectSyntaxUsageMetrics
 
   testVersions("should find multiple things in one query") { version =>
     val stats = runPipeline(

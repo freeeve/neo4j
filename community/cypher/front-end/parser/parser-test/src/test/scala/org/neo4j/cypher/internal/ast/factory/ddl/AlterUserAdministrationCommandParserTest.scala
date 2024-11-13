@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.ast.SetHomeDatabaseAction
 import org.neo4j.cypher.internal.ast.SetOwnPassword
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.UserOptions
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.util.symbols.CTAny
 
 import scala.util.Random
@@ -1255,495 +1254,309 @@ class AlterUserAdministrationCommandParserTest extends UserAdministrationCommand
   // fails parsing
 
   test("ALTER USER foo SET NAME bar") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(
-          s"""Invalid input 'NAME': expected
-             |  "AUTH"
-             |  "ENCRYPTED"
-             |  "HOME"
-             |  "PASSWORD"
-             |  "PLAINTEXT"
-             |  "STATUS" (line 1, column 20 (offset: 19))""".stripMargin
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'NAME': expected 'AUTH', 'HOME DATABASE', 'ENCRYPTED', 'PASSWORD', 'PLAINTEXT' or 'STATUS' (line 1, column 20 (offset: 19))
-            |"ALTER USER foo SET NAME bar"
-            |                    ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'NAME': expected 'AUTH', 'HOME DATABASE', 'ENCRYPTED', 'PASSWORD', 'PLAINTEXT' or 'STATUS' (line 1, column 20 (offset: 19))
+        |"ALTER USER foo SET NAME bar"
+        |                    ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET PASSWORD 'secret' SET NAME bar") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(
-          s"""Invalid input 'NAME': expected
-             |  "AUTH"
-             |  "ENCRYPTED"
-             |  "HOME"
-             |  "PASSWORD"
-             |  "PLAINTEXT"
-             |  "STATUS" (line 1, column 42 (offset: 41))""".stripMargin
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'NAME': expected 'AUTH', 'HOME DATABASE', 'ENCRYPTED', 'PASSWORD', 'PLAINTEXT' or 'STATUS' (line 1, column 42 (offset: 41))
-            |"ALTER USER foo SET PASSWORD 'secret' SET NAME bar"
-            |                                          ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'NAME': expected 'AUTH', 'HOME DATABASE', 'ENCRYPTED', 'PASSWORD', 'PLAINTEXT' or 'STATUS' (line 1, column 42 (offset: 41))
+        |"ALTER USER foo SET PASSWORD 'secret' SET NAME bar"
+        |                                          ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo RENAME TO bar") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(
-          "Invalid input 'RENAME': expected \"IF\", \"REMOVE\", \"SET\" or <EOF> (line 1, column 16 (offset: 15))"
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'RENAME': expected 'IF EXISTS', 'REMOVE', 'SET' or <EOF> (line 1, column 16 (offset: 15))
-            |"ALTER USER foo RENAME TO bar"
-            |                ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'RENAME': expected 'IF EXISTS', 'REMOVE', 'SET' or <EOF> (line 1, column 16 (offset: 15))
+        |"ALTER USER foo RENAME TO bar"
+        |                ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET PASSWORD null") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(
-          "Invalid input 'null': expected \"CHANGE\", \"\\\"\", \"\\'\" or a parameter (line 1, column 29 (offset: 28))"
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'null': expected a parameter, a string or 'CHANGE' (line 1, column 29 (offset: 28))
-            |"ALTER USER foo SET PASSWORD null"
-            |                             ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'null': expected a parameter, a string or 'CHANGE' (line 1, column 29 (offset: 28))
+        |"ALTER USER foo SET PASSWORD null"
+        |                             ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET PASSWORD 123") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(
-          "Invalid input '123': expected \"CHANGE\", \"\\\"\", \"\\'\" or a parameter (line 1, column 29 (offset: 28))"
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input '123': expected a parameter, a string or 'CHANGE' (line 1, column 29 (offset: 28))
-            |"ALTER USER foo SET PASSWORD 123"
-            |                             ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '123': expected a parameter, a string or 'CHANGE' (line 1, column 29 (offset: 28))
+        |"ALTER USER foo SET PASSWORD 123"
+        |                             ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET PASSWORD") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(
-          "Invalid input '': expected \"CHANGE\", \"\\\"\", \"\\'\" or a parameter (line 1, column 28 (offset: 27))"
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a parameter, a string or 'CHANGE' (line 1, column 28 (offset: 27))
-            |"ALTER USER foo SET PASSWORD"
-            |                            ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected a parameter, a string or 'CHANGE' (line 1, column 28 (offset: 27))
+        |"ALTER USER foo SET PASSWORD"
+        |                            ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET ENCRYPTED PASSWORD 123") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(
-          "Invalid input '123': expected \"\\\"\", \"\\'\" or a parameter (line 1, column 39 (offset: 38))"
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input '123': expected a parameter or a string (line 1, column 39 (offset: 38))
-            |"ALTER USER foo SET ENCRYPTED PASSWORD 123"
-            |                                       ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '123': expected a parameter or a string (line 1, column 39 (offset: 38))
+        |"ALTER USER foo SET ENCRYPTED PASSWORD 123"
+        |                                       ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET PLAINTEXT PASSWORD") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          "Invalid input '': expected \"\\\"\", \"\\'\" or a parameter (line 1, column 38 (offset: 37))"
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a parameter or a string (line 1, column 38 (offset: 37))
-            |"ALTER USER foo SET PLAINTEXT PASSWORD"
-            |                                      ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected a parameter or a string (line 1, column 38 (offset: 37))
+        |"ALTER USER foo SET PLAINTEXT PASSWORD"
+        |                                      ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET ENCRYPTED PASSWORD") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          "Invalid input '': expected \"\\\"\", \"\\'\" or a parameter (line 1, column 38 (offset: 37))"
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a parameter or a string (line 1, column 38 (offset: 37))
-            |"ALTER USER foo SET ENCRYPTED PASSWORD"
-            |                                      ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected a parameter or a string (line 1, column 38 (offset: 37))
+        |"ALTER USER foo SET ENCRYPTED PASSWORD"
+        |                                      ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET PASSWORD 'password' SET ENCRYPTED PASSWORD") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("""Invalid input '': expected "\"", "\'" or a parameter (line 1, column 62 (offset: 61))""")
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a parameter or a string (line 1, column 62 (offset: 61))
-            |"ALTER USER foo SET PASSWORD 'password' SET ENCRYPTED PASSWORD"
-            |                                                              ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected a parameter or a string (line 1, column 62 (offset: 61))
+        |"ALTER USER foo SET PASSWORD 'password' SET ENCRYPTED PASSWORD"
+        |                                                              ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET PASSWORD 'password' ENCRYPTED") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'ENCRYPTED'")
-      case _ => _.withSyntaxError(
-          """Invalid input 'ENCRYPTED': expected 'CHANGE', 'SET' or <EOF> (line 1, column 40 (offset: 39))
-            |"ALTER USER foo SET PASSWORD 'password' ENCRYPTED"
-            |                                        ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'ENCRYPTED': expected 'CHANGE', 'SET' or <EOF> (line 1, column 40 (offset: 39))
+        |"ALTER USER foo SET PASSWORD 'password' ENCRYPTED"
+        |                                        ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET PASSWORD 'password' SET STATUS ACTIVE CHANGE NOT REQUIRED") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("Invalid input 'CHANGE'")
-      case _ => _.withSyntaxError(
-          """Invalid input 'CHANGE': expected 'SET' or <EOF> (line 1, column 58 (offset: 57))
-            |"ALTER USER foo SET PASSWORD 'password' SET STATUS ACTIVE CHANGE NOT REQUIRED"
-            |                                                          ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'CHANGE': expected 'SET' or <EOF> (line 1, column 58 (offset: 57))
+        |"ALTER USER foo SET PASSWORD 'password' SET STATUS ACTIVE CHANGE NOT REQUIRED"
+        |                                                          ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET STATUS") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input '': expected \"ACTIVE\" or \"SUSPENDED\"")
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected 'ACTIVE' or 'SUSPENDED' (line 1, column 26 (offset: 25))
-            |"ALTER USER foo SET STATUS"
-            |                          ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected 'ACTIVE' or 'SUSPENDED' (line 1, column 26 (offset: 25))
+        |"ALTER USER foo SET STATUS"
+        |                          ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo PASSWORD CHANGE NOT REQUIRED") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'PASSWORD'")
-      case _ => _.withSyntaxError(
-          """Invalid input 'PASSWORD': expected 'IF EXISTS', 'REMOVE', 'SET' or <EOF> (line 1, column 16 (offset: 15))
-            |"ALTER USER foo PASSWORD CHANGE NOT REQUIRED"
-            |                ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'PASSWORD': expected 'IF EXISTS', 'REMOVE', 'SET' or <EOF> (line 1, column 16 (offset: 15))
+        |"ALTER USER foo PASSWORD CHANGE NOT REQUIRED"
+        |                ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo CHANGE NOT REQUIRED") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'CHANGE'")
-      case _ => _.withSyntaxErrorContaining(
-          """Invalid input 'CHANGE': expected 'IF EXISTS', 'REMOVE', 'SET' or <EOF> (line 1, column 16 (offset: 15))
-            |"ALTER USER foo CHANGE NOT REQUIRED"
-            |                ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      """Invalid input 'CHANGE': expected 'IF EXISTS', 'REMOVE', 'SET' or <EOF> (line 1, column 16 (offset: 15))
+        |"ALTER USER foo CHANGE NOT REQUIRED"
+        |                ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET PASSWORD 'password' SET PASSWORD SET STATUS ACTIVE") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'SET'")
-      case _ => _.withSyntaxErrorContaining(
-          """Invalid input 'SET': expected a parameter, a string or 'CHANGE' (line 1, column 53 (offset: 52))
-            |"ALTER USER foo SET PASSWORD 'password' SET PASSWORD SET STATUS ACTIVE"
-            |                                                     ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      """Invalid input 'SET': expected a parameter, a string or 'CHANGE' (line 1, column 53 (offset: 52))
+        |"ALTER USER foo SET PASSWORD 'password' SET PASSWORD SET STATUS ACTIVE"
+        |                                                     ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET PASSWORD STATUS ACTIVE") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'STATUS'")
-      case _ => _.withSyntaxErrorContaining(
-          """Invalid input 'STATUS': expected a parameter, a string or 'CHANGE' (line 1, column 29 (offset: 28))
-            |"ALTER USER foo SET PASSWORD STATUS ACTIVE"
-            |                             ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      """Invalid input 'STATUS': expected a parameter, a string or 'CHANGE' (line 1, column 29 (offset: 28))
+        |"ALTER USER foo SET PASSWORD STATUS ACTIVE"
+        |                             ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET HOME DATABASE 123456") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input '123456'")
-      case _ => _.withSyntaxErrorContaining(
-          """Invalid input '123456': expected a database name or a parameter (line 1, column 34 (offset: 33))
-            |"ALTER USER foo SET HOME DATABASE 123456"
-            |                                  ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      """Invalid input '123456': expected a database name or a parameter (line 1, column 34 (offset: 33))
+        |"ALTER USER foo SET HOME DATABASE 123456"
+        |                                  ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET HOME DATABASE #dfkfop!") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input '#'")
-      case _ => _.withSyntaxError(
-          """Invalid input '#': expected a database name or a parameter (line 1, column 34 (offset: 33))
-            |"ALTER USER foo SET HOME DATABASE #dfkfop!"
-            |                                  ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '#': expected a database name or a parameter (line 1, column 34 (offset: 33))
+        |"ALTER USER foo SET HOME DATABASE #dfkfop!"
+        |                                  ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET PASSWORD 'password' SET STATUS IMAGINARY") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'IMAGINARY'")
-      case _ => _.withSyntaxErrorContaining(
-          """Invalid input 'IMAGINARY': expected 'ACTIVE' or 'SUSPENDED' (line 1, column 51 (offset: 50))
-            |"ALTER USER foo SET PASSWORD 'password' SET STATUS IMAGINARY"
-            |                                                   ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      """Invalid input 'IMAGINARY': expected 'ACTIVE' or 'SUSPENDED' (line 1, column 51 (offset: 50))
+        |"ALTER USER foo SET PASSWORD 'password' SET STATUS IMAGINARY"
+        |                                                   ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo IF NOT EXISTS SET PASSWORD 'password'") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'NOT'")
-      case _ => _.withSyntaxError(
-          """Invalid input 'NOT': expected 'EXISTS' (line 1, column 19 (offset: 18))
-            |"ALTER USER foo IF NOT EXISTS SET PASSWORD 'password'"
-            |                   ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'NOT': expected 'EXISTS' (line 1, column 19 (offset: 18))
+        |"ALTER USER foo IF NOT EXISTS SET PASSWORD 'password'"
+        |                   ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET STATUS SUSPENDED REMOVE HOME DATABASE") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("""Invalid input 'REMOVE': expected "SET" or <EOF> (line 1, column 37 (offset: 36))""")
-      case _ => _.withSyntaxError(
-          """Invalid input 'REMOVE': expected 'SET' or <EOF> (line 1, column 37 (offset: 36))
-            |"ALTER USER foo SET STATUS SUSPENDED REMOVE HOME DATABASE"
-            |                                     ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'REMOVE': expected 'SET' or <EOF> (line 1, column 37 (offset: 36))
+        |"ALTER USER foo SET STATUS SUSPENDED REMOVE HOME DATABASE"
+        |                                     ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET HOME DATABASE db1 REMOVE HOME DATABASE") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          """Invalid input 'REMOVE': expected ".", "SET" or <EOF> (line 1, column 38 (offset: 37))"""
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'REMOVE': expected a database name, 'SET' or <EOF> (line 1, column 38 (offset: 37))
-            |"ALTER USER foo SET HOME DATABASE db1 REMOVE HOME DATABASE"
-            |                                      ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'REMOVE': expected a database name, 'SET' or <EOF> (line 1, column 38 (offset: 37))
+        |"ALTER USER foo SET HOME DATABASE db1 REMOVE HOME DATABASE"
+        |                                      ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET DEFAULT DATABASE db1") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'DEFAULT': expected")
-      case _ => _.withSyntaxError(
-          """Invalid input 'DEFAULT': expected 'AUTH', 'HOME DATABASE', 'ENCRYPTED', 'PASSWORD', 'PLAINTEXT' or 'STATUS' (line 1, column 20 (offset: 19))
-            |"ALTER USER foo SET DEFAULT DATABASE db1"
-            |                    ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'DEFAULT': expected 'AUTH', 'HOME DATABASE', 'ENCRYPTED', 'PASSWORD', 'PLAINTEXT' or 'STATUS' (line 1, column 20 (offset: 19))
+        |"ALTER USER foo SET DEFAULT DATABASE db1"
+        |                    ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo REMOVE DEFAULT DATABASE") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'DEFAULT'")
-      case _ => _.withSyntaxError(
-          """Invalid input 'DEFAULT': expected 'AUTH', 'ALL AUTH' or 'HOME DATABASE' (line 1, column 23 (offset: 22))
-            |"ALTER USER foo REMOVE DEFAULT DATABASE"
-            |                       ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'DEFAULT': expected 'AUTH', 'ALL AUTH' or 'HOME DATABASE' (line 1, column 23 (offset: 22))
+        |"ALTER USER foo REMOVE DEFAULT DATABASE"
+        |                       ^""".stripMargin
+    )
   }
 
   test("ALTER USER foo SET STATUS ACTIVE SET STATUS SUSPENDED") {
-    val exceptionMessageStart = "Duplicate SET STATUS {SUSPENDED|ACTIVE} clause"
-    val exceptionMessageJavaCC = s"$exceptionMessageStart (line 1, column 34 (offset: 33))"
-    val exceptionMessageAntlr = s"$exceptionMessageStart (line 1, column 38 (offset: 37))"
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(exceptionMessageJavaCC)
-      case _             => _.withSyntaxErrorContaining(exceptionMessageAntlr)
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      s"Duplicate SET STATUS {SUSPENDED|ACTIVE} clause (line 1, column 38 (offset: 37))"
+    )
   }
 
   test("ALTER USER foo SET HOME DATABASE db SET HOME DATABASE db") {
-    val exceptionMessageStart = "Duplicate SET HOME DATABASE clause"
-    val exceptionMessageJavaCC = s"$exceptionMessageStart (line 1, column 37 (offset: 36))"
-    val exceptionMessageAntlr = s"$exceptionMessageStart (line 1, column 41 (offset: 40))"
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(exceptionMessageJavaCC)
-      case _             => _.withSyntaxErrorContaining(exceptionMessageAntlr)
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      "Duplicate SET HOME DATABASE clause (line 1, column 41 (offset: 40))"
+    )
   }
 
   test("ALTER USER foo SET AUTH PROVIDER 'foo' { }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input '}': expected "SET" (line""")
-      case _             => _.withSyntaxErrorContaining("Invalid input '}': expected 'SET' (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input '}': expected 'SET' (line")
   }
 
   test("ALTER USER foo SET AUTH PROVIDER 'native' { SET PASSWORD 'password' CHANGE REQUIRED }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input 'CHANGE': expected "SET" or "}" (line""")
-      case _             => _.withSyntaxErrorContaining("Invalid input 'CHANGE': expected 'SET' or '}' (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'CHANGE': expected 'SET' or '}' (line")
   }
 
   test("ALTER USER foo SET AUTH PROVIDER 'foo' { SET PASSWORD 'password' CHANGE NOT REQUIRED }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input 'CHANGE': expected "SET" or "}" (line""")
-      case _             => _.withSyntaxErrorContaining("Invalid input 'CHANGE': expected 'SET' or '}' (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'CHANGE': expected 'SET' or '}' (line")
   }
 
   test("ALTER USER foo SET AUTH PROVIDER $param { SET ID 'bar' }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input '$': expected "\"" or "\'" (line""")
-      case _             => _.withSyntaxErrorContaining("Invalid input '$': expected a string (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input '$': expected a string (line")
   }
 
   test("ALTER USER foo SET AUTH PROVIDER foo { SET ID 'bar' }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input 'foo': expected "\"" or "\'" (line""")
-      case _             => _.withSyntaxErrorContaining("Invalid input 'foo': expected a string (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'foo': expected a string (line")
   }
 
   test("ALTER USER foo SET AUTH PROVIDER 'foo' { SET ID bar }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input 'bar': expected "\"", "\'" or a parameter (line""")
-      case _             => _.withSyntaxErrorContaining("Invalid input 'bar': expected a parameter or a string (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'bar': expected a parameter or a string (line")
   }
 
   test("ALTER USER foo AUTH PROVIDER 'foo' { SET ID 'bar' }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("""Invalid input 'AUTH': expected "IF", "REMOVE", "SET" or <EOF> (line""")
-      case _ =>
-        _.withSyntaxErrorContaining("Invalid input 'AUTH': expected 'IF EXISTS', 'REMOVE', 'SET' or <EOF> (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      "Invalid input 'AUTH': expected 'IF EXISTS', 'REMOVE', 'SET' or <EOF> (line"
+    )
   }
 
   test("ALTER USER foo AUTH 'foo' { SET ID 'bar' }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("""Invalid input 'AUTH': expected "IF", "REMOVE", "SET" or <EOF> (line""")
-      case _ =>
-        _.withSyntaxErrorContaining("Invalid input 'AUTH': expected 'IF EXISTS', 'REMOVE', 'SET' or <EOF> (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      "Invalid input 'AUTH': expected 'IF EXISTS', 'REMOVE', 'SET' or <EOF> (line"
+    )
   }
 
   test("ALTER USER foo SET AUTH PROVIDERS 'foo' { SET ID 'bar' }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input 'PROVIDERS': expected "PROVIDER", "\"" or "\'" (line""")
-      case _             => _.withSyntaxErrorContaining("Invalid input 'PROVIDERS': expected a string (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'PROVIDERS': expected a string (line")
   }
 
   test("ALTER USER foo SET AUTH 'foo' { SET UNKNOWN 'bar' }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("""Invalid input 'UNKNOWN': expected "ENCRYPTED", "ID", "PASSWORD" or "PLAINTEXT" (line""")
-      case _ => _.withSyntaxErrorContaining(
-          "Invalid input 'UNKNOWN': expected 'ENCRYPTED', 'ID', 'PASSWORD' or 'PLAINTEXT' (line"
-        )
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      "Invalid input 'UNKNOWN': expected 'ENCRYPTED', 'ID', 'PASSWORD' or 'PLAINTEXT' (line"
+    )
   }
 
   test("ALTER USER foo SET AUTH PROVIDER 'foo' { SET ID 'bar' } REMOVE ALL AUTH") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input 'REMOVE': expected "SET" or <EOF> (line""")
-      case _             => _.withSyntaxErrorContaining("Invalid input 'REMOVE': expected 'SET' or <EOF> (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'REMOVE': expected 'SET' or <EOF> (line")
   }
 
   test("ALTER USER foo SET AUTH PROVIDER 'native' { SET PASSWORD 'password' } REMOVE AUTH 'foo'") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input 'REMOVE': expected "SET" or <EOF> (line""")
-      case _             => _.withSyntaxErrorContaining("Invalid input 'REMOVE': expected 'SET' or <EOF> (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'REMOVE': expected 'SET' or <EOF> (line")
   }
 
   test("ALTER USER foo SET PASSWORD 'password' REMOVE ALL AUTH") {
-    val exceptionJavaCC =
-      """Invalid input 'REMOVE': expected "CHANGE", "SET" or <EOF> (line 1, column 40 (offset: 39))"""
-    val exceptionAntlr = "Invalid input 'REMOVE': expected 'CHANGE', 'SET' or <EOF> (line 1, column 40 (offset: 39))"
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(exceptionJavaCC)
-      case _             => _.withSyntaxErrorContaining(exceptionAntlr)
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      "Invalid input 'REMOVE': expected 'CHANGE', 'SET' or <EOF> (line 1, column 40 (offset: 39))"
+    )
   }
 
   test("ALTER USER foo SET STATUS ACTIVE REMOVE ALL AUTH") {
-    val exceptionJavaCC = """Invalid input 'REMOVE': expected "SET" or <EOF> (line 1, column 34 (offset: 33))"""
-    val exceptionAntlr = "Invalid input 'REMOVE': expected 'SET' or <EOF> (line 1, column 34 (offset: 33))"
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(exceptionJavaCC)
-      case _             => _.withSyntaxErrorContaining(exceptionAntlr)
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      "Invalid input 'REMOVE': expected 'SET' or <EOF> (line 1, column 34 (offset: 33))"
+    )
   }
 
   test("ALTER USER foo SET AUTH PROVIDER 42 { SET ID 'bar' }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input '42': expected "\"" or "\'" (line""")
-      case _             => _.withSyntaxErrorContaining("Invalid input '42': expected a string (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input '42': expected a string (line")
   }
 
   test("ALTER USER foo SET AUTH PROVIDER 'bar' { SET ID 42 }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input '42': expected "\"", "\'" or a parameter (line""")
-      case _             => _.withSyntaxErrorContaining("Invalid input '42': expected a parameter or a string (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input '42': expected a parameter or a string (line")
   }
 
   test("ALTER USER foo REMOVE AUTH 42") {
-    val exceptionJavaCC =
-      """Invalid input '42': expected
-        |  "PROVIDER"
-        |  "PROVIDERS"
-        |  "["
-        |  "\""
-        |  "\'"
-        |  a parameter (line""".stripMargin
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(exceptionJavaCC)
-      case _ => _.withSyntaxErrorContaining(
-          "Invalid input '42': expected a parameter, a string, 'PROVIDER', 'PROVIDERS' or '[' (line"
-        )
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      "Invalid input '42': expected a parameter, a string, 'PROVIDER', 'PROVIDERS' or '[' (line"
+    )
   }
 
   test("ALTER USER foo REMOVE AUTH PROVIDER 42") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input '42': expected "[", "\"", "\'" or a parameter (line""")
-      case _ => _.withSyntaxErrorContaining("Invalid input '42': expected a parameter, a string or '[' (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      "Invalid input '42': expected a parameter, a string or '[' (line"
+    )
   }
 
   test("ALTER USER foo REMOVE AUTH PROVIDER [42, 'foo']") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input '42': expected "\"", "\'" or "]" (line""")
-      case _             => _.withSyntaxErrorContaining("Invalid input '42': expected a string or ']' (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input '42': expected a string or ']' (line")
   }
 
   test("ALTER USER foo REMOVE AUTH PROVIDER ['foo', 42]") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Invalid input '42': expected "\"" or "\'" (line""")
-      case _             => _.withSyntaxErrorContaining("Invalid input '42': expected a string (line")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input '42': expected a string (line")
   }
 
   // Alter current user/Change own password
@@ -1801,92 +1614,67 @@ class AlterUserAdministrationCommandParserTest extends UserAdministrationCommand
   // fails parsing
 
   test("ALTER CURRENT USER SET PASSWORD FROM 'current' TO null") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'null': expected \"\\\"\", \"\\'\" or a parameter")
-      case _ => _.withSyntaxError(
-          """Invalid input 'null': expected a parameter or a string (line 1, column 51 (offset: 50))
-            |"ALTER CURRENT USER SET PASSWORD FROM 'current' TO null"
-            |                                                   ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'null': expected a parameter or a string (line 1, column 51 (offset: 50))
+        |"ALTER CURRENT USER SET PASSWORD FROM 'current' TO null"
+        |                                                   ^""".stripMargin
+    )
   }
 
   test("ALTER CURRENT USER SET PASSWORD FROM $current TO 123") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => identity
-      case _ => _.withSyntaxError(
-          """Invalid input '123': expected a parameter or a string (line 1, column 50 (offset: 49))
-            |"ALTER CURRENT USER SET PASSWORD FROM $current TO 123"
-            |                                                  ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '123': expected a parameter or a string (line 1, column 50 (offset: 49))
+        |"ALTER CURRENT USER SET PASSWORD FROM $current TO 123"
+        |                                                  ^""".stripMargin
+    )
   }
 
   test("ALTER PASSWORD FROM 'current' TO 'new'") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => identity
-      case _ => _.withSyntaxError(
-          """Invalid input 'PASSWORD': expected 'ALIAS', 'DATABASE', 'CURRENT USER SET PASSWORD FROM', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
-            |"ALTER PASSWORD FROM 'current' TO 'new'"
-            |       ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'PASSWORD': expected 'ALIAS', 'DATABASE', 'CURRENT USER SET PASSWORD FROM', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
+        |"ALTER PASSWORD FROM 'current' TO 'new'"
+        |       ^""".stripMargin
+    )
   }
 
   test("ALTER CURRENT PASSWORD FROM 'current' TO 'new'") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => identity
-      case _ => _.withSyntaxError(
-          """Invalid input 'PASSWORD': expected 'USER SET PASSWORD FROM' (line 1, column 15 (offset: 14))
-            |"ALTER CURRENT PASSWORD FROM 'current' TO 'new'"
-            |               ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'PASSWORD': expected 'USER SET PASSWORD FROM' (line 1, column 15 (offset: 14))
+        |"ALTER CURRENT PASSWORD FROM 'current' TO 'new'"
+        |               ^""".stripMargin
+    )
 
   }
 
   test("ALTER CURRENT USER PASSWORD FROM 'current' TO 'new'") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => identity
-      case _ =>
-        _.withSyntaxError(
-          """Invalid input 'PASSWORD': expected 'SET PASSWORD FROM' (line 1, column 20 (offset: 19))
-            |"ALTER CURRENT USER PASSWORD FROM 'current' TO 'new'"
-            |                    ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'PASSWORD': expected 'SET PASSWORD FROM' (line 1, column 20 (offset: 19))
+        |"ALTER CURRENT USER PASSWORD FROM 'current' TO 'new'"
+        |                    ^""".stripMargin
+    )
   }
 
   test("ALTER CURRENT USER SET PASSWORD FROM 'current' TO") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => identity
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a parameter or a string (line 1, column 50 (offset: 49))
-            |"ALTER CURRENT USER SET PASSWORD FROM 'current' TO"
-            |                                                  ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected a parameter or a string (line 1, column 50 (offset: 49))
+        |"ALTER CURRENT USER SET PASSWORD FROM 'current' TO"
+        |                                                  ^""".stripMargin
+    )
   }
 
   test("ALTER CURRENT USER SET PASSWORD FROM TO 'new'") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => identity
-      case _ => _.withSyntaxError(
-          """Invalid input 'TO': expected a parameter or a string (line 1, column 38 (offset: 37))
-            |"ALTER CURRENT USER SET PASSWORD FROM TO 'new'"
-            |                                      ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'TO': expected a parameter or a string (line 1, column 38 (offset: 37))
+        |"ALTER CURRENT USER SET PASSWORD FROM TO 'new'"
+        |                                      ^""".stripMargin
+    )
   }
 
   test("ALTER CURRENT USER SET PASSWORD TO 'new'") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => identity
-      case _ => _.withSyntaxError(
-          """Invalid input 'TO': expected 'FROM' (line 1, column 33 (offset: 32))
-            |"ALTER CURRENT USER SET PASSWORD TO 'new'"
-            |                                 ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'TO': expected 'FROM' (line 1, column 33 (offset: 32))
+        |"ALTER CURRENT USER SET PASSWORD TO 'new'"
+        |                                 ^""".stripMargin
+    )
   }
 }

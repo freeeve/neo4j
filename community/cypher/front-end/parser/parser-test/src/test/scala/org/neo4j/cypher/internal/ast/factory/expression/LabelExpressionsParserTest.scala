@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.Expression
@@ -869,86 +868,72 @@ class ExpressionLabelExpressionsParserTest extends AstParsingTestBase {
     }
   }
 
-  // JavaCc lookahead fails to parse this properly
   test("RETURN [x IN [1,2,3] WHERE n:A | (b | x)]") {
-    parsesIn[Statements] {
-      case Cypher5JavaCc => _.withAnyFailure.withMessageStart(
-          "Invalid input '(': expected \"+\" or \"-\" (line 1, column 34 (offset: 33))"
-        )
-      case _ => _.toAst(
-          Statements(Seq(SingleQuery(Seq(Return(
-            distinct = false,
-            ReturnItems(
-              includeExisting = false,
-              Seq(UnaliasedReturnItem(
-                ListComprehension(
-                  ExtractScope(
-                    varFor("x"),
-                    Some(labelExpressionPredicate(
-                      varFor("n"),
-                      Disjunctions(Seq(
-                        Leaf(LabelOrRelTypeName("A")(pos)),
-                        Leaf(LabelOrRelTypeName("b")(pos)),
-                        Leaf(LabelOrRelTypeName("x")(pos))
-                      ))(pos)
-                    )),
-                    None
-                  )(pos),
-                  ListLiteral(Seq(literal(1), literal(2), literal(3)))(pos)
-                )(pos),
-                "[x IN [1,2,3] WHERE n:A | (b | x)]"
-              )(pos)),
+    parsesTo[Statements](Statements(Seq(SingleQuery(Seq(Return(
+      distinct = false,
+      ReturnItems(
+        includeExisting = false,
+        Seq(UnaliasedReturnItem(
+          ListComprehension(
+            ExtractScope(
+              varFor("x"),
+              Some(labelExpressionPredicate(
+                varFor("n"),
+                Disjunctions(Seq(
+                  Leaf(LabelOrRelTypeName("A")(pos)),
+                  Leaf(LabelOrRelTypeName("b")(pos)),
+                  Leaf(LabelOrRelTypeName("x")(pos))
+                ))(pos)
+              )),
               None
             )(pos),
-            None,
-            None,
-            None,
-            Set()
-          )(pos)))(pos)))
-        )
-    }
+            ListLiteral(Seq(literal(1), literal(2), literal(3)))(pos)
+          )(pos),
+          "[x IN [1,2,3] WHERE n:A | (b | x)]"
+        )(pos)),
+        None
+      )(pos),
+      None,
+      None,
+      None,
+      Set()
+    )(pos)))(pos))))
   }
 
-  // JavaCc lookahead fails to parse this properly
   test("RETURN [x IN [1,2,3] WHERE n:A|B AND n:C|D | x]") {
-    parsesIn[Statements] {
-      case Cypher5JavaCc => _.withAnyFailure.withMessageStart("Invalid input '|'")
-      case _ => _.toAst(
-          Statements(Seq(SingleQuery(Seq(Return(
-            distinct = false,
-            ReturnItems(
-              includeExisting = false,
-              Seq(UnaliasedReturnItem(
-                ListComprehension(
-                  ExtractScope(
-                    varFor("x"),
-                    Some(And(
-                      labelExpressionPredicate(
-                        varFor("n"),
-                        Disjunctions(Vector(Leaf(LabelOrRelTypeName("A")(pos)), Leaf(LabelOrRelTypeName("B")(pos))))(
-                          pos
-                        )
-                      ),
-                      labelExpressionPredicate(
-                        varFor("n"),
-                        Disjunctions(Seq(Leaf(LabelOrRelTypeName("C")(pos)), Leaf(LabelOrRelTypeName("D")(pos))))(pos)
-                      )
-                    )(pos)),
-                    Some(varFor("x"))
-                  )(pos),
-                  ListLiteral(Seq(literal(1), literal(2), literal(3)))(pos)
-                )(pos),
-                "[x IN [1,2,3] WHERE n:A|B AND n:C|D | x]"
+    parsesTo[Statements](Statements(Seq(SingleQuery(Seq(Return(
+      distinct = false,
+      ReturnItems(
+        includeExisting = false,
+        Seq(UnaliasedReturnItem(
+          ListComprehension(
+            ExtractScope(
+              varFor("x"),
+              Some(And(
+                labelExpressionPredicate(
+                  varFor("n"),
+                  Disjunctions(Vector(Leaf(LabelOrRelTypeName("A")(pos)), Leaf(LabelOrRelTypeName("B")(pos))))(
+                    pos
+                  )
+                ),
+                labelExpressionPredicate(
+                  varFor("n"),
+                  Disjunctions(Seq(Leaf(LabelOrRelTypeName("C")(pos)), Leaf(LabelOrRelTypeName("D")(pos))))(pos)
+                )
               )(pos)),
-              None
+              Some(varFor("x"))
             )(pos),
-            None,
-            None,
-            None,
-            Set()
-          )(pos)))(pos)))
-        )
-    }
+            ListLiteral(Seq(literal(1), literal(2), literal(3)))(pos)
+          )(pos),
+          "[x IN [1,2,3] WHERE n:A|B AND n:C|D | x]"
+        )(pos)),
+        None
+      )(pos),
+      None,
+      None,
+      None,
+      Set()
+    )(pos)))(pos))))
   }
 
   test("[x IN [1,2,3] WHERE n:(A | x) | x]") {

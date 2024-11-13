@@ -27,8 +27,7 @@ class PeriodicCommitParserTest extends AstParsingTestBase {
 
   test("USING PERIODIC COMMIT LOAD CSV FROM 'foo' AS l RETURN l") {
     parsesIn[Statements] {
-      case Cypher25 =>
-        _.withSyntaxError(
+      case Cypher25 => _.withSyntaxError(
           """Invalid input 'USING': expected 'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WITH' or '{' (line 1, column 1 (offset: 0))
             |"USING PERIODIC COMMIT LOAD CSV FROM 'foo' AS l RETURN l"
             | ^""".stripMargin
@@ -39,8 +38,7 @@ class PeriodicCommitParserTest extends AstParsingTestBase {
 
   test("USING PERIODIC COMMIT 200 LOAD CSV FROM 'foo' AS l RETURN l") {
     parsesIn[Statements] {
-      case Cypher25 =>
-        _.withSyntaxError(
+      case Cypher25 => _.withSyntaxError(
           """Invalid input 'USING': expected 'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WITH' or '{' (line 1, column 1 (offset: 0))
             |"USING PERIODIC COMMIT 200 LOAD CSV FROM 'foo' AS l RETURN l"
             | ^""".stripMargin
@@ -51,8 +49,7 @@ class PeriodicCommitParserTest extends AstParsingTestBase {
 
   test("USING PERIODIC COMMIT RETURN 1") {
     parsesIn[Statements] {
-      case Cypher25 =>
-        _.withSyntaxError(
+      case Cypher25 => _.withSyntaxError(
           """Invalid input 'USING': expected 'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WITH' or '{' (line 1, column 1 (offset: 0))
             |"USING PERIODIC COMMIT RETURN 1"
             | ^""".stripMargin

@@ -26,7 +26,6 @@ import org.neo4j.cypher.internal.ast.NoWait
 import org.neo4j.cypher.internal.ast.Restrict
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.TimeoutAfter
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
 class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -312,16 +311,11 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
   }
 
   test("DROP DATABASE") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          """Invalid input '': expected a parameter or an identifier (line 1, column 14 (offset: 13))"""
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a database name or a parameter (line 1, column 14 (offset: 13))
-            |"DROP DATABASE"
-            |              ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected a database name or a parameter (line 1, column 14 (offset: 13))
+        |"DROP DATABASE"
+        |              ^""".stripMargin
+    )
   }
 
   test("DROP DATABASE  IF EXISTS") {
@@ -339,90 +333,42 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
   }
 
   test("DROP DATABASE KEEP DATA") {
-    val exceptionMessage =
-      """Invalid input 'DATA': expected
-        |  "."
-        |  "CASCADE"
-        |  "DESTROY"
-        |  "DUMP"
-        |  "IF"
-        |  "NOWAIT"
-        |  "RESTRICT"
-        |  "WAIT"
-        |  <EOF> (line 1, column 20 (offset: 19))""".stripMargin
-
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(exceptionMessage)
-      case _ => _.withSyntaxError(
-          """Invalid input 'DATA': expected a database name, 'CASCADE', 'DESTROY', 'DUMP', 'IF EXISTS', 'NOWAIT', 'RESTRICT', 'WAIT' or <EOF> (line 1, column 20 (offset: 19))
-            |"DROP DATABASE KEEP DATA"
-            |                    ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'DATA': expected a database name, 'CASCADE', 'DESTROY', 'DUMP', 'IF EXISTS', 'NOWAIT', 'RESTRICT', 'WAIT' or <EOF> (line 1, column 20 (offset: 19))
+        |"DROP DATABASE KEEP DATA"
+        |                    ^""".stripMargin
+    )
   }
 
   test("DROP DATABASE db KEEP DATA") {
-    val exceptionMessage =
-      """Invalid input 'KEEP': expected
-        |  "."
-        |  "CASCADE"
-        |  "DESTROY"
-        |  "DUMP"
-        |  "IF"
-        |  "NOWAIT"
-        |  "RESTRICT"
-        |  "WAIT"
-        |  <EOF> (line 1, column 18 (offset: 17))""".stripMargin
-
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(exceptionMessage)
-      case _ => _.withSyntaxError(
-          """Invalid input 'KEEP': expected a database name, 'CASCADE', 'DESTROY', 'DUMP', 'IF EXISTS', 'NOWAIT', 'RESTRICT', 'WAIT' or <EOF> (line 1, column 18 (offset: 17))
-            |"DROP DATABASE db KEEP DATA"
-            |                  ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'KEEP': expected a database name, 'CASCADE', 'DESTROY', 'DUMP', 'IF EXISTS', 'NOWAIT', 'RESTRICT', 'WAIT' or <EOF> (line 1, column 18 (offset: 17))
+        |"DROP DATABASE db KEEP DATA"
+        |                  ^""".stripMargin
+    )
   }
 
   test("DROP DATABASE foo CASCADE") {
-    val exceptionMessage =
-      """Invalid input '': expected "ALIAS" or "ALIASES" (line 1, column 26 (offset: 25))"""
-
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(exceptionMessage)
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected 'ALIAS' or 'ALIASES' (line 1, column 26 (offset: 25))
-            |"DROP DATABASE foo CASCADE"
-            |                          ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected 'ALIAS' or 'ALIASES' (line 1, column 26 (offset: 25))
+        |"DROP DATABASE foo CASCADE"
+        |                          ^""".stripMargin
+    )
   }
 
   test("DROP DATABASE foo DUMP DATA CASCADE ALIASES") {
-    val exceptionMessage =
-      """Invalid input 'CASCADE': expected "NOWAIT", "WAIT" or <EOF> (line 1, column 29 (offset: 28))"""
-
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(exceptionMessage)
-      case _ => _.withSyntaxError(
-          """Invalid input 'CASCADE': expected 'NOWAIT', 'WAIT' or <EOF> (line 1, column 29 (offset: 28))
-            |"DROP DATABASE foo DUMP DATA CASCADE ALIASES"
-            |                             ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'CASCADE': expected 'NOWAIT', 'WAIT' or <EOF> (line 1, column 29 (offset: 28))
+        |"DROP DATABASE foo DUMP DATA CASCADE ALIASES"
+        |                             ^""".stripMargin
+    )
   }
 
   test("DROP DATABASE foo DESTROY DATA RESTRICT") {
-    val exceptionMessage =
-      """Invalid input 'RESTRICT': expected "NOWAIT", "WAIT" or <EOF> (line 1, column 32 (offset: 31))"""
-
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(exceptionMessage)
-      case _ => _.withSyntaxError(
-          """Invalid input 'RESTRICT': expected 'NOWAIT', 'WAIT' or <EOF> (line 1, column 32 (offset: 31))
-            |"DROP DATABASE foo DESTROY DATA RESTRICT"
-            |                                ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'RESTRICT': expected 'NOWAIT', 'WAIT' or <EOF> (line 1, column 32 (offset: 31))
+        |"DROP DATABASE foo DESTROY DATA RESTRICT"
+        |                                ^""".stripMargin
+    )
   }
 }

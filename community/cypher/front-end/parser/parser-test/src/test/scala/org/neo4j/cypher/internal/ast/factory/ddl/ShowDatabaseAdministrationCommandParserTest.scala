@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.SingleNamedDatabaseScope
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.YieldOrWhere
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
 class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -181,74 +180,50 @@ class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
   }
 
   test("SHOW DEFAULT DATABASES") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("""Invalid input 'DATABASES': expected "DATABASE" (line 1, column 14 (offset: 13))""")
-      case _ => _.withSyntaxError(
-          """Invalid input 'DATABASES': expected 'DATABASE' (line 1, column 14 (offset: 13))
-            |"SHOW DEFAULT DATABASES"
-            |              ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'DATABASES': expected 'DATABASE' (line 1, column 14 (offset: 13))
+        |"SHOW DEFAULT DATABASES"
+        |              ^""".stripMargin
+    )
   }
 
   test("SHOW DEFAULT DATABASES YIELD *") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("""Invalid input 'DATABASES': expected "DATABASE" (line 1, column 14 (offset: 13))""")
-      case _ => _.withSyntaxError(
-          """Invalid input 'DATABASES': expected 'DATABASE' (line 1, column 14 (offset: 13))
-            |"SHOW DEFAULT DATABASES YIELD *"
-            |              ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'DATABASES': expected 'DATABASE' (line 1, column 14 (offset: 13))
+        |"SHOW DEFAULT DATABASES YIELD *"
+        |              ^""".stripMargin
+    )
   }
 
   test("SHOW DEFAULT DATABASES WHERE name STARTS WITH 'foo'") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("""Invalid input 'DATABASES': expected "DATABASE" (line 1, column 14 (offset: 13))""")
-      case _ => _.withSyntaxError(
-          """Invalid input 'DATABASES': expected 'DATABASE' (line 1, column 14 (offset: 13))
-            |"SHOW DEFAULT DATABASES WHERE name STARTS WITH 'foo'"
-            |              ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'DATABASES': expected 'DATABASE' (line 1, column 14 (offset: 13))
+        |"SHOW DEFAULT DATABASES WHERE name STARTS WITH 'foo'"
+        |              ^""".stripMargin
+    )
   }
 
   test("SHOW HOME DATABASES") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("""Invalid input 'DATABASES': expected "DATABASE" (line 1, column 11 (offset: 10))""")
-      case _ => _.withSyntaxError(
-          """Invalid input 'DATABASES': expected 'DATABASE' (line 1, column 11 (offset: 10))
-            |"SHOW HOME DATABASES"
-            |           ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'DATABASES': expected 'DATABASE' (line 1, column 11 (offset: 10))
+        |"SHOW HOME DATABASES"
+        |           ^""".stripMargin
+    )
   }
 
   test("SHOW HOME DATABASES YIELD *") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("""Invalid input 'DATABASES': expected "DATABASE" (line 1, column 11 (offset: 10))""")
-      case _ => _.withSyntaxError(
-          """Invalid input 'DATABASES': expected 'DATABASE' (line 1, column 11 (offset: 10))
-            |"SHOW HOME DATABASES YIELD *"
-            |           ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'DATABASES': expected 'DATABASE' (line 1, column 11 (offset: 10))
+        |"SHOW HOME DATABASES YIELD *"
+        |           ^""".stripMargin
+    )
   }
 
   test("SHOW HOME DATABASES WHERE name STARTS WITH 'foo'") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("""Invalid input 'DATABASES': expected "DATABASE" (line 1, column 11 (offset: 10))""")
-      case _ => _.withSyntaxError(
-          """Invalid input 'DATABASES': expected 'DATABASE' (line 1, column 11 (offset: 10))
-            |"SHOW HOME DATABASES WHERE name STARTS WITH 'foo'"
-            |           ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'DATABASES': expected 'DATABASE' (line 1, column 11 (offset: 10))
+        |"SHOW HOME DATABASES WHERE name STARTS WITH 'foo'"
+        |           ^""".stripMargin
+    )
   }
 }

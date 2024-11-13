@@ -21,10 +21,8 @@ import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.query.SyntaxErrorParserTest.clauseExpected
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 
 /** Make sure syntax error messages are stable */
 class SyntaxErrorParserTest extends AstParsingTestBase {
@@ -44,9 +42,8 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
          |"$testName"
          | ${" ".repeat(pos.offset)}^""".stripMargin
     failsParsing[Statements].in {
-      case Cypher5JavaCc => _.throws[OpenCypherExceptionFactory.SyntaxException]
-      case Cypher5       => _.withSyntaxError(expectedMessageCypher5)
-      case Cypher25      => _.withSyntaxError(expectedMessageCypher25)
+      case Cypher5  => _.withSyntaxError(expectedMessageCypher5)
+      case Cypher25 => _.withSyntaxError(expectedMessageCypher25)
     }
   }
 

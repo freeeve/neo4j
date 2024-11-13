@@ -30,7 +30,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class SemanticScopeRecordingTest extends CypherFunSuite {
 
   // This test invokes SemanticAnalysis twice because that's what the production pipeline does
-  private val pipeline = Parse(true) andThen
+  private val pipeline = Parse andThen
     PreparatoryRewriting andThen
     SemanticAnalysis(warn = true) andThen
     SemanticAnalysis(warn = false)

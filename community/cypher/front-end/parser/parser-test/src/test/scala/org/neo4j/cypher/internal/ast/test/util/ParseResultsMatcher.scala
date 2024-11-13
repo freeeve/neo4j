@@ -29,7 +29,6 @@ import org.neo4j.cypher.internal.ast.test.util.VerifyStatementUseGraph.findUseGr
 import org.neo4j.cypher.internal.parser.ast.AstBuildingAntlrParser
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.exceptions.SyntaxException
 import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher
@@ -96,11 +95,7 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
   def withAnyFailure: Self = and(beFailure)
   def withEqualPositions: Self = addIfMultiParsers(haveEqualPositions(supportedParsers))
   def withSyntaxError(message: String): Self = throws[SyntaxException].withMessage(message)
-
-  def withSyntaxErrorContaining(message: String): Self =
-    // Note, this can be changed to throws[SyntaxException].withMessageContaining(message) after javacc is gone.
-    and(AstMatchers.beFailure[SyntaxException].or(AstMatchers.beFailure[OpenCypherExceptionFactory.SyntaxException]))
-      .withMessageContaining(message)
+  def withSyntaxErrorContaining(message: String): Self = throws[SyntaxException].withMessageContaining(message)
 
   final private def and(matcher: Matcher[ParseResult]): Self =
     addAll(supportedParsers.map(asResultsMatcher(_, matcher)))

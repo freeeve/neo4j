@@ -48,10 +48,6 @@ public class JlineCompleter implements Completer {
 
     @Override
     public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
-        // Note, the JavaCC parser doesn't provide good enough completion for
-        // us to release it yet. For this reason, cypher completion is
-        // disabled by default for now until we decide exactly where we want to
-        // go with this.
         try {
             if (line instanceof BlankCompletion) {
                 candidates.addAll(commandCompleter.complete());

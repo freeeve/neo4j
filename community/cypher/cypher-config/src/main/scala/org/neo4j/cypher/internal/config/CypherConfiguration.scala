@@ -94,8 +94,6 @@ class CypherConfiguration private (val config: Config) {
   val gpmShortestToLegacyShortestEnabled: Boolean =
     config.get(GraphDatabaseInternalSettings.gpm_shortest_to_legacy_shortest_enabled)
 
-  val cypherParserAntlrEnabled: Boolean = config.get(GraphDatabaseInternalSettings.cypher_parser_antlr_enabled)
-
   val labelInference: CypherInferSchemaPartsOption = CypherInferSchemaPartsOption.fromConfig(config)
 
   val statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption =

@@ -26,7 +26,6 @@ import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
 class CreateDeletePrivilegeAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -129,7 +128,7 @@ class CreateDeletePrivilegeAdministrationCommandParserTest extends Administratio
 
               test(s"$verb$immutableString $createOrDelete ON DEFAULT GRAPH $preposition role") {
                 failsParsing[Statements].in {
-                  case Cypher5JavaCc | Cypher5 =>
+                  case Cypher5 =>
                     _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
                 }
@@ -137,7 +136,7 @@ class CreateDeletePrivilegeAdministrationCommandParserTest extends Administratio
 
               test(s"$verb$immutableString $createOrDelete ON DEFAULT GRAPH $preposition role1, role2") {
                 failsParsing[Statements].in {
-                  case Cypher5JavaCc | Cypher5 =>
+                  case Cypher5 =>
                     _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
                 }
@@ -145,7 +144,7 @@ class CreateDeletePrivilegeAdministrationCommandParserTest extends Administratio
 
               test(s"$verb$immutableString $createOrDelete ON DEFAULT GRAPH $preposition $$role1, role2") {
                 failsParsing[Statements].in {
-                  case Cypher5JavaCc | Cypher5 =>
+                  case Cypher5 =>
                     _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
                 }
@@ -153,7 +152,7 @@ class CreateDeletePrivilegeAdministrationCommandParserTest extends Administratio
 
               test(s"$verb$immutableString $createOrDelete ON DEFAULT GRAPH RELATIONSHIPS * $preposition role") {
                 failsParsing[Statements].in {
-                  case Cypher5JavaCc | Cypher5 =>
+                  case Cypher5 =>
                     _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
                 }
@@ -168,9 +167,6 @@ class CreateDeletePrivilegeAdministrationCommandParserTest extends Administratio
               test(s"$verb$immutableString $createOrDelete ON DATABASE blah $preposition role") {
                 val offset = verb.length + immutableString.length + createOrDelete.length + 5
                 failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessageStart(
-                      s"""Invalid input 'DATABASE': expected "DEFAULT", "GRAPH", "GRAPHS" or "HOME" (line 1, column ${offset + 1} (offset: $offset))"""
-                    )
                   case Cypher5 => _.withSyntaxErrorContaining(
                       s"""Invalid input 'DATABASE': expected 'GRAPH', 'DEFAULT GRAPH', 'HOME GRAPH' or 'GRAPHS' (line 1, column ${offset + 1} (offset: $offset))"""
                     )

@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal.ast.StartDatabase
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.StopDatabase
 import org.neo4j.cypher.internal.ast.TimeoutAfter
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
 class StartAndStopDatabaseAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -70,15 +69,11 @@ class StartAndStopDatabaseAdministrationCommandParserTest extends Administration
   }
 
   test("START DATABASE") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("Invalid input '': expected a parameter or an identifier (line 1, column 15 (offset: 14))")
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a database name or a parameter (line 1, column 15 (offset: 14))
-            |"START DATABASE"
-            |               ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected a database name or a parameter (line 1, column 15 (offset: 14))
+        |"START DATABASE"
+        |               ^""".stripMargin
+    )
   }
 
   test("START DATABASE `foo`.bar.`baz`") {
@@ -136,14 +131,10 @@ class StartAndStopDatabaseAdministrationCommandParserTest extends Administration
   }
 
   test("STOP DATABASE") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("Invalid input '': expected a parameter or an identifier (line 1, column 14 (offset: 13))")
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a database name or a parameter (line 1, column 14 (offset: 13))
-            |"STOP DATABASE"
-            |              ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected a database name or a parameter (line 1, column 14 (offset: 13))
+        |"STOP DATABASE"
+        |              ^""".stripMargin
+    )
   }
 }

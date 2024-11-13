@@ -19,7 +19,6 @@ package org.neo4j.cypher.internal.ast.factory.ddl
 import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Parameter
@@ -42,13 +41,13 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
   protected def assertAstVersionBased(expected: Boolean => ast.Statements, comparePosition: Boolean = true): Unit =
     if (comparePosition)
       parsesIn[ast.Statements] {
-        case Cypher5 | Cypher5JavaCc => _.toAstPositioned(expected(true))
-        case _                       => _.toAstPositioned(expected(false))
+        case Cypher5 => _.toAstPositioned(expected(true))
+        case _       => _.toAstPositioned(expected(false))
       }
     else
       parsesIn[ast.Statements] {
-        case Cypher5 | Cypher5JavaCc => _.toAst(expected(true))
-        case _                       => _.toAst(expected(false))
+        case Cypher5 => _.toAst(expected(true))
+        case _       => _.toAst(expected(false))
       }
 
   implicit val stringConvertor: String => Either[String, Parameter] = s => Left(s)

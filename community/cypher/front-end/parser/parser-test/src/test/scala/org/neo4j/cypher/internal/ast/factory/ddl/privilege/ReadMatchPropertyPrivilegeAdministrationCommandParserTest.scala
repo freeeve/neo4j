@@ -36,7 +36,6 @@ import org.neo4j.cypher.internal.ast.ReadAction
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.expressions.BooleanExpression
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
@@ -616,12 +615,8 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
           notParse[Statements]
       }
 
-      // No variable: fails in JavaCC as WHERE gets parsed as variable
       s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $patternKeyword (WHERE n.prop1 = 1) $preposition role" should
-        parseIn[Statements] {
-          case Cypher5JavaCc => _.withMessageStart("Invalid input 'n': expected \":\" or \"{\" (line 1, ")
-          case _             => _.withoutErrors
-        }
+        parse[Statements]
     }
   }
 }

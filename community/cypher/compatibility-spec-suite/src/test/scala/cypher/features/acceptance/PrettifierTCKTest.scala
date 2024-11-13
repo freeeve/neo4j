@@ -26,13 +26,11 @@ import org.junit.jupiter.api.function.Executable
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
-import org.neo4j.cypher.internal.ast.factory.neo4j.JavaCCParser
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.rewriting.rewriters
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.test_helpers.DenylistEntry
@@ -77,21 +75,6 @@ class Cypher25PrettifierTCKTest extends PrettifierTCKTestBase {
     """Feature "LiteralAcceptance": Scenario "Fail on a hexadecimal number with underscore in prefix"""",
     """Feature "LiteralAcceptance": Scenario "Fail on an deprecated octal number syntax with underscore"""",
     """Feature "LiteralAcceptance": Scenario "Fail on an octal number with underscore in prefix""""
-  ).map(DenylistEntry.apply)
-}
-
-class PrettifierJavaCcTCKTest extends PrettifierTCKTestBase {
-
-  override protected def parseStatements(query: String): Statement = JavaCCParser.parse(
-    query,
-    OpenCypherExceptionFactory(None)
-  )
-
-  override def denylist(): Seq[DenylistEntry] = super.denylist() ++ Seq(
-    // Bug in javacc parser
-    """Feature "MiscAcceptance": Scenario "Github issue number 13432 query 1"""",
-    """Feature "MiscAcceptance": Scenario "Github issue number 13432 query 2"""",
-    """Feature "MiscAcceptance": Scenario "Github issue number 13432 query 3""""
   ).map(DenylistEntry.apply)
 }
 

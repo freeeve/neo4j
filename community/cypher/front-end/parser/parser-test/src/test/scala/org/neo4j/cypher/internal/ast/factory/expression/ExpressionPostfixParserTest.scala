@@ -18,7 +18,6 @@ package org.neo4j.cypher.internal.ast.factory.expression
 
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.ListSlice
@@ -80,14 +79,11 @@ class ExpressionPostfixParserTest extends AstParsingTestBase {
   }
 
   test("RETURN a.[]") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input '[': expected \"NFKD\" or an identifier")
-      case _ => _.withSyntaxError(
-          """Invalid input '[': expected an identifier (line 1, column 10 (offset: 9))
-            |"RETURN a.[]"
-            |          ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '[': expected an identifier (line 1, column 10 (offset: 9))
+        |"RETURN a.[]"
+        |          ^""".stripMargin
+    )
   }
 
   test("a[0..1]") {

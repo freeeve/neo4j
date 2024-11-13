@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.util.InputPosition
 
@@ -59,7 +58,6 @@ class SubqueryCallParserTest extends AstParsingTestBase {
 
   test("CALL { }") {
     failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input '}'")
       case Cypher5 => _.withMessage(
           """Invalid input '}': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE' or 'WITH' (line 1, column 8 (offset: 7))
             |"CALL { }"
@@ -88,25 +86,19 @@ class SubqueryCallParserTest extends AstParsingTestBase {
   }
 
   test("CALL (*, a) { CREATE (n:N) }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage("Invalid input ',': expected \")\" (line 1, column 8 (offset: 7))")
-      case _ => _.withMessage(
-          """Invalid input ',': expected ')' (line 1, column 8 (offset: 7))
-            |"CALL (*, a) { CREATE (n:N) }"
-            |        ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input ',': expected ')' (line 1, column 8 (offset: 7))
+        |"CALL (*, a) { CREATE (n:N) }"
+        |        ^""".stripMargin
+    )
   }
 
   test("CALL (a, *) { CREATE (n:N) }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage("Invalid input '*': expected an identifier (line 1, column 10 (offset: 9))")
-      case _ => _.withMessage(
-          """Invalid input '*': expected an identifier (line 1, column 10 (offset: 9))
-            |"CALL (a, *) { CREATE (n:N) }"
-            |          ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input '*': expected an identifier (line 1, column 10 (offset: 9))
+        |"CALL (a, *) { CREATE (n:N) }"
+        |          ^""".stripMargin
+    )
   }
 
   test("CALL (a) { CREATE (n:N) }") {
@@ -178,7 +170,6 @@ class SubqueryCallParserTest extends AstParsingTestBase {
 
   test("OPTIONAL CALL { }") {
     failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input '}'")
       case Cypher5 => _.withMessage(
           """Invalid input '}': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE' or 'WITH' (line 1, column 17 (offset: 16))
             |"OPTIONAL CALL { }"
@@ -225,25 +216,19 @@ class SubqueryCallParserTest extends AstParsingTestBase {
   }
 
   test("OPTIONAL CALL (*, a) { CREATE (n:N) }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage("Invalid input ',': expected \")\" (line 1, column 17 (offset: 16))")
-      case _ => _.withMessage(
-          """Invalid input ',': expected ')' (line 1, column 17 (offset: 16))
-            |"OPTIONAL CALL (*, a) { CREATE (n:N) }"
-            |                 ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input ',': expected ')' (line 1, column 17 (offset: 16))
+        |"OPTIONAL CALL (*, a) { CREATE (n:N) }"
+        |                 ^""".stripMargin
+    )
   }
 
   test("OPTIONAL CALL (a, *) { CREATE (n:N) }") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage("Invalid input '*': expected an identifier (line 1, column 19 (offset: 18))")
-      case _ => _.withMessage(
-          """Invalid input '*': expected an identifier (line 1, column 19 (offset: 18))
-            |"OPTIONAL CALL (a, *) { CREATE (n:N) }"
-            |                   ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input '*': expected an identifier (line 1, column 19 (offset: 18))
+        |"OPTIONAL CALL (a, *) { CREATE (n:N) }"
+        |                   ^""".stripMargin
+    )
   }
 
   test("OPTIONAL CALL (a) { CREATE (n:N) }") {

@@ -79,7 +79,7 @@ object SemanticAnalysisTestSuite {
     val context = new ErrorCollectingContext(version, isComposite, sessionDatabase) {
       override def errorMessageProvider: ErrorMessageProvider = messageProvider
     }
-    val state = (Parse(useAntlr = true) andThen pipeline).transform(createInitialState(), context)
+    val state = (Parse andThen pipeline).transform(createInitialState(), context)
     SemanticAnalysisResult(context, state)
   }
 

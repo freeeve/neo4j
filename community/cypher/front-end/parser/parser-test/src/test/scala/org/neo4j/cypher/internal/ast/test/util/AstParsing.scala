@@ -23,11 +23,8 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.UseGraph
-import org.neo4j.cypher.internal.ast.factory.neo4j.Neo4jASTExceptionFactory
-import org.neo4j.cypher.internal.ast.factory.neo4j.Neo4jASTFactory
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParseFailure
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParseResult
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParseResults
@@ -52,16 +49,12 @@ import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.parser.AstRuleCtx
-import org.neo4j.cypher.internal.parser.common.ast.factory.ParameterType
-import org.neo4j.cypher.internal.parser.javacc.Cypher
-import org.neo4j.cypher.internal.parser.javacc.CypherCharStream
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser
 import org.neo4j.cypher.internal.parser.v25.ast.factory.Cypher25AstParser
 import org.neo4j.cypher.internal.parser.v5.Cypher5Parser
 import org.neo4j.cypher.internal.parser.v5.ast.factory.Cypher5AstParser
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.internal.helpers.Exceptions
 
 import scala.reflect.ClassTag
@@ -91,9 +84,8 @@ object AstParsing extends AstParsing {
   sealed trait ParserInTest
 
   object ParserInTest {
-    val AllParsers: Seq[ParserInTest] = Seq(Cypher5, Cypher25, Cypher5JavaCc)
+    val AllParsers: Seq[ParserInTest] = Seq(Cypher5, Cypher25)
   }
-  case object Cypher5JavaCc extends ParserInTest
   case object Cypher5 extends ParserInTest
   case object Cypher25 extends ParserInTest
 
@@ -183,8 +175,7 @@ object Parsers {
 
   private val factories = Map[ParserInTest, ParserFactory](
     Cypher5 -> Cypher5Factory,
-    Cypher25 -> Cypher25Factory,
-    Cypher5JavaCc -> Cypher5JavaCcFactory
+    Cypher25 -> Cypher25Factory
   )
 
   private def from[T <: ASTNode](f: ParserFactory => Parser[T]): Parsers[T] =
@@ -252,62 +243,5 @@ object Parsers {
     override def variable(): Parser[Variable] = parse(_.variable())
     override def literal(): Parser[Literal] = parse(_.literal())
     override def quantifiedPath(): Parser[QuantifiedPath] = parse(_.parenthesizedPath())
-  }
-
-  private object Cypher5JavaCcFactory extends ParserFactory {
-
-    // ParserFactory is only really needed to create the Parser type alias above without writing down all 30+ type parameters
-    trait JavaCcParserFactory[P] {
-      type Type = P
-      def apply(q: String): P
-    }
-
-    object JavaCcParserFactory {
-      def apply[P](f: String => P): JavaCcParserFactory[P] = q => f(q)
-    }
-
-    // noinspection TypeAnnotation
-    val factory = JavaCcParserFactory { (cypher: String) =>
-      val charStream = new CypherCharStream(cypher)
-      val astExceptionFactory = new Neo4jASTExceptionFactory(OpenCypherExceptionFactory(None))
-      val astFactory = new Neo4jASTFactory(cypher, astExceptionFactory, null)
-      new Cypher(astFactory, astExceptionFactory, charStream)
-    }
-    type JavaCcParser = factory.Type
-
-    private def parse[T <: ASTNode](f: JavaCcParser => T): Parser[T] =
-      (cypher: String) => f.apply(factory.apply(cypher))
-
-    override def statements(): Parser[Statements] = parse(_.Statements())
-    override def statement(): Parser[Statement] = parse(_.Statement())
-    override def expression(): Parser[Expression] = parse(_.Expression())
-    override def callClause(): Parser[CallClause] = parse(_.CallClause().asInstanceOf[CallClause])
-    override def matchClause(): Parser[Match] = parse(_.MatchClause().asInstanceOf[Match])
-    override def caseExpression(): Parser[CaseExpression] = parse(_.CaseExpression().asInstanceOf[CaseExpression])
-    override def clause(): Parser[Clause] = parse(_.Clause())
-    override def functionInvocation(): Parser[FunctionInvocation] = parse(_.FunctionInvocation(false))
-
-    override def listComprehension(): Parser[ListComprehension] =
-      parse(_.ListComprehension().asInstanceOf[ListComprehension])
-    override def map(): Parser[MapExpression] = parse(_.MapLiteral().asInstanceOf[MapExpression])
-    override def mapProjection(): Parser[MapProjection] = parse(_.MapProjection().asInstanceOf[MapProjection])
-    override def nodePattern(): Parser[NodePattern] = parse(_.NodePattern())
-    override def numberLiteral(): Parser[NumberLiteral] = parse(_.NumberLiteral().asInstanceOf[NumberLiteral])
-    override def parameter(): Parser[Parameter] = parse(_.Parameter(ParameterType.ANY))
-
-    override def parenthesizedPath(): Parser[ParenthesizedPath] =
-      parse(_.ParenthesizedPath().asInstanceOf[ParenthesizedPath])
-
-    override def patternComprehension(): Parser[PatternComprehension] =
-      parse(_.PatternComprehension().asInstanceOf[PatternComprehension])
-    override def quantifier(): Parser[GraphPatternQuantifier] = parse(_.Quantifier())
-    override def relationshipPattern(): Parser[RelationshipPattern] = parse(_.RelationshipPattern())
-    override def pattern(): Parser[PatternPart] = parse(_.Pattern())
-    override def useClause(): Parser[UseGraph] = parse(_.UseClause())
-    override def stringLiteral(): Parser[StringLiteral] = parse(_.StringLiteral().asInstanceOf[StringLiteral])
-    override def subqueryClause(): Parser[SubqueryCall] = parse(_.SubqueryClause().asInstanceOf[SubqueryCall])
-    override def variable(): Parser[Variable] = parse(_.Variable())
-    override def literal(): Parser[Literal] = parse(_.Expression().asInstanceOf[Literal])
-    override def quantifiedPath(): Parser[QuantifiedPath] = parse(_.ParenthesizedPath().asInstanceOf[QuantifiedPath])
   }
 }

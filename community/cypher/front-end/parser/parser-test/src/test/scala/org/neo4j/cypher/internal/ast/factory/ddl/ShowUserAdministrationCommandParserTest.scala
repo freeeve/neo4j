@@ -19,7 +19,6 @@ package org.neo4j.cypher.internal.ast.factory.ddl
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
 import org.neo4j.cypher.internal.ast.ShowUsers
 import org.neo4j.cypher.internal.ast.Statements
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
 class ShowUserAdministrationCommandParserTest extends UserAdministrationCommandParserTestBase {
 
@@ -168,36 +167,19 @@ class ShowUserAdministrationCommandParserTest extends UserAdministrationCommandP
   }
 
   test("SHOW USERS WHERE user = 'GRANTED' WITH AUTH") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          "Invalid input 'WITH': expected"
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'WITH': expected an expression or <EOF> (line 1, column 35 (offset: 34))
-            |"SHOW USERS WHERE user = 'GRANTED' WITH AUTH"
-            |                                   ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'WITH': expected an expression or <EOF> (line 1, column 35 (offset: 34))
+        |"SHOW USERS WHERE user = 'GRANTED' WITH AUTH"
+        |                                   ^""".stripMargin
+    )
   }
 
   test("SHOW USERS YIELD * WITH AUTH") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(
-          """Invalid input 'WITH': expected
-            |  "LIMIT"
-            |  "OFFSET"
-            |  "ORDER"
-            |  "RETURN"
-            |  "SKIP"
-            |  "WHERE"
-            |  <EOF> (line 1, column 20 (offset: 19))""".stripMargin
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'WITH': expected 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SKIP', 'WHERE' or <EOF> (line 1, column 20 (offset: 19))
-            |"SHOW USERS YIELD * WITH AUTH"
-            |                    ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'WITH': expected 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SKIP', 'WHERE' or <EOF> (line 1, column 20 (offset: 19))
+        |"SHOW USERS YIELD * WITH AUTH"
+        |                    ^""".stripMargin
+    )
   }
 
   // Show current user
@@ -225,54 +207,34 @@ class ShowUserAdministrationCommandParserTest extends UserAdministrationCommandP
   // fails parsing
 
   test("SHOW CURRENT USERS") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(
-          """Invalid input 'USERS': expected "USER" (line 1, column 14 (offset: 13))"""
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'USERS': expected 'USER' (line 1, column 14 (offset: 13))
-            |"SHOW CURRENT USERS"
-            |              ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'USERS': expected 'USER' (line 1, column 14 (offset: 13))
+        |"SHOW CURRENT USERS"
+        |              ^""".stripMargin
+    )
   }
 
   test("SHOW CURRENT USERS YIELD *") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(
-          """Invalid input 'USERS': expected "USER" (line 1, column 14 (offset: 13))"""
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'USERS': expected 'USER' (line 1, column 14 (offset: 13))
-            |"SHOW CURRENT USERS YIELD *"
-            |              ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'USERS': expected 'USER' (line 1, column 14 (offset: 13))
+        |"SHOW CURRENT USERS YIELD *"
+        |              ^""".stripMargin
+    )
   }
 
   test("SHOW CURRENT USERS WHERE user = 'GRANTED'") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(
-          """Invalid input 'USERS': expected "USER" (line 1, column 14 (offset: 13))"""
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'USERS': expected 'USER' (line 1, column 14 (offset: 13))
-            |"SHOW CURRENT USERS WHERE user = 'GRANTED'"
-            |              ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'USERS': expected 'USER' (line 1, column 14 (offset: 13))
+        |"SHOW CURRENT USERS WHERE user = 'GRANTED'"
+        |              ^""".stripMargin
+    )
   }
 
   test("SHOW CURRENT USER WITH AUTH") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessage(
-          """Invalid input 'WITH': expected "WHERE", "YIELD" or <EOF> (line 1, column 19 (offset: 18))"""
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'WITH': expected 'WHERE', 'YIELD' or <EOF> (line 1, column 19 (offset: 18))
-            |"SHOW CURRENT USER WITH AUTH"
-            |                   ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'WITH': expected 'WHERE', 'YIELD' or <EOF> (line 1, column 19 (offset: 18))
+        |"SHOW CURRENT USER WITH AUTH"
+        |                   ^""".stripMargin
+    )
   }
 }

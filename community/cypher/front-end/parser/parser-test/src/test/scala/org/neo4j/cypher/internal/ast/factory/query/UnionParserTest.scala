@@ -20,7 +20,6 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 
 class UnionParserTest extends AstParsingTestBase {
@@ -246,7 +245,6 @@ class UnionParserTest extends AstParsingTestBase {
 
   test("RETURN 1 AS a UNION UNION RETURN 2 AS a") {
     failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'UNION'")
       case Cypher5 => _.withSyntaxError(
           """Invalid input 'UNION': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE' or 'WITH' (line 1, column 21 (offset: 20))
             |"RETURN 1 AS a UNION UNION RETURN 2 AS a"

@@ -22,7 +22,6 @@ import org.neo4j.cypher.internal.ast.FunctionQualifier
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.util.InputPosition
 
 class ExecuteFunctionPrivilegeAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
@@ -218,168 +217,71 @@ class ExecuteFunctionPrivilegeAdministrationCommandParserTest extends Administra
 
               test(s"$verb$immutableString $execute * $preposition role") {
                 val offset = testName.length
-                failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessage(
-                      s"""Invalid input '': expected
-                         |  "*"
-                         |  "."
-                         |  "?"
-                         |  "ON"
-                         |  an identifier (line 1, column ${offset + 1} (offset: $offset))""".stripMargin
-                    )
-                  case _ => _.withSyntaxErrorContaining(
-                      s"""Invalid input '': expected an identifier, '*', ',', '.', '?' or 'ON DBMS' (line 1, column ${offset + 1} (offset: $offset))"""
-                    )
-                }
+                failsParsing[Statements].withSyntaxErrorContaining(
+                  s"""Invalid input '': expected an identifier, '*', ',', '.', '?' or 'ON DBMS' (line 1, column ${offset + 1} (offset: $offset))"""
+                )
               }
 
               test(s"$verb$immutableString $execute * ON DATABASE * $preposition role") {
                 val offset = testName.length
-                failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessage(
-                      s"""Invalid input '': expected
-                         |  "*"
-                         |  "."
-                         |  "?"
-                         |  "ON"
-                         |  an identifier (line 1, column ${offset + 1} (offset: $offset))""".stripMargin
-                    )
-                  case _ => _.withSyntaxErrorContaining(
-                      s"""Invalid input '': expected an identifier, '*', ',', '.', '?' or 'ON DBMS' (line 1, column ${offset + 1} (offset: $offset))"""
-                    )
-                }
+                failsParsing[Statements].withSyntaxErrorContaining(
+                  s"""Invalid input '': expected an identifier, '*', ',', '.', '?' or 'ON DBMS' (line 1, column ${offset + 1} (offset: $offset))"""
+                )
               }
 
               // Tests for invalid escaping
 
               test(s"$verb$immutableString $execute `ab?`* ON DBMS $preposition role") {
-                val offset = s"$verb$immutableString $execute ".length
-                failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessage(
-                      s"""Invalid input 'ab?': expected "*", ".", "?" or an identifier (line 1, column ${offset + 1} (offset: $offset))""".stripMargin
-                    )
-                  case _ => _.withSyntaxErrorContaining(
-                      """Each part of the glob (a block of text up until a dot) must either be fully escaped or not escaped at all."""
-                    )
-                }
+                failsParsing[Statements].withSyntaxErrorContaining(
+                  """Each part of the glob (a block of text up until a dot) must either be fully escaped or not escaped at all."""
+                )
               }
 
               test(s"$verb$immutableString $execute a`ab?` ON DBMS $preposition role") {
                 val offset = s"$verb$immutableString $execute a".length
-                failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessage(
-                      s"""Invalid input 'ab?': expected
-                         |  "*"
-                         |  "."
-                         |  "?"
-                         |  "ON"
-                         |  an identifier (line 1, column ${offset + 1} (offset: $offset))""".stripMargin
-                    )
-                  case _ => _.withSyntaxErrorContaining(
-                      s"""Invalid input '`ab?`': expected an identifier, '*', ',', '.', '?' or 'ON DBMS' (line 1, column ${offset + 1} (offset: $offset))"""
-                    )
-                }
+                failsParsing[Statements].withSyntaxErrorContaining(
+                  s"""Invalid input '`ab?`': expected an identifier, '*', ',', '.', '?' or 'ON DBMS' (line 1, column ${offset + 1} (offset: $offset))"""
+                )
               }
 
               test(s"$verb$immutableString $execute ab?`%ab`* ON DBMS $preposition role") {
                 val offset = s"$verb$immutableString $execute ab?".length
-                failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessage(
-                      s"""Invalid input '%ab': expected
-                         |  "*"
-                         |  "."
-                         |  "?"
-                         |  "NFKD"
-                         |  "ON"
-                         |  an identifier (line 1, column ${offset + 1} (offset: $offset))""".stripMargin
-                    )
-                  case _ => _.withSyntaxErrorContaining(
-                      s"Invalid input '`%ab`': expected an identifier, '*', ',', '.', '?' or 'ON DBMS' (line 1, column ${offset + 1} (offset: $offset))"
-                    )
-                }
+                failsParsing[Statements].withSyntaxErrorContaining(
+                  s"Invalid input '`%ab`': expected an identifier, '*', ',', '.', '?' or 'ON DBMS' (line 1, column ${offset + 1} (offset: $offset))"
+                )
               }
 
               test(s"$verb$immutableString $execute apoc.`*`ab? ON DBMS $preposition role") {
-                val offset = s"$verb$immutableString $execute apoc.".length
-                failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessage(
-                      s"""Invalid input '*': expected
-                         |  "*"
-                         |  "."
-                         |  "?"
-                         |  "NFKD"
-                         |  an identifier (line 1, column ${offset + 1} (offset: $offset))""".stripMargin
-                    )
-                  case _ => _.withSyntaxErrorContaining(
-                      """Each part of the glob (a block of text up until a dot) must either be fully escaped or not escaped at all."""
-                    )
-                }
+                failsParsing[Statements].withSyntaxErrorContaining(
+                  """Each part of the glob (a block of text up until a dot) must either be fully escaped or not escaped at all."""
+                )
               }
 
               test(s"$verb$immutableString $execute apoc.*`ab?` ON DBMS $preposition role") {
                 val offset = s"$verb$immutableString $execute apoc.*".length
-                failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessage(
-                      s"""Invalid input 'ab?': expected
-                         |  "*"
-                         |  "."
-                         |  "?"
-                         |  "ON"
-                         |  an identifier (line 1, column ${offset + 1} (offset: $offset))""".stripMargin
-                    )
-                  case _ => _.withSyntaxErrorContaining(
-                      s"Invalid input '`ab?`': expected an identifier, '*', ',', '.', '?' or 'ON DBMS' (line 1, column ${offset + 1} (offset: $offset))"
-                    )
-                }
+                failsParsing[Statements].withSyntaxErrorContaining(
+                  s"Invalid input '`ab?`': expected an identifier, '*', ',', '.', '?' or 'ON DBMS' (line 1, column ${offset + 1} (offset: $offset))"
+                )
               }
 
               test(s"$verb$immutableString $execute `ap`oc.ab? ON DBMS $preposition role") {
-                val offset = s"$verb$immutableString $execute ".length
-                failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessage(
-                      s"""Invalid input 'ap': expected "*", ".", "?" or an identifier (line 1, column ${offset + 1} (offset: $offset))""".stripMargin
-                    )
-                  case _ => _.withSyntaxErrorContaining(
-                      """Each part of the glob (a block of text up until a dot) must either be fully escaped or not escaped at all."""
-                    )
-                }
+                failsParsing[Statements].withSyntaxErrorContaining(
+                  """Each part of the glob (a block of text up until a dot) must either be fully escaped or not escaped at all."""
+                )
               }
 
               test(s"$verb$immutableString $execute ap`oc`.ab? ON DBMS $preposition role") {
                 val offset = s"$verb$immutableString $execute ap".length
-                failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessage(
-                      s"""Invalid input 'oc': expected
-                         |  "*"
-                         |  "."
-                         |  "?"
-                         |  "ON"
-                         |  an identifier (line 1, column ${offset + 1} (offset: $offset))""".stripMargin
-                    )
-                  case _ => _.withSyntaxErrorContaining(
-                      s"""Invalid input '`oc`': expected an identifier, '*', ',', '.', '?' or 'ON DBMS' (line 1, column ${offset + 1} (offset: $offset))"""
-                    )
-                }
+                failsParsing[Statements].withSyntaxErrorContaining(
+                  s"""Invalid input '`oc`': expected an identifier, '*', ',', '.', '?' or 'ON DBMS' (line 1, column ${offset + 1} (offset: $offset))"""
+                )
               }
           }
           test(s"$verb$immutableString EXECUTE DEFINED FUNCTION * ON DATABASE * $preposition role") {
             val offset = s"$verb$immutableString EXECUTE ".length
-            failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessage(
-                  s"""Invalid input 'DEFINED': expected
-                     |  "ADMIN"
-                     |  "ADMINISTRATOR"
-                     |  "BOOSTED"
-                     |  "FUNCTION"
-                     |  "FUNCTIONS"
-                     |  "PROCEDURE"
-                     |  "PROCEDURES"
-                     |  "USER" (line 1, column ${offset + 1} (offset: $offset))""".stripMargin
-                )
-              case _ => _.withSyntaxErrorContaining(
-                  s"""Invalid input 'DEFINED': expected 'ADMIN', 'ADMINISTRATOR', 'BOOSTED', 'FUNCTION', 'FUNCTIONS', 'PROCEDURE', 'PROCEDURES' or 'USER' (line 1, column ${offset + 1} (offset: $offset))"""
-                )
-            }
+            failsParsing[Statements].withSyntaxErrorContaining(
+              s"""Invalid input 'DEFINED': expected 'ADMIN', 'ADMINISTRATOR', 'BOOSTED', 'FUNCTION', 'FUNCTIONS', 'PROCEDURE', 'PROCEDURES' or 'USER' (line 1, column ${offset + 1} (offset: $offset))"""
+            )
           }
       }
   }

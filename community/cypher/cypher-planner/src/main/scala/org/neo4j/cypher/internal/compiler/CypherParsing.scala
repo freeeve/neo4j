@@ -91,8 +91,7 @@ class CypherParsing(
         extractLiterals = config.extractLiterals,
         parameterTypeMapping = paramTypes,
         semanticFeatures = features,
-        obfuscateLiterals = config.obfuscateLiterals(),
-        antlrParserEnabled = config.cypherParserAntlrEnabled()
+        obfuscateLiterals = config.obfuscateLiterals()
       ),
       resolver = resolver
     ).transform(startState, context)
@@ -114,7 +113,6 @@ case class CypherParsingConfig(
   useParameterSizeHint: Boolean = true,
   semanticFeatures: Seq[SemanticFeature] = defaultSemanticFeatures,
   obfuscateLiterals: () => Boolean = () => false,
-  cypherParserAntlrEnabled: () => Boolean = () => false,
   queryRouterForCompositeEnabled: Boolean = false
 )
 
@@ -153,11 +151,6 @@ object CypherParsingConfig {
       )
     }
 
-    def cypherParserAntlrEnabled(): Boolean = {
-      // Is dynamic, note that it needs to be combined with clearing query caches to take effect.
-      cypherConfiguration.cypherParserAntlrEnabled
-    }
-
     val queryRouterForCompositeQueriesEnabled: Boolean = cypherConfiguration.allowCompositeQueries
 
     CypherParsingConfig(
@@ -165,7 +158,6 @@ object CypherParsingConfig {
       useParameterSizeHint,
       enabledSemanticFeatures,
       () => obfuscateLiterals(),
-      () => cypherParserAntlrEnabled(),
       queryRouterForCompositeQueriesEnabled
     )
   }

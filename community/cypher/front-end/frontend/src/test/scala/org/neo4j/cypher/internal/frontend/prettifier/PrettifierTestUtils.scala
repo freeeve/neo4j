@@ -19,7 +19,6 @@ package org.neo4j.cypher.internal.frontend.prettifier
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
-import org.neo4j.cypher.internal.ast.factory.neo4j.JavaCCParser
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.parser.ast.AstParser
@@ -147,14 +146,7 @@ trait PrettifierTestUtils extends Matchers {
     version: CypherVersion
   ): Seq[Statement] = {
     queriesSinceClearCache = queriesSinceClearCache + 1
-    version match {
-      case CypherVersion.Cypher5 =>
-        val javaCcStatement = JavaCCParser.parse(original, OpenCypherExceptionFactory(None))
-        val antlrStatement = parseAndClearCache(CypherVersion.Cypher5, original)
-        Seq(antlrStatement, javaCcStatement)
-      case version =>
-        Seq(parseAndClearCache(version, original))
-    }
+    Seq(parseAndClearCache(version, original))
   }
 
   private def parseAndClearCache(cypherVersion: CypherVersion, query: String): Statement = {

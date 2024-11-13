@@ -30,7 +30,6 @@ import org.neo4j.cypher.internal.ast.OptionsParam
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.TimeoutAfter
 import org.neo4j.cypher.internal.ast.Topology
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.util.symbols.CTMap
@@ -443,16 +442,11 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
 
   test("CREATE DATABASE") {
     // missing db name but parses as 'normal' cypher CREATE...
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          s"""Invalid input '': expected a parameter or an identifier (line 1, column 16 (offset: 15))"""
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a database name, a graph pattern or a parameter (line 1, column 16 (offset: 15))
-            |"CREATE DATABASE"
-            |                ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected a database name, a graph pattern or a parameter (line 1, column 16 (offset: 15))
+        |"CREATE DATABASE"
+        |                ^""".stripMargin
+    )
   }
 
   test("CREATE DATABASE `graph.db`.`db.db`") {
@@ -493,24 +487,11 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   }
 
   test("CREATE DATABASE  IF NOT EXISTS") {
-    val exceptionMessage =
-      s"""Invalid input 'NOT': expected
-         |  "."
-         |  "IF"
-         |  "NOWAIT"
-         |  "OPTIONS"
-         |  "TOPOLOGY"
-         |  "WAIT"
-         |  <EOF> (line 1, column 21 (offset: 20))""".stripMargin
-
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(exceptionMessage)
-      case _ => _.withSyntaxError(
-          """Invalid input 'NOT': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
-            |"CREATE DATABASE  IF NOT EXISTS"
-            |                     ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'NOT': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+        |"CREATE DATABASE  IF NOT EXISTS"
+        |                     ^""".stripMargin
+    )
   }
 
   test("CREATE DATABASE foo IF EXISTS") {
@@ -522,16 +503,11 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   }
 
   test("CREATE DATABASE foo WAIT 3.14") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          "Invalid input '3.14': expected <EOF> or <UNSIGNED_DECIMAL_INTEGER> (line 1, column 26 (offset: 25))"
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input '3.14': expected <EOF> or an integer value (line 1, column 26 (offset: 25))
-            |"CREATE DATABASE foo WAIT 3.14"
-            |                          ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '3.14': expected <EOF> or an integer value (line 1, column 26 (offset: 25))
+        |"CREATE DATABASE foo WAIT 3.14"
+        |                          ^""".stripMargin
+    )
   }
 
   test("CREATE DATABASE foo WAIT bar") {
@@ -543,213 +519,113 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   }
 
   test("CREATE OR REPLACE DATABASE") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          s"""Invalid input '': expected a parameter or an identifier (line 1, column 27 (offset: 26))"""
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a database name or a parameter (line 1, column 27 (offset: 26))
-            |"CREATE OR REPLACE DATABASE"
-            |                           ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected a database name or a parameter (line 1, column 27 (offset: 26))
+        |"CREATE OR REPLACE DATABASE"
+        |                           ^""".stripMargin
+    )
   }
 
   test("CREATE DATABASE foo SET OPTION key value") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          """Invalid input 'SET': expected
-            |  "."
-            |  "IF"
-            |  "NOWAIT"
-            |  "OPTIONS"
-            |  "TOPOLOGY"
-            |  "WAIT"
-            |  <EOF> (line 1, column 21 (offset: 20))""".stripMargin
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
-            |"CREATE DATABASE foo SET OPTION key value"
-            |                     ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+        |"CREATE DATABASE foo SET OPTION key value"
+        |                     ^""".stripMargin
+    )
   }
 
   test("CREATE DATABASE foo OPTION {key: value}") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          """Invalid input 'OPTION': expected
-            |  "."
-            |  "IF"
-            |  "NOWAIT"
-            |  "OPTIONS"
-            |  "TOPOLOGY"
-            |  "WAIT"
-            |  <EOF> (line 1, column 21 (offset: 20))""".stripMargin
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'OPTION': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
-            |"CREATE DATABASE foo OPTION {key: value}"
-            |                     ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'OPTION': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+        |"CREATE DATABASE foo OPTION {key: value}"
+        |                     ^""".stripMargin
+    )
   }
 
   test("CREATE DATABASE foo SET OPTIONS key value") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          """Invalid input 'SET': expected
-            |  "."
-            |  "IF"
-            |  "NOWAIT"
-            |  "OPTIONS"
-            |  "TOPOLOGY"
-            |  "WAIT"
-            |  <EOF> (line 1, column 21 (offset: 20))""".stripMargin
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
-            |"CREATE DATABASE foo SET OPTIONS key value"
-            |                     ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+        |"CREATE DATABASE foo SET OPTIONS key value"
+        |                     ^""".stripMargin
+    )
   }
 
   test("CREATE DATABASE foo OPTIONS key value") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          """Invalid input 'key': expected "{" or a parameter (line 1, column 29 (offset: 28))""".stripMargin
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'key': expected a parameter or '{' (line 1, column 29 (offset: 28))
-            |"CREATE DATABASE foo OPTIONS key value"
-            |                             ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'key': expected a parameter or '{' (line 1, column 29 (offset: 28))
+        |"CREATE DATABASE foo OPTIONS key value"
+        |                             ^""".stripMargin
+    )
   }
 
   test("CREATE DATABASE foo TOPOLOGY 1 PRIMARY TOPOLOGY 1 SECONDARY") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          """Invalid input 'TOPOLOGY': expected
-            |  "NOWAIT"
-            |  "OPTIONS"
-            |  "WAIT"
-            |  <EOF>
-            |  <UNSIGNED_DECIMAL_INTEGER>
-            |  a parameter (line 1, column 40 (offset: 39))""".stripMargin
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'TOPOLOGY': expected a parameter, 'NOWAIT', 'OPTIONS', 'WAIT', <EOF> or an integer value (line 1, column 40 (offset: 39))
-            |"CREATE DATABASE foo TOPOLOGY 1 PRIMARY TOPOLOGY 1 SECONDARY"
-            |                                        ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'TOPOLOGY': expected a parameter, 'NOWAIT', 'OPTIONS', 'WAIT', <EOF> or an integer value (line 1, column 40 (offset: 39))
+        |"CREATE DATABASE foo TOPOLOGY 1 PRIMARY TOPOLOGY 1 SECONDARY"
+        |                                        ^""".stripMargin
+    )
   }
 
   test("CREATE DATABASE foo TOPOLOGY 1 PRIMARY 1 PRIMARY") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("""Duplicate PRIMARY clause (line 1, column 42 (offset: 41))""".stripMargin)
-      case _ => _.withSyntaxErrorContaining(
-          """Duplicate PRIMARY clause (line 1, column 40 (offset: 39))""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      """Duplicate PRIMARY clause (line 1, column 40 (offset: 39))""".stripMargin
+    )
   }
 
   test("CREATE DATABASE foo TOPOLOGY 2 PRIMARIES 1 PRIMARY") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("""Duplicate PRIMARY clause (line 1, column 44 (offset: 43))""".stripMargin)
-      case _ => _.withSyntaxErrorContaining(
-          """Duplicate PRIMARY clause (line 1, column 42 (offset: 41))"""
-        )
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      """Duplicate PRIMARY clause (line 1, column 42 (offset: 41))"""
+    )
   }
 
   test("CREATE DATABASE foo TOPOLOGY 2 SECONDARIES 1 SECONDARY") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("""Duplicate SECONDARY clause (line 1, column 46 (offset: 45))""".stripMargin)
-      case _ => _.withSyntaxErrorContaining(
-          """Duplicate SECONDARY clause (line 1, column 44 (offset: 43))""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      """Duplicate SECONDARY clause (line 1, column 44 (offset: 43))""".stripMargin
+    )
   }
 
   test("CREATE DATABASE foo TOPOLOGY 1 PRIMARY 1 SECONDARY 2 SECONDARY") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("""Duplicate SECONDARY clause (line 1, column 54 (offset: 53))""".stripMargin)
-      case _ => _.withSyntaxErrorContaining(
-          """Duplicate SECONDARY clause (line 1, column 52 (offset: 51))""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      """Duplicate SECONDARY clause (line 1, column 52 (offset: 51))""".stripMargin
+    )
   }
 
   test("CREATE DATABASE foo TOPOLOGY -1 PRIMARY") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          """Invalid input '-': expected <UNSIGNED_DECIMAL_INTEGER> or a parameter (line 1, column 30 (offset: 29))""".stripMargin
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input '-': expected a parameter or an integer value (line 1, column 30 (offset: 29))
-            |"CREATE DATABASE foo TOPOLOGY -1 PRIMARY"
-            |                              ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '-': expected a parameter or an integer value (line 1, column 30 (offset: 29))
+        |"CREATE DATABASE foo TOPOLOGY -1 PRIMARY"
+        |                              ^""".stripMargin
+    )
   }
 
   test("CREATE DATABASE foo TOPOLOGY 1 PRIMARY -1 SECONDARY") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          """Invalid input '-': expected
-            |  "NOWAIT"
-            |  "OPTIONS"
-            |  "WAIT"
-            |  <EOF>
-            |  <UNSIGNED_DECIMAL_INTEGER>
-            |  a parameter (line 1, column 40 (offset: 39))""".stripMargin
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input '-': expected a parameter, 'NOWAIT', 'OPTIONS', 'WAIT', <EOF> or an integer value (line 1, column 40 (offset: 39))
-            |"CREATE DATABASE foo TOPOLOGY 1 PRIMARY -1 SECONDARY"
-            |                                        ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '-': expected a parameter, 'NOWAIT', 'OPTIONS', 'WAIT', <EOF> or an integer value (line 1, column 40 (offset: 39))
+        |"CREATE DATABASE foo TOPOLOGY 1 PRIMARY -1 SECONDARY"
+        |                                        ^""".stripMargin
+    )
   }
 
   test("CREATE DATABASE foo TOPOLOGY -1 SECONDARY 1 PRIMARY") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          """Invalid input '-': expected <UNSIGNED_DECIMAL_INTEGER> or a parameter (line 1, column 30 (offset: 29))"""
-        )
-      // Modify update error message. -1 is an integer...
-      case _ => _.withSyntaxError(
-          """Invalid input '-': expected a parameter or an integer value (line 1, column 30 (offset: 29))
-            |"CREATE DATABASE foo TOPOLOGY -1 SECONDARY 1 PRIMARY"
-            |                              ^""".stripMargin
-        )
-    }
+    // Modify update error message. -1 is an integer...
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '-': expected a parameter or an integer value (line 1, column 30 (offset: 29))
+        |"CREATE DATABASE foo TOPOLOGY -1 SECONDARY 1 PRIMARY"
+        |                              ^""".stripMargin
+    )
   }
 
   test("CREATE DATABASE foo TOPOLOGY 1 SECONDARY 1 SECONDARY") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("""Duplicate SECONDARY clause (line 1, column 44 (offset: 43))""")
-      case _ => _.withSyntaxErrorContaining("""Duplicate SECONDARY clause (line 1, column 42 (offset: 41))""")
-    }
+    failsParsing[Statements].withSyntaxErrorContaining(
+      """Duplicate SECONDARY clause (line 1, column 42 (offset: 41))"""
+    )
   }
 
   test("CREATE DATABASE foo TOPOLOGY") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart(
-          """Invalid input '': expected <UNSIGNED_DECIMAL_INTEGER> or a parameter (line 1, column 29 (offset: 28))"""
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a parameter or an integer value (line 1, column 29 (offset: 28))
-            |"CREATE DATABASE foo TOPOLOGY"
-            |                             ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected a parameter or an integer value (line 1, column 29 (offset: 28))
+        |"CREATE DATABASE foo TOPOLOGY"
+        |                             ^""".stripMargin
+    )
   }
 }

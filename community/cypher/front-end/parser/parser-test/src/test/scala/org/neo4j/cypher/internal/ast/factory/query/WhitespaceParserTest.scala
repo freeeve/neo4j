@@ -19,7 +19,6 @@ package org.neo4j.cypher.internal.ast.factory.query
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 
 class WhitespaceParserTest extends AstParsingTestBase {
@@ -194,9 +193,7 @@ class WhitespaceParserTest extends AstParsingTestBase {
   test("MATCH\\u0085(m) RETURN m") {
     val unicodeString = "\\u0085"
     parsesIn[Statement] {
-      case Cypher5JavaCc => _.withMessageStart("Encountered \" <IDENTIFIER> \"MATCH\\u0085\"\"")
-      case Cypher5 =>
-        _.withSyntaxError(
+      case Cypher5 => _.withSyntaxError(
           s"""Invalid input 'MATCH\u0085': expected 'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'USING PERIODIC COMMIT', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE' or 'WITH' (line 1, column 1 (offset: 0))
              |"MATCH${unicodeString}(m) RETURN m"
              | ^""".stripMargin
@@ -210,7 +207,6 @@ class WhitespaceParserTest extends AstParsingTestBase {
 
   test("MATCH\u0085(m) RETURN m") {
     parsesIn[Statement] {
-      case Cypher5JavaCc => _.withMessageStart("Encountered \" <IDENTIFIER> \"MATCH\\u0085\"\"")
       case Cypher5 =>
         _.withSyntaxError(s"""Invalid input 'MATCH\u0085': expected 'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'USING PERIODIC COMMIT', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE' or 'WITH' (line 1, column 1 (offset: 0))
                              |"MATCH\u0085(m) RETURN m"

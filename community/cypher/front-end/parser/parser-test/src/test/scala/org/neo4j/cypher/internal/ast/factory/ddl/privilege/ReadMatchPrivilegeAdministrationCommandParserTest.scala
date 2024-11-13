@@ -37,7 +37,6 @@ import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
 class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
   // Granting/denying/revoking read and match to/from role
@@ -987,17 +986,15 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
 
           test(s"$verb$immutableString ${action.name} { prop } ON DEFAULT GRAPH $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5JavaCc | Cypher5 =>
-                _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
-              case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
+              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
           test(s"$verb$immutableString ${action.name} { prop } ON DEFAULT GRAPH NODE A $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5JavaCc | Cypher5 =>
-                _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
-              case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
+              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 

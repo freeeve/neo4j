@@ -28,10 +28,8 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsParameters
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsReportParameters
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.exceptions.SyntaxException
 
@@ -365,15 +363,11 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
   }
 
   test("CALL { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK CONTINUE") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("Invalid input 'CONTINUE'")
-      case _ => _.withSyntaxError(
-          """Invalid input 'CONTINUE': expected 'FOREACH', 'REPORT STATUS AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'ON ERROR', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OF', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 52 (offset: 51))
-            |"CALL { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK CONTINUE"
-            |                                                    ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'CONTINUE': expected 'FOREACH', 'REPORT STATUS AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'ON ERROR', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OF', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 52 (offset: 51))
+        |"CALL { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK CONTINUE"
+        |                                                    ^""".stripMargin
+    )
   }
 
   test("CALL { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK REPORT STATUS AS status ON ERROR CONTINUE") {
@@ -384,18 +378,12 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
   test("CALL { CREATE (n) } IN TRANSACTIONS REPORT STATUS AS status REPORT STATUS AS other") {
     failsParsing[Statements]
       .withMessageStart("Duplicated REPORT STATUS parameter")
-      .in {
-        case Cypher5JavaCc => _.throws[OpenCypherExceptionFactory.SyntaxException]
-        case _             => _.throws[SyntaxException]
-      }
+      .throws[SyntaxException]
   }
 
   test("CALL { CREATE (n) } IN TRANSACTIONS OF 5 ROWS ON ERROR BREAK REPORT STATUS AS status OF 42 ROWS") {
     failsParsing[Statements]
       .withMessageStart("Duplicated OF ROWS parameter")
-      .in {
-        case Cypher5JavaCc => _.throws[OpenCypherExceptionFactory.SyntaxException]
-        case _             => _.throws[SyntaxException]
-      }
+      .throws[SyntaxException]
   }
 }

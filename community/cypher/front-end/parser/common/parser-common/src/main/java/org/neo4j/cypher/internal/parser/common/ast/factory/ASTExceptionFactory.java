@@ -53,77 +53,6 @@ public interface ASTExceptionFactory {
         return String.format("Constraint type '%s' does not allow multiple properties", type.description());
     }
 
-    static String invalidShowFilterType(String command, ShowCommandFilterTypes got) {
-        return String.format("Filter type %s is not defined for show %s command.", got.description(), command);
-    }
-
-    String invalidShowBtreeIndexes = "Invalid index type b-tree, please omit the `BTREE` filter.";
-
-    String invalidExistsForShowConstraints =
-            "`SHOW CONSTRAINTS` no longer allows the `EXISTS` keyword, please use `EXIST` or `PROPERTY EXISTENCE` instead.";
-
-    static String invalidBriefVerbose(String command) {
-        return String.format(
-                """
-`%s` no longer allows the `BRIEF` and `VERBOSE` keywords,
-please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""",
-                command);
-    }
-
-    static String invalidCreateIndexType(CreateIndexTypes got) {
-        return String.format("Index type %s is not defined for create index command.", got.description());
-    }
-
-    String getInvalidCreateBtreeIndexes = "Invalid index type b-tree, use range, point or text index instead.";
-
-    // gives back error message if the command is invalid, null if valid
-    static String checkForInvalidCreateConstraint(
-            ConstraintType type, ConstraintVersion constraintVersion, Boolean containsOn, Boolean moreThanOneProperty) {
-        // Error messages for mixing old and new constraint syntax
-        String errorMessageOnRequire =
-                "Invalid constraint syntax, ON should not be used in combination with REQUIRE. Replace ON with FOR.";
-        String errorMessageForAssert =
-                "Invalid constraint syntax, FOR should not be used in combination with ASSERT. Replace ASSERT with REQUIRE.";
-        String errorMessageForAssertExists =
-                "Invalid constraint syntax, FOR should not be used in combination with ASSERT EXISTS. Replace ASSERT EXISTS with REQUIRE ... IS NOT NULL.";
-        String errorMessageOnAssert =
-                "Invalid constraint syntax, ON and ASSERT should not be used. Replace ON with FOR and ASSERT with REQUIRE.";
-        String errorMessageOnAssertExists =
-                "Invalid constraint syntax, ON and ASSERT EXISTS should not be used. Replace ON with FOR and ASSERT EXISTS with REQUIRE ... IS NOT NULL.";
-
-        String message = null;
-        if (type == ConstraintType.NODE_EXISTS
-                || type == ConstraintType.NODE_IS_NOT_NULL
-                || type == ConstraintType.REL_EXISTS
-                || type == ConstraintType.REL_IS_NOT_NULL) {
-            // existence constraints
-            if (moreThanOneProperty && (type == ConstraintType.NODE_EXISTS || type == ConstraintType.REL_EXISTS)) {
-                // previously thrown during ast construction so need to check this first to keep order of checks
-                message = onlySinglePropertyAllowed(type);
-            } else if (constraintVersion == ConstraintVersion.CONSTRAINT_VERSION_2 && containsOn) {
-                message = errorMessageOnRequire; // ON ... REQUIRE ... IS NOT NULL
-            } else if (constraintVersion == ConstraintVersion.CONSTRAINT_VERSION_1 && !containsOn) {
-                message = errorMessageForAssert; // FOR ... ASSERT ... IS NOT NULL
-            } else if (constraintVersion == ConstraintVersion.CONSTRAINT_VERSION_0 && !containsOn) {
-                message = errorMessageForAssertExists; // FOR ... ASSERT EXISTS ...
-            } else if (constraintVersion == ConstraintVersion.CONSTRAINT_VERSION_1) {
-                message = errorMessageOnAssert; // ON ... ASSERT ... IS NOT NULL
-            } else if (constraintVersion == ConstraintVersion.CONSTRAINT_VERSION_0) {
-                message = errorMessageOnAssertExists; // ON ... ASSERT EXISTS ...
-            }
-        } else {
-            // remaining constraints
-            if (constraintVersion == ConstraintVersion.CONSTRAINT_VERSION_2 && containsOn) {
-                message = errorMessageOnRequire; // ON ... REQUIRE
-            } else if (constraintVersion == ConstraintVersion.CONSTRAINT_VERSION_0 && !containsOn) {
-                message = errorMessageForAssert; // FOR ... ASSERT
-            } else if (constraintVersion == ConstraintVersion.CONSTRAINT_VERSION_0) {
-                message = errorMessageOnAssert; // ON ... ASSERT
-            }
-        }
-        return message;
-    }
-
     static String invalidDropConstraint(ConstraintType type, Boolean moreThanOneProperty) {
         String messageFormat =
                 "%s constraints cannot be dropped by schema, please drop by name instead: DROP CONSTRAINT constraint_name. The constraint name can be found using SHOW CONSTRAINTS.";
@@ -164,29 +93,6 @@ please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""",
                 name);
     }
 
-    static String tooManyAliasNameComponents(String name) {
-        return String.format(
-                "Invalid input `%s` for name. Expected name to contain at most two components separated by `.`.", name);
-    }
-
-    static String tooManyDatabaseNameComponents(String name) {
-        return String.format(
-                "Invalid input `%s` for database name. Expected name to contain at most one component.", name);
-    }
-
-    static String invalidDefaultScope(String target) {
-        return String.format("`ON DEFAULT %s` is not supported. Use `ON HOME %s` instead.", target, target);
-    }
-
-    String periodicCommitNotSupported =
-            "The PERIODIC COMMIT query hint is no longer supported. Please use CALL { ... } IN TRANSACTIONS instead.";
-
-    String namedPatternInInsertNotSupported =
-            "Named patterns are not allowed in `INSERT`. Use `CREATE` instead or remove the name.";
-
-    String colonConjunctionInInsertNotSupported =
-            "Colon `:` conjunction is not allowed in INSERT. Use `CREATE` or conjunction with ampersand `&` instead.";
-
     static String invalidHintIndexType(HintIndexType got) {
         final String HINT_TYPES = Arrays.stream(HintIndexType.values())
                 .filter(hintIndexType -> !(hintIndexType == HintIndexType.BTREE || hintIndexType == HintIndexType.ANY))
@@ -201,9 +107,6 @@ please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""",
                     "Index type %s is not defined for USING index hint. Use %s instead.", got.name(), HINT_TYPES);
         }
     }
-
-    String failedToParseFile =
-            "Failed to parse the file expression. Please remember to use quotes for string literals.";
 
     // ---------Helper functions
     private static Function<List<String>, String> joiningLastDelimiter(String delimiter, String lastDelimiter) {

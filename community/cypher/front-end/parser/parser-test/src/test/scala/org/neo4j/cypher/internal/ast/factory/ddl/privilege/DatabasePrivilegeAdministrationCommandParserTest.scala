@@ -45,7 +45,6 @@ import org.neo4j.cypher.internal.ast.UserQualifier
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
 class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
   private val databaseScopeFoo = NamedDatabasesScope(Seq(literalFoo))(_)
@@ -188,8 +187,6 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
 
               test(s"$verb$immutableString $privilege ON DEFAULT DATABASE $preposition role") {
                 failsParsing[Statements].in {
-                  case Cypher5JavaCc =>
-                    _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
                   case Cypher5 =>
                     _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
@@ -258,39 +255,29 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
 
               test(s"$verb$immutableString $privilege ON HOME DATABASES $preposition role") {
                 // 'databases' instead of 'database'
-                failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessageStart("""Invalid input 'DATABASES': expected "DATABASE"""")
-                  case _ => _.withSyntaxErrorContaining(
-                      """Invalid input 'DATABASES': expected 'DATABASE'"""
-                    )
-                }
+                failsParsing[Statements].withSyntaxErrorContaining(
+                  """Invalid input 'DATABASES': expected 'DATABASE'"""
+                )
 
               }
 
               test(s"$verb$immutableString $privilege ON HOME DATABASE foo $preposition role") {
                 // both home and database name
-                failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessageStart(s"""Invalid input 'foo': expected "$preposition"""")
-                  case _ => _.withSyntaxErrorContaining(
-                      s"""Invalid input 'foo': expected '$preposition'"""
-                    )
-                }
+                failsParsing[Statements].withSyntaxErrorContaining(
+                  s"""Invalid input 'foo': expected '$preposition'"""
+                )
               }
 
               test(s"$verb$immutableString $privilege ON HOME DATABASE * $preposition role") {
                 // both home and *
-                failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessageStart(s"""Invalid input '*': expected "$preposition"""")
-                  case _ => _.withSyntaxErrorContaining(
-                      s"""Invalid input '*': expected '$preposition'"""
-                    )
-                }
+                failsParsing[Statements].withSyntaxErrorContaining(
+                  s"""Invalid input '*': expected '$preposition'"""
+                )
               }
 
               test(s"$verb$immutableString $privilege ON DEFAULT DATABASES $preposition role") {
                 // 'databases' instead of 'database'
                 failsParsing[Statements].in {
-                  case Cypher5JavaCc => _.withMessageStart("""Invalid input 'DATABASES': expected "DATABASE"""")
                   case Cypher5 => _.withSyntaxErrorContaining(
                       """Invalid input 'DATABASES': expected 'DATABASE'""".stripMargin
                     )
@@ -301,8 +288,6 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
               test(s"$verb$immutableString $privilege ON DEFAULT DATABASE foo $preposition role") {
                 // both default and database name
                 failsParsing[Statements].in {
-                  case Cypher5JavaCc =>
-                    _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
                   case Cypher5 =>
                     _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
@@ -312,8 +297,6 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
               test(s"$verb$immutableString $privilege ON DEFAULT DATABASE * $preposition role") {
                 // both default and *
                 failsParsing[Statements].in {
-                  case Cypher5JavaCc =>
-                    _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
                   case Cypher5 =>
                     _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
@@ -414,8 +397,6 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
 
           test(s"$verb$immutableString SHOW TRANSACTION (user) ON DEFAULT DATABASE $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5JavaCc =>
-                _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
               case Cypher5 =>
                 _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
               case _ => _.withSyntaxErrorContaining(
@@ -506,8 +487,6 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
 
           test(s"$verb$immutableString TERMINATE TRANSACTION (user) ON DEFAULT DATABASE $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5JavaCc =>
-                _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
               case Cypher5 =>
                 _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
               case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
@@ -638,8 +617,6 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
 
           test(s"$verb$immutableString TRANSACTION MANAGEMENT ON DEFAULT DATABASE $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5JavaCc =>
-                _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
               case Cypher5 =>
                 _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
               case _ => _.withSyntaxErrorContaining(
@@ -705,54 +682,22 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
 
           test(s"$verb$immutableString TRANSACTIONS ON DATABASES * $preposition role") {
             // can't have the complete error message, since grant and revoke have more accepted keywords than deny
-            val expected =
-              """Invalid input 'TRANSACTIONS': expected
-                |  "ACCESS"""".stripMargin
-            failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessageStart(expected)
-              case _ => _.withSyntaxErrorContaining(
-                  """Invalid input 'TRANSACTIONS': expected"""
-                )
-            }
+            failsParsing[Statements].withSyntaxErrorContaining("""Invalid input 'TRANSACTIONS': expected""")
           }
 
           test(s"$verb$immutableString TRANSACTIONS (*) ON DATABASES * $preposition role") {
             // can't have the complete error message, since grant and revoke have more accepted keywords than deny
-            val expected =
-              """Invalid input 'TRANSACTIONS': expected
-                |  "ACCESS"""".stripMargin
-            failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessageStart(expected)
-              case _ => _.withSyntaxErrorContaining(
-                  """Invalid input 'TRANSACTIONS': expected"""
-                )
-            }
+            failsParsing[Statements].withSyntaxErrorContaining("""Invalid input 'TRANSACTIONS': expected""")
           }
 
           test(s"$verb$immutableString TRANSACTIONS MANAGEMENT ON DATABASES * $preposition role") {
             // can't have the complete error message, since grant and revoke have more accepted keywords than deny
-            val expected =
-              """Invalid input 'TRANSACTIONS': expected
-                |  "ACCESS"""".stripMargin
-            failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessageStart(expected)
-              case _ => _.withSyntaxErrorContaining(
-                  """Invalid input 'TRANSACTIONS': expected"""
-                )
-            }
+            failsParsing[Statements].withSyntaxErrorContaining("""Invalid input 'TRANSACTIONS': expected""")
           }
 
           test(s"$verb$immutableString TRANSACTIONS MANAGEMENT (*) ON DATABASES * $preposition role") {
             // can't have the complete error message, since grant and revoke have more accepted keywords than deny
-            val expected =
-              """Invalid input 'TRANSACTIONS': expected
-                |  "ACCESS"""".stripMargin
-            failsParsing[Statements].in {
-              case Cypher5JavaCc => _.withMessageStart(expected)
-              case _ => _.withSyntaxErrorContaining(
-                  """Invalid input 'TRANSACTIONS': expected"""
-                )
-            }
+            failsParsing[Statements].withSyntaxErrorContaining("""Invalid input 'TRANSACTIONS': expected""")
           }
       }
   }

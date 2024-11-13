@@ -18,7 +18,6 @@ package org.neo4j.cypher.internal.ast.factory.query
 
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.Statements
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
@@ -655,14 +654,11 @@ class CreateMatchMergeParserTest extends AstParsingTestBase {
   }
 
   test("CREATE (n:$())") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input ')'")
-      case _ => _.withSyntaxError(
-          """Invalid input ')': expected an expression (line 1, column 13 (offset: 12))
-            |"CREATE (n:$())"
-            |             ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input ')': expected an expression (line 1, column 13 (offset: 12))
+        |"CREATE (n:$())"
+        |             ^""".stripMargin
+    )
   }
 
 }

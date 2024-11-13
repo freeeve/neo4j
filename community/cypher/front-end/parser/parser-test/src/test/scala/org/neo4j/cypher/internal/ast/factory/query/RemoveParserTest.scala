@@ -20,7 +20,6 @@ import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.RemoveDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.RemovePropertyItem
 import org.neo4j.cypher.internal.ast.Statements
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.util.symbols.CTAny
 
@@ -168,93 +167,69 @@ class RemoveParserTest extends AstParsingTestBase {
   }
 
   test("REMOVE listOfNodes[0][toUpper(\"prop\")]") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input '['")
-      case _ => _.withMessage(
-          """Invalid input '[': expected 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 22 (offset: 21))
-            |"REMOVE listOfNodes[0][toUpper("prop")]"
-            |                      ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input '[': expected 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 22 (offset: 21))
+        |"REMOVE listOfNodes[0][toUpper("prop")]"
+        |                      ^""".stripMargin
+    )
   }
 
   //  Invalid use of other label expression symbols than :
 
   test("REMOVE n:A|B") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input '|'")
-      case _ => _.withMessage(
-          """Invalid input '|': expected 'FOREACH', ',', ':', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
-            |"REMOVE n:A|B"
-            |           ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input '|': expected 'FOREACH', ',', ':', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
+        |"REMOVE n:A|B"
+        |           ^""".stripMargin
+    )
   }
 
   test("REMOVE n:!A") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input '!'")
-      case _ => _.withMessage(
-          """Invalid input '!': expected an identifier or '$' (line 1, column 10 (offset: 9))
-            |"REMOVE n:!A"
-            |          ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input '!': expected an identifier or '$' (line 1, column 10 (offset: 9))
+        |"REMOVE n:!A"
+        |          ^""".stripMargin
+    )
   }
 
   test("REMOVE n:%") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input '%'")
-      case _ => _.withMessage(
-          """Invalid input '%': expected an identifier or '$' (line 1, column 10 (offset: 9))
-            |"REMOVE n:%"
-            |          ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input '%': expected an identifier or '$' (line 1, column 10 (offset: 9))
+        |"REMOVE n:%"
+        |          ^""".stripMargin
+    )
   }
 
   test("REMOVE n:A&B") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input '&'")
-      case _ => _.withMessage(
-          """Invalid input '&': expected 'FOREACH', ',', ':', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
-            |"REMOVE n:A&B"
-            |           ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input '&': expected 'FOREACH', ',', ':', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
+        |"REMOVE n:A&B"
+        |           ^""".stripMargin
+    )
   }
 
   test("REMOVE n IS A&B") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input '&'")
-      case _ => _.withMessage(
-          """Invalid input '&': expected 'FOREACH', ',', ':', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 14 (offset: 13))
-            |"REMOVE n IS A&B"
-            |              ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input '&': expected 'FOREACH', ',', ':', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 14 (offset: 13))
+        |"REMOVE n IS A&B"
+        |              ^""".stripMargin
+    )
   }
 
   test("REMOVE :A") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input ':'")
-      case _ => _.withMessage(
-          """Invalid input ':': expected an expression (line 1, column 8 (offset: 7))
-            |"REMOVE :A"
-            |        ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input ':': expected an expression (line 1, column 8 (offset: 7))
+        |"REMOVE :A"
+        |        ^""".stripMargin
+    )
   }
 
   test("REMOVE IS A") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc => _.withMessageStart("Invalid input 'A': expected \"IS\"")
-      case _ => _.withMessage(
-          """Invalid input 'A': expected an expression, '.', ':', 'IS' or '[' (line 1, column 11 (offset: 10))
-            |"REMOVE IS A"
-            |           ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withMessage(
+      """Invalid input 'A': expected an expression, '.', ':', 'IS' or '[' (line 1, column 11 (offset: 10))
+        |"REMOVE IS A"
+        |           ^""".stripMargin
+    )
   }
 
   // Dynamic Labels

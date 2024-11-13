@@ -18,7 +18,6 @@ package org.neo4j.cypher.internal.ast.factory.ddl
 
 import org.neo4j.cypher.internal.ast.DropUser
 import org.neo4j.cypher.internal.ast.Statements
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5JavaCc
 
 class DropUserAdministrationCommandParserTest extends UserAdministrationCommandParserTestBase {
 
@@ -53,38 +52,26 @@ class DropUserAdministrationCommandParserTest extends UserAdministrationCommandP
   // fails parsing
 
   test("DROP USER ") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("Invalid input '': expected a parameter or an identifier (line 1, column 10 (offset: 9))")
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a parameter or an identifier (line 1, column 10 (offset: 9))
-            |"DROP USER"
-            |          ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected a parameter or an identifier (line 1, column 10 (offset: 9))
+        |"DROP USER"
+        |          ^""".stripMargin
+    )
   }
 
   test("DROP USER  IF EXISTS") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("Invalid input 'EXISTS': expected \"IF\" or <EOF> (line 1, column 15 (offset: 14))")
-      case _ => _.withSyntaxError(
-          """Invalid input 'EXISTS': expected 'IF EXISTS' or <EOF> (line 1, column 15 (offset: 14))
-            |"DROP USER  IF EXISTS"
-            |               ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'EXISTS': expected 'IF EXISTS' or <EOF> (line 1, column 15 (offset: 14))
+        |"DROP USER  IF EXISTS"
+        |               ^""".stripMargin
+    )
   }
 
   test("DROP USER foo IF NOT EXISTS") {
-    failsParsing[Statements].in {
-      case Cypher5JavaCc =>
-        _.withMessageStart("Invalid input 'NOT': expected \"EXISTS\" (line 1, column 18 (offset: 17))")
-      case _ => _.withSyntaxError(
-          """Invalid input 'NOT': expected 'EXISTS' (line 1, column 18 (offset: 17))
-            |"DROP USER foo IF NOT EXISTS"
-            |                  ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'NOT': expected 'EXISTS' (line 1, column 18 (offset: 17))
+        |"DROP USER foo IF NOT EXISTS"
+        |                  ^""".stripMargin
+    )
   }
 }

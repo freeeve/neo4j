@@ -31,7 +31,6 @@ import org.neo4j.cypher.internal.ast.SetIncludingPropertiesFromMapItem
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UnionAll
 import org.neo4j.cypher.internal.ast.UnionDistinct
-import org.neo4j.cypher.internal.ast.factory.neo4j.JavaCCParser
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.ExecutionModel
@@ -255,7 +254,6 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
     with UsingMatcher {
   self: CypherFunSuite =>
 
-  val parser = JavaCCParser
   val pushdownPropertyReads: Boolean = LogicalPlanningTestSupport2.pushdownPropertyReads
   val deduplicateNames: Boolean = LogicalPlanningTestSupport2.deduplicateNames
   var queryGraphSolver: QueryGraphSolver = QueryGraphSolverWithIDPConnectComponents.queryGraphSolver()

@@ -16,9 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
-import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
-import org.neo4j.cypher.internal.ast.factory.neo4j.JavaCCParser
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.PARSING
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
@@ -31,7 +29,7 @@ import org.neo4j.util.VisibleForTesting
 /**
  * Parse text into an AST object.
  */
-case class Parse(useAntlr: Boolean) extends Phase[BaseContext, BaseState, BaseState]
+case object Parse extends Phase[BaseContext, BaseState, BaseState]
     with StepSequencer.Step
     with ParsePipelineTransformerFactory {
 
@@ -44,16 +42,7 @@ case class Parse(useAntlr: Boolean) extends Phase[BaseContext, BaseState, BaseSt
     val query = in.queryText
     val exceptionFactory = context.cypherExceptionFactory
     val notificationLogger = context.notificationLogger
-    if (useAntlr) {
-      AstParserFactory(context.cypherVersion)(query, exceptionFactory, Some(notificationLogger)).singleStatement()
-    } else {
-      context.cypherVersion match {
-        case CypherVersion.Cypher5 =>
-          JavaCCParser.parse(query, exceptionFactory, notificationLogger)
-        case CypherVersion.Cypher25 =>
-          throw new IllegalArgumentException(s"internal.cypher.parser.antlr_enabled=false is not allowed in Cypher 25")
-      }
-    }
+    AstParserFactory(context.cypherVersion)(query, exceptionFactory, Some(notificationLogger)).singleStatement()
   }
 
   override val phase = PARSING
