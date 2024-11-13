@@ -98,9 +98,9 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
     }
 
     @Override
-    protected void initializeSystemGraphConstraints(Transaction tx) {
-        initializeSystemGraphConstraint(tx, DATABASE_NAME_LABEL, NAME_PROPERTY, NAMESPACE_PROPERTY);
-        initializeSystemGraphConstraint(tx, DATABASE_LABEL, DATABASE_NAME_PROPERTY);
+    protected void initializeSystemGraphConstraints(GraphDatabaseService system) throws Exception {
+        initializeSystemGraphConstraint(system, DATABASE_NAME_LABEL, NAME_PROPERTY, NAMESPACE_PROPERTY);
+        initializeSystemGraphConstraint(system, DATABASE_LABEL, DATABASE_NAME_PROPERTY);
     }
 
     @Override
@@ -127,7 +127,7 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
 
     @Override
     public void upgradeToCurrent(GraphDatabaseService system) throws Exception {
-        SystemGraphComponent.executeWithFullAccess(system, this::initializeSystemGraphConstraints);
+        this.initializeSystemGraphConstraints(system);
         SystemGraphComponent.executeWithFullAccess(system, DefaultSystemGraphComponent::dropOldConstraints);
     }
 

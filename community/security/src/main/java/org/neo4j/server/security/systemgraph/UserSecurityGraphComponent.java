@@ -28,6 +28,7 @@ import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecur
 import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_ID;
 import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_LABEL;
 
+import java.util.Optional;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.AbstractSystemGraphComponent;
 import org.neo4j.dbms.database.ComponentVersion;
@@ -115,10 +116,10 @@ public class UserSecurityGraphComponent extends AbstractSystemGraphComponent
     }
 
     @Override
-    public void initializeSystemGraphConstraints(Transaction tx) {
-        initializeSystemGraphConstraint(tx, USER_LABEL, "name");
-        initializeSystemGraphConstraint(tx, USER_LABEL, USER_ID);
-        initializeSystemGraphConstraint(tx, AUTH_CONSTRAINT, AUTH_LABEL, AUTH_PROVIDER, AUTH_ID);
+    public void initializeSystemGraphConstraints(GraphDatabaseService system) throws Exception {
+        initializeSystemGraphConstraint(system, USER_LABEL, "name");
+        initializeSystemGraphConstraint(system, USER_LABEL, USER_ID);
+        initializeSystemGraphConstraint(system, Optional.of(AUTH_CONSTRAINT), AUTH_LABEL, AUTH_PROVIDER, AUTH_ID);
     }
 
     private void initializeLatestSystemGraph(Transaction tx) throws Exception {
@@ -167,7 +168,7 @@ public class UserSecurityGraphComponent extends AbstractSystemGraphComponent
         if (currentVersion.version == UNKNOWN_VERSION) {
             debugLog.debug("The current version does not have a security graph, doing a full initialization");
             SystemGraphComponent.executeWithFullAccess(system, this::initializeLatestSystemGraph);
-            SystemGraphComponent.executeWithFullAccess(system, this::initializeSystemGraphConstraints);
+            this.initializeSystemGraphConstraints(system);
         } else if (currentVersion.migrationSupported()) {
             debugLog.info("Upgrading security graph to latest version");
             SystemGraphComponent.executeWithFullAccess(system, tx -> knownUserSecurityComponentVersions

@@ -20,9 +20,11 @@
 package org.neo4j.dbms.database;
 
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
+import static org.neo4j.dbms.database.SystemGraphComponent.executeWithFullAccess;
 
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -44,18 +46,11 @@ public abstract class AbstractSystemGraphComponent implements SystemGraphCompone
         this.config = config;
     }
 
-    protected void initializeSystemGraphConstraints(Transaction tx) {}
+    protected void initializeSystemGraphConstraints(GraphDatabaseService system) throws Exception {}
 
     protected void initializeSystemGraphModel(Transaction tx, GraphDatabaseService systemDb) throws Exception {}
 
     protected void verifySystemGraph(GraphDatabaseService system) throws Exception {}
-
-    private void initializeSystemGraphConstraints(GraphDatabaseService system) {
-        try (Transaction tx = system.beginTx()) {
-            initializeSystemGraphConstraints(tx);
-            tx.commit();
-        }
-    }
 
     protected void initializeSystemGraphModel(GraphDatabaseService system) throws Exception {
         try (Transaction tx = system.beginTx()) {
@@ -90,27 +85,36 @@ public abstract class AbstractSystemGraphComponent implements SystemGraphCompone
         }
     }
 
-    protected static void initializeSystemGraphConstraint(Transaction tx, Label label, String... properties) {
-        // Makes the creation of constraints for security idempotent
-        if (!hasUniqueConstraint(tx, label, properties)) {
-            checkForClashingIndexes(tx, label, properties);
-            ConstraintCreator cb = tx.schema().constraintFor(label);
-            for (String prop : properties) {
-                cb = cb.assertPropertyIsUnique(prop);
-            }
-            cb.create();
-        }
+    protected static void initializeSystemGraphConstraint(
+            GraphDatabaseService system, Label label, String... properties) throws Exception {
+        initializeSystemGraphConstraint(system, Optional.empty(), label, properties);
     }
 
     protected static void initializeSystemGraphConstraint(
-            Transaction tx, String name, Label label, String... properties) {
-        if (!hasUniqueConstraint(tx, label, properties)) {
-            checkForClashingIndexes(tx, label, properties);
-            ConstraintCreator cb = tx.schema().constraintFor(label);
-            for (String prop : properties) {
-                cb = cb.assertPropertyIsUnique(prop);
-            }
-            cb.withName(name).create();
+            GraphDatabaseService system,
+            @SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<String> name,
+            Label label,
+            String... properties)
+            throws Exception {
+
+        AtomicBoolean hasUniqueConstraint = new AtomicBoolean(false);
+        executeWithFullAccess(system, tx -> hasUniqueConstraint.set(hasUniqueConstraint(tx, label, properties)));
+
+        // Makes the creation of constraints for security idempotent
+        if (!hasUniqueConstraint.get()) {
+            executeWithFullAccess(system, tx -> checkForClashingIndexes(tx, label, properties));
+
+            executeWithFullAccess(system, tx -> {
+                ConstraintCreator cb = tx.schema().constraintFor(label);
+                for (String prop : properties) {
+                    cb = cb.assertPropertyIsUnique(prop);
+                }
+                if (name.isEmpty()) {
+                    cb.create();
+                } else {
+                    cb.withName(name.get()).create();
+                }
+            });
         }
     }
 
