@@ -121,7 +121,9 @@ class FabricFragmenter(
   }
 
   private def avoidDelisting(call: ast.ScopeClauseSubqueryCall): ast.Query = {
-    call.endoRewrite(addDependenciesToProjectionsInSubqueryExpressions.instance).innerQuery
+    call.endoRewrite(
+      addDependenciesToProjectionsInSubqueryExpressions.subqueryExpressionAndCallClauseRewriter
+    ).innerQuery
   }
 
   private def isDistinct(uq: ast.Union) =

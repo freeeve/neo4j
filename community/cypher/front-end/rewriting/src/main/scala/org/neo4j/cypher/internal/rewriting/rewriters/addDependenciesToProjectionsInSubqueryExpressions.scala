@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.UnionAll
 import org.neo4j.cypher.internal.ast.UnionDistinct
 import org.neo4j.cypher.internal.ast.With
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
@@ -65,15 +66,23 @@ import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 case object addDependenciesToProjectionsInSubqueryExpressions extends StepSequencer.Step
     with ASTRewriterFactory {
 
-  val instance: Rewriter = bottomUp(Rewriter.lift {
-    case s: ScopeClauseSubqueryCall =>
-      val newQuery = rewriteQuery(s.innerQuery, s.importedVariables.toSet, shouldSplitReturn = false)
-      s.copy(innerQuery = newQuery)(s.position)
+  private val subqueryExpressionMatcher: PartialFunction[AnyRef, AnyRef] = {
     case e: FullSubqueryExpression =>
       val scopeDependencies = e.scopeDependencies
       val newQuery = rewriteQuery(e.query, scopeDependencies, shouldSplitReturn = true)
       e.withQuery(newQuery)
-  })
+  }
+
+  private val scopeClauseSubqueryCallMatcher: PartialFunction[AnyRef, AnyRef] = {
+    case s: ScopeClauseSubqueryCall =>
+      val newQuery = rewriteQuery(s.innerQuery, s.importedVariables.toSet, shouldSplitReturn = false)
+      s.copy(innerQuery = newQuery)(s.position)
+  }
+
+  val subqueryExpressionRewrtier: Rewriter = bottomUp(Rewriter.lift(subqueryExpressionMatcher))
+
+  val subqueryExpressionAndCallClauseRewriter: Rewriter =
+    bottomUp(Rewriter.lift(subqueryExpressionMatcher orElse scopeClauseSubqueryCallMatcher))
 
   private def rewriteQuery(query: Query, scopeDependencies: Set[LogicalVariable], shouldSplitReturn: Boolean): Query =
     query match {
@@ -145,6 +154,12 @@ case object addDependenciesToProjectionsInSubqueryExpressions extends StepSequen
     cypherExceptionFactory: CypherExceptionFactory,
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
     cancellationChecker: CancellationChecker
-  ): Rewriter = instance
-
+  ): Rewriter = {
+    // For composite dbs, apply rewriter to both expressions and clauses.
+    if (semanticState.features.contains(SemanticFeature.UseAsMultipleGraphsSelector)) {
+      subqueryExpressionAndCallClauseRewriter
+    } else {
+      subqueryExpressionRewrtier
+    }
+  }
 }

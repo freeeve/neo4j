@@ -537,7 +537,7 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
     val rewriter =
       inSequence(
         computeDependenciesForExpressions(checkResult.state),
-        addDependenciesToProjectionsInSubqueryExpressions.instance
+        addDependenciesToProjectionsInSubqueryExpressions.subqueryExpressionAndCallClauseRewriter
       )
 
     val result = normalizedWithAndReturnClauses.rewrite(rewriter)
