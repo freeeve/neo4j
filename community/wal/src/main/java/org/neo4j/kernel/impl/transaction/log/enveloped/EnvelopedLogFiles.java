@@ -150,15 +150,18 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         long position;
         long version;
         int prevChecksum;
+        long currentTerm;
         try (var readChannel = openReadChannel(fromIndex)) {
             if (readChannel == null) {
                 throw new IllegalArgumentException(fromIndex + " has been pruned");
             }
+            currentTerm = readChannel.currentTerm();
             position = readChannel.position();
             prevChecksum = readChannel.logHeader().getPreviousLogFileChecksum();
             while (readChannel.entryIndex() < fromIndex) {
                 prevChecksum = readChannel.getChecksum();
                 position = readChannel.goToNextEnvelope();
+                currentTerm = readChannel.currentTerm();
             }
             version = readChannel.getLogVersion();
         }
@@ -170,7 +173,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
             currentWriteChannel = openWriteChannel(version, position);
             appendingChannel = envelopedWriteChannel(currentWriteChannel, -1, Integer.MAX_VALUE);
         }
-        appendingChannel.truncateToPosition(position, prevChecksum, fromIndex - 1);
+        appendingChannel.truncateToPosition(position, prevChecksum, fromIndex - 1, currentTerm);
         return appendingChannel;
     }
 

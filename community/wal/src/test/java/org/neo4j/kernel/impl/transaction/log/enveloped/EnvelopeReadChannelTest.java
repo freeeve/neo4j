@@ -70,6 +70,10 @@ import org.neo4j.test.utils.TestDirectory;
 @ExtendWith(RandomExtension.class)
 class EnvelopeReadChannelTest {
     private static final long START_INDEX = 0;
+    private static final byte CONTENT_TYPE = (byte) 1;
+    private static final long TERM = 1L;
+    private static final int TEST_DATA_SIZE = 32;
+    private static final int TEST_ENTRY_SIZE = TEST_DATA_SIZE + HEADER_SIZE;
     private final Checksum checksum = CHECKSUM_FACTORY.get();
 
     @Inject
@@ -491,7 +495,9 @@ class EnvelopeReadChannelTest {
                     BASE_TX_CHECKSUM,
                     LatestVersions.LATEST_KERNEL_VERSION.version(),
                     bytes,
-                    START_INDEX);
+                    START_INDEX,
+                    CONTENT_TYPE,
+                    TERM);
             writeLogEnvelopeHeader(
                     buffer, payloadChecksum, EnvelopeType.FULL, segmentSize, BASE_TX_CHECKSUM, START_INDEX);
             buffer.put(bytes);
@@ -675,7 +681,9 @@ class EnvelopeReadChannelTest {
                     invalid,
                     LatestVersions.LATEST_KERNEL_VERSION.version(),
                     bytes,
-                    START_INDEX);
+                    START_INDEX,
+                    CONTENT_TYPE,
+                    TERM);
         });
 
         final var logChannel = logChannel();
@@ -754,7 +762,7 @@ class EnvelopeReadChannelTest {
     @ValueSource(ints = {128, 256})
     void shouldSkipStartOffsetEnvelope(int segmentSize) throws Exception {
         // GIVEN
-        final var startOffsetLength = random.nextInt(1, 64);
+        final var startOffsetLength = random.nextInt(1, 59);
 
         final var longValue = random.nextLong();
         final var mainPayloadLength = Long.BYTES;
@@ -782,7 +790,7 @@ class EnvelopeReadChannelTest {
     @ValueSource(ints = {128, 256})
     void shouldSkipStartOffsetEnvelopeWhenOverridingChannelPosition(int segmentSize) throws Exception {
         // GIVEN
-        final var startOffsetLength = random.nextInt(1, 64);
+        final var startOffsetLength = random.nextInt(1, 59);
 
         final var longValue = random.nextLong();
         final var mainPayloadLength = Long.BYTES;
@@ -962,7 +970,7 @@ class EnvelopeReadChannelTest {
             assertThatThrownBy(channel::getLong)
                     .isInstanceOf(InvalidLogEnvelopeReadException.class)
                     .hasMessage(
-                            "Unable to read log envelope data: unexpected chunk type 'START_OFFSET' at position 26 of segment 1");
+                            "Unable to read log envelope data: unexpected chunk type 'START_OFFSET' at position 35 of segment 1");
         }
     }
 
@@ -988,7 +996,7 @@ class EnvelopeReadChannelTest {
     @ValueSource(ints = {128, 256})
     void setPositionAcrossOneSegment(int segmentSize) throws IOException {
         // GIVEN
-        final var payloadSize = (segmentSize / 8);
+        final var payloadSize = (segmentSize / 11);
         final var envelopeSize = payloadSize + HEADER_SIZE;
         final var bytes1 = bytes(random, payloadSize);
         final var bytes2 = bytes(random, payloadSize);
@@ -1059,8 +1067,7 @@ class EnvelopeReadChannelTest {
     @Test
     void nextEntry() throws IOException {
         int segmentSize = 256;
-        final var bytes = bytes(random, 40);
-        int entrySize = HEADER_SIZE + 40;
+        final var bytes = bytes(random, TEST_DATA_SIZE);
 
         writeSomeData(buffer -> {
             writeZeroSegment(buffer, segmentSize);
@@ -1069,7 +1076,7 @@ class EnvelopeReadChannelTest {
             checksum = writeHeaderAndPayload(buffer, EnvelopeType.END, checksum, bytes, START_INDEX + 1);
             checksum = writeHeaderAndPayload(buffer, EnvelopeType.BEGIN, checksum, bytes, START_INDEX + 2);
 
-            buffer.put(new byte[8]); // padding
+            buffer.put(new byte[4]); // padding
             assertThat(buffer.position()).isEqualTo(segmentSize * 2);
 
             checksum = writeHeaderAndPayload(buffer, EnvelopeType.MIDDLE, checksum, bytes, START_INDEX + 2);
@@ -1080,10 +1087,10 @@ class EnvelopeReadChannelTest {
 
         int[] positions = new int[] {
             segmentSize,
-            segmentSize + entrySize,
-            segmentSize + entrySize * 3,
-            segmentSize * 2 + entrySize * 2,
-            segmentSize * 2 + entrySize * 3,
+            segmentSize + TEST_ENTRY_SIZE,
+            segmentSize + TEST_ENTRY_SIZE * 3,
+            segmentSize * 2 + TEST_ENTRY_SIZE * 2,
+            segmentSize * 2 + TEST_ENTRY_SIZE * 3,
         };
 
         var logChannel = logChannel();
@@ -1119,8 +1126,7 @@ class EnvelopeReadChannelTest {
             names = {"FULL", "BEGIN"})
     void shouldAlignFromStartToNextNewEntry(EnvelopeType envelopeType) throws IOException {
         int segmentSize = 256;
-        final var bytes = bytes(random, 40);
-        int entrySize = HEADER_SIZE + 40;
+        final var bytes = bytes(random, TEST_DATA_SIZE);
 
         writeSomeData(buffer -> {
             writeZeroSegment(buffer, segmentSize);
@@ -1133,7 +1139,8 @@ class EnvelopeReadChannelTest {
 
         try (var channel = new EnvelopeReadChannel(
                 logChannel(), segmentSize, NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
-            assertThat(channel.alignWithStartEntry()).isEqualTo(segmentSize + entrySize * 3); // first full or begin
+            assertThat(channel.alignWithStartEntry())
+                    .isEqualTo(segmentSize + TEST_ENTRY_SIZE * 3); // first full or begin
         }
     }
 
@@ -1144,8 +1151,7 @@ class EnvelopeReadChannelTest {
             names = {"FULL", "BEGIN"})
     void shouldAlignFromMiddleToNextNewEntry(EnvelopeType envelopeType) throws IOException {
         int segmentSize = 256;
-        final var bytes = bytes(random, 40);
-        int entrySize = HEADER_SIZE + 40;
+        final var bytes = bytes(random, TEST_DATA_SIZE);
 
         writeSomeData(buffer -> {
             writeZeroSegment(buffer, segmentSize);
@@ -1158,38 +1164,43 @@ class EnvelopeReadChannelTest {
 
         try (var channel = new EnvelopeReadChannel(
                 logChannel(), segmentSize, NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
-            channel.position(segmentSize + entrySize);
-            assertThat(channel.alignWithStartEntry()).isEqualTo(segmentSize + entrySize * 3); // first full or begin
+            channel.position(segmentSize + TEST_ENTRY_SIZE);
+            // first full or begin
+            assertThat(channel.alignWithStartEntry()).isEqualTo(segmentSize + TEST_ENTRY_SIZE * 3);
         }
     }
 
     @Test
     void shouldAlignResettingPositionToStartOfAlignedEntry() throws IOException {
         int segmentSize = 256;
-        final var bytes = bytes(random, 40);
-        int entrySize = HEADER_SIZE + 40;
+        final var bytes = bytes(random, TEST_DATA_SIZE);
 
         writeSomeData(buffer -> {
             writeZeroSegment(buffer, segmentSize);
             int checksum = writeHeaderAndPayload(buffer, EnvelopeType.MIDDLE, BASE_TX_CHECKSUM, bytes, START_INDEX);
             checksum = writeHeaderAndPayload(buffer, EnvelopeType.MIDDLE, checksum, bytes, START_INDEX);
             checksum = writeHeaderAndPayload(buffer, EnvelopeType.END, checksum, bytes, START_INDEX);
-            checksum = writeHeaderAndPayload(buffer, EnvelopeType.BEGIN, checksum, bytes, START_INDEX + 1);
+            checksum = writeHeaderAndPayload(
+                    buffer,
+                    EnvelopeType.BEGIN,
+                    checksum,
+                    bytes,
+                    START_INDEX + 1); // Illegal begin but for test purposes
             writeHeaderAndPayload(buffer, EnvelopeType.FULL, checksum, bytes, START_INDEX + 2);
         });
 
         try (var channel = new EnvelopeReadChannel(
                 logChannel(), segmentSize, NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
-            channel.position(segmentSize + entrySize * 3 + 5); // partly read content
-            assertThat(channel.alignWithStartEntry()).isEqualTo(segmentSize + entrySize * 3); // first full or begin
+            channel.position(segmentSize + TEST_ENTRY_SIZE * 3 + 5); // partly read content
+            assertThat(channel.alignWithStartEntry())
+                    .isEqualTo(segmentSize + TEST_ENTRY_SIZE * 3); // first full or begin
         }
     }
 
     @Test
     void shouldAlignPositionAtTheEndIfNoNewEntries() throws IOException {
         int segmentSize = 256;
-        final var bytes = bytes(random, 40);
-        int entrySize = HEADER_SIZE + 40;
+        final var bytes = bytes(random, TEST_DATA_SIZE);
 
         writeSomeData(buffer -> {
             writeZeroSegment(buffer, segmentSize);
@@ -1200,8 +1211,8 @@ class EnvelopeReadChannelTest {
 
         try (var channel = new EnvelopeReadChannel(
                 logChannel(), segmentSize, NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
-            assertThat(channel.alignWithStartEntry()).isEqualTo(segmentSize + entrySize * 3); // end of last entry
-            assertThat(channel.position()).isEqualTo(segmentSize + entrySize * 3); // no new header to read
+            assertThat(channel.alignWithStartEntry()).isEqualTo(segmentSize + TEST_ENTRY_SIZE * 3); // end of last entry
+            assertThat(channel.position()).isEqualTo(segmentSize + TEST_ENTRY_SIZE * 3); // no new header to read
         }
     }
 
@@ -1241,7 +1252,9 @@ class EnvelopeReadChannelTest {
             int previousChecksum,
             byte kernelVersion,
             byte[] payload,
-            long entryIndex) {
+            long entryIndex,
+            byte contentType,
+            long term) {
         return buildChecksum(
                 checksum,
                 ByteBuffer.allocate(HEADER_SIZE - Integer.BYTES + payload.length)
@@ -1251,6 +1264,8 @@ class EnvelopeReadChannelTest {
                         .putLong(entryIndex)
                         .put(kernelVersion)
                         .putInt(previousChecksum)
+                        .putLong(term)
+                        .put(contentType)
                         .put(payload)
                         .flip());
     }
@@ -1269,7 +1284,9 @@ class EnvelopeReadChannelTest {
                 .putInt(payloadLength)
                 .putLong(entryIndex)
                 .put(kernelVersion)
-                .putInt(previousChecksum);
+                .putInt(previousChecksum)
+                .putLong(TERM)
+                .put(CONTENT_TYPE);
         builder.accept(buffer);
         return buildChecksum(checksum, buffer.flip());
     }
@@ -1288,13 +1305,22 @@ class EnvelopeReadChannelTest {
             int previousChecksum,
             long entryIndex) {
         final var version = type.isStarting() ? LatestVersions.LATEST_KERNEL_VERSION.version() : IGNORE_KERNEL_VERSION;
-        writeLogEnvelopeHeader(buffer, payloadChecksum, type, payloadLength, version, previousChecksum, entryIndex);
+        writeLogEnvelopeHeader(
+                buffer,
+                payloadChecksum,
+                type,
+                payloadLength,
+                version,
+                previousChecksum,
+                entryIndex,
+                CONTENT_TYPE,
+                TERM);
     }
 
     private int writeHeaderAndPayload(
             ByteBuffer buffer, EnvelopeType type, int previousChecksum, byte[] payload, long startIndex) {
         final var version = type.isStarting() ? LatestVersions.LATEST_KERNEL_VERSION.version() : IGNORE_KERNEL_VERSION;
-        return writeHeaderAndPayload(buffer, type, previousChecksum, version, payload, startIndex);
+        return writeHeaderAndPayload(buffer, type, previousChecksum, version, payload, startIndex, CONTENT_TYPE);
     }
 
     private int writeHeaderAndPayload(
@@ -1303,10 +1329,12 @@ class EnvelopeReadChannelTest {
             int previousChecksum,
             byte kernelVersion,
             byte[] payload,
-            long startIndex) {
-        final var payloadChecksum = buildChecksum(checksum, type, previousChecksum, kernelVersion, payload, startIndex);
+            long startIndex,
+            byte contentType) {
+        final var payloadChecksum =
+                buildChecksum(checksum, type, previousChecksum, kernelVersion, payload, startIndex, contentType, TERM);
         return writeHeaderAndPayload(
-                buffer, type, previousChecksum, payloadChecksum, kernelVersion, payload, startIndex);
+                buffer, type, previousChecksum, payloadChecksum, kernelVersion, payload, startIndex, contentType, TERM);
     }
 
     private int writeHeaderAndPayload(
@@ -1316,9 +1344,19 @@ class EnvelopeReadChannelTest {
             int payloadChecksum,
             byte kernelVersion,
             byte[] payload,
-            long entryIndex) {
+            long entryIndex,
+            byte contentType,
+            long term) {
         writeLogEnvelopeHeader(
-                buffer, payloadChecksum, type, payload.length, kernelVersion, previousChecksum, entryIndex);
+                buffer,
+                payloadChecksum,
+                type,
+                payload.length,
+                kernelVersion,
+                previousChecksum,
+                entryIndex,
+                contentType,
+                term);
         buffer.put(payload);
         return payloadChecksum;
     }
@@ -1330,13 +1368,17 @@ class EnvelopeReadChannelTest {
             int payloadLength,
             byte kernelVersion,
             int previousChecksum,
-            long entryIndex) {
+            long entryIndex,
+            byte contentType,
+            long term) {
         buffer.putInt(payloadChecksum)
                 .put(type.typeValue)
                 .putInt(payloadLength)
                 .putLong(entryIndex)
                 .put(kernelVersion)
-                .putInt(previousChecksum);
+                .putInt(previousChecksum)
+                .putLong(term)
+                .put(contentType);
     }
 
     private void writeStartOffsetEnvelope(ByteBuffer buffer, int length, boolean gibberish) {

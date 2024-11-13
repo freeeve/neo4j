@@ -26,6 +26,8 @@ import static org.neo4j.io.fs.ChecksumWriter.CHECKSUM_FACTORY;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEADER_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.IGNORE_KERNEL_VERSION;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.MAX_ZERO_PADDING_SIZE;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_CONTENT_TYPE;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_TERM;
 import static org.neo4j.util.Preconditions.checkState;
 import static org.neo4j.util.Preconditions.requireNonNegative;
 import static org.neo4j.util.Preconditions.requirePowerOfTwo;
@@ -108,6 +110,8 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     protected long currentSegment;
     protected EnvelopeType payloadType;
     protected long currentIndex;
+    protected long currentTerm = UNSPECIFIED_TERM;
+    protected byte currentContentType = UNSPECIFIED_CONTENT_TYPE;
     protected byte payloadVersion;
     protected int payloadStartOffset;
     protected int payloadEndOffset;
@@ -190,6 +194,10 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
 
     public long entryIndex() {
         return currentIndex;
+    }
+
+    public long currentTerm() {
+        return currentTerm;
     }
 
     @Override
@@ -656,10 +664,14 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         long nextPayloadIndex = buffer.getLong();
         byte nextPayloadVersion = buffer.get();
         int previousEnvelopeChecksumFromHeader = buffer.getInt();
+        long nextTerm = buffer.getLong();
+        byte nextContentType = buffer.get();
 
         payloadType = nextEnvelopeType;
         payloadVersion = nextPayloadVersion;
         currentIndex = nextPayloadIndex;
+        currentTerm = nextTerm;
+        currentContentType = nextContentType;
         payloadStartOffset = buffer.position();
         payloadEndOffset = payloadStartOffset + nextPayloadLength;
         if (payloadEndOffset > segmentBlockSize) {

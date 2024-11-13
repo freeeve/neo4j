@@ -24,6 +24,8 @@ import static java.util.Objects.requireNonNull;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEADER_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.IGNORE_KERNEL_VERSION;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.MAX_ZERO_PADDING_SIZE;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_CONTENT_TYPE;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_TERM;
 import static org.neo4j.storageengine.api.LogVersionRepository.UNKNOWN_LOG_OFFSET;
 import static org.neo4j.util.Preconditions.checkArgument;
 import static org.neo4j.util.Preconditions.checkState;
@@ -112,8 +114,10 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
     private StoreChannel channel;
     private int currentEnvelopeStart;
     private byte currentVersion = IGNORE_KERNEL_VERSION;
+    private byte currentContentType = UNSPECIFIED_CONTENT_TYPE;
     // The index of the current entry. See LogEnvelopeHeader.index.
     private long currentIndex;
+    private long currentTerm = UNSPECIFIED_TERM;
 
     private int lastWrittenPosition;
     private boolean begin = true;
@@ -167,6 +171,7 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
         checkState(currentPayloadLength() > 0, "Closing empty envelope is not allowed.");
         completeEnvelope(true);
         prepareNextEnvelope();
+        currentContentType = UNSPECIFIED_CONTENT_TYPE; // expected to be set for every new entry.
     }
 
     public void prepareNextEnvelope() throws IOException {
@@ -407,6 +412,23 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
         return this;
     }
 
+    public void putTerm(long term) {
+        checkState(
+                currentTerm <= term,
+                "Failed to write entry to replication log, the entry's term was less than the "
+                        + "last appended term, terms must be monotonically increasing. [lastTermAppended=%d, entryTerm=%d]",
+                currentTerm,
+                term);
+        this.currentTerm = term;
+    }
+
+    @Override
+    public EnvelopeWriteChannel putContentType(byte contentType) {
+        assert contentType >= 0;
+        this.currentContentType = contentType;
+        return this;
+    }
+
     @Override
     public EnvelopeWriteChannel putVersion(byte version) {
         currentVersion = version;
@@ -424,12 +446,14 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
         return !closed;
     }
 
-    public void truncateToPosition(long position, int previousChecksum, long previousIndex) throws IOException {
+    public void truncateToPosition(long position, int previousChecksum, long previousIndex, long termTruncatedTo)
+            throws IOException {
         requireNonNegative(position);
         checkArgument(position <= channel.position(), "Can only truncate written data.");
         checkArgument(position >= segmentBlockSize, "Truncating the first segment is not possible");
         this.previousChecksum = previousChecksum;
         this.currentIndex = previousIndex;
+        this.currentTerm = termTruncatedTo;
         channel.truncate(position);
         rotateLogFile();
     }
@@ -495,27 +519,49 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
         // Fill in the header
         final int checksumStartOffset = currentEnvelopeStart + Integer.BYTES;
         buffer.position(checksumStartOffset);
-        assert currentVersion != IGNORE_KERNEL_VERSION || type == EnvelopeType.START_OFFSET;
-        buffer.put(type.typeValue)
-                .putInt(payloadLength)
-                // START_OFFSET envelopes do not have an index, as they are skipped automatically when reading
-                .putLong(type != EnvelopeType.START_OFFSET ? currentIndex : 0)
-                .put(type != EnvelopeType.START_OFFSET ? currentVersion : IGNORE_KERNEL_VERSION)
-                // START_OFFSET envelopes do not participate in the checksum chain
-                .putInt(type != EnvelopeType.START_OFFSET ? previousChecksum : 0);
 
-        // Calculate the checksum and insert
-        checksum.reset();
-        checksum.update(checksumView.clear().limit(payloadEndOffset).position(checksumStartOffset));
-        final int thisEnvelopeChecksum = (int) checksum.getValue();
-        buffer.putInt(currentEnvelopeStart, thisEnvelopeChecksum);
-        if (type != EnvelopeType.START_OFFSET) {
+        if (type == EnvelopeType.START_OFFSET) {
+            buffer.put(type.typeValue)
+                    .putInt(payloadLength)
+                    // START_OFFSET envelopes do not have an index, as they are skipped automatically when reading
+                    .putLong(0)
+                    .put(IGNORE_KERNEL_VERSION)
+                    // START_OFFSET do not participate in checksum chain.
+                    .putInt(0)
+                    .putLong(UNSPECIFIED_TERM)
+                    .put(UNSPECIFIED_CONTENT_TYPE);
+
+            // Calculate the checksum and insert
+            final int thisEnvelopeChecksum = calculateChecksum(payloadEndOffset, checksumStartOffset);
+            buffer.putInt(currentEnvelopeStart, thisEnvelopeChecksum);
+            // START_OFFSET do not set previousChecksum as they do not participate in checksum chain
+        } else {
+            assert currentVersion != IGNORE_KERNEL_VERSION;
+            assert currentContentType != UNSPECIFIED_CONTENT_TYPE;
+            buffer.put(type.typeValue)
+                    .putInt(payloadLength)
+                    .putLong(currentIndex)
+                    .put(currentVersion)
+                    .putInt(previousChecksum)
+                    .putLong(currentTerm)
+                    .put(currentContentType);
+
+            // Calculate the checksum and insert
+            final int thisEnvelopeChecksum = calculateChecksum(payloadEndOffset, checksumStartOffset);
+            buffer.putInt(currentEnvelopeStart, thisEnvelopeChecksum);
+            // Non START_OFFSET envelopes set previous checksum
             previousChecksum = thisEnvelopeChecksum;
         }
 
         // Now we're ready to position the buffer to start writing the next envelope.
         buffer.position(payloadEndOffset);
         currentEnvelopeStart = payloadEndOffset;
+    }
+
+    private int calculateChecksum(int payloadEndOffset, int checksumStartOffset) {
+        checksum.reset();
+        checksum.update(checksumView.clear().limit(payloadEndOffset).position(checksumStartOffset));
+        return (int) checksum.getValue();
     }
 
     private EnvelopeWriteChannel updateBytesWritten(int count) {

@@ -59,11 +59,16 @@ public record LogEnvelopeHeader(
             + Integer.BYTES // payload length
             + Long.BYTES // entry index
             + Byte.BYTES // kernel version
-            + Integer.BYTES; // previous checksum
+            + Integer.BYTES // previous checksum
+            + Long.BYTES // term
+            + Byte.BYTES; // content type
 
     public static final int MAX_ZERO_PADDING_SIZE = Long.BYTES + LogEnvelopeHeader.HEADER_SIZE;
 
     public static final byte IGNORE_KERNEL_VERSION = -1;
+    public static final byte UNSPECIFIED_CONTENT_TYPE = -1;
+    public static final byte UNSPECIFIED_TERM = -1;
+    public static final byte KERNEL_CONTENT_TYPE = 64;
 
     /**
      * Describes the type of envelope data written within the log file

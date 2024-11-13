@@ -101,6 +101,11 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
     }
 
     @Override
+    public FlushableChannel putContentType(byte type) {
+        return checksumChannel.putContentType(type);
+    }
+
+    @Override
     public void resetAppendedBytesCounter() {
         checksumChannel.resetAppendedBytesCounter();
     }

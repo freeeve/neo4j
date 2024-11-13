@@ -31,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -60,6 +61,7 @@ class EnvelopedLogFilesTest {
     private static void writeData(EnvelopeWriteChannel writeChannel, byte[] data) throws IOException {
         writeChannel.beginChecksumForWriting();
         writeChannel.putVersion(KernelVersion.GLORIOUS_FUTURE.version());
+        writeChannel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
         writeChannel.put(data, data.length);
         writeChannel.endCurrentEntry();
     }
