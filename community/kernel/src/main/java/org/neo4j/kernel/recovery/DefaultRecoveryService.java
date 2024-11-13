@@ -28,11 +28,10 @@ import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_I
 import java.io.IOException;
 import java.nio.file.Path;
 import org.neo4j.io.fs.FileUtils;
-import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.context.TransactionIdSnapshot;
 import org.neo4j.kernel.KernelVersionProvider;
-import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
+import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation.BatchInformation;
 import org.neo4j.kernel.impl.transaction.log.CommandBatchCursor;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
@@ -110,45 +109,43 @@ public class DefaultRecoveryService implements RecoveryService {
     }
 
     @Override
+    public void missingLogs() {
+        // in case if logs are missing we need to reset position of last committed transaction since
+        // this information influencing checkpoint that will be created and if we will not gonna do that
+        // it will still reference old offset from logs that are gone and as result log position in checkpoint
+        // record will be incorrect
+        // and that can cause partial next recovery.
+        var lastClosedTransaction = transactionIdStore.getLastClosedTransaction();
+        var lastClosedTransactionId = lastClosedTransaction.transactionId();
+        long logVersion = lastClosedTransaction.logPosition().getLogVersion();
+        log.warn(
+                "Recovery detected that transaction logs were missing. "
+                        + "Resetting offset of last closed transaction to point to the head of %d transaction log file.",
+                logVersion);
+        transactionIdStore.resetLastClosedTransaction(
+                lastClosedTransactionId.id(),
+                lastClosedTransaction.transactionId().appendIndex(),
+                versionProvider.kernelVersion(),
+                logVersion,
+                fromKernelVersion(versionProvider.kernelVersion()).getHeaderSize(),
+                lastClosedTransactionId.checksum(),
+                lastClosedTransactionId.commitTimestamp(),
+                lastClosedTransactionId.consensusIndex());
+        logVersionRepository.setCurrentLogVersion(logVersion);
+
+        // cleanup checkpoint log files
+        logVersionRepository.setCheckpointLogVersion(
+                Math.max(INITIAL_LOG_VERSION, logFiles.getCheckpointFile().getHighestLogVersion()));
+        tryRemoveLegacyCheckpointFiles();
+    }
+
+    @Override
     public void transactionsRecovered(
-            CommittedCommandBatchRepresentation.BatchInformation highestTransactionRecoveredBatch,
+            BatchInformation highestTransactionRecoveredBatch,
             AppendIndexProvider recoverAppendIndexProvider,
             LogPosition lastRecoveredTransactionPosition,
             LogPosition positionAfterLastRecoveredTransaction,
-            LogPosition checkpointPosition,
-            boolean missingLogs,
-            CursorContext cursorContext) {
-        if (missingLogs) {
-            // in case if logs are missing we need to reset position of last committed transaction since
-            // this information influencing checkpoint that will be created and if we will not gonna do that
-            // it will still reference old offset from logs that are gone and as result log position in checkpoint
-            // record will be incorrect
-            // and that can cause partial next recovery.
-            var lastClosedTransaction = transactionIdStore.getLastClosedTransaction();
-            var lastClosedTransactionId = lastClosedTransaction.transactionId();
-            long logVersion = lastClosedTransaction.logPosition().getLogVersion();
-            log.warn(
-                    "Recovery detected that transaction logs were missing. "
-                            + "Resetting offset of last closed transaction to point to the head of %d transaction log file.",
-                    logVersion);
-            transactionIdStore.resetLastClosedTransaction(
-                    lastClosedTransactionId.id(),
-                    lastClosedTransaction.transactionId().appendIndex(),
-                    versionProvider.kernelVersion(),
-                    logVersion,
-                    fromKernelVersion(versionProvider.kernelVersion()).getHeaderSize(),
-                    lastClosedTransactionId.checksum(),
-                    lastClosedTransactionId.commitTimestamp(),
-                    lastClosedTransactionId.consensusIndex());
-            logVersionRepository.setCurrentLogVersion(logVersion);
-
-            // cleanup checkpoint log files
-            logVersionRepository.setCheckpointLogVersion(
-                    Math.max(INITIAL_LOG_VERSION, logFiles.getCheckpointFile().getHighestLogVersion()));
-            tryRemoveLegacyCheckpointFiles();
-
-            return;
-        }
+            LogPosition checkpointPosition) {
         if (highestTransactionRecoveredBatch != null) {
             transactionIdStore.setLastCommittedAndClosedTransactionId(
                     highestTransactionRecoveredBatch.txId(),

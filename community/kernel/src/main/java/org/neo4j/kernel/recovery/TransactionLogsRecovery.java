@@ -63,7 +63,6 @@ import org.neo4j.time.Stopwatch;
 public class TransactionLogsRecovery extends LifecycleAdapter {
     private static final String REVERSE_RECOVERY_TAG = "restoreDatabase";
     private static final String RECOVERY_TAG = "recoverDatabase";
-    private static final String RECOVERY_COMPLETED_TAG = "databaseRecoveryCompleted";
 
     private final LogFiles logFiles;
     private final KernelVersionProvider versionProvider;
@@ -125,174 +124,197 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
             return;
         }
 
-        Stopwatch recoveryStartTime = Stopwatch.start();
-
-        TransactionIdTracker transactionIdTracker = new TransactionIdTracker();
-        LogPosition recoveryStartPosition = recoveryStartInformation.transactionLogPosition();
-
+        var recoveryStartTime = Stopwatch.start();
         monitor.recoveryRequired(recoveryStartInformation);
+        if (recoveryStartInformation.missingLogs()) {
+            recoveryService.missingLogs();
+        } else {
+            performRecovery(recoveryStartInformation);
+        }
+        monitor.transactionLogRecoveryCompleted(recoveryStartTime.elapsed(MILLISECONDS), mode);
+    }
 
-        var recoveryContextTracker =
-                new RecoveryContextTracker(recoveryStartPosition, recoveryStartInformation.checkpointInfo());
-
-        RecoveryRollbackAppendIndexProvider appendIndexProvider = null;
-        boolean incompleteBatchEncountered = false;
+    private void performRecovery(RecoveryStartInformation recoveryStartInformation)
+            throws DatabaseStartAbortedException, RecoveryPredicateException, IOException {
         try {
-            if (!recoveryStartInformation.missingLogs()) {
-                try {
-                    reverseRecovery(recoveryStartInformation, transactionIdTracker);
+            var recoveryStartPosition = recoveryStartInformation.transactionLogPosition();
+            var recoveryContextTracker =
+                    new RecoveryContextTracker(recoveryStartPosition, recoveryStartInformation.checkpointInfo());
+            var transactionIdTracker = new TransactionIdTracker();
+            reverseAndForwardRecovery(
+                    recoveryStartInformation, transactionIdTracker, recoveryStartPosition, recoveryContextTracker);
 
-                    // We cannot initialise the schema (tokens, schema cache, indexing service, etc.) until we have
-                    // returned
-                    // the store to a consistent state.
-                    // We need to be able to read the store before we can even figure out what indexes, tokens, etc. we
-                    // have. Hence, we defer the initialisation
-                    // of the schema life until after we've done the reverse recovery.
-                    schemaLife.init();
-
-                    boolean fullRecovery = true;
-                    try (CommandBatchCursor transactionsToRecover =
-                                    recoveryService.getCommandBatches(recoveryStartPosition);
-                            var recoveryVisitor =
-                                    recoveryService.getRecoveryApplier(RECOVERY, contextFactory, RECOVERY_TAG)) {
-                        while (fullRecovery && transactionsToRecover.next()) {
-                            var nextCommandBatch = transactionsToRecover.get();
-                            if (!recoveryPredicate.test(nextCommandBatch)) {
-                                monitor.partialRecovery(
-                                        recoveryPredicate, recoveryContextTracker.getLastHighestTransactionBatchInfo());
-                                fullRecovery = false;
-                                if (!recoveryContextTracker.hasRecoveredBatches()) {
-                                    // First transaction after checkpoint failed predicate test
-                                    // we can't always load transaction before checkpoint to check what values we had
-                                    // there
-                                    // since those logs may be pruned,
-                                    // but we will try to load first transaction before checkpoint to see if we just on
-                                    // the
-                                    // edge of provided criteria
-                                    // and will fail otherwise.
-                                    long beforeCheckpointAppendIndex =
-                                            recoveryStartInformation.firstAppendIndexAfterLastCheckPoint() - 1;
-                                    if (beforeCheckpointAppendIndex < BASE_APPEND_INDEX) {
-                                        throw new RecoveryPredicateException(format(
-                                                "Partial recovery criteria can't be satisfied. No transaction after checkpoint matching to provided "
-                                                        + "criteria found and transaction before checkpoint is not valid. "
-                                                        + "Append index before checkpoint: %d, criteria %s.",
-                                                beforeCheckpointAppendIndex, recoveryPredicate.describe()));
-                                    }
-                                    try (var beforeCheckpointCursor =
-                                            recoveryService.getCommandBatches(beforeCheckpointAppendIndex)) {
-                                        if (beforeCheckpointCursor.next()) {
-                                            CommittedCommandBatchRepresentation candidate =
-                                                    beforeCheckpointCursor.get();
-                                            if (!recoveryPredicate.test(candidate)) {
-                                                throw new RecoveryPredicateException(format(
-                                                        "Partial recovery criteria can't be satisfied. "
-                                                                + "Transaction after and before checkpoint does not satisfy provided recovery criteria. "
-                                                                + "Observed transaction id: %d, recovery criteria: %s.",
-                                                        candidate.txId(), recoveryPredicate.describe()));
-                                            }
-                                            recoveryContextTracker.commitedBatch(
-                                                    candidate, beforeCheckpointCursor.position());
-                                        } else {
-                                            throw new RecoveryPredicateException(format(
-                                                    "Partial recovery criteria can't be satisfied. No transaction after checkpoint matching "
-                                                            + "to provided criteria found and transaction before checkpoint not found. Recovery criteria: %s.",
-                                                    recoveryPredicate.describe()));
-                                        }
-                                    } catch (RecoveryPredicateException re) {
-                                        throw re;
-                                    } catch (Exception e) {
-                                        throw new RecoveryPredicateException(
-                                                format(
-                                                        "Partial recovery criteria can't be satisfied. No transaction after checkpoint matching "
-                                                                + "to provided criteria found and fail to read transaction before checkpoint. Recovery criteria: %s.",
-                                                        recoveryPredicate.describe()),
-                                                e);
-                                    }
-                                }
-                            } else {
-                                recoveryStartupChecker.checkIfCanceled();
-                                switch (transactionIdTracker.transactionStatus(nextCommandBatch.txId())) {
-                                    case RECOVERABLE -> {
-                                        recoveryVisitor.visit(nextCommandBatch);
-                                        monitor.batchRecovered(nextCommandBatch);
-                                    }
-                                    case ROLLED_BACK -> monitor.batchApplySkipped(nextCommandBatch);
-                                    case INCOMPLETE -> {
-                                        monitor.batchApplySkipped(nextCommandBatch);
-                                        if (!rollbackIncompleteTransactions) {
-                                            fullRecovery = false;
-                                            incompleteBatchEncountered = true;
-                                        }
-                                    }
-                                }
-                                if (!incompleteBatchEncountered) {
-                                    recoveryContextTracker.commitedBatch(
-                                            nextCommandBatch, transactionsToRecover.position());
-                                }
-                                reportProgress();
-                            }
-                        }
-                        recoveryContextTracker.completeRecovery(
-                                fullRecovery
-                                        ? transactionsToRecover.position()
-                                        : recoveryContextTracker.getLastTransactionPosition());
-                    }
-                } catch (Error
-                        | ClosedByInterruptException
-                        | DatabaseStartAbortedException
-                        | RecoveryPredicateException e) {
-                    // We do not want to truncate logs based on these exceptions. Since users can influence them with
-                    // config
-                    // changes
-                    // the users are able to workaround this if truncations is really needed.
-                    throw e;
-                } catch (Throwable t) {
-                    if (failOnCorruptedLogFiles) {
-                        throwUnableToCleanRecover(t);
-                    }
-                    if (recoveryContextTracker.hasRecoveredBatches()) {
-                        monitor.failToRecoverTransactionsAfterCommit(
-                                t,
-                                recoveryContextTracker.getLastHighestTransactionBatchInfo(),
-                                recoveryContextTracker.getRecoveryToPosition());
-                    } else {
-                        monitor.failToRecoverTransactionsAfterPosition(t, recoveryStartPosition);
-                    }
-                }
-
-                appendIndexProvider =
-                        new RecoveryRollbackAppendIndexProvider(recoveryContextTracker.getLastBatchInfo());
-                if (rollbackIncompleteTransactions) {
-                    logsTruncator.truncate(
-                            recoveryContextTracker.getRecoveryToPosition(), recoveryStartInformation.checkpointInfo());
-                    var rollbackTransactionInfo = rollbackTransactions(
-                            recoveryContextTracker.getRecoveryToPosition(),
-                            transactionIdTracker,
-                            appendIndexProvider,
-                            monitor);
-                    if (rollbackTransactionInfo != null) {
-                        recoveryContextTracker.rollbackBatch(
-                                rollbackTransactionInfo, rollbackTransactionInfo.position());
-                    }
+            var appendIndexProvider =
+                    new RecoveryRollbackAppendIndexProvider(recoveryContextTracker.getLastBatchInfo());
+            if (rollbackIncompleteTransactions) {
+                logsTruncator.truncate(
+                        recoveryContextTracker.getRecoveryToPosition(), recoveryStartInformation.checkpointInfo());
+                var rollbackTransactionInfo = rollbackTransactions(
+                        recoveryContextTracker.getRecoveryToPosition(),
+                        transactionIdTracker,
+                        appendIndexProvider,
+                        monitor);
+                if (rollbackTransactionInfo != null) {
+                    recoveryContextTracker.rollbackBatch(rollbackTransactionInfo, rollbackTransactionInfo.position());
                 }
             }
-        } finally {
-            closeProgress();
-        }
-
-        try (var cursorContext = contextFactory.create(RECOVERY_COMPLETED_TAG)) {
-            final boolean missingLogs = recoveryStartInformation.missingLogs();
             recoveryService.transactionsRecovered(
                     recoveryContextTracker.getLastHighestTransactionBatchInfo(),
                     appendIndexProvider,
                     recoveryContextTracker.getLastTransactionPosition(),
                     recoveryContextTracker.getRecoveryToPosition(),
-                    recoveryStartInformation.getCheckpointPosition(),
-                    missingLogs,
-                    cursorContext);
+                    recoveryStartInformation.getCheckpointPosition());
+        } finally {
+            closeProgress();
         }
-        monitor.transactionLogRecoveryCompleted(recoveryStartTime.elapsed(MILLISECONDS), mode);
+    }
+
+    private void reverseAndForwardRecovery(
+            RecoveryStartInformation recoveryStartInformation,
+            TransactionIdTracker transactionIdTracker,
+            LogPosition recoveryStartPosition,
+            RecoveryContextTracker recoveryContextTracker)
+            throws ClosedByInterruptException, DatabaseStartAbortedException, RecoveryPredicateException {
+        try {
+            reverseRecovery(recoveryStartInformation, transactionIdTracker);
+
+            // We cannot initialise the schema (tokens, schema cache, indexing service, etc.) until we have returned
+            // the store to a consistent state.
+            // We need to be able to read the store before we can even figure out what indexes, tokens, etc. we
+            // have. Hence, we defer the initialisation of the schema life until after we've done the reverse recovery.
+            schemaLife.init();
+
+            forwardRecovery(
+                    recoveryStartInformation, transactionIdTracker, recoveryStartPosition, recoveryContextTracker);
+        } catch (Error | ClosedByInterruptException | DatabaseStartAbortedException | RecoveryPredicateException e) {
+            // We do not want to truncate logs based on these exceptions. Since users can influence them with
+            // config changes. The users are able to workaround this if truncations is really needed.
+            throw e;
+        } catch (Throwable t) {
+            handleUnexpectedRecoveryError(recoveryStartPosition, recoveryContextTracker, t);
+        }
+    }
+
+    private void handleUnexpectedRecoveryError(
+            LogPosition recoveryStartPosition, RecoveryContextTracker recoveryContextTracker, Throwable t) {
+        if (failOnCorruptedLogFiles) {
+            throwUnableToCleanRecover(t);
+        }
+        if (recoveryContextTracker.hasRecoveredBatches()) {
+            monitor.failToRecoverTransactionsAfterCommit(
+                    t,
+                    recoveryContextTracker.getLastHighestTransactionBatchInfo(),
+                    recoveryContextTracker.getRecoveryToPosition());
+        } else {
+            monitor.failToRecoverTransactionsAfterPosition(t, recoveryStartPosition);
+        }
+    }
+
+    private void forwardRecovery(
+            RecoveryStartInformation recoveryStartInformation,
+            TransactionIdTracker transactionIdTracker,
+            LogPosition recoveryStartPosition,
+            RecoveryContextTracker recoveryContextTracker)
+            throws Exception {
+        try (var transactionsToRecover = recoveryService.getCommandBatches(recoveryStartPosition);
+                var recoveryVisitor = recoveryService.getRecoveryApplier(RECOVERY, contextFactory, RECOVERY_TAG)) {
+            while (transactionsToRecover.next()) {
+                var nextCommandBatch = transactionsToRecover.get();
+                if (!recoveryPredicate.test(nextCommandBatch)) {
+                    completeAsPartialRecovery(recoveryStartInformation, recoveryContextTracker);
+                    return;
+                }
+                recoveryStartupChecker.checkIfCanceled();
+                if (processCommandBatch(transactionIdTracker, nextCommandBatch, recoveryVisitor)) {
+                    recoveryContextTracker.completeRecovery(recoveryContextTracker.getLastTransactionPosition());
+                    return;
+                }
+                recoveryContextTracker.commitedBatch(nextCommandBatch, transactionsToRecover.position());
+                reportProgress();
+            }
+            recoveryContextTracker.completeRecovery(transactionsToRecover.position());
+        }
+    }
+
+    /*
+     * returns true if encountered incomplete transaction *and* requires recovery to stop
+     */
+    private boolean processCommandBatch(
+            TransactionIdTracker idTracker, CommittedCommandBatchRepresentation commandBatch, RecoveryApplier visitor)
+            throws Exception {
+        switch (idTracker.transactionStatus(commandBatch.txId())) {
+            case RECOVERABLE -> {
+                visitor.visit(commandBatch);
+                monitor.batchRecovered(commandBatch);
+            }
+            case ROLLED_BACK -> monitor.batchApplySkipped(commandBatch);
+            case INCOMPLETE -> {
+                monitor.batchApplySkipped(commandBatch);
+                return !rollbackIncompleteTransactions;
+            }
+        }
+        return false;
+    }
+
+    private void completeAsPartialRecovery(
+            RecoveryStartInformation recoveryStartInformation, RecoveryContextTracker recoveryContextTracker)
+            throws RecoveryPredicateException {
+        monitor.partialRecovery(recoveryPredicate, recoveryContextTracker.getLastHighestTransactionBatchInfo());
+        verifyPartialRecovery(recoveryStartInformation, recoveryContextTracker);
+        recoveryContextTracker.completeRecovery(recoveryContextTracker.getLastTransactionPosition());
+    }
+
+    private void verifyPartialRecovery(
+            RecoveryStartInformation recoveryStartInformation, RecoveryContextTracker recoveryContextTracker)
+            throws RecoveryPredicateException {
+        if (recoveryContextTracker.hasRecoveredBatches()) {
+            // at least one transaction is already recovered, so it exists and satisfies recovery predicate
+            return;
+        }
+        // First transaction after checkpoint failed predicate test
+        // we can't always load transaction before checkpoint to check what values we had
+        // there since those logs may be pruned,
+        // but we will try to load first transaction before checkpoint to see if we just on the
+        // edge of provided criteria and will fail otherwise.
+        long beforeCheckpointAppendIndex = recoveryStartInformation.firstAppendIndexAfterLastCheckPoint() - 1;
+        if (beforeCheckpointAppendIndex < BASE_APPEND_INDEX) {
+            throw new RecoveryPredicateException(format(
+                    "Partial recovery criteria can't be satisfied. No transaction after checkpoint matching to provided "
+                            + "criteria found and transaction before checkpoint is not valid. "
+                            + "Append index before checkpoint: %d, criteria %s.",
+                    beforeCheckpointAppendIndex, recoveryPredicate.describe()));
+        }
+        verifyCommandBatchSatisfiesPartialRecoveryPredicate(recoveryContextTracker, beforeCheckpointAppendIndex);
+    }
+
+    private void verifyCommandBatchSatisfiesPartialRecoveryPredicate(
+            RecoveryContextTracker recoveryContextTracker, long appendIndex) throws RecoveryPredicateException {
+        try (var commandBatches = recoveryService.getCommandBatches(appendIndex)) {
+            if (!commandBatches.next()) {
+                throw new RecoveryPredicateException(format(
+                        "Partial recovery criteria can't be satisfied. No transaction after checkpoint matching "
+                                + "to provided criteria found and transaction before checkpoint not found. Recovery criteria: %s.",
+                        recoveryPredicate.describe()));
+            }
+            var candidate = commandBatches.get();
+            if (!recoveryPredicate.test(candidate)) {
+                throw new RecoveryPredicateException(format(
+                        "Partial recovery criteria can't be satisfied. "
+                                + "Transaction after and before checkpoint does not satisfy provided recovery criteria. "
+                                + "Observed transaction id: %d, recovery criteria: %s.",
+                        candidate.txId(), recoveryPredicate.describe()));
+            }
+            recoveryContextTracker.commitedBatch(candidate, commandBatches.position());
+        } catch (RecoveryPredicateException re) {
+            throw re;
+        } catch (Exception e) {
+            throw new RecoveryPredicateException(
+                    format(
+                            "Partial recovery criteria can't be satisfied. No transaction after checkpoint matching "
+                                    + "to provided criteria found and fail to read transaction before checkpoint. Recovery criteria: %s.",
+                            recoveryPredicate.describe()),
+                    e);
+        }
     }
 
     private RollbackTransactionInfo rollbackTransactions(

@@ -46,7 +46,6 @@ import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
-import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.kernel.impl.api.CompleteTransaction;
@@ -54,6 +53,7 @@ import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.api.txid.IdStoreTransactionIdGenerator;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
+import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation.BatchInformation;
 import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
 import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
@@ -510,13 +510,16 @@ class PhysicalLogicalTransactionStoreTest {
 
         @Override
         public void transactionsRecovered(
-                CommittedCommandBatchRepresentation.BatchInformation highestTransactionHeadCommandBatch,
+                BatchInformation highestTransactionHeadCommandBatch,
                 AppendIndexProvider appendIndexProvider,
                 LogPosition lastTransactionPosition,
                 LogPosition positionAfterLastRecoveredTransaction,
-                LogPosition checkpointPosition,
-                boolean missingLogs,
-                CursorContext cursorContext) {
+                LogPosition checkpointPosition) {
+            recoveryPerformed.set(true);
+        }
+
+        @Override
+        public void missingLogs() {
             recoveryPerformed.set(true);
         }
     }

@@ -20,9 +20,8 @@
 package org.neo4j.kernel.recovery;
 
 import java.io.IOException;
-import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
-import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
+import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation.BatchInformation;
 import org.neo4j.kernel.impl.transaction.log.CommandBatchCursor;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.storageengine.AppendIndexProvider;
@@ -40,12 +39,12 @@ public interface RecoveryService {
     RecoveryApplier getRecoveryApplier(
             TransactionApplicationMode mode, CursorContextFactory contextFactory, String tracerTag) throws Exception;
 
+    void missingLogs();
+
     void transactionsRecovered(
-            CommittedCommandBatchRepresentation.BatchInformation highestTransactionRecoveredBatch,
+            BatchInformation highestTransactionRecoveredBatch,
             AppendIndexProvider recoverAppendIndexProvider,
             LogPosition lastTransactionPosition,
             LogPosition positionAfterLastRecoveredTransaction,
-            LogPosition checkpointPosition,
-            boolean missingLogs,
-            CursorContext cursorContext);
+            LogPosition checkpointPosition);
 }
