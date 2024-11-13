@@ -35,7 +35,12 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
 import org.neo4j.storageengine.api.CommandBatch;
 
 public record ChunkedRollbackBatchRepresentation(
-        KernelVersion kernelVersion, long transactionId, long appendIndex, long timeWritten, int checksum)
+        KernelVersion kernelVersion,
+        long transactionId,
+        long appendIndex,
+        long timeWritten,
+        int checksum,
+        int previousChecksum)
         implements CommittedCommandBatchRepresentation {
 
     @Override

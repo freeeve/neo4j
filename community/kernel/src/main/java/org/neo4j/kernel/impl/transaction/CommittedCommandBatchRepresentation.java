@@ -34,6 +34,12 @@ public interface CommittedCommandBatchRepresentation {
 
     int checksum();
 
+    /**
+     * @return the previousChecksum of the batch if known.
+     * Some channels do not have info about previous checksum, and this could return 0.
+     */
+    int previousChecksum();
+
     long timeWritten();
 
     long txId();

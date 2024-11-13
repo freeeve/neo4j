@@ -42,11 +42,11 @@ import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.StorageCommand;
 
 public record ChunkedBatchRepresentation(
-        LogEntryChunkStart chunkStart, CommandBatch commandBatch, LogEntryChunkEnd chunkEnd)
+        LogEntryChunkStart chunkStart, CommandBatch commandBatch, LogEntryChunkEnd chunkEnd, int previousChecksum)
         implements CommittedCommandBatchRepresentation {
 
     public static ChunkedBatchRepresentation createChunkRepresentation(
-            LogEntry start, List<StorageCommand> commands, LogEntry end) {
+            LogEntry start, List<StorageCommand> commands, LogEntry end, int previousChecksum) {
         LogEntryChunkStart logEntryChunkStart = createChunkStart(start);
         LogEntryChunkEnd logEntryChunkEnd = createChunkEnd(end, logEntryChunkStart);
         ChunkMetadata chunkMetadata = new ChunkMetadata(
@@ -64,7 +64,10 @@ public record ChunkedBatchRepresentation(
                 logEntryChunkStart.kernelVersion(),
                 Subject.AUTH_DISABLED);
         return new ChunkedBatchRepresentation(
-                logEntryChunkStart, new ChunkedCommandBatch(commands, chunkMetadata), logEntryChunkEnd);
+                logEntryChunkStart,
+                new ChunkedCommandBatch(commands, chunkMetadata),
+                logEntryChunkEnd,
+                previousChecksum);
     }
 
     @Override

@@ -42,11 +42,11 @@ import org.neo4j.storageengine.api.StorageCommand;
  * asked for a transaction via a cursor.
  */
 public record CompleteBatchRepresentation(
-        LogEntryStart startEntry, CommandBatch commandBatch, LogEntryCommit commitEntry)
+        LogEntryStart startEntry, CommandBatch commandBatch, LogEntryCommit commitEntry, int previousChecksum)
         implements CommittedCommandBatchRepresentation {
 
     public CompleteBatchRepresentation(
-            LogEntryStart startEntry, List<StorageCommand> commands, LogEntryCommit commitEntry) {
+            LogEntryStart startEntry, List<StorageCommand> commands, LogEntryCommit commitEntry, int previousChecksum) {
         this(
                 startEntry,
                 new CompleteCommandBatch(
@@ -58,7 +58,8 @@ public record CompleteBatchRepresentation(
                         -1,
                         startEntry.kernelVersion(),
                         ANONYMOUS),
-                commitEntry);
+                commitEntry,
+                previousChecksum);
     }
 
     @Override

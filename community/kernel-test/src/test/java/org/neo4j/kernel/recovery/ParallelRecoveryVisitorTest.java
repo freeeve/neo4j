@@ -29,6 +29,7 @@ import static org.neo4j.kernel.impl.transaction.log.LogPosition.UNSPECIFIED;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newCommitEntry;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newStartEntry;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.RECOVERY;
+import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 
@@ -244,7 +245,7 @@ class ParallelRecoveryVisitorTest {
         CommandBatch txRepresentation = new CompleteCommandBatch(
                 commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, LATEST_KERNEL_VERSION, AUTH_DISABLED);
         LogEntryCommit commitEntry = newCommitEntry(LATEST_KERNEL_VERSION, txId, 0, 0);
-        return new CompleteBatchRepresentation(startEntry, txRepresentation, commitEntry);
+        return new CompleteBatchRepresentation(startEntry, txRepresentation, commitEntry, BASE_TX_CHECKSUM);
     }
 
     private List<StorageCommand> commandsRelatedToNode(long nodeId) {

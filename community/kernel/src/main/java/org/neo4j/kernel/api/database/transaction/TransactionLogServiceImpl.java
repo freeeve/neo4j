@@ -173,8 +173,9 @@ public class TransactionLogServiceImpl implements TransactionLogService {
         var channels = new ArrayList<LogChannel>(exposedChannels);
         var internalChannels = LongObjectMaps.mutable.<StoreChannel>ofInitialCapacity(exposedChannels);
         for (long version = minimalVersion; version <= highestLogVersion; version++) {
-            var startPositionAppendIndex = logFileAppendIndex(startingAppendIndex, minimalVersion, version);
-            var kernelVersion = getKernelVersion(startPositionAppendIndex);
+            LogHeader logHeader = logFile.extractHeader(version);
+            var startPositionAppendIndex = logFileAppendIndex(startingAppendIndex, minimalVersion, version, logHeader);
+            var kernelVersion = getKernelVersion(startPositionAppendIndex, logHeader);
             var readOnlyStoreChannel = new ReadOnlyStoreChannel(logFile, version);
             if (version == minimalVersion) {
                 readOnlyStoreChannel.position(minimalLogPosition.getByteOffset());
@@ -182,8 +183,9 @@ public class TransactionLogServiceImpl implements TransactionLogService {
             internalChannels.put(version, readOnlyStoreChannel);
             var endOffset =
                     version < highestLogVersion ? readOnlyStoreChannel.size() : highestLogPosition.getByteOffset();
-            var lastAppendIndex =
-                    version < highestLogVersion ? getHeaderLastAppendIndex(version + 1) : highestAppendIndex;
+            var lastAppendIndex = version < highestLogVersion
+                    ? logFile.extractHeader(version + 1).getLastAppendIndex()
+                    : highestAppendIndex;
             channels.add(new LogChannel(
                     startPositionAppendIndex,
                     kernelVersion,
@@ -191,29 +193,38 @@ public class TransactionLogServiceImpl implements TransactionLogService {
                     readOnlyStoreChannel.position(),
                     endOffset,
                     lastAppendIndex,
-                    logFilePrevChecksum(startPositionAppendIndex, minimalVersion, version)));
+                    logFilePrevChecksum(startPositionAppendIndex, minimalVersion, version, logHeader)));
         }
         logFile.registerExternalReaders(internalChannels);
         return channels;
     }
 
-    private long logFileAppendIndex(long startingAppendIndex, long minimalVersion, long version) throws IOException {
-        return version == minimalVersion ? startingAppendIndex : getHeaderLastAppendIndex(version) + 1;
+    private long logFileAppendIndex(long startingAppendIndex, long minimalVersion, long version, LogHeader logHeader) {
+        return version == minimalVersion ? startingAppendIndex : logHeader.getLastAppendIndex() + 1;
     }
 
-    // Get the prev checksum if it is easy. If we are in the middle of a file it is ignored for now
-    // because other side should not rotate on it anyway.
-    private int logFilePrevChecksum(long startingAppendIndex, long minimalVersion, long version) throws IOException {
-        LogHeader logHeader = logFile.extractHeader(version);
+    private int logFilePrevChecksum(long startingAppendIndex, long minimalVersion, long version, LogHeader logHeader)
+            throws IOException {
         return version != minimalVersion
                 ? logHeader.getPreviousLogFileChecksum()
                 : (logHeader.getLastAppendIndex() + 1 != startingAppendIndex
-                        ? UNKNOWN_TX_CHECKSUM
+                        ? logFilePrevChecksumMiddleOfFile(logHeader, startingAppendIndex)
                         : logHeader.getPreviousLogFileChecksum());
     }
 
-    private long getHeaderLastAppendIndex(long version) throws IOException {
-        return logFile.extractHeader(version).getLastAppendIndex();
+    private int logFilePrevChecksumMiddleOfFile(LogHeader logHeader, long startingAppendIndex) throws IOException {
+        if (!logHeader.getLogFormatVersion().usesSegments()) {
+            // Pre-envelope files doesn't need the checksum for the header on the receiver anyway, let's skip this
+            // lookup
+            return UNKNOWN_TX_CHECKSUM;
+        }
+        try (CommandBatchCursor commandBatchCursor = transactionStore.getCommandBatches(startingAppendIndex)) {
+            commandBatchCursor.next();
+            return commandBatchCursor.get().previousChecksum();
+        } catch (NoSuchLogEntryException e) {
+            throw new IllegalArgumentException(
+                    "Append index " + startingAppendIndex + " not found in transaction logs.", e);
+        }
     }
 
     private LogPosition getLogPosition(long appendIndex) throws IOException {
@@ -233,7 +244,15 @@ public class TransactionLogServiceImpl implements TransactionLogService {
         }
     }
 
-    private KernelVersion getKernelVersion(long appendIndex) throws IOException {
+    private KernelVersion getKernelVersion(long appendIndex, LogHeader logHeader) throws IOException {
+        KernelVersion logHeaderKernelVersion = logHeader.getKernelVersion();
+        // From the log format with kernel version in the header, each file is guaranteed to only contain entries on one
+        // version.
+        if (logHeaderKernelVersion != null) {
+            return logHeaderKernelVersion;
+        }
+        // The older logs can contain more than one kernel version per file so let's find the exact entry and get
+        // version from there.
         try (CommandBatchCursor commandBatchCursor = transactionStore.getCommandBatches(appendIndex)) {
             if (!commandBatchCursor.next()) {
                 throw new NoSuchLogEntryException(appendIndex);

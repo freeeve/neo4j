@@ -122,13 +122,15 @@ class CommittedCommandBatchRepresentationCursorTest {
     void shouldCallTheVisitorWithTheFoundTransaction() throws IOException {
         // given
         when(entryReader.readLogEntry(channel)).thenReturn(START_ENTRY, COMMAND_ENTRY, COMMIT_ENTRY);
+        when(channel.getChecksum()).thenReturn(BASE_TX_CHECKSUM);
 
         // when
         cursor.next();
 
         // then
         assertEquals(
-                new CompleteBatchRepresentation(START_ENTRY, singletonList(COMMAND_ENTRY.getCommand()), COMMIT_ENTRY),
+                new CompleteBatchRepresentation(
+                        START_ENTRY, singletonList(COMMAND_ENTRY.getCommand()), COMMIT_ENTRY, BASE_TX_CHECKSUM),
                 cursor.get());
     }
 }

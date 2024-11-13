@@ -59,6 +59,7 @@ public class CommittedCommandBatchCursor implements CommandBatchCursor {
     public boolean next() throws IOException {
         current = null;
 
+        int previousChecksum = channel.getChecksum();
         if (!logEntryCursor.next()) {
             return false;
         }
@@ -71,7 +72,8 @@ public class CommittedCommandBatchCursor implements CommandBatchCursor {
                     rollback.getTransactionId(),
                     rollback.getAppendIndex(),
                     rollback.getTimeWritten(),
-                    rollback.getChecksum());
+                    rollback.getChecksum(),
+                    previousChecksum);
         } else if (entry instanceof LogEntryStart || entry instanceof LogEntryChunkStart) {
             LogEntry startEntry = entry;
             LogEntry endEntry;
@@ -90,9 +92,10 @@ public class CommittedCommandBatchCursor implements CommandBatchCursor {
                 entries.add(command.getCommand());
             }
             if (startEntry instanceof LogEntryStart entryStart && endEntry instanceof LogEntryCommit commitEntry) {
-                current = new CompleteBatchRepresentation(entryStart, entries, commitEntry);
+                current = new CompleteBatchRepresentation(entryStart, entries, commitEntry, previousChecksum);
             } else {
-                current = ChunkedBatchRepresentation.createChunkRepresentation(startEntry, entries, endEntry);
+                current = ChunkedBatchRepresentation.createChunkRepresentation(
+                        startEntry, entries, endEntry, previousChecksum);
             }
         } else {
             throw new IllegalStateException("Was expecting transaction or chunk start but got: " + entry);

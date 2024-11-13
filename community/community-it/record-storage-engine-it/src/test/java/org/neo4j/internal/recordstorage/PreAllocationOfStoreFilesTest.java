@@ -28,6 +28,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.neo4j.common.Subject.ANONYMOUS;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
+import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 
 import java.io.IOException;
@@ -162,8 +163,8 @@ class PreAllocationOfStoreFilesTest {
                 5,
                 LatestVersions.LATEST_KERNEL_VERSION,
                 ANONYMOUS);
-        CompleteBatchRepresentation transaction =
-                new CompleteBatchRepresentation(mock(LogEntryStart.class), storageCommands, mock(LogEntryCommit.class));
+        CompleteBatchRepresentation transaction = new CompleteBatchRepresentation(
+                mock(LogEntryStart.class), storageCommands, mock(LogEntryCommit.class), BASE_TX_CHECKSUM);
         CompleteTransaction completeTransaction = new CompleteTransaction(transaction, NULL_CONTEXT, StoreCursors.NULL);
 
         recordStorageEngine.preAllocateStoreFilesForCommands(completeTransaction, TransactionApplicationMode.INTERNAL);

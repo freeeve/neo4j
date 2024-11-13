@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.configuration.GraphDatabaseSettings.CheckpointPolicy.PERIODIC;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
@@ -49,6 +50,7 @@ import java.nio.ByteOrder;
 import java.nio.channels.ClosedChannelException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -57,8 +59,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import org.junit.jupiter.api.Test;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.graphdb.Node;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
@@ -66,6 +70,7 @@ import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.io.pagecache.tracing.version.VersionStorageTracer;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.database.transaction.LogChannel;
 import org.neo4j.kernel.api.database.transaction.TransactionLogChannels;
 import org.neo4j.kernel.api.database.transaction.TransactionLogService;
@@ -79,8 +84,10 @@ import org.neo4j.kernel.impl.transaction.log.LogAppendEvent;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
+import org.neo4j.kernel.impl.transaction.log.TransactionMetadataCache;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
+import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogTailInformation;
@@ -100,16 +107,21 @@ import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.storageengine.api.TransactionIdStore;
+import org.neo4j.test.DelegatingDatabaseManagementService;
 import org.neo4j.test.OtherThreadExecutor;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.util.concurrent.BinaryLatch;
 
 @DbmsExtension(configurationCallback = "configure")
 class TransactionLogServiceIT {
     private static final long THRESHOLD = kibiBytes(256);
+
+    @Inject
+    private TestDirectory testDirectory;
 
     @Inject
     private GraphDatabaseAPI databaseAPI;
@@ -738,6 +750,91 @@ class TransactionLogServiceIT {
         verifyReportedPositions(4, getTxStartOffset(4));
         verifyReportedPositions(5, getTxStartOffset(5));
         verifyReportedPositions(15, getTxStartOffset(15));
+    }
+
+    @Test
+    void setsPreviousChecksumCorrectlyForEnvelopedLogs() throws IOException {
+        Path directory = testDirectory.directory("home-dir");
+        try (var dbms = new DelegatingDatabaseManagementService.AutoCloseable(
+                new TestDatabaseManagementServiceBuilder(directory)
+                        .setConfig(Map.of(
+                                GraphDatabaseInternalSettings.latest_kernel_version,
+                                KernelVersion.GLORIOUS_FUTURE.version(),
+                                GraphDatabaseInternalSettings.latest_runtime_version,
+                                DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion()))
+                        .build())) {
+
+            GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
+            var propertyValue = randomAscii((int) THRESHOLD / 16);
+
+            int numberOfTransactions = 30;
+            for (int i = 0; i < numberOfTransactions; i++) {
+                try (var tx = database.beginTx()) {
+                    Node node = tx.createNode();
+                    node.setProperty("a", propertyValue);
+                    tx.commit();
+                }
+            }
+
+            TransactionLogService logService =
+                    database.getDependencyResolver().resolveDependency(TransactionLogService.class);
+            LogFiles logFiles = database.getDependencyResolver().resolveDependency(LogFiles.class);
+            TransactionMetadataCache metadataCache =
+                    database.getDependencyResolver().resolveDependency(TransactionMetadataCache.class);
+            int initialAppendIndex = 17;
+
+            TransactionMetadataCache.TransactionMetadata transactionMetadata =
+                    metadataCache.getTransactionMetadata(initialAppendIndex);
+            LogPosition logPosition = transactionMetadata.startPosition();
+            long logVersion = logPosition.getLogVersion();
+
+            try (TransactionLogChannels logReaders = logService.logFilesChannels(initialAppendIndex)) {
+                List<LogChannel> logFileChannels = logReaders.getChannels();
+                assertThat(logFileChannels).hasSize(4);
+
+                for (LogChannel logChannel : logFileChannels) {
+                    LogHeader logHeader = logFiles.getLogFile().extractHeader(logVersion);
+                    int expectedChecksum = logVersion != logPosition.getLogVersion()
+                            ? logHeader.getPreviousLogFileChecksum()
+                            : getPrevChecksumFromPosition(logPosition, logFiles);
+                    assertThat(logChannel.previousChecksum()).isEqualTo(expectedChecksum);
+                    assertThat(logChannel.kernelVersion()).isEqualTo(logHeader.getKernelVersion());
+                    logVersion++;
+                }
+            }
+        }
+    }
+
+    @Test
+    void setsPreviousChecksumCorrectlyForNonEnvelopedLogs() throws IOException {
+        var propertyValue = randomAscii((int) THRESHOLD / 16);
+
+        int numberOfTransactions = 30;
+        for (int i = 0; i < numberOfTransactions; i++) {
+            createNodeInIsolatedTransaction(propertyValue);
+        }
+
+        int initialAppendIndex = 17;
+        try (TransactionLogChannels logReaders = logService.logFilesChannels(initialAppendIndex)) {
+            List<LogChannel> logFileChannels = logReaders.getChannels();
+            assertThat(logFileChannels).hasSize(3);
+
+            boolean first = true;
+            for (LogChannel logChannel : logFileChannels) {
+                // Non-enveloped format doesn't care about checksum because it doesn't use that header field
+                // For now it will send UNKNOWN when starting in the middle of a file, and BASE for any other
+                // file since it is taken from the header.
+                int expectedChecksum = first ? TransactionIdStore.UNKNOWN_TX_CHECKSUM : BASE_TX_CHECKSUM;
+                assertThat(logChannel.previousChecksum()).isEqualTo(expectedChecksum);
+                first = false;
+            }
+        }
+    }
+
+    int getPrevChecksumFromPosition(LogPosition logPosition, LogFiles logFiles) throws IOException {
+        try (ReadableLogChannel reader = logFiles.getLogFile().getReader(logPosition)) {
+            return reader.getChecksum();
+        }
     }
 
     @Test
