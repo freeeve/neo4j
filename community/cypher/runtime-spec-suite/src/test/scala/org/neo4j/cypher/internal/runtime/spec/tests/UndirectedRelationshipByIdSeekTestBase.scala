@@ -291,4 +291,25 @@ abstract class UndirectedRelationshipByIdSeekTestBase[CONTEXT <: RuntimeContext]
     val actual = execute(query, runtime)
     actual should beColumns("r").withRows(inAnyOrder(expected))
   }
+
+  test("should not produce any extra row after distinct") {
+    // given
+    val r = givenGraph {
+      val Seq(n1, n2) = nodeGraph(2)
+      val r = n1.createRelationshipTo(n2, RelationshipType.withName("R"))
+      r.setProperty("p", "hello")
+      r
+    }
+
+    // when
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("p")
+      .distinct("r.p AS p")
+      .undirectedRelationshipByIdSeek("r", "x", "y", Set(), r.getId)
+      .build()
+
+    // then
+    val actual = execute(query, runtime)
+    actual should beColumns("p").withSingleRow("hello")
+  }
 }
