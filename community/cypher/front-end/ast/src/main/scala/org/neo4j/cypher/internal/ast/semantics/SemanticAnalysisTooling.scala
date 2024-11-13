@@ -360,6 +360,10 @@ trait SemanticAnalysisTooling {
     SemanticCheckResult.success(state.importValuesFromScope(scopeToImportFrom))
   }
 
+  def importValuesFromScope(scope: Scope): SemanticCheck = {
+    SemanticCheck.fromFunction(state => SemanticCheckResult.success(state.importValuesFromScope(scope)))
+  }
+
   def requireFeatureSupport(msg: String, feature: SemanticFeature, position: InputPosition): SemanticCheck =
     (s: SemanticState) => {
       if (!s.features(feature))

@@ -743,8 +743,12 @@ sealed trait Union extends Query {
 
   override def endsWithFinish: Boolean = rhs.endsWithFinish || lhs.endsWithFinish
 
-  def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck =
-    checkRecursively(_.semanticCheckInSubqueryContext(outer, current))
+  def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck = {
+    checkRecursively(innerQuery =>
+      importValuesFromScope(outer.currentScope.scope) chain
+        innerQuery.semanticCheckInSubqueryContext(outer, current)
+    )
+  }
 
   def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
     checkRecursively(_.semanticCheckImportingWithSubQueryContext(outer))

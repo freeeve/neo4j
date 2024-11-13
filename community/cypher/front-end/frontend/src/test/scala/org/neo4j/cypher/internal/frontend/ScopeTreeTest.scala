@@ -304,6 +304,91 @@ class ScopeTreeTest extends CypherFunSuite {
     actual should equal(expected)
   }
 
+  test("CALL (*) inside a UNION should include variables imported by an outer CALL ()") {
+    val query =
+      """
+        |WITH 1 AS x
+        |CALL (x) {
+        |  WITH 2 AS y
+        |  CALL (*) {
+        |    RETURN x + y AS z
+        |  }
+        |  RETURN z AS z
+        |  UNION
+        |  RETURN 123 + x AS z
+        |}
+        |RETURN x AS x, z AS z
+        |""".stripMargin.linesIterator.mkString("\n")
+
+    val ast = parse(query)
+    val xAt = ast.varAt("x") _
+    val yAt = ast.varAt("y") _
+    val zAt = ast.varAt("z") _
+
+    val actual = ast.scope
+
+    val expected = scope()(
+      scope()(),
+      scope(
+        intSymbol("x", xAt(11))
+      )(),
+      scope(
+        intSymbol("x", xAt(11), xAt(19))
+      )(
+        scope(
+          intSymbol("x", xAt(11), xAt(19))
+        )(
+          scope()(),
+          scope(
+            intSymbol("y", yAt(36))
+          )(),
+          scope(
+            intSymbol("x", xAt(11), xAt(19)),
+            intSymbol("y", yAt(36))
+          )(
+            scope(
+              intSymbol("x", xAt(11), xAt(19), xAt(62)),
+              intSymbol("y", yAt(36), yAt(66))
+            )(),
+            scope(
+              intSymbol("z", zAt(71))
+            )()
+          ),
+          scope(
+            intSymbol("y", yAt(36)),
+            intSymbol("z", zAt(71), zAt(86))
+          )(),
+          scope(
+            intSymbol("z", zAt(71), zAt(86), zAt(91))
+          )()
+        ),
+        scope(
+          intSymbol("x", xAt(11), xAt(19))
+        )(
+          scope(
+            intSymbol("x", xAt(11), xAt(19), xAt(116))
+          )(),
+          scope(
+            intSymbol("z", zAt(121))
+          )()
+        ),
+        scope(
+          intSymbol("z", zAt(95)).copy(unionSymbol = true)
+        )()
+      ),
+      scope(
+        intSymbol("x", xAt(11), xAt(132)),
+        intSymbol("z", zAt(95), zAt(140))
+      )(),
+      scope(
+        intSymbol("x", xAt(11), xAt(132), xAt(137)),
+        intSymbol("z", zAt(95), zAt(140), zAt(145))
+      )()
+    )
+
+    actual should equal(expected)
+  }
+
   test("Scope.toString should render nicely") {
     val ast = parse("match (n) return n as m")
     val scopeTree = ast.scope
