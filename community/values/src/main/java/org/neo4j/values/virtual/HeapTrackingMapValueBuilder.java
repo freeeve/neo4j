@@ -19,6 +19,7 @@
  */
 package org.neo4j.values.virtual;
 
+import static org.neo4j.memory.HeapEstimator.DEFAULT_HEAP_ESTIMATOR_CACHE_SHALLOW_SIZE;
 import static org.neo4j.memory.HeapEstimator.SCOPED_MEMORY_TRACKER_SHALLOW_SIZE;
 import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
@@ -50,6 +51,8 @@ public class HeapTrackingMapValueBuilder implements AutoCloseable {
     }
 
     private static final long SHALLOW_SIZE = shallowSizeOfInstance(HeapTrackingMapValueBuilder.class);
+    private static final long COMBINED_SHALLOW_SIZE =
+            SHALLOW_SIZE + SCOPED_MEMORY_TRACKER_SHALLOW_SIZE + DEFAULT_HEAP_ESTIMATOR_CACHE_SHALLOW_SIZE;
 
     // We wait to track memory (bytes) below this threshold (see `unAllocatedHeapSize`).
     private static final long HEAP_SIZE_ALLOCATION_THRESHOLD = 4096;
@@ -70,7 +73,7 @@ public class HeapTrackingMapValueBuilder implements AutoCloseable {
 
     public HeapTrackingMapValueBuilder(MemoryTracker memoryTracker) {
         scopedMemoryTracker = memoryTracker.getScopedMemoryTracker();
-        scopedMemoryTracker.allocateHeap(SHALLOW_SIZE + SCOPED_MEMORY_TRACKER_SHALLOW_SIZE);
+        scopedMemoryTracker.allocateHeap(COMBINED_SHALLOW_SIZE);
         values = HeapTrackingCollections.newMap(scopedMemoryTracker);
         heapEstimatorCache = new DeduplicateLargeObjectsHeapEstimatorCache();
     }
@@ -101,7 +104,12 @@ public class HeapTrackingMapValueBuilder implements AutoCloseable {
     private long payloadSize() {
         // The shallow size should not be transferred to the MapValue (but the ScopedMemoryTracker is)
         // If using an EmptyMemoryTracker this might evaluate to a value less than 0
-        return Math.max(unAllocatedHeapSize + scopedMemoryTracker.estimatedHeapMemory() - SHALLOW_SIZE, 0L);
+        return Math.max(
+                unAllocatedHeapSize
+                        + scopedMemoryTracker.estimatedHeapMemory()
+                        - SHALLOW_SIZE
+                        - DEFAULT_HEAP_ESTIMATOR_CACHE_SHALLOW_SIZE,
+                0L);
     }
 
     @VisibleForTesting

@@ -19,6 +19,7 @@
  */
 package org.neo4j.values.virtual;
 
+import static org.neo4j.memory.HeapEstimator.DEFAULT_HEAP_ESTIMATOR_CACHE_SHALLOW_SIZE;
 import static org.neo4j.memory.HeapEstimator.SCOPED_MEMORY_TRACKER_SHALLOW_SIZE;
 import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
@@ -50,6 +51,8 @@ public class HeapTrackingListValueBuilder implements AutoCloseable {
     }
 
     private static final long SHALLOW_SIZE = shallowSizeOfInstance(HeapTrackingListValueBuilder.class);
+    private static final long COMBINED_SHALLOW_SIZE =
+            SHALLOW_SIZE + SCOPED_MEMORY_TRACKER_SHALLOW_SIZE + DEFAULT_HEAP_ESTIMATOR_CACHE_SHALLOW_SIZE;
 
     // We wait to track memory (bytes) below this threshold (see `unAllocatedHeapSize`).
     private static final long HEAP_SIZE_ALLOCATION_THRESHOLD = 4096;
@@ -75,7 +78,7 @@ public class HeapTrackingListValueBuilder implements AutoCloseable {
         // To be in control of the heap usage of both the added values and the internal array list holding them,
         // we use a scoped memory tracker
         scopedMemoryTracker = memoryTracker.getScopedMemoryTracker();
-        scopedMemoryTracker.allocateHeap(SHALLOW_SIZE + SCOPED_MEMORY_TRACKER_SHALLOW_SIZE);
+        scopedMemoryTracker.allocateHeap(COMBINED_SHALLOW_SIZE);
         values = HeapTrackingArrayList.newArrayList(16, scopedMemoryTracker);
         representation = ValueRepresentation.ANYTHING;
         heapEstimatorCache = new DeduplicateLargeObjectsHeapEstimatorCache();
@@ -114,7 +117,12 @@ public class HeapTrackingListValueBuilder implements AutoCloseable {
     private long payloadSize() {
         // The shallow size should not be transferred to the ListValue (but the ScopedMemoryTracker is)
         // Note if the scopedMemoryTracker is an EmptyMemoryTracker then we might get a negative value here
-        return Math.max(unAllocatedHeapSize + scopedMemoryTracker.estimatedHeapMemory() - SHALLOW_SIZE, 0L);
+        return Math.max(
+                unAllocatedHeapSize
+                        + scopedMemoryTracker.estimatedHeapMemory()
+                        - SHALLOW_SIZE
+                        - DEFAULT_HEAP_ESTIMATOR_CACHE_SHALLOW_SIZE,
+                0L);
     }
 
     @VisibleForTesting
