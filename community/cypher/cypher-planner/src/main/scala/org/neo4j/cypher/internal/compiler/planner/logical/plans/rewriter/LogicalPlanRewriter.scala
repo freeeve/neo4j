@@ -111,7 +111,7 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
           isShardedDatabase
         )
       ),
-      Option.when(context.executionModel.isSingleThreaded)(trailToVarExpandRewriter),
+      Some(trailToVarExpandRewriter),
       Some(fuseSelections),
       Some(UnnestApply(
         solveds,

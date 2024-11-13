@@ -3377,20 +3377,20 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("Should plan quantified relationship with RepeatTrail when runtime=Parallel") {
+  test("Should plan quantified relationship with VarExpand when runtime=Parallel") {
     val query = "MATCH (a:User)-->+(b) RETURN a, b"
     val planner = plannerBase.setExecutionModel(BatchedParallel(1, 100)).build()
     val plan = planner.plan(query)
 
-    plan.folder.findAllByClass[RepeatTrail].size shouldBe 1
+    plan.folder.findAllByClass[VarExpand].size shouldBe 1
   }
 
-  test("Should plan quantified path pattern with RepeatTrail when runtime=Parallel") {
+  test("Should plan quantified path pattern with VarExpand when runtime=Parallel") {
     val query = "MATCH p = ((a)-[:R]->(b) WHERE a.p < b.p){1,10} RETURN p"
     val planner = plannerBase.setExecutionModel(BatchedParallel(1, 100)).build()
     val plan = planner.plan(query)
 
-    plan.folder.findAllByClass[RepeatTrail].size shouldBe 1
+    plan.folder.findAllByClass[VarExpand].size shouldBe 1
   }
 
   test("Should plan quantified relationship with VarExpand when runtime is single-threaded") {
