@@ -40,5 +40,5 @@ case class SystemProcedureCall(
 
   override def lhs: Option[LogicalPlan] = None
   override def rhs: Option[LogicalPlan] = None
-  override def availableSymbols: Set[LogicalVariable] = Set.empty
+  override def localAvailableSymbols: Set[LogicalVariable] = Set.empty
 }

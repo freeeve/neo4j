@@ -37,7 +37,7 @@ abstract class SchemaLogicalPlan(idGen: IdGen) extends LogicalPlanExtension(idGe
 
   override def rhs: Option[LogicalPlan] = None
 
-  override val availableSymbols: Set[LogicalVariable] = Set.empty
+  override val localAvailableSymbols: Set[LogicalVariable] = Set.empty
 }
 
 case class CreateConstraint(

@@ -29,7 +29,7 @@ import org.neo4j.cypher.internal.util.attribution.SameId
 case class FakeLeafPlan(argumentIdStrings: Set[String] = Set.empty)(implicit idGen: IdGen)
     extends LogicalLeafPlanExtension(idGen) {
   override val argumentIds: Set[LogicalVariable] = argumentIdStrings.map(varFor)
-  override val availableSymbols: Set[LogicalVariable] = argumentIds
+  override val localAvailableSymbols: Set[LogicalVariable] = argumentIds
 
   override def usedVariables: Set[LogicalVariable] = Set.empty
 

@@ -101,7 +101,7 @@ class LogicalPlanEqualityTest extends CypherFunSuite with LogicalPlanningTestSup
   case class Binary(left: LogicalPlan, right: LogicalPlan, value: Any)
       extends LogicalPlanExtension(new SequentialIdGen) {
 
-    override val availableSymbols: Set[LogicalVariable] = Set.empty
+    override val localAvailableSymbols: Set[LogicalVariable] = Set.empty
 
     override def lhs: Option[LogicalPlan] = Some(left)
 
@@ -110,7 +110,7 @@ class LogicalPlanEqualityTest extends CypherFunSuite with LogicalPlanningTestSup
 
   case class Unary(child: LogicalPlan, value: Any) extends LogicalPlanExtension(new SequentialIdGen) {
 
-    override val availableSymbols: Set[LogicalVariable] = Set.empty
+    override val localAvailableSymbols: Set[LogicalVariable] = Set.empty
 
     override def rhs: Option[LogicalPlan] = None
 
@@ -123,6 +123,6 @@ class LogicalPlanEqualityTest extends CypherFunSuite with LogicalPlanningTestSup
 
     override def rhs: Option[LogicalPlan] = None
 
-    override val availableSymbols: Set[LogicalVariable] = Set.empty
+    override val localAvailableSymbols: Set[LogicalVariable] = Set.empty
   }
 }

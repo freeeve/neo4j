@@ -63,7 +63,7 @@ abstract class AdministrationCommandLogicalPlan(
 
   val returnColumns: List[LogicalVariable] = List.empty
 
-  override val availableSymbols: Set[LogicalVariable] = returnColumns.toSet
+  override val localAvailableSymbols: Set[LogicalVariable] = returnColumns.toSet
 
   def invalid(message: String): RuntimeException
 }

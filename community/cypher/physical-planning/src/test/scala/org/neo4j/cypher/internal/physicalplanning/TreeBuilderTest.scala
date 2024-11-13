@@ -165,7 +165,7 @@ class TreeBuilderTest extends CypherFunSuite {
   case class StringPlan(str: String, override val lhs: Option[StringPlan], override val rhs: Option[StringPlan])
       extends LogicalPlanExtension(idGen) {
 
-    override def availableSymbols: Set[LogicalVariable] = ???
+    override def localAvailableSymbols: Set[LogicalVariable] = ???
   }
 
   sealed trait CallBack

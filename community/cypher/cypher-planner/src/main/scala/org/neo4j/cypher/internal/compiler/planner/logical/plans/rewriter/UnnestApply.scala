@@ -85,7 +85,7 @@ case class UnnestApply(
     // Arg Ax R => R
     case orig @ Apply(arg: Argument, rhs) =>
       assertArgumentHasCardinality1(arg)
-      if (arg.argumentIds.subsetOf(rhs.availableSymbols)) {
+      if (arg.argumentIds.subsetOf(rhs.localAvailableSymbols)) {
         rhs
       } else {
         rhs match {
@@ -93,7 +93,7 @@ case class UnnestApply(
             // Switch out arg on RHS
             val newRhs = putOnTopOf(arg, rhs)
             // Check if we now have the correct available symbols
-            if (arg.argumentIds.subsetOf(newRhs.availableSymbols)) {
+            if (arg.argumentIds.subsetOf(newRhs.localAvailableSymbols)) {
               newRhs
             } else {
               // Do not unnest
