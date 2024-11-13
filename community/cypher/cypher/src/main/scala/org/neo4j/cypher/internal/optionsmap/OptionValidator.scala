@@ -37,7 +37,6 @@ import org.neo4j.values.virtual.MapValue
 
 import java.lang.Boolean.FALSE
 import java.util.Locale
-import java.util.UUID
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -128,25 +127,13 @@ object ExistingDataOption extends StringOptionValidator {
 object ExistingSeedInstanceOption extends StringOptionValidator {
   override val KEY: String = "existingDataSeedInstance"
 
-  override protected def validateContent(value: String, config: Option[Config])(implicit operation: String): Unit =
-    try {
-      UUID.fromString(value)
-    } catch {
-      case _: IllegalArgumentException =>
-        throw InvalidArgumentsException.unrecognisedOptionGivenValue(operation, value, KEY, "server uuid string", false)
-    }
+  override protected def validateContent(value: String, config: Option[Config])(implicit operation: String): Unit = {}
 }
 
 object ExistingSeedServerOption extends StringOptionValidator {
   override val KEY: String = "existingDataSeedServer"
 
-  override protected def validateContent(value: String, config: Option[Config])(implicit operation: String): Unit =
-    try {
-      UUID.fromString(value)
-    } catch {
-      case _: IllegalArgumentException =>
-        throw InvalidArgumentsException.unrecognisedOptionGivenValue(operation, value, KEY, "server uuid string", false)
-    }
+  override protected def validateContent(value: String, config: Option[Config])(implicit operation: String): Unit = {}
 }
 
 object StoreFormatOption extends StringOptionValidator {
