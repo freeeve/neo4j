@@ -21,6 +21,7 @@ package org.neo4j.internal.helpers;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import org.neo4j.util.VisibleForTesting;
 
 public class DefaultIntervalStrategy implements IntervalStrategy {
     public static IntervalStrategy exponential(long initialTime, long upperBoundTime, TimeUnit timeUnit) {
@@ -40,7 +41,8 @@ public class DefaultIntervalStrategy implements IntervalStrategy {
     private final long startTimeMillis;
     private final long upperBoundTime;
 
-    public DefaultIntervalStrategy(
+    @VisibleForTesting
+    DefaultIntervalStrategy(
             long initialTime, long upperBoundTime, TimeUnit timeUnit, Function<Long, Long> increasingFunction) {
         if (initialTime > increasingFunction.apply(initialTime)) {
             throw new IllegalArgumentException("passed function can't decrease");
