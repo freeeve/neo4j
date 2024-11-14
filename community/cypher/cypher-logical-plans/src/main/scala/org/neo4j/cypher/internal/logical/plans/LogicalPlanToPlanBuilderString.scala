@@ -435,13 +435,25 @@ object LogicalPlanToPlanBuilderString {
           lengthBounds.max.toString,
           objectName(matchMode)
         ).mkString(s"\n${indent}", s",\n${indent}", "")
-      case PruningVarExpand(_, from, dir, types, to, minLength, maxLength, nodePredicates, relationshipPredicates) =>
+      case PruningVarExpand(
+          _,
+          from,
+          dir,
+          types,
+          to,
+          minLength,
+          maxLength,
+          nodePredicates,
+          relationshipPredicates,
+          matchMode
+        ) =>
         val (dirStrA, dirStrB) = arrows(dir)
         val typeStr = relTypeStr(types)
         val lenStr = s"$minLength..$maxLength"
         val nPredStr = variablePredicates(nodePredicates, "nodePredicates")
         val rPredStr = variablePredicates(relationshipPredicates, "relationshipPredicates")
-        s""" "(${from.name})$dirStrA[$typeStr*$lenStr]$dirStrB(${to.name})"$nPredStr$rPredStr """.trim
+        val matchModeString = s", matchMode = ${objectName(matchMode)}"
+        s""" "(${from.name})$dirStrA[$typeStr*$lenStr]$dirStrB(${to.name})"$nPredStr$rPredStr$matchModeString """.trim
       case BFSPruningVarExpand(
           _,
           from,
@@ -453,7 +465,8 @@ object LogicalPlanToPlanBuilderString {
           depthName,
           mode,
           nodePredicates,
-          relationshipPredicates
+          relationshipPredicates,
+          matchMode
         ) =>
         val (dirStrA, dirStrB) = arrows(dir)
         val typeStr = relTypeStr(types)
@@ -463,7 +476,8 @@ object LogicalPlanToPlanBuilderString {
         val rPredStr = variablePredicates(relationshipPredicates, "relationshipPredicates")
         val depthNameStr = depthName.map(d => s""", depthName = Some("${d.name}")""").getOrElse("")
         val modeStr = s", mode = $mode"
-        s""" "(${from.name})$dirStrA[$typeStr*$lenStr]$dirStrB(${to.name})"$nPredStr$rPredStr$depthNameStr$modeStr """.trim
+        val matchModeString = s", matchMode = ${objectName(matchMode)}"
+        s""" "(${from.name})$dirStrA[$typeStr*$lenStr]$dirStrB(${to.name})"$nPredStr$rPredStr$depthNameStr$modeStr$matchModeString """.trim
       case Limit(_, count) =>
         integerString(count)
       case ExhaustiveLimit(_, count) =>

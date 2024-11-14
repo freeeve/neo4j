@@ -470,7 +470,7 @@ object VariableRefRewriter extends Rewriter {
           p.copy(node = varRef(node))(SameId(p.id))
         case p @ AssertSameRelationship(rel, _, _) =>
           p.copy(idName = varRef(rel))(SameId(p.id))
-        case p @ BFSPruningVarExpand(_, from, _, _, to, _, _, depthName, _, _, _) =>
+        case p @ BFSPruningVarExpand(_, from, _, _, to, _, _, depthName, _, _, _, _) =>
           p.copy(from = varRef(from), to = varRef(to), depthName = depthName.map(varRef))(SameId(p.id))
         case p @ BidirectionalRepeatTrail(_, _, _, start, end, iStart, iEnd, _, _, iRel, pRel, pRelGr, _) =>
           p.copy(
@@ -518,7 +518,7 @@ object VariableRefRewriter extends Rewriter {
           p.copy(returnColumns = columns.map(c => c.copy(variable = varRef(c.variable))))(SameId(p.id))
         case p @ ProjectEndpoints(_, rels, start, _, end, _, _, _, _) =>
           p.copy(rels = varRef(rels), start = varRef(start), end = varRef(end))(SameId(p.id))
-        case p @ PruningVarExpand(_, from, _, _, to, _, _, _, _) =>
+        case p @ PruningVarExpand(_, from, _, _, to, _, _, _, _, _) =>
           p.copy(from = varRef(from), to = varRef(to))(SameId(p.id))
         case p @ RelationshipCountFromCountStore(rel, _, _, _, args) =>
           p.copy(idName = varRef(rel), argumentIds = args.map(varRef))(SameId(p.id))

@@ -870,7 +870,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         }
         slots.newReference(relationship, nullable, CTList(CTRelationship))
 
-      case PruningVarExpand(_, _, _, _, to, _, _, _, _) =>
+      case PruningVarExpand(_, _, _, _, to, _, _, _, _, _) =>
         slots.newLong(to, nullable, CTNode)
 
       case expand: BFSPruningVarExpand =>

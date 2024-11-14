@@ -1208,7 +1208,8 @@ class SlottedPipeMapper(
           depthName,
           mode,
           nodePredicates,
-          relationshipPredicates
+          relationshipPredicates,
+          matchMode
         ) =>
         val fromSlot = slots(from).slot
         val toSlot = slots(to).slot

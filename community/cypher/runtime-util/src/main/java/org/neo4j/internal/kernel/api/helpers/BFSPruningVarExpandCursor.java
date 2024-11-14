@@ -443,7 +443,8 @@ public abstract class BFSPruningVarExpandCursor extends DefaultCloseListenable i
      * The main algorithm uses two frontiers making sure we never back-track in the graph.
      * However, the fact that the start node is not included adds an extra complexity if there
      * are loops in the graph, in which case we need to include the start node at the correct
-     * depth in the BFS search (this is not required for correctness, but for future optimizations that make use of depth order). For loop detection we keep track of the parent of each seen node,
+     * depth in the BFS search (this is not required for correctness, but for future optimizations
+     * that make use of depth order). For loop detection we keep track of the parent of each seen node,
      * if we encounter a node, and we are coming from a node that is not the same as the seen parent
      * means we have detected a loop.
      */

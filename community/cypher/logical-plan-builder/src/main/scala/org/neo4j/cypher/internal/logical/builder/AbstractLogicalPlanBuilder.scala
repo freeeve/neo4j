@@ -795,7 +795,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   def pruningVarExpand(
     pattern: String,
     nodePredicates: Seq[Predicate] = Seq.empty,
-    relationshipPredicates: Seq[Predicate] = Seq.empty
+    relationshipPredicates: Seq[Predicate] = Seq.empty,
+    matchMode: TraversalMatchMode = TraversalMatchMode.Trail
   ): IMPL = {
     val p = patternParser.parse(pattern)
     newRelationship(varFor(p.relName))
@@ -812,7 +813,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
             min,
             max,
             nodePredicates.map(_.asVariablePredicate),
-            relationshipPredicates.map(_.asVariablePredicate)
+            relationshipPredicates.map(_.asVariablePredicate),
+            matchMode
           )(_)
         ))
       case _ =>
@@ -826,14 +828,16 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     depthName: Option[String] = None,
     nodePredicates: Seq[Predicate] = Seq.empty,
     relationshipPredicates: Seq[Predicate] = Seq.empty,
-    mode: ExpansionMode = ExpandAll
+    mode: ExpansionMode = ExpandAll,
+    matchMode: TraversalMatchMode = TraversalMatchMode.Trail
   ): IMPL = {
     bfsPruningVarExpandExpr(
       pattern,
       depthName,
       nodePredicates.map(_.asVariablePredicate),
       relationshipPredicates.map(_.asVariablePredicate),
-      mode
+      mode,
+      matchMode
     )
   }
 
@@ -842,7 +846,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     depthName: Option[String] = None,
     nodePredicates: Seq[VariablePredicate] = Seq.empty,
     relationshipPredicates: Seq[VariablePredicate] = Seq.empty,
-    mode: ExpansionMode = ExpandAll
+    mode: ExpansionMode = ExpandAll,
+    matchMode: TraversalMatchMode = TraversalMatchMode.Trail
   ): IMPL = {
     val p = patternParser.parse(pattern)
     newRelationship(varFor(p.relName))
@@ -863,7 +868,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
             depthName.map(varFor),
             mode,
             nodePredicates,
-            relationshipPredicates
+            relationshipPredicates,
+            matchMode
           )(_)
         ))
       case _ =>

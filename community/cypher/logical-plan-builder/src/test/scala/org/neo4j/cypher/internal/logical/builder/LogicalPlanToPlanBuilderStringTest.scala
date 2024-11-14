@@ -626,6 +626,46 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
   )
 
   testPlan(
+    "bfsPruningVarExpand - walk mode",
+    new TestPlanBuilder()
+      .produceResults("x")
+      .bfsPruningVarExpand("(x)-[*0..0]->(y)", matchMode = TraversalMatchMode.Walk)
+      .bfsPruningVarExpand("(x)<-[*0..1]-(y)", matchMode = TraversalMatchMode.Walk)
+      .bfsPruningVarExpand("(x)-[*1..5]->(y)", matchMode = TraversalMatchMode.Walk)
+      .bfsPruningVarExpand("(x)-[:REL*1..2]->(y)", matchMode = TraversalMatchMode.Walk)
+      .bfsPruningVarExpand("(x)<-[:REL|LER*1..2]-(y)", matchMode = TraversalMatchMode.Walk)
+      .bfsPruningVarExpand("(x)-[*1..2]->(y)", matchMode = TraversalMatchMode.Walk)
+      .bfsPruningVarExpand("(x)-[*1..2]->(y)", matchMode = TraversalMatchMode.Walk)
+      .bfsPruningVarExpand(
+        "(x)-[*1..2]->(y)",
+        nodePredicates = Seq(Predicate("n", "id(n) <> 5")),
+        matchMode = TraversalMatchMode.Walk
+      )
+      .bfsPruningVarExpand(
+        "(x)-[*1..3]->(y)",
+        relationshipPredicates = Seq(Predicate("r", "id(r) <> 5")),
+        matchMode = TraversalMatchMode.Walk
+      )
+      .bfsPruningVarExpand(
+        "(x)-[*1..2]->(y)",
+        nodePredicates = Seq(Predicate("n", "id(n) <> 5"), Predicate("n2", "id(n2) > 5")),
+        matchMode = TraversalMatchMode.Walk
+      )
+      .bfsPruningVarExpand(
+        "(x)-[*1..3]->(y)",
+        relationshipPredicates = Seq(Predicate("r", "id(r) <> 5"), Predicate("r2", "id(r2) > 5")),
+        matchMode = TraversalMatchMode.Walk
+      )
+      .bfsPruningVarExpand(
+        "(x)-[*1..3]->(y)",
+        depthName = Some("depth"),
+        matchMode = TraversalMatchMode.Walk
+      )
+      .argument()
+      .build()
+  )
+
+  testPlan(
     "bfsPruningVarExpandExpr",
     new TestPlanBuilder()
       .produceResults("x")

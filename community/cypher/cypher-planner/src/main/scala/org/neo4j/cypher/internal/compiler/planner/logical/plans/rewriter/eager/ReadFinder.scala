@@ -648,7 +648,7 @@ object ReadFinder {
         // relName is actually a List of relationships but we can consider it to be a Relationship Variable when doing eagerness analysis
         processExpand(relTypes, to, relName, mode)
 
-      case PruningVarExpand(_, _, _, relTypes, to, _, _, _, _) =>
+      case PruningVarExpand(_, _, _, relTypes, to, _, _, _, _, _) =>
         // Note: nodePredicates and relPredicates are matched further down already, since
         //  they are VariablePredicates.
         // PruningVarExpand does not introduce a rel variable, but we need one to attach the predicates to.
@@ -659,7 +659,7 @@ object ReadFinder {
           Expand.ExpandAll
         )
 
-      case BFSPruningVarExpand(_, _, _, relTypes, to, _, _, _, mode, _, _) =>
+      case BFSPruningVarExpand(_, _, _, relTypes, to, _, _, _, mode, _, _, _) =>
         // Note: nodePredicates and relPredicates are matched further down already, since
         //  they are VariablePredicates.
         // bfsPruningVarExpand does not introduce a rel variable, but we need one to attach the predicates to.

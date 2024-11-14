@@ -1285,7 +1285,18 @@ case class InterpretedPipeMapper(
       case Optional(inner, protectedSymbols) =>
         OptionalPipe(inner.availableSymbols.map(_.name) -- protectedSymbols.map(_.name), source)(id = id)
 
-      case PruningVarExpand(_, from, dir, types, toName, minLength, maxLength, nodePredicate, relationshipPredicate) =>
+      case PruningVarExpand(
+          _,
+          from,
+          dir,
+          types,
+          toName,
+          minLength,
+          maxLength,
+          nodePredicate,
+          relationshipPredicate,
+          matchMode
+        ) =>
         val predicate = createTraversalPredicates(id, nodePredicate, relationshipPredicate)
         PruningVarLengthExpandPipe(
           source,
@@ -1309,7 +1320,8 @@ case class InterpretedPipeMapper(
           depthName,
           mode,
           nodePredicate,
-          relationshipPredicate
+          relationshipPredicate,
+          matchMode
         ) =>
         val predicate = createTraversalPredicates(id, nodePredicate, relationshipPredicate)
         BFSPruningVarLengthExpandPipe(

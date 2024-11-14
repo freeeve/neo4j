@@ -2180,7 +2180,8 @@ case class LogicalPlan2PlanDescription(
           min,
           max,
           nodePredicates,
-          relationshipPredicates
+          relationshipPredicates,
+          _
         ) =>
         val expandInfo = expandExpressionDescription(
           fromName,
@@ -2215,7 +2216,8 @@ case class LogicalPlan2PlanDescription(
           depthName,
           mode,
           nodePredicates,
-          relationshipPredicates
+          relationshipPredicates,
+          _
         ) =>
         val expandInfo = expandExpressionDescription(
           fromName,
