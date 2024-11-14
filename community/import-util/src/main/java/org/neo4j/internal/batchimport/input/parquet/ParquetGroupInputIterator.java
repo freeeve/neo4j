@@ -34,7 +34,6 @@ class ParquetGroupInputIterator implements InputIterator {
     private final Groups groups;
     private final IdType idType;
     private final String arrayDelimiter;
-    private ParquetData currentData;
     private ParquetInputIterator current;
 
     ParquetGroupInputIterator(List<ParquetData> files, Groups groups, IdType idType, String arrayDelimiter) {
@@ -52,13 +51,13 @@ class ParquetGroupInputIterator implements InputIterator {
     @Override
     public synchronized boolean next(InputChunk chunk) throws IOException {
         while (true) {
-            if (!files.hasNext()) {
-                return false;
-            }
             if (current == null) {
-                currentData = files.next();
+                if (!files.hasNext()) {
+                    return false;
+                }
+                var nextFile = files.next();
                 current = new ParquetInputIterator(
-                        currentData, groups, idType, currentData.defaultTimezoneSupplier(), arrayDelimiter);
+                        nextFile, groups, idType, nextFile.defaultTimezoneSupplier(), arrayDelimiter);
             }
 
             if (current.next((ParquetInputChunk) chunk)) {
@@ -66,7 +65,6 @@ class ParquetGroupInputIterator implements InputIterator {
             }
             current.close();
             current = null;
-            currentData = null;
         }
     }
 

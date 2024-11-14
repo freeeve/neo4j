@@ -76,7 +76,7 @@ class ParquetDataInputChunk implements ParquetInputChunk {
     public void close() throws IOException {}
 
     public boolean next(InputEntityVisitor entityToHydrate) throws IOException {
-        if (!iterator.hasNext()) {
+        if (iterator == null || !iterator.hasNext()) {
             return false;
         }
 

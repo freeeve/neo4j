@@ -35,8 +35,11 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.token.api.TokenConstants.ANY_LABEL;
 import static org.neo4j.token.api.TokenConstants.ANY_RELATIONSHIP_TYPE;
 
-import blue.strategic.parquet.ParquetWriter;
+import blue.strategic.parquet.Dehydrator;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -65,6 +68,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.apache.parquet.hadoop.ParquetOutputFormat;
+import org.apache.parquet.hadoop.api.WriteSupport;
+import org.apache.parquet.io.LocalOutputFile;
+import org.apache.parquet.io.OutputFile;
+import org.apache.parquet.io.api.Binary;
+import org.apache.parquet.io.api.RecordConsumer;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
@@ -125,6 +134,9 @@ import org.neo4j.values.storable.PointValue;
 class ParquetInputBatchImportIT {
     /** Don't support these counts at the moment so don't compute them */
     private static final boolean COMPUTE_DOUBLE_SIDED_RELATIONSHIP_COUNTS = false;
+
+    private static final int GENERATED_NODE_COUNT = 4096;
+    private static final int GENERATED_RELATIONSHIP_COUNT = 4096 * 3;
 
     @Inject
     private TestDirectory testDirectory;
@@ -200,7 +212,7 @@ class ParquetInputBatchImportIT {
 
     private List<InputEntity> randomNodeData(Group group) {
         List<InputEntity> nodes = new ArrayList<>();
-        for (int i = 0; i < 300; i++) {
+        for (int i = 0; i < GENERATED_NODE_COUNT; i++) {
             InputEntity node = new InputEntity();
             node.id(UUID.randomUUID().toString(), group);
             node.property("name", "Node " + i);
@@ -246,13 +258,16 @@ class ParquetInputBatchImportIT {
         Type type = Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
                 .as(LogicalTypeAnnotation.stringType())
                 .named(":TYPE");
-        var writer = ParquetWriter.writeFile(
-                new MessageType("Some Data", startId, endId, type), file.toFile(), (record, valueWriter) -> {
+        var writer = new BasicParquetWriterBuilder<>(new TestOutputFile(file))
+                .withRowGroupSize(1024L)
+                .withType(new MessageType("Some Data", startId, endId, type))
+                .withDehydrator((record, valueWriter) -> {
                     var relationship = (Object[]) record;
                     valueWriter.write(":START_ID", relationship[0]);
                     valueWriter.write(":END_ID", relationship[1]);
                     valueWriter.write(":TYPE", relationship[2]);
-                });
+                })
+                .build();
 
         for (InputEntity relationshipDatum : relationshipData) {
             writer.write(
@@ -275,8 +290,10 @@ class ParquetInputBatchImportIT {
         Type nameType = Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
                 .as(LogicalTypeAnnotation.stringType())
                 .named("name");
-        var writer = ParquetWriter.writeFile(
-                new MessageType("Some Data", idType, labelsType, nameType), file.toFile(), (record, valueWriter) -> {
+        var writer = new BasicParquetWriterBuilder<>(new TestOutputFile(file))
+                .withRowGroupSize(1024L)
+                .withType(new MessageType("Some Data", idType, labelsType, nameType))
+                .withDehydrator((record, valueWriter) -> {
                     var node = (InputEntity) record;
                     valueWriter.write(":ID", node.id());
                     valueWriter.write(":LABEL", String.join(";", node.labels()));
@@ -285,7 +302,9 @@ class ParquetInputBatchImportIT {
                             valueWriter.write(name, value);
                         }
                     });
-                });
+                })
+                .build();
+
         for (InputEntity nodeDatum : nodeData) {
             writer.write(nodeDatum);
         }
@@ -295,7 +314,7 @@ class ParquetInputBatchImportIT {
 
     private List<InputEntity> randomRelationshipData(List<InputEntity> nodeData, Group group) {
         List<InputEntity> relationships = new ArrayList<>();
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < GENERATED_RELATIONSHIP_COUNT; i++) {
             InputEntity relationship = new InputEntity();
             relationship.startId(nodeData.get(random.nextInt(nodeData.size())).id(), group);
             relationship.endId(nodeData.get(random.nextInt(nodeData.size())).id(), group);
@@ -628,5 +647,141 @@ class ParquetInputBatchImportIT {
 
     private static int indexOf(InputEntity node) {
         return Integer.parseInt(((String) node.properties()[1]).split("\\s")[1]);
+    }
+
+    private static class TestOutputFile extends LocalOutputFile {
+
+        TestOutputFile(Path file) {
+            super(file);
+        }
+
+        @Override
+        public long defaultBlockSize() {
+            return 4096;
+        }
+
+        @Override
+        public boolean supportsBlockSize() {
+            return true;
+        }
+    }
+
+    private static class BasicParquetWriterBuilder<T>
+            extends org.apache.parquet.hadoop.ParquetWriter.Builder<T, BasicParquetWriterBuilder<T>> {
+
+        private MessageType schema;
+        private Dehydrator<T> dehydrator;
+
+        BasicParquetWriterBuilder(OutputFile file) {
+            super(file);
+        }
+
+        public BasicParquetWriterBuilder<T> withType(MessageType schema) {
+            this.schema = schema;
+            return this;
+        }
+
+        public BasicParquetWriterBuilder<T> withDehydrator(Dehydrator<T> dehydrator) {
+            this.dehydrator = dehydrator;
+            return this;
+        }
+
+        @Override
+        protected BasicParquetWriterBuilder<T> self() {
+            return this;
+        }
+
+        @Override
+        protected WriteSupport<T> getWriteSupport(org.apache.hadoop.conf.Configuration conf) {
+            return new BasicWriteSupport<>(schema, dehydrator);
+        }
+    }
+
+    private static class BasicWriteSupport<T> extends WriteSupport<T> {
+        private final MessageType schema;
+        private final Dehydrator<T> dehydrator;
+        private RecordConsumer recordConsumer;
+
+        BasicWriteSupport(MessageType schema, Dehydrator<T> dehydrator) {
+            this.schema = schema;
+            this.dehydrator = dehydrator;
+        }
+
+        @Override
+        public WriteContext init(org.apache.hadoop.conf.Configuration configuration) {
+            return new WriteContext(schema, Map.of(ParquetOutputFormat.BLOCK_SIZE, "4096"));
+        }
+
+        @Override
+        public void prepareForWrite(RecordConsumer recordConsumer) {
+            this.recordConsumer = recordConsumer;
+        }
+
+        @Override
+        public void write(T record) {
+            recordConsumer.startMessage();
+            dehydrator.dehydrate(record, this::writeField);
+            recordConsumer.endMessage();
+        }
+
+        private void writeField(String name, Object value) {
+            var fieldIndex = schema.getFieldIndex(name);
+            var type = schema.getType(fieldIndex).asPrimitiveType();
+
+            recordConsumer.startField(name, fieldIndex);
+            switch (type.getPrimitiveTypeName()) {
+                case INT32 -> recordConsumer.addInteger(((Number) value).intValue());
+                case INT64 -> recordConsumer.addLong(((Number) value).longValue());
+                case BOOLEAN -> recordConsumer.addBoolean((Boolean) value);
+                case FLOAT -> recordConsumer.addFloat(((Number) value).floatValue());
+                case DOUBLE -> recordConsumer.addDouble(((Number) value).doubleValue());
+                case BINARY -> {
+                    if (type.getLogicalTypeAnnotation() instanceof LogicalTypeAnnotation.StringLogicalTypeAnnotation) {
+                        recordConsumer.addBinary(
+                                Binary.fromString(value instanceof String ? (String) value : value.toString()));
+                    } else if (type.getLogicalTypeAnnotation()
+                            instanceof LogicalTypeAnnotation.EnumLogicalTypeAnnotation) {
+                        recordConsumer.addBinary(
+                                Binary.fromString(value instanceof String ? (String) value : value.toString()));
+                    } else if (type.getLogicalTypeAnnotation()
+                            instanceof LogicalTypeAnnotation.DecimalLogicalTypeAnnotation) {
+                        var decimal =
+                                value instanceof BigDecimal ? (BigDecimal) value : new BigDecimal(value.toString());
+                        var unscaled = decimal.unscaledValue().toByteArray();
+
+                        recordConsumer.addBinary(Binary.fromConstantByteArray(unscaled));
+                    } else {
+                        throw new UnsupportedOperationException("writing of %s logical types is not supported."
+                                .formatted(type.getLogicalTypeAnnotation()));
+                    }
+                }
+                case FIXED_LEN_BYTE_ARRAY -> {
+                    if (type.getLogicalTypeAnnotation() instanceof LogicalTypeAnnotation.UUIDLogicalTypeAnnotation) {
+                        var uuid = value instanceof UUID ? (UUID) value : UUID.fromString(value.toString());
+                        var buffer = ByteBuffer.allocate(16);
+                        buffer.putLong(uuid.getMostSignificantBits());
+                        buffer.putLong(uuid.getLeastSignificantBits());
+
+                        recordConsumer.addBinary(Binary.fromConstantByteBuffer(buffer));
+                    } else if (type.getLogicalTypeAnnotation()
+                            instanceof LogicalTypeAnnotation.DecimalLogicalTypeAnnotation) {
+                        var decimal =
+                                value instanceof BigDecimal ? (BigDecimal) value : new BigDecimal(value.toString());
+                        var unscaled = decimal.unscaledValue().toByteArray();
+                        var buffer = ByteBuffer.allocate(type.getTypeLength()).order(ByteOrder.BIG_ENDIAN);
+                        buffer.position(type.getTypeLength() - unscaled.length);
+                        buffer.put(unscaled);
+
+                        recordConsumer.addBinary(Binary.fromConstantByteArray(buffer.array()));
+                    } else {
+                        throw new UnsupportedOperationException("writing of %s logical types is not supported."
+                                .formatted(type.getLogicalTypeAnnotation()));
+                    }
+                }
+                default -> throw new UnsupportedOperationException(
+                        "writing of %s primitive types is not supported.".formatted(type.getPrimitiveTypeName()));
+            }
+            recordConsumer.endField(name, fieldIndex);
+        }
     }
 }
