@@ -441,7 +441,7 @@ class CollectExpressionParserTest extends AstParsingTestBase with LegacyAstParsi
               nodePat(name = Some("m")),
               where = Some(where(eq(
                 CollectExpression(
-                  union(lhs, rhs, differentReturnOrderAllowed = true)
+                  union(lhs, rhs)
                 )(InputPosition(16, 2, 7), None, None),
                 listOfInt(1, 2, 3)
               )))

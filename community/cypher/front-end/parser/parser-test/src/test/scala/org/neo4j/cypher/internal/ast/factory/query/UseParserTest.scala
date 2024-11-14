@@ -84,8 +84,7 @@ class UseParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport 
         ).all)
       case _ => _.toAst(union(
           singleQuery(use(List("foo"))),
-          singleQuery(return_(returnItem(literal(1), "1"))),
-          differentReturnOrderAllowed = true
+          singleQuery(return_(returnItem(literal(1), "1")))
         ).all)
     }
   }

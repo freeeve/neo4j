@@ -1633,8 +1633,8 @@ class AstGenerator(
     lhs <- _query
     rhs <- _singleQuery
     union <- oneOf(
-      UnionDistinct(lhs, rhs, differentReturnOrderAllowed = true)(pos),
-      UnionAll(lhs, rhs, differentReturnOrderAllowed = true)(pos)
+      UnionDistinct(lhs, rhs)(pos),
+      UnionAll(lhs, rhs)(pos)
     )
   } yield union
 

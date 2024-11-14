@@ -35,8 +35,6 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.TextCreateIndex
 import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.Union
-import org.neo4j.cypher.internal.ast.UnionAll
-import org.neo4j.cypher.internal.ast.UnionDistinct
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.expressions.Add
@@ -79,7 +77,6 @@ import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.Ref
-import org.neo4j.cypher.internal.util.UnionReturnItemsInDifferentOrder
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 
@@ -107,16 +104,6 @@ object Deprecations {
             s":${stringifier.stringifyLabelExpression(labelExpression)}",
             s":${stringifier.stringifyLabelExpression(rewrittenExpression)}"
           ))
-        ))
-      case UnionAll(lhs: Query, rhs: SingleQuery, true) if unionReturnItemsInDifferentOrder(lhs, rhs) =>
-        Some(Deprecation(
-          None,
-          Some(UnionReturnItemsInDifferentOrder(lhs.position))
-        ))
-      case UnionDistinct(lhs: Query, rhs: SingleQuery, true) if unionReturnItemsInDifferentOrder(lhs, rhs) =>
-        Some(Deprecation(
-          None,
-          Some(UnionReturnItemsInDifferentOrder(lhs.position))
         ))
 
       case NodePattern(Some(variable), None, Some(properties), None)
@@ -252,11 +239,6 @@ object Deprecations {
       distinct = false,
       args = Vector(e)
     )(s.position)
-  }
-
-  private def unionReturnItemsInDifferentOrder(lhs: Query, rhs: SingleQuery): Boolean = {
-    rhs.returnColumns.nonEmpty && lhs.returnColumns.nonEmpty &&
-    !rhs.returnColumns.map(v => v.name).equals(lhs.returnColumns.map(v => v.name))
   }
 
   // add new semantically deprecated features here

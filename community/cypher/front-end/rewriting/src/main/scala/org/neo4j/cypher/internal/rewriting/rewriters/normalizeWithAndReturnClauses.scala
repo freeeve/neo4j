@@ -132,11 +132,11 @@ case class normalizeWithAndReturnClauses(
   private def rewriteTopLevelQuery(query: org.neo4j.cypher.internal.ast.Query): org.neo4j.cypher.internal.ast.Query =
     query match {
       case sq: SingleQuery => rewriteTopLevelSingleQuery(sq)
-      case union @ UnionAll(lhs, rhs, _) =>
+      case union @ UnionAll(lhs, rhs) =>
         union.copy(lhs = rewriteTopLevelQuery(lhs), rhs = rewriteTopLevelSingleQuery(rhs.getSingleQuery))(
           union.position
         )
-      case union @ UnionDistinct(lhs, rhs, _) =>
+      case union @ UnionDistinct(lhs, rhs) =>
         union.copy(lhs = rewriteTopLevelQuery(lhs), rhs = rewriteTopLevelSingleQuery(rhs.getSingleQuery))(
           union.position
         )

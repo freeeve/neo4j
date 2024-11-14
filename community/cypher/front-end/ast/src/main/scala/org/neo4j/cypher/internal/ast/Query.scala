@@ -666,7 +666,6 @@ object Union {
 sealed trait Union extends Query {
   def lhs: Query
   def rhs: UnionArgument
-  def differentReturnOrderAllowed: Boolean = true
 
   def unionMappings: List[UnionMapping]
 
@@ -704,11 +703,6 @@ sealed trait Union extends Query {
           }
       }
 
-    def unionReturnItemsInDifferentOrder(): Boolean = {
-      rhs.returnColumns.nonEmpty && lhs.returnColumns.nonEmpty &&
-      !rhs.returnColumns.map(v => v.name).equals(lhs.returnColumns.map(v => v.name))
-    }
-
     SemanticCheck.fromState(state => {
       checkUnionAggregation chain
         checkNestedQuery(lhs) chain
@@ -718,13 +712,7 @@ sealed trait Union extends Query {
         checkSingleQuery(rhs) chain
         checkColumnNamesAgree chain
         defineUnionVariables chain
-        SemanticState.recordCurrentScope(this) chain
-        when(!differentReturnOrderAllowed && unionReturnItemsInDifferentOrder()) {
-          SemanticError(
-            s"All subqueries in a UNION [ALL] must have the same ordering for the return columns.",
-            lhs.position
-          )
-        }
+        SemanticState.recordCurrentScope(this)
     })
   }
 
@@ -909,7 +897,7 @@ sealed trait ProjectingUnion extends Union {
   override def checkColumnNamesAgree: SemanticCheck = SemanticCheck.success
 }
 
-final case class UnionAll(lhs: Query, rhs: UnionArgument, override val differentReturnOrderAllowed: Boolean)(
+final case class UnionAll(lhs: Query, rhs: UnionArgument)(
   val position: InputPosition
 ) extends UnmappedUnion {
 
@@ -917,7 +905,7 @@ final case class UnionAll(lhs: Query, rhs: UnionArgument, override val different
     copy(lhs.mapEachSingleQuery(f), f(rhs.getSingleQuery))(position)
 }
 
-final case class UnionDistinct(lhs: Query, rhs: UnionArgument, override val differentReturnOrderAllowed: Boolean)(
+final case class UnionDistinct(lhs: Query, rhs: UnionArgument)(
   val position: InputPosition
 ) extends UnmappedUnion {
 
@@ -948,9 +936,9 @@ case class TopLevelBraces(query: Query, use: Option[UseGraph])(val position: Inp
     wrapUnionArgument(query)
   } else {
     query.getQuery(fromUnion) match {
-      case u @ UnionDistinct(lhs, rhs, _) => u.copy(lhs = lhs.getQuery(true), rhs = rhs.getSingleQuery)(u.position)
-      case u @ UnionAll(lhs, rhs, _)      => u.copy(lhs = lhs.getQuery(true), rhs = rhs.getSingleQuery)(u.position)
-      case q                              => q
+      case u @ UnionDistinct(lhs, rhs) => u.copy(lhs = lhs.getQuery(true), rhs = rhs.getSingleQuery)(u.position)
+      case u @ UnionAll(lhs, rhs)      => u.copy(lhs = lhs.getQuery(true), rhs = rhs.getSingleQuery)(u.position)
+      case q                           => q
     }
 
   }

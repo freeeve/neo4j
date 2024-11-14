@@ -16,8 +16,6 @@
  */
 package org.neo4j.cypher.internal.frontend
 
-import org.neo4j.cypher.internal.CypherVersion.Cypher25
-import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.util.InputPosition
@@ -552,46 +550,23 @@ class CollectExpressionSemanticAnalysisTest
       |RETURN person.name
      """.stripMargin
   ) {
-    run().hasSemanticErrorsIn {
-      case Cypher25 => Seq(
-          SemanticError(
-            getGql42001_42N39(5, 5, 69),
-            "All sub queries in an UNION must have the same return column names",
-            p(69, 5, 5)
-          ),
-          SemanticError(
-            getGql42001_42N39(8, 5, 106),
-            "All sub queries in an UNION must have the same return column names",
-            p(106, 8, 5)
-          ),
-          SemanticError(
-            getGql42001_42N22(2, 7, 28),
-            "A Collect Expression must end with a single return column.",
-            p(28, 2, 7)
-          ),
-          SemanticError(
-            "All subqueries in a UNION [ALL] must have the same ordering for the return columns.",
-            p(42, 3, 5)
-          )
-        )
-      case Cypher5 => Seq(
-          SemanticError(
-            getGql42001_42N39(5, 5, 69),
-            "All sub queries in an UNION must have the same return column names",
-            p(69, 5, 5)
-          ),
-          SemanticError(
-            getGql42001_42N39(8, 5, 106),
-            "All sub queries in an UNION must have the same return column names",
-            p(106, 8, 5)
-          ),
-          SemanticError(
-            getGql42001_42N22(2, 7, 28),
-            "A Collect Expression must end with a single return column.",
-            p(28, 2, 7)
-          )
-        )
-    }
+    run().hasErrors(
+      SemanticError(
+        getGql42001_42N39(5, 5, 69),
+        "All sub queries in an UNION must have the same return column names",
+        p(69, 5, 5)
+      ),
+      SemanticError(
+        getGql42001_42N39(8, 5, 106),
+        "All sub queries in an UNION must have the same return column names",
+        p(106, 8, 5)
+      ),
+      SemanticError(
+        getGql42001_42N22(2, 7, 28),
+        "A Collect Expression must end with a single return column.",
+        p(28, 2, 7)
+      )
+    )
   }
 
   test(

@@ -16,8 +16,6 @@
  */
 package org.neo4j.cypher.internal.frontend
 
-import org.neo4j.cypher.internal.CypherVersion.Cypher25
-import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -504,35 +502,17 @@ class ExistsExpressionSemanticAnalysisTest
          |}
          |RETURN person.name
      """.stripMargin) {
-    run().hasSemanticErrorsIn {
-      case Cypher25 => Seq(
-          SemanticError(
-            getGql42001_42N39(5, 5, 68),
-            "All sub queries in an UNION must have the same return column names",
-            p(68, 5, 5)
-          ),
-          SemanticError(
-            getGql42001_42N39(8, 5, 105),
-            "All sub queries in an UNION must have the same return column names",
-            p(105, 8, 5)
-          ),
-          SemanticError(
-            "All subqueries in a UNION [ALL] must have the same ordering for the return columns.",
-            p(41, 3, 5)
-          )
-        )
-      case Cypher5 => Seq(
-          SemanticError(
-            getGql42001_42N39(5, 5, 68),
-            "All sub queries in an UNION must have the same return column names",
-            p(68, 5, 5)
-          ),
-          SemanticError(
-            getGql42001_42N39(8, 5, 105),
-            "All sub queries in an UNION must have the same return column names",
-            p(105, 8, 5)
-          )
-        )
-    }
+    run().hasErrors(
+      SemanticError(
+        getGql42001_42N39(5, 5, 68),
+        "All sub queries in an UNION must have the same return column names",
+        p(68, 5, 5)
+      ),
+      SemanticError(
+        getGql42001_42N39(8, 5, 105),
+        "All sub queries in an UNION must have the same return column names",
+        p(105, 8, 5)
+      )
+    )
   }
 }

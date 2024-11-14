@@ -16,37 +16,22 @@
  */
 package org.neo4j.cypher.internal.frontend
 
-import org.neo4j.cypher.internal.CypherVersion.Cypher25
-import org.neo4j.cypher.internal.CypherVersion.Cypher5
-import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class UnionSemanticAnalysisTest
     extends CypherFunSuite with NameBasedSemanticAnalysisTestSuite {
 
-  test("Union's must have same return ordering") {
+  test("Union's do not require the same return ordering") {
     for {
-      (query, p) <- Seq(
-        ("MATCH (a)-[]-(b) RETURN a, b UNION MATCH (c)-[]-(d) RETURN c as b, d as a", p(0, 1, 1)),
-        ("RETURN 'val' as one, 'val' as two UNION RETURN 'val' as two, 'val' as one", p(0, 1, 1)),
-        (
-          "RETURN 'val' as one, 'val' as two UNION RETURN 'val' as one, 'val' as two UNION RETURN 'val' as two, 'val' as one",
-          p(34, 1, 35)
-        ),
-        ("MATCH (a)-[]-(b) RETURN a, b UNION ALL MATCH (c)-[]-(d) RETURN c as b, d as a", p(0, 1, 1)),
-        ("RETURN 'val' as one, 'val' as two UNION ALL RETURN 'val' as two, 'val' as one", p(0, 1, 1)),
-        (
-          "RETURN 'val' as one, 'val' as two UNION ALL RETURN 'val' as one, 'val' as two UNION ALL RETURN 'val' as two, 'val' as one",
-          p(34, 1, 35)
-        ),
-        ("RETURN COUNT { MATCH (a)-[]-(b) RETURN a, b UNION MATCH (a)-[]-(b) RETURN b, a }", p(15, 1, 16))
+      query <- Seq(
+        "MATCH (a)-[]-(b) RETURN a, b UNION MATCH (c)-[]-(d) RETURN c as b, d as a",
+        "RETURN 'val' as one, 'val' as two UNION RETURN 'val' as two, 'val' as one",
+        "RETURN 'val' as one, 'val' as two UNION RETURN 'val' as one, 'val' as two UNION RETURN 'val' as two, 'val' as one",
+        "MATCH (a)-[]-(b) RETURN a, b UNION ALL MATCH (c)-[]-(d) RETURN c as b, d as a",
+        "RETURN 'val' as one, 'val' as two UNION ALL RETURN 'val' as two, 'val' as one",
+        "RETURN 'val' as one, 'val' as two UNION ALL RETURN 'val' as one, 'val' as two UNION ALL RETURN 'val' as two, 'val' as one",
+        "RETURN COUNT { MATCH (a)-[]-(b) RETURN a, b UNION MATCH (a)-[]-(b) RETURN b, a }"
       )
-    } run(query).hasErrorsIn {
-      case Cypher25 => Seq((
-          "All subqueries in a UNION [ALL] must have the same ordering for the return columns.",
-          p
-        ))
-      case Cypher5 => Seq.empty
-    }
+    } run(query).hasNoErrors
   }
 }

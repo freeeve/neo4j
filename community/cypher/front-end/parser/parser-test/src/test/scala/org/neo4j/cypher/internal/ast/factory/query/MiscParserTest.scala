@@ -407,11 +407,9 @@ class MiscParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport
           union(
             union(
               singleQuery(returnLit(1 -> "x")),
-              singleQuery(returnLit(2 -> "x")),
-              differentReturnOrderAllowed = true
+              singleQuery(returnLit(2 -> "x"))
             ),
-            singleQuery(returnLit(3 -> "x")),
-            differentReturnOrderAllowed = true
+            singleQuery(returnLit(3 -> "x"))
           )
         )
     }

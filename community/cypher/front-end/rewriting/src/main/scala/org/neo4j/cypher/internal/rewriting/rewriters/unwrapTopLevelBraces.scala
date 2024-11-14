@@ -81,9 +81,9 @@ case object unwrapTopLevelBraces extends Step with PreparatoryRewritingRewriterF
 
   private def pushDownUse(query: Query, use: Option[UseGraph]): Query = {
     query match {
-      case ua: UnionArgument              => pushDownUse(ua, use)
-      case u @ UnionDistinct(lhs, rhs, _) => u.copy(pushDownUse(lhs, use), pushDownUse(rhs, use))(u.position)
-      case u @ UnionAll(lhs, rhs, _)      => u.copy(pushDownUse(lhs, use), pushDownUse(rhs, use))(u.position)
+      case ua: UnionArgument           => pushDownUse(ua, use)
+      case u @ UnionDistinct(lhs, rhs) => u.copy(pushDownUse(lhs, use), pushDownUse(rhs, use))(u.position)
+      case u @ UnionAll(lhs, rhs)      => u.copy(pushDownUse(lhs, use), pushDownUse(rhs, use))(u.position)
       case _: ProjectingUnion =>
         throw new IllegalStateException(
           "Didn't expect ProjectingUnion, only SingleQuery, TopLevelBraces, UnionAll, or UnionDistinct."
@@ -119,9 +119,9 @@ case object unwrapTopLevelBraces extends Step with PreparatoryRewritingRewriterF
   })
 
   private val rewriter: Rewriter = topDown(Rewriter.lift {
-    case u @ UnionDistinct(lhs, rhs, _) =>
+    case u @ UnionDistinct(lhs, rhs) =>
       u.copy(lhs.getQuery(true), rhs.getSingleQuery)(u.position)
-    case u @ UnionAll(lhs, rhs, _) =>
+    case u @ UnionAll(lhs, rhs) =>
       u.copy(lhs.getQuery(true), rhs.getSingleQuery)(u.position)
     case tlb: TopLevelBraces =>
       tlb.getQuery(false)

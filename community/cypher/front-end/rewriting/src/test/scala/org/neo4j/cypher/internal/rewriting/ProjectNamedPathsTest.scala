@@ -1517,7 +1517,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         SingleQuery(List(RETURN))(pos)
       }
       ScopeClauseSubqueryCall(
-        UnionDistinct(LEFT, RIGHT, differentReturnOrderAllowed = true)(pos),
+        UnionDistinct(LEFT, RIGHT)(pos),
         false,
         Seq(a),
         None,
@@ -1656,7 +1656,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
 
         SingleQuery(List(WITH1, WITH2, RETURN))(pos)
       }
-      ImportingWithSubqueryCall(UnionDistinct(LEFT, RIGHT, differentReturnOrderAllowed = true)(pos), None, false)(pos)
+      ImportingWithSubqueryCall(UnionDistinct(LEFT, RIGHT)(pos), None, false)(pos)
     }
 
     val RETURN =

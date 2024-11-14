@@ -234,11 +234,6 @@ public enum NotificationCodeWithDescription {
             Status.Statement.FeatureDeprecationWarning,
             GqlStatusInfoCodes.STATUS_01N01,
             "'%s' is deprecated. It is replaced by '%s'."),
-    UNION_RETURN_ORDER(
-            Status.Statement.FeatureDeprecationWarning,
-            GqlStatusInfoCodes.STATUS_01N00,
-            "All subqueries in a UNION [ALL] should have the same ordering for the return columns. "
-                    + "Using differently ordered return items in a UNION [ALL] clause is deprecated and will be removed in a future version."),
     HOME_DATABASE_NOT_PRESENT(
             Status.Database.HomeDatabaseNotFound,
             GqlStatusInfoCodes.STATUS_00N50,
@@ -677,12 +672,6 @@ public enum NotificationCodeWithDescription {
                 position,
                 new String[] {whenOperandWithUnescapedVariable, whenOperandWithEscapedVariable},
                 new String[] {whenOperandWithUnescapedVariable, whenOperandWithEscapedVariable});
-    }
-
-    public static NotificationImplementation unionReturnOrder(InputPosition position) {
-        return UNION_RETURN_ORDER.notificationWithParameters(position, new String[] {}, new String[] {
-            "All subqueries in a UNION [ALL] should have the same ordering for the return columns. Using differently ordered return items in a UNION [ALL] clause is deprecated and will be removed in a future version."
-        });
     }
 
     public static NotificationImplementation homeDatabaseNotPresent(

@@ -397,12 +397,11 @@ case class FabricStitcher(
           val rhs = stitchChain(union.rhs, outermost, outerUse)
           val uses = lhs.useAppearances ++ rhs.useAppearances :+ UnionUse(lhs.lastUse, rhs.lastUse)
           val rhsQuery = SingleQuery(rhs.clauses)(union.rhs.pos)
-          val differentReturnOderAllowed = cypherVersion == CypherVersion.Cypher5
           val result =
             if (union.distinct) {
-              UnionDistinct(lhs.query, rhsQuery, differentReturnOderAllowed)(union.pos)
+              UnionDistinct(lhs.query, rhsQuery)(union.pos)
             } else {
-              UnionAll(lhs.query, rhsQuery, differentReturnOderAllowed)(union.pos)
+              UnionAll(lhs.query, rhsQuery)(union.pos)
             }
           StitchResult(result, rhs.lastUse, uses)
       }

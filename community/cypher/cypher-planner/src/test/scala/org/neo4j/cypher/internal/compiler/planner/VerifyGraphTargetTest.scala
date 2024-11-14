@@ -27,8 +27,6 @@ import org.neo4j.cypher.internal.ast.IsTyped
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
 import org.neo4j.cypher.internal.ast.SetIncludingPropertiesFromMapItem
-import org.neo4j.cypher.internal.ast.UnionAll
-import org.neo4j.cypher.internal.ast.UnionDistinct
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.UseAsMultipleGraphsSelector
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.UseAsSingleGraphSelector
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
@@ -319,8 +317,6 @@ class VerifyGraphTargetTest extends CypherFunSuite {
    */
   def rewriteASTDifferences(statement: Query): Query = {
     statement.endoRewrite(bottomUp(Rewriter.lift {
-      case u: UnionDistinct                     => u.copy(differentReturnOrderAllowed = true)(u.position)
-      case u: UnionAll                          => u.copy(differentReturnOrderAllowed = true)(u.position)
       case u: SetExactPropertiesFromMapItem     => u.copy(rhsMustBeMap = false)(u.position)
       case u: SetIncludingPropertiesFromMapItem => u.copy(rhsMustBeMap = false)(u.position)
       case v: Variable if v.isIsolated          =>

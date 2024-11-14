@@ -49,8 +49,7 @@ class SubqueryCallParserTest extends AstParsingTestBase {
       case _ => _.toAst(importingWithSubqueryCall(
           union(
             singleQuery(return_(literalInt(1).as("a"))),
-            singleQuery(return_(literalInt(2).as("a"))),
-            differentReturnOrderAllowed = true
+            singleQuery(return_(literalInt(2).as("a")))
           )
         ))
     }
@@ -153,14 +152,12 @@ class SubqueryCallParserTest extends AstParsingTestBase {
     parsesIn[SubqueryCall] {
       case Cypher25 => _.toAst(optionalImportingWithSubqueryCall(
           unionDistinct(
-            false,
             singleQuery(return_(literalInt(1).as("a"))),
             singleQuery(return_(literalInt(2).as("a")))
           )
         ))
       case _ => _.toAst(optionalImportingWithSubqueryCall(
           unionDistinct(
-            true,
             singleQuery(return_(literalInt(1).as("a"))),
             singleQuery(return_(literalInt(2).as("a")))
           )

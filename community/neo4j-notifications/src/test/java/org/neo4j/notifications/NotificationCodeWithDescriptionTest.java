@@ -87,7 +87,6 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.serverAlre
 import static org.neo4j.notifications.NotificationCodeWithDescription.serverAlreadyEnabled;
 import static org.neo4j.notifications.NotificationCodeWithDescription.subqueryVariableShadowing;
 import static org.neo4j.notifications.NotificationCodeWithDescription.unboundedShortestPath;
-import static org.neo4j.notifications.NotificationCodeWithDescription.unionReturnOrder;
 import static org.neo4j.notifications.NotificationCodeWithDescription.unsatisfiableRelationshipTypeExpression;
 import static org.neo4j.notifications.NotificationDetail.repeatedRelationship;
 import static org.neo4j.notifications.NotificationDetail.unsatisfiableRelTypeExpression;
@@ -1292,27 +1291,6 @@ class NotificationCodeWithDescriptionTest {
     }
 
     @Test
-    void shouldConstructNotificationsFor_UNION_RETURN_ORDER() {
-        NotificationImplementation notification = unionReturnOrder(InputPosition.empty);
-
-        String message =
-                "All subqueries in a UNION [ALL] should have the same ordering for the return columns. Using differently ordered return items in a UNION [ALL] clause is deprecated and will be removed in a future version.";
-        verifyNotification(
-                notification,
-                "This feature is deprecated and will be removed in future versions.",
-                SeverityLevel.WARNING,
-                "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
-                message,
-                NotificationCategory.DEPRECATION,
-                NotificationClassification.DEPRECATION,
-                "01N00",
-                new DiagnosticRecord(
-                                warning, NotificationClassification.DEPRECATION, -1, -1, -1, Map.of("item", message))
-                        .asMap(),
-                String.format("warn: feature deprecated. %s", message));
-    }
-
-    @Test
     void shouldConstructNotificationsFor_DEPRECATED_CONNECT_COMPONENTS_PLANNER_PRE_PARSER_OPTION() {
         NotificationImplementation notification =
                 deprecatedConnectComponentsPlannerPreParserOption(InputPosition.empty);
@@ -2007,8 +1985,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            100, 37, 101, -19, -105, 49, 13, 70, -78, 49, 8, -89, -31, -68, 119, -125, -28, -106, -51, 90, -14, 24, 113,
-            98, 114, -66, -67, 20, -114, -59, 84, 79
+            -78, -71, -88, 114, 105, 70, 45, -23, 72, -107, -56, -88, -83, -101, -37, 3, -70, -10, 94, -58, -39, 69, 89,
+            -104, 37, -103, 28, 35, 6, -2, 91, -108
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {

@@ -46,7 +46,6 @@ object InternalNotification {
     "DeprecatedWhereVariableInRelationshipPattern",
     "DeprecatedPrecedenceOfLabelExpressionPredicate",
     "DeprecatedKeywordVariableInWhenOperand",
-    "UnionReturnItemsInDifferentOrder",
     "HomeDatabaseNotPresent",
     "FixedLengthRelationshipInShortestPath",
     "DeprecatedDatabaseNameNotification",
@@ -152,8 +151,6 @@ case class DeprecatedKeywordVariableInWhenOperand(
   variableName: String,
   remainingExpression: String
 ) extends InternalNotification
-
-case class UnionReturnItemsInDifferentOrder(position: InputPosition) extends InternalNotification
 
 case class HomeDatabaseNotPresent(databaseName: String) extends InternalNotification
 

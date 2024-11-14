@@ -145,8 +145,8 @@ trait StatementBuilder extends Cypher5ParserListener {
         ctx.children.get(i) match {
           case sqCtx: Cypher5Parser.SingleQueryContext =>
             val rhs = sqCtx.ast[SingleQuery]()
-            result = if (all) UnionAll(result, rhs, differentReturnOrderAllowed = true)(p)
-            else UnionDistinct(result, rhs, differentReturnOrderAllowed = true)(p)
+            result = if (all) UnionAll(result, rhs)(p)
+            else UnionDistinct(result, rhs)(p)
             all = false
           case node: TerminalNode => node.getSymbol.getType match {
               case Cypher5Parser.ALL      => all = true

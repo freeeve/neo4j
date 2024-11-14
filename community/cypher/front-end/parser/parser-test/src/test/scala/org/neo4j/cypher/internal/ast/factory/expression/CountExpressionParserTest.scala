@@ -410,7 +410,7 @@ class CountExpressionParserTest extends AstParsingTestBase with LegacyAstParsing
               nodePat(name = Some("m")),
               where = Some(where(gte(
                 CountExpression(
-                  union(lhs, rhs, differentReturnOrderAllowed = true)
+                  union(lhs, rhs)
                 )(InputPosition(16, 2, 7), None, None),
                 literal(3)
               )))

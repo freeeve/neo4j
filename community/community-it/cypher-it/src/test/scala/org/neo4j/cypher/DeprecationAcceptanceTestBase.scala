@@ -60,7 +60,6 @@ import org.neo4j.notifications.NotificationCodeWithDescription.deprecatedWhereVa
 import org.neo4j.notifications.NotificationCodeWithDescription.deprecatedWhereVariableInRelationshipPattern
 import org.neo4j.notifications.NotificationCodeWithDescription.missingLabel
 import org.neo4j.notifications.NotificationCodeWithDescription.procedureWarning
-import org.neo4j.notifications.NotificationCodeWithDescription.unionReturnOrder
 import org.neo4j.notifications.NotificationDetail
 import org.neo4j.notifications.NotificationDetail.deprecationNotificationDetail
 import org.scalatest.BeforeAndAfterAll
@@ -620,7 +619,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
     assertNoDeprecations(queries)
   }
 
-  test("deprecate using a different order in Union returns") {
+  test("Union return orders are not deprecated") {
     val queries = Seq(
       "MATCH (a)-[]-(b) RETURN a, b UNION MATCH (c)-[]-(d) RETURN c as b, d as a",
       "RETURN 'val' as one, 'val' as two UNION RETURN 'val' as two, 'val' as one",
@@ -628,27 +627,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
       "MATCH (a)-[]-(b) RETURN a, b UNION ALL MATCH (c)-[]-(d) RETURN c as b, d as a",
       "RETURN 'val' as one, 'val' as two UNION ALL RETURN 'val' as two, 'val' as one",
       "RETURN 'val' as one, 'val' as two UNION ALL RETURN 'val' as one, 'val' as two UNION ALL RETURN 'val' as two, 'val' as one",
-      "RETURN COUNT { MATCH (a)-[]-(b) RETURN a, b UNION MATCH (a)-[]-(b) RETURN b, a }"
-    )
-    assertNotification(
-      queries,
-      shouldContainNotification = true,
-      unionReturnOrder,
-      List(
-        TestGqlStatusObject(
-          STATUS_01N00.getStatusString,
-          "warn: feature deprecated. All subqueries in a UNION [ALL] should have the same ordering for the return columns. Using differently ordered return items in a UNION [ALL] clause is deprecated and will be removed in a future version.",
-          SeverityLevel.WARNING,
-          NotificationClassification.DEPRECATION
-        ),
-        testOmittedResult
-      ),
-      cypherVersions = Set(CypherVersion.cypher5)
-    )
-  }
-
-  test("do not deprecate valid Union return orders") {
-    val queries = Seq(
+      "RETURN COUNT { MATCH (a)-[]-(b) RETURN a, b UNION MATCH (a)-[]-(b) RETURN b, a }",
       "RETURN 'val' as one, 'val' as two UNION RETURN 'val' as one, 'val' as two",
       "MATCH (a)-[]-(b) RETURN a, b UNION MATCH (c)-[]-(d) RETURN c as a, d as b",
       "MATCH (a)-[]-(b) RETURN * UNION MATCH (a)-[]-(b) RETURN a, b",
