@@ -51,14 +51,20 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     rewrite(before) should equal(after)
   }
 
-  test("Do not rewrite to PruningVarExpand in walk mode") {
+  test("should keep walk mode in PruningVarExpand") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
       .expand("(from)-[*2..3]-(to)", matchMode = TraversalMatchMode.Walk)
       .allNodeScan("from")
       .build()
 
-    assertNotRewritten(before, policy = VarExpandRewritePolicy.PreferDFS)
+    val after = new LogicalPlanBuilder(wholePlan = false)
+      .distinct("to AS to")
+      .pruningVarExpand("(from)-[*2..3]-(to)", matchMode = TraversalMatchMode.Walk)
+      .allNodeScan("from")
+      .build()
+
+    rewrite(before) should equal(after)
   }
 
   test("simplest possible query that can use BFSPruningVarExpand") {
@@ -77,14 +83,20 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     rewrite(before) should equal(after)
   }
 
-  test("Do not rewrite to BFSPruningVarExpand in walk mode") {
+  test("should keep walk mode BFSPruningVarExpand") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
       .expand("(from)-[*1..3]->(to)", matchMode = TraversalMatchMode.Walk)
       .allNodeScan("from")
       .build()
 
-    assertNotRewritten(before, policy = VarExpandRewritePolicy.PreferDFS)
+    val after = new LogicalPlanBuilder(wholePlan = false)
+      .distinct("to AS to")
+      .bfsPruningVarExpand("(from)-[*1..3]->(to)", matchMode = TraversalMatchMode.Walk)
+      .allNodeScan("from")
+      .build()
+
+    rewrite(before) should equal(after)
   }
 
   test("should not rewrite simplest possible VarExpandInto plan with DFS policy") {

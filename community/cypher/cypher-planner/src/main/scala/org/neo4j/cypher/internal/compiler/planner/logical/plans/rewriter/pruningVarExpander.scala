@@ -56,7 +56,6 @@ import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RightOuterHashJoin
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.SemiApply
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
 import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
 import org.neo4j.cypher.internal.logical.plans.VarExpand
@@ -394,7 +393,7 @@ case class pruningVarExpander(
                 mode,
                 nodePredicate,
                 relationshipPredicate,
-                TraversalMatchMode.Trail
+                matchMode
               ) =>
               if (replacementPlans.bfsPruningExpands.contains(Ref(expand))) {
                 BFSPruningVarExpand(
@@ -408,7 +407,8 @@ case class pruningVarExpander(
                   depthName = replacementPlans.bfsPruningExpands(Ref(expand)).map(varFor),
                   mode,
                   nodePredicate,
-                  relationshipPredicate
+                  relationshipPredicate,
+                  matchMode
                 )(SameId(expand.id))
               } else if (replacementPlans.pruningExpands(Ref(expand))) {
                 PruningVarExpand(
@@ -420,7 +420,8 @@ case class pruningVarExpander(
                   length.min,
                   length.max.get,
                   nodePredicate,
-                  relationshipPredicate
+                  relationshipPredicate,
+                  matchMode
                 )(SameId(expand.id))
               } else {
                 expand
