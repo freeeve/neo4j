@@ -1218,8 +1218,7 @@ public final class CypherFunctions {
                     if (singleValue == null) {
                         singleValue = textValue;
                     } else if (!singleValue.equals(textValue)) {
-                        throw new IllegalArgumentException(
-                                "Error - Exactly one relationship type must be specified for CREATE.");
+                        throw new IllegalArgumentException("Error - Exactly one relationship type must be specified.");
                     }
                 } else {
                     throw new CypherTypeException(format(
@@ -1234,7 +1233,7 @@ public final class CypherFunctions {
         }
         if (singleValue == null) {
             // can only reach here if value was an empty sequence
-            throw new IllegalArgumentException("Error - Exactly one relationship type must be specified for CREATE.");
+            throw new IllegalArgumentException("Error - Exactly one relationship type must be specified.");
         }
 
         return singleValue.stringValue();
