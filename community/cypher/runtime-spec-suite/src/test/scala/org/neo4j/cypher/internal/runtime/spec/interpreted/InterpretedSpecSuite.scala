@@ -260,14 +260,25 @@ class InterpretedVarExpandTrailTest
 class InterpretedVarExpandWalkTest
     extends VarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalMatchMode.Walk)
 
-class InterpretedPruningVarExpandTest
-    extends PruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedPruningVarExpandTrailTest
+    extends PruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalMatchMode.Trail)
+
+class InterpretedPruningVarExpandWalkTest
+    extends PruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalMatchMode.Walk)
 
 class InterpretedPruningVarExpandFuzzTest
     extends PruningVarLengthExpandFuzzTestBase(COMMUNITY.EDITION, InterpretedRuntime)
 
-class InterpretedBFSPruningVarExpandTest
-    extends BFSPruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedBFSPruningVarExpandTrailTest
+    extends BFSPruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalMatchMode.Walk)
+
+class InterpretedBFSPruningVarExpandWalkTest
+    extends BFSPruningVarLengthExpandTestBase(
+      COMMUNITY.EDITION,
+      InterpretedRuntime,
+      SIZE_HINT,
+      TraversalMatchMode.Trail
+    )
 class InterpretedProjectEndpointsTest extends ProjectEndpointsTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
 class InterpretedLabelScanTest extends LabelScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
 class InterpretedUnionLabelScanTest extends UnionLabelScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
