@@ -2986,6 +2986,7 @@ class BFSPruningVarExpandCursorTest {
                             nodeFilter,
                             relFilter,
                             soughtEndNode,
+                            true,
                             memoryTracker);
                     case INCOMING -> BFSPruningVarExpandCursor.incomingExpander(
                             startNode,

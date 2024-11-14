@@ -1236,6 +1236,7 @@ class SlottedPipeMapper(
           max,
           slots,
           mode,
+          matchMode,
           predicates
         )(id = id)
 

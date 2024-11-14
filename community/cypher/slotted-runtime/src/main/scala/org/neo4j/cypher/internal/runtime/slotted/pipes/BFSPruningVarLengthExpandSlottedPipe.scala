@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpansionMode
+import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
 import org.neo4j.cypher.internal.physicalplanning.Slot
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration
 import org.neo4j.cypher.internal.physicalplanning.SlotConfigurationUtils.NO_ENTITY_FUNCTION
@@ -52,6 +53,7 @@ case class BFSPruningVarLengthExpandSlottedPipe(
   max: Int,
   slots: SlotConfiguration,
   mode: ExpansionMode,
+  traversalMatchMode: TraversalMatchMode,
   predicates: TraversalPredicates
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) with Pipe {
   self =>
@@ -89,6 +91,7 @@ case class BFSPruningVarLengthExpandSlottedPipe(
                 includeStartNode,
                 max,
                 mode,
+                traversalMatchMode,
                 predicates.asNodeIdPredicate(inputRow, state),
                 predicates.asRelCursorPredicate(inputRow, state),
                 memoryTracker

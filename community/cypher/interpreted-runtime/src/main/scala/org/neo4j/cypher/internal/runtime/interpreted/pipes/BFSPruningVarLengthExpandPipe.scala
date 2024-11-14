@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.logical.plans.Expand
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpansionMode
+import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
@@ -57,6 +58,7 @@ case class BFSPruningVarLengthExpandPipe(
   includeStartNode: Boolean,
   max: Int,
   mode: ExpansionMode,
+  traversalMatchMode: TraversalMatchMode,
   filteringStep: TraversalPredicates = TraversalPredicates.NONE
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) with Pipe {
   self =>
@@ -81,6 +83,7 @@ case class BFSPruningVarLengthExpandPipe(
           includeStartNode,
           max,
           mode,
+          traversalMatchMode,
           filteringStep.asNodeIdPredicate(row, state),
           filteringStep.asRelCursorPredicate(row, state),
           memoryTracker
@@ -143,6 +146,7 @@ object BFSPruningVarLengthExpandPipe {
     includeStartNode: Boolean,
     max: Int,
     mode: ExpansionMode,
+    traversalMatchMode: TraversalMatchMode,
     nodePredicate: LongPredicate,
     relPredicate: Predicate[RelationshipTraversalEntities],
     memoryTracker: MemoryTracker
@@ -191,6 +195,7 @@ object BFSPruningVarLengthExpandPipe {
           nodePredicate,
           relPredicate,
           if (mode == ExpandInto) to else NO_SUCH_NODE,
+          traversalMatchMode == TraversalMatchMode.Trail,
           memoryTracker
         )
     }

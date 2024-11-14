@@ -1306,6 +1306,7 @@ case class InterpretedPipeMapper(
           dir,
           minLength,
           maxLength,
+          matchMode,
           predicate
         )(id = id)
 
@@ -1334,6 +1335,7 @@ case class InterpretedPipeMapper(
           includeStartNode,
           max,
           mode,
+          matchMode,
           predicate
         )(id = id)
 

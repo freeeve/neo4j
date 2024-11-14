@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap
 import org.neo4j.collection.trackable.HeapTrackingCollections
 import org.neo4j.cypher.internal.expressions.SemanticDirection
+import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IsNoValue
@@ -43,6 +44,7 @@ case class PruningVarLengthExpandPipe(
   dir: SemanticDirection,
   min: Int,
   max: Int,
+  traversalMatchMode: TraversalMatchMode,
   filteringStep: TraversalPredicates = TraversalPredicates.NONE
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) with Pipe {
   self =>
@@ -95,7 +97,8 @@ case class PruningVarLengthExpandPipe(
     val row: CypherRow,
     val expandMap: MutableLongObjectMap[NodeState],
     val prevLocalRelIndex: Int,
-    val prevNodeState: NodeState
+    val prevNodeState: NodeState,
+    traversalMatchMode: TraversalMatchMode
   ) {
 
     var nodeState: NodeState = NodeState.UNINITIALIZED
@@ -152,7 +155,7 @@ case class PruningVarLengthExpandPipe(
     }
 
     private def seenRelationshipInPath(r: Long): Boolean = {
-      if (pathLength == 0) return false
+      if (pathLength == 0 || traversalMatchMode == TraversalMatchMode.Walk) return false
       var idx = 0
       while (idx < pathLength) {
         if (path(idx) == r) return true
@@ -347,7 +350,18 @@ case class PruningVarLengthExpandPipe(
       queryState.query.transactionalContext.assertTransactionOpen() // Check transaction termination/timeout in case this is long running
       depth += 1
       nodeState(depth) =
-        new PruningDFS(this, node, path, pathLength, queryState, inputRow, expandMap, prevLocalRelIndex, prevNodeState)
+        new PruningDFS(
+          this,
+          node,
+          path,
+          pathLength,
+          queryState,
+          inputRow,
+          expandMap,
+          prevLocalRelIndex,
+          prevNodeState,
+          traversalMatchMode
+        )
 
       nodeState(depth).nextEndNode()
     }
