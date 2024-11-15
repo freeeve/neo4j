@@ -19,12 +19,34 @@
  */
 package org.neo4j.genai.util;
 
+import java.io.Serial;
+import java.util.Optional;
+
 public class GenAIProcedureException extends RuntimeException {
+
+    @Serial
+    private static final long serialVersionUID = -2131505931108622859L;
+
+    private final Integer optionalHttpCode;
+
     public GenAIProcedureException(String message) {
+        this(message, (Integer) null);
+    }
+
+    public GenAIProcedureException(String message, Integer optionalHttpCode) {
         super(message);
+        this.optionalHttpCode = optionalHttpCode;
     }
 
     public GenAIProcedureException(String message, Throwable cause) {
         super(message, cause);
+        this.optionalHttpCode = null;
+    }
+
+    /**
+     * {@return an optional Http error code associated with this exception}
+     */
+    public Optional<Integer> getOptionalHttpCode() {
+        return Optional.ofNullable(optionalHttpCode);
     }
 }

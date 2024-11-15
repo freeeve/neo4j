@@ -17,16 +17,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.vector;
+package org.neo4j.genai.dbs;
 
+import java.io.Serial;
 import org.neo4j.genai.util.GenAIProcedureException;
 
-public class MalformedGenAIResponseException extends GenAIProcedureException {
-    public MalformedGenAIResponseException(String message) {
-        super(message);
-    }
+/**
+ * This exception will be thrown in case a user missed yielding a result, a config key or similar.
+ */
+public final class InvalidUsageException extends GenAIProcedureException {
 
-    public MalformedGenAIResponseException(String message, Throwable cause) {
-        super(message, cause);
+    @Serial
+    private static final long serialVersionUID = 3110446993370447189L;
+
+    InvalidUsageException(String message) {
+        super(message, (Integer) null);
     }
 }

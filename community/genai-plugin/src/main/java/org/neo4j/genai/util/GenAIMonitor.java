@@ -19,17 +19,7 @@
  */
 package org.neo4j.genai.util;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Writer;
-import java.net.URI;
-import org.eclipse.collections.api.multimap.Multimap;
-
-public interface Client {
-    InputStream sendRequest(URI uri, Multimap<String, String> propertiesHttpClient, Payload payload)
-            throws IOException, GenAIProcedureException;
-
-    interface Payload {
-        void writeTo(Writer writer) throws IOException;
-    }
-}
+/**
+ * A marker interface for all GenAI monitors.
+ */
+public interface GenAIMonitor {}

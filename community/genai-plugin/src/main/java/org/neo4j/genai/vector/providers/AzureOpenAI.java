@@ -20,13 +20,12 @@
 package org.neo4j.genai.vector.providers;
 
 import java.net.URI;
+import java.net.http.HttpRequest;
 import java.util.Map;
 import java.util.OptionalLong;
 import java.util.regex.Pattern;
 import org.apache.commons.text.StringSubstitutor;
-import org.eclipse.collections.api.multimap.MutableMultimap;
 import org.neo4j.annotations.service.ServiceProvider;
-import org.neo4j.genai.util.HttpClient;
 import org.neo4j.genai.vector.VectorEncoding.Provider;
 import org.neo4j.genai.vector.providers.openai.OpenAIBasedEncoder;
 
@@ -41,8 +40,6 @@ public final class AzureOpenAI implements Provider<AzureOpenAI.Parameters> {
 
     // 2-64 mixed-case alphanumerical + "-" + "_"; can't end on "-" or "_"
     private static final Pattern DEPLOYMENT_PATTERN = Pattern.compile("^[\\p{Alnum}_-]{1,63}\\p{Alnum}$");
-
-    private final HttpClient client = new HttpClient();
 
     public static class Parameters {
         public String token;
@@ -64,7 +61,7 @@ public final class AzureOpenAI implements Provider<AzureOpenAI.Parameters> {
     @Override
     public Provider.Encoder configure(Parameters configuration) {
         final var endpoint = configureEndpoint(configuration);
-        return new Encoder(client, endpoint, configuration);
+        return new Encoder(endpoint, configuration);
     }
 
     private static URI configureEndpoint(Parameters config) {
@@ -95,14 +92,14 @@ public final class AzureOpenAI implements Provider<AzureOpenAI.Parameters> {
     static class Encoder extends OpenAIBasedEncoder {
         private final Parameters configuration;
 
-        Encoder(HttpClient client, URI endpoint, Parameters configuration) {
-            super(NAME, client, endpoint, configuration.dimensions);
+        Encoder(URI endpoint, Parameters configuration) {
+            super(NAME, endpoint, configuration.dimensions);
             this.configuration = configuration;
         }
 
         @Override
-        protected void extendHeaders(MutableMultimap<String, String> headers) {
-            headers.put("api-key", configuration.token);
+        protected HttpRequest.Builder customize(HttpRequest.Builder builder) {
+            return builder.setHeader("api-key", configuration.token);
         }
     }
 }

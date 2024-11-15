@@ -17,13 +17,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.vector;
+package org.neo4j.genai.dbs;
 
-import org.neo4j.genai.util.GenAIMonitor;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.http.HttpRequest;
+import java.util.function.Function;
 
-public interface VectorEncodingCallCountersMonitor extends GenAIMonitor {
-
-    void encodeFunctionCalled(String provider);
-
-    void encodeBatchProcedureCalled(String provider);
-}
+/**
+ * Required information for sending HTTP requests to any supported vector database.
+ */
+public record VectorDatabaseRequest<T>(
+        URI target,
+        Function<HttpRequest.Builder, HttpRequest> requestCustomizer,
+        Function<InputStream, T> responseTransformer) {}

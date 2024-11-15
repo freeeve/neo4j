@@ -17,13 +17,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.vector;
+package org.neo4j.genai.dbs;
 
-import org.neo4j.genai.util.GenAIMonitor;
+import java.io.Serial;
+import org.neo4j.genai.util.GenAIProcedureException;
 
-public interface VectorEncodingCallCountersMonitor extends GenAIMonitor {
+/**
+ * This exception will be thrown when a collection in a vector database was not found, either during a request for metadata or in any query or update request.
+ */
+public final class CollectionNotFoundException extends GenAIProcedureException {
 
-    void encodeFunctionCalled(String provider);
+    @Serial
+    private static final long serialVersionUID = -4511194700939304357L;
 
-    void encodeBatchProcedureCalled(String provider);
+    public CollectionNotFoundException(String collection) {
+        super("Collection '%s' not found".formatted(collection), 404);
+    }
 }

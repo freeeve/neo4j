@@ -24,18 +24,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.URI;
+import java.net.http.HttpRequest;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.text.StringSubstitutor;
 import org.eclipse.collections.impl.factory.Multimaps;
 import org.neo4j.annotations.service.ServiceProvider;
-import org.neo4j.genai.util.CheckedAccessors.Json;
-import org.neo4j.genai.util.Client.Payload;
-import org.neo4j.genai.util.HttpClient;
+import org.neo4j.genai.util.HttpService;
+import org.neo4j.genai.util.JsonUtils;
+import org.neo4j.genai.util.MalformedGenAIResponseException;
 import org.neo4j.genai.util.aws.AwsSignatureV4HeaderGenerator;
-import org.neo4j.genai.vector.MalformedGenAIResponseException;
 import org.neo4j.genai.vector.VectorEncoding.Provider;
 
 @ServiceProvider
@@ -54,9 +55,6 @@ public final class Bedrock implements Provider<Bedrock.Parameters> {
     private static final String STRINGIFIED_SUPPORTED_MODELS =
             SUPPORTED_MODELS.stream().map(s -> "'" + s + "'").collect(Collectors.joining(", ", "[", "]"));
     private static final TypeReference<float[]> VECTOR_TYPE_REFERENCE = new TypeReference<>() {};
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    private final HttpClient client = new HttpClient();
 
     public static class Parameters {
         public String accessKeyId;
@@ -87,27 +85,35 @@ public final class Bedrock implements Provider<Bedrock.Parameters> {
         }
         final var endpoint = URI.create(StringSubstitutor.replace(
                 ENDPOINT_TEMPLATE, Map.of("region", configuration.region, "model", configuration.model)));
-        return new Encoder(client, endpoint, configuration);
+        return new Encoder(endpoint, configuration);
     }
 
-    record Encoder(HttpClient client, URI endpoint, Parameters configuration) implements Provider.Encoder {
+    record Encoder(URI endpoint, Parameters configuration) implements Provider.Encoder {
         @Override
-        public float[] encode(String resource) {
+        public float[] encode(HttpService httpService, String resource) {
             try {
-                final var body = createRequestBody(resource);
-                final var requestProperties = client.prepareRequestProperties(
-                        endpoint.getHost(),
-                        Multimaps.mutable.list.of("Content-Type", "application/json", "Accept", "application/json"));
+                var body = createRequestBody(resource);
+                return httpService.request(
+                        endpoint,
+                        builder -> {
+                            var intermediate = builder.build();
+                            var requestProperties = Multimaps.mutable.list.with("Host", endpoint.getHost());
+                            intermediate.headers().map().forEach(requestProperties::putAll);
 
-                final var headers = new AwsSignatureV4HeaderGenerator(
-                                configuration.region, endpoint, body, requestProperties)
-                        .generate(configuration.accessKeyId, configuration.secretAccessKey);
-                final Payload payload = writer -> writer.write(body);
-                try (final var inputStream = client.sendRequest(endpoint, headers, payload)) {
-                    return parseResponse(inputStream);
-                }
-            } catch (Throwable throwable) {
-                throw new RuntimeException(throwable);
+                            var finalHeaders = new AwsSignatureV4HeaderGenerator(
+                                            configuration.region, endpoint, body, requestProperties)
+                                    .generate(configuration.accessKeyId, configuration.secretAccessKey);
+
+                            var newBuilder =
+                                    HttpRequest.newBuilder(intermediate, (k, v) -> !finalHeaders.containsKey(k));
+                            finalHeaders.forEachKeyValue(newBuilder::header);
+                            return newBuilder
+                                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                                    .build();
+                        },
+                        Encoder::parseResponse);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
             }
         }
 
@@ -119,8 +125,9 @@ public final class Bedrock implements Provider<Bedrock.Parameters> {
         */
         static float[] parseResponse(InputStream inputStream) throws MalformedGenAIResponseException {
             final JsonNode tree;
+            final ObjectMapper objectMapper = JsonUtils.getObjectMapper();
             try {
-                tree = OBJECT_MAPPER.readTree(inputStream);
+                tree = objectMapper.readTree(inputStream);
             } catch (IOException e) {
                 throw new MalformedGenAIResponseException(
                         "Unexpected error occurred while parsing the API response", e);
@@ -131,7 +138,7 @@ public final class Bedrock implements Provider<Bedrock.Parameters> {
                 throw new MalformedGenAIResponseException("Expected embedding to be an array");
             }
 
-            try (final var parser = embedding.traverse(OBJECT_MAPPER)) {
+            try (final var parser = embedding.traverse(objectMapper)) {
                 return parser.readValueAs(VECTOR_TYPE_REFERENCE);
             } catch (IOException e) {
                 throw new MalformedGenAIResponseException("Unexpected error occurred while parsing the embedding", e);
@@ -139,7 +146,7 @@ public final class Bedrock implements Provider<Bedrock.Parameters> {
         }
 
         private static JsonNode getExpectedFrom(JsonNode json, String property) throws MalformedGenAIResponseException {
-            return Json.getExpectedFrom(NAME, json, property);
+            return JsonUtils.getExpectedFrom(NAME, json, property);
         }
 
         /*
@@ -149,7 +156,7 @@ public final class Bedrock implements Provider<Bedrock.Parameters> {
            }
         */
         private String createRequestBody(String resource) throws IOException {
-            return OBJECT_MAPPER.writeValueAsString(Map.of("inputText", resource));
+            return JsonUtils.getObjectMapper().writeValueAsString(Map.of("inputText", resource));
         }
     }
 }

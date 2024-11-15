@@ -21,10 +21,10 @@ package org.neo4j.genai.vector.providers;
 
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_INT_ARRAY;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Writer;
+import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -35,12 +35,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.text.StringSubstitutor;
 import org.eclipse.collections.api.factory.Maps;
-import org.eclipse.collections.impl.factory.Multimaps;
 import org.neo4j.annotations.service.ServiceProvider;
-import org.neo4j.genai.util.Client.Payload;
-import org.neo4j.genai.util.HttpClient;
-import org.neo4j.genai.util.JsonResponseParser;
-import org.neo4j.genai.vector.MalformedGenAIResponseException;
+import org.neo4j.genai.util.HttpService;
+import org.neo4j.genai.util.JsonUtils;
+import org.neo4j.genai.util.MalformedGenAIResponseException;
 import org.neo4j.genai.vector.VectorEncoding.BatchRow;
 import org.neo4j.genai.vector.VectorEncoding.Provider;
 
@@ -96,9 +94,6 @@ public final class VertexAI implements Provider<VertexAI.Parameters> {
     private static final String STRINGIFIED_SUPPORTED_MODELS =
             SUPPORTED_MODELS.stream().map(s -> "'" + s + "'").collect(Collectors.joining(", ", "[", "]"));
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private final HttpClient client = new HttpClient();
-
     public static class Parameters {
         public String token;
         public String projectId;
@@ -138,41 +133,39 @@ public final class VertexAI implements Provider<VertexAI.Parameters> {
                         configuration.projectId,
                         "model",
                         configuration.model)));
-        return new Encoder(client, endpoint, configuration);
+        return new Encoder(endpoint, configuration);
     }
 
-    record Encoder(HttpClient client, URI endpoint, Parameters configuration) implements Provider.Encoder {
+    record Encoder(URI endpoint, Parameters configuration) implements Provider.Encoder {
 
         @Override
-        public float[] encode(String data) {
-            return encode(List.of(data), EMPTY_INT_ARRAY)
+        public float[] encode(HttpService httpService, String data) {
+            return encode(httpService, List.of(data), EMPTY_INT_ARRAY)
                     .findFirst()
                     .orElseThrow()
                     .vector();
         }
 
         @Override
-        public Stream<BatchRow> encode(List<String> resources, int[] nullIndexes) {
-            try {
-                final var headers = Multimaps.mutable.list.of(
-                        "Authorization", "Bearer " + configuration.token,
-                        "Content-Type", "application/json; charset=" + StandardCharsets.UTF_8,
-                        "Accept", "application/json");
-
-                final Payload payload = writer -> writeRequestPayload(writer, resources);
-                try (final var inputStream = client.sendRequest(endpoint, headers, payload)) {
-                    return JsonResponseParser.parseResponse(
+        public Stream<BatchRow> encode(HttpService httpService, List<String> resources, int[] nullIndexes) {
+            return httpService.request(
+                    endpoint,
+                    builder -> builder.headers(
+                                    "Authorization",
+                                    "Bearer " + configuration.token,
+                                    "Content-Type",
+                                    "application/json; charset=" + StandardCharsets.UTF_8,
+                                    "Accept",
+                                    "application/json")
+                            .POST(HttpService.pipe(outputStream -> writeRequestPayload(outputStream, resources)))
+                            .build(),
+                    inputStream -> JsonUtils.parseResponse(
                             NAME,
                             "predictions",
                             new String[] {"embeddings", "values"},
                             resources,
                             inputStream,
-                            nullIndexes);
-                }
-
-            } catch (Throwable throwable) {
-                throw new RuntimeException(throwable);
-            }
+                            nullIndexes));
         }
 
         /*
@@ -189,8 +182,7 @@ public final class VertexAI implements Provider<VertexAI.Parameters> {
         static Stream<BatchRow> parseResponse(List<String> resources, InputStream inputStream, int[] nullIndexes)
                 throws MalformedGenAIResponseException {
             final String[] properties = {"embeddings", "values"};
-            return JsonResponseParser.parseResponse(
-                    NAME, "predictions", properties, resources, inputStream, nullIndexes);
+            return JsonUtils.parseResponse(NAME, "predictions", properties, resources, inputStream, nullIndexes);
         }
         /*
          payload:
@@ -203,19 +195,24 @@ public final class VertexAI implements Provider<VertexAI.Parameters> {
                ]
            }
         */
-        private void writeRequestPayload(Writer writer, List<String> resources) throws IOException {
-            OBJECT_MAPPER.writeValue(
-                    writer,
-                    Map.of(
-                            "instances",
-                            resources.stream()
-                                    .map(resource -> {
-                                        var instance = Maps.mutable.of("content", resource);
-                                        configuration.taskType.ifPresent(x -> instance.put("task_type", x));
-                                        configuration.title.ifPresent(x -> instance.put("title", x));
-                                        return instance;
-                                    })
-                                    .toList()));
+        private void writeRequestPayload(OutputStream out, List<String> resources) {
+            try {
+                JsonUtils.getObjectMapper()
+                        .writeValue(
+                                out,
+                                Map.of(
+                                        "instances",
+                                        resources.stream()
+                                                .map(resource -> {
+                                                    var instance = Maps.mutable.of("content", resource);
+                                                    configuration.taskType.ifPresent(x -> instance.put("task_type", x));
+                                                    configuration.title.ifPresent(x -> instance.put("title", x));
+                                                    return instance;
+                                                })
+                                                .toList()));
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         }
     }
 }

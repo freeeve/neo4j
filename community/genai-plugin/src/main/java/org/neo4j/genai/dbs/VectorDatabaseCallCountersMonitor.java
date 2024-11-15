@@ -17,13 +17,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.vector;
+package org.neo4j.genai.dbs;
 
 import org.neo4j.genai.util.GenAIMonitor;
 
-public interface VectorEncodingCallCountersMonitor extends GenAIMonitor {
+/**
+ * Tracks the usage of {@link VectorDatabaseProvider vector database providers} and their methods
+ */
+public interface VectorDatabaseCallCountersMonitor extends GenAIMonitor {
 
-    void encodeFunctionCalled(String provider);
+    void info(String provider);
 
-    void encodeBatchProcedureCalled(String provider);
+    void createCollection(String provider);
+
+    void deleteCollection(String provider);
+
+    void deleteVector(String provider);
+
+    void getVector(String provider);
+
+    void upsert(String provider);
+
+    void query(String provider);
 }

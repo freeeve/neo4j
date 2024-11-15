@@ -19,33 +19,22 @@
  */
 package org.neo4j.genai.util;
 
-import java.io.FilterInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.Serial;
 
-public class LimitedInputStream extends FilterInputStream {
-    private final long expected;
-    private long count;
+public final class MalformedGenAIResponseException extends GenAIProcedureException {
 
-    public LimitedInputStream(InputStream in, long expected) {
-        super(in);
-        this.expected = expected;
+    @Serial
+    private static final long serialVersionUID = 169413135061542028L;
+
+    public MalformedGenAIResponseException(String message, Integer optionalHttpCode) {
+        super(message, optionalHttpCode);
     }
 
-    @Override
-    public int read() throws IOException {
-        return check(super.read());
+    public MalformedGenAIResponseException(String message) {
+        super(message, (Integer) null);
     }
 
-    @Override
-    public int read(byte[] b, int off, int len) throws IOException {
-        return check(super.read(b, off, len));
-    }
-
-    private int check(int read) throws IOException {
-        if ((count += read) > expected) {
-            throw new IOException("Stream reads exceeded maximum expected number of bytes %d B".formatted(expected));
-        }
-        return read;
+    public MalformedGenAIResponseException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

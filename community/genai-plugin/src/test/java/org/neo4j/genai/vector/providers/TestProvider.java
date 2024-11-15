@@ -52,6 +52,6 @@ public class TestProvider implements Provider<TestProvider.Parameters> {
 
     @Override
     public Encoder configure(Parameters configuration) {
-        return text -> VECTOR.asObjectCopy();
+        return (httpService, text) -> VECTOR.asObjectCopy();
     }
 }

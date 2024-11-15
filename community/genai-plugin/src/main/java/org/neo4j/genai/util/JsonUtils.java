@@ -26,16 +26,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.neo4j.genai.util.CheckedAccessors.Json;
-import org.neo4j.genai.vector.MalformedGenAIResponseException;
 import org.neo4j.genai.vector.VectorEncoding.BatchRow;
 
-public class JsonResponseParser {
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final TypeReference<float[]> VECTOR_TYPE_REFERENCE = new TypeReference<>() {};
+public final class JsonUtils {
+
+    private static volatile ObjectMapper LAZY_OBJECT_MAPPER_INSTANCE;
+
+    public static final TypeReference<float[]> TYPE_REF_FLOAT_VECTOR = new TypeReference<>() {};
+    public static final TypeReference<Map<String, Object>> TYPE_REF_MAP_STRING_OBJECT = new TypeReference<>() {};
+    public static final TypeReference<Map<String, Map<?, ?>>> TYPE_REF_MAP_STRING_MAP = new TypeReference<>() {};
 
     public static Stream<BatchRow> parseResponse(
             String name,
@@ -46,8 +49,9 @@ public class JsonResponseParser {
             int[] nullIndexes)
             throws MalformedGenAIResponseException {
         final JsonNode tree;
+        final ObjectMapper objectMapper = getObjectMapper();
         try {
-            tree = OBJECT_MAPPER.readTree(inputStream);
+            tree = objectMapper.readTree(inputStream);
         } catch (IOException e) {
             throw new MalformedGenAIResponseException("Unexpected error occurred while parsing the API response", e);
         }
@@ -72,8 +76,8 @@ public class JsonResponseParser {
                 if (!embedding.isArray()) {
                     throw new MalformedGenAIResponseException("Expected embedding to be an array");
                 }
-                try (final var parser = embedding.traverse(OBJECT_MAPPER)) {
-                    return new BatchRow(index, resources.get(offsetIndex), parser.readValueAs(VECTOR_TYPE_REFERENCE));
+                try (final var parser = embedding.traverse(objectMapper)) {
+                    return new BatchRow(index, resources.get(offsetIndex), parser.readValueAs(TYPE_REF_FLOAT_VECTOR));
                 } catch (IOException e) {
                     throw new MalformedGenAIResponseException(
                             "Unexpected error occurred while parsing the embedding", e);
@@ -84,8 +88,59 @@ public class JsonResponseParser {
         });
     }
 
-    private static JsonNode getExpectedFrom(String name, JsonNode json, String... properties)
-            throws MalformedGenAIResponseException {
-        return Json.getExpectedFrom(name, json, properties);
+    /**
+     * Provides access to a shared, lazily initialized instance of an object mapper.
+     * @return a shared object mapper
+     */
+    public static ObjectMapper getObjectMapper() {
+
+        var objectMapper = LAZY_OBJECT_MAPPER_INSTANCE;
+        if (objectMapper == null) {
+            synchronized (JsonUtils.class) {
+                objectMapper = LAZY_OBJECT_MAPPER_INSTANCE;
+                if (objectMapper == null) {
+                    LAZY_OBJECT_MAPPER_INSTANCE = new ObjectMapper();
+                    objectMapper = LAZY_OBJECT_MAPPER_INSTANCE;
+                }
+            }
+        }
+        return objectMapper;
     }
+
+    public static JsonNode getExpectedFrom(String provider, JsonNode json, String property)
+            throws MalformedGenAIResponseException {
+        try {
+            if (!json.isObject()) {
+                throw isNotObjectNode("provided json node");
+            }
+            return json.required(property);
+        } catch (IllegalArgumentException e) {
+            throw doesNotExist(provider, property, e);
+        }
+    }
+
+    public static JsonNode getExpectedFrom(String provider, JsonNode json, String... properties)
+            throws MalformedGenAIResponseException {
+        var parent = "provided json node";
+        for (final var property : properties) {
+            if (!json.isObject()) {
+                throw isNotObjectNode(parent);
+            }
+
+            json = getExpectedFrom(provider, json, property);
+            parent = "'" + property + "'";
+        }
+        return json;
+    }
+
+    private static MalformedGenAIResponseException isNotObjectNode(String parent) {
+        return new MalformedGenAIResponseException("Expected %s to be an object".formatted(parent));
+    }
+
+    private static MalformedGenAIResponseException doesNotExist(String provider, String property, Throwable cause) {
+        return new MalformedGenAIResponseException(
+                "'%s' is expected to exist in the response from %s".formatted(property, provider), cause);
+    }
+
+    private JsonUtils() {}
 }

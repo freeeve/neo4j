@@ -16,6 +16,8 @@
 
     <properties>
         <moduleName>org.neo4j.genai</moduleName>
+        <weaviate-client.version>4.8.2</weaviate-client.version>
+        <pinecone-client.version>2.0.0</pinecone-client.version>
     </properties>
 
     <scm>
@@ -36,6 +38,50 @@
             <groupId>org.neo4j.community</groupId>
             <artifactId>it-test-support</artifactId>
             <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>qdrant</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>weaviate</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>chromadb</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>milvus</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.weaviate</groupId>
+            <artifactId>client</artifactId>
+            <version>${weaviate-client.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.pinecone</groupId>
+            <artifactId>pinecone-client</artifactId>
+            <version>${pinecone-client.version}</version>
             <scope>test</scope>
         </dependency>
 

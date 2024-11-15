@@ -97,7 +97,9 @@ public class AwsSignatureV4HeaderGenerator {
                         "signature",
                         signature));
         headers.put("Authorization", authorization);
-
+        // While the host header is required to be signed, it cannot be added later to the headers
+        // of the HttpRequest.newBuilder, as the HttpClient will add it automatically on our behalf
+        headers.removeAll("Host");
         return headers;
     }
 

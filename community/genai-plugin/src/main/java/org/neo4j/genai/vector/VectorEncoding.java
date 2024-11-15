@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalLong;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -42,19 +41,11 @@ import org.eclipse.collections.api.list.ImmutableList;
 import org.eclipse.collections.api.map.MutableMap;
 import org.eclipse.collections.impl.collection.mutable.CollectionAdapter;
 import org.neo4j.annotations.service.Service;
-import org.neo4j.annotations.service.ServiceProvider;
+import org.neo4j.genai.util.HttpService;
+import org.neo4j.genai.util.Monitors;
 import org.neo4j.genai.util.Parameters;
 import org.neo4j.genai.util.Parameters.Parameter;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.event.DatabaseEventContext;
-import org.neo4j.graphdb.event.DatabaseEventListenerAdapter;
-import org.neo4j.kernel.extension.ExtensionFactory;
-import org.neo4j.kernel.extension.context.ExtensionContext;
-import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.kernel.lifecycle.Lifecycle;
-import org.neo4j.kernel.lifecycle.LifecycleAdapter;
-import org.neo4j.kernel.monitoring.DatabaseEventListeners;
-import org.neo4j.monitoring.Monitors;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
@@ -76,11 +67,13 @@ public class VectorEncoding {
             Comparator.comparing(Provider::name, CASE_INSENSITIVE_ORDER),
             CollectionAdapter.adapt(Services.loadAll(Provider.class)));
 
-    // To avoid creating a new Proxy on each method call in a database
-    private static final Map<String, VectorEncodingCallCountersMonitor> MONITORS = new ConcurrentHashMap<>();
-
     @Context
     public GraphDatabaseService graphDatabaseService;
+
+    // Needs to be static, otherwise Neo4j complains:
+    // > "Field `httpService` on `VectorEncoding` is not annotated as a @Context and is not static. If you want to store
+    // state along with your procedure, please use a static field.".
+    private static final HttpService httpService = new HttpService();
 
     @Procedure(name = "genai.vector.listEncodingProviders")
     @Description("Lists the available vector embedding providers.")
@@ -171,7 +164,7 @@ public class VectorEncoding {
         if (resource == null) {
             return NO_VALUE;
         } else {
-            return Values.floatArray(provider.configure(configurationMap).encode(resource));
+            return Values.floatArray(provider.configure(configurationMap).encode(httpService, resource));
         }
     }
 
@@ -214,7 +207,7 @@ public class VectorEncoding {
         }
 
         return provider.configure(configurationMap)
-                .encode(cleanedResources, removedIndexes.toArray())
+                .encode(httpService, cleanedResources, removedIndexes.toArray())
                 .map(InternalBatchRow::new);
     }
 
@@ -231,24 +224,7 @@ public class VectorEncoding {
     }
 
     private VectorEncodingCallCountersMonitor getMonitor() {
-        return MONITORS.computeIfAbsent(graphDatabaseService.databaseName(), key -> getMonitor0());
-    }
-
-    private static void removeMonitorFor(String databaseName) {
-        MONITORS.remove(databaseName);
-    }
-
-    private VectorEncodingCallCountersMonitor getMonitor0() {
-        Monitors monitors;
-        // Using the dependency resolver or graph database api directly would sandbox the UDFs and we don't want that,
-        // so that this plugin keeps usable without any additional configuration.
-        if (this.graphDatabaseService != null
-                && this.graphDatabaseService instanceof GraphDatabaseAPI graphDatabaseAPI) {
-            monitors = graphDatabaseAPI.getDependencyResolver().resolveDependency(Monitors.class);
-        } else {
-            monitors = new Monitors();
-        }
-        return monitors.newMonitor(VectorEncodingCallCountersMonitor.class);
+        return Monitors.getMonitor(graphDatabaseService, VectorEncodingCallCountersMonitor.class);
     }
 
     static Provider<?> getProvider(String name) {
@@ -274,9 +250,9 @@ public class VectorEncoding {
         Encoder configure(PARAMETERS configuration);
 
         interface Encoder {
-            float[] encode(String resource);
+            float[] encode(HttpService httpService, String resource);
 
-            default Stream<BatchRow> encode(List<String> resources, int[] nullIndexes) {
+            default Stream<BatchRow> encode(HttpService httpService, List<String> resources, int[] nullIndexes) {
                 final MutableInt offset = new MutableInt();
                 return IntStream.range(0, resources.size() + nullIndexes.length).mapToObj(index -> {
                     // We need to reinsert nulls at the right place
@@ -286,7 +262,7 @@ public class VectorEncoding {
                     }
                     final int offsetIndex = index - offset.intValue();
                     final var resource = resources.get(offsetIndex);
-                    return new BatchRow(index, resource, encode(resource));
+                    return new BatchRow(index, resource, encode(httpService, resource));
                 });
             }
         }
@@ -300,43 +276,6 @@ public class VectorEncoding {
             @Description("The generated vector embedding for the resource.") Value vector) {
         InternalBatchRow(BatchRow row) {
             this(row.index(), row.resource(), Values.of(row.vector));
-        }
-    }
-
-    @ServiceProvider
-    public static class MonitorsCleaner extends ExtensionFactory<MonitorsCleaner.Dependencies> {
-
-        public MonitorsCleaner() {
-            super("vector-encoding-monitors-cleaner");
-        }
-
-        @Override
-        public Lifecycle newInstance(ExtensionContext context, MonitorsCleaner.Dependencies dependencies) {
-
-            return new LifecycleAdapter() {
-                @Override
-                public void start() {
-                    dependencies
-                            .databaseEventListeners()
-                            .registerDatabaseEventListener(new DatabaseEventListenerAdapter() {
-
-                                @Override
-                                public void databaseShutdown(DatabaseEventContext eventContext) {
-                                    removeMonitorFor(eventContext.getDatabaseName());
-                                }
-
-                                @Override
-                                public void databasePanic(DatabaseEventContext eventContext) {
-                                    removeMonitorFor(eventContext.getDatabaseName());
-                                }
-                            });
-                }
-            };
-        }
-
-        public interface Dependencies {
-
-            DatabaseEventListeners databaseEventListeners();
         }
     }
 }

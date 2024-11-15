@@ -20,11 +20,10 @@
 package org.neo4j.genai.vector.providers;
 
 import java.net.URI;
+import java.net.http.HttpRequest;
 import java.util.OptionalLong;
 import org.eclipse.collections.api.map.MutableMap;
-import org.eclipse.collections.api.multimap.MutableMultimap;
 import org.neo4j.annotations.service.ServiceProvider;
-import org.neo4j.genai.util.HttpClient;
 import org.neo4j.genai.vector.VectorEncoding.Provider;
 import org.neo4j.genai.vector.providers.openai.OpenAIBasedEncoder;
 
@@ -33,7 +32,6 @@ public final class OpenAI implements Provider<OpenAI.Parameters> {
     public static final String NAME = "OpenAI";
     private static final URI ENDPOINT = URI.create("https://api.openai.com/v1/embeddings");
     static final String DEFAULT_MODEL = "text-embedding-ada-002";
-    private final HttpClient client = new HttpClient();
 
     public static class Parameters {
         public String token;
@@ -53,20 +51,20 @@ public final class OpenAI implements Provider<OpenAI.Parameters> {
 
     @Override
     public Provider.Encoder configure(Parameters configuration) {
-        return new Encoder(client, ENDPOINT, configuration);
+        return new Encoder(ENDPOINT, configuration);
     }
 
     static class Encoder extends OpenAIBasedEncoder {
         private final Parameters configuration;
 
-        Encoder(HttpClient client, URI endpoint, Parameters configuration) {
-            super(NAME, client, endpoint, configuration.dimensions);
+        Encoder(URI endpoint, Parameters configuration) {
+            super(NAME, endpoint, configuration.dimensions);
             this.configuration = configuration;
         }
 
         @Override
-        protected void extendHeaders(MutableMultimap<String, String> headers) {
-            headers.put("Authorization", "Bearer " + configuration.token);
+        protected HttpRequest.Builder customize(HttpRequest.Builder builder) {
+            return builder.setHeader("Authorization", "Bearer " + configuration.token);
         }
 
         @Override
