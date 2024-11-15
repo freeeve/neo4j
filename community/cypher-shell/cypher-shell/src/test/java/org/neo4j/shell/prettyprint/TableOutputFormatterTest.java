@@ -692,8 +692,8 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
     void printWithHeading() {
         final var result = mockResult(asList("c1", "c2"), "aaaaaaa", 42, "b", 43);
 
-        assertThat(formatResultWithHeading(result, "My Table").replace("\r\n", "\n"))
-                .isEqualTo(
+        assertThat(formatResultWithHeading(result, "My Table"))
+                .isEqualToNormalizingNewlines(
                         """
                         +----------------+
                         | My Table       |
@@ -706,9 +706,8 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
 
                         """);
 
-        assertThat(formatResultWithHeading(result, "Long long long, so very long, heading")
-                        .replace("\r\n", "\n"))
-                .isEqualTo(
+        assertThat(formatResultWithHeading(result, "Long long long, so very long, heading"))
+                .isEqualToNormalizingNewlines(
                         """
                         +------------------------------------------+
                         | Long long long, so very long, heading    |
@@ -731,7 +730,8 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
 
         // Old style for Bolt version without GQLSTSTATUS
         assertThat(formatNotifications(notifications, "5.5"))
-                .isEqualTo("""
+                .isEqualToNormalizingNewlines(
+                        """
 
             info: desc1 (code1)
 
@@ -740,7 +740,8 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
 
         // Old style for unparsable Bolt version
         assertThat(formatNotifications(notifications, null))
-                .isEqualTo("""
+                .isEqualToNormalizingNewlines(
+                        """
 
             info: desc1 (code1)
 
@@ -749,7 +750,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
 
         // New style for Bolt with GQLSTATUS
         assertThat(formatNotifications(notifications, "5.6"))
-                .isEqualTo(
+                .isEqualToNormalizingNewlines(
                         """
 
             info: desc1
