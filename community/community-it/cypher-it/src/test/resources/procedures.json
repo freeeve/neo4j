@@ -3137,7 +3137,7 @@
     "description": "Place a database into quarantine or remove it from it.",
     "mode": "DBMS",
     "worksOnSystem": true,
-    "signature": "dbms.quarantineDatabase(databaseName :: STRING, setStatus :: BOOLEAN, reason = No reason given :: STRING, wipeMode = DO_NOT_WIPE :: STRING) :: (databaseName :: STRING, quarantined :: BOOLEAN, result :: STRING)",
+    "signature": "dbms.quarantineDatabase(databaseName :: STRING, setStatus :: BOOLEAN, reason = No reason given :: STRING) :: (databaseName :: STRING, quarantined :: BOOLEAN, result :: STRING)",
     "argumentDescription": [
       {
         "name": "databaseName",
@@ -3155,13 +3155,6 @@
         "default": "DefaultParameterValue{value=No reason given, type=STRING}",
         "name": "reason",
         "description": "The reason to quarantine the database.",
-        "type": "STRING",
-        "isDeprecated": false
-      },
-      {
-        "default": "DefaultParameterValue{value=DO_NOT_WIPE, type=STRING}",
-        "name": "wipeMode",
-        "description": "Optional wiping action to apply while lifting the quarantine.",
         "type": "STRING",
         "isDeprecated": false
       }
@@ -3193,13 +3186,13 @@
     "rolesBoostedExecution": [
       "admin"
     ],
-    "isDeprecated": false,
-    "deprecatedBy": null,
+    "isDeprecated": true,
+    "deprecatedBy": "dbms.unquarantineDatabase",
     "option": {
-      "deprecated": false
+      "deprecated": true
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "removedInCypher25": true
   },
   {
     "name": "dbms.queryJmx",
@@ -3844,6 +3837,49 @@
     },
     "enterpriseOnly": false,
     "removedInCypher25": true
+  },
+  {
+    "name": "dbms.unquarantineDatabase",
+    "description": "Lift quarantine from a database on a given server.",
+    "mode": "DBMS",
+    "worksOnSystem": true,
+    "signature": "dbms.unquarantineDatabase(server :: STRING, database :: STRING, operation = keepStateKeepStore :: STRING)",
+    "argumentDescription": [
+      {
+        "name": "server",
+        "description": "The identifier of the server where the quarantine for database will be lifted.",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "name": "database",
+        "description": "The name of the database for the quarantine will be lifted.",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "default": "DefaultParameterValue{value=keepStateKeepStore, type=STRING}",
+        "name": "operation",
+        "description": "Optional operation to apply while lifting the quarantine.",
+        "type": "STRING",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": [],
+    "admin": true,
+    "rolesExecution": [
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "option": {
+      "deprecated": false
+    },
+    "enterpriseOnly": true,
+    "removedInCypher25": false
   },
   {
     "name": "dbms.upgradeStatus",

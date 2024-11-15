@@ -159,13 +159,14 @@ public class DatabaseManagementServiceFactory {
 
         var databaseContextProvider = edition.createDatabaseContextProvider(globalModule);
         var systemDatabaseProvider = new ContextBasedSystemDatabaseProvider(databaseContextProvider);
+        globalDependencies.satisfyDependency(systemDatabaseProvider);
         edition.createGlobalReadOnlyChecker(
                 systemDatabaseProvider, databaseContextProvider.databaseIdRepository(), globalModule);
         var managementService = createManagementService(globalModule, globalLife, internalLog, databaseContextProvider);
-        globalDependencies.satisfyDependencies(managementService);
+        globalDependencies.satisfyDependency(managementService);
         globalDependencies.satisfyDependency(new DatabaseSizeServiceImpl(databaseContextProvider));
         var topologyInfoService = edition.createTopologyInfoService(databaseContextProvider);
-        globalDependencies.satisfyDependencies(topologyInfoService);
+        globalDependencies.satisfyDependency(topologyInfoService);
 
         // Routing procedures depend on DatabaseResolver
         edition.createDefaultDatabaseResolver(systemDatabaseProvider);
