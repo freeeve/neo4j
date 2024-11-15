@@ -750,7 +750,8 @@ public final class SettingValueParsers {
                     + "with a length between "
                     + DatabaseNameValidator.MINIMUM_DATABASE_NAME_LENGTH + " and "
                     + DatabaseNameValidator.MAXIMUM_DATABASE_NAME_LENGTH
-                    + " characters, " + "starting with an alphabetic character but not with the name `system`";
+                    + " characters, "
+                    + "starting with an alphabetic character or number but not with the name `system`";
         }
 
         @Override
