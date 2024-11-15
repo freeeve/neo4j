@@ -38,6 +38,8 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileHandle;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.FileSystemUtils;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.util.VisibleForTesting;
 
 /**
@@ -183,6 +185,10 @@ public class TestDirectory {
 
     public void cleanup() throws IOException {
         clean(fileSystem, testClassBaseFolder);
+    }
+
+    public String fileContent(Path path) throws IOException {
+        return FileSystemUtils.readString(fileSystem, path, EmptyMemoryTracker.INSTANCE);
     }
 
     @Override
