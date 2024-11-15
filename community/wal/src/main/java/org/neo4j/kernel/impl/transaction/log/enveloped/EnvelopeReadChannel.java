@@ -318,6 +318,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         }
         buffer.position(newBufferOffset);
         payloadType = null;
+        enforceChecksumChain = false;
         readEnvelopeHeader();
     }
 
