@@ -76,7 +76,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <vm.target.version>17</vm.target.version>
+    <vm.target.version>21</vm.target.version>
     <maven.compiler.source>${vm.target.version}</maven.compiler.source>
     <maven.compiler.target>${vm.target.version}</maven.compiler.target>
     <generate-config-docs-phase>prepare-package</generate-config-docs-phase>
