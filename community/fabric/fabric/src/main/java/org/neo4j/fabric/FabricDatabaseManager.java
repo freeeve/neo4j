@@ -70,15 +70,13 @@ public class FabricDatabaseManager {
     }
 
     private Optional<? extends DatabaseContext> getDatabaseContext(DatabaseReference databaseReference) {
-        if (databaseReference instanceof DatabaseReferenceImpl.Composite) {
-            return databaseContextProvider.getDatabaseContext(
-                    ((DatabaseReferenceImpl.Composite) databaseReference).databaseId());
-        } else if (databaseReference instanceof DatabaseReferenceImpl.Internal) {
-            return databaseContextProvider.getDatabaseContext(
-                    ((DatabaseReferenceImpl.Internal) databaseReference).databaseId());
-        } else {
-            return Optional.empty();
-        }
+        return switch (databaseReference) {
+            case DatabaseReferenceImpl.Composite composite -> databaseContextProvider.getDatabaseContext(
+                    composite.databaseId());
+            case DatabaseReferenceImpl.Internal internal -> databaseContextProvider.getDatabaseContext(
+                    internal.databaseId());
+            default -> Optional.empty();
+        };
     }
 
     private static Supplier<DatabaseNotFoundException> databaseNotFound(String databaseNameRaw) {
