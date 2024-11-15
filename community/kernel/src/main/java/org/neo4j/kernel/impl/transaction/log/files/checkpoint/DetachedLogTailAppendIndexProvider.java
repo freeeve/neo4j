@@ -20,7 +20,6 @@
 package org.neo4j.kernel.impl.transaction.log.files.checkpoint;
 
 import static org.neo4j.kernel.KernelVersion.VERSION_APPEND_INDEX_INTRODUCED;
-import static org.neo4j.kernel.impl.transaction.log.LogVersionBridge.NO_MORE_CHANNELS;
 
 import java.io.IOException;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
@@ -29,6 +28,7 @@ import org.neo4j.kernel.impl.transaction.log.AppendBatchInfo;
 import org.neo4j.kernel.impl.transaction.log.LastAppendBatchInfoProvider;
 import org.neo4j.kernel.impl.transaction.log.LogEntryCursor;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
+import org.neo4j.kernel.impl.transaction.log.ReaderLogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
@@ -72,7 +72,7 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
             long appendIndex = startingAppendIndex;
             LogPosition postLogPosition = logPosition;
             try {
-                while (logFile.versionExists(logVersion)) {
+                if (logFile.versionExists(logVersion)) {
                     var lookupPosition = getLookupPosition(logFile, logPosition, logVersion);
                     if (lookupPosition == LogPosition.UNSPECIFIED) {
                         // position to start lookup is unknown since we reached the file without header
@@ -81,7 +81,7 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
 
                     var logEntryReader =
                             new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions);
-                    try (var reader = logFile.getReader(lookupPosition, NO_MORE_CHANNELS);
+                    try (var reader = logFile.getReader(lookupPosition, ReaderLogVersionBridge.forFile(logFile));
                             var cursor = new LogEntryCursor(logEntryReader, reader)) {
                         long currentAppendIndex = AppendIndexProvider.UNKNOWN_APPEND_INDEX;
                         while (cursor.next()) {
@@ -108,7 +108,6 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
                         // error on reading log file returning last known existing
                         return new AppendBatchInfo(appendIndex, postLogPosition);
                     }
-                    logVersion++;
                 }
                 return new AppendBatchInfo(appendIndex, postLogPosition);
             } catch (Throwable t) {
