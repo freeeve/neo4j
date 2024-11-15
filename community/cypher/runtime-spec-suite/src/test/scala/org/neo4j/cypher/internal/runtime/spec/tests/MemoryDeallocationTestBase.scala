@@ -282,7 +282,7 @@ abstract class MemoryDeallocationTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should deallocate memory between multi node hash joins") {
-    val nNodes = sizeHint
+    val nNodes = 200
 
     val paths = givenGraph { chainGraphs(nNodes, "R") }
     val random = new Random(seed = 1337)
