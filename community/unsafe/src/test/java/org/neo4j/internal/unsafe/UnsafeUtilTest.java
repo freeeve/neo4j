@@ -38,7 +38,6 @@ import static org.neo4j.internal.unsafe.UnsafeUtil.getInt;
 import static org.neo4j.internal.unsafe.UnsafeUtil.getLong;
 import static org.neo4j.internal.unsafe.UnsafeUtil.getLongVolatile;
 import static org.neo4j.internal.unsafe.UnsafeUtil.getShort;
-import static org.neo4j.internal.unsafe.UnsafeUtil.initDirectByteBuffer;
 import static org.neo4j.internal.unsafe.UnsafeUtil.newDirectByteBuffer;
 import static org.neo4j.internal.unsafe.UnsafeUtil.pageSize;
 import static org.neo4j.internal.unsafe.UnsafeUtil.putByte;
@@ -288,23 +287,6 @@ class UnsafeUtilTest {
             a.position(101);
             a.mark();
             a.limit(202);
-
-            long address2 = allocateMemory(sizeInBytes, tracker);
-            try {
-                setMemory(address2, sizeInBytes, (byte) 0);
-                initDirectByteBuffer(a, address2, sizeInBytes);
-                assertThat(a.hasArray()).isEqualTo(false);
-                assertThat(a.isDirect()).isEqualTo(true);
-                assertThat(a.capacity()).isEqualTo(sizeInBytes);
-                assertThat(a.limit()).isEqualTo(sizeInBytes);
-                assertThat(a.position()).isEqualTo(0);
-                assertThat(a.remaining()).isEqualTo(sizeInBytes);
-                assertThat(getByte(address2)).isEqualTo((byte) 0);
-                a.put((byte) -1);
-                assertThat(getByte(address2)).isEqualTo((byte) -1);
-            } finally {
-                free(address2, sizeInBytes, tracker);
-            }
         } finally {
             free(address, sizeInBytes, tracker);
         }

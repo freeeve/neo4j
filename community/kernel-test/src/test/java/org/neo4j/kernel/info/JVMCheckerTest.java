@@ -43,11 +43,11 @@ class JVMCheckerTest {
     }
 
     @Test
-    void shouldNotIssueWarningWhenUsingHotspotServerVmVersion17() {
+    void shouldIssueWarningWhenUsingHotspotServerVmVersion17() {
         new JvmChecker(log, new CannedJvmMetadataRepository("Java HotSpot(TM) 64-Bit Server VM", "17"))
                 .checkJvmCompatibilityAndIssueWarning();
 
-        assertThat(logProvider).doesNotContainMessage(INCOMPATIBLE_JVM_VERSION_WARNING);
+        assertThat(logProvider).containsMessages(INCOMPATIBLE_JVM_VERSION_WARNING);
     }
 
     @Test

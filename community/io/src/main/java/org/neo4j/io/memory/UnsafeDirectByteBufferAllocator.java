@@ -29,8 +29,7 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.util.Preconditions;
 
 /**
- * Allocates {@link ByteBuffer} instances using {@link UnsafeUtil#newDirectByteBuffer(long, int)}/{@link
- * UnsafeUtil#initDirectByteBuffer(ByteBuffer, long, int)} and frees all allocated memory in {@link #close()}.
+ * Allocates {@link ByteBuffer} instances using {@link UnsafeUtil#newDirectByteBuffer(long, int)} and frees all allocated memory in {@link #close()}.
  */
 public class UnsafeDirectByteBufferAllocator implements ByteBufferFactory.Allocator {
     private final List<ScopedBuffer> allocations = new ArrayList<>();
