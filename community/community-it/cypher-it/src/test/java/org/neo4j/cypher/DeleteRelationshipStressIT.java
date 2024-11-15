@@ -33,11 +33,13 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.TransientFailureException;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
 
 @ImpermanentDbmsExtension
 class DeleteRelationshipStressIT {
+    private static final int NUM_ATTEMPTS = 5;
     private final ExecutorService executorService = Executors.newFixedThreadPool(10);
 
     @Inject
@@ -71,9 +73,9 @@ class DeleteRelationshipStressIT {
     @Test
     void shouldBeAbleToReturnRelsWhileDeletingRelationship() throws InterruptedException, ExecutionException {
         // Given
-        Future query1 = executeInThread(
+        Future<?> query1 = executeInThread(
                 "MATCH (:L)-[r:T {prop:42}]-(:L) OPTIONAL MATCH (:L)-[:T {prop:1337}]-(:L) WITH r MATCH ()--() return r");
-        Future query2 = executeInThread("MATCH (:L)-[r:T {prop:42}]-(:L) DELETE r");
+        Future<?> query2 = executeInThread("MATCH (:L)-[r:T {prop:42}]-(:L) DELETE r");
 
         // When
         query1.get();
@@ -83,9 +85,9 @@ class DeleteRelationshipStressIT {
     @Test
     void shouldBeAbleToGetPropertyWhileDeletingRelationship() throws InterruptedException, ExecutionException {
         // Given
-        Future query1 = executeInThread(
+        Future<?> query1 = executeInThread(
                 "MATCH (:L)-[r:T {prop:42}]-(:L) OPTIONAL MATCH (:L)-[:T {prop:1337}]-(:L) WITH r MATCH ()--() return r.prop");
-        Future query2 = executeInThread("MATCH (:L)-[r:T {prop:42}]-(:L) DELETE r");
+        Future<?> query2 = executeInThread("MATCH (:L)-[r:T {prop:42}]-(:L) DELETE r");
 
         // When
         query1.get();
@@ -95,9 +97,9 @@ class DeleteRelationshipStressIT {
     @Test
     void shouldBeAbleToCheckPropertiesWhileDeletingRelationship() throws InterruptedException, ExecutionException {
         // Given
-        Future query1 = executeInThread(
+        Future<?> query1 = executeInThread(
                 "MATCH (:L)-[r:T {prop:42}]-(:L) OPTIONAL MATCH (:L)-[:T {prop:1337}]-(:L) WITH r MATCH ()--() return r.prop IS NOT NULL");
-        Future query2 = executeInThread("MATCH (:L)-[r:T {prop:42}]-(:L) DELETE r");
+        Future<?> query2 = executeInThread("MATCH (:L)-[r:T {prop:42}]-(:L) DELETE r");
 
         query1.get();
         query2.get();
@@ -106,9 +108,9 @@ class DeleteRelationshipStressIT {
     @Test
     void shouldBeAbleToRemovePropertiesWhileDeletingRelationship() throws InterruptedException, ExecutionException {
         // Given
-        Future query1 = executeInThread(
+        Future<?> query1 = executeInThread(
                 "MATCH (:L)-[r:T {prop:42}]-(:L) OPTIONAL MATCH (:L)-[:T {prop:1337}]-(:L) WITH r MATCH ()--() REMOVE r.prop");
-        Future query2 = executeInThread("MATCH (:L)-[r:T {prop:42}]-(:L) DELETE r");
+        Future<?> query2 = executeInThread("MATCH (:L)-[r:T {prop:42}]-(:L) DELETE r");
 
         // When
         query1.get();
@@ -118,21 +120,29 @@ class DeleteRelationshipStressIT {
     @Test
     void shouldBeAbleToSetPropertiesWhileDeletingRelationship() throws InterruptedException, ExecutionException {
         // Given
-        Future query1 = executeInThread(
+        Future<?> query1 = executeInThread(
                 "MATCH (:L)-[r:T {prop:42}]-(:L) OPTIONAL MATCH (:L)-[:T {prop:1337}]-(:L) WITH r MATCH ()--() SET r.foo = 'bar'");
-        Future query2 = executeInThread("MATCH (:L)-[r:T {prop:42}]-(:L) DELETE r");
+        Future<?> query2 = executeInThread("MATCH (:L)-[r:T {prop:42}]-(:L) DELETE r");
 
         // When
         query1.get();
         query2.get();
     }
 
-    private Future executeInThread(final String query) {
+    private Future<?> executeInThread(final String query) {
         return executorService.submit(() -> {
-            try (Transaction transaction = db.beginTx()) {
-                transaction.execute(query).resultAsString();
-                transaction.commit();
+            TransientFailureException exception = null;
+            for (int i = 0; i < NUM_ATTEMPTS; i++) {
+                try (Transaction transaction = db.beginTx()) {
+                    transaction.execute(query).resultAsString();
+                    transaction.commit();
+                    return;
+                } catch (TransientFailureException transientFailure) {
+                    // retry
+                    exception = transientFailure;
+                }
             }
+            throw exception;
         });
     }
 }
