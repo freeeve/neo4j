@@ -55,9 +55,11 @@ public final class SetListValue extends ListValue {
 
         public void add(AnyValue value) {
             assert value != NO_VALUE;
-            estimatedHeapUsage += value.estimatedHeapUsage();
-            valueRepresentation = valueRepresentation.coerce(value.valueRepresentation());
-            set.add(value);
+            if (set.add(value)) {
+                estimatedHeapUsage += value.estimatedHeapUsage();
+                valueRepresentation = valueRepresentation.coerce(value.valueRepresentation());
+            }
+            ;
         }
 
         public SetListValue build() {
