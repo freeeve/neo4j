@@ -596,21 +596,30 @@ public final class BoltConnectionAssertions
             String statusDescription,
             Consumer<Map<String, Object>> diagnosticRecordAssertions,
             Consumer<Map<String, Object>> causeAssertions) {
-        return cause -> Assertions.assertThat(cause)
-                .containsOnlyKeys("message", "gql_status", "description", "diagnostic_record", "cause")
-                .hasEntrySatisfying("message", msg -> Assertions.assertThat(msg)
-                        .asInstanceOf(InstanceOfAssertFactories.STRING)
-                        .isEqualTo(message))
-                .containsEntry("gql_status", gqlstatus.gqlStatusString())
-                .hasEntrySatisfying("description", msg -> Assertions.assertThat(msg)
-                        .asInstanceOf(InstanceOfAssertFactories.STRING)
-                        .isEqualTo(statusDescription))
-                .hasEntrySatisfying("diagnostic_record", diagnosticRecord -> Assertions.assertThat(diagnosticRecord)
-                        .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
-                        .satisfies(diagnosticRecordAssertions))
-                .hasEntrySatisfying("cause", innerCause -> Assertions.assertThat(innerCause)
-                        .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
-                        .satisfies(causeAssertions));
+        return cause -> {
+            if (diagnosticRecordAssertions != null) {
+                Assertions.assertThat(cause)
+                        .containsOnlyKeys("message", "gql_status", "description", "diagnostic_record", "cause")
+                        .hasEntrySatisfying(
+                                "diagnostic_record", diagnosticRecord -> Assertions.assertThat(diagnosticRecord)
+                                        .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+                                        .satisfies(diagnosticRecordAssertions));
+            } else {
+                Assertions.assertThat(cause).containsOnlyKeys("message", "gql_status", "description", "cause");
+            }
+
+            Assertions.assertThat(cause)
+                    .hasEntrySatisfying("message", msg -> Assertions.assertThat(msg)
+                            .asInstanceOf(InstanceOfAssertFactories.STRING)
+                            .isEqualTo(message))
+                    .containsEntry("gql_status", gqlstatus.gqlStatusString())
+                    .hasEntrySatisfying("description", msg -> Assertions.assertThat(msg)
+                            .asInstanceOf(InstanceOfAssertFactories.STRING)
+                            .isEqualTo(statusDescription))
+                    .hasEntrySatisfying("cause", innerCause -> Assertions.assertThat(innerCause)
+                            .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+                            .satisfies(causeAssertions));
+        };
     }
 
     public BoltConnectionAssertions receivesResponse() {

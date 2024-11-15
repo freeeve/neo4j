@@ -23,7 +23,7 @@ import org.eclipse.collections.api.PrimitiveIterable
 import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.runtime.IndexProviderContext
-import org.neo4j.gqlstatus.GqlHelper.getGql22N27
+import org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexConfigValidationRecords
@@ -115,7 +115,7 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
     def exceptionWrongType(suppliedValue: AnyValue): InvalidArgumentsException = {
       val pp = new PrettyPrinter
       suppliedValue.writeTo(pp)
-      val gql = getGql22N27(
+      val gql = getGql22G03_22N27(
         pp.value,
         GqlParams.StringParam.cmd.process("indexConfig"),
         java.util.List.of("MAP<STRING, BOOLEAN | STRING | INTEGER>")
@@ -146,7 +146,7 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
         case incorrectType: IncorrectType if validTypes.exists { case (cls, _) =>
             cls.isAssignableFrom(incorrectType.providedType)
           } =>
-          val gql = getGql22N27(
+          val gql = getGql22G03_22N27(
             "type " + incorrectType.providedType,
             GqlParams.StringParam.cmd.process(incorrectType.settingName),
             java.util.List.of(validCypherTypes(incorrectType.targetType()))

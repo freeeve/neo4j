@@ -21,10 +21,8 @@ package org.neo4j.packstream.error.reader;
 
 import java.util.List;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.ErrorMessageHolder;
-import org.neo4j.gqlstatus.GqlParams;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.packstream.io.Type;
 import org.neo4j.packstream.io.TypeMarker;
@@ -69,12 +67,7 @@ public class UnexpectedTypeException extends PackstreamReaderException
         // DRI-030
         return new UnexpectedTypeException(
                 // Code 22N01. It might get wrapped in IllegalStructArgumentException with code 08N06
-                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
-                        .withParam(GqlParams.StringParam.value, value)
-                        .withParam(GqlParams.ListParam.valueTypeList, expectedValueTypeList)
-                        .withParam(GqlParams.StringParam.valueType, String.valueOf(actual))
-                        .build(),
-                actual);
+                GqlHelper.getGql22G03_22N01(value, expectedValueTypeList, String.valueOf(actual)), actual);
     }
 
     @Deprecated
@@ -90,13 +83,10 @@ public class UnexpectedTypeException extends PackstreamReaderException
         // DRI-029
         // Code 22N01. It might get wrapped in IllegalStructArgumentException with code 08N06
         return new UnexpectedTypeException(
-                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
-                        .withParam(GqlParams.StringParam.value, String.valueOf(actual.getValue()))
-                        .withParam(GqlParams.ListParam.valueTypeList, List.of(expected.toString()))
-                        .withParam(
-                                GqlParams.StringParam.valueType,
-                                actual.getType().toString())
-                        .build(),
+                GqlHelper.getGql22G03_22N01(
+                        String.valueOf(actual.getValue()),
+                        List.of(expected.toString()),
+                        actual.getType().toString()),
                 expected,
                 actual);
     }

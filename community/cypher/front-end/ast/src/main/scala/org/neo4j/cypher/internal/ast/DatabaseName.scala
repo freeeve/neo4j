@@ -20,7 +20,7 @@ import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.exceptions.ParameterWrongTypeException
-import org.neo4j.gqlstatus.GqlHelper.getGql22N27
+import org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.values.storable.TextValue
 import org.neo4j.values.utils.PrettyPrinter
@@ -63,7 +63,8 @@ case class ParameterName(parameter: Parameter)(val position: InputPosition) exte
     if (!paramValue.isInstanceOf[TextValue]) {
       val pp = new PrettyPrinter
       paramValue.writeTo(pp)
-      val gql = getGql22N27(pp.value, GqlParams.StringParam.param.process(parameter.name), java.util.List.of("STRING"))
+      val gql =
+        getGql22G03_22N27(pp.value, GqlParams.StringParam.param.process(parameter.name), java.util.List.of("STRING"))
       throw new ParameterWrongTypeException(
         gql,
         s"Expected parameter $$${parameter.name} to have type String but was $paramValue"

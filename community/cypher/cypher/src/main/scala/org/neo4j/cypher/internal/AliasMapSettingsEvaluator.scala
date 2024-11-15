@@ -77,7 +77,7 @@ class AliasMapSettingsEvaluator(procedures: Procedures) {
           val pp = new PrettyPrinter
           param.toOption.get.writeTo(pp)
           val gql =
-            GqlHelper.getGql22N27(pp.value, GqlParams.StringParam.cmd.process("DRIVER"), java.util.List.of("MAP"))
+            GqlHelper.getGql22G03_22N27(pp.value, GqlParams.StringParam.cmd.process("DRIVER"), java.util.List.of("MAP"))
           throw new InvalidArgumentsException(
             gql,
             s"Failed to $operation: Invalid driver settings '${param.toOption.get}'. Expected a map value."
@@ -156,7 +156,7 @@ object AliasMapSettingsEvaluator {
       val pp = new PrettyPrinter
       invalidValue.writeTo(pp)
 
-      val gql = GqlHelper.getGql22N27(pp.value, key, java.util.List.of(expectedCypherType))
+      val gql = GqlHelper.getGql22G03_22N27(pp.value, key, java.util.List.of(expectedCypherType))
       throw new InvalidArgumentsException(
         gql,
         s"Failed to $operation: Invalid driver settings value for '$key'. Expected $expectedType value."

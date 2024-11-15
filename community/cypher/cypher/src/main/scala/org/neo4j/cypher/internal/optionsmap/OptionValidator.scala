@@ -87,7 +87,7 @@ trait StringOptionValidator extends OptionValidator[String] {
       case _ =>
         val pp = new PrettyPrinter
         value.writeTo(pp)
-        val gql = GqlHelper.getGql22N27(pp.value, KEY, java.util.List.of("STRING"))
+        val gql = GqlHelper.getGql22G03_22N27(pp.value, KEY, java.util.List.of("STRING"))
         throw new InvalidArgumentsException(gql, s"Could not $operation with specified $KEY '$value', String expected.")
     }
   }

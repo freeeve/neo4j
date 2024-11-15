@@ -128,7 +128,7 @@ class ReduceExpressionTest extends SemanticFunSuite {
 
     result.errors.head match {
       case e: SemanticError =>
-        assert(e.gqlStatusObject.gqlStatus() == "42001")
+        assert(e.gqlStatusObject.gqlStatus() == "22G03")
         assert(e.gqlStatusObject.cause.isPresent)
         assert(e.gqlStatusObject.cause.get().gqlStatus() == "22N27")
         assert(

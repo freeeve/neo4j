@@ -321,17 +321,14 @@ object SemanticError {
     legacyMessage: String,
     pos: InputPosition
   ): SemanticError = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(pos.line, pos.column, pos.offset)
-      .withCause(GqlHelper.getGql22N27(
-        invalidInput,
-        variable,
-        expectedValueList.asJava,
-        pos.line,
-        pos.column,
-        pos.offset
-      ))
-      .build()
+    val gql = GqlHelper.getGql22G03_22N27(
+      invalidInput,
+      variable,
+      expectedValueList.asJava,
+      pos.line,
+      pos.column,
+      pos.offset
+    )
 
     SemanticError(
       gql,

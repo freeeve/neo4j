@@ -99,10 +99,19 @@ public class UserAgentIT {
                         GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
                         "error: connection exception - protocol error. General network protocol error.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
-                        BoltConnectionAssertions.assertErrorCause(
-                                "",
-                                GqlStatusInfoCodes.STATUS_22N01.getGqlStatus(),
-                                "error: data exception - invalid type. Expected the value 42 to be of type STRING, but was of type Long.",
-                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")));
+                        BoltConnectionAssertions.assertErrorCauseWithInnerCause(
+                                "22G03",
+                                GqlStatusInfoCodes.STATUS_22G03.getGqlStatus(),
+                                "error: data exception - invalid value type",
+                                // 22G03 has UNKNOWN classification, no parameters and no position, so no diagnostic
+                                // record is sent over Bolt.
+                                // Instead a default diagnostic record is created on driver side.
+                                null,
+                                BoltConnectionAssertions.assertErrorCause(
+                                        "",
+                                        GqlStatusInfoCodes.STATUS_22N01.getGqlStatus(),
+                                        "error: data exception - invalid type. Expected the value 42 to be of type STRING, but was of type Long.",
+                                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                                "CLIENT_ERROR"))));
     }
 }

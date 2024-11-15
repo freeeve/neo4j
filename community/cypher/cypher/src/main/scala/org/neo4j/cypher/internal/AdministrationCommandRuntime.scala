@@ -68,7 +68,8 @@ import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.ParameterNotFoundException
 import org.neo4j.exceptions.ParameterWrongTypeException
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
-import org.neo4j.gqlstatus.GqlHelper.getGql22N27
+import org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27
+import org.neo4j.gqlstatus.GqlHelper.getGql42N51
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.graphdb.Direction
@@ -220,9 +221,15 @@ object AdministrationCommandRuntime {
       case other =>
         val pp = new PrettyPrinter
         other.writeTo(pp)
-        // TODO should this be wrapped in GqlStatusInfoCodes.STATUS_42N51 (Invalid parameter, see parameterWrongTypeException)?
         val gql =
-          getGql22N27(pp.value, GqlParams.StringParam.param.process(passwordParameter), java.util.List.of("STRING"))
+          getGql42N51(
+            passwordParameter,
+            getGql22G03_22N27(
+              "******", // Obfuscate the wrongly formatted password to not leak sensitive information
+              GqlParams.StringParam.param.process(passwordParameter),
+              java.util.List.of("STRING")
+            )
+          )
         throw new ParameterWrongTypeException(
           gql,
           s"Expected password parameter $$$passwordParameter to have type String but was ${other.getTypeName}"
@@ -243,13 +250,16 @@ object AdministrationCommandRuntime {
   private[internal] def validateStringParameterType(param: Parameter): Unit = {
     param.parameterType match {
       case _: StringType =>
-      case _             =>
-        // TODO should this be wrapped in GqlStatusInfoCodes.STATUS_42N51 (Invalid parameter, see parameterWrongTypeException)?
-        val gql = getGql22N27(
-          "type " + String.valueOf(param.parameterType),
-          "password",
-          java.util.List.of("STRING")
-        )
+      case _ =>
+        val gql =
+          getGql42N51(
+            param.name,
+            getGql22G03_22N27(
+              "type " + String.valueOf(param.parameterType),
+              "password",
+              java.util.List.of("STRING")
+            )
+          )
         throw new ParameterWrongTypeException(
           gql,
           s"Only $CTString values are accepted as password, got: " + param.parameterType
@@ -428,13 +438,17 @@ object AdministrationCommandRuntime {
           Seq((param._2, passwordExpression.key, passwordExpression.value))
         case Some(nameFields: NameFields) => Seq((param._2, nameFields.nameKey, nameFields.nameValue))
         case Some(p)                      =>
-          // TODO should this be wrapped in GqlStatusInfoCodes.STATUS_42N51 (Invalid parameter, see parameterWrongTypeException)?
           // The $input (...getSimpleName) is a bit strange, but it's fine as this error should not happen as we only give the expected values in the loop
-          val gql = getGql22N27(
-            String.valueOf(p.getClass.getSimpleName),
-            GqlParams.StringParam.cmd.process("ALTER USER"),
-            java.util.List.of("BOOLEAN", "STRING")
-          )
+          val gql = {
+            getGql42N51(
+              String.valueOf(p),
+              getGql22G03_22N27(
+                String.valueOf(p.getClass.getSimpleName),
+                GqlParams.StringParam.cmd.process("ALTER USER"),
+                java.util.List.of("BOOLEAN", "STRING")
+              )
+            )
+          }
           throw new InvalidArgumentException(
             gql,
             s"Invalid option type for ALTER USER, expected PasswordExpression, Boolean, String or Parameter but got: ${p.getClass.getSimpleName}"
@@ -857,12 +871,10 @@ object AdministrationCommandRuntime {
     expected: java.util.List[String],
     component: String
   ): ParameterWrongTypeException = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N51)
-      .withParam(GqlParams.StringParam.param, parameter.name)
-      .withCause(
-        getGql22N27(value.toString, component, expected)
-      )
-      .build()
+    val gql = getGql42N51(
+      parameter.name,
+      getGql22G03_22N27(value.toString, component, expected)
+    )
     new ParameterWrongTypeException(gql, gql.getMessage)
   }
 
@@ -914,9 +926,15 @@ object AdministrationCommandRuntime {
         } else (s"$$$parameter", value.toString)
         val prettyParam = new PrettyPrinter()
         value.writeTo(prettyParam)
-        // TODO should this be wrapped in GqlStatusInfoCodes.STATUS_42N51 (Invalid parameter, see parameterWrongTypeException)?
         val gql =
-          getGql22N27(prettyParam.value, GqlParams.StringParam.param.process(parameter), java.util.List.of("STRING"))
+          getGql42N51(
+            p,
+            getGql22G03_22N27(
+              prettyParam.value,
+              GqlParams.StringParam.param.process(parameter),
+              java.util.List.of("STRING")
+            )
+          )
         throw new ParameterWrongTypeException(gql, s"Expected parameter $p to have type String but was $v")
     }
   }
@@ -975,7 +993,8 @@ object AdministrationCommandRuntime {
       if (!paramValue.isInstanceOf[TextValue]) {
         val pp = new PrettyPrinter
         paramValue.writeTo(pp)
-        val gql = getGql22N27(pp.value, GqlParams.StringParam.param.process(parameter), java.util.List.of("STRING"))
+        val gql =
+          getGql22G03_22N27(pp.value, GqlParams.StringParam.param.process(parameter), java.util.List.of("STRING"))
         throw new ParameterWrongTypeException(
           gql,
           s"Expected parameter $$$parameter to have type String but was $paramValue"

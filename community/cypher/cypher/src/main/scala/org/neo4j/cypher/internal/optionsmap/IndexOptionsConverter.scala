@@ -111,7 +111,7 @@ trait IndexOptionsConverter[T] extends OptionsConverter[T] {
     case _ =>
       val pp = new PrettyPrinter
       indexProvider.writeTo(pp)
-      val gql = GqlHelper.getGql22N27(
+      val gql = GqlHelper.getGql22G03_22N27(
         pp.value,
         GqlParams.StringParam.cmd.process("indexProvider"),
         java.util.List.of("STRING")
@@ -263,7 +263,7 @@ trait IndexOptionsConverter[T] extends OptionsConverter[T] {
       case _: MapValue => IndexConfig.empty
       case unknown =>
         unknown.writeTo(pp)
-        val gql = GqlHelper.getGql22N27(
+        val gql = GqlHelper.getGql22G03_22N27(
           pp.value,
           GqlParams.StringParam.cmd.process("indexConfig"),
           java.util.List.of("MAP")

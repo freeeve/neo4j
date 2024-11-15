@@ -82,11 +82,20 @@ public class BoltAgentIT {
                         GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
                         "error: connection exception - protocol error. General network protocol error.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
-                        BoltConnectionAssertions.assertErrorCause(
-                                "",
-                                GqlStatusInfoCodes.STATUS_22N01.getGqlStatus(),
-                                "error: data exception - invalid type. Expected the value null to be of type MAP<STRING, STRING>, but was of type null.",
-                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")));
+                        BoltConnectionAssertions.assertErrorCauseWithInnerCause(
+                                "22G03",
+                                GqlStatusInfoCodes.STATUS_22G03.getGqlStatus(),
+                                "error: data exception - invalid value type",
+                                // 22G03 has UNKNOWN classification, no parameters and no position, so no diagnostic
+                                // record is sent over Bolt.
+                                // Instead a default diagnostic record is created on driver side.
+                                null,
+                                BoltConnectionAssertions.assertErrorCause(
+                                        "",
+                                        GqlStatusInfoCodes.STATUS_22N01.getGqlStatus(),
+                                        "error: data exception - invalid type. Expected the value null to be of type MAP<STRING, STRING>, but was of type null.",
+                                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                                "CLIENT_ERROR"))));
     }
 
     @ProtocolTest
@@ -114,11 +123,20 @@ public class BoltAgentIT {
                         GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
                         "error: connection exception - protocol error. General network protocol error.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
-                        BoltConnectionAssertions.assertErrorCause(
-                                "",
-                                GqlStatusInfoCodes.STATUS_22N01.getGqlStatus(),
-                                "error: data exception - invalid type. Expected the value 42L to be of type MAP<STRING, STRING>, but was of type String.",
-                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")));
+                        BoltConnectionAssertions.assertErrorCauseWithInnerCause(
+                                "22G03",
+                                GqlStatusInfoCodes.STATUS_22G03.getGqlStatus(),
+                                "error: data exception - invalid value type",
+                                // 22G03 has UNKNOWN classification, no parameters and no position, so no diagnostic
+                                // record is sent over Bolt.
+                                // Instead a default diagnostic record is created on driver side.
+                                null,
+                                BoltConnectionAssertions.assertErrorCause(
+                                        "",
+                                        GqlStatusInfoCodes.STATUS_22N01.getGqlStatus(),
+                                        "error: data exception - invalid type. Expected the value 42L to be of type MAP<STRING, STRING>, but was of type String.",
+                                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                                "CLIENT_ERROR"))));
     }
 
     @ProtocolTest
@@ -146,11 +164,20 @@ public class BoltAgentIT {
                         GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
                         "error: connection exception - protocol error. General network protocol error.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
-                        BoltConnectionAssertions.assertErrorCause(
-                                "",
-                                GqlStatusInfoCodes.STATUS_22N01.getGqlStatus(),
-                                "error: data exception - invalid type. Expected the value product=1 to be of type MAP<STRING, STRING>, but was of type class java.util.HashMap$Node.",
-                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")));
+                        BoltConnectionAssertions.assertErrorCauseWithInnerCause(
+                                "22G03",
+                                GqlStatusInfoCodes.STATUS_22G03.getGqlStatus(),
+                                "error: data exception - invalid value type",
+                                // 22G03 has UNKNOWN classification, no parameters and no position, so no diagnostic
+                                // record is sent over Bolt.
+                                // Instead a default diagnostic record is created on driver side.
+                                null,
+                                BoltConnectionAssertions.assertErrorCause(
+                                        "",
+                                        GqlStatusInfoCodes.STATUS_22N01.getGqlStatus(),
+                                        "error: data exception - invalid type. Expected the value product=1 to be of type MAP<STRING, STRING>, but was of type class java.util.HashMap$Node.",
+                                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                                "CLIENT_ERROR"))));
     }
 
     @ProtocolTest

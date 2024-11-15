@@ -90,7 +90,7 @@ import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.ParameterWrongTypeException
-import org.neo4j.gqlstatus.GqlHelper.getGql22N27
+import org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.graphdb.schema.IndexType.POINT
 import org.neo4j.graphdb.schema.IndexType.RANGE
@@ -704,7 +704,11 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
           val pp = new PrettyPrinter
           x.writeTo(pp)
           val gql =
-            getGql22N27(pp.value, GqlParams.StringParam.param.process(paramName.name), java.util.List.of("STRING"))
+            getGql22G03_22N27(
+              pp.value,
+              GqlParams.StringParam.param.process(paramName.name),
+              java.util.List.of("STRING")
+            )
           throw new ParameterWrongTypeException(gql, s"Expected String, but got: ${x.getTypeName}")
       }
   }

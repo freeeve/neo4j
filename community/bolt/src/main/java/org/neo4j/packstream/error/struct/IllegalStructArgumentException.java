@@ -126,7 +126,9 @@ public class IllegalStructArgumentException extends PackstreamStructException {
     public static IllegalStructArgumentException wrongTypeForFieldName(
             String fieldName, String value, List<String> expectedType, String actualType, String message) {
         return new IllegalStructArgumentException(
-                GqlHelper.getGql08N06_22N01(value, expectedType, actualType), fieldName, message);
+                GqlHelper.getGql08N06(GqlHelper.getGql22G03_22N01(value, expectedType, actualType)),
+                fieldName,
+                message);
     }
 
     public static IllegalStructArgumentException wrongTypeForFieldNameOrOutOfRange(

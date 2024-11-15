@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.exceptions.ParameterWrongTypeException
-import org.neo4j.gqlstatus.GqlHelper.getGql22N27
+import org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.StringValue
 import org.neo4j.values.utils.PrettyPrinter
@@ -119,7 +119,7 @@ object Command {
                 val pp = new PrettyPrinter
                 x.writeTo(pp)
                 val gql =
-                  getGql22N27(
+                  getGql22G03_22N27(
                     pp.value,
                     originOperation,
                     java.util.List.of("STRING")
@@ -129,7 +129,7 @@ object Command {
           case x =>
             val pp = new PrettyPrinter
             x.writeTo(pp)
-            val gql = getGql22N27(pp.value, originOperation, java.util.List.of("STRING"))
+            val gql = getGql22G03_22N27(pp.value, originOperation, java.util.List.of("STRING", "LIST<STRING>"))
             throw new ParameterWrongTypeException(
               gql,
               s"Expected a string or a list of strings, but got: ${x.toString}"

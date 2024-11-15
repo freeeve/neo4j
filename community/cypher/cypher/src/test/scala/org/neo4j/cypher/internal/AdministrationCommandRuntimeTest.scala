@@ -154,11 +154,19 @@ class AdministrationCommandRuntimeTest extends CypherFunSuite {
       "__internal_param_displayName"
     )
 
-    the[ParameterWrongTypeException] thrownBy (databaseNameFields.nameConverter(
+    val e = the[ParameterWrongTypeException] thrownBy databaseNameFields.nameConverter(
       null,
       VirtualValues.map(Array("param"), Array(Values.intValue(42)))
-    )) should
-      have message "Expected parameter $param to have type String but was Int(42)"
+    )
+
+    e should have message "Expected parameter $param to have type String but was Int(42)"
+    e.gqlStatus() shouldBe "22G03"
+    e.statusDescription() shouldBe "error: data exception - invalid value type"
+
+    e.cause() should not be empty
+    e.cause().get().gqlStatus() shouldBe "22N27"
+    e.cause().get().statusDescription() shouldBe
+      "error: data exception - invalid entity type. Invalid input '42' for $`param`. Expected to be STRING."
   }
 
 }
