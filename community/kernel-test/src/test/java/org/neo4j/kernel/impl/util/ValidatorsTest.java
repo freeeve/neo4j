@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import org.apache.commons.text.StringEscapeUtils;
 import org.junit.jupiter.api.Test;
 import org.neo4j.cloud.storage.SchemeFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -99,9 +100,16 @@ class ValidatorsTest {
         assertNotValid(schemeFilesystem, base + "qwer\\.\\d{3,}");
     }
 
+    private String escapeForWindows(String input) {
+        // Fixup the regex escaping so that operating on Windows works
+        final var home = directory.homePath();
+        final var sep = home.getFileSystem().getSeparator();
+        final var regex = StringEscapeUtils.escapeJava(input);
+        return home + sep + regex;
+    }
+
     private void assertValid(String fileByName, Path... expected) {
-        final var path = directory.homePath().resolve(fileByName);
-        assertValid(filesystem, path.toString(), expected);
+        assertValid(filesystem, escapeForWindows(fileByName), expected);
     }
 
     private static void assertValid(FileSystemAbstraction fs, String fileByName, Path... expected) {
@@ -110,7 +118,7 @@ class ValidatorsTest {
     }
 
     private void assertNotValid(String string) {
-        assertNotValid(filesystem, string);
+        assertNotValid(filesystem, escapeForWindows(string));
     }
 
     private static void assertNotValid(FileSystemAbstraction fs, String string) {
