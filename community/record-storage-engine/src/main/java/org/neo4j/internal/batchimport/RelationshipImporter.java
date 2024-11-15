@@ -100,6 +100,11 @@ public class RelationshipImporter extends EntityImporter {
     }
 
     @Override
+    public boolean id(long id) {
+        return true;
+    }
+
+    @Override
     public boolean startId(long id) {
         relationshipRecord.setFirstNode(id);
         return true;

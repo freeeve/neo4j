@@ -29,147 +29,192 @@ import org.neo4j.internal.id.IdSequence;
  * using primitives and other optimizations, to avoid garbage.
  */
 public interface InputEntityVisitor extends Closeable {
-    boolean propertyId(long nextProp);
+    default boolean propertyId(long nextProp) {
+        return true;
+    }
 
-    boolean properties(ByteBuffer properties, boolean offloaded);
+    default boolean properties(ByteBuffer properties, boolean offloaded) {
+        return true;
+    }
 
-    boolean property(String key, Object value);
+    default boolean property(String key, Object value) {
+        return true;
+    }
 
-    boolean property(int propertyKeyId, Object value);
+    default boolean property(int propertyKeyId, Object value) {
+        return true;
+    }
+
+    default boolean removedProperties(String[] keys) {
+        return true;
+    }
 
     boolean removedProperties(String[] keys);
 
     // For nodes
-    boolean id(long id);
+    default boolean id(long id) {
+        return true;
+    }
 
-    boolean id(Object id, Group group);
+    default boolean id(Object id, Group group) {
+        return true;
+    }
 
-    boolean id(Object id, Group group, IdSequence idSequence);
+    default boolean id(Object id, Group group, IdSequence idSequence) {
+        return true;
+    }
 
-    boolean labels(String[] labels);
+    default boolean labels(String[] labels) {
+        return true;
+    }
 
-    boolean removedLabels(String[] labels);
+    default boolean removedLabels(String[] labels) {
+        return true;
+    }
 
-    boolean labelField(long labelField);
+    default boolean labelField(long labelField) {
+        return true;
+    }
 
     // For relationships
-    boolean startId(long id);
+    default boolean startId(long id) {
+        return true;
+    }
 
-    boolean startId(Object id, Group group);
+    default boolean startId(Object id, Group group) {
+        return true;
+    }
 
-    boolean endId(long id);
+    default boolean endId(long id) {
+        return true;
+    }
 
-    boolean endId(Object id, Group group);
+    default boolean endId(Object id, Group group) {
+        return true;
+    }
 
-    boolean type(int type);
+    default boolean type(int type) {
+        return true;
+    }
 
-    boolean type(String type);
+    default boolean type(String type) {
+        return true;
+    }
 
-    boolean applicationMode(ApplicationMode mode);
+    default boolean applicationMode(ApplicationMode mode) {
+        return true;
+    }
 
-    void endOfEntity() throws IOException;
+    default void endOfEntity() throws IOException {}
 
-    void reset();
+    default void reset() {}
+
+    @Override
+    default void close() throws IOException {}
 
     class Adapter implements InputEntityVisitor {
         @Override
         public boolean property(String key, Object value) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean properties(ByteBuffer properties, boolean offloaded) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean property(int propertyKeyId, Object value) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean propertyId(long nextProp) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean removedProperties(String[] keys) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean id(long id) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean id(Object id, Group group) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean id(Object id, Group group, IdSequence idSequence) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean labels(String[] labels) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean removedLabels(String[] labels) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean startId(long id) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean startId(Object id, Group group) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean endId(long id) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean endId(Object id, Group group) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean type(int type) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean type(String type) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean labelField(long labelField) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean applicationMode(ApplicationMode mode) {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
-        public void endOfEntity() {}
+        public void endOfEntity() throws IOException {
+            throw new UnsupportedOperationException();
+        }
 
         @Override
-        public void reset() {}
+        public void reset() {
+            throw new UnsupportedOperationException();
+        }
 
         @Override
-        public void close() {}
+        public void close() throws IOException {}
     }
 
     class Delegate implements InputEntityVisitor {
@@ -285,5 +330,5 @@ public interface InputEntityVisitor extends Closeable {
         }
     }
 
-    InputEntityVisitor NULL = new Adapter();
+    InputEntityVisitor NULL = new InputEntityVisitor() {};
 }
