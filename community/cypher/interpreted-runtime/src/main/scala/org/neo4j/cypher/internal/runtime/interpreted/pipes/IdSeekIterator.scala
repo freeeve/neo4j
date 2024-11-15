@@ -162,9 +162,6 @@ class UndirectedRelationshipIdSeekIterator(
 
   override protected[this] def innerHasNext: Boolean = emitSibling || super.innerHasNext
 
-  def sourceNode: Long = cursor.sourceNodeReference()
-  def targetNode: Long = cursor.targetNodeReference()
-
   override def next(): Long = {
     if (innerHasNext) {
       if (emitSibling) {
