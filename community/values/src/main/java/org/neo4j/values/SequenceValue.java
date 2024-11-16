@@ -20,9 +20,11 @@
 package org.neo4j.values;
 
 import static org.neo4j.values.SequenceValue.IterationPreference.RANDOM_ACCESS;
+import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.util.Comparator;
 import java.util.Iterator;
+import org.neo4j.values.storable.Values;
 
 /**
  * Values that represent sequences of values (such as Lists or Arrays) need to implement this interface.
@@ -54,7 +56,23 @@ public interface SequenceValue extends Iterable<AnyValue> {
     int intSize();
 
     default boolean isEmpty() {
-        return intSize() == 0;
+        return actualSize() == 0L;
+    }
+
+    default AnyValue head() {
+        if (isEmpty()) {
+            return Values.NO_VALUE;
+        }
+
+        return value(0);
+    }
+
+    default AnyValue last() {
+        long size = actualSize();
+        if (size == 0L) {
+            return NO_VALUE;
+        }
+        return value(size - 1);
     }
 
     AnyValue value(long offset);

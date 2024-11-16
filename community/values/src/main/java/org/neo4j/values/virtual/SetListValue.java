@@ -110,6 +110,28 @@ public final class SetListValue extends ListValue {
     }
 
     @Override
+    public boolean isEmpty() {
+        return set.isEmpty();
+    }
+
+    @Override
+    public AnyValue head() {
+        if (set.isEmpty()) {
+            return NO_VALUE;
+        }
+
+        return set.getFirst();
+    }
+
+    @Override
+    public AnyValue last() {
+        if (set.isEmpty()) {
+            return NO_VALUE;
+        }
+        return set.getLast();
+    }
+
+    @Override
     public Value ternaryContains(AnyValue value) {
         if (value instanceof SequenceValue || value instanceof MapValue) {
             return ternaryContainsMayHaveNull(value);

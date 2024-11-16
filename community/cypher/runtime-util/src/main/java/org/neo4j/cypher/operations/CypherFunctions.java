@@ -706,11 +706,7 @@ public final class CypherFunctions {
         if (container == NO_VALUE) {
             return NO_VALUE;
         } else if (container instanceof SequenceValue sequence) {
-            if (sequence.intSize() == 0) {
-                return NO_VALUE;
-            }
-
-            return sequence.value(0);
+            return sequence.head();
         } else {
             throw new CypherTypeException(
                     format("Invalid input for function 'head()': Expected %s to be a list", container));
@@ -721,10 +717,10 @@ public final class CypherFunctions {
     public static AnyValue tail(AnyValue container) {
         if (container == NO_VALUE) {
             return NO_VALUE;
-        } else if (container instanceof ListValue) {
-            return ((ListValue) container).tail();
-        } else if (container instanceof ArrayValue) {
-            return VirtualValues.fromArray((ArrayValue) container).tail();
+        } else if (container instanceof ListValue list) {
+            return list.tail();
+        } else if (container instanceof ArrayValue array) {
+            return VirtualValues.fromArray(array).tail();
         } else {
             return EMPTY_LIST;
         }
@@ -740,8 +736,7 @@ public final class CypherFunctions {
             if (length == 0) {
                 return NO_VALUE;
             }
-
-            return sequence.value(length - 1);
+            return sequence.last();
         } else {
             throw new CypherTypeException(
                     format("Invalid input for function 'last()': Expected %s to be a list", container));

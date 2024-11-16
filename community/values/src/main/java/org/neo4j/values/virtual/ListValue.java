@@ -883,22 +883,6 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
         return other != null && other.isSequenceValue() && equals((SequenceValue) other);
     }
 
-    public AnyValue head() {
-        long size = actualSize();
-        if (size == 0) {
-            throw new NoSuchElementException("head of empty list");
-        }
-        return value(0);
-    }
-
-    public AnyValue last() {
-        long size = actualSize();
-        if (size == 0) {
-            throw new NoSuchElementException("last of empty list");
-        }
-        return value(size - 1);
-    }
-
     protected Iterator<AnyValue> randomAccessIterator() {
         var size = actualSize();
         if (size <= Integer.MAX_VALUE) {
