@@ -26,8 +26,6 @@ import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.functions.Collect
-import org.neo4j.cypher.internal.expressions.functions.Head
-import org.neo4j.cypher.internal.expressions.functions.Last
 import org.neo4j.cypher.internal.logical.plans.Aggregation
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.OrderedAggregation
@@ -76,10 +74,6 @@ case object collectDistinctRewriter extends Rewriter {
         acc => TraverseChildren(acc.withAliases(aliases))
 
       case ContainerIndex(v: LogicalVariable, _) => acc => TraverseChildren(acc + v)
-      case FunctionInvocation(FunctionName(_, name), _, IndexedSeq(v: LogicalVariable), _, _)
-        if name.equalsIgnoreCase(Head.name) => acc => TraverseChildren(acc + v)
-      case FunctionInvocation(FunctionName(_, name), _, IndexedSeq(v: LogicalVariable), _, _)
-        if name.equalsIgnoreCase(Last.name) => acc => TraverseChildren(acc + v)
     }
 
     res.build

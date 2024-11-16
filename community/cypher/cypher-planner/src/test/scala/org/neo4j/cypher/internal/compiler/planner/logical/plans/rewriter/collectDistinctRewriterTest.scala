@@ -82,7 +82,7 @@ class collectDistinctRewriterTest extends CypherFunSuite with LogicalPlanningTes
     assertNotRewritten(before)
   }
 
-  test("should not rewrite if accessing head") {
+  test("should rewrite if accessing head") {
     val before = new LogicalPlanBuilder()
       .produceResults("head")
       .projection("head(set) AS head")
@@ -90,7 +90,14 @@ class collectDistinctRewriterTest extends CypherFunSuite with LogicalPlanningTes
       .allNodeScan("a")
       .build()
 
-    assertNotRewritten(before)
+    val after = new LogicalPlanBuilder()
+      .produceResults("head")
+      .projection("head(set) AS head")
+      .aggregation(Map.empty[String, Expression], Map("set" -> collectDistinct(prop("a", "prop"))))
+      .allNodeScan("a")
+      .build()
+
+    rewrite(before) should equal(after)
   }
 
   test("should not rewrite if accessing last") {
@@ -101,7 +108,14 @@ class collectDistinctRewriterTest extends CypherFunSuite with LogicalPlanningTes
       .allNodeScan("a")
       .build()
 
-    assertNotRewritten(before)
+    val after = new LogicalPlanBuilder()
+      .produceResults("last")
+      .projection("last(set) AS last")
+      .aggregation(Map.empty[String, Expression], Map("set" -> collectDistinct(prop("a", "prop"))))
+      .allNodeScan("a")
+      .build()
+
+    rewrite(before) should equal(after)
   }
 
   test("should just not rewrite the list that has random access") {
