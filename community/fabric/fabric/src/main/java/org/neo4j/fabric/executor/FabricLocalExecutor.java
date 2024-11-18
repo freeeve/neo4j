@@ -48,7 +48,6 @@ import org.neo4j.kernel.impl.query.TransactionalContextFactory;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.values.virtual.MapValue;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public class FabricLocalExecutor {
     private final FabricConfig config;
@@ -253,28 +252,20 @@ public class FabricLocalExecutor {
         }
 
         @Override
-        public Mono<Void> commit() {
-            return Mono.fromRunnable(this::doCommit);
-        }
-
-        @Override
-        public Mono<Void> rollback() {
-            return Mono.fromRunnable(this::doRollback);
-        }
-
-        private void doCommit() {
+        public void commit() {
             fabricKernelTransaction.commit();
             long transactionId = transactionIdTracker.getTransactionId(location);
             bookmarkManager.localTransactionCommitted(location, new LocalBookmark(transactionId));
         }
 
-        private void doRollback() {
+        @Override
+        public void rollback() {
             fabricKernelTransaction.rollback();
         }
 
         @Override
-        public Mono<Void> terminate(Status reason) {
-            return Mono.fromRunnable(() -> fabricKernelTransaction.terminate(reason));
+        public void terminate(Status reason) {
+            fabricKernelTransaction.terminate(reason);
         }
 
         @Override

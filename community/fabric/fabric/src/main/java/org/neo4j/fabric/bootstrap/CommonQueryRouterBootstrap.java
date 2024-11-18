@@ -75,6 +75,10 @@ public class CommonQueryRouterBootstrap {
         serviceBootstrapper.lifeSupport.add(instance);
     }
 
+    protected LifeSupport lifeSupport() {
+        return serviceBootstrapper.lifeSupport;
+    }
+
     private record ServiceBootstrapper(LifeSupport lifeSupport, Dependencies dependencies) {
 
         <T> T registerService(T dependency, Class<T> dependencyType) {

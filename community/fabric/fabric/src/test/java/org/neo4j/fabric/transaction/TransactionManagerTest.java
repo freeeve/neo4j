@@ -30,6 +30,10 @@ import static org.neo4j.configuration.GraphDatabaseSettings.shutdown_transaction
 
 import java.time.Duration;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
@@ -48,9 +52,22 @@ import org.neo4j.kernel.database.DatabaseIdFactory;
 import org.neo4j.kernel.database.DatabaseReferenceImpl;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
 import org.neo4j.kernel.impl.query.QueryExecutionConfiguration;
+import org.neo4j.scheduler.CallableExecutorService;
 import org.neo4j.time.Clocks;
 
 class TransactionManagerTest {
+
+    private static ExecutorService executorService;
+
+    @BeforeAll
+    static void beforeAll() {
+        executorService = Executors.newVirtualThreadPerTaskExecutor();
+    }
+
+    @AfterAll
+    static void afterAll() {
+        executorService.shutdown();
+    }
 
     @Test
     void terminateNonLocalTransactionsOnStop() {
@@ -81,7 +98,8 @@ class TransactionManagerTest {
                 config,
                 guard,
                 errorReporter,
-                globalProcedures);
+                globalProcedures,
+                new CallableExecutorService(executorService));
 
         // local tx
         var tx1 = transactionManager.begin(createTransactionInfo(), bookmarkManager);

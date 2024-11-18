@@ -36,6 +36,10 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
@@ -61,9 +65,22 @@ import org.neo4j.kernel.database.NormalizedDatabaseName;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.query.QueryExecutionConfiguration;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.scheduler.CallableExecutorService;
 import org.neo4j.time.Clocks;
 
 public class FabricTransactionImplTest {
+
+    private static ExecutorService executorService;
+
+    @BeforeAll
+    static void beforeAll() {
+        executorService = Executors.newVirtualThreadPerTaskExecutor();
+    }
+
+    @AfterAll
+    static void afterAll() {
+        executorService.shutdown();
+    }
 
     @Test
     void testChildrenAreTerminated() {
@@ -194,7 +211,7 @@ public class FabricTransactionImplTest {
                 FabricConfig.from(config), fabricDatabaseManager, mock(LocalGraphTransactionIdTracker.class));
     }
 
-    private static TransactionManager transactionManager(Config config, FabricLocalExecutor localExecutor) {
+    private TransactionManager transactionManager(Config config, FabricLocalExecutor localExecutor) {
         var remoteExecutor = mock(FabricRemoteExecutor.class, RETURNS_MOCKS);
         var errorReporter = mock(ErrorReporter.class);
         var transactionMonitor = mock(FabricTransactionMonitor.class);
@@ -212,7 +229,8 @@ public class FabricTransactionImplTest {
                 config,
                 guard,
                 errorReporter,
-                globalProcedures);
+                globalProcedures,
+                new CallableExecutorService(executorService));
     }
 
     private static FabricTransactionInfo createTransactionInfo() {

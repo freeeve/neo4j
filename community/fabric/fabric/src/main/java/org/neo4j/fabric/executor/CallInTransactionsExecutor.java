@@ -37,6 +37,7 @@ import org.neo4j.fabric.eval.UseEvaluation;
 import org.neo4j.fabric.planning.FabricPlan;
 import org.neo4j.fabric.planning.FabricPlanner;
 import org.neo4j.fabric.planning.Fragment;
+import org.neo4j.fabric.stream.Blocking2RxResultAdapter;
 import org.neo4j.fabric.stream.Prefetcher;
 import org.neo4j.fabric.stream.Record;
 import org.neo4j.fabric.stream.Records;
@@ -65,6 +66,7 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
     private final Fragment.Exec innerFragment;
     private final int batchSize;
     private final List<BufferedInputRow> inputRowsBuffer;
+    private final Executor executor;
     private Catalog.Graph batchGraph;
     private TransactionMode batchTransactionMode;
     private OnErrorBreakContext onErrorBreakContext;
@@ -72,7 +74,7 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
     CallInTransactionsExecutor(
             Fragment.Apply callInTransactions,
             FabricPlanner.PlannerInstance plannerInstance,
-            Executor fabricWorkerExecutor,
+            Executor executor,
             FabricTransaction.FabricExecutionContext ctx,
             UseEvaluation.Instance useEvaluator,
             FabricPlan plan,
@@ -87,7 +89,7 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
             InternalLog log) {
         super(
                 plannerInstance,
-                fabricWorkerExecutor,
+                executor,
                 ctx,
                 useEvaluator,
                 plan,
@@ -100,6 +102,7 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
                 tracer,
                 fragmentExecutor,
                 log);
+        this.executor = executor;
         this.callInTransactions = callInTransactions;
         this.innerFragment = (Fragment.Exec) callInTransactions.inner();
         this.batchSize = batchSize();
@@ -336,8 +339,8 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
             String query,
             TransactionMode transactionMode,
             MapValue params) {
-        return Mono.just(
-                ctx().getRemote().runInAutocommitTransaction(location, options, query, transactionMode, params));
+        return Blocking2RxResultAdapter.adapt(executor, () -> ctx().getRemote()
+                .runInAutocommitTransaction(location, options, query, transactionMode, params));
     }
 
     @Override

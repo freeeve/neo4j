@@ -17,19 +17,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.fabric.executor;
+package org.neo4j.fabric.stream;
 
-import org.neo4j.fabric.transaction.parent.ChildTransaction;
-import org.neo4j.kernel.api.exceptions.Status;
+import java.util.List;
+import org.neo4j.fabric.stream.summary.Summary;
+import org.neo4j.graphdb.QueryExecutionType;
 
-/**
- * A transaction executing against a single database.
- * Fabric transactions are composite transactions consisting of transactions of this type.
- */
-public interface SingleDbTransaction extends ChildTransaction {
-    void commit();
+public interface BlockingStatementResult {
 
-    void rollback();
+    List<String> columns();
 
-    void terminate(Status reason);
+    /**
+     * Returns a record or {@code null} if all records have been consumed.
+     */
+    Record next();
+
+    Summary consume();
+
+    QueryExecutionType executionType();
 }

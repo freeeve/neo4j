@@ -20,12 +20,11 @@
 package org.neo4j.fabric.executor;
 
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
-import org.neo4j.fabric.stream.StatementResult;
+import org.neo4j.fabric.stream.BlockingStatementResult;
 import org.neo4j.fabric.transaction.FabricTransactionInfo;
 import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.fabric.transaction.parent.CompoundTransaction;
 import org.neo4j.values.virtual.MapValue;
-import reactor.core.publisher.Mono;
 
 public interface FabricRemoteExecutor {
     RemoteTransactionContext startTransactionContext(
@@ -34,7 +33,7 @@ public interface FabricRemoteExecutor {
             TransactionBookmarkManager bookmarkManager);
 
     interface RemoteTransactionContext extends AutoCloseable {
-        Mono<StatementResult> run(
+        BlockingStatementResult run(
                 Location.Remote location,
                 ExecutionOptions options,
                 String query,
@@ -46,11 +45,8 @@ public interface FabricRemoteExecutor {
          * The reason why CALL IN TRANSACTIONS has a special entry point is that a lot of
          * restrictions like being able to write to only one graph per Fabric transaction
          * don't apply.
-         * <p>
-         * Unlike the generic remote query execution, CALL IN TRANSACTIONS cannot be executed in parallel,
-         * so this method tries to save some grief to the users and is synchronous.
          */
-        StatementResult runInAutocommitTransaction(
+        BlockingStatementResult runInAutocommitTransaction(
                 Location.Remote location,
                 ExecutionOptions executionOptions,
                 String query,

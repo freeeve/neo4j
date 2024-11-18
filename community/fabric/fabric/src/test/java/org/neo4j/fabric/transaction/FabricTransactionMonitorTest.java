@@ -32,6 +32,10 @@ import static org.neo4j.configuration.GraphDatabaseSettings.transaction_timeout;
 
 import java.time.Duration;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
@@ -55,17 +59,29 @@ import org.neo4j.kernel.impl.api.transaction.monitor.TransactionMonitor;
 import org.neo4j.kernel.impl.query.QueryExecutionConfiguration;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.internal.LogService;
+import org.neo4j.scheduler.CallableExecutorService;
 import org.neo4j.time.FakeClock;
 
 class FabricTransactionMonitorTest {
 
     private static final Duration DEFAULT_TX_TIMEOUT = Duration.ofSeconds(10);
+    private static ExecutorService executorService;
 
     private final FakeClock clock = new FakeClock();
     private final TransactionBookmarkManager bookmarkManager = mock(TransactionBookmarkManager.class);
     private final InternalLog log = mock(InternalLog.class);
     private TransactionManager transactionManager;
     private FabricTransactionMonitor transactionMonitor;
+
+    @BeforeAll
+    static void beforeAll() {
+        executorService = Executors.newVirtualThreadPerTaskExecutor();
+    }
+
+    @AfterAll
+    static void afterAll() {
+        executorService.shutdown();
+    }
 
     @BeforeEach
     void beforeEach() {
@@ -99,7 +115,8 @@ class FabricTransactionMonitorTest {
                 config,
                 guard,
                 errorReporter,
-                globalProcedures);
+                globalProcedures,
+                new CallableExecutorService(executorService));
     }
 
     @Test

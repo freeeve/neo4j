@@ -29,6 +29,7 @@ import org.neo4j.fabric.eval.UseEvaluation;
 import org.neo4j.fabric.planning.FabricPlan;
 import org.neo4j.fabric.planning.FabricPlanner;
 import org.neo4j.fabric.planning.Fragment;
+import org.neo4j.fabric.stream.Blocking2RxResultAdapter;
 import org.neo4j.fabric.stream.Prefetcher;
 import org.neo4j.fabric.stream.Record;
 import org.neo4j.fabric.stream.StatementResult;
@@ -50,11 +51,12 @@ import reactor.core.publisher.Mono;
 class StandardQueryExecutor extends SingleQueryFragmentExecutor {
 
     private final Fragment.Exec fragment;
+    private final Executor executor;
 
     StandardQueryExecutor(
             Fragment.Exec fragment,
             FabricPlanner.PlannerInstance plannerInstance,
-            Executor fabricWorkerExecutor,
+            Executor executor,
             FabricTransaction.FabricExecutionContext ctx,
             UseEvaluation.Instance useEvaluator,
             FabricPlan plan,
@@ -69,7 +71,7 @@ class StandardQueryExecutor extends SingleQueryFragmentExecutor {
             InternalLog log) {
         super(
                 plannerInstance,
-                fabricWorkerExecutor,
+                executor,
                 ctx,
                 useEvaluator,
                 plan,
@@ -83,6 +85,7 @@ class StandardQueryExecutor extends SingleQueryFragmentExecutor {
                 fragmentExecutor,
                 log);
         this.fragment = fragment;
+        this.executor = executor;
     }
 
     FragmentResult run(Record argument) {
@@ -101,7 +104,8 @@ class StandardQueryExecutor extends SingleQueryFragmentExecutor {
             String query,
             TransactionMode transactionMode,
             MapValue params) {
-        return ctx().getRemote().run(location, options, query, transactionMode, params);
+        return Blocking2RxResultAdapter.adapt(
+                executor, () -> ctx().getRemote().run(location, options, query, transactionMode, params));
     }
 
     @Override

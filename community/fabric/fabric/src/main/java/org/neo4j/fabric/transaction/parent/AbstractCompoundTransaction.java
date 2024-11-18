@@ -28,10 +28,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.neo4j.fabric.executor.Exceptions;
 import org.neo4j.fabric.executor.FabricException;
@@ -44,9 +46,8 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.TransactionTerminatedException;
 import org.neo4j.kernel.api.TerminationMark;
 import org.neo4j.kernel.api.exceptions.Status;
+import org.neo4j.scheduler.CallableExecutor;
 import org.neo4j.time.SystemNanoClock;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /**
  * Implements transaction actions for transactions that consist of child transactions
@@ -54,6 +55,7 @@ import reactor.core.publisher.Mono;
 public abstract class AbstractCompoundTransaction<Child extends ChildTransaction>
         implements CompoundTransaction<Child> {
 
+    private final CallableExecutor executor;
     private final ErrorReporter errorReporter;
     private final SystemNanoClock clock;
 
@@ -143,9 +145,11 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
         }
     }
 
-    protected AbstractCompoundTransaction(ErrorReporter errorReporter, SystemNanoClock clock) {
+    protected AbstractCompoundTransaction(
+            ErrorReporter errorReporter, SystemNanoClock clock, CallableExecutor executor) {
         this.errorReporter = errorReporter;
         this.clock = clock;
+        this.executor = executor;
     }
 
     @Override
@@ -295,7 +299,7 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
         }
     }
 
-    private void doRollback(Function<Child, Mono<Void>> operation) {
+    private void doRollback(Consumer<Child> operation) {
         var allFailures = new ArrayList<ErrorRecord>();
 
         try {
@@ -312,7 +316,7 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
         throwIfNonEmpty(allFailures, TransactionRollbackFailed);
     }
 
-    private void doRollbackAndIgnoreErrors(Function<Child, Mono<Void>> operation) {
+    private void doRollbackAndIgnoreErrors(Consumer<Child> operation) {
         try {
             doOnChildren(readingTransactions, writingTransaction, operation);
         } finally {
@@ -415,19 +419,34 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
     private List<Throwable> doOnChildren(
             Iterable<ReadingChildTransaction<Child>> readingTransactions,
             Child writingTransaction,
-            Function<Child, Mono<Void>> operation) {
-        var failures = Flux.fromIterable(readingTransactions)
-                .map(txWrapper -> txWrapper.inner)
-                .concatWith(Mono.justOrEmpty(writingTransaction))
-                .flatMap(tx -> catchErrors(operation.apply(tx)))
-                .collectList()
-                .block();
+            Consumer<Child> operation) {
+        List<Future<?>> futures = new ArrayList<>();
+        if (writingTransaction != null) {
+            futures.add(executor.submit(() -> {
+                operation.accept(writingTransaction);
+                return null;
+            }));
+        }
 
-        return failures == null ? List.of() : failures;
-    }
+        for (var readingChildTransaction : readingTransactions) {
+            futures.add(executor.submit(() -> {
+                operation.accept(readingChildTransaction.inner);
+                return null;
+            }));
+        }
 
-    private Mono<Throwable> catchErrors(Mono<Void> action) {
-        return action.flatMap(v -> Mono.<Throwable>empty()).onErrorResume(Mono::just);
+        List<Throwable> exceptions = new ArrayList<>();
+        for (Future<?> future : futures) {
+            try {
+                future.get();
+            } catch (ExecutionException e) {
+                exceptions.add(e.getCause());
+            } catch (Exception e) {
+                exceptions.add(e);
+            }
+        }
+
+        return exceptions;
     }
 
     private void throwIfNonEmpty(List<ErrorRecord> failures, Status defaultStatusCode) {
@@ -480,9 +499,9 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
 
     protected abstract void closeContextsAndRemoveTransaction();
 
-    protected abstract Mono<Void> childTransactionCommit(Child child);
+    protected abstract void childTransactionCommit(Child child);
 
-    protected abstract Mono<Void> childTransactionRollback(Child child);
+    protected abstract void childTransactionRollback(Child child);
 
-    protected abstract Mono<Void> childTransactionTerminate(Child child, Status reason);
+    protected abstract void childTransactionTerminate(Child child, Status reason);
 }
