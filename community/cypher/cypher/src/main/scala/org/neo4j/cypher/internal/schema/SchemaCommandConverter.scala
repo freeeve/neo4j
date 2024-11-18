@@ -261,7 +261,7 @@ class SchemaCommandConverter(
             asList(properties.map(p => p.propertyKey.name)),
             ifNotExists(ifExistsDo)
           )
-        case NodePropertyUniqueness =>
+        case _: NodePropertyUniqueness =>
           validateOptions(options, IndexBackedConstraintsOptionsConverter("range index", providerContext))
           new NodeUniqueness(
             name,
@@ -269,7 +269,7 @@ class SchemaCommandConverter(
             asList(properties.map(p => p.propertyKey.name)),
             ifNotExists(ifExistsDo)
           )
-        case RelationshipPropertyUniqueness =>
+        case _: RelationshipPropertyUniqueness =>
           validateOptions(options, IndexBackedConstraintsOptionsConverter("range index", providerContext))
           new RelationshipUniqueness(
             name,

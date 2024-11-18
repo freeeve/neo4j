@@ -3436,7 +3436,14 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
   test("CreateNodeUniquePropertyConstraint") {
     assertGood(
       attach(
-        CreateConstraint(None, NodePropertyUniqueness, label("Label"), Seq(prop(" x", "prop")), None, NoOptions),
+        CreateConstraint(
+          None,
+          NodePropertyUniqueness.cypher5,
+          label("Label"),
+          Seq(prop(" x", "prop")),
+          None,
+          NoOptions
+        ),
         63.2
       ),
       planDescription(
@@ -3452,7 +3459,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       attach(
         CreateConstraint(
           None,
-          NodePropertyUniqueness,
+          NodePropertyUniqueness.cypher25,
           label("Label"),
           Seq(prop("x", "prop")),
           Some(Left("constraintName")),
@@ -3473,7 +3480,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       attach(
         CreateConstraint(
           None,
-          NodePropertyUniqueness,
+          NodePropertyUniqueness.cypher5,
           label("Label"),
           Seq(prop("x", "prop1"), prop("x", "prop2")),
           Some(Left("constraintName")),
@@ -3494,7 +3501,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       attach(
         CreateConstraint(
           None,
-          NodePropertyUniqueness,
+          NodePropertyUniqueness.cypher25,
           label("Label"),
           List(prop("x", "prop")),
           Some(Left("$constraintName")),
@@ -3519,11 +3526,11 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Some(DoNothingIfExistsForConstraint(
             label("Label"),
             Seq(prop(" x", "prop")),
-            NodePropertyUniqueness,
+            NodePropertyUniqueness.cypher5,
             None,
             NoOptions
           )),
-          NodePropertyUniqueness,
+          NodePropertyUniqueness.cypher5,
           label("Label"),
           Seq(prop(" x", "prop")),
           None,
@@ -3552,7 +3559,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       attach(
         CreateConstraint(
           None,
-          NodePropertyUniqueness,
+          NodePropertyUniqueness.cypher25,
           label("Label"),
           Seq(prop(" x", "prop")),
           None,
@@ -3575,7 +3582,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       attach(
         CreateConstraint(
           None,
-          RelationshipPropertyUniqueness,
+          RelationshipPropertyUniqueness.cypher25,
           relType("REL_TYPE"),
           Seq(prop(" x", "prop")),
           None,
@@ -3596,7 +3603,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       attach(
         CreateConstraint(
           None,
-          RelationshipPropertyUniqueness,
+          RelationshipPropertyUniqueness.cypher5,
           relType("REL_TYPE"),
           Seq(prop("x", "prop")),
           Some(Left("constraintName")),
@@ -3617,7 +3624,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       attach(
         CreateConstraint(
           None,
-          RelationshipPropertyUniqueness,
+          RelationshipPropertyUniqueness.cypher25,
           relType("REL_TYPE"),
           Seq(prop("x", "prop1"), prop("x", "prop2")),
           Some(Left("constraintName")),
@@ -3638,7 +3645,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       attach(
         CreateConstraint(
           None,
-          RelationshipPropertyUniqueness,
+          RelationshipPropertyUniqueness.cypher5,
           relType("REL-TYPE"),
           List(prop("x", "prop-prop")),
           Some(Right(parameter("constraintName", CTString))),
@@ -3663,11 +3670,11 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Some(DoNothingIfExistsForConstraint(
             relType("REL_TYPE"),
             Seq(prop(" x", "prop")),
-            RelationshipPropertyUniqueness,
+            RelationshipPropertyUniqueness.cypher25,
             None,
             NoOptions
           )),
-          RelationshipPropertyUniqueness,
+          RelationshipPropertyUniqueness.cypher25,
           relType("REL_TYPE"),
           Seq(prop(" x", "prop")),
           None,
@@ -3696,7 +3703,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       attach(
         CreateConstraint(
           None,
-          RelationshipPropertyUniqueness,
+          RelationshipPropertyUniqueness.cypher25,
           relType("REL_TYPE"),
           Seq(prop(" x", "prop")),
           None,

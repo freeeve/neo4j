@@ -144,13 +144,13 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
 
   val logicalToExecutable: PartialFunction[LogicalPlan, RuntimeContext => ExecutionPlan] = {
     // CREATE CONSTRAINT [name] [IF NOT EXISTS] FOR (node:Label) REQUIRE (node.prop1,node.prop2) IS NODE KEY [OPTIONS {...}]
-    case CreateConstraint(source, _: NodeKey, label: LabelName, props, name, options) => context =>
+    case CreateConstraint(source, nodeKey: NodeKey, label: LabelName, props, name, options) => context =>
         SchemaExecutionPlan(
           "CreateNodeKeyConstraint",
           (ctx, params) => {
             val constraintName = getName(name, params)
             val (maybeIndexProvider, notifications) =
-              IndexBackedConstraintsOptionsConverter("node key constraint", indexContext(ctx))
+              IndexBackedConstraintsOptionsConverter(s"${nodeKey.description} constraint", indexContext(ctx))
                 .convert(context.cypherVersion, options, params)
                 .toOptionNotification
             val indexProvider = maybeIndexProvider.flatMap(_.provider)
@@ -163,13 +163,13 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
         )
 
     // CREATE CONSTRAINT [name] [IF NOT EXISTS] FOR ()-[rel:TYPE]-() REQUIRE (rel.prop1,rel.prop2) IS RELATIONSHIP KEY [OPTIONS {...}]
-    case CreateConstraint(source, _: RelationshipKey, relType: RelTypeName, props, name, options) => context =>
+    case CreateConstraint(source, relKey: RelationshipKey, relType: RelTypeName, props, name, options) => context =>
         SchemaExecutionPlan(
           "CreateRelationshipKeyConstraint",
           (ctx, params) => {
             val constraintName = getName(name, params)
             val (maybeIndexProvider, notifications) =
-              IndexBackedConstraintsOptionsConverter("relationship key constraint", indexContext(ctx))
+              IndexBackedConstraintsOptionsConverter(s"${relKey.description} constraint", indexContext(ctx))
                 .convert(context.cypherVersion, options, params)
                 .toOptionNotification
             val indexProvider = maybeIndexProvider.flatMap(_.provider)
@@ -183,13 +183,14 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
 
       // CREATE CONSTRAINT [name] [IF NOT EXISTS] FOR (node:Label) REQUIRE node.prop IS UNIQUE [OPTIONS {...}]
     // CREATE CONSTRAINT [name] [IF NOT EXISTS] FOR (node:Label) REQUIRE (node.prop1,node.prop2) IS UNIQUE [OPTIONS {...}]
-    case CreateConstraint(source, NodePropertyUniqueness, label: LabelName, props, name, options) => context =>
+    case CreateConstraint(source, nodePropUnique: NodePropertyUniqueness, label: LabelName, props, name, options) =>
+      context =>
         SchemaExecutionPlan(
           "CreateNodePropertyUniquenessConstraint",
           (ctx, params) => {
             val constraintName = getName(name, params)
             val (maybeIndexProvider, notifications) =
-              IndexBackedConstraintsOptionsConverter("uniqueness constraint", indexContext(ctx))
+              IndexBackedConstraintsOptionsConverter(s"${nodePropUnique.description} constraint", indexContext(ctx))
                 .convert(context.cypherVersion, options, params)
                 .toOptionNotification
             val indexProvider = maybeIndexProvider.flatMap(_.provider)
@@ -203,14 +204,21 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
 
       // CREATE CONSTRAINT [name] [IF NOT EXISTS] FOR ()-[rel:TYPE]-() REQUIRE rel.prop IS UNIQUE [OPTIONS {...}]
     // CREATE CONSTRAINT [name] [IF NOT EXISTS] FOR ()-[rel:TYPE]-() REQUIRE (rel.prop1,rel.prop2) IS UNIQUE [OPTIONS {...}]
-    case CreateConstraint(source, RelationshipPropertyUniqueness, relType: RelTypeName, props, name, options) =>
+    case CreateConstraint(
+        source,
+        relPropUnique: RelationshipPropertyUniqueness,
+        relType: RelTypeName,
+        props,
+        name,
+        options
+      ) =>
       context =>
         SchemaExecutionPlan(
           "CreateRelationshipPropertyUniquenessConstraint",
           (ctx, params) => {
             val constraintName = getName(name, params)
             val (maybeIndexProvider, notifications) =
-              IndexBackedConstraintsOptionsConverter("relationship uniqueness constraint", indexContext(ctx))
+              IndexBackedConstraintsOptionsConverter(s"${relPropUnique.description} constraint", indexContext(ctx))
                 .convert(context.cypherVersion, options, params)
                 .toOptionNotification
             val indexProvider = maybeIndexProvider.flatMap(_.provider)
@@ -625,17 +633,17 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
             val constraintName = getName(name, params)
             // Assert correct options to get errors even if matching constraint already exists
             val conversionResult = assertion match {
-              case _: NodeKey =>
-                IndexBackedConstraintsOptionsConverter("node key constraint", indexContext(ctx))
+              case nodeKey: NodeKey =>
+                IndexBackedConstraintsOptionsConverter(s"${nodeKey.description} constraint", indexContext(ctx))
                   .convert(context.cypherVersion, options, params)
-              case _: RelationshipKey =>
-                IndexBackedConstraintsOptionsConverter("relationship key constraint", indexContext(ctx))
+              case relKey: RelationshipKey =>
+                IndexBackedConstraintsOptionsConverter(s"${relKey.description} constraint", indexContext(ctx))
                   .convert(context.cypherVersion, options, params)
-              case NodePropertyUniqueness =>
-                IndexBackedConstraintsOptionsConverter("uniqueness constraint", indexContext(ctx))
+              case nodePropUnique: NodePropertyUniqueness =>
+                IndexBackedConstraintsOptionsConverter(s"${nodePropUnique.description} constraint", indexContext(ctx))
                   .convert(context.cypherVersion, options, params)
-              case RelationshipPropertyUniqueness =>
-                IndexBackedConstraintsOptionsConverter("relationship uniqueness constraint", indexContext(ctx))
+              case relPropUnique: RelationshipPropertyUniqueness =>
+                IndexBackedConstraintsOptionsConverter(s"${relPropUnique.description} constraint", indexContext(ctx))
                   .convert(context.cypherVersion, options, params)
               case NodePropertyExistence =>
                 PropertyExistenceOrTypeConstraintOptionsConverter("node", "existence", indexContext(ctx))
@@ -740,12 +748,12 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
   private def convertConstraintTypeToConstraintMatcher(assertion: CreateConstraintType)
     : ConstraintDescriptor => Boolean =
     assertion match {
-      case NodePropertyExistence          => c => c.isNodePropertyExistenceConstraint
-      case RelationshipPropertyExistence  => c => c.isRelationshipPropertyExistenceConstraint
-      case NodePropertyUniqueness         => c => c.isNodeUniquenessConstraint
-      case RelationshipPropertyUniqueness => c => c.isRelationshipUniquenessConstraint
-      case _: NodeKey                     => c => c.isNodeKeyConstraint
-      case _: RelationshipKey             => c => c.isRelationshipKeyConstraint
+      case NodePropertyExistence             => c => c.isNodePropertyExistenceConstraint
+      case RelationshipPropertyExistence     => c => c.isRelationshipPropertyExistenceConstraint
+      case _: NodePropertyUniqueness         => c => c.isNodeUniquenessConstraint
+      case _: RelationshipPropertyUniqueness => c => c.isRelationshipUniquenessConstraint
+      case _: NodeKey                        => c => c.isNodeKeyConstraint
+      case _: RelationshipKey                => c => c.isRelationshipKeyConstraint
       case NodePropertyType(propType) =>
         c => c.isNodePropertyTypeConstraint && checkTypes(propType, c.asPropertyTypeConstraint().propertyType())
       case RelationshipPropertyType(propType) =>

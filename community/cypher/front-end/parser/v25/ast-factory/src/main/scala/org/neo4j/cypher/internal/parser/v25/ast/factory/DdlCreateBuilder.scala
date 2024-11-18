@@ -119,7 +119,8 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
             properties,
             constraintName,
             existsDo,
-            options
+            options,
+            fromCypher5 = false
           )(pos(parent))
         case _: ConstraintKeyContext =>
           CreateConstraint.createNodeKeyConstraint(
@@ -162,7 +163,8 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
             properties,
             constraintName,
             existsDo,
-            options
+            options,
+            fromCypher5 = false
           )(pos(parent))
         case _: ConstraintKeyContext =>
           CreateConstraint.createRelationshipKeyConstraint(

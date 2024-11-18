@@ -21,7 +21,9 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.CreateConstraint
 import org.neo4j.cypher.internal.ast.IsTyped
 import org.neo4j.cypher.internal.ast.NodeKey
+import org.neo4j.cypher.internal.ast.NodePropertyUniqueness
 import org.neo4j.cypher.internal.ast.RelationshipKey
+import org.neo4j.cypher.internal.ast.RelationshipPropertyUniqueness
 import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
 import org.neo4j.cypher.internal.ast.SetIncludingPropertiesFromMapItem
 import org.neo4j.cypher.internal.ast.ShowTransactionsClause
@@ -96,6 +98,50 @@ trait AstRewritingTestSupport extends AstConstructionTestSupport {
         // Create constraint is a trait so it doesn't have a copy method
         // and it doesn't have a public implementing class to match instead either
         CreateConstraint.createRelationshipKeyConstraint(
+          variable,
+          relTypeName,
+          properties,
+          name,
+          ifExistsDo,
+          options,
+          // let's just update all of them to be version > 5
+          fromCypher5 = false,
+          c.useGraph
+        )(c.position)
+      case c @ CreateConstraint(
+          variable,
+          labelName: LabelName,
+          properties,
+          name,
+          _: NodePropertyUniqueness,
+          ifExistsDo,
+          options
+        ) =>
+        // Create constraint is a trait so it doesn't have a copy method
+        // and it doesn't have a public implementing class to match instead either
+        CreateConstraint.createNodePropertyUniquenessConstraint(
+          variable,
+          labelName,
+          properties,
+          name,
+          ifExistsDo,
+          options,
+          // let's just update all of them to be version > 5
+          fromCypher5 = false,
+          c.useGraph
+        )(c.position)
+      case c @ CreateConstraint(
+          variable,
+          relTypeName: RelTypeName,
+          properties,
+          name,
+          _: RelationshipPropertyUniqueness,
+          ifExistsDo,
+          options
+        ) =>
+        // Create constraint is a trait so it doesn't have a copy method
+        // and it doesn't have a public implementing class to match instead either
+        CreateConstraint.createRelationshipPropertyUniquenessConstraint(
           variable,
           relTypeName,
           properties,

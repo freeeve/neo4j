@@ -57,14 +57,38 @@ private case object RelationshipKeyCypher5 extends RelationshipKey {
   override val predicate: String = "IS RELATIONSHIP KEY"
 }
 
-case object NodePropertyUniqueness extends CreateConstraintType {
-  override val description: String = "uniqueness"
+sealed trait NodePropertyUniqueness extends CreateConstraintType {
   override val predicate: String = "IS UNIQUE"
 }
 
-case object RelationshipPropertyUniqueness extends CreateConstraintType {
-  override val description: String = "relationship uniqueness"
+object NodePropertyUniqueness {
+  def cypher25: NodePropertyUniqueness = NodePropertyUniquenessCypher25
+  def cypher5: NodePropertyUniqueness = NodePropertyUniquenessCypher5
+}
+
+case object NodePropertyUniquenessCypher25 extends NodePropertyUniqueness {
+  override val description: String = "node property uniqueness"
+}
+
+case object NodePropertyUniquenessCypher5 extends NodePropertyUniqueness {
+  override val description: String = "uniqueness"
+}
+
+sealed trait RelationshipPropertyUniqueness extends CreateConstraintType {
   override val predicate: String = "IS UNIQUE"
+}
+
+object RelationshipPropertyUniqueness {
+  def cypher25: RelationshipPropertyUniqueness = RelationshipPropertyUniquenessCypher25
+  def cypher5: RelationshipPropertyUniqueness = RelationshipPropertyUniquenessCypher5
+}
+
+case object RelationshipPropertyUniquenessCypher25 extends RelationshipPropertyUniqueness {
+  override val description: String = "relationship property uniqueness"
+}
+
+case object RelationshipPropertyUniquenessCypher5 extends RelationshipPropertyUniqueness {
+  override val description: String = "relationship uniqueness"
 }
 
 case object NodePropertyExistence extends CreateConstraintType {

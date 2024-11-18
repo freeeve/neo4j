@@ -2246,6 +2246,7 @@ class AstGenerator(
       name,
       ifExistsDo,
       options,
+      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
       use
     )(pos)
     compositeUniqueness = CreateConstraint.createNodePropertyUniquenessConstraint(
@@ -2255,6 +2256,7 @@ class AstGenerator(
       name,
       ifExistsDo,
       options,
+      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
       use
     )(pos)
     relUniqueness = CreateConstraint.createRelationshipPropertyUniquenessConstraint(
@@ -2264,6 +2266,7 @@ class AstGenerator(
       name,
       ifExistsDo,
       options,
+      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
       use
     )(pos)
     nodeExistence = CreateConstraint.createNodePropertyExistenceConstraint(

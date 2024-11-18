@@ -362,262 +362,319 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT FOR (node:Label) REQUIRE node.prop IS $nodeKeyword UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop")),
-        None,
-        ast.IfExistsThrowError,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop")),
+          None,
+          ast.IfExistsThrowError,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE OR REPLACE CONSTRAINT FOR (node:Label) REQUIRE node.prop IS $nodeKeyword UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop")),
-        None,
-        ast.IfExistsReplace,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop")),
+          None,
+          ast.IfExistsReplace,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT IF NOT EXISTS FOR (node:Label) REQUIRE node.prop IS $nodeKeyword UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop")),
-        None,
-        ast.IfExistsDoNothing,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop")),
+          None,
+          ast.IfExistsDoNothing,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT FOR (node:Label) REQUIRE (node.prop) IS $nodeKeyword UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop")),
-        None,
-        ast.IfExistsThrowError,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop")),
+          None,
+          ast.IfExistsThrowError,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT FOR (node:Label) REQUIRE (node.prop1,node.prop2) IS $nodeKeyword UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop1"), prop("node", "prop2")),
-        None,
-        ast.IfExistsThrowError,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop1"), prop("node", "prop2")),
+          None,
+          ast.IfExistsThrowError,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE OR REPLACE CONSTRAINT IF NOT EXISTS FOR (node:Label) REQUIRE (node.prop1,node.prop2) IS $nodeKeyword UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop1"), prop("node", "prop2")),
-        None,
-        ast.IfExistsInvalidSyntax,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop1"), prop("node", "prop2")),
+          None,
+          ast.IfExistsInvalidSyntax,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT FOR (node:Label) REQUIRE (node.prop) IS $nodeKeyword UNIQUE OPTIONS {indexConfig : {`spatial.wgs-84.max`: [60.0,60.0], `spatial.wgs-84.min`: [-40.0,-40.0]}, indexProvider : 'native-btree-1.0'}"
     ) {
       // will fail in options converter
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop")),
-        None,
-        ast.IfExistsThrowError,
-        ast.OptionsMap(Map(
-          "indexProvider" -> literalString("native-btree-1.0"),
-          "indexConfig" -> mapOf(
-            "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
-            "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
-          )
-        ))
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop")),
+          None,
+          ast.IfExistsThrowError,
+          ast.OptionsMap(Map(
+            "indexProvider" -> literalString("native-btree-1.0"),
+            "indexConfig" -> mapOf(
+              "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
+              "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
+            )
+          )),
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT FOR (node:Label) REQUIRE (node.prop) IS $nodeKeyword UNIQUE OPTIONS $$options"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop")),
-        None,
-        ast.IfExistsThrowError,
-        ast.OptionsParam(parameter("options", CTMap))
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop")),
+          None,
+          ast.IfExistsThrowError,
+          ast.OptionsParam(parameter("options", CTMap)),
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR (node:Label) REQUIRE node.prop IS $nodeKeyword UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop")),
-        Some("my_constraint"),
-        ast.IfExistsThrowError,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop")),
+          Some("my_constraint"),
+          ast.IfExistsThrowError,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR (node:Label) REQUIRE (node.prop) IS $nodeKeyword UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop")),
-        Some("my_constraint"),
-        ast.IfExistsThrowError,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop")),
+          Some("my_constraint"),
+          ast.IfExistsThrowError,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE OR REPLACE CONSTRAINT my_constraint IF NOT EXISTS FOR (node:Label) REQUIRE (node.prop) IS $nodeKeyword UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop")),
-        Some("my_constraint"),
-        ast.IfExistsInvalidSyntax,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop")),
+          Some("my_constraint"),
+          ast.IfExistsInvalidSyntax,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR (node:Label) REQUIRE (node.prop1,node.prop2) IS $nodeKeyword UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop1"), prop("node", "prop2")),
-        Some("my_constraint"),
-        ast.IfExistsThrowError,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop1"), prop("node", "prop2")),
+          Some("my_constraint"),
+          ast.IfExistsThrowError,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE OR REPLACE CONSTRAINT my_constraint FOR (node:Label) REQUIRE (node.prop1,node.prop2) IS $nodeKeyword UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop1"), prop("node", "prop2")),
-        Some("my_constraint"),
-        ast.IfExistsReplace,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop1"), prop("node", "prop2")),
+          Some("my_constraint"),
+          ast.IfExistsReplace,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint IF NOT EXISTS FOR (node:Label) REQUIRE (node.prop1,node.prop2) IS $nodeKeyword UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop1"), prop("node", "prop2")),
-        Some("my_constraint"),
-        ast.IfExistsDoNothing,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop1"), prop("node", "prop2")),
+          Some("my_constraint"),
+          ast.IfExistsDoNothing,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR (node:Label) REQUIRE (node.prop) IS $nodeKeyword UNIQUE OPTIONS {indexProvider : 'range-1.0'}"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop")),
-        Some("my_constraint"),
-        ast.IfExistsThrowError,
-        ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0")))
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop")),
+          Some("my_constraint"),
+          ast.IfExistsThrowError,
+          ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0"))),
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR (node:Label) REQUIRE (node.prop) IS $nodeKeyword UNIQUE OPTIONS {indexProvider : 'native-btree-1.0', indexConfig : {`spatial.cartesian.max`: [100.0,100.0], `spatial.cartesian.min`: [-100.0,-100.0] }}"
     ) {
       // will fail in options converter
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop")),
-        Some("my_constraint"),
-        ast.IfExistsThrowError,
-        ast.OptionsMap(Map(
-          "indexProvider" -> literalString("native-btree-1.0"),
-          "indexConfig" -> mapOf(
-            "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
-            "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
-          )
-        ))
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop")),
+          Some("my_constraint"),
+          ast.IfExistsThrowError,
+          ast.OptionsMap(Map(
+            "indexProvider" -> literalString("native-btree-1.0"),
+            "indexConfig" -> mapOf(
+              "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
+              "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
+            )
+          )),
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR (node:Label) REQUIRE (node.prop) IS $nodeKeyword UNIQUE OPTIONS {indexConfig : {someConfig: 'toShowItCanBeParsed' }}"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop")),
-        Some("my_constraint"),
-        ast.IfExistsThrowError,
-        ast.OptionsMap(Map("indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed"))))
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop")),
+          Some("my_constraint"),
+          ast.IfExistsThrowError,
+          ast.OptionsMap(Map("indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed")))),
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR (node:Label) REQUIRE (node.prop) IS $nodeKeyword UNIQUE OPTIONS {nonValidOption : 42}"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop")),
-        Some("my_constraint"),
-        ast.IfExistsThrowError,
-        ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop")),
+          Some("my_constraint"),
+          ast.IfExistsThrowError,
+          ast.OptionsMap(Map("nonValidOption" -> literalInt(42))),
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR (node:Label) REQUIRE (node.prop1,node.prop2) IS $nodeKeyword UNIQUE OPTIONS {}"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-        varFor("node"),
-        labelName("Label"),
-        Seq(prop("node", "prop1"), prop("node", "prop2")),
-        Some("my_constraint"),
-        ast.IfExistsThrowError,
-        ast.OptionsMap(Map.empty)
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+          varFor("node"),
+          labelName("Label"),
+          Seq(prop("node", "prop1"), prop("node", "prop2")),
+          Some("my_constraint"),
+          ast.IfExistsThrowError,
+          ast.OptionsMap(Map.empty),
+          fromCypher5
+        )(pos)
+      )
     }
   })
 
@@ -636,14 +693,17 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   }
 
   test("CREATE CONSTRAINT $name FOR (n:L) REQUIRE n.prop IS UNIQUE") {
-    parsesTo[ast.Statements](ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-      varFor("n"),
-      labelName("L"),
-      Seq(prop("n", "prop")),
-      Some(Right(stringParam("name"))),
-      ast.IfExistsThrowError,
-      ast.NoOptions
-    )(pos))
+    assertAstVersionBased(fromCypher5 =>
+      ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+        varFor("n"),
+        labelName("L"),
+        Seq(prop("n", "prop")),
+        Some(Right(stringParam("name"))),
+        ast.IfExistsThrowError,
+        ast.NoOptions,
+        fromCypher5
+      )(pos)
+    )
   }
 
   Seq("RELATIONSHIP", "REL", "").foreach(relKeyWord => {
@@ -908,209 +968,257 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT FOR ()-[r1:R]-() REQUIRE (r2.prop) IS $relKeyWord UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop")),
-        None,
-        ast.IfExistsThrowError,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop")),
+          None,
+          ast.IfExistsThrowError,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT FOR ()-[r1:R]->() REQUIRE (r2.prop1, r3.prop2) IS $relKeyWord UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop1"), prop("r3", "prop2")),
-        None,
-        ast.IfExistsThrowError,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop1"), prop("r3", "prop2")),
+          None,
+          ast.IfExistsThrowError,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT FOR ()<-[r1:R]-() REQUIRE (r2.prop) IS $relKeyWord UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop")),
-        None,
-        ast.IfExistsThrowError,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop")),
+          None,
+          ast.IfExistsThrowError,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT FOR ()<-[r1:R]->() REQUIRE (r2.prop) IS $relKeyWord UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop")),
-        None,
-        ast.IfExistsThrowError,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop")),
+          None,
+          ast.IfExistsThrowError,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE OR REPLACE CONSTRAINT FOR ()-[r1:R]-() REQUIRE (r2.prop) IS $relKeyWord UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop")),
-        None,
-        ast.IfExistsReplace,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop")),
+          None,
+          ast.IfExistsReplace,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE OR REPLACE CONSTRAINT IF NOT EXISTS FOR ()-[r1:R]-() REQUIRE (r2.prop) IS $relKeyWord UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop")),
-        None,
-        ast.IfExistsInvalidSyntax,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop")),
+          None,
+          ast.IfExistsInvalidSyntax,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT IF NOT EXISTS FOR ()-[r1:R]-() REQUIRE (r2.prop) IS $relKeyWord UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop")),
-        None,
-        ast.IfExistsDoNothing,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop")),
+          None,
+          ast.IfExistsDoNothing,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT FOR ()-[r1:R]-() REQUIRE (r2.prop) IS $relKeyWord UNIQUE OPTIONS {key: 'value'}"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop")),
-        None,
-        ast.IfExistsThrowError,
-        ast.OptionsMap(Map("key" -> literalString("value")))
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop")),
+          None,
+          ast.IfExistsThrowError,
+          ast.OptionsMap(Map("key" -> literalString("value"))),
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR ()-[r1:R]-() REQUIRE (r2.prop) IS $relKeyWord UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop")),
-        Some("my_constraint"),
-        ast.IfExistsThrowError,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop")),
+          Some("my_constraint"),
+          ast.IfExistsThrowError,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR ()-[r1:R]->() REQUIRE (r2.prop1, r3.prop2) IS $relKeyWord UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop1"), prop("r3", "prop2")),
-        Some("my_constraint"),
-        ast.IfExistsThrowError,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop1"), prop("r3", "prop2")),
+          Some("my_constraint"),
+          ast.IfExistsThrowError,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR ()<-[r1:R]-() REQUIRE (r2.prop) IS $relKeyWord UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop")),
-        Some("my_constraint"),
-        ast.IfExistsThrowError,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop")),
+          Some("my_constraint"),
+          ast.IfExistsThrowError,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR ()<-[r1:R]->() REQUIRE (r2.prop) IS $relKeyWord UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop")),
-        Some("my_constraint"),
-        ast.IfExistsThrowError,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop")),
+          Some("my_constraint"),
+          ast.IfExistsThrowError,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE OR REPLACE CONSTRAINT my_constraint FOR ()-[r1:R]-() REQUIRE (r2.prop) IS $relKeyWord UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop")),
-        Some("my_constraint"),
-        ast.IfExistsReplace,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop")),
+          Some("my_constraint"),
+          ast.IfExistsReplace,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE OR REPLACE CONSTRAINT my_constraint IF NOT EXISTS FOR ()-[r1:R]-() REQUIRE (r2.prop) IS $relKeyWord UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop")),
-        Some("my_constraint"),
-        ast.IfExistsInvalidSyntax,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop")),
+          Some("my_constraint"),
+          ast.IfExistsInvalidSyntax,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint IF NOT EXISTS FOR ()-[r1:R]-() REQUIRE (r2.prop) IS $relKeyWord UNIQUE"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop")),
-        Some("my_constraint"),
-        ast.IfExistsDoNothing,
-        ast.NoOptions
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop")),
+          Some("my_constraint"),
+          ast.IfExistsDoNothing,
+          ast.NoOptions,
+          fromCypher5
+        )(pos)
+      )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR ()-[r1:R]-() REQUIRE (r2.prop) IS $relKeyWord UNIQUE OPTIONS {key: 'value'}"
     ) {
-      parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-        varFor("r1"),
-        relTypeName("R"),
-        Seq(prop("r2", "prop")),
-        Some("my_constraint"),
-        ast.IfExistsThrowError,
-        ast.OptionsMap(Map("key" -> literalString("value")))
-      )(pos))
+      assertAstVersionBased(fromCypher5 =>
+        ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+          varFor("r1"),
+          relTypeName("R"),
+          Seq(prop("r2", "prop")),
+          Some("my_constraint"),
+          ast.IfExistsThrowError,
+          ast.OptionsMap(Map("key" -> literalString("value"))),
+          fromCypher5
+        )(pos)
+      )
     }
   })
 
@@ -1131,14 +1239,17 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   }
 
   test("CREATE CONSTRAINT $name FOR ()-[r:R]-() REQUIRE r.prop IS UNIQUE") {
-    parsesTo[ast.Statements](ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
-      varFor("r"),
-      relTypeName("R"),
-      Seq(prop("r", "prop")),
-      Some(Right(stringParam("name"))),
-      ast.IfExistsThrowError,
-      ast.NoOptions
-    )(pos))
+    assertAstVersionBased(fromCypher5 =>
+      ast.CreateConstraint.createRelationshipPropertyUniquenessConstraint(
+        varFor("r"),
+        relTypeName("R"),
+        Seq(prop("r", "prop")),
+        Some(Right(stringParam("name"))),
+        ast.IfExistsThrowError,
+        ast.NoOptions,
+        fromCypher5
+      )(pos)
+    )
   }
 
   // Node property existence
@@ -2468,14 +2579,17 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   }
 
   test("CREATE CONSTRAINT FOR FOR (node:Label) REQUIRE (node.prop) IS UNIQUE") {
-    assertAst(ast.CreateConstraint.createNodePropertyUniquenessConstraint(
-      varFor("node", (1, 28, 27)),
-      labelName("Label", (1, 33, 32)),
-      Seq(prop("node", "prop", (1, 49, 48))),
-      Some("FOR"),
-      ast.IfExistsThrowError,
-      ast.NoOptions
-    )(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      ast.CreateConstraint.createNodePropertyUniquenessConstraint(
+        varFor("node", (1, 28, 27)),
+        labelName("Label", (1, 33, 32)),
+        Seq(prop("node", "prop", (1, 49, 48))),
+        Some("FOR"),
+        ast.IfExistsThrowError,
+        ast.NoOptions,
+        fromCypher5
+      )(defaultPos)
+    )
   }
 
   test("CREATE CONSTRAINT FOR FOR (node:Label) REQUIRE node.prop IS NOT NULL") {

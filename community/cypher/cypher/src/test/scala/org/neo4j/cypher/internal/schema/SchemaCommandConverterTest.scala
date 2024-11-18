@@ -2138,7 +2138,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       List(prop),
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def uniquenessRelConstraint(
@@ -2153,7 +2154,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       List(prop),
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def existenceNodeConstraint(
