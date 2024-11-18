@@ -38,7 +38,6 @@ import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Set;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.PhysicalFlushableLogChannel;
@@ -113,13 +112,13 @@ class DetachedCheckpointLogEntrySerializerV42Test {
         try (var buffer = new HeapScopedBuffer((int) kibiBytes(1), ByteOrder.BIG_ENDIAN, INSTANCE)) {
             StoreChannel storeChannel = fs.write(path);
             try (PhysicalFlushableLogChannel writeChannel = new PhysicalFlushableLogChannel(storeChannel, buffer)) {
-                writeCheckpoint(writeChannel, KernelVersion.V4_4, StringUtils.repeat("b", 1024));
+                writeCheckpoint(writeChannel, KernelVersion.V4_4, "b".repeat(1024));
             }
         }
         try (var buffer = new HeapScopedBuffer((int) kibiBytes(1), ByteOrder.LITTLE_ENDIAN, INSTANCE)) {
             StoreChannel storeChannel = fs.open(path, Set.of(StandardOpenOption.WRITE, StandardOpenOption.APPEND));
             try (PhysicalFlushableLogChannel writeChannel = new PhysicalFlushableLogChannel(storeChannel, buffer)) {
-                writeCheckpoint(writeChannel, KernelVersion.V5_0, StringUtils.repeat("c", 1024));
+                writeCheckpoint(writeChannel, KernelVersion.V5_0, "c".repeat(1024));
             }
         }
 

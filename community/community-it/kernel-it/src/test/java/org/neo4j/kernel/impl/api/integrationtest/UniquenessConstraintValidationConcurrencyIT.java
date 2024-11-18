@@ -28,7 +28,6 @@ import static org.neo4j.graphdb.RelationshipType.withName;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
-import org.apache.logging.log4j.util.Strings;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -113,7 +112,7 @@ public class UniquenessConstraintValidationConcurrencyIT {
         // given
         int numChars = 40_000;
         try (var tx = database.beginTx()) {
-            entityControl.createEntityWithTokenAndProp(tx, Strings.repeat("a", numChars));
+            entityControl.createEntityWithTokenAndProp(tx, "a".repeat(numChars));
             tx.commit();
         }
 

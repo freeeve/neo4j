@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Path;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
@@ -76,7 +75,7 @@ class CommandPrefetchIT {
         try (var tx = db.beginTx()) {
             Node node = tx.createNode();
             node.setProperty("property", "property");
-            node.setProperty("largeStringProperty", StringUtils.repeat("X", 1024));
+            node.setProperty("largeStringProperty", "X".repeat(1024));
             node.setProperty("largeArrayProperty", new long[1024]);
             tx.commit();
         }

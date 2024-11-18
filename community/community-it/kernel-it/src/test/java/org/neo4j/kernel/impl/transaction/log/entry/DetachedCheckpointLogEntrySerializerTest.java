@@ -41,7 +41,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -85,7 +84,7 @@ class DetachedCheckpointLogEntrySerializerTest {
             Path path = directory.createFile("a");
             StoreChannel storeChannel = fs.write(path);
             try (PhysicalFlushableLogChannel writeChannel = new PhysicalFlushableLogChannel(storeChannel, buffer)) {
-                writeCheckpoint(writeChannel, KernelVersion.V5_0, StringUtils.repeat("c", 1024));
+                writeCheckpoint(writeChannel, KernelVersion.V5_0, "c".repeat(1024));
             }
 
             VersionAwareLogEntryReader entryReader = new VersionAwareLogEntryReader(
@@ -188,7 +187,7 @@ class DetachedCheckpointLogEntrySerializerTest {
             try (PhysicalFlushableLogChannel writeChannel = new PhysicalFlushableLogChannel(storeChannel, buffer)) {
 
                 long initialPosition = writeChannel.position();
-                writeCheckpoint(writeChannel, kernelVersion, StringUtils.repeat("b", 1024));
+                writeCheckpoint(writeChannel, kernelVersion, "b".repeat(1024));
                 long recordLength = writeChannel.position() - initialPosition;
                 assertThat(recordLength).isEqualTo(RECORD_LENGTH_BYTES);
             }
@@ -204,7 +203,7 @@ class DetachedCheckpointLogEntrySerializerTest {
             try (PhysicalFlushableLogChannel writeChannel = new PhysicalFlushableLogChannel(storeChannel, buffer)) {
 
                 long initialPosition = writeChannel.position();
-                writeCheckpoint(writeChannel, kernelVersion, StringUtils.repeat("b", 1024));
+                writeCheckpoint(writeChannel, kernelVersion, "b".repeat(1024));
                 long recordLength = writeChannel.position() - initialPosition;
                 assertThat(recordLength).isEqualTo(RECORD_LENGTH_BYTES);
             }
