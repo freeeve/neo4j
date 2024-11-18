@@ -187,7 +187,8 @@ case class FabricPlanner(
         QueryOptions.default.copy(
           queryOptions = QueryOptions.default.queryOptions.copy(
             runtime = CypherRuntimeOption.slotted,
-            expressionEngine = CypherExpressionEngineOption.interpreted
+            expressionEngine = CypherExpressionEngineOption.interpreted,
+            cypherVersion = query.options.queryOptions.cypherVersion
           ),
           materializedEntitiesMode = true
         )
