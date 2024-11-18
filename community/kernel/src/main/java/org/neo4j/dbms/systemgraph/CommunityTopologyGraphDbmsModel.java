@@ -72,14 +72,14 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
         var internalAliasRefs = getAllInternalDatabaseReferencesInRoot();
         var externalRefs = getAllExternalDatabaseReferencesInRoot();
         var compositeRefs = getAllCompositeDatabaseReferencesInRoot();
-        var spdEntityShardRefs = getAllSPDEntityShardReferencesInRoot();
+        var spdGraphShardRefs = getAllSPDGraphShardReferencesInRoot();
         var spdPropertyShardRefs = getAllSPDPropertyShardReferencesInRoot();
         return Stream.of(
                         primaryRefs,
                         internalAliasRefs,
                         externalRefs,
                         compositeRefs,
-                        spdEntityShardRefs,
+                        spdGraphShardRefs,
                         spdPropertyShardRefs)
                 .flatMap(s -> s)
                 .collect(Collectors.toUnmodifiableSet());
@@ -89,9 +89,9 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     public Set<DatabaseReferenceImpl.Internal> getAllInternalDatabaseReferences() {
         var primaryRefs = CommunityTopologyGraphDbmsModelUtil.getAllPrimaryStandardDatabaseReferencesInRoot(tx);
         var internalAliasRefs = getAllInternalDatabaseReferencesInRoot();
-        var spdEntityShardRefs = getAllSPDEntityShardReferencesInRoot();
+        var spdGraphShardRefs = getAllSPDGraphShardReferencesInRoot();
         var spdPropertyShardRefs = getAllSPDPropertyShardReferencesInRoot();
-        return Stream.of(primaryRefs, internalAliasRefs, spdEntityShardRefs, spdPropertyShardRefs)
+        return Stream.of(primaryRefs, internalAliasRefs, spdGraphShardRefs, spdPropertyShardRefs)
                 .flatMap(s -> s)
                 .collect(Collectors.toUnmodifiableSet());
     }
@@ -113,7 +113,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
         // in case they do, we simply prefer the internal reference.
         return Optional.<DatabaseReference>empty()
                 .or(() -> getCompositeDatabaseReferenceInRoot(normalizedDatabaseName))
-                .or(() -> getSPDEntityShardReferenceInRoot(normalizedDatabaseName))
+                .or(() -> getSPDGraphShardReferenceInRoot(normalizedDatabaseName))
                 .or(() -> getSPDPropertyShardReferenceInRoot(normalizedDatabaseName))
                 .or(() -> CommunityTopologyGraphDbmsModelUtil.getInternalDatabaseReference(tx, normalizedDatabaseName))
                 .or(() -> CommunityTopologyGraphDbmsModelUtil.getExternalDatabaseReference(tx, normalizedDatabaseName));
@@ -137,7 +137,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     private Optional<DatabaseReference> resolveRootReference(String normalizedDatabaseAlias) {
         return Optional.<DatabaseReference>empty()
                 .or(() -> getCompositeDatabaseReferenceInRoot(normalizedDatabaseAlias))
-                .or(() -> getSPDEntityShardReferenceInRoot(normalizedDatabaseAlias))
+                .or(() -> getSPDGraphShardReferenceInRoot(normalizedDatabaseAlias))
                 .or(() -> getSPDPropertyShardReferenceInRoot(normalizedDatabaseAlias))
                 .or(() -> CommunityTopologyGraphDbmsModelUtil.getInternalDatabaseReference(tx, normalizedDatabaseAlias))
                 .or(() ->
@@ -200,19 +200,19 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
         });
     }
 
-    private Stream<DatabaseReferenceImpl.SPD> getAllSPDEntityShardReferencesInRoot() {
+    private Stream<DatabaseReferenceImpl.SPD> getAllSPDGraphShardReferencesInRoot() {
         return getAliasNodesInNamespace(DATABASE_NAME_LABEL, DEFAULT_NAMESPACE)
                 .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
                         .filter(db -> db.getDegree(HAS_SHARD, Direction.OUTGOING) > 0)
-                        .flatMap(db -> createSPDEntityShardReference(alias, db))
+                        .flatMap(db -> createSPDGraphShardReference(alias, db))
                         .stream());
     }
 
-    private Optional<DatabaseReferenceImpl.SPD> getSPDEntityShardReferenceInRoot(String databaseName) {
+    private Optional<DatabaseReferenceImpl.SPD> getSPDGraphShardReferenceInRoot(String databaseName) {
         return getAliasNodesInNamespace(DATABASE_NAME_LABEL, DEFAULT_NAMESPACE, databaseName)
                 .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
                         .filter(db -> db.getDegree(HAS_SHARD, Direction.OUTGOING) > 0)
-                        .flatMap(db -> createSPDEntityShardReference(alias, db))
+                        .flatMap(db -> createSPDGraphShardReference(alias, db))
                         .stream())
                 .findFirst();
     }
@@ -234,7 +234,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
                 .findFirst();
     }
 
-    private Optional<DatabaseReferenceImpl.SPD> createSPDEntityShardReference(Node alias, Node db) {
+    private Optional<DatabaseReferenceImpl.SPD> createSPDGraphShardReference(Node alias, Node db) {
         return CommunityTopologyGraphDbmsModelUtil.ignoreConcurrentDeletes(() -> {
             var aliasName = CommunityTopologyGraphDbmsModelUtil.getNameProperty(DATABASE_NAME, alias);
             var databaseId = CommunityTopologyGraphDbmsModelUtil.getDatabaseId(db);
