@@ -1,0 +1,331 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.kernel.impl.transaction.log.reverse;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.neo4j.common.Subject.ANONYMOUS;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.latest_kernel_version;
+import static org.neo4j.kernel.impl.transaction.log.GivenCommandBatchCursor.exhaust;
+import static org.neo4j.kernel.impl.transaction.log.TestLogEntryReader.logEntryReader;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_START;
+import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
+import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_ID;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.neo4j.configuration.Config;
+import org.neo4j.io.ByteUnit;
+import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.FlushableChannel;
+import org.neo4j.io.layout.DatabaseLayout;
+import org.neo4j.kernel.BinarySupportedKernelVersions;
+import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.impl.api.TestCommand;
+import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
+import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
+import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
+import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
+import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
+import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
+import org.neo4j.kernel.impl.transaction.log.FlushableLogPositionAwareChannel;
+import org.neo4j.kernel.impl.transaction.log.LogAppendEvent;
+import org.neo4j.kernel.impl.transaction.log.LogPosition;
+import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
+import org.neo4j.kernel.impl.transaction.log.ReaderLogVersionBridge;
+import org.neo4j.kernel.impl.transaction.log.TransactionLogWriter;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
+import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
+import org.neo4j.kernel.impl.transaction.log.files.LogFile;
+import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
+import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
+import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
+import org.neo4j.kernel.lifecycle.LifeSupport;
+import org.neo4j.logging.AssertableLogProvider;
+import org.neo4j.logging.InternalLogProvider;
+import org.neo4j.storageengine.api.CommandBatch;
+import org.neo4j.storageengine.api.LogVersionRepository;
+import org.neo4j.storageengine.api.StorageCommand;
+import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.TransactionIdStore;
+import org.neo4j.test.RandomSupport;
+import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.LifeExtension;
+import org.neo4j.test.extension.Neo4jLayoutExtension;
+import org.neo4j.test.extension.RandomExtension;
+
+@Neo4jLayoutExtension
+@ExtendWith({RandomExtension.class, LifeExtension.class})
+class ReversedEnvelopedCommandBatchCursorTest {
+    private static final KernelVersion kernelVersion = KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+    private final InternalLogProvider logProvider = new AssertableLogProvider(true);
+    private final ReverseTransactionCursorLoggingMonitor monitor =
+            new ReverseTransactionCursorLoggingMonitor(logProvider.getLog(ReversedEnvelopedCommandBatchCursor.class));
+
+    @Inject
+    private FileSystemAbstraction fs;
+
+    @Inject
+    private DatabaseLayout databaseLayout;
+
+    @Inject
+    private LifeSupport life;
+
+    @Inject
+    private RandomSupport random;
+
+    private long txId = TransactionIdStore.BASE_TX_ID;
+    private LogFile logFile;
+    private Config config;
+
+    private static void assertTransactionRange(CommittedCommandBatchRepresentation[] readTransactions, long highTxId) {
+        assertTransactionRange(readTransactions, highTxId, TransactionIdStore.BASE_TX_ID);
+    }
+
+    private static void assertTransactionRange(
+            CommittedCommandBatchRepresentation[] readTransactions, long highTxId, long lowTxId) {
+        long expectedTxId = highTxId;
+        for (CommittedCommandBatchRepresentation commandBatch : readTransactions) {
+            assertEquals(expectedTxId, commandBatch.txId());
+            expectedTxId--;
+        }
+        assertEquals(expectedTxId, lowTxId);
+    }
+
+    private static CommandBatch tx(int size) {
+        List<StorageCommand> commands = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            // The type of command doesn't matter here
+            commands.add(new TestCommand());
+        }
+        return new CompleteCommandBatch(commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, kernelVersion, ANONYMOUS);
+    }
+
+    @BeforeEach
+    void setUp() throws IOException {
+        LogVersionRepository logVersionRepository = new SimpleLogVersionRepository();
+        SimpleTransactionIdStore transactionIdStore = new SimpleTransactionIdStore();
+        var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
+        config = Config.defaults(latest_kernel_version, kernelVersion.version());
+        LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fs, () -> kernelVersion)
+                .withRotationThreshold(ByteUnit.mebiBytes(10))
+                .withLogVersionRepository(logVersionRepository)
+                .withTransactionIdStore(transactionIdStore)
+                .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
+                .withStoreId(storeId)
+                .withAppendIndexProvider(new SimpleAppendIndexProvider())
+                .withConfig(config)
+                .build();
+        life.add(logFiles);
+        logFile = logFiles.getLogFile();
+    }
+
+    @Test
+    void shouldHandleVerySmallTransactions() throws Exception {
+        // given
+        writeTransactions(10, 1, 1);
+
+        // when
+        CommittedCommandBatchRepresentation[] readTransactions = readAllFromReversedCursor();
+
+        // then
+        assertTransactionRange(readTransactions, txId);
+    }
+
+    @Test
+    void shouldHandleManyVerySmallTransactions() throws Exception {
+        // given
+        writeTransactions(20_000, 1, 1);
+
+        // when
+        CommittedCommandBatchRepresentation[] readTransactions = readAllFromReversedCursor();
+
+        // then
+        assertTransactionRange(readTransactions, txId);
+    }
+
+    @Test
+    void shouldHandleLargeTransactions() throws Exception {
+        // given
+        writeTransactions(5, 1000, 1000);
+
+        // when
+        CommittedCommandBatchRepresentation[] readTransactions = readAllFromReversedCursor();
+
+        // then
+        assertTransactionRange(readTransactions, txId);
+    }
+
+    @Test
+    void shouldHandleEmptyLog() throws Exception {
+        // given
+
+        // when
+        CommittedCommandBatchRepresentation[] readTransactions = readAllFromReversedCursor();
+
+        // then
+        assertEquals(0, readTransactions.length);
+    }
+
+    @Test
+    void shouldDetectAndPreventChannelReadingMultipleLogVersions() throws Exception {
+        // given
+        writeTransactions(1, 1, 1);
+        logFile.rotate();
+        writeTransactions(1, 1, 1);
+
+        // when
+        LogPosition startPosition = logFile.extractHeader(0).getStartPosition();
+        assertThatThrownBy(() -> {
+                    try (ReadableLogChannel channel = logFile.getReader(startPosition);
+                            ReadableLogChannel bridgedChannel =
+                                    logFile.getReader(startPosition, ReaderLogVersionBridge.forFile(logFile))) {
+                        new ReversedEnvelopedCommandBatchCursor(
+                                (EnvelopeReadChannel) channel, logEntryReader(), false, monitor, (EnvelopeReadChannel)
+                                        bridgedChannel);
+                    }
+                })
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("multiple log versions");
+    }
+
+    @Test
+    void readCorruptedTransactionLog() throws IOException {
+        int readableTransactions = 10;
+        writeTransactions(readableTransactions, 1, 1);
+        appendCorruptedTransaction();
+        writeTransactions(readableTransactions, 1, 1);
+        CommittedCommandBatchRepresentation[] committedTransactionRepresentations = readAllFromReversedCursor();
+        CommittedCommandBatchRepresentation[] afterCorruption =
+                Arrays.copyOfRange(committedTransactionRepresentations, 0, readableTransactions);
+        CommittedCommandBatchRepresentation[] beforeCorruption = Arrays.copyOfRange(
+                committedTransactionRepresentations, readableTransactions, committedTransactionRepresentations.length);
+        long corruptedTxId = readableTransactions + TransactionIdStore.BASE_TX_ID + 1;
+        assertTransactionRange(afterCorruption, corruptedTxId + readableTransactions, corruptedTxId);
+        assertTransactionRange(beforeCorruption, corruptedTxId - 1);
+    }
+
+    @Test
+    void failToReadCorruptedTransactionLogWhenConfigured() throws IOException {
+        int readableTransactions = 10;
+        writeTransactions(readableTransactions, 1, 1);
+        appendCorruptedTransaction();
+        writeTransactions(readableTransactions, 1, 1);
+
+        assertThatThrownBy(this::readAllFromReversedCursorFailOnCorrupted)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Unreadable bytes are encountered after last readable position");
+    }
+
+    private CommittedCommandBatchRepresentation[] readAllFromReversedCursor() throws IOException {
+        try (ReversedEnvelopedCommandBatchCursor cursor = txCursor(false)) {
+            return exhaust(cursor);
+        }
+    }
+
+    private CommittedCommandBatchRepresentation[] readAllFromReversedCursorFailOnCorrupted() throws IOException {
+        try (ReversedEnvelopedCommandBatchCursor cursor = txCursor(true)) {
+            return exhaust(cursor);
+        }
+    }
+
+    private ReversedEnvelopedCommandBatchCursor txCursor(boolean failOnCorruptedLogFiles) throws IOException {
+        LogPosition startPosition = logFile.extractHeader(0).getStartPosition();
+        ReadableLogChannel fileReader = logFile.getReader(startPosition);
+        ReadableLogChannel fileReaderBridged =
+                logFile.getReader(startPosition, ReaderLogVersionBridge.forFile(logFile));
+        try {
+            return new ReversedEnvelopedCommandBatchCursor(
+                    (EnvelopeReadChannel) fileReader,
+                    logEntryReader(new BinarySupportedKernelVersions(config)),
+                    failOnCorruptedLogFiles,
+                    monitor,
+                    (EnvelopeReadChannel) fileReaderBridged);
+        } catch (Exception e) {
+            fileReader.close();
+            throw e;
+        }
+    }
+
+    private void writeTransactions(int transactionCount, int minTransactionSize, int maxTransactionSize)
+            throws IOException {
+        FlushableLogPositionAwareChannel channel =
+                logFile.getTransactionLogWriter().getChannel();
+        TransactionLogWriter writer = logFile.getTransactionLogWriter();
+        int previousChecksum = BASE_TX_CHECKSUM;
+        for (int i = 0; i < transactionCount; i++) {
+            previousChecksum = writer.append(
+                    tx(random.intBetween(minTransactionSize, maxTransactionSize)),
+                    ++txId,
+                    UNKNOWN_CHUNK_ID,
+                    UNKNOWN_TX_ID,
+                    previousChecksum,
+                    LogVersionRepository.UNKNOWN_LOG_OFFSET,
+                    LogAppendEvent.NULL);
+        }
+        channel.prepareForFlush().flush();
+        // Don't close the channel, LogFile owns it
+    }
+
+    private void appendCorruptedTransaction() throws IOException {
+        var channel = logFile.getTransactionLogWriter().getChannel();
+        TransactionLogWriter writer = new TransactionLogWriter(
+                channel, new CorruptedLogEntryWriter<>(channel), () -> kernelVersion, LogRotation.NO_ROTATION);
+        writer.append(
+                tx(random.intBetween(100, 1000)),
+                ++txId,
+                UNKNOWN_CHUNK_ID,
+                UNKNOWN_APPEND_INDEX,
+                BASE_TX_CHECKSUM,
+                LogVersionRepository.UNKNOWN_LOG_OFFSET,
+                LogAppendEvent.NULL);
+    }
+
+    private static class CorruptedLogEntryWriter<T extends FlushableChannel> extends LogEntryWriter<T> {
+        CorruptedLogEntryWriter(T channel) {
+            super(
+                    channel,
+                    new BinarySupportedKernelVersions(Config.defaults(latest_kernel_version, kernelVersion.version())));
+        }
+
+        @Override
+        public void writeStartEntry(
+                KernelVersion kernelVersion,
+                long timeWritten,
+                long latestCommittedTxWhenStarted,
+                long appendIndex,
+                int previousChecksum,
+                byte[] additionalHeaderData)
+                throws IOException {
+            channel.putVersion(kernelVersion.version()).put(TX_START);
+            for (int i = 0; i < 100; i++) {
+                channel.put((byte) -1);
+            }
+        }
+    }
+}

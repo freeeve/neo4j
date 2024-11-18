@@ -30,6 +30,7 @@ import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.ReadAheadLogChannel;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
+import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 
 public final class DefaultReverseCommandBatchCursors implements CommandBatchCursors {
@@ -63,7 +64,7 @@ public final class DefaultReverseCommandBatchCursors implements CommandBatchCurs
 
         try {
             LogPosition position = getCursorStartPosition();
-            CommandBatchCursor cursor = createCursor(logFile.getReader(position, NO_MORE_CHANNELS));
+            CommandBatchCursor cursor = createCursor(position);
             currentVersion--;
             return Optional.of(cursor);
         } catch (IOException e) {
@@ -82,12 +83,16 @@ public final class DefaultReverseCommandBatchCursors implements CommandBatchCurs
         return beginning;
     }
 
-    private CommandBatchCursor createCursor(ReadableLogChannel channel) throws IOException {
-        if (channel instanceof ReadAheadLogChannel) {
-            return new ReversedSingleFileCommandBatchCursor(
-                    (ReadAheadLogChannel) channel, reader, failOnCorruptedLogFiles, monitor);
-        }
-        return eagerlyReverse(new CommittedCommandBatchCursor(channel, reader));
+    private CommandBatchCursor createCursor(LogPosition position) throws IOException {
+        ReadableLogChannel channel = logFile.getReader(position, NO_MORE_CHANNELS);
+        return switch (channel) {
+            case ReadAheadLogChannel aheadChannel -> new ReversedSingleFileCommandBatchCursor(
+                    aheadChannel, reader, failOnCorruptedLogFiles, monitor);
+            case EnvelopeReadChannel readChannel -> new ReversedEnvelopedCommandBatchCursor(
+                    readChannel, reader, failOnCorruptedLogFiles, monitor, (EnvelopeReadChannel)
+                            logFile.getReader(position));
+            default -> eagerlyReverse(new CommittedCommandBatchCursor(channel, reader));
+        };
     }
 
     @Override

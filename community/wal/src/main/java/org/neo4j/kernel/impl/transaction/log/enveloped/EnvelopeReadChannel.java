@@ -740,7 +740,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         if (nextChannel == channel) {
             // no more channels - we cannot satisfy the requested number of bytes
             if (payloadType == EnvelopeType.BEGIN || payloadType == EnvelopeType.MIDDLE) {
-                throw new IOException(
+                throw new InvalidEndOfFileReadException(
                         "Log file with version %d ended with an incomplete record type(%s) and no following log file could be found."
                                 .formatted(channel.getLogVersion(), payloadType.name()));
             }
