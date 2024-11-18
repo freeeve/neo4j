@@ -276,7 +276,11 @@ abstract class UnwindTestBase[CONTEXT <: RuntimeContext](
     execute(query, runtime) should beColumns("r1", "r2").withSingleRow(null, null)
   }
 
-  test("should unwind big list") {
+
+  //This test is really slow on TC, locally for me it isn't too bad bug given that we run
+  //these tests in so many configurations and that there are unit tests for this as well
+  //we skip this one for now.
+  ignore("should unwind big list") {
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("i")
