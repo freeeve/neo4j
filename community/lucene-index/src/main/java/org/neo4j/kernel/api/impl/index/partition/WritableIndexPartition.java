@@ -21,6 +21,7 @@ package org.neo4j.kernel.api.impl.index.partition;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.SearcherManager;
@@ -37,12 +38,14 @@ import org.neo4j.kernel.api.impl.index.backup.LuceneIndexSnapshots;
 public class WritableIndexPartition extends AbstractIndexPartition {
     private final IndexWriter indexWriter;
     private final SearcherManager searcherManager;
+    private final DirectoryReader directoryReader;
 
     public WritableIndexPartition(Path partitionFolder, Directory directory, IndexWriterConfig writerConfig)
             throws IOException {
         super(partitionFolder, directory);
         this.indexWriter = new IndexWriter(directory, writerConfig);
-        this.searcherManager = new SearcherManager(indexWriter, new Neo4jSearcherFactory());
+        this.directoryReader = DirectoryReader.open(indexWriter, true, false);
+        this.searcherManager = new SearcherManager(directoryReader, new Neo4jSearcherFactory());
     }
 
     /**
@@ -74,7 +77,7 @@ public class WritableIndexPartition extends AbstractIndexPartition {
      */
     @Override
     public void close() throws IOException {
-        IOUtils.closeAll(searcherManager, indexWriter, getDirectory());
+        IOUtils.closeAll(searcherManager, directoryReader, indexWriter, getDirectory());
     }
 
     /**
