@@ -36,7 +36,7 @@ class MultiversionDegreeStoreTransactionApplierFactory implements TransactionApp
     @Override
     public TransactionApplier startTx(StorageEngineTransaction transaction, BatchContext batchContext) {
         return switch (mode) {
-            case REVERSE_RECOVERY -> new SimpleDegreeStoreTransactionApplier(() ->
+            case REVERSE_RECOVERY, MVCC_INCOMPLETE_REVERSE_RECOVERY -> new SimpleDegreeStoreTransactionApplier(() ->
                     groupDegreesStore.reverseRecoveryUpdater(transaction.transactionId(), transaction.cursorContext()));
             case MVCC_ROLLBACK -> new SimpleDegreeStoreTransactionApplier(
                     () -> groupDegreesStore.rollbackUpdater(transaction.transactionId(), transaction.cursorContext()));

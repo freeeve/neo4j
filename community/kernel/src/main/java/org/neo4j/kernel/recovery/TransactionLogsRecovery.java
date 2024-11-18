@@ -22,9 +22,10 @@ package org.neo4j.kernel.recovery;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.neo4j.kernel.recovery.Recovery.throwUnableToCleanRecover;
-import static org.neo4j.kernel.recovery.RecoveryMode.FORWARD;
-import static org.neo4j.kernel.recovery.TransactionStatus.RECOVERABLE;
+import static org.neo4j.kernel.recovery.RecoveryMode.FULL;
 import static org.neo4j.storageengine.AppendIndexProvider.BASE_APPEND_INDEX;
+import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
+import static org.neo4j.storageengine.api.TransactionApplicationMode.MVCC_INCOMPLETE_REVERSE_RECOVERY;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.RECOVERY;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.REVERSE_RECOVERY;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
@@ -42,7 +43,6 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.database.Database;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
-import org.neo4j.kernel.impl.transaction.log.CommandBatchCursor;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.PhysicalFlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
@@ -176,13 +176,11 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
             RecoveryContextTracker recoveryContextTracker)
             throws ClosedByInterruptException, DatabaseStartAbortedException, RecoveryPredicateException {
         try {
-            reverseRecovery(recoveryStartInformation, transactionIdTracker);
-
-            // We cannot initialise the schema (tokens, schema cache, indexing service, etc.) until we have returned
-            // the store to a consistent state.
-            // We need to be able to read the store before we can even figure out what indexes, tokens, etc. we
-            // have. Hence, we defer the initialisation of the schema life until after we've done the reverse recovery.
-            schemaLife.init();
+            if (mode == FULL) {
+                reverseRecovery(recoveryStartInformation, transactionIdTracker);
+            } else {
+                skipReverseRecovery(recoveryStartInformation);
+            }
 
             forwardRecovery(
                     recoveryStartInformation, transactionIdTracker, recoveryStartPosition, recoveryContextTracker);
@@ -193,6 +191,11 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         } catch (Throwable t) {
             handleUnexpectedRecoveryError(recoveryStartPosition, recoveryContextTracker, t);
         }
+    }
+
+    private void skipReverseRecovery(RecoveryStartInformation recoveryStartInformation) throws Exception {
+        initProgressReporter(recoveryStartInformation, recoveryStartInformation.transactionLogPosition());
+        schemaLife.init();
     }
 
     private void handleUnexpectedRecoveryError(
@@ -363,11 +366,57 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
             RecoveryStartInformation recoveryStartInformation, TransactionIdTracker transactionIdTracker)
             throws Exception {
 
-        if (mode == FORWARD) {
-            // nothing to do, update the progress to match this
-            initProgressReporter(recoveryStartInformation, recoveryStartInformation.transactionLogPosition());
-            return;
+        long lowestRecoveredAppendIndex = reverseCompleteBatches(recoveryStartInformation, transactionIdTracker);
+
+        // We cannot initialise the schema (tokens, schema cache, indexing service, etc.) until we have returned
+        // the store to a consistent state.
+        // We need to be able to read the store before we can even figure out what indexes, tokens, etc. we
+        // have. Hence, we defer the initialisation of the schema life until after we've done the reverse recovery.
+        schemaLife.init();
+
+        reverseIncompleteBatches(transactionIdTracker.notCompletedTransactionAppendIndexes());
+
+        monitor.reverseStoreRecoveryCompleted(lowestRecoveredAppendIndex);
+    }
+
+    private void reverseIncompleteBatches(long[] incompleteAppendIndexes) throws Exception {
+        // Incomplete batches especially one before the last checkpoint position must also undo indexes and id
+        // generators, therefore using MVCC_INCOMPLETE_REVERSE_RECOVERY applier
+        try (var recoveryVisitor = recoveryService.getRecoveryApplier(
+                MVCC_INCOMPLETE_REVERSE_RECOVERY, contextFactory, REVERSE_RECOVERY_TAG)) {
+            for (long appendIndex : incompleteAppendIndexes) {
+                long nextIndexToReverse = appendIndex;
+                while (nextIndexToReverse != UNKNOWN_APPEND_INDEX) {
+                    nextIndexToReverse = reverseChunk(nextIndexToReverse, recoveryVisitor);
+                }
+            }
         }
+    }
+
+    private long reverseChunk(long appendIndex, RecoveryApplier recoveryVisitor) throws Exception {
+        try (var batchToReverse = recoveryService.getCommandBatches(appendIndex)) {
+            if (batchToReverse.next()) {
+                recoveryStartupChecker.checkIfCanceled();
+                var batch = batchToReverse.get();
+                recoveryVisitor.visit(batch);
+                reportProgress();
+                assert batch.commandBatch().isFirst() == (batch.previousBatchAppendIndex() == UNKNOWN_APPEND_INDEX)
+                        : "the first batch must not have previous batch append index but points to "
+                                + batch.previousBatchAppendIndex();
+                return batch.previousBatchAppendIndex();
+            }
+        }
+        throw new Error(format(
+                "Error reversing incomplete transactions Expected to find the batch with append index %d",
+                appendIndex));
+    }
+
+    /**
+     * Reverse complete batches and collect information about incomplete ones
+     */
+    private long reverseCompleteBatches(
+            RecoveryStartInformation recoveryStartInformation, TransactionIdTracker transactionIdTracker)
+            throws Exception {
         CommittedCommandBatchRepresentation lastReversedCommandBatch = null;
 
         var oldestNotVisibleTransactionLogPosition = recoveryStartInformation.oldestNotVisibleTransactionLogPosition();
@@ -380,31 +429,21 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
                         recoveryService.getRecoveryApplier(REVERSE_RECOVERY, contextFactory, REVERSE_RECOVERY_TAG)) {
             while (transactionsToRecover.next()) {
                 recoveryStartupChecker.checkIfCanceled();
-                CommittedCommandBatchRepresentation commandBatch = transactionsToRecover.get();
+                var commandBatch = transactionsToRecover.get();
                 if (lastReversedCommandBatch == null) {
                     lastReversedCommandBatch = commandBatch;
                     initProgressReporter(recoveryStartInformation, lastReversedCommandBatch, mode);
                 }
                 transactionIdTracker.trackBatch(commandBatch);
-                // we need to unroll transactions that were never completed or located after checkpointed position
-                if (shouldReverseBatch(
-                        transactionIdTracker, transactionsToRecover, checkpointedLogPosition, commandBatch)) {
+                // we need to unroll only transactions located after checkpointed position
+                if (transactionsToRecover.position().compareTo(checkpointedLogPosition) >= 0) {
                     recoveryVisitor.visit(commandBatch);
                 }
                 lowestRecoveredAppendIndex = commandBatch.appendIndex();
                 reportProgress();
             }
         }
-        monitor.reverseStoreRecoveryCompleted(lowestRecoveredAppendIndex);
-    }
-
-    private static boolean shouldReverseBatch(
-            TransactionIdTracker transactionIdTracker,
-            CommandBatchCursor transactionsToRecover,
-            LogPosition checkpointedLogPosition,
-            CommittedCommandBatchRepresentation commandBatch) {
-        return transactionsToRecover.position().compareTo(checkpointedLogPosition) >= 0
-                || (RECOVERABLE != transactionIdTracker.transactionStatus(commandBatch.txId()));
+        return lowestRecoveredAppendIndex;
     }
 
     private void initProgressReporter(

@@ -67,6 +67,7 @@ import org.neo4j.internal.kernel.api.exceptions.schema.CreateConstraintFailureEx
 import org.neo4j.internal.recordstorage.Command.RecordEnrichmentCommand;
 import org.neo4j.internal.recordstorage.NeoStoresDiagnostics.NeoStoreIdUsage;
 import org.neo4j.internal.recordstorage.NeoStoresDiagnostics.NeoStoreRecords;
+import org.neo4j.internal.recordstorage.TransactionApplierFactoryChain.IdUpdateListenerFactory;
 import org.neo4j.internal.recordstorage.indexcommand.IndexRecordState;
 import org.neo4j.internal.recordstorage.indexcommand.TransactionToIndexUpdateVisitor;
 import org.neo4j.internal.recordstorage.validation.TransactionCommandValidatorFactory;
@@ -292,20 +293,39 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
 
     private TransactionApplierFactoryChain buildApplierFacadeChain(
             TransactionApplicationMode mode, KernelVersionTransactionApplierFactory kernelVersionApplierFactory) {
-        TransactionApplierFactoryChain.IdUpdateListenerFactory idUpdateListenerFunction =
-                mode.isReverseStep() ? (w, c) -> IdUpdateListener.IGNORE : IdGeneratorUpdatesWorkSync::newBatch;
-        List<TransactionApplierFactory> appliers = new ArrayList<>();
-        // Graph store application. The order of the decorated store appliers is irrelevant
+        if (multiVersion) {
+            return buildMultiversionAppliersChain(mode, kernelVersionApplierFactory);
+        }
+        return buildAppliersChain(mode, kernelVersionApplierFactory);
+    }
+
+    private TransactionApplierFactoryChain buildAppliersChain(
+            TransactionApplicationMode mode, KernelVersionTransactionApplierFactory kernelVersionApplierFactory) {
+        var appliers = new ArrayList<TransactionApplierFactory>();
         if (consistencyCheckApply && mode.needsAuxiliaryStores()) {
             appliers.add(new ConsistencyCheckingApplierFactory(neoStores));
         }
         appliers.add(kernelVersionApplierFactory);
-        if (isMultiVersionedFormat()) {
-            appliers.add(new NeoStoreTransactionApplierFactory(mode, neoStores, cacheAccess));
-        } else {
-            appliers.add(
-                    new LockGuardedNeoStoreTransactionApplierFactory(mode, neoStores, cacheAccess, lockService(mode)));
+        appliers.add(new LockGuardedNeoStoreTransactionApplierFactory(mode, neoStores, cacheAccess, lockService(mode)));
+        if (mode.needsHighIdTracking()) {
+            appliers.add(new HighIdTransactionApplierFactory(neoStores));
         }
+        if (mode.needsAuxiliaryStores()) {
+            appliers.add(new CountsStoreTransactionApplierFactory(countsStore, groupDegreesStore));
+            appliers.add(new IndexTransactionApplierFactory(mode, indexUpdateListener));
+        }
+        return new TransactionApplierFactoryChain(
+                idUpdateListenerFunction(mode), appliers.toArray(TransactionApplierFactory[]::new));
+    }
+
+    private TransactionApplierFactoryChain buildMultiversionAppliersChain(
+            TransactionApplicationMode mode, KernelVersionTransactionApplierFactory kernelVersionApplierFactory) {
+        var appliers = new ArrayList<TransactionApplierFactory>();
+        if (consistencyCheckApply && mode.needsAuxiliaryStores()) {
+            appliers.add(new ConsistencyCheckingApplierFactory(neoStores));
+        }
+        appliers.add(kernelVersionApplierFactory);
+        appliers.add(new NeoStoreTransactionApplierFactory(mode, neoStores, cacheAccess));
         if (mode.rollbackIdProcessing()) {
             appliers.add((transaction, batchContext) ->
                     new IdRollbackTransactionApplier(idGeneratorFactory, transaction.cursorContext()));
@@ -313,17 +333,10 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
         if (mode.needsHighIdTracking()) {
             appliers.add(new HighIdTransactionApplierFactory(neoStores));
         }
-        if (isMultiVersionedFormat()) {
-            // in mvcc all modes apply count stores
-            appliers.add(new MultiversionCountStoreTransactionApplierFactory(mode, countsStore));
-            appliers.add(new MultiversionDegreeStoreTransactionApplierFactory(mode, groupDegreesStore));
-        } else if (mode.needsAuxiliaryStores()) {
-            // Counts store application
-            appliers.add(new CountsStoreTransactionApplierFactory(countsStore, groupDegreesStore));
-        }
+        appliers.add(new MultiversionCountStoreTransactionApplierFactory(mode, countsStore));
+        appliers.add(new MultiversionDegreeStoreTransactionApplierFactory(mode, groupDegreesStore));
         if (mode.needsAuxiliaryStores()) {
-            // Schema index application
-            if (useIndexCommands()) {
+            if (config.get(multiversion_index_commands_enabled)) {
                 appliers.add(new IndexCommandTransactionApplierFactory(
                         indexUpdateListener, indexUpdatesSync, schemaCache, mode));
             } else {
@@ -331,7 +344,11 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
             }
         }
         return new TransactionApplierFactoryChain(
-                idUpdateListenerFunction, appliers.toArray(TransactionApplierFactory[]::new));
+                idUpdateListenerFunction(mode), appliers.toArray(TransactionApplierFactory[]::new));
+    }
+
+    private static IdUpdateListenerFactory idUpdateListenerFunction(TransactionApplicationMode mode) {
+        return mode.isReverseStep() ? (w, c) -> IdUpdateListener.IGNORE : IdGeneratorUpdatesWorkSync::newBatch;
     }
 
     private CountsStore openCountsStore(

@@ -33,6 +33,7 @@ public class TransactionIdTracker {
     private final MutableLongSet completedTransactionsWindow = LongSets.mutable.empty();
     private final MutableLongSet rollbackTransactions = LongSets.mutable.empty();
     private final MutableLongSet notCompletedTransactions = LongSets.mutable.empty();
+    private final MutableLongSet notCompletedTransactionAppendIndexes = LongSets.mutable.empty();
 
     TransactionStatus transactionStatus(long transactionId) {
         if (notCompletedTransactions.contains(transactionId)) {
@@ -46,6 +47,10 @@ public class TransactionIdTracker {
 
     long[] notCompletedTransactions() {
         return notCompletedTransactions.toSortedArray();
+    }
+
+    long[] notCompletedTransactionAppendIndexes() {
+        return notCompletedTransactionAppendIndexes.toSortedArray();
     }
 
     public void trackBatch(CommittedCommandBatchRepresentation committedBatch) {
@@ -63,7 +68,9 @@ public class TransactionIdTracker {
         } else {
             if (!completedTransactionsWindow.contains(transactionId)) {
                 // we encountered transaction that we never completed, so we will need to rollback it
-                notCompletedTransactions.add(transactionId);
+                if (notCompletedTransactions.add(transactionId)) {
+                    notCompletedTransactionAppendIndexes.add(committedBatch.appendIndex());
+                }
             }
             // we are not really interested in keeping the whole set; window of this transaction is gone now
             // so, we can stop tracking it now

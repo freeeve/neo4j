@@ -76,7 +76,12 @@ public enum TransactionApplicationMode {
     MVCC_ROLLBACK(
             false, // id tracking not needed because this is for the initial reverse recovery
             true, // include indexes and counts
-            true, BEFORE);
+            true, BEFORE),
+
+    /**
+     * Rollback of MVCC incomplete transactions discovered during reverse recovery phase
+     */
+    MVCC_INCOMPLETE_REVERSE_RECOVERY(false, true, true, BEFORE);
 
     private final boolean needsHighIdTracking;
     private final boolean indexesAndCounts;
