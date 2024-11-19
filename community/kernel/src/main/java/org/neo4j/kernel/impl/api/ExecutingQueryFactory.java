@@ -70,7 +70,7 @@ public class ExecutingQueryFactory {
                 queryText,
                 queryParameters,
                 transactionMetaData,
-                thread.getId(),
+                thread.threadId(),
                 thread.getName(),
                 systemLockTracer,
                 clock,

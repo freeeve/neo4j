@@ -68,7 +68,7 @@ public abstract class PageCacheSlowTest<T extends PageCache> extends PageCacheTe
 
         UpdateResult(int threadId, int[] pageCounts) {
             this.threadId = threadId;
-            this.realThreadId = Thread.currentThread().getId();
+            this.realThreadId = Thread.currentThread().threadId();
             this.pageCounts = pageCounts;
         }
     }
@@ -165,7 +165,7 @@ public abstract class PageCacheSlowTest<T extends PageCache> extends PageCacheTe
                                             "inconsistent page read from filePageId:%s, with %s, threadId:%s",
                                             pageId,
                                             lockName,
-                                            Thread.currentThread().getId());
+                                            Thread.currentThread().threadId());
                                     assertThat(counter).as(reason).isEqualTo(pageCounts[pageId]);
                                 } catch (Throwable throwable) {
                                     shouldStop.set(true);
@@ -324,7 +324,7 @@ public abstract class PageCacheSlowTest<T extends PageCache> extends PageCacheTe
                                                 pageId,
                                                 lockName,
                                                 threadId,
-                                                Thread.currentThread().getId());
+                                                Thread.currentThread().threadId());
                                         assertThat(counter).as(reason).isEqualTo(pageCounts[pageId]);
                                         if (updateCounter) {
                                             counter++;

@@ -38,7 +38,7 @@ public class FakeCpuClock implements CpuClock {
     }
 
     public FakeCpuClock add(long nanos) {
-        return add(Thread.currentThread().getId(), nanos);
+        return add(Thread.currentThread().threadId(), nanos);
     }
 
     public FakeCpuClock add(long threadId, long nanos) {

@@ -552,7 +552,7 @@ public class ForsetiClient implements LockManager.Client {
 
     @Override
     public void prepareForCommit() {
-        prepareThreadId = Thread.currentThread().getId();
+        prepareThreadId = Thread.currentThread().threadId();
         stateHolder.prepare(this);
     }
 
@@ -902,7 +902,7 @@ public class ForsetiClient implements LockManager.Client {
     private boolean clientCommittingByCurrentThread(ForsetiClient otherClient) {
         return otherClient != this
                 && otherClient.stateHolder.isPrepared()
-                && Thread.currentThread().getId() == otherClient.prepareThreadId;
+                && Thread.currentThread().threadId() == otherClient.prepareThreadId;
     }
 
     private void clearAndCopyWaitList(ForsetiLockManager.Lock lock) {

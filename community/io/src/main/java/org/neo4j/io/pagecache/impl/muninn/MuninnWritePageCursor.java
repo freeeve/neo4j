@@ -70,7 +70,7 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
                 if (LOCKED_PAGES != null) {
                     // remove before unlock to avoid clearing others lock
                     var locker = LOCKED_PAGES.removeKeyIfAbsent(pageRef, -1);
-                    var currentThread = Thread.currentThread().getId();
+                    var currentThread = Thread.currentThread().threadId();
                     if (locker != currentThread) {
                         throw new IllegalStateException("Recorded locker of the page is " + locker
                                 + " doesn't match current thread id " + currentThread);
@@ -126,7 +126,7 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
                 // you see we are not atomic or synchronized here, this is ok, because we care about *current* thread
                 // already being successful in taking write lock on this page
                 var locker = LOCKED_PAGES.getIfAbsent(pageRef, -1);
-                var threadId = Thread.currentThread().getId();
+                var threadId = Thread.currentThread().threadId();
                 if (locker == threadId) {
                     throw new IllegalStateException(
                             "Multiversioned page locks are not reentrant unless it's from linked cursors. Other thread "
@@ -135,7 +135,7 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
             }
             var writeLock = PageList.tryWriteLock(pageRef, true);
             if (LOCKED_PAGES != null && writeLock) {
-                LOCKED_PAGES.put(pageRef, Thread.currentThread().getId());
+                LOCKED_PAGES.put(pageRef, Thread.currentThread().threadId());
             }
             return writeLock;
         }
@@ -168,7 +168,7 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
                 if (LOCKED_PAGES != null) {
                     // remove before unlock to avoid clearing others lock
                     var locker = LOCKED_PAGES.removeKeyIfAbsent(pageRef, -1);
-                    var currentThread = Thread.currentThread().getId();
+                    var currentThread = Thread.currentThread().threadId();
                     if (locker != currentThread) {
                         throw new IllegalStateException("Recorded locker of the page is " + locker
                                 + " doesn't match current thread id " + currentThread);
@@ -221,7 +221,7 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
     protected void convertPageFaultLock(long pageRef) {
         PageList.unlockExclusiveAndTakeWriteLock(pageRef);
         if (LOCKED_PAGES != null && multiVersioned) {
-            LOCKED_PAGES.put(pageRef, Thread.currentThread().getId());
+            LOCKED_PAGES.put(pageRef, Thread.currentThread().threadId());
         }
     }
 

@@ -422,7 +422,7 @@ class HEvents {
         HEvent() {
             time = System.nanoTime();
             Thread thread = Thread.currentThread();
-            threadId = thread.getId();
+            threadId = thread.threadId();
             threadName = thread.getName();
             System.identityHashCode(this);
         }

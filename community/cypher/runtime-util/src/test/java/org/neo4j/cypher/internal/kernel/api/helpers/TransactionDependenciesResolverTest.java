@@ -170,7 +170,7 @@ class TransactionDependenciesResolverTest {
                 () -> 1L,
                 () -> 1,
                 () -> 2,
-                Thread.currentThread().getId(),
+                Thread.currentThread().threadId(),
                 Thread.currentThread().getName(),
                 LockTracer.NONE,
                 Clocks.nanoClock(),

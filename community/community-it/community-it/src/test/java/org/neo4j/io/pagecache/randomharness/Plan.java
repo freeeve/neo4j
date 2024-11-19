@@ -57,7 +57,7 @@ class Plan {
         startLatch.await();
         int index = actionCounter.getAndIncrement();
         if (index < plan.length) {
-            executedByThread[index] = Thread.currentThread().getId();
+            executedByThread[index] = Thread.currentThread().threadId();
             return plan[index];
         }
         return null;

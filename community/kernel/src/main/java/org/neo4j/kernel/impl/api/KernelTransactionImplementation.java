@@ -514,7 +514,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         this.transactionId = NOT_COMMITTED_TRANSACTION_ID;
         this.commitTime = NOT_COMMITTED_TRANSACTION_COMMIT_TIME;
         this.clientInfo = clientInfo;
-        this.statistics.init(currentThread().getId());
+        this.statistics.init(currentThread().threadId());
         this.commandCreationContext.initialize(
                 kernelVersionProvider,
                 cursorContext,

@@ -196,7 +196,7 @@ public final class Exceptions {
                 .append(" prio=")
                 .append(thread.getPriority())
                 .append(" tid=")
-                .append(thread.getId())
+                .append(thread.threadId())
                 .append(' ')
                 .append(thread.getState().name().toLowerCase(Locale.ROOT))
                 .append('\n');

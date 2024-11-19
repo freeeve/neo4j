@@ -34,7 +34,7 @@ public abstract class HeapAllocation {
      * @return number of allocated bytes for specified thread.
      */
     public final long allocatedBytes(Thread thread) {
-        return allocatedBytes(thread.getId());
+        return allocatedBytes(thread.threadId());
     }
 
     /**
