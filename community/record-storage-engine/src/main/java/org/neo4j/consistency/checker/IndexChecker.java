@@ -313,7 +313,8 @@ public abstract class IndexChecker<Record extends PrimitiveRecord> implements Ch
                 RecordReader<DynamicRecord> entityTokenReader = additionalEntityTokenReader(cursorContext);
                 SafePropertyChainReader propertyReader =
                         new SafePropertyChainReader(noReportingContext, cursorContext);
-                var localScanProgress = scanProgress.threadLocalReporter()) {
+                var localScanProgress = scanProgress.threadLocalReporter();
+                var readers = indexAccessors.readers()) {
             IntObjectHashMap<Value> allValues = new IntObjectHashMap<>();
             var client = cacheAccess.client();
             int numberOfIndexes = indexes.size();
@@ -367,9 +368,7 @@ public abstract class IndexChecker<Record extends PrimitiveRecord> implements Ch
                         int[] indexPropertyKeys = descriptor.schema().getPropertyIds();
                         Value[] noValues = new Value[indexPropertyKeys.length];
                         Arrays.fill(noValues, NO_VALUE);
-                        long docsWithNoneOfProperties = indexAccessors
-                                .readers()
-                                .reader(descriptor)
+                        long docsWithNoneOfProperties = readers.reader(descriptor)
                                 .countIndexedEntities(entityId, cursorContext, indexPropertyKeys, noValues);
 
                         if (docsWithNoneOfProperties != 1) {

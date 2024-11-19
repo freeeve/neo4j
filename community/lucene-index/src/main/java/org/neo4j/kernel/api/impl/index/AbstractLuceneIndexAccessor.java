@@ -224,7 +224,11 @@ public abstract class AbstractLuceneIndexAccessor<READER extends ValueIndexReade
 
     @Override
     public long estimateNumberOfEntries(CursorContext ignored) {
-        return luceneIndex.allDocumentsReader().maxCount();
+        try (var documentsReader = luceneIndex.allDocumentsReader()) {
+            return documentsReader.maxCount();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
