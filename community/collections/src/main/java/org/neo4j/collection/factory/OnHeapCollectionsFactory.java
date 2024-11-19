@@ -20,6 +20,7 @@
 package org.neo4j.collection.factory;
 
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
+import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.neo4j.collection.HeapTrackingObjectMap;
 import org.neo4j.collection.diffset.MutableLongDiffSets;
@@ -38,6 +39,11 @@ public class OnHeapCollectionsFactory implements CollectionsFactory {
     @Override
     public MutableLongSet newLongSet(MemoryTracker memoryTracker) {
         return HeapTrackingCollections.newLongSet(memoryTracker);
+    }
+
+    @Override
+    public MutableIntSet newIntSet(MemoryTracker memoryTracker) {
+        return HeapTrackingCollections.newIntSet(memoryTracker);
     }
 
     @Override

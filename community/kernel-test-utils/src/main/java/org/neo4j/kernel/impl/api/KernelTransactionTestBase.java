@@ -45,6 +45,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
+import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap;
 import org.junit.jupiter.api.BeforeEach;
@@ -334,6 +335,11 @@ class KernelTransactionTestBase {
         @Override
         public MutableLongSet newLongSet(MemoryTracker memoryTracker) {
             return OnHeapCollectionsFactory.INSTANCE.newLongSet(memoryTracker);
+        }
+
+        @Override
+        public MutableIntSet newIntSet(MemoryTracker memoryTracker) {
+            return OnHeapCollectionsFactory.INSTANCE.newIntSet(memoryTracker);
         }
 
         @Override

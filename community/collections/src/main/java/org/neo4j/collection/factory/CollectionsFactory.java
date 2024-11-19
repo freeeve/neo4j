@@ -20,6 +20,7 @@
 package org.neo4j.collection.factory;
 
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
+import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.neo4j.collection.diffset.MutableLongDiffSets;
 import org.neo4j.memory.Measurable;
@@ -31,6 +32,8 @@ import org.neo4j.memory.MemoryTracker;
  */
 public interface CollectionsFactory {
     MutableLongSet newLongSet(MemoryTracker memoryTracker);
+
+    MutableIntSet newIntSet(MemoryTracker memoryTracker);
 
     MutableLongDiffSets newLongDiffSets(MemoryTracker memoryTracker);
 
