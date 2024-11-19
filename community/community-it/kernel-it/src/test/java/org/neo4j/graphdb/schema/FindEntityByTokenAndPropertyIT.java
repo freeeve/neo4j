@@ -131,10 +131,10 @@ public class FindEntityByTokenAndPropertyIT {
 
         try (Transaction tx = db.beginTx()) {
             // When
-            ResourceIterator<? extends Entity> result = findMethod.find(tx, TOKEN, PROPERTY_KEY, value);
-
-            // Then
-            assertFoundEntity(entity, result);
+            try (var result = findMethod.find(tx, TOKEN, PROPERTY_KEY, value)) {
+                // Then
+                assertFoundEntity(entity, result);
+            }
         }
 
         // Then
@@ -164,10 +164,10 @@ public class FindEntityByTokenAndPropertyIT {
 
         try (Transaction tx = db.beginTx()) {
             // When
-            ResourceIterator<? extends Entity> result = findMethod.find(tx, TOKEN, PROPERTY_KEY, value);
-
-            // Then
-            assertFoundEntity(entity, result);
+            try (var result = findMethod.find(tx, TOKEN, PROPERTY_KEY, value)) {
+                // Then
+                assertFoundEntity(entity, result);
+            }
         }
 
         // Then
@@ -195,11 +195,11 @@ public class FindEntityByTokenAndPropertyIT {
 
         try (Transaction tx = db.beginTx()) {
             // When
-            ResourceIterator<? extends Entity> result =
-                    findMethod.find(tx, TOKEN, PROPERTY_KEY, value1, PROPERTY_KEY_2, value2);
+            try (var result = findMethod.find(tx, TOKEN, PROPERTY_KEY, value1, PROPERTY_KEY_2, value2)) {
 
-            // Then
-            assertFoundEntity(entity, result);
+                // Then
+                assertFoundEntity(entity, result);
+            }
         }
 
         // Then
@@ -234,11 +234,11 @@ public class FindEntityByTokenAndPropertyIT {
 
         try (Transaction tx = db.beginTx()) {
             // When
-            ResourceIterator<? extends Entity> result =
-                    findMethod.find(tx, TOKEN, PROPERTY_KEY, value1, PROPERTY_KEY_2, value2);
+            try (var result = findMethod.find(tx, TOKEN, PROPERTY_KEY, value1, PROPERTY_KEY_2, value2)) {
 
-            // Then
-            assertFoundEntity(entity, result);
+                // Then
+                assertFoundEntity(entity, result);
+            }
         }
 
         // Then
@@ -271,11 +271,11 @@ public class FindEntityByTokenAndPropertyIT {
 
         try (Transaction tx = db.beginTx()) {
             // When
-            ResourceIterator<? extends Entity> result =
-                    findMethod.find(tx, TOKEN, PROPERTY_KEY, value1, PROPERTY_KEY_2, value2, PROPERTY_KEY_3, value3);
-
-            // Then
-            assertFoundEntity(entity, result);
+            try (var result =
+                    findMethod.find(tx, TOKEN, PROPERTY_KEY, value1, PROPERTY_KEY_2, value2, PROPERTY_KEY_3, value3)) {
+                // Then
+                assertFoundEntity(entity, result);
+            }
         }
 
         // Then
@@ -311,11 +311,11 @@ public class FindEntityByTokenAndPropertyIT {
 
         try (Transaction tx = db.beginTx()) {
             // When
-            ResourceIterator<? extends Entity> result =
-                    findMethod.find(tx, TOKEN, PROPERTY_KEY, value1, PROPERTY_KEY_2, value2, PROPERTY_KEY_3, value3);
-
-            // Then
-            assertFoundEntity(entity, result);
+            try (var result =
+                    findMethod.find(tx, TOKEN, PROPERTY_KEY, value1, PROPERTY_KEY_2, value2, PROPERTY_KEY_3, value3)) {
+                // Then
+                assertFoundEntity(entity, result);
+            }
         }
 
         // Then
@@ -352,11 +352,11 @@ public class FindEntityByTokenAndPropertyIT {
 
         try (Transaction tx = db.beginTx()) {
             // When
-            ResourceIterator<? extends Entity> result =
-                    findMethod.find(tx, TOKEN, PROPERTY_KEY, template, stringSearchMode);
+            try (var result = findMethod.find(tx, TOKEN, PROPERTY_KEY, template, stringSearchMode)) {
 
-            // Then
-            assertFoundEntity(entity, result);
+                // Then
+                assertFoundEntity(entity, result);
+            }
         }
 
         // Then
@@ -396,11 +396,10 @@ public class FindEntityByTokenAndPropertyIT {
 
         try (Transaction tx = db.beginTx()) {
             // When
-            ResourceIterator<? extends Entity> result =
-                    findMethod.find(tx, TOKEN, PROPERTY_KEY, template, stringSearchMode);
-
-            // Then
-            assertFoundEntity(entity, result);
+            try (var result = findMethod.find(tx, TOKEN, PROPERTY_KEY, template, stringSearchMode)) {
+                // Then
+                assertFoundEntity(entity, result);
+            }
         }
 
         // Then
