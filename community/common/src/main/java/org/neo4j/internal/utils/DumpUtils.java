@@ -19,13 +19,21 @@
  */
 package org.neo4j.internal.utils;
 
+import com.sun.management.HotSpotDiagnosticMXBean;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MonitorInfo;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
+import java.nio.file.Path;
 import java.util.Properties;
+import javax.management.MBeanServer;
 
 public final class DumpUtils {
+
+    private static final String HOTSPOT_BEAN_NAME = "com.sun.management:type=HotSpotDiagnostic";
+
     private DumpUtils() {}
 
     /**
@@ -38,6 +46,20 @@ public final class DumpUtils {
         Properties systemProperties = System.getProperties();
 
         return threadDump(threadMxBean, systemProperties);
+    }
+
+    /**
+     * Dumps threads in the provided file.
+     * This method uses the JSON format introduced in JDK 21. In this way it differs from {@link #threadDump} methods that
+     * try to imitate jstack and similar tools output.
+     * The advantage of the format used by this method is that unlike the other output formats, it includes virtual threads.
+     */
+    public static void threadDumpToFile(Path file) {
+        try {
+            getHotspotDiagnosticMxBean().dumpThreads(file.toString(), HotSpotDiagnosticMXBean.ThreadDumpFormat.JSON);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to dump threads to %s".formatted(file), e);
+        }
     }
 
     /**
@@ -99,5 +121,14 @@ public final class DumpUtils {
         }
 
         return sb.toString();
+    }
+
+    private static HotSpotDiagnosticMXBean getHotspotDiagnosticMxBean() {
+        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+        try {
+            return ManagementFactory.newPlatformMXBeanProxy(server, HOTSPOT_BEAN_NAME, HotSpotDiagnosticMXBean.class);
+        } catch (IOException error) {
+            throw new RuntimeException("Failed getting Hotspot Diagnostic MX bean", error);
+        }
     }
 }
