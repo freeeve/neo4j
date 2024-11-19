@@ -34,6 +34,8 @@ import org.neo4j.token.TokenHolders;
  * Unifies all data input given to a {@link BatchImporter} to allow for more coherent implementations.
  */
 public interface Input extends AutoCloseable {
+    String CONFIG_IDENTIFIER = "identifier";
+
     /**
      * @param numberOfNodes estimated number of nodes for the entire input.
      * @param numberOfRelationships estimated number of relationships for the entire input.

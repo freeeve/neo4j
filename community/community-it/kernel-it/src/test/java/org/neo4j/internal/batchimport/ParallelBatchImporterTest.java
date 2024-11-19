@@ -41,7 +41,6 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
-import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -50,6 +49,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.assertj.core.description.Description;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -514,13 +514,11 @@ public class ParallelBatchImporterTest {
     }
 
     private static Object propertyOf(InputEntity input, String key) {
-        Object[] properties = input.properties();
-        for (int i = 0; i < properties.length; i++) {
-            if (properties[i++].equals(key)) {
-                return properties[i];
-            }
+        var property = input.getProperty(key);
+        if (property == null) {
+            throw new IllegalStateException(key + " not found on " + input);
         }
-        throw new IllegalStateException(key + " not found on " + input);
+        return property.value();
     }
 
     private static void assertRelationshipEquals(InputEntity input, Relationship relationship) {
@@ -544,25 +542,10 @@ public class ParallelBatchImporterTest {
     }
 
     private static void assertPropertiesEquals(InputEntity input, Entity entity) {
-        Object[] properties = input.properties();
-        for (int i = 0; i < properties.length; i++) {
-            String key = (String) properties[i++];
-            Object value = properties[i];
-            assertPropertyValueEquals(input, entity, key, value, entity.getProperty(key));
-        }
-    }
-
-    private static void assertPropertyValueEquals(
-            InputEntity input, Entity entity, String key, Object expected, Object array) {
-        if (expected.getClass().isArray()) {
-            int length = Array.getLength(expected);
-            assertEquals(length, Array.getLength(array), input + ", " + entity);
-            for (int i = 0; i < length; i++) {
-                assertPropertyValueEquals(input, entity, key, Array.get(expected, i), Array.get(array, i));
-            }
-        } else {
-            assertEquals(Values.of(expected), Values.of(array), input + ", " + entity + " for key:" + key);
-        }
+        var inputProperties = input.propertiesAsValueMap();
+        var entityProperties = entity.getAllProperties().entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> Values.of(e.getValue())));
+        assertThat(entityProperties).isEqualTo(inputProperties);
     }
 
     private InputIterable relationships(
@@ -632,9 +615,9 @@ public class ParallelBatchImporterTest {
     private static int randomProperties(RandomValues randoms, Object id, InputEntityVisitor visitor) {
         String[] keys = randoms.selection(TOKENS, 0, TOKENS.length, false);
         for (String key : keys) {
-            visitor.property(key, randoms.nextValue().asObject());
+            visitor.property(key, randoms.nextValue().asObject(), false);
         }
-        visitor.property("id", id);
+        visitor.property("id", id, false);
         return keys.length + 1 /*the 'id' property*/;
     }
 

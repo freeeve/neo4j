@@ -105,7 +105,6 @@ import org.neo4j.kernel.impl.util.AutoCreatingHashMap;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.LogTimeZone;
 import org.neo4j.logging.internal.NullLogService;
-import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -209,19 +208,20 @@ class CsvInputBatchImportIT {
         for (int i = 0; i < 300; i++) {
             InputEntity node = new InputEntity();
             node.id(UUID.randomUUID().toString(), group);
-            node.property("name", "Node " + i);
-            node.property("pointA", "\"   { x : -4.2, y : " + i % 90 + ", crs: WGS-84 } \"");
-            node.property("pointB", "\" { x : -8, y : " + i + " } \"");
-            node.property("date", LocalDate.of(2018, i % 12 + 1, i % 28 + 1));
-            node.property("time", OffsetTime.of(1, i % 60, 0, 0, ZoneOffset.ofHours(9)));
-            node.property("dateTime", ZonedDateTime.of(2011, 9, 11, 8, i % 60, 0, 0, ZoneId.of("Europe/Stockholm")));
-            node.property("dateTime2", LocalDateTime.of(2011, 9, 11, 8, i % 60, 0, 0)); // No zone specified
-            node.property("localTime", LocalTime.of(1, i % 60, 0));
-            node.property("localDateTime", LocalDateTime.of(2011, 9, 11, 8, i % 60));
-            node.property("duration", Period.of(2, -3, i % 30));
-            node.property("floatArray", new float[] {1.0f, 2.0f, 3.0f});
-            node.property("dateArray", new LocalDate[] {LocalDate.of(2018, i % 12 + 1, i % 28 + 1)});
-            node.property("pointArray", "\" { x : -8, y : " + i + " } \"");
+            node.property("name", "Node " + i, false);
+            node.property("pointA", "\"   { x : -4.2, y : " + i % 90 + ", crs: WGS-84 } \"", false);
+            node.property("pointB", "\" { x : -8, y : " + i + " } \"", false);
+            node.property("date", LocalDate.of(2018, i % 12 + 1, i % 28 + 1), false);
+            node.property("time", OffsetTime.of(1, i % 60, 0, 0, ZoneOffset.ofHours(9)), false);
+            node.property(
+                    "dateTime", ZonedDateTime.of(2011, 9, 11, 8, i % 60, 0, 0, ZoneId.of("Europe/Stockholm")), false);
+            node.property("dateTime2", LocalDateTime.of(2011, 9, 11, 8, i % 60, 0, 0), false); // No zone specified
+            node.property("localTime", LocalTime.of(1, i % 60, 0), false);
+            node.property("localDateTime", LocalDateTime.of(2011, 9, 11, 8, i % 60), false);
+            node.property("duration", Period.of(2, -3, i % 30), false);
+            node.property("floatArray", new float[] {1.0f, 2.0f, 3.0f}, false);
+            node.property("dateArray", new LocalDate[] {LocalDate.of(2018, i % 12 + 1, i % 28 + 1)}, false);
+            node.property("pointArray", "\" { x : -8, y : " + i + " } \"", false);
             node.labels(randomLabels(random.random()));
             nodes.add(node);
         }
@@ -270,8 +270,8 @@ class CsvInputBatchImportIT {
             for (InputEntity node : nodeData) {
                 String csvLabels = csvLabels(node.labels());
                 StringBuilder sb = new StringBuilder().append(node.id()).append(',');
-                for (int i = 0; i < node.propertyCount(); i++) {
-                    sb.append(serializePropertyValue(node.propertyValue(i))).append(',');
+                for (var property : node.properties) {
+                    sb.append(serializePropertyValue(property.value())).append(',');
                 }
                 if (csvLabels != null && !csvLabels.isEmpty()) {
                     sb.append(csvLabels);
@@ -475,7 +475,7 @@ class CsvInputBatchImportIT {
             TokenStore<?> tokenStore, final int anyValue, RecordStorageEngine storageEngine) {
         final Map<String, Integer> translationTable = new HashMap<>();
         try (var storeCursors = storageEngine.createStorageCursors(NULL_CONTEXT)) {
-            for (NamedToken token : tokenStore.getTokens(storeCursors, EmptyMemoryTracker.INSTANCE)) {
+            for (NamedToken token : tokenStore.getTokens(storeCursors, INSTANCE)) {
                 translationTable.put(token.name(), token.id());
             }
             return from -> from == null ? anyValue : translationTable.get(from);
@@ -506,8 +506,7 @@ class CsvInputBatchImportIT {
             // Build default verifiers for all the properties that compares the property value using equals
             Assertions.assertFalse(node.hasIntPropertyKeyIds);
             Map<String, Consumer<Object>> propertyVerifiers = new TreeMap<>();
-            for (int i = 0; i < node.propertyCount(); i++) {
-                final Object expectedValue = node.propertyValue(i);
+            node.propertiesAsMap().forEach((key, expectedValue) -> {
                 Consumer verify;
                 if (expectedValue instanceof TemporalAmount) {
                     // Since there is no straightforward comparison for TemporalAmount we add it to a reference
@@ -546,8 +545,8 @@ class CsvInputBatchImportIT {
                 } else {
                     verify = actualValue -> assertEquals(expectedValue, actualValue);
                 }
-                propertyVerifiers.put((String) node.propertyKey(i), verify);
-            }
+                propertyVerifiers.put(key, verify);
+            });
 
             // Special verifier for pointA property
             Consumer verifyPointA = actualValue -> {
@@ -638,10 +637,10 @@ class CsvInputBatchImportIT {
     }
 
     private static String nameOf(InputEntity node) {
-        return (String) node.properties()[1];
+        return (String) node.getProperty("name").value();
     }
 
     private static int indexOf(InputEntity node) {
-        return Integer.parseInt(((String) node.properties()[1]).split("\\s")[1]);
+        return Integer.parseInt(nameOf(node).split("\\s")[1]);
     }
 }

@@ -166,9 +166,9 @@ class NodeImporterTest {
                 labels[i] = "Label" + i;
             }
             importer.labels(labels);
-            importer.property("a", randomAscii(10));
-            importer.property("b", randomAscii(100));
-            importer.property("c", randomAscii(1000));
+            importer.property("a", randomAscii(10), false);
+            importer.property("b", randomAscii(100), false);
+            importer.property("c", randomAscii(1000), false);
             importer.endOfEntity();
         }
 
@@ -204,8 +204,8 @@ class NodeImporterTest {
         }
 
         // then
-        verify(schemaMonitor).property(keyIds("key2")[0], "value2");
-        verify(schemaMonitor).property(keyIds("key3")[0], "value3");
+        verify(schemaMonitor).property(keyIds("key2")[0], "value2", false);
+        verify(schemaMonitor).property(keyIds("key3")[0], "value3", false);
         verify(schemaMonitor).entityTokens(labelIds("label1", "label2"));
         verify(schemaMonitor).endOfEntity(anyLong(), any(), any());
     }
@@ -227,7 +227,7 @@ class NodeImporterTest {
 
     private static void importNode(NodeImporter importer, long id, Map<String, String> properties, String... labels) {
         importer.id(id);
-        properties.forEach(importer::property);
+        properties.forEach((key, value) -> importer.property(key, value, false));
         importer.labels(labels);
         importer.endOfEntity();
     }

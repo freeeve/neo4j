@@ -107,7 +107,7 @@ class ParquetDataInputChunk implements ParquetInputChunk {
                 }
                 boolean isActualIdColumn = idType == IdType.ACTUAL && parquetColumn.isIdColumn();
                 if (!isActualIdColumn && parquetColumn.hasPropertyName()) {
-                    entityToHydrate.property(parquetColumn.propertyName(), convertType(readDatum, parquetColumn));
+                    entityToHydrate.property(parquetColumn.propertyName(), convertType(readDatum, parquetColumn), true);
                 }
             }
             if (parquetColumn.isLabelColumn()) {
@@ -116,7 +116,10 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             // common
             if (parquetColumn.hasPropertyName()
                     && parquetColumn.logicalColumnType() == ParquetLogicalColumnType.PROPERTY) {
-                entityToHydrate.property(parquetColumn.propertyName(), convertType(readDatum, parquetColumn));
+                entityToHydrate.property(
+                        parquetColumn.propertyName(),
+                        convertType(readDatum, parquetColumn),
+                        parquetColumn.isIdentifier());
             }
             // relationship
             if (parquetColumn.isStartId()) {

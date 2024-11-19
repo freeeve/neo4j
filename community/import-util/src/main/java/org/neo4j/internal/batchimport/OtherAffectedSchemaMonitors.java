@@ -161,6 +161,7 @@ public class OtherAffectedSchemaMonitors implements Supplier<SchemaMonitor>, Clo
         private final MutableIntSet removedEntityTokens = IntSets.mutable.empty();
         private final MutableIntObjectMap<Value> properties = IntObjectMaps.mutable.empty();
         private final MutableIntSet removedProperties = IntSets.mutable.empty();
+        private final MutableIntSet identifierPropertyKeys = IntSets.mutable.empty();
         private ApplicationMode mode;
 
         @Override
@@ -169,9 +170,12 @@ public class OtherAffectedSchemaMonitors implements Supplier<SchemaMonitor>, Clo
         }
 
         @Override
-        public void property(int propertyKeyId, Object value) {
+        public void property(int propertyKeyId, Object value, boolean identifier) {
             var propertyValue = value instanceof Value v ? v : Values.of(value);
             properties.put(propertyKeyId, propertyValue);
+            if (identifier) {
+                identifierPropertyKeys.add(propertyKeyId);
+            }
         }
 
         @Override
@@ -303,6 +307,7 @@ public class OtherAffectedSchemaMonitors implements Supplier<SchemaMonitor>, Clo
             existingEntityTokens.clear();
             removedEntityTokens.clear();
             mode = null;
+            identifierPropertyKeys.clear();
         }
 
         private void generateIndexUpdatesForCreatedEntity(long entityId) {
@@ -325,7 +330,12 @@ public class OtherAffectedSchemaMonitors implements Supplier<SchemaMonitor>, Clo
          * only removal of the before-values - thereby completing the updates.
          */
         private boolean generateAndValidateUniquenessIndexUpdates(long entityId, ViolationVisitor violationVisitor) {
-            var propertyKeyTokens = properties.keySet().toSortedArray();
+            var propertyKeyTokens = identifierPropertyKeys.isEmpty()
+                    ? properties.keySet().toSortedArray()
+                    : properties
+                            .keySet()
+                            .reject(identifierPropertyKeys::contains)
+                            .toSortedArray();
             var allEntityTokens = IntSets.mutable.ofAll(existingEntityTokens);
             allEntityTokens.addAll(entityTokens);
             var indexes = schemaCache.getValueIndexesRelatedTo(

@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.batchimport.input;
 
+import static java.util.Collections.emptyMap;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.inOrder;
@@ -27,6 +28,7 @@ import static org.mockito.Mockito.spy;
 import static org.neo4j.internal.helpers.collection.Iterators.asSet;
 
 import java.io.IOException;
+import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -48,7 +50,7 @@ class InputEntityDecoratorsTest {
                 InputEntityDecorators.defaultRelationshipType(defaultType).apply(entity);
 
         // WHEN
-        relationship(relationship, "source", 1, 0, InputEntity.NO_PROPERTIES, null, "start", "end", group, null, null);
+        relationship(relationship, "source", 1, 0, emptyMap(), null, "start", "end", group, null, null);
 
         // THEN
         assertEquals(defaultType, entity.stringType);
@@ -63,8 +65,7 @@ class InputEntityDecoratorsTest {
 
         // WHEN
         String customType = "CUSTOM_TYPE";
-        relationship(
-                relationship, "source", 1, 0, InputEntity.NO_PROPERTIES, null, "start", "end", group, customType, null);
+        relationship(relationship, "source", 1, 0, emptyMap(), null, "start", "end", group, customType, null);
 
         // THEN
         assertEquals(customType, entity.stringType);
@@ -79,8 +80,7 @@ class InputEntityDecoratorsTest {
 
         // WHEN
         int typeId = 5;
-        relationship(
-                relationship, "source", 1, 0, InputEntity.NO_PROPERTIES, null, "start", "end", group, null, typeId);
+        relationship(relationship, "source", 1, 0, emptyMap(), null, "start", "end", group, null, typeId);
 
         // THEN
         Assertions.assertTrue(entity.hasIntType);
@@ -94,7 +94,7 @@ class InputEntityDecoratorsTest {
         InputEntityVisitor node = InputEntityDecorators.additiveLabels(toAdd).apply(entity);
 
         // WHEN
-        node(node, "source", 1, 0, "id", group, InputEntity.NO_PROPERTIES, null, InputEntity.NO_LABELS, null);
+        node(node, "source", 1, 0, "id", group, emptyMap(), null, InputEntity.NO_LABELS, null);
 
         // THEN
         assertArrayEquals(toAdd, entity.labels());
@@ -108,7 +108,7 @@ class InputEntityDecoratorsTest {
 
         // WHEN
         String[] nodeLabels = new String[] {"SomeOther"};
-        node(node, "source", 1, 0, "id", group, InputEntity.NO_PROPERTIES, null, nodeLabels, null);
+        node(node, "source", 1, 0, "id", group, emptyMap(), null, nodeLabels, null);
 
         // THEN
         assertEquals(asSet(ArrayUtil.union(toAdd, nodeLabels)), asSet(entity.labels()));
@@ -122,7 +122,7 @@ class InputEntityDecoratorsTest {
 
         // WHEN
         long labelField = 123L;
-        node(node, "source", 1, 0, "id", group, InputEntity.NO_PROPERTIES, null, null, labelField);
+        node(node, "source", 1, 0, "id", group, emptyMap(), null, null, labelField);
 
         // THEN
         assertEquals(0, entity.labels().length);
@@ -154,7 +154,7 @@ class InputEntityDecoratorsTest {
             long position,
             Object id,
             Group group,
-            Object[] properties,
+            Map<String, Object> properties,
             Long propertyId,
             String[] labels,
             Long labelField)
@@ -174,7 +174,7 @@ class InputEntityDecoratorsTest {
             String sourceDescription,
             long lineNumber,
             long position,
-            Object[] properties,
+            Map<String, Object> properties,
             Long propertyId,
             Object startNode,
             Object endNode,
@@ -193,13 +193,11 @@ class InputEntityDecoratorsTest {
         entity.endOfEntity();
     }
 
-    private static void applyProperties(InputEntityVisitor entity, Object[] properties, Long propertyId) {
+    private static void applyProperties(InputEntityVisitor entity, Map<String, Object> properties, Long propertyId) {
         if (propertyId != null) {
             entity.propertyId(propertyId);
         }
-        for (int i = 0; i < properties.length; i++) {
-            entity.property((String) properties[i++], properties[i]);
-        }
+        properties.forEach((key, value) -> entity.property(key, value, false));
     }
 
     private static class IdentityDecorator implements Decorator {

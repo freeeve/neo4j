@@ -110,7 +110,8 @@ public class CsvInputParser implements Closeable {
                         case ACTUAL -> visitor.endId((Long) value);
                     };
                     case TYPE -> visitor.type((String) value);
-                    case PROPERTY -> !isEmptyArray(value) && visitor.property(entry.name(), value);
+                    case PROPERTY -> !isEmptyArray(value)
+                            && visitor.property(entry.name(), value, entry.isIdentifier());
                     case REMOVE_PROPERTY -> {
                         var keys = entry.name() == null ? toStringArray(value) : new String[] {entry.name()};
                         yield visitor.removedProperties(keys);
@@ -132,7 +133,7 @@ public class CsvInputParser implements Closeable {
                 doContinue = visitor.id(idValueBuilder.value(), idValueBuilder.group());
                 if (doContinue) {
                     for (var idPropertyValue : idValueBuilder.idPropertyValues()) {
-                        doContinue = visitor.property(idPropertyValue.name(), idPropertyValue.value());
+                        doContinue = visitor.property(idPropertyValue.name(), idPropertyValue.value(), true);
                     }
                 }
             }

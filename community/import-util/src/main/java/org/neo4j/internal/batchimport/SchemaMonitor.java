@@ -36,7 +36,7 @@ public interface SchemaMonitor {
         public void applicationMode(ApplicationMode mode) {}
 
         @Override
-        public void property(int propertyKeyId, Object value) {}
+        public void property(int propertyKeyId, Object value, boolean identifier) {}
 
         @Override
         public void removedProperty(int propertyKeyId) {}
@@ -70,7 +70,7 @@ public interface SchemaMonitor {
 
     void applicationMode(ApplicationMode mode);
 
-    void property(int propertyKeyId, Object value);
+    void property(int propertyKeyId, Object value, boolean identifier);
 
     void removedProperty(int propertyKeyId);
 

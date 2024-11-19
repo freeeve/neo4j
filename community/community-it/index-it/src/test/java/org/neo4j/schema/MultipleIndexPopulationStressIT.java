@@ -429,7 +429,7 @@ class MultipleIndexPopulationStressIT {
         private void properties(InputEntityVisitor visitor) {
             String[] keys = random.randomValues().selection(TOKENS, 1, TOKENS.length, false);
             for (String key : keys) {
-                visitor.property(key, random.nextValueAsObject());
+                visitor.property(key, random.nextValueAsObject(), false);
             }
         }
 

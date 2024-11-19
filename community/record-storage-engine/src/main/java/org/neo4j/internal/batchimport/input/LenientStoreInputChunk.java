@@ -174,7 +174,7 @@ public abstract class LenientStoreInputChunk implements InputChunk {
                             continue;
                         }
 
-                        visitor.property(key, propertyValue.asObject());
+                        visitor.property(key, propertyValue.asObject(), false);
                     }
                 }
                 nextProp = propertyRecord.getNextProp();

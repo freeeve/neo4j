@@ -19,7 +19,6 @@
  */
 package org.neo4j.internal.batchimport.input;
 
-import java.util.List;
 import org.neo4j.batchimport.api.InputIterator;
 import org.neo4j.internal.batchimport.GeneratingInputIterator;
 import org.neo4j.internal.batchimport.RandomsStates;
@@ -59,7 +58,7 @@ public class RandomEntityDataGenerator extends GeneratingInputIterator<RandomVal
                                 Object idValue = idValue(entry, id);
                                 visitor.id(idValue, entry.group());
                                 if (entry.name() != null) {
-                                    visitor.property(entry.name(), idValue);
+                                    visitor.property(entry.name(), idValue, true);
                                 }
                             }
                             case PROPERTY -> {
@@ -67,7 +66,7 @@ public class RandomEntityDataGenerator extends GeneratingInputIterator<RandomVal
                                         .propertyValueGenerator()
                                         .apply(entry, randoms);
                                 if (value != Values.NO_VALUE && value != null) {
-                                    visitor.property(entry.name(), value);
+                                    visitor.property(entry.name(), value, false);
                                 }
                             }
                             case LABEL -> visitor.labels(
@@ -129,7 +128,8 @@ public class RandomEntityDataGenerator extends GeneratingInputIterator<RandomVal
         for (Header.Entry entry : header.entries()) {
             switch (entry.type()) {
                 case ID -> deserialization.handle(entry, entity.hasLongId ? entity.longId : entity.objectId);
-                case PROPERTY -> deserialization.handle(entry, property(entity.properties, entry.name()));
+                case PROPERTY -> deserialization.handle(
+                        entry, entity.getProperty(entry.name()).value());
                 case LABEL -> deserialization.handle(entry, entity.labels());
                 case TYPE -> deserialization.handle(entry, entity.hasIntType ? entity.intType : entity.stringType);
                 case START_ID -> deserialization.handle(
@@ -140,14 +140,5 @@ public class RandomEntityDataGenerator extends GeneratingInputIterator<RandomVal
             }
         }
         return deserialization.materialize();
-    }
-
-    private static Object property(List<Object> properties, String key) {
-        for (int i = 0; i < properties.size(); i += 2) {
-            if (properties.get(i).equals(key)) {
-                return properties.get(i + 1);
-            }
-        }
-        return null;
     }
 }

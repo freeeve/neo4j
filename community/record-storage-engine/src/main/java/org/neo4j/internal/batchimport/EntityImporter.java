@@ -116,21 +116,21 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter {
     }
 
     @Override
-    public boolean property(String key, Object value) {
+    public boolean property(String key, Object value, boolean identifier) {
         assert !hasPropertyId;
         try {
-            return property(propertyKeyTokenRepository.getOrCreateId(key), value);
+            return property(propertyKeyTokenRepository.getOrCreateId(key), value, identifier);
         } catch (KernelException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public boolean property(int propertyKeyId, Object value) {
+    public boolean property(int propertyKeyId, Object value, boolean identifier) {
         assert !hasPropertyId;
         encodeProperty(nextPropertyBlock(), propertyKeyId, value);
         entityPropertyCount++;
-        schemaMonitor.property(propertyKeyId, value);
+        schemaMonitor.property(propertyKeyId, value, identifier);
         return true;
     }
 

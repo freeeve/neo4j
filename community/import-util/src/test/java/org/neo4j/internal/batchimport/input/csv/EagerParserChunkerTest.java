@@ -30,6 +30,7 @@ import static org.neo4j.internal.batchimport.input.InputEntityDecorators.NO_DECO
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Map;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.csv.reader.Extractors;
@@ -71,12 +72,10 @@ class EagerParserChunkerTest {
             var entity = new InputEntity();
             assertThat(chunk.next(entity)).isTrue();
             assertThat(entity.objectId).isEqualTo(1L);
-            assertThat(entity.propertyCount()).isEqualTo(1);
-            assertThat(entity.propertyValue(0)).isEqualTo("v1");
+            assertThat(entity.propertiesAsMap()).isEqualTo(Map.of("prop", "v1"));
             assertThat(chunk.next(entity)).isTrue();
             assertThat(entity.objectId).isEqualTo(2L);
-            assertThat(entity.propertyCount()).isEqualTo(1);
-            assertThat(entity.propertyValue(0)).isEqualTo("v2");
+            assertThat(entity.propertiesAsMap()).isEqualTo(Map.of("prop", "v2"));
             assertThat(chunk.next(entity)).isFalse();
         }
     }

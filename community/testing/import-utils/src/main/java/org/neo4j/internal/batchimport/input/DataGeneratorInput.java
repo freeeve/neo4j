@@ -216,7 +216,7 @@ public class DataGeneratorInput implements Input {
             return new double[] {0, 0};
         }
 
-        int propertiesPerEntity = sample[0].propertyCount();
+        int propertiesPerEntity = sample[0].properties.size();
         long propertiesSize = 0;
         for (InputEntity entity : sample) {
             if (entity != null) {

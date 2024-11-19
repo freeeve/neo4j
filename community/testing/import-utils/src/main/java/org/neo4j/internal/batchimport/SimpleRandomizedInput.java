@@ -374,12 +374,7 @@ public class SimpleRandomizedInput implements Input {
     }
 
     private static Map<String, Value> propertiesOf(InputEntity entity) {
-        Map<String, Value> result = new HashMap<>();
-        Object[] properties = entity.properties();
-        for (int i = 0; i < properties.length; i++) {
-            result.put((String) properties[i++], Values.of(properties[i]));
-        }
-        return result;
+        return entity.propertiesAsValueMap();
     }
 
     private record RelationshipKey(Object startId, String type, Object endId) {}

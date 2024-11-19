@@ -63,7 +63,8 @@ abstract class StoreScanChunk<T extends StorageEntityCursor> implements InputChu
                 // add key as int here as to have the importer use the token id
                 visitor.property(
                         storePropertyCursor.propertyKey(),
-                        storePropertyCursor.propertyValue().asObject());
+                        storePropertyCursor.propertyValue().asObject(),
+                        false);
             }
             storePropertyCursor.close();
         }

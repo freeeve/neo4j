@@ -37,19 +37,37 @@ public interface InputEntityVisitor extends Closeable {
         return true;
     }
 
-    default boolean property(String key, Object value) {
+    /**
+     * Visits a property for this entity.
+     * @param key property key name.
+     * @param value property value.
+     * @param identifier if {@code true} then this property acts as some sort of identifier for this entity.
+     * When creating an entity (i.e. for {@link #applicationMode(ApplicationMode) CREATE} even identifier properties
+     * should be stored on the entity, but for UPDATE/DELETE instead acts as hint to help finding the correct
+     * entity.
+     * @return {@code true} if this property was accepted and processing should continue, otherwise {@code false}.
+     */
+    default boolean property(String key, Object value, boolean identifier) {
         return true;
     }
 
-    default boolean property(int propertyKeyId, Object value) {
+    /**
+     * Visits a property for this entity.
+     * @param propertyKeyId property key id.
+     * @param value property value.
+     * @param identifier if {@code true} then this property acts as some sort of identifier for this entity.
+     * When creating an entity (i.e. for {@link #applicationMode(ApplicationMode) CREATE} even identifier properties
+     * should be stored on the entity, but for UPDATE/DELETE instead acts as hint to help finding the correct
+     * entity.
+     * @return {@code true} if this property was accepted and processing should continue, otherwise {@code false}.
+     */
+    default boolean property(int propertyKeyId, Object value, boolean identifier) {
         return true;
     }
 
     default boolean removedProperties(String[] keys) {
         return true;
     }
-
-    boolean removedProperties(String[] keys);
 
     // For nodes
     default boolean id(long id) {
@@ -114,7 +132,7 @@ public interface InputEntityVisitor extends Closeable {
 
     class Adapter implements InputEntityVisitor {
         @Override
-        public boolean property(String key, Object value) {
+        public boolean property(String key, Object value, boolean identifier) {
             throw new UnsupportedOperationException();
         }
 
@@ -124,7 +142,7 @@ public interface InputEntityVisitor extends Closeable {
         }
 
         @Override
-        public boolean property(int propertyKeyId, Object value) {
+        public boolean property(int propertyKeyId, Object value, boolean identifier) {
             throw new UnsupportedOperationException();
         }
 
@@ -235,13 +253,13 @@ public interface InputEntityVisitor extends Closeable {
         }
 
         @Override
-        public boolean property(String key, Object value) {
-            return actual.property(key, value);
+        public boolean property(String key, Object value, boolean identifier) {
+            return actual.property(key, value, identifier);
         }
 
         @Override
-        public boolean property(int propertyKeyId, Object value) {
-            return actual.property(propertyKeyId, value);
+        public boolean property(int propertyKeyId, Object value, boolean identifier) {
+            return actual.property(propertyKeyId, value, identifier);
         }
 
         @Override

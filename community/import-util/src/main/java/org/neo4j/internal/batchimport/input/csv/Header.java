@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Objects;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.IdType;
+import org.neo4j.batchimport.api.input.Input;
 import org.neo4j.csv.reader.CharSeeker;
 import org.neo4j.csv.reader.Configuration;
 import org.neo4j.csv.reader.Extractor;
@@ -86,7 +87,29 @@ public class Header {
             Map<String, String> rawOptions,
             // This can be used to encapsulate the parameters set in the header for spatial and temporal columns
             // It's a more optimized, or 'compiled' version of the rawOptions
-            CSVHeaderInformation optionalParameter) {
+            CSVHeaderInformation optionalParameter,
+            boolean isIdentifier) {
+        public Entry(
+                String rawEntry,
+                String name,
+                Type type,
+                Group group,
+                Extractor<?> extractor,
+                Map<String, String> rawOptions,
+                // This can be used to encapsulate the parameters set in the header for spatial and temporal columns
+                // It's a more optimized, or 'compiled' version of the rawOptions
+                CSVHeaderInformation optionalParameter) {
+            this(
+                    rawEntry,
+                    name,
+                    type,
+                    group,
+                    extractor,
+                    rawOptions,
+                    optionalParameter,
+                    Boolean.parseBoolean(rawOptions.get(Input.CONFIG_IDENTIFIER)));
+        }
+
         public Entry(String name, Type type, Group group, Extractor<?> extractor) {
             this(null, name, type, group, extractor);
         }

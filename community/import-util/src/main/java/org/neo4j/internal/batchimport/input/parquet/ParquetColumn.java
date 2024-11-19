@@ -26,6 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.neo4j.batchimport.api.input.IdType;
+import org.neo4j.batchimport.api.input.Input;
 import org.neo4j.values.storable.Value;
 
 /**
@@ -183,6 +184,10 @@ record ParquetColumn(
 
     boolean isIgnoredColumn() {
         return logicalColumnType == ParquetLogicalColumnType.IGNORED;
+    }
+
+    boolean isIdentifier() {
+        return Boolean.parseBoolean(configuration.get(Input.CONFIG_IDENTIFIER));
     }
 
     Supplier<ZoneId> getTimezone(Supplier<ZoneId> defaultTimezoneSupplier) {

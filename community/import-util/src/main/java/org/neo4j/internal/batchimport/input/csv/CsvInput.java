@@ -398,7 +398,7 @@ public class CsvInput implements Input {
             var additional = 0d;
             while (iterator.position() < ESTIMATE_SAMPLE_SIZE && iterator.next(chunk)) {
                 for (; chunk.next(entity); entities++) {
-                    properties += entity.propertyCount();
+                    properties += entity.properties.size();
                     propertySize +=
                             Inputs.calculatePropertySize(entity, valueSizeCalculator, NULL_CONTEXT, memoryTracker);
                     additional += additionalCalculator.applyAsInt(entity);
