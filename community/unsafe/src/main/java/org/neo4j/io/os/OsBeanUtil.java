@@ -45,6 +45,8 @@ public final class OsBeanUtil {
     private static final Method getFreeSwapSpaceMethod;
     private static final Method getMaxFileDescriptorsMethod;
     private static final Method getOpenFileDescriptorsMethod;
+    private static final Method getCpuLoad;
+    private static final Method getProcessCpuLoad;
 
     static {
         getTotalPhysicalMemoryMethod = findOsBeanMethod("getTotalPhysicalMemorySize", "getTotalPhysicalMemory");
@@ -54,6 +56,8 @@ public final class OsBeanUtil {
         getFreeSwapSpaceMethod = findOsBeanMethod("getFreeSwapSpaceSize", "getFreeSwapSpaceSize");
         getMaxFileDescriptorsMethod = findUnixOsBeanMethod("getMaxFileDescriptorCount");
         getOpenFileDescriptorsMethod = findUnixOsBeanMethod("getOpenFileDescriptorCount");
+        getCpuLoad = findOsBeanMethod("getCpuLoad", "getCpuLoad");
+        getProcessCpuLoad = findOsBeanMethod("getProcessCpuLoad", "getProcessCpuLoad");
     }
 
     private OsBeanUtil() {
@@ -65,7 +69,7 @@ public final class OsBeanUtil {
      * provide this functionality.
      */
     public static long getTotalPhysicalMemory() {
-        return invoke(getTotalPhysicalMemoryMethod);
+        return invokeToLong(getTotalPhysicalMemoryMethod);
     }
 
     /**
@@ -73,7 +77,7 @@ public final class OsBeanUtil {
      * provide this functionality.
      */
     public static long getFreePhysicalMemory() {
-        return invoke(getFreePhysicalMemoryMethod);
+        return invokeToLong(getFreePhysicalMemoryMethod);
     }
 
     /**
@@ -81,7 +85,7 @@ public final class OsBeanUtil {
      * {@link #VALUE_UNAVAILABLE} if underlying bean does not provide this functionality.
      */
     public static long getCommittedVirtualMemory() {
-        return invoke(getCommittedVirtualMemoryMethod);
+        return invokeToLong(getCommittedVirtualMemoryMethod);
     }
 
     /**
@@ -89,7 +93,7 @@ public final class OsBeanUtil {
      * provide this functionality.
      */
     public static long getTotalSwapSpace() {
-        return invoke(getTotalSwapSpaceMethod);
+        return invokeToLong(getTotalSwapSpaceMethod);
     }
 
     /**
@@ -97,7 +101,7 @@ public final class OsBeanUtil {
      * provide this functionality.
      */
     public static long getFreeSwapSpace() {
-        return invoke(getFreeSwapSpaceMethod);
+        return invokeToLong(getFreeSwapSpaceMethod);
     }
 
     /**
@@ -105,7 +109,7 @@ public final class OsBeanUtil {
      * provide this functionality.
      */
     public static long getMaxFileDescriptors() {
-        return invoke(getMaxFileDescriptorsMethod);
+        return invokeToLong(getMaxFileDescriptorsMethod);
     }
 
     /**
@@ -113,7 +117,23 @@ public final class OsBeanUtil {
      * provide this functionality.
      */
     public static long getOpenFileDescriptors() {
-        return invoke(getOpenFileDescriptorsMethod);
+        return invokeToLong(getOpenFileDescriptorsMethod);
+    }
+
+    /**
+     * @return cpu load, or {@link #VALUE_UNAVAILABLE} if underlying bean does not
+     * provide this functionality.
+     */
+    public static double getCpuLoad() {
+        return invokeToDouble(getCpuLoad);
+    }
+
+    /**
+     * @return process cpu load, or {@link #VALUE_UNAVAILABLE} if underlying bean does not
+     * provide this functionality.
+     */
+    public static double getProcessCpuLoad() {
+        return invokeToDouble(getProcessCpuLoad);
     }
 
     private static Method findOsBeanMethod(String sunMethodName, String ibmMethodName) {
@@ -141,10 +161,19 @@ public final class OsBeanUtil {
         }
     }
 
-    private static long invoke(Method method) {
+    private static long invokeToLong(Method method) {
         try {
             Object value = (method == null) ? null : method.invoke(osBean);
             return (value == null) ? VALUE_UNAVAILABLE : ((Number) value).longValue();
+        } catch (Throwable t) {
+            return VALUE_UNAVAILABLE;
+        }
+    }
+
+    private static double invokeToDouble(Method method) {
+        try {
+            Object value = (method == null) ? null : method.invoke(osBean);
+            return (value == null) ? VALUE_UNAVAILABLE : ((Number) value).doubleValue();
         } catch (Throwable t) {
             return VALUE_UNAVAILABLE;
         }
