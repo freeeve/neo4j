@@ -374,6 +374,9 @@ public class InputEntity implements InputEntityVisitor {
                 }
             }
         }
+        if (!removedProperties.isEmpty()) {
+            visitor.removedProperties(removedProperties.toArray(new String[0]));
+        }
 
         // id
         if (hasLongId) {

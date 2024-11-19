@@ -884,6 +884,15 @@ public class ImportCommand {
         @Option(names = "--force", required = true, description = "Confirm incremental import by setting this flag.")
         boolean forced;
 
+        @Option(
+                names = "--update-all-matching-relationships",
+                paramLabel = "true|false",
+                fallbackValue = "true",
+                defaultValue = "false",
+                description = "If one relationship data entry matches multiple existing relationships, "
+                        + "this decides whether to update all matching, or to instead log as error")
+        boolean updateAllMatchingRelationships;
+
         public Incremental(ExecutionContext ctx) {
             super(ctx);
         }
@@ -940,7 +949,7 @@ public class ImportCommand {
                         databaseLayout,
                         fileSystem,
                         pageCacheTracer,
-                        importConfig,
+                        withSpecificConfig(importConfig),
                         logService,
                         stdOut,
                         verbose,
@@ -963,6 +972,15 @@ public class ImportCommand {
                     default -> throw new IllegalArgumentException("Unknown import mode " + stage);
                 }
             }
+        }
+
+        private Configuration withSpecificConfig(Configuration importConfig) {
+            return new Configuration.Overridden(importConfig) {
+                @Override
+                public boolean updateAllMatchingRelationships() {
+                    return updateAllMatchingRelationships;
+                }
+            };
         }
 
         static class StageConverter implements CommandLine.ITypeConverter<IncrementalStage> {

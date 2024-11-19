@@ -291,7 +291,7 @@ public class OtherAffectedSchemaMonitors implements Supplier<SchemaMonitor>, Clo
         @Override
         public void indexUpdate(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
             // TODO can we make this general assumption here? It's probably good because the splitting of
-            //  uniqueness index updates to just do the ADD part is _als_ in this monitor.
+            //  uniqueness index updates to just do the ADD part is _also_ in this monitor.
             if (indexUpdate.indexKey().isUnique() && indexUpdate.updateMode() == UpdateMode.CHANGED) {
                 indexUpdate = asRemoval(indexUpdate);
             }
@@ -368,7 +368,7 @@ public class OtherAffectedSchemaMonitors implements Supplier<SchemaMonitor>, Clo
 
         private ValueIndexEntryUpdate<IndexDescriptor> asRemoval(IndexEntryUpdate<IndexDescriptor> update) {
             var valueUpdate = (ValueIndexEntryUpdate<IndexDescriptor>) update;
-            return ValueIndexEntryUpdate.remove(update.getEntityId(), update.indexKey(), valueUpdate.values());
+            return ValueIndexEntryUpdate.remove(update.getEntityId(), update.indexKey(), valueUpdate.beforeValues());
         }
 
         private IndexEntryUpdate<IndexDescriptor> constructIndexUpdate(long entityId, IndexDescriptor index) {

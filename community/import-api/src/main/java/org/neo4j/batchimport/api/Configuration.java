@@ -154,6 +154,15 @@ public interface Configuration {
     }
 
     /**
+     * In incremental import when identifying relationships, if multiple relationships are found
+     * then if {@code true} then all matching relationships should be updated, otherwise if {@code false}
+     * then if there are multiple matching relationships report it instead.
+     */
+    default boolean updateAllMatchingRelationships() {
+        return false;
+    }
+
+    /**
      * For importers that can run multiple passes where each pass imports data from a range of node IDs,
      * this method can be provided form the outside to force the number of ranges to let the importer
      * go through.
@@ -255,6 +264,11 @@ public interface Configuration {
         @Override
         public int forcedNumberOfNodeIdRanges() {
             return defaults.forcedNumberOfNodeIdRanges();
+        }
+
+        @Override
+        public boolean updateAllMatchingRelationships() {
+            return defaults.updateAllMatchingRelationships();
         }
 
         @Override

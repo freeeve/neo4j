@@ -121,7 +121,7 @@ class ImportCommandTest {
         final var help = getUsageHelp(command);
         final var options = getOptions(help);
         var expectedOptions = new ArrayList<>(List.of(sharedOptions));
-        expectedOptions.addAll(List.of("--stage", "--force"));
+        expectedOptions.addAll(List.of("--stage", "--force", "--update-all-matching-relationships"));
         final var positionals = getPositionals(help);
         final var expectedPositionals = List.of(sharedPositionals);
 
