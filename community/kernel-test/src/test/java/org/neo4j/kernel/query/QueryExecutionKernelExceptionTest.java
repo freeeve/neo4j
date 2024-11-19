@@ -50,6 +50,9 @@ public class QueryExecutionKernelExceptionTest {
         assertEquals("50N00", userException.gqlStatus());
         assertEquals("Neo.ClientError.General.InvalidArguments", userException.getStatusCode());
         assertEquals("Server 'server' can't be altered: must specify options", userException.getMessage());
+
+        // No gql cause added since are replacing the previous exception on the gql cause chain
+        assertTrue(userException.gqlStatusObject().cause().isEmpty());
     }
 
     @Test
@@ -62,6 +65,14 @@ public class QueryExecutionKernelExceptionTest {
                 "Option `the_option` requires positive integer argument, got `-1`",
                 translatedGqlException.getMessage());
 
+        assertTrue(gqlException.cause().isPresent());
+        var gqlCause = gqlException.cause().get();
+        assertEquals("22N02", gqlCause.gqlStatus());
+        assertEquals(
+                "22N02: Expected 'the_option' to be a positive number but found -1 instead.", gqlCause.getMessage());
+
+        assertTrue(gqlCause.cause().isEmpty());
+
         assertEquals(gqlException, translatedGqlException.getCause());
         // Gql cause added since is the same as on the wrapped exception
         assertTrue(translatedGqlException.gqlStatusObject().cause().isPresent());
@@ -73,6 +84,13 @@ public class QueryExecutionKernelExceptionTest {
         assertEquals("22003", userException.gqlStatus());
         assertEquals("Neo.ClientError.General.InvalidArguments", userException.getStatusCode());
         assertEquals("Option `the_option` requires positive integer argument, got `-1`", userException.getMessage());
+
+        assertTrue(userException.cause().isPresent());
+        var cause = userException.cause().get();
+        assertEquals("22N02", cause.gqlStatus());
+        assertEquals("22N02: Expected 'the_option' to be a positive number but found -1 instead.", cause.getMessage());
+
+        assertTrue(cause.cause().isEmpty());
     }
 
     @Test
@@ -86,14 +104,41 @@ public class QueryExecutionKernelExceptionTest {
         // It should set a gql cause
         assertEquals(gqlException, translatedGqlException.getCause());
         assertTrue(translatedGqlException.gqlStatusObject().cause().isPresent());
+
+        var gqlCause = translatedGqlException.gqlStatusObject().cause().get();
+        assertEquals("22003", gqlCause.gqlStatus());
+        assertEquals("22003: The numeric value $value is outside the required range.", gqlCause.getMessage());
+
+        assertTrue(gqlCause.cause().isPresent());
+        var secondGqlCause = gqlCause.cause().get();
+        assertEquals("22N02", secondGqlCause.gqlStatus());
         assertEquals(
-                gqlException.gqlStatusObject().cause().orElse(null),
-                translatedGqlException.cause().orElse(null));
+                "22N02: Expected 'the_option' to be a positive number but found -1 instead.",
+                secondGqlCause.getMessage());
+
+        // No further causes should be here
+        assertTrue(secondGqlCause.cause().isEmpty());
 
         var userException = translatedGqlException.asUserException();
         assertEquals("50N42", userException.gqlStatus());
         assertEquals("Neo.DatabaseError.General.UnknownError", userException.getStatusCode());
         assertEquals("I am an exception", userException.getMessage());
+
+        assertTrue(userException.cause().isPresent());
+
+        var userCause = translatedGqlException.gqlStatusObject().cause().get();
+        assertEquals("22003", userCause.gqlStatus());
+        assertEquals("22003: The numeric value $value is outside the required range.", userCause.getMessage());
+
+        assertTrue(userCause.cause().isPresent());
+        var secondUserCause = userCause.cause().get();
+        assertEquals("22N02", secondUserCause.gqlStatus());
+        assertEquals(
+                "22N02: Expected 'the_option' to be a positive number but found -1 instead.",
+                secondUserCause.getMessage());
+
+        // No further causes should be here
+        assertTrue(secondUserCause.cause().isEmpty());
     }
 
     @Test

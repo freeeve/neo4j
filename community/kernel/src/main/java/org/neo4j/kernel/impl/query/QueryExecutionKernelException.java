@@ -37,7 +37,7 @@ public class QueryExecutionKernelException extends KernelException {
     public QueryExecutionException asUserException() {
         if (gqlStatusObject() != null) {
             return new QueryExecutionException(
-                    gqlStatusObject(), getMessage(), this, status().code().serialize());
+                    this, getMessage(), this, status().code().serialize());
         }
         return new QueryExecutionException(getMessage(), this, status().code().serialize());
     }
