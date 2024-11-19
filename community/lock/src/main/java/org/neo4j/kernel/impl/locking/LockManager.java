@@ -107,6 +107,9 @@ public interface LockManager {
 
         long getTransactionId();
 
+        /**
+         * Implementations of this method must be thread-safe.
+         */
         long activeLockCount();
 
         void reset();

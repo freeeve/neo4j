@@ -142,6 +142,11 @@ public class ParallelAccessCheck {
 
         @Override
         public long activeLockCount() {
+            /*
+            NOTE, unlike other methods here this method has no thread guard (allows calls from other threads) because:
+            (1) all current implementations of activeLockCount() are thread-safe, i.e., it is safe
+            (2) method gets called by Cypher Worker via ExecutingQuery.snapshot()
+             */
             return wrappedLockClient.activeLockCount();
         }
 
