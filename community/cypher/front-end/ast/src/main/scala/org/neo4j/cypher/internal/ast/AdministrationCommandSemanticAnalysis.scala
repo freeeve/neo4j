@@ -65,4 +65,15 @@ object AdministrationCommandSemanticAnalysis {
       legacyMessage,
       position
     ))
+
+  def invalidPropertyBasedAccessControlRuleInvolvingNontrivialPredicatesError(
+    unsupportedExpression: String,
+    legacyMessage: String,
+    position: InputPosition
+  ): SemanticCheck =
+    SemanticCheck.error(SemanticError.invalidPropertyBasedAccessControlRuleInvolvingNontrivialPredicates(
+      unsupportedExpression,
+      legacyMessage,
+      position
+    ))
 }

@@ -894,6 +894,12 @@ sealed abstract class PrivilegeCommand(
 
   private def propertyPositionError(p: Property, operator: String) =
     error(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NA0)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NA1)
+          .withParam(GqlParams.StringParam.propKey, p.propertyKey.name)
+          .withParam(GqlParams.StringParam.operation, operator)
+          .build())
+        .build(),
       s"$FAILED_PROPERTY_RULE The property `${p.propertyKey.name}` must appear on the left hand side of the `$operator` operator.",
       p.position
     )
@@ -943,7 +949,12 @@ sealed abstract class PrivilegeCommand(
             f.functionName.name
           ) =>
           SemanticCheck.success
-        case _ => error(unsupportedExpression, expression.position)
+        case _ =>
+          AdministrationCommandSemanticAnalysis.invalidPropertyBasedAccessControlRuleInvolvingNontrivialPredicatesError(
+            value.asCanonicalStringVal,
+            unsupportedExpression,
+            expression.position
+          )
       }
     }
 
@@ -951,7 +962,12 @@ sealed abstract class PrivilegeCommand(
       value match {
         case ll: ListLiteral          => checkTypesInList(ll)
         case param: ExplicitParameter => SemanticCheck.success
-        case _                        => error(unsupportedExpression, expression.position)
+        case _ =>
+          AdministrationCommandSemanticAnalysis.invalidPropertyBasedAccessControlRuleInvolvingNontrivialPredicatesError(
+            value.asCanonicalStringVal,
+            unsupportedExpression,
+            expression.position
+          )
       }
     }
 
@@ -1035,6 +1051,11 @@ sealed abstract class PrivilegeCommand(
       case LessThanOrEqual(_, p: Property)    => propertyPositionError(p, "<=")
       case map @ MapExpression(items) if items.size > 1 =>
         error(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NA0)
+            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NA2)
+              .withParam(GqlParams.StringParam.expr, stringifyExpression)
+              .build())
+            .build(),
           s"$FAILED_PROPERTY_RULE The expression: `$stringifyExpression` is not supported. Property rules can only contain one property.",
           map.position
         )
@@ -1055,7 +1076,12 @@ sealed abstract class PrivilegeCommand(
       case GreaterThanOrEqual(_: Property, e: Expression)          => checkScalarExpression(e)
       case LessThan(_: Property, e: Expression)                    => checkScalarExpression(e)
       case LessThanOrEqual(_: Property, e: Expression)             => checkScalarExpression(e)
-      case _                                                       => error(unsupportedExpression, expression.position)
+      case _ =>
+        AdministrationCommandSemanticAnalysis.invalidPropertyBasedAccessControlRuleInvolvingNontrivialPredicatesError(
+          expression.asCanonicalStringVal,
+          unsupportedExpression,
+          expression.position
+        )
     }
   }
 

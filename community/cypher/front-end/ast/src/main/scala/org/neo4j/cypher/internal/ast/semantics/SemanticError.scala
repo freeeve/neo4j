@@ -788,6 +788,25 @@ object SemanticError {
     )
   }
 
+  def invalidPropertyBasedAccessControlRuleInvolvingNontrivialPredicates(
+    unsupportedExpression: String,
+    legacyMessage: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NA0)
+      .atPosition(position.line, position.column, position.offset)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NA7)
+        .atPosition(position.line, position.column, position.offset)
+        .withParam(GqlParams.StringParam.expr, unsupportedExpression)
+        .build())
+      .build()
+    SemanticError(
+      gql,
+      legacyMessage,
+      position
+    )
+  }
+
   private val validLastClauses =
     "a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD"
 
