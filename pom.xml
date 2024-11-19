@@ -179,6 +179,7 @@
     <jakarta.ws.rs-api.version>2.1.6</jakarta.ws.rs-api.version>
     <antlr.version>4.13.2</antlr.version> <!-- You MUST re-generate the parsers after changing this value! -->
     <error_prone.version>2.35.1</error_prone.version>
+    <protobuf.version>3.25.5</protobuf.version>
     <teavm.version>0.10.2</teavm.version>
     <javapoet.version>1.13.0</javapoet.version>
     <grpc.version>1.68.1</grpc.version>
@@ -1801,7 +1802,12 @@
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
-        <version>3.25.5</version>
+        <version>${protobuf.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java-util</artifactId>
+        <version>${protobuf.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.errorprone</groupId>
