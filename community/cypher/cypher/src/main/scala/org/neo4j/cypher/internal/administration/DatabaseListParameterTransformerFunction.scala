@@ -20,6 +20,8 @@
 package org.neo4j.cypher.internal.administration
 
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
+import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.administration.DatabaseListParameterTransformerFunction.detailLevels
 import org.neo4j.cypher.internal.administration.ShowDatabaseExecutionPlanner.accessibleDbsKey
 import org.neo4j.cypher.internal.ast.DatabaseScope
@@ -68,7 +70,8 @@ class DatabaseListParameterTransformerFunction(
   infoService: TopologyInfoService,
   maybeYield: Option[Yield],
   verbose: Boolean,
-  scope: DatabaseScope
+  scope: DatabaseScope,
+  context: AdministrationCommandRuntimeContext
 ) extends ParameterTransformerFunction {
 
   override def transform(
@@ -138,18 +141,22 @@ class DatabaseListParameterTransformerFunction(
       namedDatabaseScope.database match {
         case nn @ NamespacedName(_, namespace) =>
           val normalizedNamespace = namespace.map(new NormalizedDatabaseName(_))
-          normalizedNamespace match {
-            case None => (new NormalizedDatabaseName(nn.name), None, Set.empty[InternalNotification])
-            case Some(ns) =>
-              val deprecatedName = ns.name() + "." + nn.name
-              databaseReferences.find(dr => dr.isComposite && dr.alias().equals(ns))
-                .map(_ => (new NormalizedDatabaseName(nn.name), normalizedNamespace, Set.empty[InternalNotification]))
-                // This is the deprecated case of "SHOW DATABASE a.b" with no composite. Should really be `a.b`, so warn
-                .getOrElse((
-                  new NormalizedDatabaseName(deprecatedName),
-                  None,
-                  Set(DeprecatedDatabaseNameNotification(deprecatedName, None))
-                ))
+          if (context.runtimeContext.cypherVersion == CypherVersion.Cypher5) {
+            normalizedNamespace match {
+              case Some(ns) =>
+                val deprecatedName = ns.name() + "." + nn.name
+                databaseReferences.find(dr => dr.isComposite && dr.alias().equals(ns))
+                  .map(_ => (new NormalizedDatabaseName(nn.name), normalizedNamespace, Set.empty[InternalNotification]))
+                  // This is the deprecated case of "SHOW DATABASE a.b" with no composite. Should really be `a.b`, so warn
+                  .getOrElse((
+                    new NormalizedDatabaseName(deprecatedName),
+                    None,
+                    Set(DeprecatedDatabaseNameNotification(deprecatedName, None))
+                  ))
+              case None => (new NormalizedDatabaseName(nn.name), normalizedNamespace, Set.empty[InternalNotification])
+            }
+          } else {
+            (new NormalizedDatabaseName(nn.name), normalizedNamespace, Set.empty[InternalNotification])
           }
         case pn: ParameterName =>
           val (namespace, name, _) = pn.getNameParts(params, DEFAULT_NAMESPACE)

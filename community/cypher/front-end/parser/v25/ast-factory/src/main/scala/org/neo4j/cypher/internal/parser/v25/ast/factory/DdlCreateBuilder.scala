@@ -455,7 +455,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
   ): Unit = {
     val parent = ctx.getParent.asInstanceOf[CreateCommandContext]
     ctx.ast = CreateCompositeDatabase(
-      ctx.symbolicAliasNameOrParameter().ast[DatabaseName](),
+      ctx.databaseName().ast[DatabaseName](),
       ifExistsDo(parent.REPLACE() != null, ctx.EXISTS() != null),
       astOpt[Options](ctx.commandOptions(), NoOptions),
       astOpt[WaitUntilComplete](ctx.waitClause(), NoWait)
@@ -473,7 +473,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
         Some(Topology(pT, sT))
       } else None
     ctx.ast = CreateDatabase(
-      ctx.symbolicAliasNameOrParameter().ast[DatabaseName](),
+      ctx.databaseName().ast[DatabaseName](),
       ifExistsDo(parent.REPLACE() != null, ctx.EXISTS() != null),
       astOpt[Options](ctx.commandOptions(), NoOptions),
       astOpt[WaitUntilComplete](ctx.waitClause(), NoWait),
@@ -486,7 +486,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
   ): Unit = {
     val parent = ctx.getParent.asInstanceOf[CreateCommandContext]
     val aliasName = ctx.aliasName().ast[DatabaseName]()
-    val dbName = ctx.databaseName().ast[DatabaseName]()
+    val targetName = ctx.aliasTargetName().ast[DatabaseName]()
     val ifNotExists = ctx.EXISTS() != null
     val properties =
       if (ctx.PROPERTIES() != null) {
@@ -495,16 +495,16 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
       } else None
 
     ctx.ast = if (ctx.AT() == null) {
-      CreateLocalDatabaseAlias(aliasName, dbName, ifExistsDo(parent.REPLACE() != null, ifNotExists), properties)(pos(
-        parent
-      ))
+      CreateLocalDatabaseAlias(aliasName, targetName, ifExistsDo(parent.REPLACE() != null, ifNotExists), properties)(
+        pos(parent)
+      )
     } else {
       val driverSettings =
         if (ctx.DRIVER() != null) Some(ctx.mapOrParameter(0).ast[Either[Map[String, Expression], Parameter]]())
         else None
       CreateRemoteDatabaseAlias(
         aliasName,
-        dbName,
+        targetName,
         ifExistsDo(parent.REPLACE() != null, ifNotExists),
         ctx.stringOrParameter().ast[Either[String, Parameter]](),
         ctx.commandNameExpression().ast[Expression](),

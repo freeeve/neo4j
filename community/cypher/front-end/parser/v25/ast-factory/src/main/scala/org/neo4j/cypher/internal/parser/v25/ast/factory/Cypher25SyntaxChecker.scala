@@ -190,11 +190,14 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
 
   private def checkCreateAlias(ctx: Cypher25Parser.CreateAliasContext): Unit = {
     if (ctx.stringOrParameter() != null) {
-      if (!(ctx.AT() == null && ctx.USER() == null && ctx.PASSWORD() == null && ctx.DRIVER() == null))
-        errorOnAliasNameContainingDots(java.util.List.of(
-          ctx.aliasName().symbolicAliasNameOrParameter(),
-          ctx.databaseName().symbolicAliasNameOrParameter()
-        ))
+      if (!(ctx.AT() == null && ctx.USER() == null && ctx.PASSWORD() == null && ctx.DRIVER() == null)) {
+        errorOnAliasNameContainingDots(
+          java.util.List.of(
+            ctx.aliasName.symbolicAliasNameOrParameter(),
+            ctx.aliasTargetName().symbolicAliasNameOrParameter()
+          )
+        )
+      }
     }
   }
 

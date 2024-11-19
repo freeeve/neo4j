@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
+import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.FailsInCypher25AndLater
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -2336,20 +2337,17 @@ class PrettifierIT extends CypherFunSuite {
       "CREATE DATABASE foo TOPOLOGY 2 PRIMARIES 1 SECONDARY",
     "create database `graph.db`" ->
       "CREATE DATABASE `graph.db`",
-    "create database graph.db" ->
-      "CREATE DATABASE `graph.db`",
-    "create database graph.db wait" ->
-      "CREATE DATABASE `graph.db` WAIT",
-    "create database graph.db nowait" ->
-      "CREATE DATABASE `graph.db`",
-    "create database graph.db if not exists wait" ->
-      "CREATE DATABASE `graph.db` IF NOT EXISTS WAIT",
-    "create database graph.db options {existingData: 'use', existingDataSeedInstance: '84c3ee6f-260e-47db-a4b6-589c807f2c2e'} wait" ->
-      "CREATE DATABASE `graph.db` OPTIONS {existingData: \"use\", existingDataSeedInstance: \"84c3ee6f-260e-47db-a4b6-589c807f2c2e\"} WAIT",
-    "create database graph.db options {`backticked key`: 'use'} WAIT" ->
-      "CREATE DATABASE `graph.db` OPTIONS {`backticked key`: \"use\"} WAIT",
-    "create database graph.db options $ops wait" ->
-      "CREATE DATABASE `graph.db` OPTIONS $ops WAIT",
+    FailsInCypher25AndLater("create database graph.db", "CREATE DATABASE `graph.db`"),
+    "create database foo wait" -> "CREATE DATABASE foo WAIT",
+    "create database foo nowait" -> "CREATE DATABASE foo",
+    "create database foo if not exists wait" ->
+      "CREATE DATABASE foo IF NOT EXISTS WAIT",
+    "create database foo options {existingData: 'use', existingDataSeedInstance: '84c3ee6f-260e-47db-a4b6-589c807f2c2e'} wait" ->
+      "CREATE DATABASE foo OPTIONS {existingData: \"use\", existingDataSeedInstance: \"84c3ee6f-260e-47db-a4b6-589c807f2c2e\"} WAIT",
+    "create database foo options {`backticked key`: 'use'} WAIT" ->
+      "CREATE DATABASE foo OPTIONS {`backticked key`: \"use\"} WAIT",
+    "create database foo options $ops wait" ->
+      "CREATE DATABASE foo OPTIONS $ops WAIT",
     "create composite database composite" ->
       "CREATE COMPOSITE DATABASE composite",
     "create composite database `composite.DB`" ->
@@ -3199,6 +3197,20 @@ class PrettifierIT extends CypherFunSuite {
           prettifier.asString(statement) should equal(expected)
         }
       }
+    case FailsInCypher25AndLater(inputString, expected) =>
+      test(inputString) {
+        CypherVersion.values().foreach { version =>
+          withClue(s"Cypher Antlr version: $version") {
+            if (version >= CypherVersion.Cypher25) {
+              // Which exception to throw is out of scope for the prettifier ITs, only checking that it throws something.
+              assertThrows[Throwable](parseAntlr(version, inputString))
+            } else {
+              val statement = parseAntlr(version, inputString)
+              prettifier.asString(statement) should equal(expected)
+            }
+          }
+        }
+      }
   }
 
   private def parseAntlr(version: CypherVersion, cypher: String): Statement =
@@ -3214,6 +3226,8 @@ object PrettifierTestSupport {
       extends Test
 
   case class FailsInCypher5(inputString: String, output: String) extends Test
+
+  case class FailsInCypher25AndLater(inputString: String, outputCypher5: String) extends Test
 
   implicit class TestConverter(tuple: (String, String)) extends SameAcrossVersions(tuple._1, tuple._2)
 }

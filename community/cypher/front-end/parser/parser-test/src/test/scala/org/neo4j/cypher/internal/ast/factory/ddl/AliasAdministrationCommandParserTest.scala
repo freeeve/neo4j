@@ -67,13 +67,11 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("CREATE ALIAS alias.name FOR DATABASE db.name") {
-    assertAst(
-      CreateLocalDatabaseAlias(
-        namespacedName("alias", "name"),
-        namespacedName("db", "name"),
-        IfExistsThrowError
-      )(defaultPos)
-    )
+    assertAst(CreateLocalDatabaseAlias(
+      namespacedName("alias", "name"),
+      namespacedName("db", "name"),
+      IfExistsThrowError
+    )(defaultPos))
   }
 
   test("CREATE ALIAS alias . name FOR DATABASE db.name") {
@@ -87,11 +85,13 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("CREATE ALIAS IF FOR DATABASE db.name") {
-    assertAst(CreateLocalDatabaseAlias(
-      namespacedName("IF"),
-      namespacedName("db", "name"),
-      IfExistsThrowError
-    )(defaultPos))
+    assertAst(
+      CreateLocalDatabaseAlias(
+        namespacedName("IF"),
+        namespacedName("db", "name"),
+        IfExistsThrowError
+      )(defaultPos)
+    )
   }
 
   test("CREATE ALIAS composite.alias FOR DATABASE db") {
@@ -285,7 +285,6 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
         |"CREATE ALIAS name FOR DATABASE target PROPERTY { key: 'val' }"
         |                                       ^""".stripMargin
     )
-
   }
 
   test("""CREATE ALIAS name FOR DATABASE target PROPERTIES""") {

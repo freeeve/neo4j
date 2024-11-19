@@ -184,7 +184,15 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
   test("call hej() yield 1x as y") { invalid("1x", "an identifier or '*'", 17) }
   test("call 1hej()") { invalid("1hej", "an identifier, '(' or '{'", 5) }
   test("show procedures yield") { invalid("", "a variable name or '*'", 21) }
-  test("create database 1a") { invalid("1a", "a database name, a graph pattern or a parameter", 16) }
+
+  test("create database 1a") {
+    invalid(
+      "1a",
+      "a database name, a graph pattern or a parameter",
+      "a graph pattern, a parameter or an identifier",
+      16
+    )
+  }
   test("with 1 as 1p return *") { invalid("1p", "an identifier", 10) }
   test("with 1 as 1bcd return *") { invalid("1bcd", "an identifier", 10) }
 

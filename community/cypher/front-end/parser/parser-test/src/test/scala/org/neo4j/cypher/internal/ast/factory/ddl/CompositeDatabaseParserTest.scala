@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.ast.OptionsMap
 import org.neo4j.cypher.internal.ast.Restrict
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.TimeoutAfter
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 
 class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -55,31 +56,55 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
   }
 
   test("CREATE COMPOSITE DATABASE db.name") {
-    parsesTo[Statements](CreateCompositeDatabase(
-      namespacedName("db", "name"),
-      IfExistsThrowError,
-      NoOptions,
-      NoWait
-    )(pos))
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(
+          CreateCompositeDatabase(
+            namespacedName("db", "name"),
+            IfExistsThrowError,
+            NoOptions,
+            NoWait
+          )(pos)
+        )
+      case _ =>
+        _.withSyntaxError("""Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'WAIT' or <EOF> (line 1, column 29 (offset: 28))
+                            |"CREATE COMPOSITE DATABASE db.name"
+                            |                             ^""".stripMargin)
+    }
   }
 
   test("CREATE COMPOSITE DATABASE foo.bar") {
-    parsesTo[Statements](CreateCompositeDatabase(
-      namespacedName("foo", "bar"),
-      IfExistsThrowError,
-      NoOptions,
-      NoWait
-    )(pos))
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(
+          CreateCompositeDatabase(
+            namespacedName("foo", "bar"),
+            IfExistsThrowError,
+            NoOptions,
+            NoWait
+          )(pos)
+        )
+      case _ =>
+        _.withSyntaxError("""Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'WAIT' or <EOF> (line 1, column 30 (offset: 29))
+                            |"CREATE COMPOSITE DATABASE foo.bar"
+                            |                              ^""".stripMargin)
+    }
   }
 
   test("CREATE COMPOSITE DATABASE `graph.db`.`db.db`") {
-    // Fails in semantic checks instead
-    parsesTo[Statements](CreateCompositeDatabase(
-      namespacedName("graph.db", "db.db"),
-      IfExistsThrowError,
-      NoOptions,
-      NoWait
-    )(pos))
+    parsesIn[Statements] {
+      // Fails in semantic checks instead
+      case Cypher5 => _.toAstPositioned(
+          CreateCompositeDatabase(
+            namespacedName("graph.db", "db.db"),
+            IfExistsThrowError,
+            NoOptions,
+            NoWait
+          )(pos)
+        )
+      case _ =>
+        _.withSyntaxError("""Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'WAIT' or <EOF> (line 1, column 37 (offset: 36))
+                            |"CREATE COMPOSITE DATABASE `graph.db`.`db.db`"
+                            |                                     ^""".stripMargin)
+    }
   }
 
   test("CREATE COMPOSITE DATABASE name IF NOT EXISTS") {
@@ -111,11 +136,18 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
   }
 
   test("CREATE COMPOSITE DATABASE name TOPOLOGY 1 PRIMARY") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'TOPOLOGY': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'WAIT' or <EOF> (line 1, column 32 (offset: 31))
-        |"CREATE COMPOSITE DATABASE name TOPOLOGY 1 PRIMARY"
-        |                                ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'TOPOLOGY': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'WAIT' or <EOF> (line 1, column 32 (offset: 31))
+            |"CREATE COMPOSITE DATABASE name TOPOLOGY 1 PRIMARY"
+            |                                ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'TOPOLOGY': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'WAIT' or <EOF> (line 1, column 32 (offset: 31))
+            |"CREATE COMPOSITE DATABASE name TOPOLOGY 1 PRIMARY"
+            |                                ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE COMPOSITE DATABASE name WAIT") {

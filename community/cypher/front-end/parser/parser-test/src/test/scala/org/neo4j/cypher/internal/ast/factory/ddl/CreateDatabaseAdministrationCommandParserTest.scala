@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.ast.OptionsParam
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.TimeoutAfter
 import org.neo4j.cypher.internal.ast.Topology
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.util.symbols.CTMap
@@ -145,13 +146,18 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   }
 
   test("CREATE DATABASE foo.bar") {
-    parsesTo[Statements](CreateDatabase(
-      namespacedName("foo", "bar"),
-      IfExistsThrowError,
-      NoOptions,
-      NoWait,
-      None
-    )(pos))
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(CreateDatabase(
+          namespacedName("foo", "bar"),
+          IfExistsThrowError,
+          NoOptions,
+          NoWait,
+          None
+        )(pos))
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF>"
+        )
+    }
   }
 
   test("CREATE DATABASE `foo-bar42`") {
@@ -442,17 +448,31 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
 
   test("CREATE DATABASE") {
     // missing db name but parses as 'normal' cypher CREATE...
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '': expected a database name, a graph pattern or a parameter (line 1, column 16 (offset: 15))
-        |"CREATE DATABASE"
-        |                ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '': expected a database name, a graph pattern or a parameter (line 1, column 16 (offset: 15))
+            |"CREATE DATABASE"
+            |                ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '': expected a graph pattern, a parameter or an identifier (line 1, column 16 (offset: 15))
+            |"CREATE DATABASE"
+            |                ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE DATABASE `graph.db`.`db.db`") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``graph.db`.`db.db`` for database name. Expected name to contain at most one component"
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``graph.db`.`db.db`` for database name. Expected name to contain at most one component"
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 27 (offset: 26))
+            |"CREATE DATABASE `graph.db`.`db.db`"
+            |                           ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE DATABASE \"foo.bar\"") {
@@ -480,18 +500,33 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   }
 
   test("CREATE DATABASE `foo`.`bar`.`baz`") {
-    failsParsing[Statements]
-      .withMessageStart(
-        "Invalid input ``foo`.`bar`.`baz`` for database name. Expected name to contain at most one component"
-      )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``foo`.`bar`.`baz`` for database name. Expected name to contain at most one component"
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 22 (offset: 21))
+            |"CREATE DATABASE `foo`.`bar`.`baz`"
+            |                      ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE DATABASE  IF NOT EXISTS") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'NOT': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
-        |"CREATE DATABASE  IF NOT EXISTS"
-        |                     ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 =>
+        _.withSyntaxError(
+          """Invalid input 'NOT': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+            |"CREATE DATABASE  IF NOT EXISTS"
+            |                     ^""".stripMargin
+        )
+      case _ =>
+        _.withSyntaxError(
+          """Invalid input 'NOT': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+            |"CREATE DATABASE  IF NOT EXISTS"
+            |                     ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE DATABASE foo IF EXISTS") {
@@ -519,35 +554,63 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   }
 
   test("CREATE OR REPLACE DATABASE") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '': expected a database name or a parameter (line 1, column 27 (offset: 26))
-        |"CREATE OR REPLACE DATABASE"
-        |                           ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '': expected a database name or a parameter (line 1, column 27 (offset: 26))
+            |"CREATE OR REPLACE DATABASE"
+            |                           ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '': expected a parameter or an identifier (line 1, column 27 (offset: 26))
+            |"CREATE OR REPLACE DATABASE"
+            |                           ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE DATABASE foo SET OPTION key value") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
-        |"CREATE DATABASE foo SET OPTION key value"
-        |                     ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+            |"CREATE DATABASE foo SET OPTION key value"
+            |                     ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'SET': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+            |"CREATE DATABASE foo SET OPTION key value"
+            |                     ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE DATABASE foo OPTION {key: value}") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'OPTION': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
-        |"CREATE DATABASE foo OPTION {key: value}"
-        |                     ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'OPTION': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+            |"CREATE DATABASE foo OPTION {key: value}"
+            |                     ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'OPTION': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+            |"CREATE DATABASE foo OPTION {key: value}"
+            |                     ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE DATABASE foo SET OPTIONS key value") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
-        |"CREATE DATABASE foo SET OPTIONS key value"
-        |                     ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+            |"CREATE DATABASE foo SET OPTIONS key value"
+            |                     ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'SET': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+            |"CREATE DATABASE foo SET OPTIONS key value"
+            |                     ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE DATABASE foo OPTIONS key value") {

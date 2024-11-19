@@ -450,6 +450,8 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_secondsToken -> exitSecondsToken((Cypher25Parser.SecondsTokenContext) ctx);
             case Cypher25Parser.RULE_showDatabase -> exitShowDatabase((Cypher25Parser.ShowDatabaseContext) ctx);
             case Cypher25Parser.RULE_aliasName -> exitAliasName((Cypher25Parser.AliasNameContext) ctx);
+            case Cypher25Parser.RULE_aliasTargetName -> exitAliasTargetName(
+                    (Cypher25Parser.AliasTargetNameContext) ctx);
             case Cypher25Parser.RULE_databaseName -> exitDatabaseName((Cypher25Parser.DatabaseNameContext) ctx);
             case Cypher25Parser.RULE_createAlias -> exitCreateAlias((Cypher25Parser.CreateAliasContext) ctx);
             case Cypher25Parser.RULE_dropAlias -> exitDropAlias((Cypher25Parser.DropAliasContext) ctx);

@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.getDatabaseNameFie
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getNameFields
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userLabel
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userNamePropKey
+import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.ast.DatabaseName
@@ -107,7 +108,8 @@ case class DoNothingExecutionPlanner(
     name: DatabaseName,
     operation: String,
     sourcePlan: Option[ExecutionPlan],
-    databaseTypeFilter: DatabaseTypeFilter
+    databaseTypeFilter: DatabaseTypeFilter,
+    context: AdministrationCommandRuntimeContext
   ): ExecutionPlan = {
     planDoNothingDatabase(
       "DoNothingIfDatabaseNotExists",
@@ -116,7 +118,8 @@ case class DoNothingExecutionPlanner(
         .ignoreNoResult()
         .handleError(handleErrorFn(command, operation, DATABASE, name)),
       sourcePlan,
-      databaseTypeFilter
+      databaseTypeFilter,
+      context
     )
   }
 
@@ -124,7 +127,8 @@ case class DoNothingExecutionPlanner(
     command: String,
     name: DatabaseName,
     sourcePlan: Option[ExecutionPlan],
-    databaseTypeFilter: DatabaseTypeFilter
+    databaseTypeFilter: DatabaseTypeFilter,
+    context: AdministrationCommandRuntimeContext
   ): ExecutionPlan =
     planDoNothingDatabase(
       "DoNothingIfDatabaseExists",
@@ -133,7 +137,8 @@ case class DoNothingExecutionPlanner(
         .ignoreOnResult()
         .handleError(handleErrorFn(command, "create", DATABASE, name)),
       sourcePlan,
-      databaseTypeFilter
+      databaseTypeFilter,
+      context
     )
 
   private def planDoNothing(
@@ -166,8 +171,9 @@ case class DoNothingExecutionPlanner(
     name: DatabaseName,
     queryHandler: QueryHandler,
     sourcePlan: Option[ExecutionPlan],
-    databaseTypeFilter: DatabaseTypeFilter
-  ): ExecutionPlan = {
+    databaseTypeFilter: DatabaseTypeFilter,
+    context: AdministrationCommandRuntimeContext
+  ) = {
     val nameFields = getDatabaseNameFields("name", name)
     UpdatingSystemCommandExecutionPlan(
       planName,
@@ -189,7 +195,7 @@ case class DoNothingExecutionPlanner(
       queryHandler,
       sourcePlan,
       parameterTransformer =
-        ParameterTransformer().convert(nameFields.nameConverter).validate(checkNamespaceExists(nameFields))
+        ParameterTransformer().convert(nameFields.nameConverter).validate(checkNamespaceExists(nameFields, context))
     )
   }
 

@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.IdentityConverter
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.checkNamespaceExists
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getDatabaseNameFields
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
+import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.AdministrationShowCommandUtils
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
@@ -76,7 +77,8 @@ case class ShowAliasesExecutionPlanner(
     verbose: Boolean,
     symbols: List[LogicalVariable],
     yields: Option[Yield],
-    returns: Option[Return]
+    returns: Option[Return],
+    context: AdministrationCommandRuntimeContext
   ): ExecutionPlan = {
     // name | composite | database | location | url | user | driver | properties
     val returnStatement = AdministrationShowCommandUtils.generateReturnClause(symbols, yields, returns, Seq("name"))
@@ -112,7 +114,9 @@ case class ShowAliasesExecutionPlanner(
         ParameterTransformer((_, sc, _) => generateVisibleAliases(sc)).convert(
           aliasNameFields.map(_.nameConverter).getOrElse(IdentityConverter)
         )
-          .validate(aliasNameFields.map(checkNamespaceExists).getOrElse((_, p) => (p, Set.empty)))
+          .validate(aliasNameFields.map(aliasNameFields =>
+            checkNamespaceExists(aliasNameFields, context)(_, _)
+          ).getOrElse((_, p) => (p, Set.empty)))
     )
   }
 

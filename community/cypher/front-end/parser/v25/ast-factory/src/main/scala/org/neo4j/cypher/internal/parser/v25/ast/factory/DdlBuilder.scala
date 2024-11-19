@@ -511,7 +511,7 @@ trait DdlBuilder extends Cypher25ParserListener {
     ctx: Cypher25Parser.DropAliasContext
   ): Unit = {
     ctx.ast =
-      DropDatabaseAlias(ctx.aliasName().symbolicAliasNameOrParameter().ast[DatabaseName](), ctx.EXISTS() != null)(pos(
+      DropDatabaseAlias(ctx.aliasName().ast[DatabaseName](), ctx.EXISTS() != null)(pos(
         ctx.getParent
       ))
   }
@@ -519,13 +519,13 @@ trait DdlBuilder extends Cypher25ParserListener {
   final override def exitAlterAlias(
     ctx: Cypher25Parser.AlterAliasContext
   ): Unit = {
-    val aliasName = ctx.aliasName().symbolicAliasNameOrParameter().ast[DatabaseName]()
+    val aliasName = ctx.aliasName().ast[DatabaseName]()
     val aliasTargetCtx = ctx.alterAliasTarget()
     val (targetName, url) = {
       if (aliasTargetCtx.isEmpty) (None, None)
       else
         (
-          Some(aliasTargetCtx.get(0).databaseName().symbolicAliasNameOrParameter().ast[DatabaseName]()),
+          Some(aliasTargetCtx.get(0).aliasTargetName().ast[DatabaseName]()),
           astOpt[Either[String, Parameter]](aliasTargetCtx.get(0).stringOrParameter())
         )
     }
@@ -550,7 +550,7 @@ trait DdlBuilder extends Cypher25ParserListener {
   }
 
   override def exitAlterAliasTarget(ctx: Cypher25Parser.AlterAliasTargetContext): Unit = {
-    val target = ctx.databaseName().symbolicAliasNameOrParameter().ast[DatabaseName]()
+    val target = ctx.aliasTargetName().ast[DatabaseName]()
     val url = astOpt[Either[String, Parameter]](ctx.stringOrParameter())
     ctx.ast = (target, url)
   }
@@ -622,8 +622,16 @@ trait DdlBuilder extends Cypher25ParserListener {
     ctx.ast = ctx.symbolicAliasNameOrParameter().ast[DatabaseName]
   }
 
-  final override def exitDatabaseName(ctx: Cypher25Parser.DatabaseNameContext): Unit = {
+  final override def exitAliasTargetName(ctx: Cypher25Parser.AliasTargetNameContext): Unit = {
     ctx.ast = ctx.symbolicAliasNameOrParameter().ast[DatabaseName]
+  }
+
+  final override def exitDatabaseName(ctx: Cypher25Parser.DatabaseNameContext): Unit = {
+    val name = ctx.symbolicNameOrStringParameter().ast[Either[String, Parameter]]()
+    ctx.ast = name match {
+      case Left(string) => NamespacedName(string)(pos(ctx))
+      case Right(param) => ParameterName(param)(pos(ctx))
+    }
   }
 
   final override def exitStringOrParameterExpression(

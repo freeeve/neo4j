@@ -2994,7 +2994,7 @@ class AstGenerator(
   } yield CreateDatabase(dbName, ifExistsDo, options, wait, topology)(pos)
 
   def _createCompositeDatabase: Gen[CreateCompositeDatabase] = for {
-    dbName <- _databaseName
+    dbName <- _databaseNameNoNamespace
     ifExistsDo <- _ifExistsDo
     options <- _optionsMapAsEitherOrNone
     wait <- _waitUntilComplete

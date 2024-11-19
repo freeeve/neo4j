@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.getDatabaseNameFie
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getNameFields
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userLabel
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userNamePropKey
+import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.ast.DatabaseName
@@ -86,7 +87,8 @@ case class EnsureNodeExistsExecutionPlanner(
     aliasName: DatabaseName,
     extraFilter: String => String,
     action: String,
-    sourcePlan: Option[ExecutionPlan]
+    sourcePlan: Option[ExecutionPlan],
+    context: AdministrationCommandRuntimeContext
   ): ExecutionPlan = {
     val aliasNameFields =
       getDatabaseNameFields("aliasName", aliasName)
@@ -102,7 +104,7 @@ case class EnsureNodeExistsExecutionPlanner(
       queryHandler(command, action, DATABASE_NAME_LABEL_DESCRIPTION, aliasName),
       sourcePlan,
       parameterTransformer = ParameterTransformer().convert(aliasNameFields.nameConverter).validate(
-        checkNamespaceExists(aliasNameFields)
+        checkNamespaceExists(aliasNameFields, context)
       )
     )
 

@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userHomeDbPropKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userLabel
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userNamePropKey
+import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.AdministrationShowCommandUtils
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
@@ -96,7 +97,8 @@ case class ShowDatabasesExecutionPlanner(
     verbose: Boolean,
     symbols: List[LogicalVariable],
     yields: Option[Yield],
-    returns: Option[Return]
+    returns: Option[Return],
+    context: AdministrationCommandRuntimeContext
   ): ExecutionPlan = {
     val usernameKey = internalKey("username")
     val isCompositeKey = internalKey("isComposite")
@@ -191,7 +193,8 @@ case class ShowDatabasesExecutionPlanner(
         infoService,
         yields,
         verbose,
-        scope
+        scope,
+        context
       )
     )
   }

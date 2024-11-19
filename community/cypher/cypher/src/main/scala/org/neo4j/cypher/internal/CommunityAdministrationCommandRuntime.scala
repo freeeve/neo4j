@@ -329,13 +329,13 @@ case class CommunityAdministrationCommandRuntime(
         )
 
     // SHOW DATABASES | SHOW DEFAULT DATABASE | SHOW HOME DATABASE | SHOW DATABASE foo
-    case ShowDatabase(scope, verbose, symbols, yields, returns) => _ =>
+    case ShowDatabase(scope, verbose, symbols, yields, returns) => context =>
         ShowDatabasesExecutionPlanner(
           resolver,
           normalExecutionEngine,
           securityAuthorizationHandler
         )
-          .planShowDatabases(scope, verbose, symbols, yields, returns)
+          .planShowDatabases(scope, verbose, symbols, yields, returns, context)
 
     case DoNothingIfNotExists(source, command, entity, name, operation, valueMapper) => context =>
         val sourcePlan: Option[ExecutionPlan] =
@@ -368,7 +368,8 @@ case class CommunityAdministrationCommandRuntime(
           name,
           operation,
           sourcePlan,
-          databaseTypeFilter
+          databaseTypeFilter,
+          context
         )
 
     case DoNothingIfDatabaseExists(source, command, name, databaseTypeFilter) => context =>
@@ -378,7 +379,8 @@ case class CommunityAdministrationCommandRuntime(
           command,
           name,
           sourcePlan,
-          databaseTypeFilter
+          databaseTypeFilter,
+          context
         )
 
     // Ensure that the role or user exists before being dropped

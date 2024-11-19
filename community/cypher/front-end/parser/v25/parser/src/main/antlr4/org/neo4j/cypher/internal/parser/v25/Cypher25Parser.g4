@@ -1538,11 +1538,11 @@ graphScope
 // Database commands
 
 createCompositeDatabase
-   : COMPOSITE DATABASE symbolicAliasNameOrParameter (IF NOT EXISTS)? commandOptions? waitClause?
+   : COMPOSITE DATABASE databaseName (IF NOT EXISTS)? commandOptions? waitClause?
    ;
 
 createDatabase
-   : DATABASE symbolicAliasNameOrParameter (IF NOT EXISTS)? (TOPOLOGY (primaryTopology | secondaryTopology)+)? commandOptions? waitClause?
+   : DATABASE databaseName (IF NOT EXISTS)? (TOPOLOGY (primaryTopology | secondaryTopology)+)? commandOptions? waitClause?
    ;
 
 primaryTopology
@@ -1614,14 +1614,18 @@ aliasName
    : symbolicAliasNameOrParameter
    ;
 
-databaseName
+aliasTargetName
    : symbolicAliasNameOrParameter
+   ;
+
+databaseName
+   : symbolicNameOrStringParameter
    ;
 
 // Alias commands
 
 createAlias
-   : ALIAS aliasName (IF NOT EXISTS)? FOR DATABASE databaseName (AT stringOrParameter USER commandNameExpression PASSWORD passwordExpression (DRIVER mapOrParameter)?)? (PROPERTIES mapOrParameter)?
+   : ALIAS aliasName (IF NOT EXISTS)? FOR DATABASE aliasTargetName (AT stringOrParameter USER commandNameExpression PASSWORD passwordExpression (DRIVER mapOrParameter)?)? (PROPERTIES mapOrParameter)?
    ;
 
 dropAlias
@@ -1639,7 +1643,7 @@ alterAlias
    ;
 
 alterAliasTarget
-   : TARGET databaseName (AT stringOrParameter)?
+   : TARGET aliasTargetName (AT stringOrParameter)?
    ;
 
 alterAliasUser
