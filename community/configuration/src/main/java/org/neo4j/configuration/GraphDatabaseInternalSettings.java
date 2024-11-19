@@ -839,6 +839,14 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description(
+            "Enables trace logging for the internal driver, it will appear as debug level\n"
+                    + "This will only log if the log level of the server and routing_driver_logging_level is set to debug as well.")
+    public static final Setting<Boolean> routing_driver_trace_logging_enabled = newBuilder(
+                    "internal.dbms.routing.driver.trace_logging_enabled", BOOL, false)
+            .build();
+
+    @Internal
     @Description("Time interval of inactivity after which a driver will be closed.")
     public static final Setting<Duration> routing_driver_idle_timeout = newBuilder(
                     "internal.dbms.routing.driver.timeout", DURATION, ofMinutes(1))

@@ -967,7 +967,8 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
             .setDependency(default_listen_address)
             .build();
 
-    @Description("Sets the level for the driver's internal logging.")
+    @Description("Sets the level for the driver's internal logging.\n"
+            + "This will only log if the log level of the server is set to debug as well.")
     public static final Setting<Level> routing_driver_logging_level = newBuilder(
                     "dbms.routing.driver.logging.level", ofEnum(Level.class), Level.INFO)
             .build();
