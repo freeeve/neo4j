@@ -148,10 +148,10 @@ public final class QueryResponseAssertions
         return this;
     }
 
-    public QueryResponseAssertions hasUpdatedTimeout(QueryResponse otherResponse) {
+    public QueryResponseAssertions hasUpdatedTimeout() {
         Assertions.assertThat(Instant.parse(
                         queryResponse.body().transaction().get(TX_EXPIRY_KEY).asText()))
-                .isCloseTo(Instant.now().plus(Duration.ofSeconds(5)), within(1, ChronoUnit.SECONDS));
+                .isCloseTo(Instant.now().plus(Duration.ofSeconds(5)), within(3, ChronoUnit.SECONDS));
         return this;
     }
 

@@ -133,7 +133,7 @@ public class QueryResourceTxTimeoutIT {
                 res.body().txId());
 
         assertThat(extended).wasSuccessful();
-        assertThat(extended).hasUpdatedTimeout(res.body());
+        assertThat(extended).hasUpdatedTimeout();
         testClient.commitTx(extended.body().txId());
     }
 
@@ -146,7 +146,7 @@ public class QueryResourceTxTimeoutIT {
         var extended = testClient.runInTx(res.body().txId());
 
         assertThat(extended).wasSuccessful();
-        assertThat(extended).hasUpdatedTimeout(res.body());
+        assertThat(extended).hasUpdatedTimeout();
 
         testClient.commitTx(res.body().txId());
     }
