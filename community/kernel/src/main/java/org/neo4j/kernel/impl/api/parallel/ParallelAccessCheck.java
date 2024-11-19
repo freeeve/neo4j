@@ -153,7 +153,6 @@ public class ParallelAccessCheck {
 
         @Override
         public long activeLockCount() {
-            checkNotCypherWorkerThread();
             return wrappedLockClient.activeLockCount();
         }
 
