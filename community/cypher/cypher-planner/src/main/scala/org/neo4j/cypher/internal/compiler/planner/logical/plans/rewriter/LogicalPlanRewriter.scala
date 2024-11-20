@@ -146,6 +146,7 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
         pruningVarExpanderRewriter,
         trailWithTwoFiltersToPruningVarExpandRewriter
       )),
+      Some(collectDistinctRewriter),
       // Only used on read-only queries, until rewriter is tested to work with cleanUpEager
       Option.when(readOnly)(bfsAggregationRemover),
       // Only used on read-only queries, until rewriter is tested to work with cleanUpEager
@@ -166,8 +167,7 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
       Some(groupPercentileFunctions(
         anonymousVariableNameGenerator,
         otherAttributes.withAlso(solveds, cardinalities, effectiveCardinalities, providedOrders)
-      )),
-      Some(collectDistinctRewriter)
+      ))
     ).flatten
 
     val (bottomUps, topDowns, others) = rewritersAfterUnnestApply.foldLeft((
