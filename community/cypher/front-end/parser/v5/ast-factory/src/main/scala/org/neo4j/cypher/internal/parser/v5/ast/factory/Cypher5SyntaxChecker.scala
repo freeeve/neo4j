@@ -694,7 +694,7 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
       if (replace != null && oldIndex != null) {
         val position = inputPosition(replace.getSymbol)
         _errors :+= exceptionFactory.syntaxException(
-          GqlHelper.getGql42001_42N14("OR REPLACE", "CREATE INDEX", position.line, position.column, position.offset),
+          GqlHelper.getGql42001_42N14("OR REPLACE", "CREATE INDEX", position.offset, position.line, position.column),
           "'REPLACE' is not allowed for this index syntax",
           position
         )

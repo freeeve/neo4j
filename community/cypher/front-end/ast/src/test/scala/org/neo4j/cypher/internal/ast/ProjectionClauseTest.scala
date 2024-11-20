@@ -279,7 +279,7 @@ class ProjectionClauseTest extends CypherFunSuite with AstConstructionTestSuppor
     val result = returnObj.semanticCheckContinuation(middleState.currentScope.scope, Some(outerScope)).run(middleState)
 
     // THEN
-    val gql = getGql42001_42N07("x", varPosition.line, varPosition.column, varPosition.offset)
+    val gql = getGql42001_42N07("x", varPosition.offset, varPosition.line, varPosition.column)
     result.errors shouldEqual Seq(
       SemanticError(gql, "Variable `x` already declared in outer scope", varPosition)
     )

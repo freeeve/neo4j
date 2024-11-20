@@ -102,12 +102,12 @@ case class Neo4jCypherExceptionFactory(queryText: String, preParserOffset: Optio
       if (gqlStatusObject != null) {
         val gqlImpl = gqlStatusObject.asInstanceOf[CommonGqlStatusObjectImplementation]
         gqlImpl.adjustPosition(
+          pos.offset,
           pos.line,
           pos.column,
-          pos.offset,
+          adjustedPosition.offset,
           adjustedPosition.line,
-          adjustedPosition.column,
-          adjustedPosition.offset
+          adjustedPosition.column
         )
         gqlImpl.asInstanceOf[ErrorGqlStatusObject]
       } else {

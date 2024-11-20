@@ -118,7 +118,7 @@ class ExistsTest extends SemanticFunSuite {
     val result =
       SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
 
-    val gql = getGql42001_42N57("Exists", pos.line, pos.column, pos.offset)
+    val gql = getGql42001_42N57("Exists", pos.offset, pos.line, pos.column)
 
     result.errors shouldBe Seq(
       SemanticError(gql, "An Exists Expression cannot contain any updates", pos)

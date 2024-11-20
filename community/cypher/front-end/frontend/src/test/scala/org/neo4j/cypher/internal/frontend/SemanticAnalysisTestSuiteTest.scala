@@ -40,12 +40,12 @@ class SemanticAnalysisTestSuiteTest extends CypherFunSuite with SemanticAnalysis
     val assertion = run("return 1")
 
     intercept[TestFailedException](assertion.hasError("hej", p(1, 2, 3)))
-    intercept[TestFailedException](assertion.hasError(getGql42001_42N57("Bla", 2, 8, 17), "hej", p(0)))
+    intercept[TestFailedException](assertion.hasError(getGql42001_42N57("Bla", 17, 2, 8), "hej", p(0)))
     intercept[TestFailedException](assertion.hasErrors(
-      getGql42001_42N57("Bla", 2, 8, 17),
+      getGql42001_42N57("Bla", 17, 2, 8),
       "hej",
       p(0),
-      getGql42001_42N57("Bla", 2, 8, 17),
+      getGql42001_42N57("Bla", 17, 2, 8),
       "hej",
       p(0)
     ))
@@ -85,12 +85,12 @@ class SemanticAnalysisTestSuiteTest extends CypherFunSuite with SemanticAnalysis
     intercept[TestFailedException](assertion.hasNoErrors)
     intercept[TestFailedException](assertion.hasNoNotifications)
     intercept[TestFailedException](assertion.hasError("hej", p(1, 2, 3)))
-    intercept[TestFailedException](assertion.hasError(getGql42001_42N57("Bla", 2, 8, 17), "hej", p(0)))
+    intercept[TestFailedException](assertion.hasError(getGql42001_42N57("Bla", 17, 2, 8), "hej", p(0)))
     intercept[TestFailedException](assertion.hasErrors(
-      getGql42001_42N57("Bla", 2, 8, 17),
+      getGql42001_42N57("Bla", 17, 2, 8),
       "hej",
       p(0),
-      getGql42001_42N57("Bla", 2, 8, 17),
+      getGql42001_42N57("Bla", 17, 2, 8),
       "hej",
       p(0)
     ))

@@ -42,7 +42,7 @@ class HexIntegerLiteralTest extends SemanticFunSuite {
 
   test("throws error for too large hexadecimal numbers") {
     val bigNumber = "0xfffffffffffffffff"
-    val gql = GqlHelper.getGql22003(bigNumber, 0, 4, 4)
+    val gql = GqlHelper.getGql22003(bigNumber, 4, 0, 4)
     assertSemanticError(gql, bigNumber, "integer is too large")
   }
 

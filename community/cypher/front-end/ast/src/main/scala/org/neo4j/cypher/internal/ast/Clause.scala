@@ -1284,7 +1284,7 @@ case class SetClause(items: Seq[SetItem])(val position: InputPosition) extends U
         case x => Seq(x)
       }
       val replacement = prettifier.prettifySetItems(setItems)
-      val gql = GqlHelper.getGql42001_42I29(name, replacement, position.line, position.column, position.offset)
+      val gql = GqlHelper.getGql42001_42I29(name, replacement, position.offset, position.line, position.column)
       SemanticError(gql, mixingIsWithMultipleLabelsMessage(name, replacement), position)
     }
   }
@@ -1342,7 +1342,7 @@ case class Remove(items: Seq[RemoveItem])(val position: InputPosition) extends U
         case x => Seq(x)
       }
       val replacement = prettifier.prettifyRemoveItems(removeItems)
-      val gql = GqlHelper.getGql42001_42I29(name, replacement, position.line, position.column, position.offset)
+      val gql = GqlHelper.getGql42001_42I29(name, replacement, position.offset, position.line, position.column)
       SemanticError(gql, mixingIsWithMultipleLabelsMessage(name, replacement), position)
     }
   }

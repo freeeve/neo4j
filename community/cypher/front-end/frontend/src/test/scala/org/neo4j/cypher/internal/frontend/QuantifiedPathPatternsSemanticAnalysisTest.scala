@@ -399,7 +399,7 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
 
   test("MATCH (p = (a)-->(b)) ((x)-->(y))* RETURN x") {
     run().hasError(
-      GqlHelper.getGql42001_42N42(1, 8, 7),
+      GqlHelper.getGql42001_42N42(7, 1, 8),
       "Sub-path assignment is currently not supported.",
       InputPosition(7, 1, 8)
     )

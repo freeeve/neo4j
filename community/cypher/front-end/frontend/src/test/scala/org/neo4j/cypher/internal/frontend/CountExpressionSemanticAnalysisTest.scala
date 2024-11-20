@@ -32,7 +32,7 @@ class CountExpressionSemanticAnalysisTest
          |RETURN COUNT { CREATE (b) } > 1
          |""".stripMargin) {
     run().hasError(
-      getGql42001_42N57("Count", 2, 8, 17),
+      getGql42001_42N57("Count", 17, 2, 8),
       "A Count Expression cannot contain any updates",
       p(17, 2, 8)
     )
@@ -68,7 +68,7 @@ class CountExpressionSemanticAnalysisTest
          |RETURN COUNT { SET a.name = 1 } > 1
          |""".stripMargin) {
     run().hasError(
-      getGql42001_42N57("Count", 2, 8, 17),
+      getGql42001_42N57("Count", 17, 2, 8),
       "A Count Expression cannot contain any updates",
       p(17, 2, 8)
     )
@@ -78,7 +78,7 @@ class CountExpressionSemanticAnalysisTest
          |RETURN COUNT { MATCH (b) WHERE b.a = a.a DETACH DELETE b } > 1
          |""".stripMargin) {
     run().hasError(
-      getGql42001_42N57("Count", 2, 8, 17),
+      getGql42001_42N57("Count", 17, 2, 8),
       "A Count Expression cannot contain any updates",
       p(17, 2, 8)
     )
@@ -88,7 +88,7 @@ class CountExpressionSemanticAnalysisTest
          |RETURN COUNT { MATCH (b) MERGE (b)-[:FOLLOWS]->(:Person) } > 1
          |""".stripMargin) {
     run().hasError(
-      getGql42001_42N57("Count", 2, 8, 17),
+      getGql42001_42N57("Count", 17, 2, 8),
       "A Count Expression cannot contain any updates",
       p(17, 2, 8)
     )
@@ -173,7 +173,7 @@ class CountExpressionSemanticAnalysisTest
          |}
          |""".stripMargin) {
     run().hasError(
-      getGql42001_42N07("aNum", 4, 13, 52),
+      getGql42001_42N07("aNum", 52, 4, 13),
       "The variable `aNum` is shadowing a variable with the same name from the outer scope and needs to be renamed",
       p(52, 4, 13)
     )
@@ -189,7 +189,7 @@ class CountExpressionSemanticAnalysisTest
          |}
          |""".stripMargin) {
     run().hasError(
-      getGql42001_42N07("aNum", 5, 13, 90),
+      getGql42001_42N07("aNum", 90, 5, 13),
       "The variable `aNum` is shadowing a variable with the same name from the outer scope and needs to be renamed",
       p(90, 5, 13)
     )
@@ -204,7 +204,7 @@ class CountExpressionSemanticAnalysisTest
          |}
          |""".stripMargin) {
     run().hasError(
-      getGql42001_42N07("a", 4, 13, 55),
+      getGql42001_42N07("a", 55, 4, 13),
       "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
       p(55, 4, 13)
     )
@@ -222,7 +222,7 @@ class CountExpressionSemanticAnalysisTest
       |""".stripMargin
   ) {
     run().hasError(
-      getGql42001_42N07("a", 4, 15, 51),
+      getGql42001_42N07("a", 51, 4, 15),
       "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
       p(51, 4, 15)
     )
@@ -243,7 +243,7 @@ class CountExpressionSemanticAnalysisTest
       |""".stripMargin
   ) {
     run().hasError(
-      getGql42001_42N07("a", 10, 15, 126),
+      getGql42001_42N07("a", 126, 10, 15),
       "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
       p(126, 10, 15)
     )
@@ -323,10 +323,10 @@ class CountExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasErrors(
-      getGql42001_42N71(3, 5, 40),
+      getGql42001_42N71(40, 3, 5),
       "Query cannot conclude with MATCH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
       p(40, 3, 5),
-      getGql42001_42N71(5, 5, 64),
+      getGql42001_42N71(64, 5, 5),
       "Query cannot conclude with MATCH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
       p(64, 5, 5)
     )
@@ -342,7 +342,7 @@ class CountExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasError(
-      getGql42001_42N39(5, 5, 72),
+      getGql42001_42N39(72, 5, 5),
       "All sub queries in an UNION must have the same return column names",
       p(72, 5, 5)
     )
@@ -358,7 +358,7 @@ class CountExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasError(
-      getGql42001_42N39(4, 5, 54),
+      getGql42001_42N39(54, 4, 5),
       "All sub queries in an UNION must have the same return column names",
       p(54, 4, 5)
     )
@@ -374,7 +374,7 @@ class CountExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasError(
-      getGql42001_42N39(5, 5, 67),
+      getGql42001_42N39(67, 5, 5),
       "All sub queries in an UNION must have the same return column names",
       p(67, 5, 5)
     )
@@ -390,7 +390,7 @@ class CountExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasError(
-      getGql42001_42N39(4, 5, 54),
+      getGql42001_42N39(54, 4, 5),
       "All sub queries in an UNION must have the same return column names",
       p(54, 4, 5)
     )
@@ -408,7 +408,7 @@ class CountExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasError(
-      getGql42001_42N39(4, 5, 54),
+      getGql42001_42N39(54, 4, 5),
       "All sub queries in an UNION must have the same return column names",
       p(54, 4, 5)
     )
@@ -429,12 +429,12 @@ class CountExpressionSemanticAnalysisTest
      """.stripMargin) {
     run().hasErrors(
       SemanticError(
-        getGql42001_42N39(5, 5, 67),
+        getGql42001_42N39(67, 5, 5),
         "All sub queries in an UNION must have the same return column names",
         p(67, 5, 5)
       ),
       SemanticError(
-        getGql42001_42N39(8, 5, 104),
+        getGql42001_42N39(104, 8, 5),
         "All sub queries in an UNION must have the same return column names",
         p(104, 8, 5)
       )
@@ -484,7 +484,7 @@ class CountExpressionSemanticAnalysisTest
       |""".stripMargin
   ) {
     run().hasError(
-      getGql42001_42N07("x", 7, 15, 94),
+      getGql42001_42N07("x", 94, 7, 15),
       "The variable `x` is shadowing a variable with the same name from the outer scope and needs to be renamed",
       p(94, 7, 15)
     )
@@ -519,7 +519,7 @@ class CountExpressionSemanticAnalysisTest
       |""".stripMargin
   ) {
     run().hasError(
-      getGql42001_42N07("y", 6, 26, 104),
+      getGql42001_42N07("y", 104, 6, 26),
       "The variable `y` is shadowing a variable with the same name from the outer scope and needs to be renamed",
       p(104, 6, 26)
     )

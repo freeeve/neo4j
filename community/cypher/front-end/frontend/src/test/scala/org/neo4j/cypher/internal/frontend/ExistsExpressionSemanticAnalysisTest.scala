@@ -31,7 +31,7 @@ class ExistsExpressionSemanticAnalysisTest
          |RETURN EXISTS { CREATE (b) }
          |""".stripMargin) {
     run().hasError(
-      getGql42001_42N57("Exists", 2, 8, 17),
+      getGql42001_42N57("Exists", 17, 2, 8),
       "An Exists Expression cannot contain any updates",
       p(17, 2, 8)
     )
@@ -65,7 +65,7 @@ class ExistsExpressionSemanticAnalysisTest
          |RETURN EXISTS { SET a.name = 1 }
          |""".stripMargin) {
     run().hasError(
-      getGql42001_42N57("Exists", 2, 8, 17),
+      getGql42001_42N57("Exists", 17, 2, 8),
       "An Exists Expression cannot contain any updates",
       p(17, 2, 8)
     )
@@ -75,7 +75,7 @@ class ExistsExpressionSemanticAnalysisTest
          |RETURN EXISTS { MATCH (b) WHERE b.a = a.a DETACH DELETE b }
          |""".stripMargin) {
     run().hasError(
-      getGql42001_42N57("Exists", 2, 8, 17),
+      getGql42001_42N57("Exists", 17, 2, 8),
       "An Exists Expression cannot contain any updates",
       p(17, 2, 8)
     )
@@ -85,7 +85,7 @@ class ExistsExpressionSemanticAnalysisTest
          |RETURN EXISTS { MATCH (b) MERGE (b)-[:FOLLOWS]->(:Person) }
          |""".stripMargin) {
     run().hasError(
-      getGql42001_42N57("Exists", 2, 8, 17),
+      getGql42001_42N57("Exists", 17, 2, 8),
       "An Exists Expression cannot contain any updates",
       p(17, 2, 8)
     )
@@ -162,7 +162,7 @@ class ExistsExpressionSemanticAnalysisTest
          |}
          |""".stripMargin) {
     run().hasError(
-      getGql42001_42N07("aNum", 4, 13, 53),
+      getGql42001_42N07("aNum", 53, 4, 13),
       "The variable `aNum` is shadowing a variable with the same name from the outer scope and needs to be renamed",
       p(53, 4, 13)
     )
@@ -178,7 +178,7 @@ class ExistsExpressionSemanticAnalysisTest
          |}
          |""".stripMargin) {
     run().hasError(
-      getGql42001_42N07("aNum", 5, 13, 91),
+      getGql42001_42N07("aNum", 91, 5, 13),
       "The variable `aNum` is shadowing a variable with the same name from the outer scope and needs to be renamed",
       p(91, 5, 13)
     )
@@ -193,7 +193,7 @@ class ExistsExpressionSemanticAnalysisTest
          |}
          |""".stripMargin) {
     run().hasError(
-      getGql42001_42N07("a", 4, 13, 56),
+      getGql42001_42N07("a", 56, 4, 13),
       "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
       p(56, 4, 13)
     )
@@ -211,7 +211,7 @@ class ExistsExpressionSemanticAnalysisTest
       |""".stripMargin
   ) {
     run().hasError(
-      getGql42001_42N07("a", 4, 15, 52),
+      getGql42001_42N07("a", 52, 4, 15),
       "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
       p(52, 4, 15)
     )
@@ -232,7 +232,7 @@ class ExistsExpressionSemanticAnalysisTest
       |""".stripMargin
   ) {
     run().hasError(
-      getGql42001_42N07("a", 10, 15, 127),
+      getGql42001_42N07("a", 127, 10, 15),
       "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
       p(127, 10, 15)
     )
@@ -244,7 +244,7 @@ class ExistsExpressionSemanticAnalysisTest
       |""".stripMargin
   ) {
     run().hasError(
-      getGql42001_42N07("a", 1, 48, 47),
+      getGql42001_42N07("a", 47, 1, 48),
       "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
       p(47, 1, 48)
     )
@@ -291,7 +291,7 @@ class ExistsExpressionSemanticAnalysisTest
       |""".stripMargin
   ) {
     run().hasError(
-      getGql42001_42N07("x", 7, 15, 95),
+      getGql42001_42N07("x", 95, 7, 15),
       "The variable `x` is shadowing a variable with the same name from the outer scope and needs to be renamed",
       p(95, 7, 15)
     )
@@ -325,7 +325,7 @@ class ExistsExpressionSemanticAnalysisTest
       |""".stripMargin
   ) {
     run().hasError(
-      getGql42001_42N07("y", 6, 26, 105),
+      getGql42001_42N07("y", 105, 6, 26),
       "The variable `y` is shadowing a variable with the same name from the outer scope and needs to be renamed",
       p(105, 6, 26)
     )
@@ -417,7 +417,7 @@ class ExistsExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasError(
-      getGql42001_42N39(5, 5, 73),
+      getGql42001_42N39(73, 5, 5),
       "All sub queries in an UNION must have the same return column names",
       p(73, 5, 5)
     )
@@ -433,7 +433,7 @@ class ExistsExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasError(
-      getGql42001_42N39(4, 5, 55),
+      getGql42001_42N39(55, 4, 5),
       "All sub queries in an UNION must have the same return column names",
       p(55, 4, 5)
     )
@@ -449,7 +449,7 @@ class ExistsExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasError(
-      getGql42001_42N39(5, 5, 68),
+      getGql42001_42N39(68, 5, 5),
       "All sub queries in an UNION must have the same return column names",
       p(68, 5, 5)
     )
@@ -465,7 +465,7 @@ class ExistsExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasError(
-      getGql42001_42N39(4, 5, 55),
+      getGql42001_42N39(55, 4, 5),
       "All sub queries in an UNION must have the same return column names",
       p(55, 4, 5)
     )
@@ -483,7 +483,7 @@ class ExistsExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasError(
-      getGql42001_42N39(4, 5, 55),
+      getGql42001_42N39(55, 4, 5),
       "All sub queries in an UNION must have the same return column names",
       p(55, 4, 5)
     )
@@ -504,12 +504,12 @@ class ExistsExpressionSemanticAnalysisTest
      """.stripMargin) {
     run().hasErrors(
       SemanticError(
-        getGql42001_42N39(5, 5, 68),
+        getGql42001_42N39(68, 5, 5),
         "All sub queries in an UNION must have the same return column names",
         p(68, 5, 5)
       ),
       SemanticError(
-        getGql42001_42N39(8, 5, 105),
+        getGql42001_42N39(105, 8, 5),
         "All sub queries in an UNION must have the same return column names",
         p(105, 8, 5)
       )

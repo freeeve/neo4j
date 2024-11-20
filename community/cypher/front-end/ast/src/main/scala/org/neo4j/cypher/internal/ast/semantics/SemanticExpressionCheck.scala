@@ -899,9 +899,9 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
             GqlHelper.getGql42001_42I29(
               String.valueOf(labelExpression),
               sanitizedLabelExpression,
+              legacySymbols.head.position.offset,
               legacySymbols.head.position.line,
-              legacySymbols.head.position.column,
-              legacySymbols.head.position.offset
+              legacySymbols.head.position.column
             ),
             s"Mixing the IS keyword with colon (':') between labels is not allowed. This expression could be expressed as IS $sanitizedLabelExpression.",
             legacySymbols.head.position

@@ -110,13 +110,13 @@ class SubqueryCallTest extends CypherFunSuite with AstConstructionTestSupport {
     //   RETURN 2 AS x
     // }
     // RETURN 1 AS y
-    val varPos = InputPosition(1, 2, 3)
+    val varPos = InputPosition(2, 1, 3)
     val error = singleQuery(
-      with_(literal(1).as("x")),
+      with_(literal(2).as("x")),
       importingWithSubqueryCall(
-        return_(AliasedReturnItem(literal(2), varFor("x", varPos))(pos))
+        return_(AliasedReturnItem(literal(1), varFor("x", varPos))(pos))
       ),
-      return_(literal(1).as("y"))
+      return_(literal(2).as("y"))
     )
       .semanticCheck.run(clean)
       .errors.loneElement
@@ -132,14 +132,14 @@ class SubqueryCallTest extends CypherFunSuite with AstConstructionTestSupport {
     //   RETURN *
     // }
     // RETURN 1 AS y
-    val itemsPos = InputPosition(1, 2, 3)
+    val itemsPos = InputPosition(2, 1, 3)
     val error = singleQuery(
-      with_(literal(1).as("x")),
+      with_(literal(2).as("x")),
       importingWithSubqueryCall(
-        with_(literal(1).as("x")),
+        with_(literal(2).as("x")),
         Return(ReturnItems(includeExisting = true, Seq())(itemsPos))(pos)
       ),
-      return_(literal(1).as("y"))
+      return_(literal(2).as("y"))
     )
       .semanticCheck.run(clean)
       .errors.loneElement
@@ -158,13 +158,13 @@ class SubqueryCallTest extends CypherFunSuite with AstConstructionTestSupport {
     //   RETURN *
     // }
     // RETURN 1 AS y
-    val itemsPos1 = InputPosition(1, 2, 3)
-    val itemsPos2 = InputPosition(4, 5, 6)
+    val itemsPos1 = InputPosition(2, 1, 3)
+    val itemsPos2 = InputPosition(6, 5, 4)
     singleQuery(
-      with_(literal(1).as("x")),
+      with_(literal(2).as("x")),
       importingWithSubqueryCall(union(
         singleQuery(
-          with_(literal(2).as("x")),
+          with_(literal(1).as("x")),
           Return(ReturnItems(includeExisting = true, Seq())(itemsPos1))(pos)
         ),
         singleQuery(
@@ -172,7 +172,7 @@ class SubqueryCallTest extends CypherFunSuite with AstConstructionTestSupport {
           Return(ReturnItems(includeExisting = true, Seq())(itemsPos2))(pos)
         )
       )),
-      return_(literal(1).as("y"))
+      return_(literal(2).as("y"))
     )
       .semanticCheck.run(clean)
       .errors
@@ -380,7 +380,7 @@ class SubqueryCallTest extends CypherFunSuite with AstConstructionTestSupport {
     //   UNWIND [1] AS x
     // }
     // RETURN count(*) AS count
-    val unwindPos = InputPosition(1, 2, 3)
+    val unwindPos = InputPosition(2, 1, 3)
     val error = singleQuery(
       importingWithSubqueryCall(
         singleQuery(
@@ -388,7 +388,7 @@ class SubqueryCallTest extends CypherFunSuite with AstConstructionTestSupport {
             nodePat(Some("a"))
           ),
           with_(varFor("a").aliased),
-          unwind(listOfInt(1), varFor("x")).copy()(unwindPos)
+          unwind(listOfInt(2), varFor("x")).copy()(unwindPos)
         )
       ),
       return_(countStar().as("count"))

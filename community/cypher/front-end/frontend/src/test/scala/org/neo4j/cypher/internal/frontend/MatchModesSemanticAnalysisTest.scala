@@ -46,7 +46,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite with SemanticAnalysi
     }
 
     SemanticError(
-      GqlHelper.getGql42001_42I45(matchModeTip, pos.line, pos.column, pos.offset),
+      GqlHelper.getGql42001_42I45(matchModeTip, pos.offset, pos.line, pos.column),
       "Multiple path patterns cannot be used in the same clause in combination with a selective path selector." + matchModeTip,
       pos
     )

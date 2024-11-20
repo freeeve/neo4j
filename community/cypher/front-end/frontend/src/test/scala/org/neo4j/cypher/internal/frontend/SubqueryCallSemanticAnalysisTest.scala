@@ -67,7 +67,7 @@ class SubqueryCallSemanticAnalysisTest
         |""".stripMargin
 
     run(query)
-      .hasError(getGql42001_42N07("i", 4, 10, 42), "Variable `i` already declared in outer scope", p(42, 4, 10))
+      .hasError(getGql42001_42N07("i", 42, 4, 10), "Variable `i` already declared in outer scope", p(42, 4, 10))
   }
 
   test("Returning a variable that is already bound outside, from a union, should give a useful error") {
@@ -84,10 +84,10 @@ class SubqueryCallSemanticAnalysisTest
         |""".stripMargin
 
     run(query).hasErrors(
-      getGql42001_42N07("i", 4, 10, 42),
+      getGql42001_42N07("i", 42, 4, 10),
       "Variable `i` already declared in outer scope",
       p(42, 4, 10),
-      getGql42001_42N07("i", 7, 15, 82),
+      getGql42001_42N07("i", 82, 7, 15),
       "Variable `i` already declared in outer scope",
       p(82, 7, 15)
     )
@@ -116,7 +116,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN i
         |""".stripMargin
 
-    run(query).hasError(getGql42001_42N07("i", 4, 10, 42), "Variable `i` already declared in outer scope", p(42, 4, 10))
+    run(query).hasError(getGql42001_42N07("i", 42, 4, 10), "Variable `i` already declared in outer scope", p(42, 4, 10))
   }
 
   test("Returning a variable implicitly that is already bound outside, from a union, should give a useful error") {
@@ -133,10 +133,10 @@ class SubqueryCallSemanticAnalysisTest
         |""".stripMargin
 
     run(query).hasErrors(
-      getGql42001_42N07("i", 4, 10, 42),
+      getGql42001_42N07("i", 42, 4, 10),
       "Variable `i` already declared in outer scope",
       p(42, 4, 10),
-      getGql42001_42N07("i", 7, 10, 77),
+      getGql42001_42N07("i", 77, 7, 10),
       "Variable `i` already declared in outer scope",
       p(77, 7, 10)
     )
@@ -417,7 +417,7 @@ class SubqueryCallSemanticAnalysisTest
 
   test("Subquery with only importing WITH") {
     run("WITH 1 AS a CALL { WITH a } RETURN a").hasError(
-      getGql42001_42N71(1, 20, 19),
+      getGql42001_42N71(19, 1, 20),
       "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
       p(19, 1, 20)
     )
@@ -425,7 +425,7 @@ class SubqueryCallSemanticAnalysisTest
 
   test("Scoped Subquery with only USE") {
     run("WITH 1 AS a CALL () { USE x } RETURN a", withMultiGraphs).hasError(
-      getGql42001_42N71(1, 23, 22),
+      getGql42001_42N71(22, 1, 23),
       "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
       p(22, 1, 23)
     )
@@ -434,7 +434,7 @@ class SubqueryCallSemanticAnalysisTest
   test("Subquery with only USE") {
     val query = "WITH 1 AS a CALL { USE x } RETURN a"
     run(query, withMultiGraphs).hasError(
-      getGql42001_42N71(1, 20, 19),
+      getGql42001_42N71(19, 1, 20),
       "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
       p(19, 1, 20)
     )
@@ -443,7 +443,7 @@ class SubqueryCallSemanticAnalysisTest
   test("Subquery with only USE and importing WITH") {
     val query = "WITH 1 AS a CALL { USE x WITH a } RETURN a"
     run(query, withMultiGraphs).hasError(
-      getGql42001_42N71(1, 20, 19),
+      getGql42001_42N71(19, 1, 20),
       "Query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD.",
       p(19, 1, 20)
     )
@@ -785,7 +785,7 @@ class SubqueryCallSemanticAnalysisTest
   test("Scoped Subquery with only MATCH") {
     val query = "WITH 1 AS a CALL () { MATCH (n) } RETURN a"
     run(query).hasError(
-      getGql42001_42N71(1, 23, 22),
+      getGql42001_42N71(22, 1, 23),
       "Query cannot conclude with MATCH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
       p(22, 1, 23)
     )
@@ -794,7 +794,7 @@ class SubqueryCallSemanticAnalysisTest
   test("Subquery with only MATCH") {
     val query = "WITH 1 AS a CALL { MATCH (n) } RETURN a"
     run(query).hasError(
-      getGql42001_42N71(1, 20, 19),
+      getGql42001_42N71(19, 1, 20),
       "Query cannot conclude with MATCH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
       p(19, 1, 20)
     )

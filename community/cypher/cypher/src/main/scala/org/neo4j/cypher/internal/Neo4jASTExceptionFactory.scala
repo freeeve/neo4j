@@ -56,7 +56,7 @@ class Neo4jASTExceptionFactory(inner: CypherExceptionFactory) extends ASTExcepti
         ).result()
 
     inner.syntaxException(
-      GqlHelper.getGql42001_42I06(got, expected, line, column, offset),
+      GqlHelper.getGql42001_42I06(got, expected, offset, line, column),
       message,
       InputPosition(offset, line, column)
     )
@@ -87,7 +87,7 @@ class Neo4jASTExceptionFactory(inner: CypherExceptionFactory) extends ASTExcepti
         ).result()
 
     inner.syntaxException(
-      GqlHelper.getGql42001_42I06_withCause(got, expected, line, column, offset, gqlStatusObject),
+      GqlHelper.getGql42001_42I06_withCause(got, expected, offset, line, column, gqlStatusObject),
       message,
       InputPosition(offset, line, column)
     )

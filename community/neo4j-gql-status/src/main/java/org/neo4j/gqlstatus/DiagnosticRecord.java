@@ -115,7 +115,7 @@ public class DiagnosticRecord {
         return (Map<String, Integer>) innerDiagnosticRecord.get("_position");
     }
 
-    public void updatePosition(int line, int column, int offset) {
+    public void updatePosition(int offset, int line, int column) {
         innerDiagnosticRecord.put("_position", Map.of("offset", offset, "line", line, "column", column));
     }
 
@@ -184,8 +184,8 @@ public class DiagnosticRecord {
             innerDiagnosticRecord.put("OPERATION_CODE", OPERATION_CODE_DEFAULT);
         }
 
-        public Builder atPosition(int line, int column, int offset) {
-            innerDiagnosticRecord.put("_position", Map.of("line", line, "column", column, "offset", offset));
+        public Builder atPosition(int offset, int line, int column) {
+            innerDiagnosticRecord.put("_position", Map.of("offset", offset, "line", line, "column", column));
             return this;
         }
 

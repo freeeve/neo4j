@@ -41,7 +41,7 @@ public class JsonParseException extends GqlException implements Status.HasStatus
     public static JsonParseException jsonParsingException(int line, int column, String message, Throwable cause) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N11)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N95)
-                        .atPosition(line, column, -1)
+                        .atPosition(-1, line, column)
                         .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NA8)
                                 .withParam(
                                         GqlParams.StringParam.cause,

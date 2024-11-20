@@ -79,7 +79,7 @@ abstract class GqlExceptionTestBase {
         ErrorGqlStatusObject existingCauseGqlObject = ErrorGqlStatusObjectImplementation.from(
                         GqlStatusInfoCodes.STATUS_22N06)
                 .withParam(GqlParams.StringParam.option, "option")
-                .atPosition(2, 3, 7)
+                .atPosition(7, 2, 3)
                 .build();
 
         ErrorGqlStatusObject gqlObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
@@ -100,7 +100,7 @@ abstract class GqlExceptionTestBase {
         assertEquals(GqlStatusInfoCodes.STATUS_22N06.getStatusString(), firstCause.gqlStatus());
         assertThat(firstCause.statusDescription()).contains("'option' needs to be specified");
         Object position = firstCause.diagnosticRecord().get("_position");
-        assertEquals(Map.of("line", 2, "column", 3, "offset", 7), position);
+        assertEquals(Map.of("offset", 7, "line", 2, "column", 3), position);
 
         assertTrue(firstCause.cause().isPresent());
         ErrorGqlStatusObject secondCause = firstCause.cause().get();

@@ -182,7 +182,7 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
 
   test(s"MATCH ALL (path = (a)-[r]->+(b)<-[s]-+(c) WHERE length(path) > 3) RETURN path") {
     run().hasError(
-      GqlHelper.getGql42001_42N42(1, 12, 11),
+      GqlHelper.getGql42001_42N42(11, 1, 12),
       "Sub-path assignment is currently not supported.",
       InputPosition(11, 1, 12)
     )
@@ -190,7 +190,7 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
 
   test(s"MATCH p = (q = (a)-[r]->+(b)<-[s]-+(c) WHERE length(q) > 3) RETURN p, q") {
     run().hasError(
-      GqlHelper.getGql42001_42N42(1, 12, 11),
+      GqlHelper.getGql42001_42N42(11, 1, 12),
       "Sub-path assignment is currently not supported.",
       InputPosition(11, 1, 12)
     )

@@ -35,9 +35,9 @@ class LastClauseTest
 
   def errorCanOnlyBeUsedAtTheEndGql(clause: String, offset: Int, line: Int, column: Int): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(line, column, offset)
+      .atPosition(offset, line, column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I38)
-        .atPosition(line, column, offset)
+        .atPosition(offset, line, column)
         .build())
       .build()
 
@@ -50,7 +50,7 @@ class LastClauseTest
 
   def errorCannotConcludeWith(clause: String, offset: Int, line: Int, column: Int): SemanticError =
     SemanticError(
-      getGql42001_42N71(line, column, offset),
+      getGql42001_42N71(offset, line, column),
       s"Query cannot conclude with $clause (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
       InputPosition(offset, line, column)
     )

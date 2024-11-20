@@ -89,7 +89,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |CALL { CREATE (x) } IN TRANSACTIONS
         |RETURN foo AS foo""".stripMargin
     run(query).hasError(
-      getGql42001_42I25(3, 1, 29),
+      getGql42001_42I25(29, 3, 1),
       "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
       p(29, 3, 1)
     )
@@ -103,10 +103,10 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |CALL { CREATE (x) } IN TRANSACTIONS
         |RETURN foo AS foo""".stripMargin
     run(query).hasErrors(
-      getGql42001_42I25(3, 1, 29),
+      getGql42001_42I25(29, 3, 1),
       "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
       p(29, 3, 1),
-      getGql42001_42I25(4, 1, 65),
+      getGql42001_42I25(65, 4, 1),
       "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
       p(65, 4, 1)
     )
@@ -120,7 +120,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |CALL { CREATE (x) } IN TRANSACTIONS
         |RETURN foo AS foo""".stripMargin
     run(query).hasError(
-      getGql42001_42I25(4, 1, 65),
+      getGql42001_42I25(65, 4, 1),
       "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
       p(65, 4, 1)
     )
@@ -133,7 +133,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |CALL { CREATE (x) } IN TRANSACTIONS
         |RETURN foo AS foo""".stripMargin
     run(query).hasError(
-      getGql42001_42I25(3, 1, 56),
+      getGql42001_42I25(56, 3, 1),
       "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
       p(56, 3, 1)
     )
@@ -146,7 +146,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |CALL { CREATE (x) } IN TRANSACTIONS
         |RETURN foo AS foo""".stripMargin
     run(query).hasError(
-      getGql42001_42I25(3, 1, 34),
+      getGql42001_42I25(34, 3, 1),
       "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
       p(34, 3, 1)
     )
@@ -292,7 +292,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN TRANSACTIONS OF $batchSize ROWS
          |""".stripMargin
-    run(query).hasError(getGql22003(batchSize, 3, 22, 40), "integer is too large", p(40, 3, 22))
+    run(query).hasError(getGql22003(batchSize, 40, 3, 22), "integer is too large", p(40, 3, 22))
   }
 
   test("CALL IN TRANSACTIONS with batchSize with a variable reference") {
@@ -475,7 +475,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN $concurrency CONCURRENT TRANSACTIONS
          |""".stripMargin
-    run(query).hasError(getGql22003(concurrency, 3, 6, 24), "integer is too large", p(24, 3, 6))
+    run(query).hasError(getGql22003(concurrency, 24, 3, 6), "integer is too large", p(24, 3, 6))
   }
 
   test("CALL IN TRANSACTIONS with concurrency as a variable reference") {
@@ -564,7 +564,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  ON ERROR BREAK 
         |""".stripMargin
     run(query).hasError(
-      getGql42001_42N71(1, 1, 0),
+      getGql42001_42N71(0, 1, 1),
       "Query cannot conclude with CALL (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
       p(0, 1, 1)
     )
@@ -589,7 +589,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |} IN TRANSACTIONS ON ERROR CONTINUE REPORT STATUS AS status
         |""".stripMargin
     run(query).hasError(
-      getGql42001_42N71(1, 1, 0),
+      getGql42001_42N71(0, 1, 1),
       "Query cannot conclude with CALL (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
       p(0, 1, 1)
     )

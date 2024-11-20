@@ -129,11 +129,11 @@ class PreParser(
   ): PreParsedQuery = {
     val exceptionFactory = new Neo4jASTExceptionFactory(Neo4jCypherExceptionFactory(queryText, None))
     if (queryText.isEmpty) {
-      val gql = GqlHelper.getGql42001_42N45(0, 0, 1)
+      val gql = GqlHelper.getGql42001_42N45(0, 0, 0)
       throw exceptionFactory.syntaxException(
         gql,
         new IllegalStateException(PreParserResult.getEmptyQueryExceptionMsg),
-        1,
+        0,
         0,
         0
       )

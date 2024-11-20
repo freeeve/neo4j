@@ -364,17 +364,17 @@ class ReturnItemsTest extends CypherFunSuite with AstConstructionTestSupport {
 
   test("ambiguous aggregation expressions: should use correct position if there are multiple return items") {
     val returnItems = Seq(
-      autoAliasedReturnItem(varFor("nx", InputPosition(1, 2, 3))),
-      autoAliasedReturnItem(add(count(varFor("nx")), varFor("ny", InputPosition(2, 3, 4)), InputPosition(3, 4, 5)))
+      autoAliasedReturnItem(varFor("nx", InputPosition(2, 1, 3))),
+      autoAliasedReturnItem(add(count(varFor("nx")), varFor("ny", InputPosition(4, 2, 3)), InputPosition(7, 3, 4)))
     )
     val result = ReturnItems.checkAmbiguousGrouping(
       ReturnItems(includeExisting = false, returnItems)(InputPosition.NONE)
     ).run(SemanticState.clean, SemanticCheckContext.default)
 
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(3, 4, 2)
+      .atPosition(4, 2, 3)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I18)
-        .atPosition(3, 4, 2)
+        .atPosition(4, 2, 3)
         .withParam(GqlParams.ListParam.variableList, Seq("ny").asJava)
         .build())
       .build()
@@ -385,7 +385,7 @@ class ReturnItemsTest extends CypherFunSuite with AstConstructionTestSupport {
       SemanticError(
         gql,
         SemanticError.implicitGroupingExpressionInAggregationColumnErrorMessage(Seq("ny")),
-        InputPosition(2, 3, 4)
+        InputPosition(4, 2, 3)
       )
     ))
   }

@@ -76,10 +76,10 @@ public class GqlHelper {
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql22003(String value, int line, int column, int offset) {
+    public static ErrorGqlStatusObject getGql22003(String value, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
                 .withParam(GqlParams.StringParam.value, value)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .build();
     }
 
@@ -162,14 +162,14 @@ public class GqlHelper {
     }
 
     public static ErrorGqlStatusObject getGql22G03_22N27(
-            String input, String context, List<String> validTypes, int line, int column, int offset) {
+            String input, String context, List<String> validTypes, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N27)
                         .withParam(GqlParams.StringParam.input, input)
                         .withParam(GqlParams.StringParam.context, context)
                         .withParam(GqlParams.ListParam.valueTypeList, validTypes)
-                        .atPosition(line, column, offset)
+                        .atPosition(offset, line, column)
                         .build())
                 .build();
     }
@@ -245,13 +245,13 @@ public class GqlHelper {
         return getGql22N77("RELATIONSHIP", relationshipId, "type", token, propKeyList);
     }
 
-    public static ErrorGqlStatusObject getGql22N81(String exprType, String context, int line, int column, int offset) {
+    public static ErrorGqlStatusObject getGql22N81(String exprType, String context, int offset, int line, int column) {
         var builder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N81)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
                 .withParam(GqlParams.StringParam.exprType, exprType)
                 .withParam(GqlParams.StringParam.context, context);
         if (offset >= 0) {
-            builder.atPosition(line, column, offset);
+            builder.atPosition(offset, line, column);
         }
         return builder.build();
     }
@@ -292,28 +292,28 @@ public class GqlHelper {
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42N45(int line, int column, int offset) {
+    public static ErrorGqlStatusObject getGql42N45(int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N45)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .build();
     }
 
     public static ErrorGqlStatusObject getGql42001_22N04(
-            String input, String context, List<?> validTypes, int line, int column, int offset) {
+            String input, String context, List<?> validTypes, int offset, int line, int column) {
         ErrorGqlStatusObjectImplementation.Builder main = ErrorGqlStatusObjectImplementation.from(
                         GqlStatusInfoCodes.STATUS_42001)
-                .atPosition(line, column, offset);
+                .atPosition(offset, line, column);
         ErrorGqlStatusObjectImplementation.Builder cause = ErrorGqlStatusObjectImplementation.from(
                         GqlStatusInfoCodes.STATUS_22N04)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withParam(GqlParams.StringParam.input, input)
                 .withParam(GqlParams.StringParam.context, context)
                 .withParam(GqlParams.ListParam.inputList, validTypes);
         if (offset >= 0) {
-            main.atPosition(line, column, offset);
-            cause.atPosition(line, column, offset);
+            main.atPosition(offset, line, column);
+            cause.atPosition(offset, line, column);
         }
         return main.withCause(cause.build()).build();
     }
@@ -323,177 +323,177 @@ public class GqlHelper {
     }
 
     public static ErrorGqlStatusObject getGql42001_42I06(
-            String input, List<String> valueList, int line, int column, int offset) {
-        return getGql42001_42I06_withCause(input, valueList, line, column, offset, null);
+            String input, List<String> valueList, int offset, int line, int column) {
+        return getGql42001_42I06_withCause(input, valueList, offset, line, column, null);
     }
 
     public static ErrorGqlStatusObject getGql42001_42I06_withCause(
-            String input, List<String> valueList, int line, int column, int offset, ErrorGqlStatusObject cause) {
+            String input, List<String> valueList, int offset, int line, int column, ErrorGqlStatusObject cause) {
         var gqlBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I06)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withParam(GqlParams.StringParam.input, input)
                 .withParam(GqlParams.ListParam.valueList, valueList);
         var causeChain = cause != null ? gqlBuilder.withCause(cause).build() : gqlBuilder.build();
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(causeChain)
                 .build();
     }
 
     public static ErrorGqlStatusObject getGql42001_42I20(
-            String input, String labelExpr, int line, int column, int offset) {
+            String input, String labelExpr, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I20)
                         .withParam(GqlParams.StringParam.input, input)
                         .withParam(GqlParams.StringParam.labelExpr, labelExpr)
                         .withClassification(ErrorClassification.CLIENT_ERROR)
-                        .atPosition(line, column, offset)
+                        .atPosition(offset, line, column)
                         .build())
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42I25(int line, int column, int offset) {
+    public static ErrorGqlStatusObject getGql42001_42I25(int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I25)
-                        .atPosition(line, column, offset)
+                        .atPosition(offset, line, column)
                         .build())
                 .build();
     }
 
     public static ErrorGqlStatusObject getGql42001_42I29(
-            String input, String replacement, int line, int column, int offset) {
+            String input, String replacement, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I29)
                         .withClassification(ErrorClassification.CLIENT_ERROR)
-                        .atPosition(line, column, offset)
+                        .atPosition(offset, line, column)
                         .withParam(GqlParams.StringParam.input, input)
                         .withParam(GqlParams.StringParam.replacement, replacement)
                         .build())
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42I45(String action, int line, int column, int offset) {
+    public static ErrorGqlStatusObject getGql42001_42I45(String action, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I45)
                         .withClassification(ErrorClassification.CLIENT_ERROR)
-                        .atPosition(line, column, offset)
+                        .atPosition(offset, line, column)
                         .withParam(GqlParams.StringParam.action, action)
                         .build())
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42I47(String msg, int line, int column, int offset) {
+    public static ErrorGqlStatusObject getGql42001_42I47(String msg, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I47)
                         .withParam(GqlParams.StringParam.msg, msg)
                         .withClassification(ErrorClassification.CLIENT_ERROR)
-                        .atPosition(line, column, offset)
+                        .atPosition(offset, line, column)
                         .build())
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42I48(int line, int column, int offset) {
+    public static ErrorGqlStatusObject getGql42001_42I48(int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I48)
-                        .atPosition(line, column, offset)
+                        .atPosition(offset, line, column)
                         .build())
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42N07(String variable, int line, int column, int offset) {
+    public static ErrorGqlStatusObject getGql42001_42N07(String variable, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N07)
-                        .atPosition(line, column, offset)
+                        .atPosition(offset, line, column)
                         .withParam(GqlParams.StringParam.variable, variable)
                         .build())
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42N14(String clause, String cmd, int line, int column, int offset) {
+    public static ErrorGqlStatusObject getGql42001_42N14(String clause, String cmd, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N14)
-                        .atPosition(line, column, offset)
+                        .atPosition(offset, line, column)
                         .withParam(GqlParams.StringParam.clause, clause)
                         .withParam(GqlParams.StringParam.cmd, cmd)
                         .build())
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42N22(int line, int column, int offset) {
+    public static ErrorGqlStatusObject getGql42001_42N22(int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N22)
-                        .atPosition(line, column, offset)
+                        .atPosition(offset, line, column)
                         .build())
                 .build();
     }
 
     public static ErrorGqlStatusObject getGql42001_42N24(
-            String input1, String input2, int line, int column, int offset) {
+            String input1, String input2, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N24)
-                        .atPosition(line, column, offset)
+                        .atPosition(offset, line, column)
                         .withParam(GqlParams.StringParam.input1, input1)
                         .withParam(GqlParams.StringParam.input2, input2)
                         .build())
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42N39(int line, int column, int offset) {
+    public static ErrorGqlStatusObject getGql42001_42N39(int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N39)
-                        .atPosition(line, column, offset)
+                        .atPosition(offset, line, column)
                         .build())
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42N42(int line, int column, int offset) {
+    public static ErrorGqlStatusObject getGql42001_42N42(int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N42)
-                        .atPosition(line, column, offset)
+                        .atPosition(offset, line, column)
                         .build())
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42N45(int line, int column, int offset) {
+    public static ErrorGqlStatusObject getGql42001_42N45(int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
-                .atPosition(line, column, offset)
-                .withCause(getGql42N45(line, column, offset))
+                .atPosition(offset, line, column)
+                .withCause(getGql42N45(offset, line, column))
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42N57(String expr, int line, int column, int offset) {
+    public static ErrorGqlStatusObject getGql42001_42N57(String expr, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N57)
-                        .atPosition(line, column, offset)
+                        .atPosition(offset, line, column)
                         .withParam(GqlParams.StringParam.expr, expr)
                         .build())
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42N71(int line, int column, int offset) {
+    public static ErrorGqlStatusObject getGql42001_42N71(int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .atPosition(line, column, offset)
+                .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N71)
-                        .atPosition(line, column, offset)
+                        .atPosition(offset, line, column)
                         .build())
                 .build();
     }
@@ -527,12 +527,12 @@ public class GqlHelper {
         return get50N00(msgTitle, msg, -1, -1, -1);
     }
 
-    public static ErrorGqlStatusObject get50N00(String msgTitle, String msg, int line, int column, int offset) {
+    public static ErrorGqlStatusObject get50N00(String msgTitle, String msg, int offset, int line, int column) {
         var builder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N00)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
                 .withParam(GqlParams.StringParam.msgTitle, msgTitle)
                 .withParam(GqlParams.StringParam.msg, msg);
-        if (offset >= 0) builder.atPosition(line, column, offset);
+        if (offset >= 0) builder.atPosition(offset, line, column);
         return builder.build();
     }
 

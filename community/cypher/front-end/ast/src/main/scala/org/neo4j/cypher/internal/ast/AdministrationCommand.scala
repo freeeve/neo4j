@@ -222,9 +222,9 @@ sealed trait WriteAdministrationCommand extends AdministrationCommand {
     def numPrimaryGreaterThanZero(topology: Topology): SemanticCheck =
       if (topology.primaries.flatMap(_.left.toOption).exists(_ < 1)) {
         val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
-          .atPosition(position.line, position.column, position.offset)
+          .atPosition(position.offset, position.line, position.column)
           .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N52)
-            .atPosition(position.line, position.column, position.offset)
+            .atPosition(position.offset, position.line, position.column)
             .withParam(GqlParams.NumberParam.count, topology.primaries.flatMap(_.left.toOption).get)
             .withParam(GqlParams.NumberParam.upper, 11)
             .build())
@@ -241,9 +241,9 @@ sealed trait WriteAdministrationCommand extends AdministrationCommand {
     def numSecondaryPositive(topology: Topology): SemanticCheck =
       if (topology.secondaries.flatMap(_.left.toOption).exists(_ < 0)) {
         val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
-          .atPosition(position.line, position.column, position.offset)
+          .atPosition(position.offset, position.line, position.column)
           .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N53)
-            .atPosition(position.line, position.column, position.offset)
+            .atPosition(position.offset, position.line, position.column)
             .withParam(GqlParams.NumberParam.count, topology.primaries.flatMap(_.left.toOption).get)
             .withParam(GqlParams.NumberParam.upper, 20)
             .build())

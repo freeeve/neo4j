@@ -50,9 +50,9 @@ class ListSliceTest extends SemanticFunSuite {
     val slice = ListSlice(dummyList, None, None)(DummyPosition(4))
 
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(slice.position.line, slice.position.column, slice.position.offset)
+      .atPosition(slice.position.offset, slice.position.line, slice.position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N20)
-        .atPosition(slice.position.line, slice.position.column, slice.position.offset)
+        .atPosition(slice.position.offset, slice.position.line, slice.position.column)
         .build())
       .build()
 

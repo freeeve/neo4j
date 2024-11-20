@@ -113,13 +113,13 @@ public class CommonGqlStatusObjectImplementation implements CommonGqlStatusObjec
     /*
      * If the current specified positions is (oldLine, oldColumn, oldOffset), then change it to (newLine, newColumn, newOffset)
      */
-    public void adjustPosition(int oldLine, int oldColumn, int oldOffset, int newLine, int newColumn, int newOffset) {
+    public void adjustPosition(int oldOffset, int oldLine, int oldColumn, int newOffset, int newLine, int newColumn) {
         if (this.diagnosticRecord.hasPosition()) {
             var positionMap = this.diagnosticRecord.getPositionMap();
-            if (positionMap.get("line") == oldLine
-                    && positionMap.get("column") == oldColumn
-                    && positionMap.get("offset") == oldOffset) {
-                this.diagnosticRecord.updatePosition(newLine, newColumn, newOffset);
+            if (positionMap.get("offset") == oldOffset
+                    && positionMap.get("line") == oldLine
+                    && positionMap.get("column") == oldColumn) {
+                this.diagnosticRecord.updatePosition(newOffset, newLine, newColumn);
             }
         }
     }

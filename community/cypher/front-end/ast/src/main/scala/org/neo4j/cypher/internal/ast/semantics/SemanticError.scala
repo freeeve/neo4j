@@ -54,9 +54,9 @@ object SemanticError {
       invalidOptions,
       GqlParams.StringParam.input.process("OPTIONS"),
       java.util.List.of("indexProvider", "indexConfig"),
+      position.offset,
       position.line,
-      position.column,
-      position.offset
+      position.column
     )
     SemanticError(
       gql,
@@ -75,9 +75,9 @@ object SemanticError {
       unsupportedClause,
       "auth provider " + GqlParams.StringParam.input.process(provider) + " attribute",
       expected,
+      position.offset,
       position.line,
-      position.column,
-      position.offset
+      position.column
     )
     SemanticError(
       gql,
@@ -95,9 +95,9 @@ object SemanticError {
       actionName,
       "property value access rules",
       expectedActions,
+      position.offset,
       position.line,
-      position.column,
-      position.offset
+      position.column
     )
     SemanticError(gql, s"$actionName is not supported for property value access rules.", position)
   }
@@ -111,9 +111,9 @@ object SemanticError {
       originalName,
       "column name",
       expectedColumns,
+      position.offset,
       position.line,
-      position.column,
-      position.offset
+      position.column
     )
     SemanticError(gql, s"Trying to YIELD non-existing column: `$originalName`", position)
   }
@@ -128,9 +128,9 @@ object SemanticError {
       name,
       "function name",
       java.util.List.of(validFunction),
+      position.offset,
       position.line,
-      position.column,
-      position.offset
+      position.column
     )
     SemanticError(
       gql,
@@ -141,9 +141,9 @@ object SemanticError {
 
   def invalidUseOfGraphFunction(graphFunction: String, pos: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(pos.line, pos.column, pos.offset)
+      .atPosition(pos.offset, pos.line, pos.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N75)
-        .atPosition(pos.line, pos.column, pos.offset)
+        .atPosition(pos.offset, pos.line, pos.column)
         .withParam(GqlParams.StringParam.fun, graphFunction)
         .build())
       .build()
@@ -162,9 +162,9 @@ object SemanticError {
     val gql = GqlHelper.getGql22N81(
       GqlParams.StringParam.cmd.process("EXISTS"),
       "driver settings",
+      position.offset,
       position.line,
-      position.column,
-      position.offset
+      position.column
     )
     SemanticError(gql, existsErrorMessage, position)
   }
@@ -173,9 +173,9 @@ object SemanticError {
     val gql = GqlHelper.getGql22N81(
       GqlParams.StringParam.cmd.process("COUNT"),
       "driver settings",
+      position.offset,
       position.line,
-      position.column,
-      position.offset
+      position.column
     )
     SemanticError(gql, countErrorMessage, position)
   }
@@ -184,9 +184,9 @@ object SemanticError {
     val gql = GqlHelper.getGql22N81(
       GqlParams.StringParam.cmd.process("COLLECT"),
       "driver settings",
+      position.offset,
       position.line,
-      position.column,
-      position.offset
+      position.column
     )
     SemanticError(gql, collectErrorMessage, position)
   }
@@ -195,9 +195,9 @@ object SemanticError {
     val gql = GqlHelper.getGql22N81(
       GqlParams.StringParam.cmd.process("EXISTS"),
       "driver settings",
+      position.offset,
       position.line,
-      position.column,
-      position.offset
+      position.column
     )
     SemanticError(gql, genericErrorMessage, position)
   }
@@ -205,18 +205,18 @@ object SemanticError {
   def cannotUseJoinHint(hint: UsingJoinHint, prettifiedHint: String): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N76)
       .withParam(GqlParams.ListParam.hintList, Seq(prettifiedHint).asJava)
-      .atPosition(hint.position.line, hint.position.column, hint.position.offset)
+      .atPosition(hint.position.offset, hint.position.line, hint.position.column)
       .build()
     SemanticError(gql, "Cannot use join hint for single node pattern.", hint.position)
   }
 
   def variableAlreadyDeclaredInOuterScope(name: String, position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42N07(name, position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42N07(name, position.offset, position.line, position.column)
     SemanticError(gql, s"Variable `$name` already declared in outer scope", position)
   }
 
   def variableShadowingOuterScope(name: String, position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42N07(name, position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42N07(name, position.offset, position.line, position.column)
     SemanticError(
       gql,
       s"The variable `$name` is shadowing a variable with the same name from the outer scope and needs to be renamed",
@@ -242,9 +242,9 @@ object SemanticError {
     val gql = GqlHelper.getGql42001_42I20(
       "|:",
       "|",
+      position.offset,
       position.line,
-      position.column,
-      position.offset
+      position.column
     )
     SemanticError(gql, msg, position)
   }
@@ -253,9 +253,9 @@ object SemanticError {
     val gql = GqlHelper.getGql42001_42I20(
       if (isNode) "|:" else ":",
       "|",
+      position.offset,
       position.line,
-      position.column,
-      position.offset
+      position.column
     )
     SemanticError(
       gql,
@@ -266,7 +266,7 @@ object SemanticError {
   }
 
   def subPathAssignmentNotSupported(position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42N42(position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42N42(position.offset, position.line, position.column)
     SemanticError(gql, "Sub-path assignment is currently not supported.", position)
   }
 
@@ -297,10 +297,10 @@ object SemanticError {
     pos: InputPosition
   ): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(pos.line, pos.column, pos.offset)
+      .atPosition(pos.offset, pos.line, pos.column)
       .withCause(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N04)
-          .atPosition(pos.line, pos.column, pos.offset)
+          .atPosition(pos.offset, pos.line, pos.column)
           .withParam(GqlParams.StringParam.input, wrongInput)
           .withParam(GqlParams.StringParam.context, forField)
           .withParam(GqlParams.ListParam.inputList, java.util.List.of(expectedInput))
@@ -325,9 +325,9 @@ object SemanticError {
       invalidInput,
       variable,
       expectedValueList.asJava,
+      pos.offset,
       pos.line,
-      pos.column,
-      pos.offset
+      pos.column
     )
 
     SemanticError(
@@ -344,9 +344,9 @@ object SemanticError {
     pos: InputPosition
   ): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(pos.line, pos.column, pos.offset)
+      .atPosition(pos.offset, pos.line, pos.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB1)
-        .atPosition(pos.line, pos.column, pos.offset)
+        .atPosition(pos.offset, pos.line, pos.column)
         .withParam(GqlParams.ListParam.valueTypeList, expectedValueList.asJava)
         .withParam(GqlParams.StringParam.input, wrongType)
         .build())
@@ -366,9 +366,9 @@ object SemanticError {
     pos: InputPosition
   ): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(pos.line, pos.column, pos.offset)
+      .atPosition(pos.offset, pos.line, pos.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N37)
-        .atPosition(pos.line, pos.column, pos.offset)
+        .atPosition(pos.offset, pos.line, pos.column)
         .withParam(GqlParams.StringParam.value, cannotCoerceFrom)
         .withParam(GqlParams.StringParam.valueType, cannotCoerceTo)
         .build())
@@ -391,9 +391,9 @@ object SemanticError {
     pos: InputPosition
   ): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(pos.line, pos.column, pos.offset)
+      .atPosition(pos.offset, pos.line, pos.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N31)
-        .atPosition(pos.line, pos.column, pos.offset)
+        .atPosition(pos.offset, pos.line, pos.column)
         .withParam(GqlParams.StringParam.component, component)
         .withParam(GqlParams.StringParam.valueType, valueType)
         .withParam(GqlParams.NumberParam.lower, lower)
@@ -463,12 +463,12 @@ object SemanticError {
   ): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N76)
       .withParam(GqlParams.ListParam.hintList, Seq(hint).asJava)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N77)
         .withParam(GqlParams.StringParam.hint, hint)
         .withParam(GqlParams.StringParam.entityType, entity)
         .withParam(GqlParams.StringParam.variable, variable)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .build())
       .build()
     SemanticError(gql, legacyMessage, position)
@@ -476,9 +476,9 @@ object SemanticError {
 
   def functionRequiresWhereClause(func: String, position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N70)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .withParam(GqlParams.StringParam.fun, func)
         .build())
       .build()
@@ -486,25 +486,25 @@ object SemanticError {
   }
 
   def aExpressionCannotContainUpdates(expr: String, position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42N57(expr, position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42N57(expr, position.offset, position.line, position.column)
     SemanticError(gql, s"A $expr Expression cannot contain any updates", position)
   }
 
   def anExpressionCannotContainUpdates(expr: String, position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42N57(expr, position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42N57(expr, position.offset, position.line, position.column)
     SemanticError(gql, s"An $expr Expression cannot contain any updates", position)
   }
 
   def singleReturnColumnRequired(position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42N22(position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42N22(position.offset, position.line, position.column)
     SemanticError(gql, "A Collect Expression must end with a single return column.", position)
   }
 
   def emptyListRangeOperator(position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N20)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .build())
       .build()
     SemanticError(gql, "The start or end (or both) is required for a collection slice", position)
@@ -512,9 +512,9 @@ object SemanticError {
 
   def unboundVariablesInPatternExpression(name: String, position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N29)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .withParam(GqlParams.StringParam.variable, name)
         .build())
       .build()
@@ -526,15 +526,15 @@ object SemanticError {
   }
 
   def incompatibleReturnColumns(position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42N39(position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42N39(position.offset, position.line, position.column)
     SemanticError(gql, "All sub queries in an UNION must have the same return column names", position)
   }
 
   def invalidUseOfUnion(position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I40)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .build())
       .build()
 
@@ -542,7 +542,7 @@ object SemanticError {
   }
 
   def invalidUseOfCIT(position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42I25(position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42I25(position.offset, position.line, position.column)
     SemanticError(
       gql,
       "CALL { ... } IN TRANSACTIONS after a write clause is not supported",
@@ -552,9 +552,9 @@ object SemanticError {
 
   def invalidUseOfReturn(name: String, position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I38)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .build())
       .build()
 
@@ -563,9 +563,9 @@ object SemanticError {
 
   def invalidUseOfReturnStar(position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I37)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .build())
       .build()
     SemanticError(gql, "RETURN * is not allowed when there are no variables in scope", position)
@@ -573,9 +573,9 @@ object SemanticError {
 
   def invalidUseOfMatch(position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I31)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .build())
       .build()
 
@@ -588,9 +588,9 @@ object SemanticError {
 
   def invalidQuantifier(variables: Seq[String], position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I18)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .withParam(GqlParams.ListParam.variableList, variables.asJava)
         .build())
       .build()
@@ -601,9 +601,9 @@ object SemanticError {
 
   def invalidForeach(clause: String, position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I01)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .withParam(GqlParams.StringParam.clause, clause)
         .build())
       .build()
@@ -613,9 +613,9 @@ object SemanticError {
 
   def unaliasedReturnItem(clause: String, position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N21)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .withParam(GqlParams.StringParam.clause, clause)
         .build())
       .build()
@@ -631,9 +631,9 @@ object SemanticError {
 
   def accessingMultipleGraphsError(legacyMessage: String, position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA5)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .build())
       .build();
     SemanticError(
@@ -644,18 +644,18 @@ object SemanticError {
   }
 
   def numberTooLarge(numberType: String, value: String, position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql22003(value, position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql22003(value, position.offset, position.line, position.column)
     SemanticError(gql, s"$numberType is too large", position)
   }
 
   def integerOperationCannotBeRepresented(operation: String, position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql22003(operation, position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql22003(operation, position.offset, position.line, position.column)
     SemanticError(gql, s"result of $operation cannot be represented as an integer", position)
   }
 
   def notSupported(pos: InputPosition): SemanticError = {
     val msg = "Not supported."
-    val gql = GqlHelper.get50N00(SemanticError.getClass.getSimpleName, msg, pos.line, pos.column, pos.offset)
+    val gql = GqlHelper.get50N00(SemanticError.getClass.getSimpleName, msg, pos.offset, pos.line, pos.column)
     SemanticError(gql, msg, pos)
   }
 
@@ -663,9 +663,9 @@ object SemanticError {
     val gql = GqlHelper.getGql42001_42N14(
       "OR REPLACE",
       "IF NOT EXISTS",
+      position.offset,
       position.line,
-      position.column,
-      position.offset
+      position.column
     )
     SemanticError(
       gql,
@@ -675,12 +675,12 @@ object SemanticError {
   }
 
   def badCommandWithOrReplace(cmd: String, cypherCmd: String, position: InputPosition) = {
-    val gql = GqlHelper.getGql42001_42N14("OR REPLACE", cypherCmd, position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42N14("OR REPLACE", cypherCmd, position.offset, position.line, position.column)
     SemanticError(gql, s"Failed to $cmd: `OR REPLACE` cannot be used together with this command.", position)
   }
 
   def denyMergeUnsupported(position: InputPosition) = {
-    val gql = GqlHelper.getGql42001_42N14("DENY", "MERGE", position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42N14("DENY", "MERGE", position.offset, position.line, position.column)
     SemanticError(gql, "`DENY MERGE` is not supported. Use `DENY SET PROPERTY` and `DENY CREATE` instead.", position)
   }
 
@@ -688,16 +688,16 @@ object SemanticError {
     val gql = GqlHelper.getGql42001_42N14(
       "GRANT, DENY and REVOKE",
       cmd,
+      position.offset,
       position.line,
-      position.column,
-      position.offset
+      position.column
     )
     SemanticError(gql, s"`GRANT`, `DENY` and `REVOKE` are not supported for `$cmd`", position)
   }
 
   def unableToRouteUseClauseError(legacyMessage: String, position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N04)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withParam(GqlParams.StringParam.clause, "`USE` clause")
       .build()
     SemanticError(
@@ -716,9 +716,9 @@ object SemanticError {
     position: InputPosition
   ): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I13)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .withParam(GqlParams.NumberParam.count1, expectedNumberOfArgs)
         .withParam(GqlParams.NumberParam.count2, obtainedNumberOfArgs)
         .withParam(GqlParams.StringParam.procFun, procedureFunction)
@@ -770,17 +770,17 @@ object SemanticError {
   }
 
   def queryMustConcludeWithClause(position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42N71(position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42N71(position.offset, position.line, position.column)
     SemanticError(gql, s"Query must conclude with $validLastClauses.", position)
   }
 
   def queryCannotConcludeWithCall(callName: String, position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42N71(position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42N71(position.offset, position.line, position.column)
     SemanticError(gql, s"Query cannot conclude with $callName together with YIELD", position)
   }
 
   def queryCannotConcludeWithClause(clause: String, position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42N71(position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42N71(position.offset, position.line, position.column)
     SemanticError(
       gql,
       s"Query cannot conclude with $clause (must be $validLastClauses).",
@@ -794,9 +794,9 @@ object SemanticError {
     position: InputPosition
   ): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NA0)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NA7)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .withParam(GqlParams.StringParam.expr, unsupportedExpression)
         .build())
       .build()
@@ -811,7 +811,7 @@ object SemanticError {
     "a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD"
 
   def withIsRequiredBetween(clause1: String, clause2: String, position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42N24(clause1, clause2, position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42N24(clause1, clause2, position.offset, position.line, position.column)
     SemanticError(gql, s"WITH is required between $clause1 and $clause2", position)
   }
 
@@ -823,9 +823,9 @@ object SemanticError {
     pos: InputPosition
   ): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
-      .atPosition(pos.line, pos.column, pos.offset)
+      .atPosition(pos.offset, pos.line, pos.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
-        .atPosition(pos.line, pos.column, pos.offset)
+        .atPosition(pos.offset, pos.line, pos.column)
         .withParam(GqlParams.StringParam.value, value)
         .withParam(GqlParams.ListParam.valueTypeList, correctTypes.asJava)
         .withParam(GqlParams.StringParam.valueType, actualType)
@@ -841,9 +841,9 @@ object SemanticError {
 
   def invalidPlacementOfUseClause(pos: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(pos.line, pos.column, pos.offset)
+      .atPosition(pos.offset, pos.line, pos.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N73)
-        .atPosition(pos.line, pos.column, pos.offset)
+        .atPosition(pos.offset, pos.line, pos.column)
         .build())
       .build()
 
@@ -855,7 +855,7 @@ object SemanticError {
   }
 
   def invalidSubqueryInMerge(position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42I48(position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42I48(position.offset, position.line, position.column)
     SemanticError(gql, "Subquery expressions are not allowed in a MERGE clause.", position)
   }
 
@@ -870,15 +870,15 @@ object SemanticError {
       ""
     }
 
-    val gql = GqlHelper.getGql42001_42I45(action, position.line, position.column, position.offset)
+    val gql = GqlHelper.getGql42001_42I45(action, position.offset, position.line, position.column)
     SemanticError(gql, baseMessage + action, position)
   }
 
   def invalidFieldTerminator(position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I05)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .build())
       .build()
     SemanticError(gql, "CSV field terminator can only be one character wide", position)
@@ -886,9 +886,9 @@ object SemanticError {
 
   def singleRelationshipPatternRequired(name: String, position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N40)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .withParam(GqlParams.StringParam.fun, name)
         .build())
       .build()
@@ -903,11 +903,11 @@ object SemanticError {
     position: InputPosition
   ): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
-      .atPosition(position.line, position.column, position.offset)
+      .atPosition(position.offset, position.line, position.column)
       .withParam(GqlParams.StringParam.input, invalidInput)
       .withParam(GqlParams.StringParam.context, context)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N82)
-        .atPosition(position.line, position.column, position.offset)
+        .atPosition(position.offset, position.line, position.column)
         .withParam(GqlParams.StringParam.input, invalidInput)
         .withParam(GqlParams.StringParam.context, context)
         .build())

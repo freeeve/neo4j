@@ -298,9 +298,9 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
         val gql = GqlHelper.getGql42001_42N24(
           "CALL",
           "WHERE",
+          where.position.offset,
           where.position.line,
-          where.position.column,
-          where.position.offset
+          where.position.column
         )
         error(
           gql,

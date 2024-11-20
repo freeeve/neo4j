@@ -59,13 +59,13 @@ class OctalIntegerLiteralTest extends SemanticFunSuite {
   // old syntax
   test("throws error for too large old syntax octal numbers") {
     val bigNumber = "010000000000000000000000"
-    val gql = GqlHelper.getGql22003(bigNumber, 0, 4, 4)
+    val gql = GqlHelper.getGql22003(bigNumber, 4, 0, 4)
     assertSemanticError(gql, bigNumber, "integer is too large")
   }
 
   test("throws error for too large octal numbers") {
     val bigNumber = "0o10000000000000000000000"
-    val gql = GqlHelper.getGql22003(bigNumber, 0, 4, 4)
+    val gql = GqlHelper.getGql22003(bigNumber, 4, 0, 4)
     assertSemanticError(gql, bigNumber, "integer is too large")
   }
 

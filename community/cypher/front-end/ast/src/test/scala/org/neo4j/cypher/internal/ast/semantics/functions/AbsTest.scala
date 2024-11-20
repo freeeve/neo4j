@@ -30,9 +30,9 @@ class AbsTest extends FunctionTestBase("abs") {
     val dummy = 5
     testInvalidApplicationWithGql()("Insufficient parameters for function 'abs'")(
       ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(DummyPosition(dummy).line, DummyPosition(dummy).column, DummyPosition(dummy).offset)
+        .atPosition(DummyPosition(dummy).offset, DummyPosition(dummy).line, DummyPosition(dummy).column)
         .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I13)
-          .atPosition(DummyPosition(dummy).line, DummyPosition(dummy).column, DummyPosition(dummy).offset)
+          .atPosition(DummyPosition(dummy).offset, DummyPosition(dummy).line, DummyPosition(dummy).column)
           .withParam(GqlParams.NumberParam.count1, 1)
           .withParam(GqlParams.NumberParam.count2, 0)
           .withParam(GqlParams.StringParam.procFun, "abs")
@@ -42,9 +42,9 @@ class AbsTest extends FunctionTestBase("abs") {
     )
     testInvalidApplicationWithGql(CTFloat, CTFloat)("Too many parameters for function 'abs'")(
       ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(DummyPosition(dummy).line, DummyPosition(dummy).column, DummyPosition(dummy).offset)
+        .atPosition(DummyPosition(dummy).offset, DummyPosition(dummy).line, DummyPosition(dummy).column)
         .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I13)
-          .atPosition(DummyPosition(dummy).line, DummyPosition(dummy).column, DummyPosition(dummy).offset)
+          .atPosition(DummyPosition(dummy).offset, DummyPosition(dummy).line, DummyPosition(dummy).column)
           .withParam(GqlParams.NumberParam.count1, 1)
           .withParam(GqlParams.NumberParam.count2, 2)
           .withParam(GqlParams.StringParam.procFun, "abs")

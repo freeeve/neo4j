@@ -1026,7 +1026,7 @@ PreParserResult parse() throws Exception:
         {
             if ( queryStart == null )
             {
-                 var gql = GqlHelper.getGql42001_42N45(token.endLine, token.endColumn + 1, token.endOffset + 1);
+                 var gql = GqlHelper.getGql42001_42N45(token.endOffset + 1, token.endLine, token.endColumn + 1);
                  throw exceptionFactory.syntaxException(gql, new IllegalStateException( PreParserResult.getEmptyQueryExceptionMsg() ),
                     token.endOffset + 1, token.endLine, token.endColumn + 1);
             }
@@ -1038,18 +1038,18 @@ PreParserResult parse() throws Exception:
         Token t = e.currentToken.next;
         if ( e.getMessage().contains( "Encountered \"<EOF>\"" ) )
         {
-            var gql = GqlHelper.getGql42001_42N45(t.endLine, t.endColumn + 1, t.endOffset + 1);
+            var gql = GqlHelper.getGql42001_42N45(t.endOffset + 1, t.endLine, t.endColumn + 1);
             throw exceptionFactory.syntaxException(gql, e, t.endOffset + 1, t.endLine, t.endColumn + 1 );
         }
         else
         {
-            var gql = GqlHelper.getGql42001_42I47(e.getMessage(), t.beginLine, t.beginColumn, t.beginOffset);
+            var gql = GqlHelper.getGql42001_42I47(e.getMessage(), t.beginOffset, t.beginLine, t.beginColumn);
             throw exceptionFactory.syntaxException(gql, e, t.beginOffset, t.beginLine, t.beginColumn );
         }
     }
     catch (InvalidUnicodeLiteral e)
     {
-       var gql = GqlHelper.getGql42001_42I47(e.getMessage(), e.line, e.column, e.offset);
+       var gql = GqlHelper.getGql42001_42I47(e.getMessage(), e.offset, e.line, e.column);
        throw exceptionFactory.syntaxException(gql, e, e.offset, e.line, e.column );
     }
 }

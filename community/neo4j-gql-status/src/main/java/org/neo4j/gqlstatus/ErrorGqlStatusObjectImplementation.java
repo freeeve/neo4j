@@ -83,13 +83,13 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
     }
 
     @Override
-    public void adjustPosition(int oldLine, int oldColumn, int oldOffset, int newLine, int newCol, int newOffset) {
-        super.adjustPosition(oldLine, oldColumn, oldOffset, newLine, newCol, newOffset);
+    public void adjustPosition(int oldOffset, int oldLine, int oldColumn, int newOffset, int newLine, int newCol) {
+        super.adjustPosition(oldOffset, oldLine, oldColumn, newOffset, newLine, newCol);
         cause.ifPresent(gqlStatusObjectCause -> {
             if (gqlStatusObjectCause instanceof ErrorGqlStatusObjectImplementation errorGqlStatusObjectImplementation) {
                 // Recursive call for the chain of causes
                 errorGqlStatusObjectImplementation.adjustPosition(
-                        oldLine, oldColumn, oldOffset, newLine, newCol, newOffset);
+                        oldOffset, oldLine, oldColumn, newOffset, newLine, newCol);
             }
         });
     }
@@ -199,8 +199,13 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
             return this;
         }
 
-        public Builder atPosition(int line, int col, int offset) {
-            diagnosticRecordBuilder.atPosition(line, col, offset);
+        public Builder atPosition(int offset, int line, int col) {
+            // Assert that the position is valid (only run in tests)
+            // An invalid position might indicate that offset, line and column is provided in incorrect order
+            assert line < 1 // Default/test position
+                    || (line == 1 && col == offset + 1)
+                    || (line > 1 && offset > col);
+            diagnosticRecordBuilder.atPosition(offset, line, col);
             return this;
         }
 

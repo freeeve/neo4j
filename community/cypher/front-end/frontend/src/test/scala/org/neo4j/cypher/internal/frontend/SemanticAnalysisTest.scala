@@ -1224,10 +1224,10 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   Seq("", " DISTINCT", " ALL").foreach { setQuantifier =>
     test(s"UNION$setQuantifier with incomplete first part") {
       run(s"MATCH (a) WITH a UNION$setQuantifier MATCH (a) RETURN a").hasErrors(
-        getGql42001_42N71(1, 11, 10),
+        getGql42001_42N71(10, 1, 11),
         "Query cannot conclude with WITH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
         p(10, 1, 11),
-        getGql42001_42N39(1, 18, 17),
+        getGql42001_42N39(17, 1, 18),
         "All sub queries in an UNION must have the same return column names",
         p(17, 1, 18)
       )
@@ -1236,10 +1236,10 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
     test(s"UNION$setQuantifier with incomplete second part") {
       val extraLength = setQuantifier.length
       run(s"MATCH (a) RETURN a UNION$setQuantifier MATCH (a) WITH a").hasErrors(
-        getGql42001_42N71(1, 36 + extraLength, 35 + extraLength),
+        getGql42001_42N71(35 + extraLength, 1, 36 + extraLength),
         "Query cannot conclude with WITH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
         p(35 + extraLength, 1, 36 + extraLength),
-        getGql42001_42N39(1, 20, 19),
+        getGql42001_42N39(19, 1, 20),
         "All sub queries in an UNION must have the same return column names",
         p(19, 1, 20)
       )
@@ -1247,7 +1247,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
     test(s"UNION$setQuantifier with missing return in first part") {
       run(s"CALL db.labels() YIELD label UNION$setQuantifier CALL db.labels() YIELD label RETURN label").hasError(
-        getGql42001_42N39(1, 30, 29),
+        getGql42001_42N39(29, 1, 30),
         "All sub queries in an UNION must have the same return column names",
         p(29, 1, 30)
       )
@@ -1255,7 +1255,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
     test(s"UNION$setQuantifier with missing return in second part") {
       run(s"CALL db.labels() YIELD label RETURN label UNION$setQuantifier CALL db.labels() YIELD label").hasError(
-        getGql42001_42N39(1, 43, 42),
+        getGql42001_42N39(42, 1, 43),
         "All sub queries in an UNION must have the same return column names",
         p(42, 1, 43)
       )
@@ -1263,7 +1263,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
     test(s"UNION$setQuantifier with finish in first part") {
       run(s"UNWIND [1,2] AS a FINISH UNION$setQuantifier UNWIND [2,3] AS a RETURN a").hasError(
-        getGql42001_42N39(1, 26, 25),
+        getGql42001_42N39(25, 1, 26),
         "All sub queries in an UNION must have the same return column names",
         p(25, 1, 26)
       )
@@ -1271,7 +1271,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
     test(s"UNION$setQuantifier with finish in second part") {
       run(s"UNWIND [1,2] AS a RETURN a UNION$setQuantifier UNWIND [2,3] AS a FINISH").hasError(
-        getGql42001_42N39(1, 28, 27),
+        getGql42001_42N39(27, 1, 28),
         "All sub queries in an UNION must have the same return column names",
         p(27, 1, 28)
       )
@@ -1291,8 +1291,8 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
            |UNION$qualifierB
            |RETURN 3 AS a""".stripMargin
       val extraLength = qualifierA.length
-      val gql = from(STATUS_42001).atPosition(4, 1, 34 + extraLength)
-        .withCause(from(STATUS_42I40).atPosition(4, 1, 34 + extraLength).build)
+      val gql = from(STATUS_42001).atPosition(34 + extraLength, 4, 1)
+        .withCause(from(STATUS_42I40).atPosition(34 + extraLength, 4, 1).build)
         .build
       run(query).hasError(gql, "Invalid combination of UNION and UNION ALL", p(34 + extraLength, 4, 1))
     }
@@ -1300,7 +1300,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("Query ending in CALL ... YIELD ...") {
     run("MATCH (a) CALL proc.foo() YIELD bar")
-      .hasError(getGql42001_42N71(1, 11, 10), "Query cannot conclude with CALL together with YIELD", p(10, 1, 11))
+      .hasError(getGql42001_42N71(10, 1, 11), "Query cannot conclude with CALL together with YIELD", p(10, 1, 11))
   }
 
   test("Query with only importing WITH") {
@@ -1308,7 +1308,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
       null,
       "Variable `a` not defined",
       p(5, 1, 6),
-      getGql42001_42N71(1, 1, 0),
+      getGql42001_42N71(0, 1, 1),
       "Query cannot conclude with WITH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
       p(0, 1, 1)
     )
@@ -1360,7 +1360,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   test("should not allow subquery expressions in MERGE ON CREATE") {
     run("MERGE (n) ON CREATE SET n.prop = EXISTS { MATCH () } RETURN 1")
       .hasError(
-        GqlHelper.getGql42001_42I48(1, 34, 33),
+        GqlHelper.getGql42001_42I48(33, 1, 34),
         "Subquery expressions are not allowed in a MERGE clause.",
         p(33, 1, 34)
       )
@@ -1369,7 +1369,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   test("should not allow subquery expressions in MERGE") {
     run("MERGE (n {prop: EXISTS {MATCH ()}}) RETURN n.prop")
       .hasError(
-        GqlHelper.getGql42001_42I48(1, 17, 16),
+        GqlHelper.getGql42001_42I48(16, 1, 17),
         "Subquery expressions are not allowed in a MERGE clause.",
         p(16, 1, 17)
       )
@@ -1378,7 +1378,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   test("should not allow subquery expressions in MERGE ON SET") {
     run("MERGE (n) ON CREATE SET n.prop = COUNT { MATCH () } RETURN 1")
       .hasError(
-        GqlHelper.getGql42001_42I48(1, 34, 33),
+        GqlHelper.getGql42001_42I48(33, 1, 34),
         "Subquery expressions are not allowed in a MERGE clause.",
         p(33, 1, 34)
       )
@@ -1422,13 +1422,13 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   test("Should not allow too large lower bound in variable length relationship") {
     val bigNumber = "9999999999999999999999999999999999999999999"
     run(s"MATCH ()-[*$bigNumber..]->() RETURN 1")
-      .hasError(getGql22003(bigNumber, 1, 12, 11), "integer is too large", p(11, 1, 12))
+      .hasError(getGql22003(bigNumber, 11, 1, 12), "integer is too large", p(11, 1, 12))
   }
 
   test("Should not allow too large upper bound in variable length relationship") {
     val bigNumber = "9999999999999999999999999999999999999999999"
     run(s"MATCH ()-[*..$bigNumber]->() RETURN 1")
-      .hasError(getGql22003(bigNumber, 1, 14, 13), "integer is too large", p(13, 1, 14))
+      .hasError(getGql22003(bigNumber, 13, 1, 14), "integer is too large", p(13, 1, 14))
   }
 
   test("CALL (*) inside a UNION should include variables imported by an outer CALL ()") {
@@ -1465,12 +1465,12 @@ object SemanticAnalysisTest {
 
   def gql42N29(pos: InputPosition, n: String): ErrorGqlStatusObject =
     from(STATUS_42001)
-      .atPosition(pos.line, pos.column, pos.offset)
-      .withCause(from(STATUS_42N29).atPosition(pos.line, pos.column, pos.offset).withParam(variable, n).build())
+      .atPosition(pos.offset, pos.line, pos.column)
+      .withCause(from(STATUS_42N29).atPosition(pos.offset, pos.line, pos.column).withParam(variable, n).build())
       .build()
 
   def gql42NA5(pos: InputPosition): ErrorGqlStatusObject =
-    from(STATUS_42001).atPosition(pos.line, pos.column, pos.offset)
-      .withCause(from(STATUS_42NA5).atPosition(pos.line, pos.column, pos.offset).build())
+    from(STATUS_42001).atPosition(pos.offset, pos.line, pos.column)
+      .withCause(from(STATUS_42NA5).atPosition(pos.offset, pos.line, pos.column).build())
       .build()
 }

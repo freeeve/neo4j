@@ -69,7 +69,7 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithChangeStatement(state
 
   test("n IS A:B") {
     run().hasError(
-      getGql42001_42I29(statement.toString, "n IS A, n IS B", 1, 16, 15),
+      getGql42001_42I29(statement.toString, "n IS A, n IS B", 15, 1, 16),
       multipleAssignmentErrorMessage("n IS A, n IS B"),
       errorPosition
     )
@@ -77,7 +77,7 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithChangeStatement(state
 
   test("n IS A, m:A:B") {
     run().hasError(
-      GqlHelper.getGql42001_42I29(statement.toString, "n IS A, m IS A, m IS B", 1, 16, 15),
+      GqlHelper.getGql42001_42I29(statement.toString, "n IS A, m IS A, m IS B", 15, 1, 16),
       multipleAssignmentErrorMessage("n IS A, m IS A, m IS B"),
       errorPosition
     )
@@ -98,7 +98,7 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithChangeStatement(state
 
   test("n IS A, m:$(\"Label1\"):B:$(\"Label2\")") {
     run().hasError(
-      getGql42001_42I29(statement.toString, "n IS A, m IS $(\"Label1\"), m IS B, m IS $(\"Label2\")", 1, 16, 15),
+      getGql42001_42I29(statement.toString, "n IS A, m IS $(\"Label1\"), m IS B, m IS $(\"Label2\")", 15, 1, 16),
       multipleAssignmentErrorMessage("n IS A, m IS $(\"Label1\"), m IS B, m IS $(\"Label2\")"),
       errorPosition
     )
@@ -171,7 +171,7 @@ class LabelExpressionInSetSemanticAnalysisTest
 
   test("n:A, n.prop = 1, m += $map, m:B:C, n IS B:C") {
     run().hasError(
-      getGql42001_42I29("SET", "n IS A, n.prop = 1, m += $map, m IS B, m IS C, n IS B, n IS C", 1, 16, 15),
+      getGql42001_42I29("SET", "n IS A, n.prop = 1, m += $map, m IS B, m IS C, n IS B, n IS C", 15, 1, 16),
       multipleAssignmentErrorMessage("n IS A, n.prop = 1, m += $map, m IS B, m IS C, n IS B, n IS C"),
       errorPosition
     )
@@ -187,7 +187,7 @@ class LabelExpressionInRemoveSemanticAnalysisTest
 
   test("n:A, n.prop, m:B:C, n IS B:C") {
     run().hasError(
-      getGql42001_42I29("REMOVE", "n IS A, n.prop, m IS B, m IS C, n IS B, n IS C", 1, 16, 15),
+      getGql42001_42I29("REMOVE", "n IS A, n.prop, m IS B, m IS C, n IS B, n IS C", 15, 1, 16),
       multipleAssignmentErrorMessage("n IS A, n.prop, m IS B, m IS C, n IS B, n IS C"),
       errorPosition
     )

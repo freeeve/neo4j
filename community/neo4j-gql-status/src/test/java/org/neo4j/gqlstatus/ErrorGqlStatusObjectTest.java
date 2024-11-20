@@ -102,20 +102,20 @@ class ErrorGqlStatusObjectTest {
     @Test
     void testAdjustPosition() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N00)
-                .atPosition(1, 2, 3)
+                .atPosition(2, 1, 3)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N15)
-                        .atPosition(1, 2, 3)
+                        .atPosition(2, 1, 3)
                         .withParam(GqlParams.StringParam.valueType, "test")
                         .build())
                 .build();
-        ((ErrorGqlStatusObjectImplementation) gql).adjustPosition(1, 2, 3, 4, 5, 6);
+        ((ErrorGqlStatusObjectImplementation) gql).adjustPosition(2, 1, 3, 11, 4, 5);
 
         assertEquals(gql.gqlStatus(), "51N00");
         assertTrue(gql.diagnosticRecord().containsKey("_position"));
         var pos = (Map<String, Integer>) gql.diagnosticRecord().get("_position");
+        assertEquals(pos.get("offset"), 11);
         assertEquals(pos.get("line"), 4);
         assertEquals(pos.get("column"), 5);
-        assertEquals(pos.get("offset"), 6);
 
         assertTrue(gql.cause().isPresent());
         var cause = gql.cause().get();
@@ -123,9 +123,9 @@ class ErrorGqlStatusObjectTest {
         assertEquals(cause.gqlStatus(), "51N15");
         assertTrue(cause.diagnosticRecord().containsKey("_position"));
         var posInCause = (Map<String, Integer>) cause.diagnosticRecord().get("_position");
+        assertEquals(posInCause.get("offset"), 11);
         assertEquals(posInCause.get("line"), 4);
         assertEquals(posInCause.get("column"), 5);
-        assertEquals(posInCause.get("offset"), 6);
 
         assertFalse(cause.cause().isPresent());
     }
@@ -133,23 +133,23 @@ class ErrorGqlStatusObjectTest {
     @Test
     void testAdjustPositionChainOf3() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N00)
-                .atPosition(1, 2, 3)
+                .atPosition(2, 1, 3)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N15)
-                        .atPosition(1, 2, 3)
+                        .atPosition(2, 1, 3)
                         .withParam(GqlParams.StringParam.valueType, "test")
                         .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
-                                .atPosition(1, 2, 3)
+                                .atPosition(2, 1, 3)
                                 .build())
                         .build())
                 .build();
-        ((ErrorGqlStatusObjectImplementation) gql).adjustPosition(1, 2, 3, 4, 5, 6);
+        ((ErrorGqlStatusObjectImplementation) gql).adjustPosition(2, 1, 3, 11, 4, 5);
 
         assertEquals(gql.gqlStatus(), "51N00");
         assertTrue(gql.diagnosticRecord().containsKey("_position"));
         var pos = (Map<String, Integer>) gql.diagnosticRecord().get("_position");
+        assertEquals(pos.get("offset"), 11);
         assertEquals(pos.get("line"), 4);
         assertEquals(pos.get("column"), 5);
-        assertEquals(pos.get("offset"), 6);
 
         assertTrue(gql.cause().isPresent());
         var cause = gql.cause().get();
@@ -157,9 +157,9 @@ class ErrorGqlStatusObjectTest {
         assertEquals(cause.gqlStatus(), "51N15");
         assertTrue(cause.diagnosticRecord().containsKey("_position"));
         var posInCause = (Map<String, Integer>) cause.diagnosticRecord().get("_position");
+        assertEquals(posInCause.get("offset"), 11);
         assertEquals(posInCause.get("line"), 4);
         assertEquals(posInCause.get("column"), 5);
-        assertEquals(posInCause.get("offset"), 6);
 
         assertTrue(cause.cause().isPresent());
         var causeCause = cause.cause().get();
@@ -168,9 +168,9 @@ class ErrorGqlStatusObjectTest {
         assertTrue(causeCause.diagnosticRecord().containsKey("_position"));
         var posInCauseCause =
                 (Map<String, Integer>) causeCause.diagnosticRecord().get("_position");
+        assertEquals(posInCauseCause.get("offset"), 11);
         assertEquals(posInCauseCause.get("line"), 4);
         assertEquals(posInCauseCause.get("column"), 5);
-        assertEquals(posInCauseCause.get("offset"), 6);
 
         assertFalse(causeCause.cause().isPresent());
     }
@@ -178,20 +178,20 @@ class ErrorGqlStatusObjectTest {
     @Test
     void testAdjustPositionNotInCause() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N00)
-                .atPosition(1, 2, 3)
+                .atPosition(2, 1, 3)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N15)
-                        .atPosition(1, 2, 4)
+                        .atPosition(4, 2, 1)
                         .withParam(GqlParams.StringParam.valueType, "test")
                         .build())
                 .build();
-        ((ErrorGqlStatusObjectImplementation) gql).adjustPosition(1, 2, 3, 4, 5, 6);
+        ((ErrorGqlStatusObjectImplementation) gql).adjustPosition(2, 1, 3, 11, 4, 5);
 
         assertEquals(gql.gqlStatus(), "51N00");
         assertTrue(gql.diagnosticRecord().containsKey("_position"));
         var pos = (Map<String, Integer>) gql.diagnosticRecord().get("_position");
+        assertEquals(pos.get("offset"), 11);
         assertEquals(pos.get("line"), 4);
         assertEquals(pos.get("column"), 5);
-        assertEquals(pos.get("offset"), 6);
 
         assertTrue(gql.cause().isPresent());
         var cause = gql.cause().get();
@@ -199,9 +199,9 @@ class ErrorGqlStatusObjectTest {
         assertEquals(cause.gqlStatus(), "51N15");
         assertTrue(cause.diagnosticRecord().containsKey("_position"));
         var posInCause = (Map<String, Integer>) cause.diagnosticRecord().get("_position");
-        assertEquals(posInCause.get("line"), 1);
-        assertEquals(posInCause.get("column"), 2);
         assertEquals(posInCause.get("offset"), 4);
+        assertEquals(posInCause.get("line"), 2);
+        assertEquals(posInCause.get("column"), 1);
 
         assertFalse(cause.cause().isPresent());
     }
@@ -209,20 +209,20 @@ class ErrorGqlStatusObjectTest {
     @Test
     void testAdjustPositionOnlyInCause() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N00)
-                .atPosition(1, 1, 3)
+                .atPosition(4, 2, 1)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N15)
-                        .atPosition(1, 2, 3)
+                        .atPosition(2, 1, 3)
                         .withParam(GqlParams.StringParam.valueType, "test")
                         .build())
                 .build();
-        ((ErrorGqlStatusObjectImplementation) gql).adjustPosition(1, 2, 3, 4, 5, 6);
+        ((ErrorGqlStatusObjectImplementation) gql).adjustPosition(2, 1, 3, 11, 4, 5);
 
         assertEquals(gql.gqlStatus(), "51N00");
         assertTrue(gql.diagnosticRecord().containsKey("_position"));
         var pos = (Map<String, Integer>) gql.diagnosticRecord().get("_position");
-        assertEquals(pos.get("line"), 1);
+        assertEquals(pos.get("offset"), 4);
+        assertEquals(pos.get("line"), 2);
         assertEquals(pos.get("column"), 1);
-        assertEquals(pos.get("offset"), 3);
 
         assertTrue(gql.cause().isPresent());
         var cause = gql.cause().get();
@@ -230,9 +230,9 @@ class ErrorGqlStatusObjectTest {
         assertEquals(cause.gqlStatus(), "51N15");
         assertTrue(cause.diagnosticRecord().containsKey("_position"));
         var posInCause = (Map<String, Integer>) cause.diagnosticRecord().get("_position");
+        assertEquals(posInCause.get("offset"), 11);
         assertEquals(posInCause.get("line"), 4);
         assertEquals(posInCause.get("column"), 5);
-        assertEquals(posInCause.get("offset"), 6);
 
         assertFalse(cause.cause().isPresent());
     }
@@ -240,20 +240,20 @@ class ErrorGqlStatusObjectTest {
     @Test
     void testAdjustPositionUpdateNone() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N00)
-                .atPosition(1, 1, 3)
+                .atPosition(2, 1, 3)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N15)
-                        .atPosition(1, 1, 4)
+                        .atPosition(4, 2, 1)
                         .withParam(GqlParams.StringParam.valueType, "test")
                         .build())
                 .build();
-        ((ErrorGqlStatusObjectImplementation) gql).adjustPosition(1, 2, 3, 4, 5, 6);
+        ((ErrorGqlStatusObjectImplementation) gql).adjustPosition(1, 1, 2, 11, 4, 5);
 
         assertEquals(gql.gqlStatus(), "51N00");
         assertTrue(gql.diagnosticRecord().containsKey("_position"));
         var pos = (Map<String, Integer>) gql.diagnosticRecord().get("_position");
+        assertEquals(pos.get("offset"), 2);
         assertEquals(pos.get("line"), 1);
-        assertEquals(pos.get("column"), 1);
-        assertEquals(pos.get("offset"), 3);
+        assertEquals(pos.get("column"), 3);
 
         assertTrue(gql.cause().isPresent());
         var cause = gql.cause().get();
@@ -261,9 +261,9 @@ class ErrorGqlStatusObjectTest {
         assertEquals(cause.gqlStatus(), "51N15");
         assertTrue(cause.diagnosticRecord().containsKey("_position"));
         var posInCause = (Map<String, Integer>) cause.diagnosticRecord().get("_position");
-        assertEquals(posInCause.get("line"), 1);
-        assertEquals(posInCause.get("column"), 1);
         assertEquals(posInCause.get("offset"), 4);
+        assertEquals(posInCause.get("line"), 2);
+        assertEquals(posInCause.get("column"), 1);
 
         assertFalse(cause.cause().isPresent());
     }

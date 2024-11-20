@@ -216,7 +216,7 @@ class CountTest extends SemanticFunSuite {
     val result =
       SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
 
-    val gql = getGql42001_42N57("Count", pos.line, pos.column, pos.offset)
+    val gql = getGql42001_42N57("Count", pos.offset, pos.line, pos.column)
 
     result.errors shouldBe Seq(
       SemanticError(gql, "A Count Expression cannot contain any updates", pos)
