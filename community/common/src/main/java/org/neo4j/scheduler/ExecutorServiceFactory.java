@@ -28,11 +28,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -114,6 +116,16 @@ interface ExecutorServiceFactory {
             ThreadPoolExecutor.DiscardPolicy policy = new ThreadPoolExecutor.DiscardPolicy();
             return new ThreadPoolExecutor(
                     0, threadCount, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(), factory, policy);
+        };
+    }
+
+    static ExecutorServiceFactory newVirtualThreadPerTask() {
+        return (group, factory, threadCount) -> {
+            // Both the factory and thread count provided by the scheduler framework are ignored
+            // as they don't make sense for virtual threads
+            ThreadFactory virtualThreadFactory =
+                    Thread.ofVirtual().name(group.threadNamePrefix()).factory();
+            return Executors.newThreadPerTaskExecutor(virtualThreadFactory);
         };
     }
 

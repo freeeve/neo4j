@@ -148,7 +148,9 @@ public enum Group {
 
     // FABRIC
     FABRIC_IDLE_DRIVER_MONITOR("FabricIdleDriverMonitor"),
-    FABRIC_WORKER("FabricWorker"),
+    FABRIC_WORKER("FabricWorker", ExecutorServiceFactory.newVirtualThreadPerTask()),
+
+    SPD_WORKER("SpdWorker"),
 
     // SECURITY
     AUTH_CACHE("AuthCache", ExecutorServiceFactory.workStealing()),
@@ -197,7 +199,11 @@ public enum Group {
      * to honor this.
      */
     public String threadName() {
-        return "neo4j." + groupName() + "-" + threadCounter.incrementAndGet();
+        return threadNamePrefix() + "-" + threadCounter.incrementAndGet();
+    }
+
+    public String threadNamePrefix() {
+        return "neo4j." + groupName();
     }
 
     public ExecutorService buildExecutorService(SchedulerThreadFactory factory, int parallelism) {

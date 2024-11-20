@@ -22,7 +22,6 @@ package org.neo4j.fabric.bootstrap;
 import static org.neo4j.scheduler.Group.CYPHER_CACHE;
 import static org.neo4j.scheduler.JobMonitoringParams.systemJob;
 
-import java.util.concurrent.Executors;
 import org.neo4j.bolt.dbapi.BoltGraphDatabaseManagementServiceSPI;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.configuration.Config;
@@ -57,12 +56,11 @@ import org.neo4j.kernel.availability.AvailabilityGuard;
 import org.neo4j.kernel.database.DatabaseReferenceRepository;
 import org.neo4j.kernel.impl.api.transaction.monitor.TransactionMonitorScheduler;
 import org.neo4j.kernel.lifecycle.LifeSupport;
-import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.kernel.monitoring.tracing.Tracers;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.monitoring.Monitors;
-import org.neo4j.scheduler.CallableExecutorService;
+import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.time.SystemNanoClock;
@@ -134,17 +132,8 @@ public abstract class FabricServicesBootstrap extends CommonQueryRouterBootstrap
         var globalProcedures = resolve(GlobalProcedures.class);
 
         var internalSyntaxUsageStats = resolve(InternalSyntaxUsageStats.class);
-        // TODO: This is a temporary solution to reduce the scope of the current refactoring phase
-        // It will be better integrated with the Central job scheduler
-        var executorService = Executors.newVirtualThreadPerTaskExecutor();
-        var executor = new CallableExecutorService(executorService);
-        lifeSupport().add(new LifecycleAdapter() {
 
-            @Override
-            public void stop() {
-                executorService.shutdown();
-            }
-        });
+        var executor = jobScheduler.executor(Group.FABRIC_WORKER);
 
         register(
                 new TransactionManager(
