@@ -38,9 +38,7 @@ import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanCombinationRewriter
 import org.neo4j.io.ByteUnit
 import org.neo4j.kernel.api.KernelTransaction
-import org.neo4j.kernel.impl.api.KernelTransactions
 import org.neo4j.kernel.impl.util.ReadAndDeleteTransactionConflictException
-import org.neo4j.kernel.internal.GraphDatabaseAPI
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.ListValue
 import org.neo4j.values.virtual.VirtualValues

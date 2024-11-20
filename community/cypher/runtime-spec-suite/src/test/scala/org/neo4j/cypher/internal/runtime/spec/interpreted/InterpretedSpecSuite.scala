@@ -40,7 +40,6 @@ import org.neo4j.cypher.internal.runtime.spec.tests.CachePropertiesTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.CachePropertiesTxStateTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.CartesianProductProvidedOrderTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.CartesianProductTestBase
-import org.neo4j.cypher.internal.runtime.spec.tests.CollectDistinctTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.ConcurrentTransactionApplyTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.ConcurrentTransactionForeachTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.ConditionalApplyTestBase
@@ -211,7 +210,6 @@ object InterpretedSpecSuite {
 
 class InterpretedAggregationTest extends AggregationTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
     with UserDefinedAggregationSupport[CommunityRuntimeContext]
-class InterpretedCollectDistinctTest extends CollectDistinctTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
 
 class InterpretedOrderedAggregationTest
     extends OrderedAggregationTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)

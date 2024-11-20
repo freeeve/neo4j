@@ -30,9 +30,7 @@ import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(aa) ((e)<-[rrr]-(f)){1,}) (g)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(b) ((d)-[rr]->(aa:A) WHERE EXISTS {...} ){1,} (a)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(b_inner)((bb)-[rr]->(aa:A)){0,}(a)`
-import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(firstMiddle) [(a)-[r1]->(b:MIDDLE)]{0, *} (middle:MIDDLE:LOOP)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(me) ((b)-[r]->(c) WHERE EXISTS {...} ){1,} (you)`
-import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(me) [(a)-[r]->()-[]->(b)]{0,*} (you)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(me) [(a)-[r]->(b)]{0,*} (you)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(me) [(a)-[r]->(b)]{0,1} (you)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(me) [(a)-[r]->(b)]{0,2} (you)`
@@ -41,8 +39,6 @@ import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(me) [(a
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(me) [(a)-[r]->(b)]{2,2} (you)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(me) [(a)-[r]->(b)]{3,5} (you)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(me)( (b)-[r]->(c) WHERE EXISTS { (b)( (bb)-[rr]->(aa:A) ){0,}(a) } ){0,}(you)`
-import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(middle) [(c)-[r2]->(d:LOOP)]{0, *} (end:LOOP)`
-import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(start:START) [()-[]->(:MIDDLE)]{1, 1} (firstMiddle:MIDDLE)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(you) [(b)<-[r]-(a)]{0, *} (me)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(you) [(c)-[rr]->(d)]{0,1} (other)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatWalkTestBase.`(you) [(c)-[rr]->(d)]{0,2} (other)`
