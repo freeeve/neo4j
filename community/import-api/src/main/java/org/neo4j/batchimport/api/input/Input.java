@@ -209,7 +209,6 @@ public interface Input extends AutoCloseable {
     }
 
     class Delegate implements Input {
-
         protected final Input delegate;
 
         public Delegate(Input delegate) {
@@ -255,5 +254,19 @@ public interface Input extends AutoCloseable {
         public void close() {
             delegate.close();
         }
+    }
+
+    static Input estimatesCachingInput(Input actual) {
+        return new Input.Delegate(actual) {
+            private Input.Estimates estimates;
+
+            @Override
+            public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator) throws IOException {
+                if (estimates == null) {
+                    estimates = super.validateAndEstimate(valueSizeCalculator);
+                }
+                return estimates;
+            }
+        };
     }
 }
