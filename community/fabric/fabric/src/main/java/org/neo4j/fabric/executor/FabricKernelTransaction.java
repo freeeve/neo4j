@@ -19,33 +19,45 @@
  */
 package org.neo4j.fabric.executor;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import org.neo4j.cypher.internal.FullyParsedQuery;
 import org.neo4j.cypher.internal.javacompat.ExecutionEngine;
 import org.neo4j.cypher.internal.runtime.InputDataStream;
 import org.neo4j.fabric.config.FabricConfig;
 import org.neo4j.fabric.executor.QueryStatementLifecycles.StatementLifecycle;
+import org.neo4j.fabric.stream.BlockingStatementResult;
 import org.neo4j.fabric.stream.InputDataStreamImpl;
-import org.neo4j.fabric.stream.QuerySubject;
 import org.neo4j.fabric.stream.Record;
-import org.neo4j.fabric.stream.Rx2SyncStream;
-import org.neo4j.fabric.stream.StatementResult;
-import org.neo4j.fabric.stream.StatementResults;
-import org.neo4j.fabric.stream.StatementResults.SubscribableExecution;
+import org.neo4j.fabric.stream.Records;
+import org.neo4j.fabric.stream.SourceTagging;
 import org.neo4j.fabric.stream.summary.Summary;
 import org.neo4j.fabric.transaction.FabricTransactionInfo;
 import org.neo4j.graphdb.QueryExecutionType;
+import org.neo4j.graphdb.QueryStatistics;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
+import org.neo4j.kernel.impl.query.QueryExecution;
 import org.neo4j.kernel.impl.query.QueryExecutionKernelException;
-import org.neo4j.kernel.impl.query.QueryExecutionMonitor;
+import org.neo4j.kernel.impl.query.QuerySubscriber;
 import org.neo4j.kernel.impl.query.TransactionalContext;
 import org.neo4j.kernel.impl.query.TransactionalContextFactory;
+import org.neo4j.values.AnyValue;
+import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.MapValue;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.neo4j.values.virtual.MapValueBuilder;
+import org.neo4j.values.virtual.NodeValue;
+import org.neo4j.values.virtual.PathValue;
+import org.neo4j.values.virtual.RelationshipValue;
+import org.neo4j.values.virtual.VirtualNodeValue;
+import org.neo4j.values.virtual.VirtualRelationshipValue;
+import org.neo4j.values.virtual.VirtualValues;
 
 public class FabricKernelTransaction {
     private final ExecutionEngine queryExecutionEngine;
@@ -69,10 +81,10 @@ public class FabricKernelTransaction {
         this.transactionInfo = transactionInfo;
     }
 
-    public StatementResult run(
+    public BlockingStatementResult run(
             FullyParsedQuery query,
             MapValue params,
-            Flux<Record> input,
+            BlockingStatementResult input,
             StatementLifecycle parentLifecycle,
             ExecutionOptions executionOptions) {
         var childExecutionContext = makeChildTransactionalContext(parentLifecycle);
@@ -80,37 +92,22 @@ public class FabricKernelTransaction {
         var childQueryMonitor = parentLifecycle.getChildQueryMonitor();
         openExecutionContexts.add(childExecutionContext);
 
-        SubscribableExecution execution =
-                execute(query, params, childExecutionContext, convert(input), childQueryMonitor);
-
-        QuerySubject subject = executionOptions.addSourceTag()
-                ? new QuerySubject.CompositeQuerySubject(executionOptions.sourceId())
-                : new QuerySubject.BasicQuerySubject();
-
-        StatementResult result = StatementResults.connectVia(execution, subject);
-        return new ContextClosingResultInterceptor(result, childExecutionContext);
-    }
-
-    private SubscribableExecution execute(
-            FullyParsedQuery query,
-            MapValue params,
-            TransactionalContext executionContext,
-            InputDataStream input,
-            QueryExecutionMonitor queryMonitor) {
-        return subscriber -> {
-            try {
-                return queryExecutionEngine.executeQuery(
-                        query, params, executionContext, true, input, queryMonitor, subscriber);
-            } catch (QueryExecutionKernelException e) {
-                // all exception thrown from execution engine are wrapped in QueryExecutionKernelException,
-                // let's see if there is something better hidden in it
-                Throwable cause = e.getCause() == null ? e : e.getCause();
-                throw Exceptions.transformUnexpectedError(
-                        Status.Statement.ExecutionFailed,
-                        cause,
-                        executionContext.executingQuery().internalQueryId());
-            }
-        };
+        var queryId = childExecutionContext.executingQuery().internalQueryId();
+        try {
+            var batchSize = config.getDataStream().getBatchSize();
+            var sourcetagging = new Tagging(executionOptions.sourceId());
+            Function<AnyValue, AnyValue> valueTagging =
+                    executionOptions.addSourceTag() ? sourcetagging::toCompositeDatabaseValue : value -> value;
+            var subscriber = new QuerySubscriberImpl(batchSize, valueTagging);
+            var execution = queryExecutionEngine.executeQuery(
+                    query, params, childExecutionContext, true, convert(input), childQueryMonitor, subscriber);
+            return new BlockingStatementResultImpl(execution, subscriber, batchSize, childExecutionContext);
+        } catch (QueryExecutionKernelException e) {
+            // all exception thrown from execution engine are wrapped in QueryExecutionKernelException,
+            // let's see if there is something better hidden in it
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            throw Exceptions.transformUnexpectedError(Status.Statement.ExecutionFailed, cause, queryId);
+        }
     }
 
     private TransactionalContext makeChildTransactionalContext(StatementLifecycle lifecycle) {
@@ -130,26 +127,21 @@ public class FabricKernelTransaction {
         }
     }
 
-    private InputDataStream convert(Flux<Record> input) {
-        return new InputDataStreamImpl(
-                new Rx2SyncStream(input, config.getDataStream().getBatchSize()));
+    private InputDataStream convert(BlockingStatementResult input) {
+        return new InputDataStreamImpl(input);
     }
 
     public void commit() {
-        synchronized (internalTransaction) {
-            if (internalTransaction.isOpen()) {
-                closeContexts();
-                internalTransaction.commit();
-            }
+        if (internalTransaction.isOpen()) {
+            closeContexts();
+            internalTransaction.commit();
         }
     }
 
     public void rollback() {
-        synchronized (internalTransaction) {
-            if (internalTransaction.isOpen()) {
-                closeContexts();
-                internalTransaction.rollback();
-            }
+        if (internalTransaction.isOpen()) {
+            closeContexts();
+            internalTransaction.rollback();
         }
     }
 
@@ -180,38 +172,205 @@ public class FabricKernelTransaction {
         return internalTransaction.kernelTransaction().getTransactionSequenceNumber();
     }
 
-    private class ContextClosingResultInterceptor implements StatementResult {
-        private final StatementResult wrappedResult;
+    private class BlockingStatementResultImpl implements BlockingStatementResult {
+
+        private final QueryExecution queryExecution;
+        private final QuerySubscriberImpl querySubscriber;
+        private final int batchSize;
         private final TransactionalContext executionContext;
 
-        ContextClosingResultInterceptor(StatementResult wrappedResult, TransactionalContext executionContext) {
-            this.wrappedResult = wrappedResult;
+        private BlockingStatementResultImpl(
+                QueryExecution queryExecution,
+                QuerySubscriberImpl querySubscriber,
+                int batchSize,
+                TransactionalContext executionContext) {
+            this.queryExecution = queryExecution;
+            this.querySubscriber = querySubscriber;
+            this.batchSize = batchSize;
             this.executionContext = executionContext;
         }
 
         @Override
         public List<String> columns() {
-            return wrappedResult.columns();
+            return Arrays.asList(queryExecution.fieldNames());
         }
 
         @Override
-        public Flux<Record> records() {
-            // We care only about the case when the statement completes successfully.
-            // All contexts will be closed upon a failure in the rollback
-            return wrappedResult.records().doOnComplete(() -> {
-                openExecutionContexts.remove(executionContext);
-                executionContext.close();
-            });
+        public Record next() {
+            var record = querySubscriber.batch.poll();
+            if (record != null) {
+                return record;
+            }
+
+            if (querySubscriber.error != null) {
+                throw Exceptions.transformUnexpectedError(Status.Statement.ExecutionFailed, querySubscriber.error);
+            }
+
+            // Presence of statistics means that the stream has been consumed.
+            if (querySubscriber.statistics != null) {
+                if (executionContext.isOpen()) {
+                    openExecutionContexts.remove(executionContext);
+                    executionContext.close();
+                }
+                return null;
+            }
+
+            // If we are here, it means that the batch has been consumed, but not the entire stream,
+            // we have request more
+            try {
+                queryExecution.request(batchSize);
+                queryExecution.await();
+            } catch (Exception e) {
+                throw Exceptions.transformUnexpectedError(Status.Statement.ExecutionFailed, e);
+            }
+
+            // If we are here, it means that the batch was consumed, but not the entire stream,
+            // we have requested more and therefore have to go through the method again.
+            return next();
         }
 
         @Override
-        public Mono<Summary> summary() {
-            return wrappedResult.summary();
+        public Summary consume() {
+            if (querySubscriber.statistics == null) {
+                queryExecution.cancel();
+            }
+
+            return new LocalExecutionSummary(queryExecution, querySubscriber.statistics);
         }
 
         @Override
-        public Mono<QueryExecutionType> executionType() {
-            return wrappedResult.executionType();
+        public QueryExecutionType executionType() {
+            return queryExecution.executionType();
+        }
+    }
+
+    private static class QuerySubscriberImpl implements QuerySubscriber {
+
+        private final Function<AnyValue, AnyValue> valueTagging;
+        private QueryStatistics statistics = null;
+        private final Queue<Record> batch;
+        private int numberOfFields = -1;
+        private List<AnyValue> recordValues = null;
+        private Throwable error;
+
+        private QuerySubscriberImpl(int batchSize, Function<AnyValue, AnyValue> valueTagging) {
+            this.batch = new ArrayDeque<>(batchSize);
+            this.valueTagging = valueTagging;
+        }
+
+        @Override
+        public void onResult(int numberOfFields) {
+            this.numberOfFields = numberOfFields;
+        }
+
+        @Override
+        public void onRecord() {
+            this.recordValues = new ArrayList<>(numberOfFields);
+        }
+
+        @Override
+        public void onField(int offset, AnyValue value) {
+            recordValues.add(offset, valueTagging.apply(value));
+        }
+
+        @Override
+        public void onRecordCompleted() {
+            batch.add(Records.of(recordValues));
+        }
+
+        @Override
+        public void onError(Throwable throwable) {
+            this.error = throwable;
+        }
+
+        @Override
+        public void onResultCompleted(QueryStatistics statistics) {
+            this.statistics = statistics;
+        }
+    }
+
+    private static class Tagging {
+
+        private final long sourceTagId;
+        private final long sourceId;
+
+        public Tagging(long sourceId) {
+            this.sourceTagId = SourceTagging.makeSourceTag(sourceId);
+            this.sourceId = sourceId;
+        }
+
+        private AnyValue toCompositeDatabaseValue(AnyValue value) {
+            if (value instanceof VirtualNodeValue) {
+                if (value instanceof NodeValue node) {
+                    return toCompositeDatabaseValue(node);
+                } else {
+                    throw unableToTagError(value);
+                }
+            } else if (value instanceof VirtualRelationshipValue) {
+                if (value instanceof RelationshipValue rel) {
+                    return toCompositeDatabaseValue(rel);
+                } else {
+                    throw unableToTagError(value);
+                }
+            } else if (value instanceof PathValue) {
+                return toCompositeDatabaseValue((PathValue) value);
+            } else if (value instanceof ListValue) {
+                return toCompositeDatabaseValue((ListValue) value);
+            } else if (value instanceof MapValue) {
+                return toCompositeDatabaseValue((MapValue) value);
+            } else {
+                return value;
+            }
+        }
+
+        private NodeValue toCompositeDatabaseValue(NodeValue n) {
+            return VirtualValues.compositeGraphNodeValue(
+                    tag(n.id()), n.elementId(), sourceId, n.labels(), n.properties());
+        }
+
+        private RelationshipValue toCompositeDatabaseValue(RelationshipValue r) {
+            return VirtualValues.compositeGraphRelationshipValue(
+                    r.id(),
+                    r.elementId(),
+                    sourceId,
+                    VirtualValues.node(tag(r.startNodeId()), r.startNode().elementId(), sourceId),
+                    VirtualValues.node(tag(r.endNodeId()), r.endNode().elementId(), sourceId),
+                    r.type(),
+                    r.properties());
+        }
+
+        private PathValue toCompositeDatabaseValue(PathValue pathValue) {
+            return VirtualValues.path(
+                    Arrays.stream(pathValue.nodes())
+                            .map(this::toCompositeDatabaseValue)
+                            .toArray(NodeValue[]::new),
+                    Arrays.stream(pathValue.relationships())
+                            .map(this::toCompositeDatabaseValue)
+                            .toArray(RelationshipValue[]::new));
+        }
+
+        private ListValue toCompositeDatabaseValue(ListValue listValue) {
+            return VirtualValues.list(Arrays.stream(listValue.asArray())
+                    .map(this::toCompositeDatabaseValue)
+                    .toArray(AnyValue[]::new));
+        }
+
+        private MapValue toCompositeDatabaseValue(MapValue mapValue) {
+            if (mapValue.isEmpty()) {
+                return mapValue;
+            }
+            MapValueBuilder builder = new MapValueBuilder(mapValue.size());
+            mapValue.foreach((key, value) -> builder.add(key, toCompositeDatabaseValue(value)));
+            return builder.build();
+        }
+
+        private long tag(long id) {
+            return SourceTagging.tagId(id, sourceTagId);
+        }
+
+        private static FabricException unableToTagError(AnyValue value) {
+            return new FabricException(
+                    Status.General.UnknownError, "Unable to add graph id to entity of type " + value.getTypeName());
         }
     }
 }

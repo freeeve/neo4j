@@ -21,6 +21,7 @@ package org.neo4j.fabric.executor;
 
 import static scala.jdk.javaapi.CollectionConverters.asJava;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
@@ -38,10 +39,12 @@ import org.neo4j.fabric.planning.FabricPlanner;
 import org.neo4j.fabric.planning.FabricQuery;
 import org.neo4j.fabric.planning.Fragment;
 import org.neo4j.fabric.planning.QueryType;
+import org.neo4j.fabric.stream.BlockingStatementResult;
 import org.neo4j.fabric.stream.CompletionDelegatingOperator;
 import org.neo4j.fabric.stream.Prefetcher;
 import org.neo4j.fabric.stream.Record;
 import org.neo4j.fabric.stream.Records;
+import org.neo4j.fabric.stream.Rx2SyncStream;
 import org.neo4j.fabric.stream.StatementResult;
 import org.neo4j.fabric.stream.summary.MergedSummaryBuilder;
 import org.neo4j.fabric.stream.summary.Summary;
@@ -369,5 +372,37 @@ abstract class SingleQueryFragmentExecutor {
 
     interface FragmentExecutor {
         FragmentResult run(Fragment fragment, Record argument);
+    }
+
+    // TODO: This is a temporary adapter implementing enough for things to work
+    //  during the refactoring work
+    static class InputAdapter implements BlockingStatementResult {
+
+        private final Rx2SyncStream input;
+
+        InputAdapter(Flux<Record> input) {
+            this.input = new Rx2SyncStream(input, 50);
+        }
+
+        @Override
+        public List<String> columns() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Record next() {
+            return input.readRecord();
+        }
+
+        @Override
+        public Summary consume() {
+            input.close();
+            return null;
+        }
+
+        @Override
+        public QueryExecutionType executionType() {
+            throw new UnsupportedOperationException();
+        }
     }
 }

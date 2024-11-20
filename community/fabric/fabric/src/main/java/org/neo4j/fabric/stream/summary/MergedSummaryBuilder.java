@@ -20,7 +20,6 @@
 package org.neo4j.fabric.stream.summary;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import org.neo4j.graphdb.ExecutionPlanDescription;
@@ -33,6 +32,7 @@ import reactor.core.publisher.Mono;
 public class MergedSummaryBuilder {
 
     private final List<Mono<Summary>> summaries = new ArrayList<>();
+    private Mono<Summary> lastSummary = Mono.empty();
     private final List<NotificationImplementation> planNotifications;
 
     public MergedSummaryBuilder(List<NotificationImplementation> planNotifications) {
@@ -41,6 +41,7 @@ public class MergedSummaryBuilder {
 
     public synchronized void addSummary(Mono<Summary> summary) {
         summaries.add(summary);
+        lastSummary = summary;
     }
 
     public Mono<Summary> build(Mono<ExecutionPlanDescription> executionPlanDescription) {
@@ -48,13 +49,14 @@ public class MergedSummaryBuilder {
             var statistics = new MergedQueryStatistics();
             var notifications = new HashSet<Notification>(planNotifications);
             var gqlStatusObjects = new HashSet<GqlStatusObject>(planNotifications);
-            Collection<GqlStatusObject> lastAddedGqlStatusObjects = null;
             for (var summary : collectedSummaries) {
                 statistics.add(summary.getQueryStatistics());
                 notifications.addAll(summary.getNotifications());
                 gqlStatusObjects.addAll(summary.getGqlStatusObjects());
-                lastAddedGqlStatusObjects = summary.getGqlStatusObjects();
             }
+
+            var lastAddedGqlStatusObjects =
+                    lastSummary.map(Summary::getGqlStatusObjects).block();
 
             return new MergedSummary(
                     executionPlanDescription, statistics, notifications, gqlStatusObjects, lastAddedGqlStatusObjects);

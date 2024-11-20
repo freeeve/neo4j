@@ -43,19 +43,22 @@ public class Blocking2RxResultAdapter {
         return blocking2Mono(executor, () -> new StatementResultImpl(blockingOperation.get(), executor));
     }
 
+    public static StatementResult adapt(BlockingStatementResult blockingStatementResult) {
+        return new StatementResultImpl(blockingStatementResult, Runnable::run);
+    }
+
     private static <T> Mono<T> blocking2Mono(Executor executor, Supplier<T> blockingOperation) {
         CompletableFuture<T> future = new CompletableFuture<>();
-
-        executor.execute(() -> {
-            try {
-                var result = blockingOperation.get();
-                future.complete(result);
-            } catch (RuntimeException e) {
-                future.completeExceptionally(e);
-            }
-        });
-
-        return Mono.fromFuture(future);
+        return Mono.fromFuture(future)
+                .doOnSubscribe(subscription -> executor.execute(() -> {
+                    try {
+                        var result = blockingOperation.get();
+                        future.complete(result);
+                    } catch (RuntimeException e) {
+                        future.completeExceptionally(e);
+                    }
+                }))
+                .cache();
     }
 
     private static class StatementResultImpl implements StatementResult {

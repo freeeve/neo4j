@@ -19,15 +19,12 @@
  */
 package org.neo4j.fabric.stream;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import org.neo4j.fabric.stream.summary.Summary;
 import org.neo4j.graphdb.QueryExecutionType;
-import org.neo4j.kernel.impl.query.QueryExecution;
-import org.neo4j.kernel.impl.query.QuerySubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -45,16 +42,6 @@ public final class StatementResults {
     public static StatementResult initial() {
         return new BasicStatementResult(
                 Collections.emptyList(), Flux.just(Records.empty()), Mono.empty(), Mono.empty());
-    }
-
-    public static StatementResult connectVia(SubscribableExecution execution, QuerySubject subject) {
-        QueryExecution queryExecution = execution.subscribe(subject);
-        subject.setQueryExecution(queryExecution);
-        return create(
-                Arrays.asList(queryExecution.fieldNames()),
-                Flux.from(subject),
-                subject.getSummary(),
-                Mono.just(queryExecution.executionType()));
     }
 
     public static StatementResult create(
@@ -130,10 +117,5 @@ public final class StatementResults {
         public Mono<QueryExecutionType> executionType() {
             return executionType;
         }
-    }
-
-    @FunctionalInterface
-    public interface SubscribableExecution {
-        QueryExecution subscribe(QuerySubscriber subscriber);
     }
 }

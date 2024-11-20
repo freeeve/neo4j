@@ -24,11 +24,11 @@ import org.neo4j.cypher.internal.runtime.InputDataStream;
 import org.neo4j.values.AnyValue;
 
 public class InputDataStreamImpl implements InputDataStream {
-    private final Rx2SyncStream wrappedStream;
+    private final BlockingStatementResult input;
     private InputCursor inputCursor;
 
-    public InputDataStreamImpl(Rx2SyncStream wrappedStream) {
-        this.wrappedStream = wrappedStream;
+    public InputDataStreamImpl(BlockingStatementResult input) {
+        this.input = input;
         inputCursor = new Cursor();
     }
 
@@ -43,7 +43,7 @@ public class InputDataStreamImpl implements InputDataStream {
 
         @Override
         public boolean next() {
-            currentRecord = wrappedStream.readRecord();
+            currentRecord = input.next();
 
             if (currentRecord != null) {
                 return true;
@@ -60,7 +60,7 @@ public class InputDataStreamImpl implements InputDataStream {
 
         @Override
         public void close() {
-            wrappedStream.close();
+            input.consume();
         }
     }
 }

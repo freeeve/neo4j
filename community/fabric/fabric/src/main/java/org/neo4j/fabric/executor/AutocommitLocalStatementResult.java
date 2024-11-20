@@ -23,24 +23,22 @@ import java.util.List;
 import org.neo4j.fabric.bookmark.LocalBookmark;
 import org.neo4j.fabric.bookmark.LocalGraphTransactionIdTracker;
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
+import org.neo4j.fabric.stream.BlockingStatementResult;
 import org.neo4j.fabric.stream.Record;
-import org.neo4j.fabric.stream.StatementResult;
 import org.neo4j.fabric.stream.summary.Summary;
 import org.neo4j.fabric.transaction.parent.CompoundTransaction;
 import org.neo4j.graphdb.QueryExecutionType;
 import org.neo4j.kernel.api.exceptions.Status;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
-public class AutocommitLocalStatementResult implements StatementResult, CompoundTransaction.AutocommitQuery {
-    private final StatementResult result;
+public class AutocommitLocalStatementResult implements BlockingStatementResult, CompoundTransaction.AutocommitQuery {
+    private final BlockingStatementResult result;
     private final FabricKernelTransaction transaction;
     private final TransactionBookmarkManager bookmarkManager;
     private final LocalGraphTransactionIdTracker transactionIdTracker;
     private final Location.Local location;
 
     public AutocommitLocalStatementResult(
-            StatementResult result,
+            BlockingStatementResult result,
             FabricKernelTransaction transaction,
             TransactionBookmarkManager bookmarkManager,
             LocalGraphTransactionIdTracker transactionIdTracker,
@@ -58,17 +56,23 @@ public class AutocommitLocalStatementResult implements StatementResult, Compound
     }
 
     @Override
-    public Flux<Record> records() {
-        return result.records().doOnComplete(this::doCommit);
+    public Record next() {
+        var record = result.next();
+
+        if (record == null) {
+            doCommit();
+        }
+
+        return record;
     }
 
     @Override
-    public Mono<Summary> summary() {
-        return result.summary();
+    public Summary consume() {
+        return result.consume();
     }
 
     @Override
-    public Mono<QueryExecutionType> executionType() {
+    public QueryExecutionType executionType() {
         return result.executionType();
     }
 

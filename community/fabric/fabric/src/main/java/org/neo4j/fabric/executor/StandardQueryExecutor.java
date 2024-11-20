@@ -118,16 +118,18 @@ class StandardQueryExecutor extends SingleQueryFragmentExecutor {
             Flux<Record> input,
             ExecutionOptions executionOptions,
             Boolean targetsComposite) {
-        return ctx().getLocal()
+        var result = ctx().getLocal()
                 .run(
                         location,
                         transactionMode,
                         parentLifecycle,
                         query,
                         params,
-                        input,
+                        new InputAdapter(input),
                         executionOptions,
                         targetsComposite);
+
+        return Blocking2RxResultAdapter.adapt(result);
     }
 
     private MapValue addParamsFromRecord(MapValue params, Map<String, AnyValue> record, Map<String, String> bindings) {

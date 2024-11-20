@@ -353,8 +353,10 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
             Flux<Record> input,
             ExecutionOptions executionOptions,
             Boolean targetsComposite) {
-        return ctx().getLocal()
-                .runInAutocommitTransaction(location, parentLifecycle, query, params, input, executionOptions);
+        var result = ctx().getLocal()
+                .runInAutocommitTransaction(
+                        location, parentLifecycle, query, params, new InputAdapter(input), executionOptions);
+        return Blocking2RxResultAdapter.adapt(result);
     }
 
     private record BufferedInputRow(Map<String, AnyValue> argumentValues, Record record) {}

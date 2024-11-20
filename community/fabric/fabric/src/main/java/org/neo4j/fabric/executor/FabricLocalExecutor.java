@@ -19,6 +19,7 @@
  */
 package org.neo4j.fabric.executor;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -33,8 +34,7 @@ import org.neo4j.fabric.bookmark.LocalGraphTransactionIdTracker;
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
 import org.neo4j.fabric.config.FabricConfig;
 import org.neo4j.fabric.executor.QueryStatementLifecycles.StatementLifecycle;
-import org.neo4j.fabric.stream.Record;
-import org.neo4j.fabric.stream.StatementResult;
+import org.neo4j.fabric.stream.BlockingStatementResult;
 import org.neo4j.fabric.transaction.FabricTransactionInfo;
 import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.fabric.transaction.parent.CompoundTransaction;
@@ -47,7 +47,6 @@ import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.query.TransactionalContextFactory;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.values.virtual.MapValue;
-import reactor.core.publisher.Flux;
 
 public class FabricLocalExecutor {
     private final FabricConfig config;
@@ -85,25 +84,25 @@ public class FabricLocalExecutor {
             this.bookmarkManager = bookmarkManager;
         }
 
-        public StatementResult run(
+        public BlockingStatementResult run(
                 Location.Local location,
                 TransactionMode transactionMode,
                 StatementLifecycle parentLifecycle,
                 FullyParsedQuery query,
                 MapValue params,
-                Flux<Record> input,
+                BlockingStatementResult input,
                 ExecutionOptions executionOptions,
                 Boolean targetsComposite) {
             var kernelTransaction = getOrCreateTx(location, transactionMode, targetsComposite);
             return kernelTransaction.run(query, params, input, parentLifecycle, executionOptions);
         }
 
-        public StatementResult runInAutocommitTransaction(
+        public BlockingStatementResult runInAutocommitTransaction(
                 Location.Local location,
                 StatementLifecycle parentLifecycle,
                 FullyParsedQuery query,
                 MapValue params,
-                Flux<Record> input,
+                BlockingStatementResult input,
                 ExecutionOptions executionOptions) {
             var databaseFacade = getDatabaseFacade(location);
             bookmarkManager
@@ -111,9 +110,9 @@ public class FabricLocalExecutor {
                     .ifPresent(bookmark -> transactionIdTracker.awaitGraphUpToDate(location, bookmark.transactionId()));
             var kernelTransaction = beginKernelTx(databaseFacade);
 
-            var driverResult = kernelTransaction.run(query, params, input, parentLifecycle, executionOptions);
+            var kernelResult = kernelTransaction.run(query, params, input, parentLifecycle, executionOptions);
             var result = new AutocommitLocalStatementResult(
-                    driverResult, kernelTransaction, bookmarkManager, transactionIdTracker, location);
+                    kernelResult, kernelTransaction, bookmarkManager, transactionIdTracker, location);
             parentTransaction.registerAutocommitQuery(result);
             return result;
         }
@@ -198,7 +197,7 @@ public class FabricLocalExecutor {
                     routingInfo,
                     transactionInfo.getTxTimeout().toMillis(),
                     TimeUnit.MILLISECONDS,
-                    parentTransaction::childTransactionTerminated,
+                    this::reportTermination,
                     this::transformTerminalOperationError);
 
             if (transactionInfo.getTxMetadata() != null) {
@@ -233,6 +232,22 @@ public class FabricLocalExecutor {
             // The error is wrapped into a generic one
             // and a proper status code will be added later.
             throw new TransactionFailureException("Unable to complete transaction.", e, Status.General.UnknownError);
+        }
+
+        private void reportTermination(Status status) {
+            // Cypher runtime introduced a new interesting feature some time ago.
+            // When an exception is thrown during a query execution, the transaction is terminated.
+            // This is quite unfortunate for composite queries, because when an exception happens
+            // in one local fragment, we don't want to terminate all the involved transactions before
+            // the original exception is propagated through the composite execution pipeline.
+            // In other words, we don't want to tear down the entire composite execution pipeline when
+            // and exception happens in during a fragment execution.
+            // So we filter termination reasons that we send 'up' to the parent transaction now.
+            // Considering only statuses from 'Transaction' category should cover all the cases
+            // when reporting termination 'up' makes sense
+            if (Arrays.stream(Status.Transaction.values()).anyMatch(transactionStatus -> status == transactionStatus)) {
+                parentTransaction.childTransactionTerminated(status);
+            }
         }
     }
 
