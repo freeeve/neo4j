@@ -39,7 +39,7 @@ import org.eclipse.collections.impl.factory.primitive.LongLongMaps;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.batchimport.api.Configuration;
-import org.neo4j.collection.diffset.LongDiffSets;
+import org.neo4j.collection.diffset.IntDiffSets;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
 import org.neo4j.internal.id.IdGenerator;
@@ -263,7 +263,7 @@ class DegreesRebuildFromStoreTest {
         }
         applyLogicalChanges(storageEngine, (state, tx) -> {
             NodeState nodeState = mock(NodeState.class);
-            when(nodeState.labelDiffSets()).thenReturn(LongDiffSets.EMPTY);
+            when(nodeState.labelDiffSets()).thenReturn(IntDiffSets.EMPTY);
             when(state.getNodeState(anyLong())).thenReturn(nodeState);
             tx.visitRelationshipModifications(
                     new FlatRelationshipModifications(relationships.toArray(new RelationshipData[0])));

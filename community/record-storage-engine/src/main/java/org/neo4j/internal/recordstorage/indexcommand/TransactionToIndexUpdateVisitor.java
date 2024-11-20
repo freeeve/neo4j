@@ -30,7 +30,6 @@ import static org.neo4j.token.api.TokenConstants.ANY_RELATIONSHIP_TYPE;
 
 import java.util.Arrays;
 import org.eclipse.collections.api.set.primitive.IntSet;
-import org.eclipse.collections.api.set.primitive.LongSet;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 import org.neo4j.common.EntityType;
@@ -109,7 +108,7 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
     }
 
     @Override
-    public void visitNodeLabelChanges(long id, LongSet added, LongSet removed) throws ConstraintValidationException {
+    public void visitNodeLabelChanges(long id, IntSet added, IntSet removed) throws ConstraintValidationException {
         super.visitNodeLabelChanges(id, added, removed);
 
         if (labelIndex == null) {
@@ -120,7 +119,7 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
         int[] currentLabels;
 
         if (txState.nodeIsAddedInThisBatch(id)) {
-            labels = IntHashSet.newSetWith(toIntArray(added));
+            labels = IntHashSet.newSet(added);
             currentLabels = NO_TOKENS;
         } else {
             nodeCursor.single(id);
@@ -137,7 +136,7 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
                 }
             }
 
-            mutableLabels.addAll(toIntArray(added));
+            mutableLabels.addAll(added);
             labels = mutableLabels;
         }
         indexRecordState.addTokenUpdate(change(id, labelIndex, currentLabels, labels.toSortedArray()));
@@ -207,17 +206,5 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
     public void close() throws KernelException {
         super.close();
         IOUtils.closeAllUnchecked(nodeCursor, relationshipCursor);
-    }
-
-    private static int[] toIntArray(LongSet ids) {
-        return toIntArray(ids.toArray());
-    }
-
-    private static int[] toIntArray(long[] data) {
-        final var tokens = new int[data.length];
-        for (var i = 0; i < tokens.length; i++) {
-            tokens[i] = (int) data[i];
-        }
-        return tokens;
     }
 }

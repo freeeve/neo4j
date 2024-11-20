@@ -22,7 +22,7 @@ package org.neo4j.storageengine.api.txstate;
 import org.eclipse.collections.api.IntIterable;
 import org.eclipse.collections.api.iterator.LongIterator;
 import org.neo4j.collection.diffset.DiffSets;
-import org.neo4j.collection.diffset.LongDiffSets;
+import org.neo4j.collection.diffset.IntDiffSets;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.storageengine.api.Degrees;
 import org.neo4j.storageengine.api.RelationshipDirection;
@@ -38,7 +38,7 @@ import org.neo4j.storageengine.api.RelationshipSelection;
  * </ul>
  */
 public interface NodeState extends EntityState {
-    LongDiffSets labelDiffSets();
+    IntDiffSets labelDiffSets();
 
     boolean fillDegrees(RelationshipSelection selection, Degrees.Mutator degree);
 

@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
 import org.eclipse.collections.api.IntIterable;
-import org.eclipse.collections.api.set.primitive.LongSet;
+import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
 import org.neo4j.common.EntityType;
@@ -125,7 +125,7 @@ class FulltextIndexTransactionStateVisitor extends TxStateVisitor.Adapter {
     }
 
     @Override
-    public void visitNodeLabelChanges(long id, LongSet added, LongSet removed) {
+    public void visitNodeLabelChanges(long id, IntSet added, IntSet removed) {
         indexNode(id);
         if (visitingNodes) {
             // Nodes that have had their indexed labels removed will not have their properties indexed, so 'indexNode'

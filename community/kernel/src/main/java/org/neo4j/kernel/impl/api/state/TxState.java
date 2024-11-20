@@ -23,6 +23,7 @@ import static org.neo4j.collection.diffset.TrackableDiffSets.newChangeCountingDi
 import static org.neo4j.collection.diffset.TrackableDiffSets.newMutableDiffSets;
 import static org.neo4j.collection.diffset.TrackableDiffSets.newMutableLongDiffSets;
 import static org.neo4j.collection.diffset.TrackableDiffSets.newRemovalsCountingDiffSets;
+import static org.neo4j.collection.trackable.HeapTrackingCollections.newIntObjectHashMap;
 import static org.neo4j.collection.trackable.HeapTrackingCollections.newLongObjectMap;
 import static org.neo4j.collection.trackable.HeapTrackingCollections.newMap;
 import static org.neo4j.kernel.impl.api.state.TokenState.createTokenState;
@@ -39,13 +40,16 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import org.eclipse.collections.api.map.MutableMap;
+import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.impl.UnmodifiableMap;
 import org.neo4j.collection.diffset.ChangeCountingDiffSet;
 import org.neo4j.collection.diffset.DiffSets;
+import org.neo4j.collection.diffset.IntDiffSets;
 import org.neo4j.collection.diffset.LongDiffSets;
 import org.neo4j.collection.diffset.MutableDiffSets;
+import org.neo4j.collection.diffset.MutableIntDiffSets;
 import org.neo4j.collection.diffset.MutableLongDiffSets;
 import org.neo4j.collection.diffset.RemovalsCountingDiffSets;
 import org.neo4j.collection.factory.CollectionsFactory;
@@ -102,7 +106,7 @@ public class TxState implements TransactionState {
      */
     private final CollectionsFactory collectionsFactory;
 
-    private MutableLongObjectMap<MutableLongDiffSets> labelStatesMap;
+    private MutableIntObjectMap<MutableLongDiffSets> labelStatesMap;
     private MutableLongObjectMap<NodeStateImpl> nodeStatesMap;
     private MutableLongObjectMap<MutableLongDiffSets> relationshipTypeStatesMap;
     private MutableLongObjectMap<RelationshipStateImpl> relationshipStatesMap;
@@ -226,7 +230,7 @@ public class TxState implements TransactionState {
                         node.getId(), node.addedProperties(), node.changedProperties(), node.removedProperties());
             }
 
-            final LongDiffSets labelDiffSets = node.labelDiffSets();
+            final IntDiffSets labelDiffSets = node.labelDiffSets();
             if (!labelDiffSets.isEmpty()) {
                 visitor.visitNodeLabelChanges(node.getId(), labelDiffSets.getAdded(), labelDiffSets.getRemoved());
             }
@@ -324,15 +328,15 @@ public class TxState implements TransactionState {
     }
 
     @VisibleForTesting
-    MutableLongDiffSets getOrCreateLabelStateNodeDiffSets(long labelId) {
+    MutableLongDiffSets getOrCreateLabelStateNodeDiffSets(int labelId) {
         if (labelStatesMap == null) {
-            labelStatesMap = newLongObjectMap(stateMemoryTracker);
+            labelStatesMap = newIntObjectHashMap(stateMemoryTracker);
         }
         return labelStatesMap.getIfAbsentPut(
                 labelId, () -> newMutableLongDiffSets(collectionsFactory, stateMemoryTracker));
     }
 
-    private LongDiffSets getLabelStateNodeDiffSets(long labelId) {
+    private LongDiffSets getLabelStateNodeDiffSets(int labelId) {
         if (labelStatesMap == null) {
             return LongDiffSets.EMPTY;
         }
@@ -350,11 +354,11 @@ public class TxState implements TransactionState {
     }
 
     @Override
-    public LongDiffSets nodeStateLabelDiffSets(long nodeId) {
+    public IntDiffSets nodeStateLabelDiffSets(long nodeId) {
         return getNodeState(nodeId).labelDiffSets();
     }
 
-    private MutableLongDiffSets getOrCreateNodeStateLabelDiffSets(long nodeId) {
+    private MutableIntDiffSets getOrCreateNodeStateLabelDiffSets(long nodeId) {
         return getOrCreateNodeState(nodeId).getOrCreateLabelDiffSets();
     }
 
@@ -400,7 +404,7 @@ public class TxState implements TransactionState {
             // grouped by type and direction.
             NodeStateImpl nodeState = nodeStatesMap.get(nodeId);
             if (nodeState != null) {
-                final LongDiffSets diff = nodeState.labelDiffSets();
+                final IntDiffSets diff = nodeState.labelDiffSets();
                 diff.getAdded()
                         .each(label -> getOrCreateLabelStateNodeDiffSets(label).remove(nodeId));
                 nodeState.markAsDeleted();
@@ -628,10 +632,10 @@ public class TxState implements TransactionState {
 
     @Override
     public MutableIntSet augmentLabels(MutableIntSet labels, NodeState nodeState) {
-        final LongDiffSets labelDiffSets = nodeState.labelDiffSets();
+        final IntDiffSets labelDiffSets = nodeState.labelDiffSets();
         if (!labelDiffSets.isEmpty()) {
-            labelDiffSets.getRemoved().forEach(value -> labels.remove((int) value));
-            labelDiffSets.getAdded().forEach(element -> labels.add((int) element));
+            labelDiffSets.getRemoved().forEach(labels::remove);
+            labelDiffSets.getAdded().forEach(labels::add);
         }
         return labels;
     }

@@ -24,6 +24,7 @@ import java.util.NavigableMap;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.impl.UnmodifiableMap;
 import org.neo4j.collection.diffset.DiffSets;
+import org.neo4j.collection.diffset.IntDiffSets;
 import org.neo4j.collection.diffset.LongDiffSets;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.schema.ConstraintDescriptor;
@@ -82,7 +83,7 @@ public interface ReadableTransactionState {
 
     boolean relationshipIsDeletedInThisBatch(long relationshipId);
 
-    LongDiffSets nodeStateLabelDiffSets(long nodeId);
+    IntDiffSets nodeStateLabelDiffSets(long nodeId);
 
     boolean nodeIsAddedInThisBatch(long nodeId);
 

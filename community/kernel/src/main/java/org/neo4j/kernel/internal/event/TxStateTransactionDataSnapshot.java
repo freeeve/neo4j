@@ -28,8 +28,8 @@ import java.util.Iterator;
 import java.util.Map;
 import org.eclipse.collections.api.LongIterable;
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
-import org.eclipse.collections.api.set.primitive.LongSet;
-import org.neo4j.collection.diffset.LongDiffSets;
+import org.eclipse.collections.api.set.primitive.IntSet;
+import org.neo4j.collection.diffset.IntDiffSets;
 import org.neo4j.collection.trackable.HeapTrackingArrayList;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -277,7 +277,7 @@ public class TxStateTransactionDataSnapshot implements TransactionData, AutoClos
                 }
             });
 
-            final LongDiffSets labels = nodeState.labelDiffSets();
+            final IntDiffSets labels = nodeState.labelDiffSets();
             addLabelEntriesTo(nodeId, labels.getAdded(), assignedLabels);
             addLabelEntriesTo(nodeId, labels.getRemoved(), removedLabels);
         }
@@ -347,10 +347,10 @@ public class TxStateTransactionDataSnapshot implements TransactionData, AutoClos
         relationship.close();
     }
 
-    private void addLabelEntriesTo(long nodeId, LongSet labelIds, HeapTrackingArrayList<LabelEntry> target) {
+    private void addLabelEntriesTo(long nodeId, IntSet labelIds, HeapTrackingArrayList<LabelEntry> target) {
         labelIds.each(labelId -> {
             try {
-                target.add(createLabelView(memoryTracker, transaction.tokenRead(), nodeId, (int) labelId));
+                target.add(createLabelView(memoryTracker, transaction.tokenRead(), nodeId, labelId));
             } catch (LabelNotFoundKernelException e) {
                 throw new IllegalStateException("Not existing label was modified for node " + nodeId, e);
             }

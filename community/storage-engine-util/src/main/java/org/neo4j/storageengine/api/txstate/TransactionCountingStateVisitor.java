@@ -24,9 +24,9 @@ import static org.neo4j.storageengine.api.RelationshipSelection.ALL_RELATIONSHIP
 import static org.neo4j.token.api.TokenConstants.ANY_LABEL;
 import static org.neo4j.token.api.TokenConstants.ANY_RELATIONSHIP_TYPE;
 
-import java.util.function.LongConsumer;
-import org.eclipse.collections.api.set.primitive.LongSet;
-import org.neo4j.collection.diffset.LongDiffSets;
+import java.util.function.IntConsumer;
+import org.eclipse.collections.api.set.primitive.IntSet;
+import org.neo4j.collection.diffset.IntDiffSets;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.exceptions.UnspecifiedKernelException;
 import org.neo4j.internal.helpers.Exceptions;
@@ -123,20 +123,20 @@ public class TransactionCountingStateVisitor extends TxStateVisitor.Delegator {
     }
 
     @Override
-    public void visitNodeLabelChanges(long id, final LongSet added, final LongSet removed)
+    public void visitNodeLabelChanges(long id, final IntSet added, final IntSet removed)
             throws ConstraintValidationException {
         // update counts
         if (!(added.isEmpty() && removed.isEmpty())) {
-            added.each(label -> counts.incrementNodeCount((int) label, 1));
-            removed.each(label -> counts.incrementNodeCount((int) label, -1));
+            added.each(label -> counts.incrementNodeCount(label, 1));
+            removed.each(label -> counts.incrementNodeCount(label, -1));
             // get the relationship counts from *before* this transaction,
             // the relationship changes will compensate for what happens during the transaction
 
             nodeCursor.single(id);
             if (nodeCursor.next()) {
                 visitDegrees(nodeCursor, (type, out, in) -> {
-                    added.forEach(label -> updateRelationshipsCountsFromDegrees(type, (int) label, out, in));
-                    removed.forEach(label -> updateRelationshipsCountsFromDegrees(type, (int) label, -out, -in));
+                    added.forEach(label -> updateRelationshipsCountsFromDegrees(type, label, out, in));
+                    removed.forEach(label -> updateRelationshipsCountsFromDegrees(type, label, -out, -in));
                 });
             }
         }
@@ -155,11 +155,11 @@ public class TransactionCountingStateVisitor extends TxStateVisitor.Delegator {
 
     private void updateRelationshipCount(long startNode, int type, long endNode, int delta) {
         updateRelationshipsCountsFromDegrees(type, ANY_LABEL, delta, 0);
-        visitLabels(startNode, labelId -> updateRelationshipsCountsFromDegrees(type, (int) labelId, delta, 0));
-        visitLabels(endNode, labelId -> updateRelationshipsCountsFromDegrees(type, (int) labelId, 0, delta));
+        visitLabels(startNode, labelId -> updateRelationshipsCountsFromDegrees(type, labelId, delta, 0));
+        visitLabels(endNode, labelId -> updateRelationshipsCountsFromDegrees(type, labelId, 0, delta));
     }
 
-    private void visitLabels(long nodeId, LongConsumer visitor) {
+    private void visitLabels(long nodeId, IntConsumer visitor) {
         // This transaction state visitor doesn't have access to higher level cursors that combine store- and tx-state,
         // but however has access to the two individually, and so does this combining here directly.
         if (txState.nodeIsDeletedInThisBatch(nodeId)) {
@@ -172,7 +172,7 @@ public class TransactionCountingStateVisitor extends TxStateVisitor.Delegator {
             nodeCursor.single(nodeId);
             if (nodeCursor.next()) {
                 int[] labels = nodeCursor.labels();
-                LongDiffSets labelDiff = txState.getNodeState(nodeId).labelDiffSets();
+                IntDiffSets labelDiff = txState.getNodeState(nodeId).labelDiffSets();
                 labelDiff.getAdded().forEach(visitor::accept);
                 for (int label : labels) {
                     if (!labelDiff.isRemoved(label)) {

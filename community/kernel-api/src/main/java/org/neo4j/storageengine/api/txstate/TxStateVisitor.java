@@ -21,7 +21,7 @@ package org.neo4j.storageengine.api.txstate;
 
 import java.util.function.Function;
 import org.eclipse.collections.api.IntIterable;
-import org.eclipse.collections.api.set.primitive.LongSet;
+import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.kernel.api.Upgrade;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
@@ -44,7 +44,7 @@ public interface TxStateVisitor extends AutoCloseable {
             long id, Iterable<StorageProperty> added, Iterable<StorageProperty> changed, IntIterable removed)
             throws ConstraintValidationException;
 
-    void visitNodeLabelChanges(long id, LongSet added, LongSet removed) throws ConstraintValidationException;
+    void visitNodeLabelChanges(long id, IntSet added, IntSet removed) throws ConstraintValidationException;
 
     void visitAddedIndex(IndexDescriptor element) throws KernelException;
 
@@ -84,8 +84,7 @@ public interface TxStateVisitor extends AutoCloseable {
                 throws ConstraintValidationException {}
 
         @Override
-        public void visitNodeLabelChanges(long id, LongSet added, LongSet removed)
-                throws ConstraintValidationException {}
+        public void visitNodeLabelChanges(long id, IntSet added, IntSet removed) throws ConstraintValidationException {}
 
         @Override
         public void visitAddedIndex(IndexDescriptor index) throws KernelException {}
@@ -159,8 +158,7 @@ public interface TxStateVisitor extends AutoCloseable {
         }
 
         @Override
-        public void visitNodeLabelChanges(long id, LongSet added, LongSet removed)
-                throws ConstraintValidationException {
+        public void visitNodeLabelChanges(long id, IntSet added, IntSet removed) throws ConstraintValidationException {
             actual.visitNodeLabelChanges(id, added, removed);
         }
 

@@ -52,11 +52,13 @@ import java.util.TreeMap;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.eclipse.collections.api.IntIterable;
+import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.api.set.primitive.LongSet;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.impl.UnmodifiableMap;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
 import org.eclipse.collections.impl.factory.primitive.LongSets;
+import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -152,10 +154,10 @@ class TxStateTest {
         state.nodeDoAddLabel(2, 1);
 
         // WHEN
-        LongSet addedLabels = state.nodeStateLabelDiffSets(1).getAdded();
+        IntSet addedLabels = state.nodeStateLabelDiffSets(1).getAdded();
 
         // THEN
-        assertEquals(newSetWith(1, 2), addedLabels);
+        assertEquals(IntHashSet.newSetWith(1, 2), addedLabels);
     }
 
     @Test
@@ -166,10 +168,10 @@ class TxStateTest {
         state.nodeDoRemoveLabel(2, 1);
 
         // WHEN
-        LongSet removedLabels = state.nodeStateLabelDiffSets(1).getRemoved();
+        IntSet removedLabels = state.nodeStateLabelDiffSets(1).getRemoved();
 
         // THEN
-        assertEquals(newSetWith(1, 2), removedLabels);
+        assertEquals(IntHashSet.newSetWith(1, 2), removedLabels);
     }
 
     @Test
@@ -183,7 +185,7 @@ class TxStateTest {
         state.nodeDoRemoveLabel(1, 1);
 
         // THEN
-        assertEquals(newSetWith(2), state.nodeStateLabelDiffSets(1).getAdded());
+        assertEquals(IntHashSet.newSetWith(2), state.nodeStateLabelDiffSets(1).getAdded());
     }
 
     @Test
@@ -197,7 +199,7 @@ class TxStateTest {
         state.nodeDoAddLabel(1, 1);
 
         // THEN
-        assertEquals(newSetWith(2), state.nodeStateLabelDiffSets(1).getRemoved());
+        assertEquals(IntHashSet.newSetWith(2), state.nodeStateLabelDiffSets(1).getRemoved());
     }
 
     @Test
@@ -660,7 +662,7 @@ class TxStateTest {
         MutableBoolean labelsChecked = new MutableBoolean();
         state.accept(new TxStateVisitor.Adapter() {
             @Override
-            public void visitNodeLabelChanges(long id, LongSet added, LongSet removed) {
+            public void visitNodeLabelChanges(long id, IntSet added, IntSet removed) {
                 labelsChecked.setTrue();
                 assertEquals(1, id);
                 assertEquals(1, added.size());
@@ -683,7 +685,7 @@ class TxStateTest {
         MutableBoolean propertiesChecked = new MutableBoolean();
         state.accept(new TxStateVisitor.Adapter() {
             @Override
-            public void visitNodeLabelChanges(long id, LongSet added, LongSet removed) {
+            public void visitNodeLabelChanges(long id, IntSet added, IntSet removed) {
                 fail("Labels were not changed.");
             }
 

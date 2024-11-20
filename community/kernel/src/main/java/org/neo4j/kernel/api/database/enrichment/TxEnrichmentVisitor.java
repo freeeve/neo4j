@@ -29,7 +29,6 @@ import org.eclipse.collections.api.IntIterable;
 import org.eclipse.collections.api.factory.primitive.IntObjectMaps;
 import org.eclipse.collections.api.factory.primitive.IntSets;
 import org.eclipse.collections.api.set.primitive.IntSet;
-import org.eclipse.collections.api.set.primitive.LongSet;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.neo4j.collection.trackable.HeapTrackingArrayList;
 import org.neo4j.collection.trackable.HeapTrackingCollections;
@@ -253,19 +252,19 @@ public class TxEnrichmentVisitor extends TxStateVisitor.Delegator implements Enr
     }
 
     @Override
-    public void visitNodeLabelChanges(long id, LongSet added, LongSet removed) throws ConstraintValidationException {
+    public void visitNodeLabelChanges(long id, IntSet added, IntSet removed) throws ConstraintValidationException {
         super.visitNodeLabelChanges(id, added, removed);
         captureNodeState(id, DeltaType.MODIFIED, true);
 
         final var position = changesChannel.size();
         final var addedInThisBatch = txState.nodeIsAddedInThisBatch(id);
         if (addedInThisBatch) {
-            final var labels = toIntArray(added);
+            final var labels = added.toArray();
             addLabels(labels);
             captureLabelConstraints(id, labels);
         } else {
-            addLabels(toIntArray(added));
-            addLabels(toIntArray(removed));
+            addLabels(added.toArray());
+            addLabels(removed.toArray());
         }
 
         setNodeChangeDelta(id, addedInThisBatch ? ChangeType.LABELS_STATE : ChangeType.LABELS_CHANGE, position);
@@ -717,21 +716,9 @@ public class TxEnrichmentVisitor extends TxStateVisitor.Delegator implements Enr
         return DeltaType.BY_ID.get(flag);
     }
 
-    private static int[] toIntArray(LongSet ids) {
-        return toIntArray(ids.toSortedArray());
-    }
-
     private static int[] toSortedIntArray(int[] data) {
         Arrays.sort(data);
         return data;
-    }
-
-    private static int[] toIntArray(long[] sorted) {
-        final var tokens = new int[sorted.length];
-        for (var i = 0; i < tokens.length; i++) {
-            tokens[i] = (int) sorted[i];
-        }
-        return tokens;
     }
 
     private static class ValuesChannel {

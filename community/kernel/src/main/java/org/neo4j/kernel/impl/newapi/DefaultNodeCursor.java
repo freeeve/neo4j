@@ -27,7 +27,7 @@ import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
 import org.eclipse.collections.impl.iterator.ImmutableEmptyLongIterator;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
-import org.neo4j.collection.diffset.LongDiffSets;
+import org.neo4j.collection.diffset.IntDiffSets;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.Read;
@@ -189,7 +189,7 @@ class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> implement
     public boolean hasLabel(int label) {
         if (hasChanges()) {
             TransactionState txState = txStateHolder.txState();
-            LongDiffSets diffSets = txState.nodeStateLabelDiffSets(nodeReference());
+            IntDiffSets diffSets = txState.nodeStateLabelDiffSets(nodeReference());
             if (diffSets.isAdded(label)) {
                 if (tracer != null) {
                     tracer.onHasLabel(label);
@@ -214,7 +214,7 @@ class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> implement
     public boolean hasLabel() {
         if (hasChanges()) {
             TransactionState txState = txStateHolder.txState();
-            LongDiffSets diffSets = txState.nodeStateLabelDiffSets(nodeReference());
+            IntDiffSets diffSets = txState.nodeStateLabelDiffSets(nodeReference());
             if (diffSets.getAdded().notEmpty()) {
                 if (tracer != null) {
                     tracer.onHasLabel();

@@ -57,7 +57,6 @@ import org.eclipse.collections.api.iterator.IntIterator;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.api.set.primitive.IntSet;
-import org.eclipse.collections.api.set.primitive.LongSet;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.api.tuple.Pair;
 import org.eclipse.collections.api.tuple.primitive.IntObjectPair;
@@ -515,7 +514,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             // label already there, nothing to do
             return false;
         }
-        LongSet removed = ktx.txState().nodeStateLabelDiffSets(node).getRemoved();
+        IntSet removed = ktx.txState().nodeStateLabelDiffSets(node).getRemoved();
         if (!removed.contains(nodeLabel)) {
             ktx.securityAuthorizationHandler()
                     .assertAllowsSetLabel(ktx.securityContext(), token::labelGetName, nodeLabel);
@@ -941,7 +940,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             // the label wasn't there, nothing to do
             return false;
         }
-        LongSet added = ktx.txState().nodeStateLabelDiffSets(node).getAdded();
+        IntSet added = ktx.txState().nodeStateLabelDiffSets(node).getAdded();
         if (!added.contains(labelId)) {
             ktx.securityAuthorizationHandler()
                     .assertAllowsRemoveLabel(ktx.securityContext(), token::labelGetName, labelId);
@@ -1112,7 +1111,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         // remove labels
         if (!removedLabels.isEmpty()) {
-            LongSet added = ktx.txState().nodeStateLabelDiffSets(node).getAdded();
+            IntSet added = ktx.txState().nodeStateLabelDiffSets(node).getAdded();
             IntIterator removedLabelsIterator = removedLabels.intIterator();
             while (removedLabelsIterator.hasNext()) {
                 int removedLabelId = removedLabelsIterator.next();
@@ -1169,7 +1168,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             while (addedLabelsIterator.hasNext()) {
                 int addedLabelId = addedLabelsIterator.next();
                 if (!contains(existingLabels, addedLabelId)) {
-                    LongSet removed = ktx.txState().nodeStateLabelDiffSets(node).getRemoved();
+                    IntSet removed = ktx.txState().nodeStateLabelDiffSets(node).getRemoved();
                     if (!removed.contains(addedLabelId)) {
                         ktx.securityAuthorizationHandler()
                                 .assertAllowsSetLabel(ktx.securityContext(), token::labelGetName, addedLabelId);

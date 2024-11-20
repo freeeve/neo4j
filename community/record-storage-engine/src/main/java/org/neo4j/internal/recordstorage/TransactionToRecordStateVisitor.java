@@ -21,7 +21,7 @@ package org.neo4j.internal.recordstorage;
 
 import java.util.OptionalLong;
 import org.eclipse.collections.api.IntIterable;
-import org.eclipse.collections.api.set.primitive.LongSet;
+import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.kernel.api.Upgrade;
 import org.neo4j.internal.kernel.api.exceptions.schema.DuplicateSchemaRuleException;
@@ -125,10 +125,10 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
     }
 
     @Override
-    public void visitNodeLabelChanges(long id, final LongSet added, final LongSet removed) {
+    public void visitNodeLabelChanges(long id, final IntSet added, final IntSet removed) {
         // record the state changes to be made to the store
-        removed.each(label -> recordState.removeLabelFromNode((int) label, id));
-        added.each(label -> recordState.addLabelToNode((int) label, id));
+        removed.each(label -> recordState.removeLabelFromNode(label, id));
+        added.each(label -> recordState.addLabelToNode(label, id));
     }
 
     @Override

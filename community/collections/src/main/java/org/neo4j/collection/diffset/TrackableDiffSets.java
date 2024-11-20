@@ -19,6 +19,7 @@
  */
 package org.neo4j.collection.diffset;
 
+import static org.neo4j.collection.diffset.MutableIntDiffSetsImpl.createMutableIntDiffSetsImpl;
 import static org.neo4j.collection.diffset.MutableLongDiffSetsImpl.createMutableLongDiffSetsImpl;
 
 import org.neo4j.collection.factory.CollectionsFactory;
@@ -28,6 +29,11 @@ public class TrackableDiffSets {
     public static MutableLongDiffSets newMutableLongDiffSets(
             CollectionsFactory collectionsFactory, MemoryTracker memoryTracker) {
         return createMutableLongDiffSetsImpl(collectionsFactory, memoryTracker);
+    }
+
+    public static MutableIntDiffSets newMutableIntDiffSets(
+            CollectionsFactory collectionsFactory, MemoryTracker memoryTracker) {
+        return createMutableIntDiffSetsImpl(collectionsFactory, memoryTracker);
     }
 
     public static RemovalsCountingDiffSets newRemovalsCountingDiffSets(
