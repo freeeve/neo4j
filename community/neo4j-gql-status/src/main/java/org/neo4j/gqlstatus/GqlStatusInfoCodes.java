@@ -4593,6 +4593,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "bolt is not enabled",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_51N71(
+            new GqlStatus("51N71"),
+            """
+                    Feature: { %s } is not available in a sharded database.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.feat},
+            emptyMap(),
+            Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
+            "unsupported operation on a sharded database",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_52N01(
             new GqlStatus("52N01"),
             """
