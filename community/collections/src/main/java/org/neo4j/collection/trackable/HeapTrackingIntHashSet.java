@@ -25,6 +25,7 @@ import static org.neo4j.memory.HeapEstimator.ARRAY_HEADER_BYTES;
 import static org.neo4j.memory.HeapEstimator.alignObjectSize;
 import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
+import org.eclipse.collections.api.IntIterable;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 import org.neo4j.memory.MemoryTracker;
@@ -50,6 +51,12 @@ public final class HeapTrackingIntHashSet extends IntHashSet implements AutoClos
     static HeapTrackingIntHashSet createIntHashSet(MemoryTracker memoryTracker, IntSet set) {
         memoryTracker.allocateHeap(SHALLOW_SIZE);
         return new HeapTrackingIntHashSet(memoryTracker, set);
+    }
+
+    static HeapTrackingIntHashSet createIntHashSet(MemoryTracker memoryTracker, IntIterable iterable) {
+        HeapTrackingIntHashSet set = createIntHashSet(memoryTracker);
+        set.addAll(iterable);
+        return set;
     }
 
     static HeapTrackingIntHashSet createIntHashSet(MemoryTracker memoryTracker, int initialCapacity) {

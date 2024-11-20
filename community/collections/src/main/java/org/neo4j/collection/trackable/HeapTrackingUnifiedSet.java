@@ -41,6 +41,12 @@ public class HeapTrackingUnifiedSet<T> extends UnifiedSet<T> implements AutoClos
         return new HeapTrackingUnifiedSet<>(memoryTracker, initialSizeToAllocate);
     }
 
+    public static <T> HeapTrackingUnifiedSet<T> createUnifiedSet(MemoryTracker memoryTracker, Iterable<T> elements) {
+        HeapTrackingUnifiedSet<T> set = HeapTrackingUnifiedSet.createUnifiedSet(memoryTracker);
+        set.addAllIterable(elements);
+        return set;
+    }
+
     private HeapTrackingUnifiedSet(MemoryTracker memoryTracker, int trackedCapacity) {
         this.memoryTracker = requireNonNull(memoryTracker);
         this.trackedCapacity = trackedCapacity;
