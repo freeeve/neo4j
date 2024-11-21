@@ -406,9 +406,10 @@ class RecoveryIT {
 
         var recoveredDatabase = createDatabase();
         // we truncate broken bits and bytes as part of recovery
+        LogFiles recoveredDbLogFiles = recoveredDatabase.getDependencyResolver().resolveDependency(LogFiles.class);
         assertEquals(
                 positionForCorruption,
-                logFiles.getLogFile().getTransactionLogWriter().getCurrentPosition());
+                recoveredDbLogFiles.getLogFile().getTransactionLogWriter().getCurrentPosition());
         //
         try (var tx = recoveredDatabase.beginTx()) {
             tx.createNode();
