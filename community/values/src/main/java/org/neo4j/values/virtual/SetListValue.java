@@ -54,12 +54,13 @@ public final class SetListValue extends ListValue {
         }
 
         public void add(AnyValue value) {
+            // NOTE: that since we are only using this in COLLECT(DISTINCT ..) which will filter out NO_VALUE
+            //     If we lift this restriction we must also update set.contains and set.ternaryContains
             assert value != NO_VALUE;
             if (set.add(value)) {
                 estimatedHeapUsage += value.estimatedHeapUsage();
                 valueRepresentation = valueRepresentation.coerce(value.valueRepresentation());
             }
-            ;
         }
 
         public SetListValue build() {
@@ -146,11 +147,8 @@ public final class SetListValue extends ListValue {
 
     private Value ternaryContainsMayHaveNull(AnyValue value) {
         if (set.contains(value)) {
-            // TODO: this is here since [1, NULL, 2] IN SET should return NO_VALUE if it is stored in the
-            //      set. I think we can do this nicer, stay tuned.
+            //TODO: future improvement (list/map).containsNull ? NO_VALUE : TRUE
             return value.ternaryEquals(value) == Equality.TRUE ? Values.TRUE : NO_VALUE;
-        } else if (set.contains(NO_VALUE)) {
-            return NO_VALUE;
         } else {
             return super.ternaryContains(value);
         }
