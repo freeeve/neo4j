@@ -767,7 +767,7 @@ class TransactionLogServiceIT {
             GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
             var propertyValue = randomAscii((int) THRESHOLD / 16);
 
-            int numberOfTransactions = 30;
+            int numberOfTransactions = 32;
             for (int i = 0; i < numberOfTransactions; i++) {
                 try (var tx = database.beginTx()) {
                     Node node = tx.createNode();
@@ -809,7 +809,7 @@ class TransactionLogServiceIT {
     void setsPreviousChecksumCorrectlyForNonEnvelopedLogs() throws IOException {
         var propertyValue = randomAscii((int) THRESHOLD / 16);
 
-        int numberOfTransactions = 30;
+        int numberOfTransactions = 35;
         for (int i = 0; i < numberOfTransactions; i++) {
             createNodeInIsolatedTransaction(propertyValue);
         }
