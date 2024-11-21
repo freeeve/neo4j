@@ -28,6 +28,8 @@ import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.exceptions.ArithmeticException
 import org.neo4j.exceptions.InvalidArgumentException
 
+object ExhaustiveLimitTestBase
+
 abstract class ExhaustiveLimitTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

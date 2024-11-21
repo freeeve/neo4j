@@ -43,6 +43,8 @@ import java.io.IOException
 
 import scala.collection.mutable
 
+object ReactiveResultTestBase
+
 abstract class ReactiveResultTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT]

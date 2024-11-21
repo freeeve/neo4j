@@ -26,6 +26,8 @@ import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.tests.stress.ConcurrencyStressTestBase.SIZE_HINT
 import org.neo4j.graphdb.schema.IndexType
 
+object RelationshipIndexEndsWithScanConcurrencyStressTestBase
+
 abstract class RelationshipIndexEndsWithScanConcurrencyStressTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT]

@@ -53,6 +53,8 @@ import org.neo4j.values.virtual.VirtualValues.list
 
 import java.util.Locale
 
+object ExpressionTestBase
+
 abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CONTEXT], runtime: CypherRuntime[CONTEXT])
     extends RuntimeTestSuite(edition, runtime) {
 

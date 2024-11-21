@@ -47,6 +47,8 @@ import org.neo4j.values.virtual.VirtualPathValue
 
 import java.util
 
+object ShortestPathTestBase
+
 //noinspection ZeroIndexToHead
 abstract class ShortestPathTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],

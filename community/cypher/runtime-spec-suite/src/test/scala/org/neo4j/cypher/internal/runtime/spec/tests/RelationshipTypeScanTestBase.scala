@@ -35,6 +35,8 @@ import org.neo4j.kernel.impl.coreapi.schema.IndexDefinitionImpl
 
 import scala.util.Using
 
+object RelationshipTypeScanTestBase
+
 abstract class RelationshipTypeScanTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

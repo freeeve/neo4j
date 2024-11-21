@@ -27,6 +27,8 @@ import org.neo4j.cypher.internal.runtime.spec.tests.stress.ConcurrencyStressTest
 
 import scala.util.Random
 
+object RelationshipIndexLockingUniqueSeekConcurrencyStressTestBase
+
 abstract class RelationshipIndexLockingUniqueSeekConcurrencyStressTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT]

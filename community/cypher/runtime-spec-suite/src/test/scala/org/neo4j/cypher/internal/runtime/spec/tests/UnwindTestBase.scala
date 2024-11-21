@@ -29,6 +29,8 @@ import java.util
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
+object UnwindTestBase
+
 abstract class UnwindTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

@@ -28,6 +28,8 @@ import org.neo4j.graphdb.RelationshipType
 
 import scala.util.Random
 
+object UndirectedRelationshipByIdSeekTestBase
+
 abstract class UndirectedRelationshipByIdSeekTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

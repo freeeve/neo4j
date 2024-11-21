@@ -33,6 +33,8 @@ import org.neo4j.values.storable.ValueCategory
 
 import scala.collection.mutable
 
+object NodeIndexScanTestBase
+
 abstract class NodeIndexScanTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

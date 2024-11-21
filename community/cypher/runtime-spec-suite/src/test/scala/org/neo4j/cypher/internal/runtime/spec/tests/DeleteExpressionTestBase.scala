@@ -44,6 +44,8 @@ import org.neo4j.values.virtual.VirtualNodeValue
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 
+object DeleteExpressionTestBase
+
 abstract class DeleteExpressionTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

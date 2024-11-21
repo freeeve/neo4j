@@ -31,6 +31,8 @@ import org.neo4j.internal.helpers.collection.Iterables
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
+object SetPropertiesFromMapRelationshipTestBase
+
 abstract class SetPropertiesFromMapRelationshipTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

@@ -35,6 +35,8 @@ import org.neo4j.cypher.result.OperatorProfile
 import org.neo4j.internal.helpers.ArrayUtil
 import org.neo4j.kernel.api.KernelTransaction
 
+object ProfileMemoryTestBase
+
 abstract class ProfileMemoryTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT]

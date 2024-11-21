@@ -37,6 +37,8 @@ import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.NotFoundException
 import org.neo4j.values.virtual.VirtualValues
 
+object OrderedUnionTestBase
+
 abstract class OrderedUnionTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

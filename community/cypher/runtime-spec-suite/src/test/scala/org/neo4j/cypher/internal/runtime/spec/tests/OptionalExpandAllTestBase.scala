@@ -33,6 +33,8 @@ import org.neo4j.graphdb.RelationshipType
 
 import scala.util.Random
 
+object OptionalExpandAllTestBase
+
 abstract class OptionalExpandAllTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

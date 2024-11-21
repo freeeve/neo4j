@@ -37,6 +37,8 @@ import java.util.Collections
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
+object NestedPlanExpressionTestBase
+
 abstract class NestedPlanExpressionTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

@@ -78,6 +78,8 @@ import java.util.concurrent.atomic.AtomicInteger
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
+object TransactionForeachTestBase
+
 abstract class TransactionForeachTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

@@ -31,6 +31,8 @@ import java.util.Collections
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
+object RollupApplyTestBase
+
 abstract class RollupApplyTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

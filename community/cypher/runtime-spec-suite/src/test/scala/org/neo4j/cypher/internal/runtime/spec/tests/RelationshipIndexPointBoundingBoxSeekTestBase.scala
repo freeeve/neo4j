@@ -36,6 +36,8 @@ import org.neo4j.values.storable.Values.pointValue
 
 import scala.util.Random
 
+object RelationshipIndexPointBoundingBoxSeekTestBase
+
 abstract class RelationshipIndexPointBoundingBoxSeekTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

@@ -48,6 +48,8 @@ import org.neo4j.values.virtual.ListValue
 import org.neo4j.values.virtual.VirtualPathValue
 import org.neo4j.values.virtual.VirtualValues.pathReference
 
+object StatefulShortestPathTestBase
+
 abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

@@ -35,6 +35,8 @@ import java.util
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
+object RemoveDynamicLabelsTestBase
+
 abstract class RemoveDynamicLabelsTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

@@ -59,6 +59,8 @@ import org.neo4j.kernel.api.KernelTransaction
 import org.neo4j.values.virtual.NodeValue.DirectNodeValue
 import org.neo4j.values.virtual.RelationshipValue.DirectRelationshipValue
 
+object ProfileDbHitsTestBase
+
 abstract class ProfileDbHitsTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

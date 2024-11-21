@@ -61,6 +61,8 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
+object ConcurrentTransactionApplyTestBase
+
 abstract class ConcurrentTransactionApplyTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

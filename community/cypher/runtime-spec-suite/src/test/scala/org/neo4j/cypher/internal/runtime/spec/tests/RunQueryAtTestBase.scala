@@ -46,6 +46,8 @@ import org.neo4j.values.virtual.MapValue
 
 import java.util.UUID
 
+object RunQueryAtTestBase
+
 abstract class RunQueryAtTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

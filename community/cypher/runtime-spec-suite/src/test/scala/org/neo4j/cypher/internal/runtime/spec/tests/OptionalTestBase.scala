@@ -34,6 +34,8 @@ import org.neo4j.values.storable.NoValue.NO_VALUE
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualNodeValue
 
+object OptionalTestBase
+
 abstract class OptionalTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

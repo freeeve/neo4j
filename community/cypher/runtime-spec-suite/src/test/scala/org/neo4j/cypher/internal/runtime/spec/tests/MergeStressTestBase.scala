@@ -32,6 +32,8 @@ import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanCombinationRewri
 
 import scala.util.Random
 
+object MergeStressTestBase
+
 abstract class MergeStressTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

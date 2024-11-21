@@ -30,6 +30,8 @@ import org.neo4j.values.storable.Values.stringValue
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
+object NodeHashJoinTestBase
+
 abstract class NodeHashJoinTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

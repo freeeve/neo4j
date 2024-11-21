@@ -31,6 +31,8 @@ import org.neo4j.graphdb.Label
 
 import scala.util.Random
 
+object CachePropertiesTestBase
+
 abstract class CachePropertiesTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

@@ -39,6 +39,8 @@ import java.time.Duration.ofSeconds
 
 import scala.util.Random
 
+object ErrorHandlingStressTestBase
+
 abstract class ErrorHandlingStressTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

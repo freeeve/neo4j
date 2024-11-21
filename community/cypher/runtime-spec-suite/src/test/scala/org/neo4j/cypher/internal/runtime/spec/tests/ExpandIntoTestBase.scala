@@ -37,6 +37,8 @@ import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.RelationshipType
 import org.scalacheck.Gen
 
+object ExpandIntoTestBase
+
 abstract class ExpandIntoTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

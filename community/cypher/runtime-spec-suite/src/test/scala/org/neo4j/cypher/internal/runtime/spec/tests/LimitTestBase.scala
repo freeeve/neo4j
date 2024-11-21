@@ -33,6 +33,8 @@ import org.neo4j.values.virtual.VirtualNodeValue
 
 import java.util.concurrent.ThreadLocalRandom
 
+object LimitTestBase
+
 abstract class LimitTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

@@ -30,6 +30,8 @@ import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
+object ForeachApplyTestBase
+
 abstract class ForeachApplyTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

@@ -35,6 +35,8 @@ import org.neo4j.graphdb.config.Setting
 
 import java.util.Collections.emptyList
 
+object RemoteBatchPropertiesTestBase
+
 abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

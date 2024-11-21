@@ -31,6 +31,8 @@ import java.util
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
+object RemoveLabelsTestBase
+
 abstract class RemoveLabelsTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

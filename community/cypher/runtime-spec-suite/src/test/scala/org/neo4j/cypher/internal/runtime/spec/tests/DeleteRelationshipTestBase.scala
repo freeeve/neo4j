@@ -35,6 +35,8 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
+object DeleteRelationshipTestBase
+
 abstract class DeleteRelationshipTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

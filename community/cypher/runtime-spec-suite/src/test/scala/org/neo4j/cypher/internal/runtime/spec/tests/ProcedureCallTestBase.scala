@@ -43,6 +43,8 @@ import org.neo4j.values.storable.Values
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicInteger
 
+object ProcedureCallTestBase
+
 abstract class ProcedureCallTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

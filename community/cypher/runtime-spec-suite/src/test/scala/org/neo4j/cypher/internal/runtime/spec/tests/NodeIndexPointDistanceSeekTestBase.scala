@@ -32,6 +32,8 @@ import org.neo4j.values.storable.CoordinateReferenceSystem.WGS_84
 import org.neo4j.values.storable.CoordinateReferenceSystem.WGS_84_3D
 import org.neo4j.values.storable.Values.pointValue
 
+object NodeIndexPointDistanceSeekTestBase
+
 abstract class NodeIndexPointDistanceSeekTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

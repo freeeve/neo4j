@@ -31,6 +31,8 @@ import org.neo4j.graphdb.RelationshipType
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
+object TriadicSelectionTestBase
+
 abstract class TriadicSelectionTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

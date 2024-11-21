@@ -44,6 +44,8 @@ import java.time.Instant
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
+object StatefulShortestPathPropagationTestBase
+
 /**
  * These tests only test the propagation part of PGShortestPath, not the product graph part. That is why all patterns
  * look like ordinary var expands. The tests are essentially copied from PPBFS.

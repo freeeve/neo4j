@@ -32,6 +32,8 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.graphdb.Label
 
+object DeleteTypeSafetyTestBase
+
 abstract class DeleteTypeSafetyTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

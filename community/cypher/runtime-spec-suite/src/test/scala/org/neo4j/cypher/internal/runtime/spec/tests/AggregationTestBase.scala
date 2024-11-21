@@ -78,6 +78,8 @@ import java.util.concurrent.atomic.LongAdder
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.util.Random
 
+object AggregationTestBase
+
 abstract class AggregationTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

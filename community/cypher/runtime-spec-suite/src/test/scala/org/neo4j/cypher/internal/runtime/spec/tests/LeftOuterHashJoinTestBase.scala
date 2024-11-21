@@ -35,6 +35,8 @@ import scala.jdk.CollectionConverters.IterableHasAsJava
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.util.Random
 
+object LeftOuterHashJoinTestBase
+
 abstract class LeftOuterHashJoinTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

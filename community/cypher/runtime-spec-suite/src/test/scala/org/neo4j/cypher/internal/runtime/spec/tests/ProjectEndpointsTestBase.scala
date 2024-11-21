@@ -37,6 +37,8 @@ import java.util.Collections
 import scala.collection.JavaConverters.asJavaIterableConverter
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
+object ProjectEndpointsTestBase
+
 //noinspection ZeroIndexToHead
 abstract class ProjectEndpointsTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],

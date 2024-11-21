@@ -27,6 +27,8 @@ import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.exceptions.MergeConstraintConflictException
 import org.neo4j.graphdb.RelationshipType
 
+object AssertSameRelationshipTestBase
+
 abstract class AssertSameRelationshipTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

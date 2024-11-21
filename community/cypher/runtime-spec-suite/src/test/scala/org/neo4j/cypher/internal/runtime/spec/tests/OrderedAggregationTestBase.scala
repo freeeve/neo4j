@@ -30,6 +30,8 @@ import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 
 import java.util.Collections
 
+object OrderedAggregationTestBase
+
 abstract class OrderedAggregationTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

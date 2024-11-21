@@ -31,6 +31,8 @@ import org.neo4j.cypher.internal.util.DeprecatedBooleanCoercion
 import org.neo4j.cypher.internal.util.RuntimeUnsatisfiableRelationshipTypeExpression
 import org.neo4j.graphdb.RelationshipType
 
+object RuntimeNotificationsTestBase
+
 abstract class RuntimeNotificationsTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT]

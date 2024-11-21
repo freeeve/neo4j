@@ -32,6 +32,8 @@ import org.neo4j.lock.ResourceType.INDEX_ENTRY
 import org.neo4j.lock.ResourceType.LABEL
 import org.neo4j.lock.ResourceType.NODE
 
+object SetNodePropertyTestBase
+
 abstract class SetNodePropertyTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

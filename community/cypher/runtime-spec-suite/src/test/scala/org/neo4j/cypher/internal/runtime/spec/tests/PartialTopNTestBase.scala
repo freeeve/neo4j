@@ -32,6 +32,8 @@ import org.neo4j.cypher.internal.runtime.spec.tests.PartialSortTestBase.firstTwo
 
 import scala.util.Random
 
+object PartialTopNTestBase
+
 abstract class PartialTopNTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

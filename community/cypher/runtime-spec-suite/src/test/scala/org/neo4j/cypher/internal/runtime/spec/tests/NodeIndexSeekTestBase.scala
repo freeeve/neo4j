@@ -55,6 +55,8 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
 // Supported by all runtimes
+object NodeIndexSeekTestBase
+
 abstract class NodeIndexSeekTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

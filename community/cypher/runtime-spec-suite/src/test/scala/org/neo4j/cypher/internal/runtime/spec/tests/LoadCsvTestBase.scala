@@ -41,6 +41,8 @@ import scala.collection.immutable
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 
+object LoadCsvTestBase
+
 abstract class LoadCsvTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

@@ -42,6 +42,8 @@ import scala.concurrent.ExecutionContext.global
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
+object MiscTestBase
+
 abstract class MiscTestBase[CONTEXT <: RuntimeContext](edition: Edition[CONTEXT], runtime: CypherRuntime[CONTEXT])
     extends RuntimeTestSuite(edition, runtime) {
 

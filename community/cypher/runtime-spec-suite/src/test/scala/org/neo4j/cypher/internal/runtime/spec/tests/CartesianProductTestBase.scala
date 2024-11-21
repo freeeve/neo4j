@@ -34,6 +34,8 @@ import org.neo4j.graphdb.Direction
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
+object CartesianProductTestBase
+
 abstract class CartesianProductTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

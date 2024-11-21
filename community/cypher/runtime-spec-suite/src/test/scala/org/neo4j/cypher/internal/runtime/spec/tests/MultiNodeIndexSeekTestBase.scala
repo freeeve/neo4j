@@ -34,6 +34,8 @@ import org.neo4j.internal.helpers.collection.Iterables
 
 import scala.collection.mutable.ArrayBuffer
 
+object MultiNodeIndexSeekTestBase
+
 /**
  * Testing of multi node index seek.
  *

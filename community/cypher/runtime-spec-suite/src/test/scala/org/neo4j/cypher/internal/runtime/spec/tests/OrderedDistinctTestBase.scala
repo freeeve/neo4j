@@ -31,6 +31,8 @@ import org.neo4j.graphdb.Node
 
 import scala.util.Try
 
+object OrderedDistinctTestBase
+
 abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

@@ -36,6 +36,8 @@ import org.neo4j.lock.ResourceType.NODE
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
+object SetNodePropertiesFromMapTestBase
+
 abstract class SetNodePropertiesFromMapTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

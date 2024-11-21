@@ -53,6 +53,8 @@ import org.neo4j.values.utils.ValueBooleanLogic
 
 import scala.util.Random
 
+object RelationshipIndexSeekTestBase
+
 // Supported by all runtimes
 abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],

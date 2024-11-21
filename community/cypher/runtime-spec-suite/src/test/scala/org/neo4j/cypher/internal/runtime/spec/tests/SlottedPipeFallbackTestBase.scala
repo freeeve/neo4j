@@ -29,6 +29,8 @@ import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.cypher.result.OperatorProfile
 import org.neo4j.exceptions.HintException
 
+object SlottedPipeFallbackTestBase
+
 abstract class SlottedPipeFallbackTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

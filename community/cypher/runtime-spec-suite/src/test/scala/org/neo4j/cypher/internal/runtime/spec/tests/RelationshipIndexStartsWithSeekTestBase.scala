@@ -28,6 +28,8 @@ import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.graphdb.RelationshipType
 import org.neo4j.graphdb.schema.IndexType
 
+object RelationshipIndexStartsWithSeekTestBase
+
 abstract class RelationshipIndexStartsWithSeekTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

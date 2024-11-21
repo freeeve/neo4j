@@ -36,6 +36,8 @@ import org.neo4j.kernel.impl.util.ValueUtils
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 
+object DeleteDetachExpressionTestBase
+
 abstract class DeleteDetachExpressionTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

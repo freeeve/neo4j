@@ -51,6 +51,8 @@ import org.neo4j.internal.helpers.collection.Iterators
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
+object MergeTestBase
+
 abstract class MergeTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

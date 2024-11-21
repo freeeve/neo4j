@@ -29,6 +29,8 @@ import org.neo4j.graphdb.Node
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
+object Top1WithTiesTestBase
+
 abstract class Top1WithTiesTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

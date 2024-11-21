@@ -35,6 +35,8 @@ import org.neo4j.graphdb.ConstraintViolationException
 import org.neo4j.graphdb.Label
 import org.neo4j.internal.helpers.collection.Iterables
 
+object DeletePathTestBase
+
 abstract class DeletePathTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

@@ -31,6 +31,8 @@ import org.neo4j.values.storable.Values.stringValue
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.util.Random
 
+object RightOuterHashJoinTestBase
+
 abstract class RightOuterHashJoinTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

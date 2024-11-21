@@ -29,6 +29,8 @@ import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.MergeConstraintConflictException
 import org.neo4j.graphdb.schema.IndexType
 
+object AssertSameNodeTestBase
+
 abstract class AssertSameNodeTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

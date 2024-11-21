@@ -27,6 +27,8 @@ import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
+object RelationshipTypeReadConcurrencyStressTestBase
+
 abstract class RelationshipTypeReadConcurrencyStressTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT]

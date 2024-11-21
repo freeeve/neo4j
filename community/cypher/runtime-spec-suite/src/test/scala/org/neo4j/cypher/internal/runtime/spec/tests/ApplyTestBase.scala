@@ -32,6 +32,8 @@ import org.neo4j.values.storable.Values.longValue
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
+object ApplyTestBase
+
 abstract class ApplyTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

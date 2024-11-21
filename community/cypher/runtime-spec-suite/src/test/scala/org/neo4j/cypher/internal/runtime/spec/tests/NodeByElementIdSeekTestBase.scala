@@ -27,6 +27,8 @@ import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 
 import scala.util.Random
 
+object NodeByElementIdSeekTestBase
+
 abstract class NodeByElementIdSeekTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

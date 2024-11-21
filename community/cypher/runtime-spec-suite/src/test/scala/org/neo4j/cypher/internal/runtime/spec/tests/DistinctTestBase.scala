@@ -29,6 +29,8 @@ import org.neo4j.graphdb.Direction.OUTGOING
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
+object DistinctTestBase
+
 abstract class DistinctTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],

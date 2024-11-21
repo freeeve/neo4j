@@ -36,6 +36,8 @@ import org.neo4j.values.storable.Values.stringValue
 
 import scala.collection.GenTraversable
 
+object EagerTestBase
+
 abstract class EagerTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],
