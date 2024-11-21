@@ -732,10 +732,6 @@ public final class CypherFunctions {
             return NO_VALUE;
         }
         if (container instanceof SequenceValue sequence) {
-            int length = sequence.intSize();
-            if (length == 0) {
-                return NO_VALUE;
-            }
             return sequence.last();
         } else {
             throw new CypherTypeException(

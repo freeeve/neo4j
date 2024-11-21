@@ -25,6 +25,7 @@ import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.SequencedSet;
 import org.github.jamm.Unmetered;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.Equality;
@@ -75,10 +76,10 @@ public final class SetListValue extends ListValue {
     @Unmetered
     private final ValueRepresentation itemRepresentation;
 
-    private final LinkedHashSet<AnyValue> set;
+    private final SequencedSet<AnyValue> set;
     private final long payload;
 
-    SetListValue(LinkedHashSet<AnyValue> set, long payload, ValueRepresentation itemRepresentation) {
+    SetListValue(SequencedSet<AnyValue> set, long payload, ValueRepresentation itemRepresentation) {
         this.itemRepresentation = itemRepresentation;
         this.set = set;
         this.payload = payload;
@@ -120,8 +121,12 @@ public final class SetListValue extends ListValue {
         if (set.isEmpty()) {
             return NO_VALUE;
         }
-
         return set.getFirst();
+    }
+
+    @Override
+    public ListValue reverse() {
+        return new SetListValue(set.reversed(), payload, itemRepresentation);
     }
 
     @Override
@@ -147,7 +152,7 @@ public final class SetListValue extends ListValue {
 
     private Value ternaryContainsMayHaveNull(AnyValue value) {
         if (set.contains(value)) {
-            //TODO: future improvement (list/map).containsNull ? NO_VALUE : TRUE
+            // TODO: future improvement (list/map).containsNull ? NO_VALUE : TRUE
             return value.ternaryEquals(value) == Equality.TRUE ? Values.TRUE : NO_VALUE;
         } else {
             return super.ternaryContains(value);
