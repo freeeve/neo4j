@@ -81,6 +81,8 @@ class ErrorCollectingContext(
       override def owningDatabaseName: String = ???
 
       override def catalogEntry(): NormalizedCatalogEntry = ???
+
+      override def isShard: Boolean = false
     }
   }
 }

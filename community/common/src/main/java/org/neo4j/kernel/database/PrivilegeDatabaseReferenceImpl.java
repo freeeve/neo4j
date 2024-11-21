@@ -43,4 +43,9 @@ public class PrivilegeDatabaseReferenceImpl implements PrivilegeDatabaseReferenc
     public String owningDatabaseName() {
         return owningDatabaseName;
     }
+
+    @Override
+    public boolean isShard() {
+        return false;
+    }
 }

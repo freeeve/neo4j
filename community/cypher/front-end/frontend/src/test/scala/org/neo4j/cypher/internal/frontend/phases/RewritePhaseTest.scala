@@ -194,6 +194,8 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
       override def owningDatabaseName: String = ???
 
       override def catalogEntry(): NormalizedCatalogEntry = ???
+
+      override def isShard: Boolean = false
     }
 
     val fromInState = {

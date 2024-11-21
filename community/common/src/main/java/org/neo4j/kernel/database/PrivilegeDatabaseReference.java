@@ -32,4 +32,6 @@ public interface PrivilegeDatabaseReference {
      * their permissions from the "owning" graph shard.
      */
     String owningDatabaseName();
+
+    boolean isShard();
 }

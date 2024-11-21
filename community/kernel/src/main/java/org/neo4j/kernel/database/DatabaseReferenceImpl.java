@@ -152,6 +152,11 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
         }
 
         @Override
+        public boolean isShard() {
+            return false;
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -247,6 +252,11 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
         @Override
         public String owningDatabaseName() {
             return namedDatabaseId.name();
+        }
+
+        @Override
+        public boolean isShard() {
+            return false;
         }
 
         @Override
@@ -422,6 +432,11 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
                 String owningDatabaseName) {
             super(alias, namedDatabaseId, primary);
             this.owningDatabaseName = owningDatabaseName;
+        }
+
+        @Override
+        public boolean isShard() {
+            return true;
         }
 
         @Override

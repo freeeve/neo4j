@@ -421,6 +421,8 @@ abstract class ExecutionEngine(
             override def owningDatabaseName: String = fullName().name();
 
             override def catalogEntry(): NormalizedCatalogEntry = throw new NotImplementedError()
+
+            override def isShard: Boolean = false
           }
         )
 
