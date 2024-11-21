@@ -39,7 +39,7 @@ public class LogEntryRollbackV5_20 extends LogEntryRollback {
 
     @Override
     public String toString(Mask mask) {
-        return "LogEntryRollbackV5_20{" + "transactionId="
+        return "LogEntryRollbackV5_20{" + "txId="
                 + transactionId + ", timeWritten="
                 + timeWritten + ", checksum="
                 + checksum + ", appendIndex=" + appendIndex + '}';

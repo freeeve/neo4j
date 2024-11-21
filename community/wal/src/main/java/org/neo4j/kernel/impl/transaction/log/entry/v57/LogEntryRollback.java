@@ -55,7 +55,7 @@ public class LogEntryRollback extends AbstractVersionAwareLogEntry {
 
     @Override
     public String toString(Mask mask) {
-        return "LogEntryRollback{" + "transactionId="
+        return "LogEntryRollback{" + "txId="
                 + transactionId + ", timeWritten="
                 + timeWritten + ", checksum="
                 + checksum + '}';
