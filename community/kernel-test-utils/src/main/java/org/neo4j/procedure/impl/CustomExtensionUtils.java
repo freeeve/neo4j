@@ -23,11 +23,13 @@ import static java.lang.reflect.Modifier.PUBLIC;
 import static net.bytebuddy.dynamic.scaffold.subclass.ConstructorStrategy.Default.NO_CONSTRUCTORS;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.Function;
 import java.util.jar.JarOutputStream;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
@@ -38,7 +40,6 @@ import net.bytebuddy.description.modifier.Visibility;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.implementation.FieldAccessor;
-import net.bytebuddy.implementation.FixedValue;
 import net.bytebuddy.implementation.Implementation;
 import net.bytebuddy.implementation.MethodCall;
 import net.bytebuddy.implementation.MethodDelegation;
@@ -86,9 +87,13 @@ public final class CustomExtensionUtils {
 
     private CustomExtensionUtils() {}
 
-    public static final String PROCEDURE_NAME = "myCustomProcedure";
+    public static final String PACKAGE_NAME = "my.awesome";
+    public static final String PROCEDURE_NAME = "customProcedure";
+    public static final String EXTENSION_PROCEDURE_NAME = "extensionCustomProcedure";
     public static final String CANONICAL_PROCEDURE_NAME = packageName(PROCEDURE_NAME);
+    public static final String CANONICAL_EXTENSION_PROCEDURE_NAME = packageName(EXTENSION_PROCEDURE_NAME);
     public static final String LOG_MARKER = "HELLO WORLD";
+    public static final String DEFAULT_OUTPUT_STRING = "HELLO WORLD";
 
     /** Create a set of unloaded classes that implement an extension
      *  and a {@link org.neo4j.kernel.extension.ExtensionFactory}.
@@ -107,13 +112,26 @@ public final class CustomExtensionUtils {
 
     /** Create a set of unloaded classes that implement a procedure
      *  using the {@link org.neo4j.procedure.Procedure} annotation.
+     * @param procedureName The name of the procedure
+     * @param outputValue The string value in the output class
+     *
+     * @return the unloaded classes
+     */
+    public static Procedure createProcedure(String procedureName, String outputValue) {
+        var outputDefinition = makeOutputDefinition();
+        var procedureType = makeProcedureType(outputDefinition, procedureName, outputValue);
+        return new Procedure(outputDefinition.type(), procedureType);
+    }
+
+    /** Create a set of unloaded classes that implement a procedure
+     *  using the {@link org.neo4j.procedure.Procedure} annotation,
+     *  with name PROCEDURE_NAME and output "hello world".
+     *
      *
      * @return the unloaded classes
      */
     public static Procedure createProcedure() {
-        var outputType = makeOutputType();
-        var procedureType = makeProcedureType(outputType);
-        return new Procedure(outputType, procedureType);
+        return createProcedure(PROCEDURE_NAME, DEFAULT_OUTPUT_STRING);
     }
 
     /** Create a set of unloaded classes that implement a procedure
@@ -124,18 +142,32 @@ public final class CustomExtensionUtils {
      */
     public static ProcedureWithExtension createProcedureWithExtension() {
         var extensionTypes = createExtension();
-        var outputType = makeOutputType();
-        var procedureType = makeProcedureType(outputType, extensionTypes.extensionType);
+        var outputDefinition = makeOutputDefinition();
+        var procedureType =
+                makeExtensionProcedureType(outputDefinition, EXTENSION_PROCEDURE_NAME, extensionTypes.extensionType);
 
-        return new ProcedureWithExtension(extensionTypes, outputType, procedureType);
+        return new ProcedureWithExtension(extensionTypes, outputDefinition.type(), procedureType);
+    }
+
+    /** Create a JAR containing a set of unloaded classes that implement a procedure
+     *  using the {@link org.neo4j.procedure.Procedure} annotation.
+     * @param procedureName The name of the procedure
+     * @param outputValue The string value in the output class
+     */
+    public static void createProcedureJar(Path path, String procedureName, String outputValue) {
+        try {
+            Files.createDirectories(path.getParent());
+            createProcedure(procedureName, outputValue).toJar(path);
+        } catch (IOException exc) {
+            throw new UncheckedIOException(exc);
+        }
     }
 
     /** Create a JAR containing a set of unloaded classes that implement a procedure
      *  using the {@link org.neo4j.procedure.Procedure} annotation.
      */
-    public static void createProcedureJar(Path path) throws IOException {
-        Files.createDirectories(path.getParent());
-        createProcedure().toJar(path);
+    public static void createProcedureJar(Path path) {
+        createProcedureJar(path, PROCEDURE_NAME, DEFAULT_OUTPUT_STRING);
     }
 
     /** Create a JAR containing set of unloaded classes that implement a procedure
@@ -223,36 +255,51 @@ public final class CustomExtensionUtils {
         }
     }
 
+    record OutputDefinition(DynamicType.Unloaded<?> type, Function<String, MethodCall> make) {}
+
     /***********************************************************************************
      * BELOW FOLLOWS BYTEBUDDY INSTRUCTIONS TO CREATE CLASSES THAT ARE NOT CLASSLOADED *
      ***********************************************************************************/
-    private static DynamicType.Unloaded<?> makeOutputType() {
+    private static OutputDefinition makeOutputDefinition() {
         /* Below translates to:
           public class Output {
-                String output;
+                public String output;
 
-                Output(String output) {
+                public Output(String output) {
                     this.output = output;
+                }
+
+                public String output() {
+                    return output;
                 }
            }
         */
-        return constructorWithFieldsWithGetter(
+
+        final var type = constructorWithFieldsWithGetter(
                         new ByteBuddy().subclass(Object.class).name(packageName("CustomOutput")),
                         getConstructor(Object.class),
                         "output",
                         String.class)
                 .make();
+        Function<String, MethodCall> make = (value) -> MethodCall.construct(type.getTypeDescription()
+                        .getDeclaredMethods()
+                        .filter(ElementMatchers.isConstructor().and(ElementMatchers.takesArguments(String.class)))
+                        .getOnly())
+                .with(value);
+        return new OutputDefinition(type, make);
     }
 
-    private static DynamicType.Builder<?> procedureBuilder(TypeDescription outputType) {
+    private static DynamicType.Builder<?> procedureBuilder(
+            TypeDescription outputType, MethodCall makeOutputType, String procedureName) {
         var annotation = AnnotationDescription.Latent.Builder.ofType(org.neo4j.procedure.Procedure.class)
+                .define("name", packageName(procedureName))
                 .build();
-
         /* Below translates to:
            Stream<Output>
         */
-        var genericStreamType = TypeDescription.Generic.Builder.parameterizedType(
-                        TypeDescription.ForLoadedType.of(Stream.class), outputType)
+
+        var streamType = TypeDescription.ForLoadedType.of(Stream.class);
+        var genericStreamType = TypeDescription.Generic.Builder.parameterizedType(streamType, outputType)
                 .build();
 
         /* Below translates to:
@@ -260,29 +307,40 @@ public final class CustomExtensionUtils {
 
                @Procedure
                Stream<Output> myProcedure() {
-                   return null;
+                   return Stream.of(new Output(<some value>));;
                }
            }
         */
 
+        final var streamOf = streamType
+                .getDeclaredMethods()
+                .filter(ElementMatchers.named("of").and(ElementMatchers.takesArguments(Object.class)))
+                .getOnly();
+
         return new ByteBuddy()
                 .subclass(Object.class)
-                .name(packageName("CustomProcedure"))
-                .defineMethod(PROCEDURE_NAME, genericStreamType, Opcodes.ACC_PUBLIC)
-                .intercept(FixedValue.nullValue())
+                .defineMethod(procedureName, genericStreamType, Opcodes.ACC_PUBLIC)
+                .intercept(MethodCall.invoke(streamOf).withMethodCall(makeOutputType))
                 .visit(new MemberAttributeExtension.ForMethod()
                         .annotateMethod(annotation)
                         .on(ElementMatchers.nameEndsWith("Procedure")));
     }
 
-    private static DynamicType.Unloaded<?> makeProcedureType(DynamicType.Unloaded<?> outputType) {
-        return procedureBuilder(outputType.getTypeDescription()).make().include(outputType);
+    private static DynamicType.Unloaded<?> makeProcedureType(
+            OutputDefinition outputDefinition, String procedureName, String stringOutput) {
+        final var outputType = outputDefinition.type();
+        return procedureBuilder(
+                        outputType.getTypeDescription(), outputDefinition.make().apply(stringOutput), procedureName)
+                .make()
+                .include(outputType);
     }
 
-    private static DynamicType.Unloaded<?> makeProcedureType(
-            DynamicType.Unloaded<?> outputType, DynamicType.Unloaded<?> extensionType) {
-        var annotation =
+    private static DynamicType.Unloaded<?> makeExtensionProcedureType(
+            OutputDefinition outputDefinition, String procedureName, DynamicType.Unloaded<?> extensionType) {
+        final var annotation =
                 AnnotationDescription.Latent.Builder.ofType(Context.class).build();
+        final var outputType = outputDefinition.type();
+
         /* Below translates to:
            class CustomProcedure {
 
@@ -292,7 +350,10 @@ public final class CustomExtensionUtils {
                /.../
            }
         */
-        return procedureBuilder(outputType.getTypeDescription())
+        return procedureBuilder(
+                        outputType.getTypeDescription(),
+                        outputDefinition.make().apply("I can't be reloaded"),
+                        procedureName)
                 .defineField("extension", extensionType.getTypeDescription(), Opcodes.ACC_PUBLIC)
                 .visit(new MemberAttributeExtension.ForField()
                         .annotate(annotation)
@@ -516,7 +577,7 @@ public final class CustomExtensionUtils {
         stream.write(cls.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static String packageName(String name) {
-        return "org.neo4j.procedure.impl." + name;
+    public static String packageName(String name) {
+        return PACKAGE_NAME + "." + name;
     }
 }
