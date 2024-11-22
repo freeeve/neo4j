@@ -17,16 +17,18 @@
 package org.neo4j.cypher.internal;
 
 public enum CypherVersion {
-    Cypher5("5", false),
-    Cypher25("25", true);
+    Cypher5("5", "CYPHER 5", false),
+    Cypher25("25", "CYPHER 25", true);
 
     public static final CypherVersion Default = Cypher5;
 
     public final String versionName;
+    public final String description;
     public final boolean experimental;
 
-    CypherVersion(String versionName, boolean experimantal) {
+    CypherVersion(String versionName, String description, boolean experimantal) {
         this.versionName = versionName;
+        this.description = description;
         this.experimental = experimantal;
     }
 

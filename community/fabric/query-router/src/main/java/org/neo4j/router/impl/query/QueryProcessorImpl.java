@@ -95,14 +95,20 @@ public class QueryProcessorImpl implements QueryProcessor {
     }
 
     @Override
+    public PreParsedQuery preParse(Query query) {
+        return preParser.preParse(query.text());
+    }
+
+    @Override
     public ProcessedQueryInfo processQuery(
             Query query,
+            PreParsedQuery preParsedQuery,
             TargetService targetService,
             LocationService locationService,
             CancellationChecker cancellationChecker,
             DatabaseReference sessionDatabase) {
 
-        var cachedValue = getFromCache(query, cancellationChecker, sessionDatabase);
+        var cachedValue = getFromCache(query, preParsedQuery, cancellationChecker, sessionDatabase);
 
         QueryTarget queryTarget = targetService.target(cachedValue.catalogInfo());
 
@@ -142,9 +148,11 @@ public class QueryProcessorImpl implements QueryProcessor {
     }
 
     private ProcessedQueryInfoCache.Value getFromCache(
-            Query query, CancellationChecker cancellationChecker, DatabaseReference sessionDatabase) {
+            Query query,
+            PreParsedQuery preParsedQuery,
+            CancellationChecker cancellationChecker,
+            DatabaseReference sessionDatabase) {
         var notificationLogger = new RecordingNotificationLogger();
-        var preParsedQuery = preParser.preParse(query.text(), notificationLogger);
 
         var cachedValue = cache.get(preParsedQuery, query.parameters());
 

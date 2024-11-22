@@ -86,6 +86,7 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
     private DeprecationNotificationsProvider deprecationNotificationsProvider;
     private DeprecationNotificationsProvider fabricDeprecationNotificationsProvider;
     private int executionPlanCacheKeyHash;
+    private String queryLanguage;
     private volatile ExecutingQueryStatus status = SimpleState.parsing();
     private volatile ExecutingQuery previousQuery;
 
@@ -306,6 +307,10 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
         this.status = SimpleState.planning();
     }
 
+    public void onPreparseReady(String queryLanguage) {
+        this.queryLanguage = queryLanguage;
+    }
+
     public void onFabricDeprecationNotificationsProviderReady(
             DeprecationNotificationsProvider deprecationNotificationsProvider) {
         this.fabricDeprecationNotificationsProvider = deprecationNotificationsProvider;
@@ -420,6 +425,7 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
                 Optional.ofNullable(queryText),
                 Optional.ofNullable(queryPostions),
                 Optional.ofNullable(queryParameters),
+                queryLanguage,
                 outerTransactionSequenceNumber,
                 parentDbName,
                 parentTransactionSequenceNumber,

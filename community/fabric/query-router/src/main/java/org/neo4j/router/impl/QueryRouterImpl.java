@@ -228,8 +228,11 @@ public class QueryRouterImpl implements QueryRouter {
         statementLifecycle.startProcessing();
         try {
             LocationService locationService = context.locationService();
+            final var preParsedQuery = queryProcessor.preParse(query);
+            statementLifecycle.donePreParsing(preParsedQuery);
             var processedQueryInfo = queryProcessor.processQuery(
                     query,
+                    preParsedQuery,
                     context.targetService(),
                     locationService,
                     cancellationChecker(context.routerTransaction()),

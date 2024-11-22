@@ -51,6 +51,7 @@ public class QuerySnapshot {
     private final Optional<String> obfuscatedQueryText;
     private final Optional<Function<InputPosition, InputPosition>> obfuscatePosition;
     private final Optional<MapValue> obfuscatedQueryParameters;
+    private final String queryLanguage;
     private final long transactionSequenceNumber;
     private final long parentTransactionSequenceNumber;
     private final String parentDbName;
@@ -75,6 +76,7 @@ public class QuerySnapshot {
             Optional<String> obfuscatedQueryText,
             Optional<Function<InputPosition, InputPosition>> obfuscatePosition,
             Optional<MapValue> obfuscatedQueryParameters,
+            String queryLanguage,
             long outerTransactionSequenceNumber,
             String parentDbName,
             long parentTransactionSequenceNumber,
@@ -97,6 +99,7 @@ public class QuerySnapshot {
         this.obfuscatedQueryText = obfuscatedQueryText;
         this.obfuscatePosition = obfuscatePosition;
         this.obfuscatedQueryParameters = obfuscatedQueryParameters;
+        this.queryLanguage = queryLanguage;
         this.transactionSequenceNumber = outerTransactionSequenceNumber;
         this.parentDbName = parentDbName;
         this.parentTransactionSequenceNumber = parentTransactionSequenceNumber;
@@ -131,6 +134,10 @@ public class QuerySnapshot {
 
     public Optional<MapValue> obfuscatedQueryParameters() {
         return obfuscatedQueryParameters;
+    }
+
+    public String queryLanguage() {
+        return queryLanguage;
     }
 
     public Supplier<ExecutionPlanDescription> queryPlanSupplier() {

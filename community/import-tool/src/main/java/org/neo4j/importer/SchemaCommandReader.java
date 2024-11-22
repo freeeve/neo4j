@@ -77,7 +77,7 @@ public class SchemaCommandReader {
             return List.of();
         }
 
-        final var preParsedQuery = preParser.preParse(cypherText, NOTIFICATION_LOGGER);
+        final var preParsedQuery = preParser.preParse(cypherText);
         final var cypherVersion =
                 preParsedQuery.options().queryOptions().cypherVersion().actualVersion();
 

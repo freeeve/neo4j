@@ -27,6 +27,7 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.SettingChangeListener;
 import org.neo4j.cypher.internal.CypherDeprecationNotificationsProvider;
 import org.neo4j.cypher.internal.CypherQueryObfuscator;
+import org.neo4j.cypher.internal.PreParsedQuery;
 import org.neo4j.cypher.internal.util.InputPosition;
 import org.neo4j.cypher.internal.util.InternalNotification;
 import org.neo4j.cypher.internal.util.ObfuscationMetadata;
@@ -109,6 +110,12 @@ public class QueryStatementLifecycles {
 
         public void startProcessing() {
             getQueryExecutionMonitor().startProcessing(executingQuery);
+        }
+
+        public void donePreParsing(PreParsedQuery preParsedQuery) {
+            final var version =
+                    preParsedQuery.options().queryOptions().cypherVersion().actualVersion();
+            executingQuery.onPreparseReady(version.description);
         }
 
         public void doneFabricProcessing(FabricPlan plan, int preParserOffset) {

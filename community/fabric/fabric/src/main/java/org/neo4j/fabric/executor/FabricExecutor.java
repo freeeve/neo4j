@@ -115,6 +115,7 @@ public class FabricExecutor {
                     catalog,
                     internalSyntaxUsageStats,
                     fabricTransaction.cancellationChecker());
+            lifecycle.donePreParsing(plannerInstance.query());
             var plan = plannerInstance.plan();
             var query = plan.query();
 

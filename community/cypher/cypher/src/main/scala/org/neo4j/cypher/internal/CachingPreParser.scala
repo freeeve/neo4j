@@ -96,9 +96,9 @@ class CachingPreParser(
   ): PreParsedQuery = {
     val preParsedQuery =
       if (couldContainSensitiveFields) { // This is potentially any outer query running on the system database
-        preParse(queryText, notificationLogger)
+        preParse(queryText)
       } else {
-        preParserCache.computeIfAbsent(queryText, preParse(queryText, notificationLogger))
+        preParserCache.computeIfAbsent(queryText, preParse(queryText))
       }
     preParsedQuery.notifications.foreach(notificationLogger.log)
     if (profile) {
@@ -123,10 +123,10 @@ class PreParser(
   configuration: CypherConfiguration
 ) {
 
-  def preParse(
-    queryText: String,
-    notificationLogger: InternalNotificationLogger
-  ): PreParsedQuery = {
+  @Deprecated
+  def preParse(query: String, notifications: InternalNotificationLogger): PreParsedQuery = preParse(query)
+
+  def preParse(queryText: String): PreParsedQuery = {
     val exceptionFactory = new Neo4jASTExceptionFactory(Neo4jCypherExceptionFactory(queryText, None))
     if (queryText.isEmpty) {
       val gql = GqlHelper.getGql42001_42N45(0, 0, 0)

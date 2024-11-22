@@ -227,7 +227,7 @@ abstract class ExecutionEngine(
     subscriber: QuerySubscriber,
     notificationLogger: InternalNotificationLogger
   ): QueryExecution = {
-
+    context.executingQuery().onPreparseReady(query.options.queryOptions.cypherVersion.actualVersion.description)
     val executableQuery =
       try {
         getOrCompile(context, query, tracer, params, notificationLogger)

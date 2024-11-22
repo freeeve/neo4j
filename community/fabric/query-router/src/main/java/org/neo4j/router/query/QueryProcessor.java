@@ -21,6 +21,7 @@ package org.neo4j.router.query;
 
 import java.util.Optional;
 import java.util.Set;
+import org.neo4j.cypher.internal.PreParsedQuery;
 import org.neo4j.cypher.internal.QueryOptions;
 import org.neo4j.cypher.internal.util.CancellationChecker;
 import org.neo4j.cypher.internal.util.InternalNotification;
@@ -46,8 +47,11 @@ public interface QueryProcessor {
             Set<InternalNotification> parsingNotifications,
             Set<InternalNotification> routingNotifications) {}
 
+    PreParsedQuery preParse(Query query);
+
     ProcessedQueryInfo processQuery(
             Query query,
+            PreParsedQuery preParsedQuery,
             TargetService targetService,
             LocationService locationService,
             CancellationChecker cancellationChecker,
