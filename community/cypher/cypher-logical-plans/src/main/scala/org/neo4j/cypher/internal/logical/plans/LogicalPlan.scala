@@ -2207,7 +2207,7 @@ case class PruningVarExpand(
   maxLength: Int,
   override val nodePredicates: Seq[VariablePredicate] = Seq.empty,
   override val relationshipPredicates: Seq[VariablePredicate] = Seq.empty,
-  matchMode: TraversalMatchMode = TraversalMatchMode.Trail
+  traversalMatchMode: TraversalMatchMode = TraversalMatchMode.Trail
 )(implicit idGen: IdGen)
     extends AbstractVarExpand(from, types, to, nodePredicates, relationshipPredicates, idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)
@@ -2237,10 +2237,10 @@ case class BFSPruningVarExpand(
   includeStartNode: Boolean,
   maxLength: Int,
   depthName: Option[LogicalVariable],
-  mode: ExpansionMode,
+  expansionMode: ExpansionMode,
   override val nodePredicates: Seq[VariablePredicate] = Seq.empty,
   override val relationshipPredicates: Seq[VariablePredicate] = Seq.empty,
-  matchMode: TraversalMatchMode = TraversalMatchMode.Trail
+  traversalMatchMode: TraversalMatchMode = TraversalMatchMode.Trail
 )(implicit idGen: IdGen)
     extends AbstractVarExpand(from, types, to, nodePredicates, relationshipPredicates, idGen) {
 

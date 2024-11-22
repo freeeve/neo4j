@@ -6721,7 +6721,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           includeStartNode = false,
           maxLength = 4,
           depthName = Some(varFor("depth")),
-          mode = ExpandAll,
+          expansionMode = ExpandAll,
           nodePredicates = Seq(nodePredicate),
           relationshipPredicates = Seq(relationshipPredicate)
         ),
@@ -6750,7 +6750,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           includeStartNode = true,
           4,
           depthName = Some(varFor("depth")),
-          mode = ExpandAll,
+          expansionMode = ExpandAll,
           Seq(nodePredicate),
           Seq()
         ),
@@ -6777,7 +6777,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           includeStartNode = false,
           4,
           depthName = Some(varFor("depth")),
-          mode = ExpandInto,
+          expansionMode = ExpandInto,
           Seq(),
           Seq()
         ),
