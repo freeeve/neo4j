@@ -24,15 +24,13 @@ import java.nio.file.Path;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.InputStreamReadableChannel;
 import org.neo4j.io.fs.OutputStreamWritableChannel;
-import org.neo4j.io.fs.ReadableChannel;
-import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.io.marshal.ChannelMarshal;
 import org.neo4j.io.marshal.EndOfStreamException;
 
 public class SimpleFileStorage<T> implements SimpleStorage<T> {
-    private final FileSystemAbstraction fileSystem;
-    private final ChannelMarshal<T> marshal;
-    private final Path path;
+    protected final FileSystemAbstraction fileSystem;
+    protected final ChannelMarshal<T> marshal;
+    protected final Path path;
 
     public SimpleFileStorage(FileSystemAbstraction fileSystem, Path path, ChannelMarshal<T> marshal) {
         this.fileSystem = fileSystem;
@@ -47,7 +45,7 @@ public class SimpleFileStorage<T> implements SimpleStorage<T> {
 
     @Override
     public T readState() throws IOException {
-        try (ReadableChannel channel = new InputStreamReadableChannel(fileSystem.openAsInputStream(path))) {
+        try (var channel = new InputStreamReadableChannel(fileSystem.openAsInputStream(path))) {
             return marshal.unmarshal(channel);
         } catch (EndOfStreamException e) {
             throw new IOException(e);
@@ -62,7 +60,7 @@ public class SimpleFileStorage<T> implements SimpleStorage<T> {
         if (fileSystem.fileExists(path)) {
             fileSystem.deleteFile(path);
         }
-        try (WritableChannel channel = new OutputStreamWritableChannel(fileSystem.openAsOutputStream(path, false))) {
+        try (var channel = new OutputStreamWritableChannel(fileSystem.openAsOutputStream(path, false))) {
             marshal.marshal(state, channel);
         }
     }
