@@ -24,9 +24,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.neo4j.logging.log4j.LogConfig.DEBUG_LOG;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -71,8 +71,9 @@ class FileImporterTest {
         Files.write(inputFile, lines, Charset.defaultCharset());
 
         Config config = Config.defaults(GraphDatabaseSettings.logs_directory, logDir.toAbsolutePath());
-
-        try (var logProvider = FileImporter.createLogProvider(testDir.getFileSystem(), config)) {
+        final var logFilePath = FileImporter.getLogFilePath(config);
+        try (var logFile = new BufferedOutputStream(Files.newOutputStream(logFilePath));
+                var logProvider = FileImporter.getLog(logFile, true)) {
             final var csvImporter = FileImporter.builder()
                     .withDatabaseLayout(databaseLayout.getNeo4jLayout().databaseLayout("foodb"))
                     .withDatabaseConfig(config)
@@ -89,7 +90,7 @@ class FileImporterTest {
         }
 
         assertTrue(Files.exists(reportLocation));
-        assertThat(Files.readString(logDir.resolve(DEBUG_LOG))).contains("[foodb] Import starting");
+        assertThat(Files.readString(logFilePath).contains("[foodb] Import starting"));
     }
 
     @Test

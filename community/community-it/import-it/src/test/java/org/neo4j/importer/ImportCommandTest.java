@@ -58,7 +58,6 @@ import static org.neo4j.internal.helpers.collection.Iterators.count;
 import static org.neo4j.internal.helpers.collection.MapUtil.store;
 import static org.neo4j.internal.helpers.collection.MapUtil.stringMap;
 import static org.neo4j.kernel.impl.store.format.RecordFormatSelector.defaultFormat;
-import static org.neo4j.logging.log4j.LogConfig.DEBUG_LOG;
 import static org.neo4j.storemigration.StoreMigrationTestUtils.getStoreVersion;
 
 import java.io.IOException;
@@ -84,6 +83,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -1975,15 +1975,21 @@ class ImportCommandTest {
 
     @Test
     void shouldCreateDebugLogInExpectedPlace() throws Exception {
+        var ctx = capturingCtx();
         // given
         runImport(
+                ctx,
                 "--nodes",
                 nodeData(true, COMMAS, nodeIds(), TRUE).toAbsolutePath().toString());
 
+        var fileNamePattern = Pattern.compile(".*output will be saved to: (?<path>.*)", Pattern.MULTILINE);
+        var filenameMatcher = fileNamePattern.matcher(ctx.outAsString());
+        assertTrue(filenameMatcher.find());
+        var internalLogFile = Path.of(filenameMatcher.group("path"));
+        assertEquals(
+                Config.defaults(neo4j_home, testDirectory.homePath()).get(GraphDatabaseSettings.logs_directory),
+                internalLogFile.getParent());
         // THEN go and read the debug.log where it's expected to be and see if there's an IMPORT DONE line in it
-        Path internalLogFile = Config.defaults(neo4j_home, testDirectory.homePath())
-                .get(GraphDatabaseSettings.logs_directory)
-                .resolve(DEBUG_LOG);
         assertTrue(testDirectory.getFileSystem().fileExists(internalLogFile));
         assertContains("debug", Files.readAllLines(internalLogFile), "Import completed successfully");
     }

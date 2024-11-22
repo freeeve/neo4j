@@ -35,6 +35,7 @@ import static picocli.CommandLine.Command;
 import static picocli.CommandLine.Help.Visibility.ALWAYS;
 import static picocli.CommandLine.Help.Visibility.NEVER;
 
+import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -499,10 +500,14 @@ public class ImportCommand {
                 }
                 final var databaseConfig = loadNeo4jConfig(format);
                 final var databaseLayout = Neo4jLayout.of(databaseConfig).databaseLayout(database.name());
+                final var logFilePath = FileImporter.getLogFilePath(databaseConfig);
+                ctx.fs().mkdirs(logFilePath.toAbsolutePath().getParent());
 
                 try (var ignore = maybeLockChecker.maybeCheckLock(databaseLayout);
-                        var logProvider = FileImporter.createLogProvider(ctx.fs(), databaseConfig);
+                        var logFile = new BufferedOutputStream(ctx.fs().openAsOutputStream(logFilePath, true));
+                        var logProvider = FileImporter.getLog(logFile, verbose);
                         var fileSystem = new SchemeFileSystemAbstraction(ctx.fs(), databaseConfig, logProvider)) {
+                    ctx.out().println("Starting to import, output will be saved to: " + logFilePath.toAbsolutePath());
                     final var importerBuilder = FileImporter.builder()
                             .withCsvConfig(csvConfiguration(fileSystem))
                             .withImportConfig(importConfiguration())

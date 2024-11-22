@@ -19,11 +19,12 @@
  */
 package org.neo4j.importer;
 
+import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.exception.ExceptionUtils.indexOfThrowable;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.duplication_user_messages;
 import static org.neo4j.configuration.GraphDatabaseSettings.db_temporal_timezone;
-import static org.neo4j.configuration.GraphDatabaseSettings.server_logging_config_path;
+import static org.neo4j.configuration.GraphDatabaseSettings.logs_directory;
 import static org.neo4j.internal.batchimport.input.Collectors.badCollector;
 import static org.neo4j.internal.batchimport.input.Collectors.collect;
 import static org.neo4j.internal.batchimport.input.InputEntityDecorators.NO_DECORATOR;
@@ -34,7 +35,8 @@ import static org.neo4j.internal.batchimport.input.csv.DataFactories.defaultForm
 import static org.neo4j.internal.batchimport.input.csv.DataFactories.defaultFormatRelationshipFileHeader;
 import static org.neo4j.io.ByteUnit.bytesToString;
 import static org.neo4j.kernel.impl.scheduler.JobSchedulerFactory.createInitialisedScheduler;
-import static org.neo4j.logging.log4j.LogConfig.createLoggerFromXmlConfig;
+import static org.neo4j.logging.Level.DEBUG;
+import static org.neo4j.logging.Level.INFO;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
 import java.io.IOException;
@@ -44,7 +46,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -93,6 +97,9 @@ import org.neo4j.util.Preconditions;
 
 class FileImporter {
     static final String DEFAULT_REPORT_FILE_NAME = "import.report";
+    private static final DateTimeFormatter SPACELESS_DATE_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd.HH.mm.ss").withZone(ZoneId.systemDefault());
+    private static final String DEFAULT_LOG_FILE_NAME_TEMPLATE = "neo4j-admin-import-%s.log";
 
     private final DatabaseLayout databaseLayout;
     private final Config databaseConfig;
@@ -397,12 +404,13 @@ class FileImporter {
                 skipBadEntriesLogging);
     }
 
-    static InternalLogProvider createLogProvider(FileSystemAbstraction fileSystem, Config databaseConfig) {
-        return new Log4jLogProvider(createLoggerFromXmlConfig(
-                fileSystem,
-                databaseConfig.get(server_logging_config_path),
-                !databaseConfig.isExplicitlySet(server_logging_config_path),
-                databaseConfig::configStringLookup));
+    public static Path getLogFilePath(Config config) {
+        return config.get(logs_directory)
+                .resolve(format(DEFAULT_LOG_FILE_NAME_TEMPLATE, SPACELESS_DATE_FORMATTER.format(Instant.now())));
+    }
+
+    public static Log4jLogProvider getLog(OutputStream out, boolean verbose) {
+        return new Log4jLogProvider(out, verbose ? DEBUG : INFO);
     }
 
     static Builder builder() {
