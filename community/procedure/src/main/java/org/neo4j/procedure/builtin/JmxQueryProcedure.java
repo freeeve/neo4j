@@ -38,9 +38,6 @@ import javax.management.RuntimeMBeanException;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularData;
 import org.neo4j.collection.ResourceRawIterator;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlParams;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.Neo4jTypes;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
@@ -101,16 +98,7 @@ public class JmxQueryProcedure extends CallableProcedure.BasicProcedure {
                         toNeo4jValue(name, beanInfo.getAttributes())
                     };
                 } catch (JMException e) {
-                    var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N25)
-                            .withParam(GqlParams.StringParam.param, name.getCanonicalName())
-                            .build();
-                    throw new ProcedureException(
-                            gql,
-                            Status.General.UnknownError,
-                            e,
-                            "JMX error while accessing `%s`, please report this. Message was: %s",
-                            name,
-                            e.getMessage());
+                    throw ProcedureException.jmxError(name, e);
                 }
             });
         } catch (MalformedObjectNameException e) {

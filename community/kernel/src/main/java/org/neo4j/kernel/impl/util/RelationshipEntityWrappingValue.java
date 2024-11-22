@@ -23,8 +23,6 @@ import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 import static org.neo4j.values.AnyValueWriter.EntityMode.REFERENCE;
 
 import java.util.function.Consumer;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.Relationship;
@@ -80,10 +78,8 @@ public class RelationshipEntityWrappingValue extends RelationshipValue implement
                     // If the relationship has been deleted since it was found by the query,
                     // then we'll have to tell the client that their transaction conflicted,
                     // and that they need to retry it.
-                    var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                            .build();
-                    throw new ReadAndDeleteTransactionConflictException(
-                            gql, RelationshipEntity.isDeletedInCurrentTransaction(relationship));
+                    throw ReadAndDeleteTransactionConflictException.conflictingTransactionState(
+                            RelationshipEntity.isDeletedInCurrentTransaction(relationship));
                 }
             }
 
@@ -277,10 +273,8 @@ public class RelationshipEntityWrappingValue extends RelationshipValue implement
                     }
                 }
             } catch (IllegalStateException e) {
-                var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                        .build();
-                throw new ReadAndDeleteTransactionConflictException(
-                        gql, RelationshipEntity.isDeletedInCurrentTransaction(relationship), e);
+                throw ReadAndDeleteTransactionConflictException.conflictingTransactionState(
+                        RelationshipEntity.isDeletedInCurrentTransaction(relationship), e);
             }
         }
         return t;
@@ -298,10 +292,8 @@ public class RelationshipEntityWrappingValue extends RelationshipValue implement
                     }
                 }
             } catch (NotFoundException | IllegalStateException e) {
-                var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                        .build();
-                throw new ReadAndDeleteTransactionConflictException(
-                        gql, RelationshipEntity.isDeletedInCurrentTransaction(relationship), e);
+                throw ReadAndDeleteTransactionConflictException.conflictingTransactionState(
+                        RelationshipEntity.isDeletedInCurrentTransaction(relationship), e);
             }
         }
         return m;
@@ -331,10 +323,8 @@ public class RelationshipEntityWrappingValue extends RelationshipValue implement
                     }
                 }
             } catch (NotFoundException | IllegalStateException e) {
-                var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                        .build();
-                throw new ReadAndDeleteTransactionConflictException(
-                        gql, RelationshipEntity.isDeletedInCurrentTransaction(relationship), e);
+                throw ReadAndDeleteTransactionConflictException.conflictingTransactionState(
+                        RelationshipEntity.isDeletedInCurrentTransaction(relationship), e);
             }
         }
         return m;

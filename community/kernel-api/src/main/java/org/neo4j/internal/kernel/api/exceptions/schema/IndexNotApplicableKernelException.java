@@ -21,6 +21,9 @@ package org.neo4j.internal.kernel.api.exceptions.schema;
 
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class IndexNotApplicableKernelException extends KernelException {
@@ -28,7 +31,21 @@ public class IndexNotApplicableKernelException extends KernelException {
         super(Status.Schema.IndexNotApplicable, msg);
     }
 
-    public IndexNotApplicableKernelException(ErrorGqlStatusObject gqlStatusObject, String msg) {
+    private IndexNotApplicableKernelException(ErrorGqlStatusObject gqlStatusObject, String msg) {
         super(gqlStatusObject, Status.Schema.IndexNotApplicable, msg);
+    }
+
+    public static IndexNotApplicableKernelException vectorIndexDimensionalityMismatch(
+            String indexName, int indexDim, int vectorDim) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N65)
+                .withParam(GqlParams.StringParam.idx, indexName)
+                .withParam(GqlParams.NumberParam.dim1, indexDim)
+                .withParam(GqlParams.NumberParam.dim2, vectorDim)
+                .build();
+
+        return new IndexNotApplicableKernelException(
+                gql,
+                "Index query vector has a dimensionality of %d, but indexed vectors have %d."
+                        .formatted(indexDim, vectorDim));
     }
 }

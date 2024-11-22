@@ -64,7 +64,7 @@ class TransactionExceptionMappingIT {
 
     @Test
     void nonTransientTransientFailureOnTransactionClose() {
-        var rootCause = new ReadAndDeleteTransactionConflictException(true);
+        var rootCause = ReadAndDeleteTransactionConflictException.conflictingTransactionState(true);
         managementService.registerTransactionEventListener(
                 database.databaseName(), new TransactionEventListenerAdapter<>() {
                     @Override
@@ -127,7 +127,7 @@ class TransactionExceptionMappingIT {
 
     @Test
     void transientExceptionOnAnyTransientException() {
-        var rootCause = new ReadAndDeleteTransactionConflictException(false);
+        var rootCause = ReadAndDeleteTransactionConflictException.conflictingTransactionState(false);
         managementService.registerTransactionEventListener(
                 database.databaseName(), new TransactionEventListenerAdapter<>() {
                     @Override

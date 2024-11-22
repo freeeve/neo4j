@@ -30,8 +30,6 @@ import static org.neo4j.values.storable.Values.NO_VALUE;
 import java.util.Map;
 import org.neo4j.common.EntityType;
 import org.neo4j.exceptions.KernelException;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Label;
@@ -41,7 +39,7 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.ResourceIterable;
 import org.neo4j.graphdb.ResourceIterator;
-import org.neo4j.graphdb.TransactionFailureException;
+import org.neo4j.graphdb.TransactionFailureHelper;
 import org.neo4j.internal.helpers.collection.AbstractResourceIterable;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.RelationshipTraversalCursor;
@@ -53,7 +51,6 @@ import org.neo4j.internal.kernel.api.exceptions.schema.IllegalTokenNameException
 import org.neo4j.internal.kernel.api.exceptions.schema.TokenCapacityExceededKernelException;
 import org.neo4j.internal.kernel.api.helpers.RelationshipFactory;
 import org.neo4j.kernel.api.KernelTransaction;
-import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.token.api.TokenConstants;
 import org.neo4j.values.storable.Values;
@@ -172,10 +169,7 @@ public class NodeEntity extends AbstractNodeEntity implements RelationshipFactor
                 transaction.rollback();
             } catch (org.neo4j.internal.kernel.api.exceptions.TransactionFailureException ex) {
                 ex.addSuppressed(e);
-                var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_40N01)
-                        .build();
-                throw new TransactionFailureException(
-                        gql, "Fail to rollback transaction.", ex, Status.Transaction.TransactionRollbackFailed);
+                throw TransactionFailureHelper.failToRollbackTransaction(ex);
             }
             throw e;
         } catch (EntityNotFoundException e) {

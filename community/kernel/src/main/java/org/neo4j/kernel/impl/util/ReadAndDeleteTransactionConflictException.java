@@ -20,7 +20,9 @@
 package org.neo4j.kernel.impl.util;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlRuntimeException;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class ReadAndDeleteTransactionConflictException extends GqlRuntimeException implements Status.HasStatus {
@@ -34,28 +36,30 @@ public class ReadAndDeleteTransactionConflictException extends GqlRuntimeExcepti
 
     private final boolean deletedInThisTransaction;
 
-    @Deprecated
-    public ReadAndDeleteTransactionConflictException(boolean deletedInThisTransaction) {
-        super(getMessageHelper(deletedInThisTransaction));
-        this.deletedInThisTransaction = deletedInThisTransaction;
-    }
-
-    public ReadAndDeleteTransactionConflictException(
+    private ReadAndDeleteTransactionConflictException(
             ErrorGqlStatusObject gqlStatusObject, boolean deletedInThisTransaction) {
         super(gqlStatusObject, getMessageHelper(deletedInThisTransaction));
         this.deletedInThisTransaction = deletedInThisTransaction;
     }
 
-    @Deprecated
-    public ReadAndDeleteTransactionConflictException(boolean deletedInThisTransaction, Throwable cause) {
-        super(getMessageHelper(deletedInThisTransaction), cause);
-        this.deletedInThisTransaction = deletedInThisTransaction;
-    }
-
-    public ReadAndDeleteTransactionConflictException(
+    private ReadAndDeleteTransactionConflictException(
             ErrorGqlStatusObject gqlStatusObject, boolean deletedInThisTransaction, Throwable cause) {
         super(gqlStatusObject, getMessageHelper(deletedInThisTransaction), cause);
         this.deletedInThisTransaction = deletedInThisTransaction;
+    }
+
+    public static ReadAndDeleteTransactionConflictException conflictingTransactionState(
+            boolean deletedInThisTransaction) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
+                .build();
+        return new ReadAndDeleteTransactionConflictException(gql, deletedInThisTransaction);
+    }
+
+    public static ReadAndDeleteTransactionConflictException conflictingTransactionState(
+            boolean deletedInThisTransaction, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
+                .build();
+        return new ReadAndDeleteTransactionConflictException(gql, deletedInThisTransaction, e);
     }
 
     public boolean wasDeletedInThisTransaction() {

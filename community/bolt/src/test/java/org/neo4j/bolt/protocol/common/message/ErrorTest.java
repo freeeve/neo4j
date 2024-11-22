@@ -256,13 +256,7 @@ class ErrorTest {
         }
 
         static TransactionConflictException transactionConflictException() {
-            var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                    .withClassification(ErrorClassification.TRANSIENT_ERROR)
-                    .build();
-            return new TransactionConflictException(
-                    gql,
-                    "Concurrent modification exception. Constraint to be removed already removed by another transaction.",
-                    null);
+            return TransactionConflictException.concurrentModification(null);
         }
     }
 }

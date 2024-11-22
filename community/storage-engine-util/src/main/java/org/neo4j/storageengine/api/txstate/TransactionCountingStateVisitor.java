@@ -29,12 +29,9 @@ import org.eclipse.collections.api.set.primitive.LongSet;
 import org.neo4j.collection.diffset.LongDiffSets;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.exceptions.UnspecifiedKernelException;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CountsDelta;
 import org.neo4j.storageengine.api.StorageNodeCursor;
@@ -203,9 +200,7 @@ public class TransactionCountingStateVisitor extends TxStateVisitor.Delegator {
         if (exception != null) {
             Exceptions.throwIfInstanceOf(exception, KernelException.class);
             Exceptions.throwIfUnchecked(exception);
-            var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
-                    .build();
-            throw new UnspecifiedKernelException(gql, Status.General.UnknownError, exception);
+            throw UnspecifiedKernelException.unknownError(exception);
         }
     }
 }

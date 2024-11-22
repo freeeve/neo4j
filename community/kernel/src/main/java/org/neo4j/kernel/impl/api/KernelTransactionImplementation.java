@@ -29,7 +29,6 @@ import static org.neo4j.configuration.GraphDatabaseSettings.memory_transaction_m
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_sampling_percentage;
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_tracing_level;
 import static org.neo4j.internal.helpers.VarHandleUtils.getVarHandle;
-import static org.neo4j.kernel.api.exceptions.Status.Transaction.TransactionCommitFailed;
 import static org.neo4j.kernel.impl.api.LeaseService.NO_LEASE;
 import static org.neo4j.kernel.impl.api.transaction.trace.TraceProviderFactory.getTraceProvider;
 import static org.neo4j.kernel.impl.api.transaction.trace.TransactionInitializationTrace.NONE;
@@ -60,8 +59,6 @@ import org.neo4j.dbms.identity.ServerIdentity;
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.exceptions.UnspecifiedKernelException;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.NotInTransactionException;
 import org.neo4j.graphdb.TransactionTerminatedException;
 import org.neo4j.internal.helpers.Exceptions;
@@ -1026,9 +1023,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
 
         Exceptions.throwIfInstanceOf(exception, TransactionFailureException.class);
         Exceptions.throwIfUnchecked(exception);
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
-                .build();
-        throw new TransactionFailureException(gql, Status.General.UnknownError, exception);
+        throw TransactionFailureException.unknownError(exception);
     }
 
     private void closed() {
@@ -1141,9 +1136,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         }
         Exceptions.throwIfInstanceOf(exception, TransactionFailureException.class);
         Exceptions.throwIfUnchecked(exception);
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
-                .build();
-        throw new TransactionFailureException(gql, Status.General.UnknownError, exception);
+        throw TransactionFailureException.unknownError(exception);
     }
 
     private TransactionApplicationMode transactionApplicationMode() {
@@ -1237,9 +1230,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         } catch (KernelException | RuntimeException | Error e) {
             throw e;
         } catch (Throwable throwable) {
-            var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_40N01)
-                    .build();
-            throw new UnspecifiedKernelException(gql, Status.Transaction.TransactionRollbackFailed, throwable);
+            throw UnspecifiedKernelException.transactionRollbackFailed(throwable);
         } finally {
             afterRollback();
         }
@@ -1622,12 +1613,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
 
     private void assertNoInnerTransactions() throws TransactionFailureException {
         if (getInnerTransactionHandler().hasInnerTransaction()) {
-            var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN07)
-                    .build();
-            throw new TransactionFailureException(
-                    gql,
-                    TransactionCommitFailed,
-                    "The transaction cannot be committed when it has open inner transactions.");
+            throw TransactionFailureException.innerTransactionsStillOpen();
         }
     }
 

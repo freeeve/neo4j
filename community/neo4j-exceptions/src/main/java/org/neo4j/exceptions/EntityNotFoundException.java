@@ -20,6 +20,8 @@
 package org.neo4j.exceptions;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class EntityNotFoundException extends Neo4jException {
@@ -28,8 +30,14 @@ public class EntityNotFoundException extends Neo4jException {
         super(message);
     }
 
-    public EntityNotFoundException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    private EntityNotFoundException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
+    }
+
+    public static EntityNotFoundException nodeUnexpectedlyDeleted(long nodeId) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
+                .build();
+        return new EntityNotFoundException(gql, "Node " + nodeId + " was unexpectedly deleted");
     }
 
     @Override

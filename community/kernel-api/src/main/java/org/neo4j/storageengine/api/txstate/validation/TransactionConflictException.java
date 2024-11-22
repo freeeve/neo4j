@@ -21,6 +21,8 @@ package org.neo4j.storageengine.api.txstate.validation;
 
 import java.util.Arrays;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.TransientFailureException;
 import org.neo4j.io.layout.DatabaseFile;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseFile;
@@ -34,15 +36,7 @@ public class TransactionConflictException extends TransientFailureException {
     private long observedVersion;
     private long highestClosed;
 
-    @Deprecated
-    public TransactionConflictException(DatabaseFile databaseFile, VersionContext versionContext, long pageId) {
-        super(createMessage(databaseFile.getName(), pageId, versionContext));
-        this.databaseFile = databaseFile;
-        this.observedVersion = versionContext.chainHeadVersion();
-        this.highestClosed = versionContext.highestClosed();
-    }
-
-    public TransactionConflictException(
+    private TransactionConflictException(
             ErrorGqlStatusObject gqlStatusObject,
             DatabaseFile databaseFile,
             VersionContext versionContext,
@@ -54,35 +48,47 @@ public class TransactionConflictException extends TransientFailureException {
         this.highestClosed = versionContext.highestClosed();
     }
 
-    @Deprecated
-    public TransactionConflictException(String message, Exception cause) {
-        super(message, cause);
-    }
-
-    public TransactionConflictException(ErrorGqlStatusObject gqlStatusObject, String message, Exception cause) {
+    private TransactionConflictException(ErrorGqlStatusObject gqlStatusObject, String message, Exception cause) {
         super(gqlStatusObject, message, cause);
     }
 
-    @Deprecated
-    public TransactionConflictException(Exception cause) {
-        this(GENERIC_MESSAGE, cause);
-    }
-
-    public TransactionConflictException(ErrorGqlStatusObject gqlStatusObject, Exception cause) {
+    private TransactionConflictException(ErrorGqlStatusObject gqlStatusObject, Exception cause) {
         this(gqlStatusObject, GENERIC_MESSAGE, cause);
     }
 
-    @Deprecated
-    public TransactionConflictException(RecordDatabaseFile databaseFile, long pageId) {
-        super(createPageIdPagedMessage(databaseFile.getName(), pageId));
-        this.databaseFile = databaseFile;
-    }
-
-    public TransactionConflictException(
+    private TransactionConflictException(
             ErrorGqlStatusObject gqlStatusObject, RecordDatabaseFile databaseFile, long pageId) {
         super(gqlStatusObject, createPageIdPagedMessage(databaseFile.getName(), pageId));
 
         this.databaseFile = databaseFile;
+    }
+
+    public static TransactionConflictException transactionConflict(Exception e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
+                .build();
+        return new TransactionConflictException(gql, e);
+    }
+
+    public static TransactionConflictException transactionConflict(RecordDatabaseFile databaseFile, long pageId) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
+                .build();
+        return new TransactionConflictException(gql, databaseFile, pageId);
+    }
+
+    public static TransactionConflictException transactionConflict(
+            RecordDatabaseFile databaseFile, VersionContext versionContext, long pageId) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
+                .build();
+        return new TransactionConflictException(gql, databaseFile, versionContext, pageId);
+    }
+
+    public static TransactionConflictException concurrentModification(Exception e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
+                .build();
+        return new TransactionConflictException(
+                gql,
+                "Concurrent modification exception. Constraint to be removed already removed by another transaction.",
+                e);
     }
 
     @Override

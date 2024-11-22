@@ -25,9 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
 import org.apache.lucene.search.Query;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlParams;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
@@ -108,15 +105,8 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
         if (predicate instanceof final NearestNeighborsPredicate nearestNeighbour) {
             final var queryVector = nearestNeighbour.query();
             if (dimensions.isPresent() && queryVector.length != dimensions.getAsInt()) {
-                var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N65)
-                        .withParam(GqlParams.StringParam.idx, indexName())
-                        .withParam(GqlParams.NumberParam.dim1, queryVector.length)
-                        .withParam(GqlParams.NumberParam.dim2, dimensions.getAsInt())
-                        .build();
-                throw new IndexNotApplicableKernelException(
-                        gql,
-                        "Index query vector has a dimensionality of %d, but indexed vectors have %d."
-                                .formatted(queryVector.length, dimensions.getAsInt()));
+                throw IndexNotApplicableKernelException.vectorIndexDimensionalityMismatch(
+                        indexName(), queryVector.length, dimensions.getAsInt());
             }
         }
         return predicate;

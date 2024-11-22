@@ -17,28 +17,29 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.exceptions;
+package org.neo4j.graphdb;
 
-import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
-public class UnspecifiedKernelException extends KernelException {
+/**
+ * This helper class contains methods to create `TransactionFailureException`. These would normally be on the exception
+ * class itself, but that is `@PublicApi`, and we don't want these methods to be public API.
+ */
+public class TransactionFailureHelper {
 
-    private UnspecifiedKernelException(ErrorGqlStatusObject gqlStatusObject, Status statusCode, Throwable cause) {
-        super(gqlStatusObject, statusCode, cause);
-    }
-
-    public static UnspecifiedKernelException transactionRollbackFailed(Throwable e) {
+    public static TransactionFailureException failToRollbackTransaction(Throwable e) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_40N01)
                 .build();
-        return new UnspecifiedKernelException(gql, Status.Transaction.TransactionRollbackFailed, e);
+        return new TransactionFailureException(
+                gql, "Fail to rollback transaction.", e, Status.Transaction.TransactionRollbackFailed);
     }
 
-    public static UnspecifiedKernelException unknownError(Throwable e) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
+    public static TransactionFailureException failToStartTransaction(Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N06)
                 .build();
-        return new UnspecifiedKernelException(gql, Status.General.UnknownError, e);
+        return new TransactionFailureException(
+                gql, "Fail to start new transaction.", e, Status.Transaction.TransactionStartFailed);
     }
 }

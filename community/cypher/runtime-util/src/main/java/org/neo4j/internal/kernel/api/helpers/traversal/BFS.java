@@ -28,8 +28,6 @@ import org.neo4j.collection.trackable.HeapTrackingCollections;
 import org.neo4j.collection.trackable.HeapTrackingLongHashSet;
 import org.neo4j.collection.trackable.HeapTrackingLongObjectHashMap;
 import org.neo4j.exceptions.EntityNotFoundException;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.internal.kernel.api.KernelReadTracer;
 import org.neo4j.internal.kernel.api.NodeCursor;
@@ -256,9 +254,7 @@ abstract class BFS<STEPS> implements AutoCloseable {
                 long currentNode = currentLevelItr.next();
                 read.singleNode(currentNode, nodeCursor);
                 if (!nodeCursor.next()) {
-                    var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                            .build();
-                    throw new EntityNotFoundException(gql, "Node " + currentNode + " was unexpectedly deleted");
+                    throw EntityNotFoundException.nodeUnexpectedlyDeleted(currentNode);
                 }
                 selectionCursor = retriever.selectionCursor(relCursor, nodeCursor, types);
                 while (selectionCursor.next()) {
@@ -395,9 +391,7 @@ abstract class BFS<STEPS> implements AutoCloseable {
                 long currentNode = currentLevelItr.next();
                 read.singleNode(currentNode, nodeCursor);
                 if (!nodeCursor.next()) {
-                    var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                            .build();
-                    throw new EntityNotFoundException(gql, "Node " + currentNode + " was unexpectedly deleted");
+                    throw EntityNotFoundException.nodeUnexpectedlyDeleted(currentNode);
                 }
                 selectionCursor = retriever.selectionCursor(relCursor, nodeCursor, types);
                 while (selectionCursor.next()) {
@@ -476,9 +470,7 @@ abstract class BFS<STEPS> implements AutoCloseable {
                 currentNode = currentLevelItr.next();
                 read.singleNode(currentNode, nodeCursor);
                 if (!nodeCursor.next()) {
-                    var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                            .build();
-                    throw new EntityNotFoundException(gql, "Node " + currentNode + " was unexpectedly deleted");
+                    throw EntityNotFoundException.nodeUnexpectedlyDeleted(currentNode);
                 }
                 selectionCursor = retriever.selectionCursor(relCursor, nodeCursor, types);
                 while (selectionCursor.next()) {
@@ -544,9 +536,7 @@ abstract class BFS<STEPS> implements AutoCloseable {
                 currentNode = currentLevelItr.next();
                 read.singleNode(currentNode, nodeCursor);
                 if (!nodeCursor.next()) {
-                    var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                            .build();
-                    throw new EntityNotFoundException(gql, "Node " + currentNode + " was unexpectedly deleted");
+                    throw EntityNotFoundException.nodeUnexpectedlyDeleted(currentNode);
                 }
                 selectionCursor = retriever.selectionCursor(relCursor, nodeCursor, types);
             }

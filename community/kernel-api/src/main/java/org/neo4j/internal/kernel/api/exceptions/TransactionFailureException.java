@@ -22,6 +22,7 @@ package org.neo4j.internal.kernel.api.exceptions;
 import static org.neo4j.kernel.api.exceptions.Status.Cluster.ReplicationFailure;
 import static org.neo4j.kernel.api.exceptions.Status.General.UnknownError;
 import static org.neo4j.kernel.api.exceptions.Status.Transaction.LeaseExpired;
+import static org.neo4j.kernel.api.exceptions.Status.Transaction.TransactionCommitFailed;
 
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
@@ -49,7 +50,7 @@ public class TransactionFailureException extends KernelException {
         super(statusCode, cause);
     }
 
-    public TransactionFailureException(ErrorGqlStatusObject gqlStatusObject, Status statusCode, Throwable cause) {
+    private TransactionFailureException(ErrorGqlStatusObject gqlStatusObject, Status statusCode, Throwable cause) {
         super(gqlStatusObject, statusCode, cause);
     }
 
@@ -100,5 +101,20 @@ public class TransactionFailureException extends KernelException {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N33)
                 .build();
         return new TransactionFailureException(gql, ReplicationFailure, cause);
+    }
+
+    public static TransactionFailureException innerTransactionsStillOpen() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN07)
+                .build();
+        return new TransactionFailureException(
+                gql,
+                TransactionCommitFailed,
+                "The transaction cannot be committed when it has open inner transactions.");
+    }
+
+    public static TransactionFailureException unknownError(Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
+                .build();
+        return new TransactionFailureException(gql, Status.General.UnknownError, e);
     }
 }

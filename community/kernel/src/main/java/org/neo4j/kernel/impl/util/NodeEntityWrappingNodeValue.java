@@ -25,8 +25,6 @@ import static org.neo4j.values.AnyValueWriter.EntityMode.REFERENCE;
 import java.util.ArrayList;
 import java.util.List;
 import org.neo4j.exceptions.StoreFailureException;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
@@ -124,10 +122,8 @@ public class NodeEntityWrappingNodeValue extends NodeValue implements WrappingEn
                     }
                 }
             } catch (NotFoundException | IllegalStateException | StoreFailureException e) {
-                var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                        .build();
-                throw new ReadAndDeleteTransactionConflictException(
-                        gql, NodeEntity.isDeletedInCurrentTransaction(node), e);
+                throw ReadAndDeleteTransactionConflictException.conflictingTransactionState(
+                        NodeEntity.isDeletedInCurrentTransaction(node), e);
             }
         }
         return l;
@@ -149,10 +145,8 @@ public class NodeEntityWrappingNodeValue extends NodeValue implements WrappingEn
                     }
                 }
             } catch (NotFoundException | IllegalStateException | StoreFailureException e) {
-                var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                        .build();
-                throw new ReadAndDeleteTransactionConflictException(
-                        gql, NodeEntity.isDeletedInCurrentTransaction(node), e);
+                throw ReadAndDeleteTransactionConflictException.conflictingTransactionState(
+                        NodeEntity.isDeletedInCurrentTransaction(node), e);
             }
         }
         return l;
@@ -170,10 +164,8 @@ public class NodeEntityWrappingNodeValue extends NodeValue implements WrappingEn
                     }
                 }
             } catch (NotFoundException | IllegalStateException | StoreFailureException e) {
-                var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                        .build();
-                throw new ReadAndDeleteTransactionConflictException(
-                        gql, NodeEntity.isDeletedInCurrentTransaction(node), e);
+                throw ReadAndDeleteTransactionConflictException.conflictingTransactionState(
+                        NodeEntity.isDeletedInCurrentTransaction(node), e);
             }
         }
         return m;
@@ -199,10 +191,8 @@ public class NodeEntityWrappingNodeValue extends NodeValue implements WrappingEn
                     }
                 }
             } catch (NotFoundException | IllegalStateException | StoreFailureException e) {
-                var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                        .build();
-                throw new ReadAndDeleteTransactionConflictException(
-                        gql, NodeEntity.isDeletedInCurrentTransaction(node), e);
+                throw ReadAndDeleteTransactionConflictException.conflictingTransactionState(
+                        NodeEntity.isDeletedInCurrentTransaction(node), e);
             }
         }
         return m;

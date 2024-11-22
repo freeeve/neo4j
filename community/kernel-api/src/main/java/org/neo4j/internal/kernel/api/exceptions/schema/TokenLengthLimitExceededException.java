@@ -28,21 +28,20 @@ import org.neo4j.kernel.api.exceptions.Status;
 
 public final class TokenLengthLimitExceededException extends GqlRuntimeException implements Status.HasStatus {
 
-    public TokenLengthLimitExceededException(String tokenName, String tokenType, int maxLength) {
-        this(
-                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I50)
-                        .withParam(GqlParams.StringParam.input, tokenName)
-                        .withParam(GqlParams.StringParam.tokenType, tokenType)
-                        .withParam(GqlParams.NumberParam.value, maxLength)
-                        .build(),
-                tokenName,
-                tokenType,
-                maxLength);
-    }
-
-    public TokenLengthLimitExceededException(
+    private TokenLengthLimitExceededException(
             ErrorGqlStatusObject errorGqlStatusObject, String tokenName, String tokenType, int maxLength) {
         super(errorGqlStatusObject, getMessage(tokenName, tokenType, maxLength));
+    }
+
+    public static TokenLengthLimitExceededException tokenNameTooLong(
+            String tokenName, String tokenType, int maxLength) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I50)
+                .withParam(GqlParams.StringParam.input, tokenName)
+                .withParam(GqlParams.StringParam.tokenType, tokenType)
+                .withParam(GqlParams.NumberParam.value, maxLength)
+                .build();
+
+        return new TokenLengthLimitExceededException(gql, tokenName, tokenType, maxLength);
     }
 
     private static String getMessage(String tokenName, String tokenType, int maxLength) {

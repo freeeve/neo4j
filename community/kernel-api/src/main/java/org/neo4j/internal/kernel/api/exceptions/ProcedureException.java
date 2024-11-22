@@ -22,8 +22,10 @@ package org.neo4j.internal.kernel.api.exceptions;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.exception.ExceptionUtils.getRootCause;
 import static org.neo4j.kernel.api.exceptions.Status.Database.DatabaseNotFound;
+import static org.neo4j.kernel.api.exceptions.Status.Procedure.ProcedureCallFailed;
 
 import java.util.List;
+import javax.management.ObjectName;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorClassification;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
@@ -690,5 +692,28 @@ public class ProcedureException extends KernelException {
                 "Unable to inject component to field `%s`, please ensure it is public and non-final: %s",
                 procField,
                 cause.getMessage());
+    }
+
+    public static ProcedureException unableToCheckLicense(String procedureName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N09)
+                .withParam(GqlParams.StringParam.proc, procedureName)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N60)
+                        .build())
+                .build();
+
+        return new ProcedureException(gql, ProcedureCallFailed, "Unable to determine license acceptance status");
+    }
+
+    public static ProcedureException jmxError(ObjectName name, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N25)
+                .withParam(GqlParams.StringParam.param, name.getCanonicalName())
+                .build();
+        return new ProcedureException(
+                gql,
+                Status.General.UnknownError,
+                e,
+                "JMX error while accessing `%s`, please report this. Message was: %s",
+                name,
+                e.getMessage());
     }
 }
