@@ -34,6 +34,7 @@ import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryRollback;
+import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.util.FeatureToggles;
@@ -129,7 +130,11 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
             boolean endReached = false;
             do {
                 try {
-                    channel.read(buffer);
+                    if (channel instanceof EnvelopeReadChannel envelopeReadChannel) {
+                        envelopeReadChannel.directRead(buffer);
+                    } else {
+                        channel.read(buffer);
+                    }
                 } catch (ReadPastEndException ee) {
                     // end of the file is encountered while checking ahead we ignore that and checking as much data as
                     // we got

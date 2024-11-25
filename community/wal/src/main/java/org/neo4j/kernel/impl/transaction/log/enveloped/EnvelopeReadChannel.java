@@ -829,6 +829,27 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         return length;
     }
 
+    public int directRead(ByteBuffer dst) throws IOException {
+        // Skip all the envelope handling
+        int length = dst.remaining();
+        try {
+            var bytesRead = 0;
+            while (bytesRead < length) {
+                if (buffer.position() == buffer.limit()) {
+                    nextSegment();
+                }
+                final var chunkSize = min(buffer.remaining(), length - bytesRead);
+                dst.put(dst.position(), buffer, buffer.position(), chunkSize);
+                dst.position(dst.position() + chunkSize);
+                buffer.position(buffer.position() + chunkSize);
+                bytesRead += chunkSize;
+            }
+        } catch (ClosedChannelException e) {
+            handleClosedChannelException(e);
+        }
+        return length;
+    }
+
     public void reReadSegment() throws IOException {
         var logPositionMarker = new LogPositionMarker();
         var currentLogPosition = getCurrentLogPosition(logPositionMarker);
