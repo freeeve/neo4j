@@ -52,34 +52,6 @@ public final class UserFunctionSignature implements DescribedSignature {
     private final Set<QueryLanguage> supportedQueryLanguages;
 
     @Deprecated(forRemoval = true)
-    @SuppressWarnings("unused")
-    public UserFunctionSignature(
-            QualifiedName name,
-            List<FieldSignature> inputSignature,
-            Neo4jTypes.AnyType type,
-            String deprecated,
-            String description,
-            String category,
-            boolean caseInsensitive,
-            boolean isBuiltIn,
-            boolean internal,
-            boolean threadSafe) {
-        this(
-                name,
-                inputSignature,
-                type,
-                deprecated != null && !deprecated.isEmpty(),
-                deprecated,
-                description,
-                category,
-                caseInsensitive,
-                isBuiltIn,
-                internal,
-                threadSafe,
-                QueryLanguage.ALL);
-    }
-
-    @Deprecated(forRemoval = true)
     public UserFunctionSignature(
             QualifiedName name,
             List<FieldSignature> inputSignature,

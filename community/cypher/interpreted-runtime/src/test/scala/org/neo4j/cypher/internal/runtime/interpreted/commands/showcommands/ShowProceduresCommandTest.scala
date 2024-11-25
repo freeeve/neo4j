@@ -124,7 +124,8 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     true,
     false,
     false,
-    false
+    false,
+    QueryLanguage.ALL
   )
 
   private val proc4 = new ProcedureSignature(
