@@ -83,6 +83,82 @@ object SlotConfigurationUtils {
         throw new InternalException(s"Do not know how to make getter for slot $slot")
     }
 
+  def makeNullableGetPrimitiveNodeFunctionFor(offset: Int): ToLongFunction[ReadableRow] = {
+    val nonNullable = makeGetPrimitiveNodeFunctionFor(offset)
+    (context: ReadableRow) => {
+      val value = context.getRefAt(offset)
+      if (value eq Values.NO_VALUE) PRIMITIVE_NULL
+      else nonNullable.applyAsLong(context)
+    }
+  }
+
+  def makeGetPrimitiveNodeFunctionFor(offset: Int): ToLongFunction[ReadableRow] = {
+    (context: ReadableRow) =>
+      {
+        val value = context.getRefAt(offset)
+
+        try {
+          value.asInstanceOf[VirtualNodeValue].id()
+        } catch {
+          case _: java.lang.ClassCastException =>
+            value match {
+              case value: Value =>
+                throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
+                  offset,
+                  "node",
+                  String.valueOf(value),
+                  value.prettyPrint(),
+                  CypherTypeValueMapper.valueType(value)
+                )
+              case other =>
+                throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
+                  offset,
+                  "node",
+                  String.valueOf(other),
+                  String.valueOf(other),
+                  CypherTypeValueMapper.valueType(other)
+                )
+            }
+        }
+      }
+  }
+
+  def makeNullableGetPrimitiveRelationshipFunctionFor(offset: Int): ToLongFunction[ReadableRow] = {
+    val nonNullable = makeGetPrimitiveRelationshipFunctionFor(offset)
+    (context: ReadableRow) => {
+      val value = context.getRefAt(offset)
+      if (value eq Values.NO_VALUE) PRIMITIVE_NULL
+      else nonNullable.applyAsLong(context)
+    }
+  }
+
+  def makeGetPrimitiveRelationshipFunctionFor(offset: Int): ToLongFunction[ReadableRow] = (context: ReadableRow) => {
+    val value = context.getRefAt(offset)
+    try {
+      value.asInstanceOf[VirtualRelationshipValue].id()
+    } catch {
+      case _: java.lang.ClassCastException =>
+        value match {
+          case value: Value =>
+            throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
+              offset,
+              "relationship",
+              String.valueOf(value),
+              value.prettyPrint(),
+              CypherTypeValueMapper.valueType(value)
+            )
+          case other =>
+            throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
+              offset,
+              "relationship",
+              String.valueOf(other),
+              String.valueOf(other),
+              CypherTypeValueMapper.valueType(other)
+            )
+        }
+    }
+  }
+
   /**
    * Use this to make a specialized getter function for a slot and a primitive return type (i.e. CTNode or CTRelationship),
    * that given an ExecutionContext returns a long.
@@ -97,119 +173,10 @@ object SlotConfigurationUtils {
         (context: ReadableRow) =>
           context.getLongAt(offset)
 
-      case (RefSlot(offset, false, _), CTNode, true) =>
-        (context: ReadableRow) =>
-          val value = context.getRefAt(offset)
-          try {
-            value.asInstanceOf[VirtualNodeValue].id()
-          } catch {
-            case _: java.lang.ClassCastException =>
-              value match {
-                case value: Value =>
-                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
-                    offset,
-                    "node",
-                    String.valueOf(value),
-                    value.prettyPrint(),
-                    CypherTypeValueMapper.valueType(value)
-                  )
-                case other =>
-                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
-                    offset,
-                    "node",
-                    String.valueOf(other),
-                    String.valueOf(other),
-                    CypherTypeValueMapper.valueType(other)
-                  )
-              }
-          }
-      case (RefSlot(offset, false, _), CTRelationship, true) =>
-        (context: ReadableRow) =>
-          val value = context.getRefAt(offset)
-          try {
-            value.asInstanceOf[VirtualRelationshipValue].id()
-          } catch {
-            case _: java.lang.ClassCastException =>
-              value match {
-                case value: Value =>
-                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
-                    offset,
-                    "relationship",
-                    String.valueOf(value),
-                    value.prettyPrint(),
-                    CypherTypeValueMapper.valueType(value)
-                  )
-                case other =>
-                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
-                    offset,
-                    "relationship",
-                    String.valueOf(other),
-                    String.valueOf(other),
-                    CypherTypeValueMapper.valueType(other)
-                  )
-              }
-          }
-
-      case (RefSlot(offset, true, _), CTNode, true) =>
-        (context: ReadableRow) =>
-          val value = context.getRefAt(offset)
-          try {
-            if (value eq Values.NO_VALUE)
-              PRIMITIVE_NULL
-            else
-              value.asInstanceOf[VirtualNodeValue].id()
-          } catch {
-            case _: java.lang.ClassCastException =>
-              value match {
-                case value: Value =>
-                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
-                    offset,
-                    "node",
-                    String.valueOf(value),
-                    value.prettyPrint(),
-                    CypherTypeValueMapper.valueType(value)
-                  )
-                case other =>
-                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
-                    offset,
-                    "node",
-                    String.valueOf(other),
-                    String.valueOf(other),
-                    CypherTypeValueMapper.valueType(other)
-                  )
-              }
-          }
-
-      case (RefSlot(offset, true, _), CTRelationship, true) =>
-        (context: ReadableRow) =>
-          val value = context.getRefAt(offset)
-          try {
-            if (value eq Values.NO_VALUE)
-              PRIMITIVE_NULL
-            else
-              value.asInstanceOf[VirtualRelationshipValue].id()
-          } catch {
-            case _: java.lang.ClassCastException =>
-              value match {
-                case value: Value =>
-                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
-                    offset,
-                    "relationship",
-                    String.valueOf(value),
-                    value.prettyPrint(),
-                    CypherTypeValueMapper.valueType(value)
-                  )
-                case other =>
-                  throw ParameterWrongTypeException.expectedEntityAtRefSlotFoundInstead(
-                    offset,
-                    "relationship",
-                    String.valueOf(other),
-                    String.valueOf(other),
-                    CypherTypeValueMapper.valueType(other)
-                  )
-              }
-          }
-
+      case (RefSlot(offset, false, _), CTNode, true)         => makeGetPrimitiveNodeFunctionFor(offset)
+      case (RefSlot(offset, false, _), CTRelationship, true) => makeGetPrimitiveRelationshipFunctionFor(offset)
+      case (RefSlot(offset, true, _), CTNode, true)          => makeNullableGetPrimitiveNodeFunctionFor(offset)
+      case (RefSlot(offset, true, _), CTRelationship, true)  => makeNullableGetPrimitiveRelationshipFunctionFor(offset)
       case (RefSlot(offset, _, _), CTNode, false) =>
         (context: ReadableRow) =>
           context.getRefAt(offset) match {

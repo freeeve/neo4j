@@ -28,8 +28,10 @@ import org.neo4j.cypher.internal.runtime.IsNoValue
 import org.neo4j.cypher.internal.runtime.RelationshipContainer
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.VarLengthExpandPipe.projectBackwards
 import org.neo4j.cypher.internal.util.attribution.Id
-import org.neo4j.exceptions.InternalException
+import org.neo4j.cypher.operations.CypherTypeValueMapper
+import org.neo4j.exceptions.ParameterWrongTypeException
 import org.neo4j.memory.EmptyMemoryTracker
+import org.neo4j.values.storable.Value
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualValues
 
@@ -123,8 +125,18 @@ case class VarLengthExpandPipe(
               expand(row, node)
 
             case IsNoValue() => ClosingIterator.empty
+            case value: Value =>
+              throw ParameterWrongTypeException.expectedNodeFoundInstead(
+                value.toString,
+                value.prettyPrint(),
+                CypherTypeValueMapper.valueType(value)
+              )
             case value =>
-              throw new InternalException(s"Expected to find a node at '$fromName' but found $value instead")
+              throw ParameterWrongTypeException.expectedNodeFoundInstead(
+                value.toString,
+                value.toString,
+                CypherTypeValueMapper.valueType(value)
+              )
           }
         }
     }

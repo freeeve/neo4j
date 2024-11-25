@@ -82,6 +82,7 @@ import org.neo4j.cypher.internal.util.symbols.ZonedTimeType;
 import org.neo4j.exceptions.CypherTypeException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.exceptions.ParameterWrongTypeException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.NodeCursor;
@@ -2166,8 +2167,8 @@ public final class CypherFunctions {
 
     public static long nodeId(AnyValue value) {
         assert value != NO_VALUE : "NO_VALUE checks need to happen outside this call";
-        if (value instanceof VirtualNodeValue) {
-            return ((VirtualNodeValue) value).id();
+        if (value instanceof VirtualNodeValue node) {
+            return node.id();
         } else {
             if (value instanceof Value v)
                 throw CypherTypeException.expectedVirtualNode(
@@ -2175,6 +2176,34 @@ public final class CypherFunctions {
             else
                 throw CypherTypeException.expectedVirtualNode(
                         String.valueOf(value), value.getClass().getName(), CypherTypeValueMapper.valueType(value));
+        }
+    }
+
+    public static long nodeIdOrParameterWrongTypeError(AnyValue value) {
+        assert value != NO_VALUE : "NO_VALUE checks need to happen outside this call";
+        if (value instanceof VirtualNodeValue node) {
+            return node.id();
+        } else {
+            if (value instanceof Value v)
+                throw ParameterWrongTypeException.expectedNodeFoundInstead(
+                        String.valueOf(v), v.prettyPrint(), CypherTypeValueMapper.valueType(value));
+            else
+                throw ParameterWrongTypeException.expectedNodeFoundInstead(
+                        String.valueOf(value), String.valueOf(value), CypherTypeValueMapper.valueType(value));
+        }
+    }
+
+    public static long relIdOrParameterWrongTypeError(AnyValue value) {
+        assert value != NO_VALUE : "NO_VALUE checks need to happen outside this call";
+        if (value instanceof VirtualRelationshipValue rel) {
+            return rel.id();
+        } else {
+            if (value instanceof Value v)
+                throw ParameterWrongTypeException.expectedNodeFoundInstead(
+                        String.valueOf(v), v.prettyPrint(), CypherTypeValueMapper.valueType(value));
+            else
+                throw ParameterWrongTypeException.expectedNodeFoundInstead(
+                        String.valueOf(value), String.valueOf(value), CypherTypeValueMapper.valueType(value));
         }
     }
 

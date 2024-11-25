@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.values.KeyToken
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
+import org.neo4j.exceptions.ParameterWrongTypeException
 import org.neo4j.kernel.api.StatementConstants
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Value
@@ -143,13 +144,13 @@ case class CachedNodeProperty(nodeName: String, propertyKey: KeyToken, key: ASTC
       case IsNoValue()         => StatementConstants.NO_SUCH_NODE
       case n: VirtualNodeValue => n.id()
       case value: Value =>
-        throw CypherTypeException.typeMismatchExpectedANode(
+        throw ParameterWrongTypeException.expectedNodeFoundInstead(
           String.valueOf(value),
           value.prettyPrint(),
           CypherTypeValueMapper.valueType(value)
         )
       case other =>
-        throw CypherTypeException.typeMismatchExpectedANode(
+        throw ParameterWrongTypeException.expectedNodeFoundInstead(
           String.valueOf(other),
           String.valueOf(other),
           CypherTypeValueMapper.valueType(other)
