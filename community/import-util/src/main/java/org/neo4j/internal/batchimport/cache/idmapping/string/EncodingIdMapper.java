@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.batchimport.cache.idmapping.string;
 
+import static java.lang.Math.ceilDiv;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.lang.Math.toIntExact;
@@ -55,7 +56,6 @@ import org.neo4j.internal.batchimport.cache.idmapping.string.ParallelSort.Compar
 import org.neo4j.internal.batchimport.cache.idmapping.string.ParallelSort.SortBucket;
 import org.neo4j.internal.batchimport.input.InputException;
 import org.neo4j.internal.helpers.Exceptions;
-import org.neo4j.internal.helpers.MathUtil;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.memory.MemoryTracker;
@@ -710,7 +710,7 @@ public class EncodingIdMapper implements IdMapper {
     }
 
     private Collection<LongLongPair> partitionDuplicateCheck() {
-        var roughNumPerPartition = Math.max(100, MathUtil.ceil(numberOfCollisions, processorsForParallelWork));
+        var roughNumPerPartition = Math.max(100, ceilDiv(numberOfCollisions, processorsForParallelWork));
         var partitions = new ArrayList<LongLongPair>();
         for (var fromInclusive = 0L; fromInclusive < numberOfCollisions; ) {
             var toExclusive = Math.min(fromInclusive + roughNumPerPartition, numberOfCollisions);

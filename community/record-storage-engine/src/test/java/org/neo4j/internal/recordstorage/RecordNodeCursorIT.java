@@ -19,9 +19,9 @@
  */
 package org.neo4j.internal.recordstorage;
 
+import static java.lang.Math.ceilDiv;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
-import static org.neo4j.internal.helpers.MathUtil.ceil;
 import static org.neo4j.internal.recordstorage.RecordCursorTypes.NODE_CURSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
@@ -175,7 +175,7 @@ class RecordNodeCursorIT {
             final var found = LongSets.mutable.withInitialCapacity(ids.size());
 
             // scan a quarter of the nodes
-            assertThat(nodes.scanBatch(scan, ceil(ids.size(), 4))).isTrue();
+            assertThat(nodes.scanBatch(scan, ceilDiv(ids.size(), 4))).isTrue();
             while (nodes.next()) {
                 assertThat(found.add(nodes.entityReference())).isTrue();
             }

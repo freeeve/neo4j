@@ -36,7 +36,6 @@ import org.neo4j.cypher.internal.runtime.interpreted.profiler.InterpretedProfile
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.exceptions.CypherExecutionInterruptedException
 import org.neo4j.exceptions.InternalException
-import org.neo4j.internal.helpers.MathUtil
 import org.neo4j.kernel.impl.util.collection.EagerBuffer
 import org.neo4j.kernel.impl.util.collection.EagerBuffer.createEagerBuffer
 import org.neo4j.memory.MemoryTracker
@@ -323,7 +322,7 @@ object TransactionPipeWrapper {
     }
     val numberOfProcessors = Runtime.getRuntime.availableProcessors
     val maxConcurrency = numberOfProcessors * 20
-    var effectiveConcurrency = MathUtil.clamp(concurrencyLong, Int.MinValue, maxConcurrency).toInt
+    var effectiveConcurrency = Math.clamp(concurrencyLong, Int.MinValue, maxConcurrency)
     if (effectiveConcurrency <= 0) {
       effectiveConcurrency = Math.max(numberOfProcessors + effectiveConcurrency, 1)
     }

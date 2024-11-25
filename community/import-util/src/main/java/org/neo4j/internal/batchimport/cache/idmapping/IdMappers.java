@@ -19,9 +19,9 @@
  */
 package org.neo4j.internal.batchimport.cache.idmapping;
 
+import static java.lang.Math.clamp;
 import static org.neo4j.internal.batchimport.cache.idmapping.string.EncodingIdMapper.NO_MONITOR;
 import static org.neo4j.internal.batchimport.cache.idmapping.string.TrackerFactories.dynamic;
-import static org.neo4j.internal.helpers.MathUtil.clamp;
 import static org.neo4j.io.ByteUnit.gibiBytes;
 
 import org.eclipse.collections.api.iterator.LongIterator;

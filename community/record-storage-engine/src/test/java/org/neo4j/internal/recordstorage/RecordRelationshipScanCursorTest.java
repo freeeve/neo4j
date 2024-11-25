@@ -19,9 +19,9 @@
  */
 package org.neo4j.internal.recordstorage;
 
+import static java.lang.Math.ceilDiv;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
-import static org.neo4j.internal.helpers.MathUtil.ceil;
 import static org.neo4j.internal.recordstorage.RecordCursorTypes.RELATIONSHIP_CURSOR;
 import static org.neo4j.io.IOUtils.closeAllUnchecked;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
@@ -158,7 +158,7 @@ class RecordRelationshipScanCursorTest {
             final var found = LongSets.mutable.withInitialCapacity(ids.size());
 
             // scan a quarter of the relationships
-            assertThat(rels.scanBatch(scan, ceil(ids.size(), 4))).isTrue();
+            assertThat(rels.scanBatch(scan, ceilDiv(ids.size(), 4))).isTrue();
             while (rels.next()) {
                 assertThat(found.add(rels.entityReference())).isTrue();
             }

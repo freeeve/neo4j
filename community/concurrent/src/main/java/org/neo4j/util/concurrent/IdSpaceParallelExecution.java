@@ -19,13 +19,14 @@
  */
 package org.neo4j.util.concurrent;
 
+import static java.lang.Math.ceilDiv;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
-import org.neo4j.internal.helpers.MathUtil;
 import org.neo4j.internal.helpers.NamedThreadFactory;
 
 public class IdSpaceParallelExecution {
@@ -42,7 +43,7 @@ public class IdSpaceParallelExecution {
     public static void runInParallel(
             String threadNamePrefix, int threads, long highIndex, Function<Partition, Callable<Void>> taskFactory)
             throws ExecutionException {
-        long indexesPerThread = MathUtil.ceil(highIndex, threads);
+        long indexesPerThread = ceilDiv(highIndex, threads);
         long index = 0;
         List<Callable<Void>> tasks = new ArrayList<>();
         for (int i = 0; i < threads && index < highIndex; i++) {

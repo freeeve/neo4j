@@ -19,13 +19,13 @@
  */
 package org.neo4j.internal.id.indexed;
 
+import static java.lang.Math.ceilDiv;
 import static java.lang.Math.max;
 
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.concurrent.atomic.AtomicReference;
-import org.neo4j.internal.helpers.MathUtil;
 
 class DynamicConcurrentLongQueue implements ConcurrentLongQueue {
     private final AtomicReference<Chunk> head = new AtomicReference<>();
@@ -36,7 +36,7 @@ class DynamicConcurrentLongQueue implements ConcurrentLongQueue {
 
     DynamicConcurrentLongQueue(int chunkSize, int capacity) {
         this.chunkSize = chunkSize;
-        this.maxNumChunks = MathUtil.ceil(capacity, chunkSize);
+        this.maxNumChunks = ceilDiv(capacity, chunkSize);
     }
 
     @Override

@@ -19,7 +19,7 @@
  */
 package org.neo4j.consistency;
 
-import static org.neo4j.internal.helpers.MathUtil.clamp;
+import static java.lang.Math.clamp;
 import static picocli.CommandLine.Help.Visibility.ALWAYS;
 import static picocli.CommandLine.Help.Visibility.NEVER;
 
@@ -155,7 +155,7 @@ public class ConsistencyCheckOptions {
 
     private static class NumberOfThreadsConverter implements CommandLine.ITypeConverter<Integer> {
         @Override
-        public Integer convert(String value) throws Exception {
+        public Integer convert(String value) {
             if ("all".equals(value)) {
                 return Runtime.getRuntime().availableProcessors();
             }

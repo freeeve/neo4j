@@ -19,8 +19,9 @@
  */
 package org.neo4j.kernel.impl.newapi;
 
+import static java.lang.Math.ceilDiv;
+
 import java.util.concurrent.atomic.AtomicInteger;
-import org.neo4j.internal.helpers.MathUtil;
 import org.neo4j.internal.kernel.api.Cursor;
 import org.neo4j.internal.kernel.api.PartitionedScan;
 import org.neo4j.util.Preconditions;
@@ -39,7 +40,7 @@ abstract class PartitionedEntityCursorScan<C extends Cursor, S> implements Parti
         } else {
             this.numberOfPartitions = Math.max((int) totalCount, 1);
         }
-        this.batchSize = MathUtil.ceil(totalCount, numberOfPartitions);
+        this.batchSize = ceilDiv(totalCount, numberOfPartitions);
         this.emittedPartitions = new AtomicInteger(0);
     }
 

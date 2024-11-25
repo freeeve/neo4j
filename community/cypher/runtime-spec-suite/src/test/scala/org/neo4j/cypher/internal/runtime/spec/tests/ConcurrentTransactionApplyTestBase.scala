@@ -232,8 +232,8 @@ abstract class ConcurrentTransactionApplyTestBase[CONTEXT <: RuntimeContext](
         nodesCreated = nRows,
         labelsAdded = nRows,
         propertiesSet = nRows,
-        transactionsStarted = MathUtil.ceil(nRows, nBatchSize) + 1,
-        transactionsCommitted = MathUtil.ceil(nRows, nBatchSize) + 1
+        transactionsStarted = Math.ceilDiv(nRows, nBatchSize) + 1,
+        transactionsCommitted = Math.ceilDiv(nRows, nBatchSize) + 1
       )
   }
 
@@ -405,7 +405,7 @@ abstract class ConcurrentTransactionApplyTestBase[CONTEXT <: RuntimeContext](
   test("should create data in different transactions in batches when using transactionApply") {
     val numberOfIterations = 30
     val batchSize = 7
-    val numBatches = MathUtil.ceil(numberOfIterations, batchSize)
+    val numBatches = Math.ceilDiv(numberOfIterations, batchSize)
     val inputRows = (0 until numberOfIterations).map { i =>
       Array[Any](i.toLong)
     }

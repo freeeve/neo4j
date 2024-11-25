@@ -19,6 +19,7 @@
  */
 package org.neo4j.procedure.builtin;
 
+import static java.lang.Math.clamp;
 import static org.neo4j.procedure.Mode.READ;
 import static org.neo4j.procedure.Mode.SCHEMA;
 import static org.neo4j.procedure.Mode.WRITE;
@@ -40,7 +41,6 @@ import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexSetting;
-import org.neo4j.internal.helpers.MathUtil;
 import org.neo4j.internal.kernel.api.Cursor;
 import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
@@ -472,8 +472,7 @@ public class VectorIndexProcedures {
             implements NeighborSpliterator<NodeNeighbor> {
         @Override
         public NodeNeighbor neighbor() {
-            return NodeNeighbor.forExistingEntityOrNull(
-                    tx, cursor.nodeReference(), MathUtil.clamp(cursor.score(), 0.0, 1.0));
+            return NodeNeighbor.forExistingEntityOrNull(tx, cursor.nodeReference(), clamp(cursor.score(), 0.0, 1.0));
         }
     }
 
@@ -482,7 +481,7 @@ public class VectorIndexProcedures {
         @Override
         public RelationshipNeighbor neighbor() {
             return RelationshipNeighbor.forExistingEntityOrNull(
-                    tx, cursor.relationshipReference(), MathUtil.clamp(cursor.score(), 0.0, 1.0));
+                    tx, cursor.relationshipReference(), clamp(cursor.score(), 0.0, 1.0));
         }
     }
 

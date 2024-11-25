@@ -19,10 +19,10 @@
  */
 package org.neo4j.kernel.api.index;
 
+import static java.lang.Math.ceilDiv;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.neo4j.internal.helpers.MathUtil.ceil;
 
 import java.util.List;
 import java.util.Map;
@@ -198,7 +198,7 @@ public class VectorIndexCreationTest {
             }
 
             static RichIterable<Integer> supported(int min, int max) {
-                return Lists.immutable.of(min, ceil(max - min, 2), max);
+                return Lists.immutable.of(min, ceilDiv(max - min, 2), max);
             }
 
             @ParameterizedTest
@@ -613,7 +613,7 @@ public class VectorIndexCreationTest {
             }
 
             static RichIterable<Integer> supported(int min, int max) {
-                return Lists.immutable.of(min, ceil(max - min, 2), max);
+                return Lists.immutable.of(min, ceilDiv(max - min, 2), max);
             }
 
             @ParameterizedTest
@@ -740,7 +740,7 @@ public class VectorIndexCreationTest {
             }
 
             static RichIterable<Integer> supported(int min, int max) {
-                return Lists.immutable.of(min, ceil(max - min, 2), max);
+                return Lists.immutable.of(min, ceilDiv(max - min, 2), max);
             }
 
             @ParameterizedTest

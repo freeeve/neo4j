@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.api;
 
+import static java.lang.Math.ceilDiv;
 import static org.neo4j.kernel.impl.store.format.standard.PropertyRecordFormat.DEFAULT_PAYLOAD_SIZE;
 
 import java.io.IOException;
@@ -28,7 +29,6 @@ import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.internal.helpers.MathUtil;
 import org.neo4j.internal.recordstorage.RecordStorageEngine;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.store.DynamicArrayStore;
@@ -249,16 +249,16 @@ public abstract class RecordFormatDatabaseSizeServiceAvailableReservedSizeIT
 
     long requiredDynamicBlocksFor(String str) {
         final var encoded = PropertyStore.encodeString(str);
-        return MathUtil.ceil(encoded.length, dynamicStringRecordDataSize());
+        return ceilDiv(encoded.length, dynamicStringRecordDataSize());
     }
 
     long requiredDynamicBlocksFor(long[] labelIds) {
-        final var requiredBytes = DynamicArrayStore.NUMBER_HEADER_SIZE
-                + MathUtil.ceil(
+        int requiredBytes = DynamicArrayStore.NUMBER_HEADER_SIZE
+                + ceilDiv(
                         ShortArray.LONG.calculateRequiredBitsForArray(labelIds, labelIds.length) * labelIds.length,
                         Byte.SIZE);
 
-        return MathUtil.ceil(requiredBytes, dynamicLabelRecordDataSize());
+        return ceilDiv(requiredBytes, dynamicLabelRecordDataSize());
     }
 
     long nodeRecordSize() {
