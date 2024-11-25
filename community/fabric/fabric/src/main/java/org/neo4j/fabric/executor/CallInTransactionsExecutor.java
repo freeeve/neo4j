@@ -24,7 +24,7 @@ import static scala.jdk.javaapi.CollectionConverters.asJava;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.cypher.internal.FullyParsedQuery;
 import org.neo4j.cypher.internal.ast.SubqueryCall;
@@ -37,17 +37,18 @@ import org.neo4j.fabric.eval.UseEvaluation;
 import org.neo4j.fabric.planning.FabricPlan;
 import org.neo4j.fabric.planning.FabricPlanner;
 import org.neo4j.fabric.planning.Fragment;
-import org.neo4j.fabric.stream.Blocking2RxResultAdapter;
-import org.neo4j.fabric.stream.Prefetcher;
+import org.neo4j.fabric.stream.DelegatingFragmentResult;
+import org.neo4j.fabric.stream.FragmentResult;
+import org.neo4j.fabric.stream.QueryInput;
 import org.neo4j.fabric.stream.Record;
 import org.neo4j.fabric.stream.Records;
-import org.neo4j.fabric.stream.StatementResult;
-import org.neo4j.fabric.stream.summary.MergedSummaryBuilder;
+import org.neo4j.fabric.stream.StatementResults;
+import org.neo4j.fabric.stream.summary.PlanlessSummary;
 import org.neo4j.fabric.transaction.FabricTransaction;
 import org.neo4j.fabric.transaction.TransactionMode;
+import org.neo4j.graphdb.QueryExecutionType;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.query.QueryRoutingMonitor;
-import org.neo4j.logging.InternalLog;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.IntegralValue;
@@ -57,16 +58,14 @@ import org.neo4j.values.storable.Values;
 import org.neo4j.values.virtual.ListValueBuilder;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.MapValueBuilder;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
 
     private final Fragment.Apply callInTransactions;
     private final Fragment.Exec innerFragment;
+    private final QueryExecutionType resultExecutionType;
     private final int batchSize;
     private final List<BufferedInputRow> inputRowsBuffer;
-    private final Executor executor;
     private Catalog.Graph batchGraph;
     private TransactionMode batchTransactionMode;
     private OnErrorBreakContext onErrorBreakContext;
@@ -74,38 +73,31 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
     CallInTransactionsExecutor(
             Fragment.Apply callInTransactions,
             FabricPlanner.PlannerInstance plannerInstance,
-            Executor executor,
             FabricTransaction.FabricExecutionContext ctx,
             UseEvaluation.Instance useEvaluator,
             FabricPlan plan,
             MapValue queryParams,
             AccessMode accessMode,
-            MergedSummaryBuilder summaryBuilder,
             QueryStatementLifecycles.StatementLifecycle lifecycle,
-            Prefetcher prefetcher,
             QueryRoutingMonitor queryRoutingMonitor,
             Tracer tracer,
-            FragmentExecutor fragmentExecutor,
-            InternalLog log) {
+            QueryExecutionType resultExecutionType,
+            FragmentExecutor fragmentExecutor) {
         super(
                 plannerInstance,
-                executor,
                 ctx,
                 useEvaluator,
                 plan,
                 queryParams,
                 accessMode,
-                summaryBuilder,
                 lifecycle,
-                prefetcher,
                 queryRoutingMonitor,
                 tracer,
-                fragmentExecutor,
-                log);
-        this.executor = executor;
+                fragmentExecutor);
         this.callInTransactions = callInTransactions;
         this.innerFragment = (Fragment.Exec) callInTransactions.inner();
         this.batchSize = batchSize();
+        this.resultExecutionType = resultExecutionType;
         inputRowsBuffer = new ArrayList<>(batchSize);
         this.onErrorBreakContext = onErrorBreakContext();
     }
@@ -136,11 +128,9 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
         throw new IllegalStateException("Report variable not found among columns: " + columns);
     }
 
-    Flux<Record> run(Record argument) {
-        Flux<Record> input =
-                fragmentExecutor().run(callInTransactions.input(), argument).records();
-        Flux<Record> resultPipe = input.flatMap(this::processInputRecord, 1, 1);
-        return Flux.concat(resultPipe, Flux.defer(this::processBufferedInputRows));
+    FragmentResult run(Record argument) {
+        FragmentResult input = fragmentExecutor().run(callInTransactions.input(), argument);
+        return new CallInTxFragmentResult(input);
     }
 
     private int batchSize() {
@@ -187,7 +177,7 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
                         .formatted(parameter.name(), paramValue.getTypeName()));
     }
 
-    private Flux<Record> processInputRecord(Record argument) {
+    private FragmentResult processInputRecord(Record argument) {
         if (onErrorBreakContext != null && onErrorBreakContext.breakExecution) {
             return produceBreakOutput(argument);
         }
@@ -200,7 +190,7 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
         }
 
         if (!batchGraph.equals(prepareResult.graph())) {
-            Flux<Record> result = processBufferedInputRows();
+            FragmentResult result = processBufferedInputRows();
             batchGraph = prepareResult.graph();
             batchTransactionMode = prepareResult.transactionMode();
             inputRowsBuffer.add(new BufferedInputRow(prepareResult.argumentValues(), argument));
@@ -212,10 +202,10 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
             return processBufferedInputRows();
         }
 
-        return Flux.empty();
+        return StatementResults.emptyFragment();
     }
 
-    private Flux<Record> produceBreakOutput(Record argument) {
+    private FragmentResult produceBreakOutput(Record argument) {
         List<String> columns = asJava(innerFragment.outputColumns());
         int columnCount = columns.size() - addedColumnsCount();
         List<AnyValue> values = new ArrayList<>(columnCount);
@@ -232,12 +222,13 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
             }
         }
 
-        return Flux.just(Records.join(argument, Records.of(values)));
+        var record = Records.join(argument, Records.of(values));
+        return StatementResults.oneRecord(columns, record, resultExecutionType);
     }
 
-    private Flux<Record> processBufferedInputRows() {
+    private FragmentResult processBufferedInputRows() {
         if (inputRowsBuffer.isEmpty()) {
-            return Flux.empty();
+            return StatementResults.emptyFragment();
         }
 
         MapValue params = addParamsFromInputRows();
@@ -249,23 +240,34 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
                 batchTransactionMode,
                 // Inner part of CALL IN TRANSACTIONS does not have a child plan node
                 // Unlike standard query execution with which most logic is shared
-                () -> new FragmentResult(Flux.just(Records.empty()), Mono.empty(), Mono.empty()));
+                StatementResults::emptyFragment);
         var inputRecords = new ArrayList<>(inputRowsBuffer);
-        Flux<Record> resultStream = result.records();
-        if (onErrorBreakContext != null) {
-            resultStream = resultStream.map(this::checkBreakCondition);
-        }
+        var adjustedResult = new DelegatingFragmentResult(result) {
 
-        if (callInTransactions.outputColumns().isEmpty()) {
-            resultStream = resultStream.map(outputRecord -> getMatchingInputRecord(outputRecord, inputRecords));
-        } else {
-            resultStream = resultStream.map(outputRecord ->
-                    Records.join(getMatchingInputRecord(outputRecord, inputRecords), stripAddedColumns(outputRecord)));
-        }
+            @Override
+            public Record next() {
+                var outputRecord = super.next();
+                if (outputRecord == null) {
+                    return null;
+                }
+
+                if (onErrorBreakContext != null) {
+                    outputRecord = checkBreakCondition(outputRecord);
+                }
+
+                if (callInTransactions.outputColumns().isEmpty()) {
+                    return getMatchingInputRecord(outputRecord, inputRecords);
+                } else {
+                    return Records.join(
+                            getMatchingInputRecord(outputRecord, inputRecords), stripAddedColumns(outputRecord));
+                }
+            }
+        };
+
         batchGraph = null;
         batchTransactionMode = null;
         inputRowsBuffer.clear();
-        return resultStream;
+        return adjustedResult;
     }
 
     private Record getMatchingInputRecord(Record outputRecord, List<BufferedInputRow> inputRecords) {
@@ -333,30 +335,97 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
     }
 
     @Override
-    Mono<StatementResult> runRemote(
+    FragmentResult runRemote(
             Location.Remote location,
             ExecutionOptions options,
             String query,
             TransactionMode transactionMode,
             MapValue params) {
-        return Blocking2RxResultAdapter.adapt(executor, () -> ctx().getRemote()
-                .runInAutocommitTransaction(location, options, query, transactionMode, params));
+        var result = ctx().getRemote().runInAutocommitTransaction(location, options, query, transactionMode, params);
+        return StatementResults.toFragmentResult(result);
     }
 
     @Override
-    StatementResult runLocal(
+    FragmentResult runLocal(
             Location.Local location,
             TransactionMode transactionMode,
             QueryStatementLifecycles.StatementLifecycle parentLifecycle,
             FullyParsedQuery query,
             MapValue params,
-            Flux<Record> input,
+            FragmentResult input,
             ExecutionOptions executionOptions,
             Boolean targetsComposite) {
+        var queryInput = new QueryInput() {
+
+            @Override
+            public Record next() {
+                return input.next();
+            }
+
+            @Override
+            public void consume() {
+                input.consume();
+            }
+        };
+
         var result = ctx().getLocal()
-                .runInAutocommitTransaction(
-                        location, parentLifecycle, query, params, new InputAdapter(input), executionOptions);
-        return Blocking2RxResultAdapter.adapt(result);
+                .runInAutocommitTransaction(location, parentLifecycle, query, params, queryInput, executionOptions);
+        return StatementResults.toFragmentResult(result);
+    }
+
+    private class CallInTxFragmentResult implements FragmentResult {
+
+        private FragmentResult currentBatch;
+        private final FragmentResult input;
+        private final List<Supplier<PlanlessSummary>> summaries = new ArrayList<>();
+        private boolean inputExhausted = false;
+
+        private CallInTxFragmentResult(FragmentResult input) {
+            this.input = input;
+            summaries.add(input::consume);
+        }
+
+        @Override
+        public List<String> columns() {
+            return asJava(callInTransactions.outputColumns());
+        }
+
+        @Override
+        public Record next() {
+            if (currentBatch != null) {
+                Record resultRecord = currentBatch.next();
+                if (resultRecord != null || inputExhausted) {
+                    return resultRecord;
+                } else {
+                    currentBatch = null;
+                }
+            }
+
+            Record inputRecord = input.next();
+            if (inputRecord == null) {
+                currentBatch = processBufferedInputRows();
+                inputExhausted = true;
+            } else {
+                currentBatch = processInputRecord(inputRecord);
+            }
+
+            summaries.add(currentBatch::consume);
+            // We have just produced a new batch, so let's go again.
+            return next();
+        }
+
+        @Override
+        public PlanlessSummary consume() {
+            return summaries.stream()
+                    .map(Supplier::get)
+                    .reduce(PlanlessSummary::merge)
+                    .orElse(null);
+        }
+
+        @Override
+        public QueryExecutionType executionType() {
+            return resultExecutionType;
+        }
     }
 
     private record BufferedInputRow(Map<String, AnyValue> argumentValues, Record record) {}

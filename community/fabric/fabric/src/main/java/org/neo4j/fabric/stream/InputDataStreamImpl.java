@@ -24,10 +24,10 @@ import org.neo4j.cypher.internal.runtime.InputDataStream;
 import org.neo4j.values.AnyValue;
 
 public class InputDataStreamImpl implements InputDataStream {
-    private final BlockingStatementResult input;
+    private final QueryInput input;
     private InputCursor inputCursor;
 
-    public InputDataStreamImpl(BlockingStatementResult input) {
+    public InputDataStreamImpl(QueryInput input) {
         this.input = input;
         inputCursor = new Cursor();
     }

@@ -32,11 +32,12 @@ import org.neo4j.cypher.internal.javacompat.ExecutionEngine;
 import org.neo4j.cypher.internal.runtime.InputDataStream;
 import org.neo4j.fabric.config.FabricConfig;
 import org.neo4j.fabric.executor.QueryStatementLifecycles.StatementLifecycle;
-import org.neo4j.fabric.stream.BlockingStatementResult;
 import org.neo4j.fabric.stream.InputDataStreamImpl;
+import org.neo4j.fabric.stream.QueryInput;
 import org.neo4j.fabric.stream.Record;
 import org.neo4j.fabric.stream.Records;
 import org.neo4j.fabric.stream.SourceTagging;
+import org.neo4j.fabric.stream.StatementResult;
 import org.neo4j.fabric.stream.summary.Summary;
 import org.neo4j.fabric.transaction.FabricTransactionInfo;
 import org.neo4j.graphdb.QueryExecutionType;
@@ -81,10 +82,10 @@ public class FabricKernelTransaction {
         this.transactionInfo = transactionInfo;
     }
 
-    public BlockingStatementResult run(
+    public StatementResult run(
             FullyParsedQuery query,
             MapValue params,
-            BlockingStatementResult input,
+            QueryInput input,
             StatementLifecycle parentLifecycle,
             ExecutionOptions executionOptions) {
         var childExecutionContext = makeChildTransactionalContext(parentLifecycle);
@@ -101,7 +102,7 @@ public class FabricKernelTransaction {
             var subscriber = new QuerySubscriberImpl(batchSize, valueTagging);
             var execution = queryExecutionEngine.executeQuery(
                     query, params, childExecutionContext, true, convert(input), childQueryMonitor, subscriber);
-            return new BlockingStatementResultImpl(execution, subscriber, batchSize, childExecutionContext);
+            return new StatementResultImpl(execution, subscriber, batchSize, childExecutionContext);
         } catch (QueryExecutionKernelException e) {
             // all exception thrown from execution engine are wrapped in QueryExecutionKernelException,
             // let's see if there is something better hidden in it
@@ -127,7 +128,7 @@ public class FabricKernelTransaction {
         }
     }
 
-    private InputDataStream convert(BlockingStatementResult input) {
+    private InputDataStream convert(QueryInput input) {
         return new InputDataStreamImpl(input);
     }
 
@@ -172,14 +173,14 @@ public class FabricKernelTransaction {
         return internalTransaction.kernelTransaction().getTransactionSequenceNumber();
     }
 
-    private class BlockingStatementResultImpl implements BlockingStatementResult {
+    private class StatementResultImpl implements StatementResult {
 
         private final QueryExecution queryExecution;
         private final QuerySubscriberImpl querySubscriber;
         private final int batchSize;
         private final TransactionalContext executionContext;
 
-        private BlockingStatementResultImpl(
+        private StatementResultImpl(
                 QueryExecution queryExecution,
                 QuerySubscriberImpl querySubscriber,
                 int batchSize,

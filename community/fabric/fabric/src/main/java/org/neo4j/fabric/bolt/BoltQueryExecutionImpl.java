@@ -19,13 +19,10 @@
  */
 package org.neo4j.fabric.bolt;
 
-import java.util.List;
 import org.neo4j.bolt.dbapi.BoltQueryExecution;
 import org.neo4j.cypher.internal.javacompat.ResultSubscriber;
-import org.neo4j.fabric.config.FabricConfig;
 import org.neo4j.fabric.executor.Exceptions;
 import org.neo4j.fabric.stream.Record;
-import org.neo4j.fabric.stream.Rx2SyncStream;
 import org.neo4j.fabric.stream.StatementResult;
 import org.neo4j.fabric.stream.summary.Summary;
 import org.neo4j.graphdb.ExecutionPlanDescription;
@@ -35,23 +32,14 @@ import org.neo4j.graphdb.QueryExecutionType;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.query.QueryExecution;
 import org.neo4j.kernel.impl.query.QuerySubscriber;
-import reactor.core.publisher.Mono;
 
 public class BoltQueryExecutionImpl implements BoltQueryExecution {
     private final QueryExecutionImpl queryExecution;
     private final QuerySubscriber subscriber;
 
-    public BoltQueryExecutionImpl(
-            StatementResult statementResult, QuerySubscriber subscriber, FabricConfig fabricConfig) {
+    public BoltQueryExecutionImpl(StatementResult statementResult, QuerySubscriber subscriber) {
         this.subscriber = subscriber;
-        var config = fabricConfig.getDataStream();
-        var rx2SyncStream = new Rx2SyncStream(statementResult.records(), config.getBatchSize());
-        queryExecution = new QueryExecutionImpl(
-                rx2SyncStream,
-                subscriber,
-                statementResult.columns(),
-                statementResult.summary(),
-                statementResult.executionType());
+        queryExecution = new QueryExecutionImpl(statementResult, subscriber);
     }
 
     public void initialize() throws Exception {
@@ -80,9 +68,7 @@ public class BoltQueryExecutionImpl implements BoltQueryExecution {
     }
 
     @Override
-    public void close() {
-        queryExecution.cancel();
-    }
+    public void close() {}
 
     @Override
     public void terminate() {
@@ -91,34 +77,27 @@ public class BoltQueryExecutionImpl implements BoltQueryExecution {
 
     private static class QueryExecutionImpl implements QueryExecution {
 
-        private final Rx2SyncStream rx2SyncStream;
+        private final StatementResult statementResult;
         private final QuerySubscriber subscriber;
         private boolean hasMore = true;
         private boolean initialised;
-        private final Mono<Summary> summary;
-        private final Mono<QueryExecutionType> queryExecutionType;
-        private final List<String> columns;
+        private Summary cachedSummary;
 
-        private QueryExecutionImpl(
-                Rx2SyncStream rx2SyncStream,
-                QuerySubscriber subscriber,
-                List<String> columns,
-                Mono<Summary> summary,
-                Mono<QueryExecutionType> queryExecutionType) {
-            this.rx2SyncStream = rx2SyncStream;
+        private QueryExecutionImpl(StatementResult statementResult, QuerySubscriber subscriber) {
+            this.statementResult = statementResult;
             this.subscriber = subscriber;
-            this.summary = summary;
-            this.queryExecutionType = queryExecutionType;
-            this.columns = columns;
         }
 
         private Summary getSummary() {
-            return summary.cache().block();
+            if (cachedSummary == null) {
+                cachedSummary = statementResult.consume();
+            }
+            return cachedSummary;
         }
 
         @Override
         public QueryExecutionType executionType() {
-            return queryExecutionType.cache().block();
+            return statementResult.executionType();
         }
 
         @Override
@@ -138,7 +117,7 @@ public class BoltQueryExecutionImpl implements BoltQueryExecution {
 
         @Override
         public String[] fieldNames() {
-            return columns.toArray(new String[0]);
+            return statementResult.columns().toArray(new String[0]);
         }
 
         @Override
@@ -149,12 +128,12 @@ public class BoltQueryExecutionImpl implements BoltQueryExecution {
 
             if (!initialised) {
                 initialised = true;
-                subscriber.onResult(columns.size());
+                subscriber.onResult(statementResult.columns().size());
             }
 
             try {
                 for (int i = 0; i < numberOfRecords; i++) {
-                    Record record = rx2SyncStream.readRecord();
+                    Record record = statementResult.next();
 
                     if (record == null) {
                         hasMore = false;
@@ -166,28 +145,20 @@ public class BoltQueryExecutionImpl implements BoltQueryExecution {
                     publishFields(record);
                     subscriber.onRecordCompleted();
                 }
-
-                // Let's check if the last record exhausted the stream,
-                // This is not necessary for correctness, but might save one extra
-                // round trip.
-                if (rx2SyncStream.completed()) {
-                    hasMore = false;
-                    subscriber.onResultCompleted(getSummary().getQueryStatistics());
-                }
             } catch (Exception e) {
                 throw Exceptions.transformUnexpectedError(Status.Statement.ExecutionFailed, e);
             }
         }
 
         private void publishFields(Record record) throws Exception {
-            for (int i = 0; i < columns.size(); i++) {
+            for (int i = 0; i < statementResult.columns().size(); i++) {
                 subscriber.onField(i, record.getValue(i));
             }
         }
 
         @Override
         public void cancel() {
-            rx2SyncStream.close();
+            getSummary();
         }
 
         @Override

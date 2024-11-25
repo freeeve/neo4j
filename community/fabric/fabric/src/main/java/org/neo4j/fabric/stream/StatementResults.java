@@ -20,102 +20,215 @@
 package org.neo4j.fabric.stream;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
-import java.util.function.Function;
-import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+import org.neo4j.fabric.executor.QueryTypes;
+import org.neo4j.fabric.stream.summary.PlanlessSummary;
 import org.neo4j.fabric.stream.summary.Summary;
 import org.neo4j.graphdb.QueryExecutionType;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.neo4j.graphdb.QueryStatistics;
 
 public final class StatementResults {
     private StatementResults() {}
 
-    public static StatementResult map(StatementResult statementResult, UnaryOperator<Flux<Record>> func) {
-        return new BasicStatementResult(
-                statementResult.columns(),
-                func.apply(statementResult.records()),
-                statementResult.summary(),
-                statementResult.executionType());
+    public static StatementResult emptyStream(List<String> columns, Summary summary, QueryExecutionType executionType) {
+        return new StatementResult() {
+            @Override
+            public List<String> columns() {
+                return columns;
+            }
+
+            @Override
+            public Record next() {
+                return null;
+            }
+
+            @Override
+            public Summary consume() {
+                return summary;
+            }
+
+            @Override
+            public QueryExecutionType executionType() {
+                return executionType;
+            }
+        };
     }
 
-    public static StatementResult initial() {
-        return new BasicStatementResult(
-                Collections.emptyList(), Flux.just(Records.empty()), Mono.empty(), Mono.empty());
+    public static FragmentResult toFragmentResult(StatementResult statementResult) {
+        return new FragmentResult() {
+
+            @Override
+            public List<String> columns() {
+                return statementResult.columns();
+            }
+
+            @Override
+            public Record next() {
+                return statementResult.next();
+            }
+
+            @Override
+            public PlanlessSummary consume() {
+                var summary = statementResult.consume();
+                return new PlanlessSummary(
+                        summary.getNotifications(), summary.getGqlStatusObjects(), summary.getQueryStatistics());
+            }
+
+            @Override
+            public QueryExecutionType executionType() {
+                return statementResult.executionType();
+            }
+        };
     }
 
-    public static StatementResult create(
-            List<String> columns, Flux<Record> records, Mono<Summary> summary, Mono<QueryExecutionType> executionType) {
-        return new BasicStatementResult(columns, records, summary, executionType);
-    }
+    public static FragmentResult mergeUnion(FragmentResult lhs, FragmentResult rhs) {
+        // The union output columns is copied from the lhs output columns, therefor we need to change the order
+        // of the rhs output columns.
+        boolean rearangeColumns = !lhs.columns().equals(rhs.columns());
+        List<Integer> rhsOutputOrder;
+        if (rearangeColumns) {
+            rhsOutputOrder = lhs.columns().stream().map(rhs.columns()::indexOf).toList();
+        } else {
+            rhsOutputOrder = null;
+        }
 
-    public static <E extends Throwable> StatementResult withErrorMapping(
-            StatementResult statementResult, Class<E> type, Function<? super E, ? extends Throwable> mapper) {
-        var records = statementResult.records().onErrorMap(type, mapper);
-        var summary = statementResult.summary().onErrorMap(type, mapper);
-        var executionType = statementResult.executionType().onErrorMap(type, mapper);
+        var executionType = merge(lhs.executionType(), rhs.executionType());
 
-        return create(statementResult.columns(), records, summary, executionType);
-    }
+        return new FragmentResult() {
 
-    public static StatementResult error(Throwable err) {
-        return new BasicStatementResult(Collections.emptyList(), Flux.error(err), Mono.error(err), Mono.error(err));
-    }
+            boolean lhsCompletd = false;
 
-    public static StatementResult trace(StatementResult input) {
-        return new BasicStatementResult(
-                input.columns(),
-                input.records().doOnEach(signal -> {
-                    if (signal.hasValue()) {
-                        System.out.println(String.join(", ", signal.getType().toString(), Records.show(signal.get())));
-                    } else if (signal.hasError()) {
-                        System.out.println(String.join(
-                                ", ",
-                                signal.getType().toString(),
-                                signal.getThrowable().toString()));
-                    } else {
-                        System.out.println(String.join(", ", signal.getType().toString()));
+            @Override
+            public List<String> columns() {
+                return lhs.columns();
+            }
+
+            @Override
+            public Record next() {
+                if (!lhsCompletd) {
+                    var record = lhs.next();
+                    if (record != null) {
+                        return record;
                     }
-                }),
-                input.summary(),
-                input.executionType());
+
+                    lhsCompletd = true;
+                }
+
+                var record = rhs.next();
+                if (rearangeColumns && record != null) {
+                    return rearrangeRecordOrder(record, rhsOutputOrder);
+                }
+
+                return record;
+            }
+
+            @Override
+            public PlanlessSummary consume() {
+                var lhsSummary = lhs.consume();
+                var rhsSummary = rhs.consume();
+                return PlanlessSummary.merge(lhsSummary, rhsSummary);
+            }
+
+            @Override
+            public QueryExecutionType executionType() {
+                return executionType;
+            }
+
+            private Record rearrangeRecordOrder(Record record, List<Integer> columns) {
+                var values = columns.stream().map(record::getValue).collect(Collectors.toList());
+                return Records.of(values);
+            }
+        };
     }
 
-    private static class BasicStatementResult implements StatementResult {
-        private final List<String> columns;
-        private final Flux<Record> records;
-        private final Mono<Summary> summary;
-        private final Mono<QueryExecutionType> executionType;
-
-        BasicStatementResult(
-                List<String> columns,
-                Flux<Record> records,
-                Mono<Summary> summary,
-                Mono<QueryExecutionType> executionType) {
-            this.columns = columns;
-            this.records = records;
-            this.summary = summary;
-            this.executionType = executionType;
+    public static QueryExecutionType merge(QueryExecutionType a, QueryExecutionType b) {
+        if (a == null) {
+            return b;
         }
 
-        @Override
-        public List<String> columns() {
-            return columns;
+        if (b == null) {
+            return a;
         }
 
-        @Override
-        public Flux<Record> records() {
-            return records;
-        }
+        return QueryTypes.merge(a, b);
+    }
 
-        @Override
-        public Mono<Summary> summary() {
-            return summary;
-        }
+    public static FragmentResult distinct(FragmentResult original) {
+        var records = new HashSet<Record>();
+        return new DelegatingFragmentResult(original) {
 
-        @Override
-        public Mono<QueryExecutionType> executionType() {
-            return executionType;
-        }
+            @Override
+            public Record next() {
+                while (true) {
+                    var record = delegate.next();
+                    if (record == null) {
+                        return null;
+                    }
+
+                    if (records.add(record)) {
+                        return record;
+                    }
+                }
+            }
+        };
+    }
+
+    public static FragmentResult emptyFragment() {
+        return new FragmentResult() {
+
+            @Override
+            public List<String> columns() {
+                return List.of();
+            }
+
+            @Override
+            public Record next() {
+                return null;
+            }
+
+            @Override
+            public PlanlessSummary consume() {
+                return new PlanlessSummary(Collections.emptyList(), Collections.emptyList(), QueryStatistics.EMPTY);
+            }
+
+            @Override
+            public QueryExecutionType executionType() {
+                return null;
+            }
+        };
+    }
+
+    public static FragmentResult oneRecord(List<String> columns, Record r, QueryExecutionType executionType) {
+        return new FragmentResult() {
+
+            private Record record = r;
+
+            @Override
+            public List<String> columns() {
+                return columns;
+            }
+
+            @Override
+            public Record next() {
+                var result = record;
+                if (record != null) {
+                    record = null;
+                }
+
+                return result;
+            }
+
+            @Override
+            public PlanlessSummary consume() {
+                return new PlanlessSummary(Collections.emptyList(), Collections.emptyList(), QueryStatistics.EMPTY);
+            }
+
+            @Override
+            public QueryExecutionType executionType() {
+                return executionType;
+            }
+        };
     }
 }

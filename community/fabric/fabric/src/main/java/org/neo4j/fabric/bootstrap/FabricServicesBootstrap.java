@@ -160,8 +160,6 @@ public abstract class FabricServicesBootstrap extends CommonQueryRouterBootstrap
                 register(new FabricPlanner(fabricConfig, cypherConfig, monitors, cacheFactory), FabricPlanner.class);
         var useEvaluation = register(new UseEvaluation(), UseEvaluation.class);
 
-        register(new FabricReactorHooksService(errorReporter), FabricReactorHooksService.class);
-
         var fabricExecutor = new FabricExecutor(
                 fabricConfig,
                 planner,

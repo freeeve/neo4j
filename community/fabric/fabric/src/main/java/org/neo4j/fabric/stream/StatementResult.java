@@ -22,15 +22,17 @@ package org.neo4j.fabric.stream;
 import java.util.List;
 import org.neo4j.fabric.stream.summary.Summary;
 import org.neo4j.graphdb.QueryExecutionType;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public interface StatementResult {
+
     List<String> columns();
 
-    Flux<Record> records();
+    /**
+     * Returns a record or {@code null} if all records have been consumed.
+     */
+    Record next();
 
-    Mono<Summary> summary();
+    Summary consume();
 
-    Mono<QueryExecutionType> executionType();
+    QueryExecutionType executionType();
 }

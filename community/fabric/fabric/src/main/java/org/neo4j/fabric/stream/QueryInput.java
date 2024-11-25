@@ -17,13 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.fabric.executor;
+package org.neo4j.fabric.stream;
 
-import org.neo4j.fabric.stream.Record;
-import org.neo4j.graphdb.ExecutionPlanDescription;
-import org.neo4j.graphdb.QueryExecutionType;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+public interface QueryInput {
 
-record FragmentResult(
-        Flux<Record> records, Mono<ExecutionPlanDescription> planDescription, Mono<QueryExecutionType> executionType) {}
+    Record next();
+
+    void consume();
+}

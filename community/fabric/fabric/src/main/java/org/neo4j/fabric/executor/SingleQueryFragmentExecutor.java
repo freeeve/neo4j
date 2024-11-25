@@ -21,9 +21,7 @@ package org.neo4j.fabric.executor;
 
 import static scala.jdk.javaapi.CollectionConverters.asJava;
 
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.cypher.internal.FullyParsedQuery;
@@ -39,23 +37,18 @@ import org.neo4j.fabric.planning.FabricPlanner;
 import org.neo4j.fabric.planning.FabricQuery;
 import org.neo4j.fabric.planning.Fragment;
 import org.neo4j.fabric.planning.QueryType;
-import org.neo4j.fabric.stream.BlockingStatementResult;
-import org.neo4j.fabric.stream.CompletionDelegatingOperator;
-import org.neo4j.fabric.stream.Prefetcher;
+import org.neo4j.fabric.stream.DelegatingFragmentResult;
+import org.neo4j.fabric.stream.FragmentResult;
 import org.neo4j.fabric.stream.Record;
 import org.neo4j.fabric.stream.Records;
-import org.neo4j.fabric.stream.Rx2SyncStream;
-import org.neo4j.fabric.stream.StatementResult;
-import org.neo4j.fabric.stream.summary.MergedSummaryBuilder;
-import org.neo4j.fabric.stream.summary.Summary;
+import org.neo4j.fabric.stream.StatementResults;
+import org.neo4j.fabric.stream.summary.PlanlessSummary;
 import org.neo4j.fabric.transaction.FabricTransaction;
 import org.neo4j.fabric.transaction.TransactionMode;
-import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.graphdb.QueryExecutionType;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.impl.query.QueryRoutingMonitor;
-import org.neo4j.logging.InternalLog;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.MapValueBuilder;
@@ -63,55 +56,41 @@ import org.neo4j.values.virtual.PathValue;
 import org.neo4j.values.virtual.VirtualNodeValue;
 import org.neo4j.values.virtual.VirtualRelationshipValue;
 import org.neo4j.values.virtual.VirtualValues;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 abstract class SingleQueryFragmentExecutor {
 
     private final FabricPlanner.PlannerInstance plannerInstance;
-    private final Executor fabricWorkerExecutor;
     private final FabricTransaction.FabricExecutionContext ctx;
     private final UseEvaluation.Instance useEvaluator;
     private final FabricPlan plan;
     private final MapValue queryParams;
     private final AccessMode accessMode;
-    private final MergedSummaryBuilder summaryBuilder;
     private final QueryStatementLifecycles.StatementLifecycle lifecycle;
-    private final Prefetcher prefetcher;
     private final QueryRoutingMonitor queryRoutingMonitor;
     private final Tracer tracer;
     private final FragmentExecutor fragmentExecutor;
-    private final InternalLog log;
 
     SingleQueryFragmentExecutor(
             FabricPlanner.PlannerInstance plannerInstance,
-            Executor fabricWorkerExecutor,
             FabricTransaction.FabricExecutionContext ctx,
             UseEvaluation.Instance useEvaluator,
             FabricPlan plan,
             MapValue queryParams,
             AccessMode accessMode,
-            MergedSummaryBuilder summaryBuilder,
             QueryStatementLifecycles.StatementLifecycle lifecycle,
-            Prefetcher prefetcher,
             QueryRoutingMonitor queryRoutingMonitor,
             Tracer tracer,
-            FragmentExecutor fragmentExecutor,
-            InternalLog log) {
+            FragmentExecutor fragmentExecutor) {
         this.plannerInstance = plannerInstance;
-        this.fabricWorkerExecutor = fabricWorkerExecutor;
         this.ctx = ctx;
         this.useEvaluator = useEvaluator;
         this.plan = plan;
         this.queryParams = queryParams;
         this.accessMode = accessMode;
-        this.summaryBuilder = summaryBuilder;
         this.lifecycle = lifecycle;
-        this.prefetcher = prefetcher;
         this.queryRoutingMonitor = queryRoutingMonitor;
         this.tracer = tracer;
         this.fragmentExecutor = fragmentExecutor;
-        this.log = log;
     }
 
     MapValue queryParams() {
@@ -154,10 +133,20 @@ abstract class SingleQueryFragmentExecutor {
                 FabricQuery.LocalQuery localQuery = plannerInstance.asLocal(fragment);
                 var targetsComposite = plannerInstance.targetsComposite(fragment);
                 FragmentResult fragmentResult = runLocalQueryAt(
-                        local, transactionMode, localQuery.query(), parameters, targetsComposite, input.records());
-                Mono<QueryExecutionType> executionType =
-                        mergeExecutionType(input.executionType(), fragmentResult.executionType());
-                return new FragmentResult(fragmentResult.records(), fragmentResult.planDescription(), executionType);
+                        local, transactionMode, localQuery.query(), parameters, targetsComposite, input);
+                var executionType = StatementResults.merge(input.executionType(), fragmentResult.executionType());
+                return new DelegatingFragmentResult(fragmentResult) {
+
+                    @Override
+                    public QueryExecutionType executionType() {
+                        return executionType;
+                    }
+
+                    @Override
+                    public PlanlessSummary consume() {
+                        return PlanlessSummary.merge(input.consume(), super.consume());
+                    }
+                };
             } else {
                 return input;
             }
@@ -179,20 +168,20 @@ abstract class SingleQueryFragmentExecutor {
         }
     }
 
-    abstract Mono<StatementResult> runRemote(
+    abstract FragmentResult runRemote(
             Location.Remote location,
             ExecutionOptions options,
             String query,
             TransactionMode transactionMode,
             MapValue params);
 
-    abstract StatementResult runLocal(
+    abstract FragmentResult runLocal(
             Location.Local location,
             TransactionMode transactionMode,
             QueryStatementLifecycles.StatementLifecycle parentLifecycle,
             FullyParsedQuery query,
             MapValue params,
-            Flux<Record> input,
+            FragmentResult input,
             ExecutionOptions executionOptions,
             Boolean targetsComposite);
 
@@ -211,27 +200,16 @@ abstract class SingleQueryFragmentExecutor {
                 plan.inCompositeContext() ? new ExecutionOptions(location.graphId()) : new ExecutionOptions();
 
         lifecycle.startExecution(true);
-        Mono<StatementResult> statementResult =
-                runRemote(location, executionOptions, queryString, transactionMode, parameters);
-        Flux<Record> records = statementResult.flatMapMany(StatementResult::records);
-        summaryBuilder.addSummary(statementResult.flatMap(StatementResult::summary));
+        FragmentResult remoteResult = runRemote(location, executionOptions, queryString, transactionMode, parameters);
+        FragmentResult adjustedResult = new DelegatingFragmentResult(remoteResult) {
 
-        // 'onComplete' signal coming from an inner stream might cause more data being requested from an upstream
-        // operator
-        // and the request will be done using the thread that invoked 'onComplete'.
-        // Since 'onComplete' is invoked by driver IO thread ( Netty event loop ), this might cause the driver
-        // thread to block
-        // or perform a computationally intensive operation in an upstream operator if the upstream operator is
-        // Cypher local execution
-        // that produces records directly in 'request' call.
-        Flux<Record> recordsWithCompletionDelegation = new CompletionDelegatingOperator(records, fabricWorkerExecutor);
-        Flux<Record> prefetchedRecords = prefetcher.addPrefetch(recordsWithCompletionDelegation);
-        Mono<ExecutionPlanDescription> planDescription =
-                statementResult.flatMap(StatementResult::summary).map(Summary::executionPlanDescription);
-
-        // TODO: We currently need to override here since we can't get it from remote properly
-        // but our result here is not as accurate as what the remote might report.
-        Mono<QueryExecutionType> executionType = Mono.just(EffectiveQueryType.queryExecutionType(plan, accessMode));
+            @Override
+            public QueryExecutionType executionType() {
+                // TODO: We currently need to override here since we can't get it from remote properly
+                // but our result here is not as accurate as what the remote might report.
+                return EffectiveQueryType.queryExecutionType(plan, accessMode);
+            }
+        };
 
         if (location instanceof Location.Remote.Internal) {
             queryRoutingMonitor.queryRoutedRemoteInternal();
@@ -239,7 +217,7 @@ abstract class SingleQueryFragmentExecutor {
             queryRoutingMonitor.queryRoutedRemoteExternal();
         }
 
-        return recordTracer.traceRecords(new FragmentResult(prefetchedRecords, planDescription, executionType));
+        return recordTracer.traceRecords(adjustedResult);
     }
 
     private FragmentResult runLocalQueryAt(
@@ -248,28 +226,19 @@ abstract class SingleQueryFragmentExecutor {
             FullyParsedQuery query,
             MapValue parameters,
             boolean targetsComposite,
-            Flux<Record> input) {
+            FragmentResult input) {
         var recordTracer = tracer.localQueryStart(location, query);
 
         ExecutionOptions executionOptions = plan.inCompositeContext() && !targetsComposite
                 ? new ExecutionOptions(location.graphId())
                 : new ExecutionOptions();
 
-        StatementResult localStatementResult = runLocal(
+        FragmentResult localStatementResult = runLocal(
                 location, transactionMode, lifecycle, query, parameters, input, executionOptions, targetsComposite);
-
-        Flux<Record> records = localStatementResult.records();
-        summaryBuilder.addSummary(localStatementResult.summary());
-
-        Mono<ExecutionPlanDescription> planDescription = localStatementResult
-                .summary()
-                .map(Summary::executionPlanDescription)
-                .map(pd -> new TaggingPlanDescriptionWrapper(pd, location.getDatabaseName()));
 
         queryRoutingMonitor.queryRoutedLocal();
 
-        return recordTracer.traceRecords(
-                new FragmentResult(records, planDescription, localStatementResult.executionType()));
+        return recordTracer.traceRecords(localStatementResult);
     }
 
     private Map<String, AnyValue> argumentValues(Fragment fragment, Record argument) {
@@ -350,13 +319,6 @@ abstract class SingleQueryFragmentExecutor {
         }
     }
 
-    private Mono<QueryExecutionType> mergeExecutionType(Mono<QueryExecutionType> lhs, Mono<QueryExecutionType> rhs) {
-        return Mono.zip(lhs, rhs)
-                .map(both -> QueryTypes.merge(both.getT1(), both.getT2()))
-                .switchIfEmpty(lhs)
-                .switchIfEmpty(rhs);
-    }
-
     record PrepareResult(Catalog.Graph graph, Map<String, AnyValue> argumentValues, TransactionMode transactionMode) {}
 
     interface Tracer {
@@ -372,37 +334,5 @@ abstract class SingleQueryFragmentExecutor {
 
     interface FragmentExecutor {
         FragmentResult run(Fragment fragment, Record argument);
-    }
-
-    // TODO: This is a temporary adapter implementing enough for things to work
-    //  during the refactoring work
-    static class InputAdapter implements BlockingStatementResult {
-
-        private final Rx2SyncStream input;
-
-        InputAdapter(Flux<Record> input) {
-            this.input = new Rx2SyncStream(input, 50);
-        }
-
-        @Override
-        public List<String> columns() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Record next() {
-            return input.readRecord();
-        }
-
-        @Override
-        public Summary consume() {
-            input.close();
-            return null;
-        }
-
-        @Override
-        public QueryExecutionType executionType() {
-            throw new UnsupportedOperationException();
-        }
     }
 }

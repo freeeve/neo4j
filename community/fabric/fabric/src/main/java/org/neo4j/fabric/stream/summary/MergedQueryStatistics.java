@@ -19,38 +19,37 @@
  */
 package org.neo4j.fabric.stream.summary;
 
-import java.util.concurrent.atomic.AtomicInteger;
 import org.neo4j.graphdb.QueryStatistics;
 
 public class MergedQueryStatistics implements QueryStatistics {
-    private final AtomicInteger nodesCreated = new AtomicInteger(0);
-    private final AtomicInteger nodesDeleted = new AtomicInteger(0);
-    private final AtomicInteger relationshipsCreated = new AtomicInteger(0);
-    private final AtomicInteger relationshipsDeleted = new AtomicInteger(0);
-    private final AtomicInteger propertiesSet = new AtomicInteger(0);
-    private final AtomicInteger labelsAdded = new AtomicInteger(0);
-    private final AtomicInteger labelsRemoved = new AtomicInteger(0);
-    private final AtomicInteger indexesAdded = new AtomicInteger(0);
-    private final AtomicInteger indexesRemoved = new AtomicInteger(0);
-    private final AtomicInteger constraintsAdded = new AtomicInteger(0);
-    private final AtomicInteger constraintsRemoved = new AtomicInteger(0);
-    private final AtomicInteger systemUpdates = new AtomicInteger(0);
+    private int nodesCreated = 0;
+    private int nodesDeleted = 0;
+    private int relationshipsCreated = 0;
+    private int relationshipsDeleted = 0;
+    private int propertiesSet = 0;
+    private int labelsAdded = 0;
+    private int labelsRemoved = 0;
+    private int indexesAdded = 0;
+    private int indexesRemoved = 0;
+    private int constraintsAdded = 0;
+    private int constraintsRemoved = 0;
+    private int systemUpdates = 0;
     private boolean containsUpdates;
     private boolean containsSystemUpdates;
 
     public void add(QueryStatistics delta) {
-        nodesCreated.addAndGet(delta.getNodesCreated());
-        nodesDeleted.addAndGet(delta.getNodesDeleted());
-        relationshipsCreated.addAndGet(delta.getRelationshipsCreated());
-        relationshipsDeleted.addAndGet(delta.getRelationshipsDeleted());
-        propertiesSet.addAndGet(delta.getPropertiesSet());
-        labelsAdded.addAndGet(delta.getLabelsAdded());
-        labelsRemoved.addAndGet(delta.getLabelsRemoved());
-        indexesAdded.addAndGet(delta.getIndexesAdded());
-        indexesRemoved.addAndGet(delta.getIndexesRemoved());
-        constraintsAdded.addAndGet(delta.getConstraintsAdded());
-        constraintsRemoved.addAndGet(delta.getConstraintsRemoved());
-        systemUpdates.addAndGet(delta.getSystemUpdates());
+        nodesCreated += delta.getNodesCreated();
+        nodesDeleted += delta.getNodesDeleted();
+        relationshipsCreated += delta.getRelationshipsCreated();
+        relationshipsDeleted += delta.getRelationshipsDeleted();
+        propertiesSet += delta.getPropertiesSet();
+        labelsAdded += delta.getLabelsAdded();
+        labelsRemoved += delta.getLabelsRemoved();
+        indexesAdded += delta.getIndexesAdded();
+        indexesRemoved += delta.getIndexesRemoved();
+        constraintsAdded += delta.getConstraintsAdded();
+        constraintsRemoved += delta.getConstraintsRemoved();
+        systemUpdates += delta.getSystemUpdates();
         if (delta.containsUpdates()) {
             containsUpdates = true;
         }
@@ -61,62 +60,62 @@ public class MergedQueryStatistics implements QueryStatistics {
 
     @Override
     public int getNodesCreated() {
-        return nodesCreated.get();
+        return nodesCreated;
     }
 
     @Override
     public int getNodesDeleted() {
-        return nodesDeleted.get();
+        return nodesDeleted;
     }
 
     @Override
     public int getRelationshipsCreated() {
-        return relationshipsCreated.get();
+        return relationshipsCreated;
     }
 
     @Override
     public int getRelationshipsDeleted() {
-        return relationshipsDeleted.get();
+        return relationshipsDeleted;
     }
 
     @Override
     public int getPropertiesSet() {
-        return propertiesSet.get();
+        return propertiesSet;
     }
 
     @Override
     public int getLabelsAdded() {
-        return labelsAdded.get();
+        return labelsAdded;
     }
 
     @Override
     public int getLabelsRemoved() {
-        return labelsRemoved.get();
+        return labelsRemoved;
     }
 
     @Override
     public int getIndexesAdded() {
-        return indexesAdded.get();
+        return indexesAdded;
     }
 
     @Override
     public int getIndexesRemoved() {
-        return indexesRemoved.get();
+        return indexesRemoved;
     }
 
     @Override
     public int getConstraintsAdded() {
-        return constraintsAdded.get();
+        return constraintsAdded;
     }
 
     @Override
     public int getConstraintsRemoved() {
-        return constraintsRemoved.get();
+        return constraintsRemoved;
     }
 
     @Override
     public int getSystemUpdates() {
-        return systemUpdates.get();
+        return systemUpdates;
     }
 
     @Override
@@ -134,19 +133,19 @@ public class MergedQueryStatistics implements QueryStatistics {
         var builder = new StringBuilder();
 
         if (containsSystemUpdates) {
-            includeIfNonZero(builder, "System updates: ", systemUpdates.get());
+            includeIfNonZero(builder, "System updates: ", systemUpdates);
         } else {
-            includeIfNonZero(builder, "Nodes created: ", nodesCreated.get());
-            includeIfNonZero(builder, "Relationships created: ", relationshipsCreated.get());
-            includeIfNonZero(builder, "Properties set: ", propertiesSet.get());
-            includeIfNonZero(builder, "Nodes deleted: ", nodesDeleted.get());
-            includeIfNonZero(builder, "Relationships deleted: ", relationshipsDeleted.get());
-            includeIfNonZero(builder, "Labels added: ", labelsAdded.get());
-            includeIfNonZero(builder, "Labels removed: ", labelsRemoved.get());
-            includeIfNonZero(builder, "Indexes added: ", indexesAdded.get());
-            includeIfNonZero(builder, "Indexes removed: ", indexesRemoved.get());
-            includeIfNonZero(builder, "Constraints added: ", constraintsAdded.get());
-            includeIfNonZero(builder, "Constraints removed: ", constraintsRemoved.get());
+            includeIfNonZero(builder, "Nodes created: ", nodesCreated);
+            includeIfNonZero(builder, "Relationships created: ", relationshipsCreated);
+            includeIfNonZero(builder, "Properties set: ", propertiesSet);
+            includeIfNonZero(builder, "Nodes deleted: ", nodesDeleted);
+            includeIfNonZero(builder, "Relationships deleted: ", relationshipsDeleted);
+            includeIfNonZero(builder, "Labels added: ", labelsAdded);
+            includeIfNonZero(builder, "Labels removed: ", labelsRemoved);
+            includeIfNonZero(builder, "Indexes added: ", indexesAdded);
+            includeIfNonZero(builder, "Indexes removed: ", indexesRemoved);
+            includeIfNonZero(builder, "Constraints added: ", constraintsAdded);
+            includeIfNonZero(builder, "Constraints removed: ", constraintsRemoved);
         }
         var result = builder.toString();
 

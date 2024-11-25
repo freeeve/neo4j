@@ -22,28 +22,24 @@ package org.neo4j.fabric.executor;
 import static scala.jdk.javaapi.CollectionConverters.asJava;
 
 import java.util.Map;
-import java.util.concurrent.Executor;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.cypher.internal.FullyParsedQuery;
 import org.neo4j.fabric.eval.UseEvaluation;
 import org.neo4j.fabric.planning.FabricPlan;
 import org.neo4j.fabric.planning.FabricPlanner;
 import org.neo4j.fabric.planning.Fragment;
-import org.neo4j.fabric.stream.Blocking2RxResultAdapter;
-import org.neo4j.fabric.stream.Prefetcher;
+import org.neo4j.fabric.stream.FragmentResult;
+import org.neo4j.fabric.stream.QueryInput;
 import org.neo4j.fabric.stream.Record;
 import org.neo4j.fabric.stream.StatementResult;
-import org.neo4j.fabric.stream.summary.MergedSummaryBuilder;
+import org.neo4j.fabric.stream.StatementResults;
 import org.neo4j.fabric.transaction.FabricTransaction;
 import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.kernel.impl.query.QueryRoutingMonitor;
-import org.neo4j.logging.InternalLog;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.MapValueBuilder;
 import org.neo4j.values.virtual.VirtualValues;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /**
  * Standard query means other than CALL IN TRANSACTION in this context.
@@ -51,41 +47,31 @@ import reactor.core.publisher.Mono;
 class StandardQueryExecutor extends SingleQueryFragmentExecutor {
 
     private final Fragment.Exec fragment;
-    private final Executor executor;
 
     StandardQueryExecutor(
             Fragment.Exec fragment,
             FabricPlanner.PlannerInstance plannerInstance,
-            Executor executor,
             FabricTransaction.FabricExecutionContext ctx,
             UseEvaluation.Instance useEvaluator,
             FabricPlan plan,
             MapValue queryParams,
             AccessMode accessMode,
-            MergedSummaryBuilder summaryBuilder,
             QueryStatementLifecycles.StatementLifecycle lifecycle,
-            Prefetcher prefetcher,
             QueryRoutingMonitor queryRoutingMonitor,
             Tracer tracer,
-            FragmentExecutor fragmentExecutor,
-            InternalLog log) {
+            FragmentExecutor fragmentExecutor) {
         super(
                 plannerInstance,
-                executor,
                 ctx,
                 useEvaluator,
                 plan,
                 queryParams,
                 accessMode,
-                summaryBuilder,
                 lifecycle,
-                prefetcher,
                 queryRoutingMonitor,
                 tracer,
-                fragmentExecutor,
-                log);
+                fragmentExecutor);
         this.fragment = fragment;
-        this.executor = executor;
     }
 
     FragmentResult run(Record argument) {
@@ -98,38 +84,50 @@ class StandardQueryExecutor extends SingleQueryFragmentExecutor {
     }
 
     @Override
-    Mono<StatementResult> runRemote(
+    FragmentResult runRemote(
             Location.Remote location,
             ExecutionOptions options,
             String query,
             TransactionMode transactionMode,
             MapValue params) {
-        return Blocking2RxResultAdapter.adapt(
-                executor, () -> ctx().getRemote().run(location, options, query, transactionMode, params));
+        var result = ctx().getRemote().run(location, options, query, transactionMode, params);
+        return StatementResults.toFragmentResult(result);
     }
 
     @Override
-    StatementResult runLocal(
+    FragmentResult runLocal(
             Location.Local location,
             TransactionMode transactionMode,
             QueryStatementLifecycles.StatementLifecycle parentLifecycle,
             FullyParsedQuery query,
             MapValue params,
-            Flux<Record> input,
+            FragmentResult input,
             ExecutionOptions executionOptions,
             Boolean targetsComposite) {
-        var result = ctx().getLocal()
+        var queryInput = new QueryInput() {
+
+            @Override
+            public Record next() {
+                return input.next();
+            }
+
+            @Override
+            public void consume() {
+                input.consume();
+            }
+        };
+
+        StatementResult result = ctx().getLocal()
                 .run(
                         location,
                         transactionMode,
                         parentLifecycle,
                         query,
                         params,
-                        new InputAdapter(input),
+                        queryInput,
                         executionOptions,
                         targetsComposite);
-
-        return Blocking2RxResultAdapter.adapt(result);
+        return StatementResults.toFragmentResult(result);
     }
 
     private MapValue addParamsFromRecord(MapValue params, Map<String, AnyValue> record, Map<String, String> bindings) {

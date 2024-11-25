@@ -20,10 +20,10 @@
 package org.neo4j.fabric.stream;
 
 import java.util.List;
-import org.neo4j.fabric.stream.summary.Summary;
+import org.neo4j.fabric.stream.summary.PlanlessSummary;
 import org.neo4j.graphdb.QueryExecutionType;
 
-public interface BlockingStatementResult {
+public interface FragmentResult {
 
     List<String> columns();
 
@@ -32,7 +32,7 @@ public interface BlockingStatementResult {
      */
     Record next();
 
-    Summary consume();
+    PlanlessSummary consume();
 
     QueryExecutionType executionType();
 }

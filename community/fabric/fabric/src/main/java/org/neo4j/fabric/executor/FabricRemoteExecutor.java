@@ -20,7 +20,7 @@
 package org.neo4j.fabric.executor;
 
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
-import org.neo4j.fabric.stream.BlockingStatementResult;
+import org.neo4j.fabric.stream.StatementResult;
 import org.neo4j.fabric.transaction.FabricTransactionInfo;
 import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.fabric.transaction.parent.CompoundTransaction;
@@ -33,7 +33,7 @@ public interface FabricRemoteExecutor {
             TransactionBookmarkManager bookmarkManager);
 
     interface RemoteTransactionContext extends AutoCloseable {
-        BlockingStatementResult run(
+        StatementResult run(
                 Location.Remote location,
                 ExecutionOptions options,
                 String query,
@@ -46,7 +46,7 @@ public interface FabricRemoteExecutor {
          * restrictions like being able to write to only one graph per Fabric transaction
          * don't apply.
          */
-        BlockingStatementResult runInAutocommitTransaction(
+        StatementResult runInAutocommitTransaction(
                 Location.Remote location,
                 ExecutionOptions executionOptions,
                 String query,

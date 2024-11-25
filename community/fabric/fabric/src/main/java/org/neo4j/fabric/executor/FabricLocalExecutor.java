@@ -34,7 +34,8 @@ import org.neo4j.fabric.bookmark.LocalGraphTransactionIdTracker;
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
 import org.neo4j.fabric.config.FabricConfig;
 import org.neo4j.fabric.executor.QueryStatementLifecycles.StatementLifecycle;
-import org.neo4j.fabric.stream.BlockingStatementResult;
+import org.neo4j.fabric.stream.QueryInput;
+import org.neo4j.fabric.stream.StatementResult;
 import org.neo4j.fabric.transaction.FabricTransactionInfo;
 import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.fabric.transaction.parent.CompoundTransaction;
@@ -84,25 +85,25 @@ public class FabricLocalExecutor {
             this.bookmarkManager = bookmarkManager;
         }
 
-        public BlockingStatementResult run(
+        public StatementResult run(
                 Location.Local location,
                 TransactionMode transactionMode,
                 StatementLifecycle parentLifecycle,
                 FullyParsedQuery query,
                 MapValue params,
-                BlockingStatementResult input,
+                QueryInput input,
                 ExecutionOptions executionOptions,
                 Boolean targetsComposite) {
             var kernelTransaction = getOrCreateTx(location, transactionMode, targetsComposite);
             return kernelTransaction.run(query, params, input, parentLifecycle, executionOptions);
         }
 
-        public BlockingStatementResult runInAutocommitTransaction(
+        public StatementResult runInAutocommitTransaction(
                 Location.Local location,
                 StatementLifecycle parentLifecycle,
                 FullyParsedQuery query,
                 MapValue params,
-                BlockingStatementResult input,
+                QueryInput input,
                 ExecutionOptions executionOptions) {
             var databaseFacade = getDatabaseFacade(location);
             bookmarkManager

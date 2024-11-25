@@ -20,7 +20,7 @@
 package org.neo4j.fabric.executor;
 
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
-import org.neo4j.fabric.stream.BlockingStatementResult;
+import org.neo4j.fabric.stream.StatementResult;
 import org.neo4j.fabric.transaction.FabricTransactionInfo;
 import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.fabric.transaction.parent.CompoundTransaction;
@@ -38,7 +38,7 @@ public class ThrowingFabricRemoteExecutor implements FabricRemoteExecutor {
     private static class RemoteTransactionContextImpl implements RemoteTransactionContext {
 
         @Override
-        public BlockingStatementResult run(
+        public StatementResult run(
                 Location.Remote location,
                 ExecutionOptions executionOptions,
                 String query,
@@ -48,7 +48,7 @@ public class ThrowingFabricRemoteExecutor implements FabricRemoteExecutor {
         }
 
         @Override
-        public BlockingStatementResult runInAutocommitTransaction(
+        public StatementResult runInAutocommitTransaction(
                 Location.Remote location,
                 ExecutionOptions executionOptions,
                 String query,

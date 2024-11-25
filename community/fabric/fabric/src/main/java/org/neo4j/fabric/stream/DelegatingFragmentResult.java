@@ -17,35 +17,37 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.fabric.stream.summary;
+package org.neo4j.fabric.stream;
 
-import static org.neo4j.graphdb.QueryStatistics.EMPTY;
+import java.util.List;
+import org.neo4j.fabric.stream.summary.PlanlessSummary;
+import org.neo4j.graphdb.QueryExecutionType;
 
-import java.util.Collection;
-import java.util.Collections;
-import org.neo4j.graphdb.ExecutionPlanDescription;
-import org.neo4j.graphdb.GqlStatusObject;
-import org.neo4j.graphdb.Notification;
-import org.neo4j.graphdb.QueryStatistics;
+public class DelegatingFragmentResult implements FragmentResult {
 
-public class EmptySummary implements Summary {
-    @Override
-    public ExecutionPlanDescription executionPlanDescription() {
-        return new EmptyExecutionPlanDescription();
+    protected final FragmentResult delegate;
+
+    public DelegatingFragmentResult(FragmentResult delegate) {
+        this.delegate = delegate;
     }
 
     @Override
-    public Collection<Notification> getNotifications() {
-        return Collections.emptyList();
+    public List<String> columns() {
+        return delegate.columns();
     }
 
     @Override
-    public Collection<GqlStatusObject> getGqlStatusObjects() {
-        return Collections.emptyList();
+    public Record next() {
+        return delegate.next();
     }
 
     @Override
-    public QueryStatistics getQueryStatistics() {
-        return EMPTY;
+    public PlanlessSummary consume() {
+        return delegate.consume();
+    }
+
+    @Override
+    public QueryExecutionType executionType() {
+        return delegate.executionType();
     }
 }

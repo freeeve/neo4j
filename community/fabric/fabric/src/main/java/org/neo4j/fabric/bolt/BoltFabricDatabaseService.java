@@ -36,7 +36,6 @@ import org.neo4j.fabric.bookmark.TransactionBookmarkManagerImpl;
 import org.neo4j.fabric.bootstrap.TestOverrides;
 import org.neo4j.fabric.config.FabricConfig;
 import org.neo4j.fabric.executor.FabricExecutor;
-import org.neo4j.fabric.stream.StatementResult;
 import org.neo4j.fabric.transaction.FabricTransaction;
 import org.neo4j.fabric.transaction.FabricTransactionInfo;
 import org.neo4j.fabric.transaction.TransactionManager;
@@ -169,9 +168,8 @@ public class BoltFabricDatabaseService implements BoltGraphDatabaseServiceSPI {
         @Override
         public BoltQueryExecution executeQuery(
                 String query, MapValue parameters, boolean prePopulate, QuerySubscriber subscriber) {
-            StatementResult statementResult = fabricExecutor.run(fabricTransaction, query, parameters);
-            final BoltQueryExecutionImpl queryExecution =
-                    new BoltQueryExecutionImpl(statementResult, subscriber, config);
+            var statementResult = fabricExecutor.run(fabricTransaction, query, parameters);
+            BoltQueryExecutionImpl queryExecution = new BoltQueryExecutionImpl(statementResult, subscriber);
             try {
                 queryExecution.initialize();
             } catch (Exception e) {
