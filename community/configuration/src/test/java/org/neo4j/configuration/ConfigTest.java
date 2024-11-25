@@ -735,12 +735,12 @@ class ConfigTest {
                 Collections.singletonList(GraphDatabaseSettings.procedure_allowlist.name() + "=" + unicodeString));
 
         // Try reading with default charset (ISO 8859-1)
-        Config config1 = buildWithoutErrorsOrWarnings(Config.newBuilder().fromFile(confFile)::build);
+        Config config1 = buildWithoutErrorsOrWarnings(
+                Config.newBuilder().setFileCharset(StandardCharsets.ISO_8859_1).fromFile(confFile)::build);
         assertThat(config1.get(GraphDatabaseSettings.procedure_allowlist)).containsExactly(latin1String);
 
         // Try reading with UTF-8
-        Config config2 = buildWithoutErrorsOrWarnings(
-                Config.newBuilder().setFileCharset(StandardCharsets.UTF_8).fromFile(confFile)::build);
+        Config config2 = buildWithoutErrorsOrWarnings(Config.newBuilder().fromFile(confFile)::build);
         assertThat(config2.get(GraphDatabaseSettings.procedure_allowlist)).containsExactly(unicodeString);
     }
 

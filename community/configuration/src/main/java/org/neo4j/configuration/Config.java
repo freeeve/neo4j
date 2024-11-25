@@ -128,7 +128,7 @@ public class Config implements Configuration {
         private Config fromConfig;
         private final InternalLog log = new BufferingLog();
         private boolean expandCommands;
-        private Charset fileCharset = StandardCharsets.ISO_8859_1;
+        private Charset fileCharset = StandardCharsets.UTF_8;
         private String strictDuplicateDeclarationWarningMessage;
 
         private static <T> boolean allowedToOverrideValues(String setting, T value, Map<String, T> settingValues) {
