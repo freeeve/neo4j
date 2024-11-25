@@ -31,7 +31,7 @@ public interface AdmissionControlService {
      * Implementations must be fast to complete as this can be invoked frequently and in performance critical components
      * such as on the bolt IO thread.
      */
-    AdmissionControlToken requestToken();
+    AdmissionControlToken requestToken(Tenant tenant);
 
     /**
      * Await the release of a token, tokens that are already completed will return immediately, otherwise the

@@ -74,11 +74,6 @@ public final class RunMessage extends AbstractTransactionInitiatingMessage {
     }
 
     @Override
-    public boolean requiresAdmissionControl() {
-        return true;
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;

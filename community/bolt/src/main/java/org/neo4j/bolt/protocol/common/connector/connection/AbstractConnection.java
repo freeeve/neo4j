@@ -72,6 +72,7 @@ public abstract class AbstractConnection implements ConnectionHandle {
     protected final LogService logService;
     protected final InternalLog log;
     protected final Log userLog;
+    protected final AdmissionControlService admissionControl;
 
     private final Lock listenerLock = new ReentrantLock();
     private final List<ConnectionListener> listeners = new CopyOnWriteArrayList<>();
@@ -80,7 +81,6 @@ public abstract class AbstractConnection implements ConnectionHandle {
     protected final AtomicReference<Set<ProtocolCapability>> selectedCapabilities =
             new AtomicReference<>(EnumSet.noneOf(ProtocolCapability.class));
     private final AtomicReference<Set<Feature>> features = new AtomicReference<>(null);
-    protected final AdmissionControlService admissionControl;
     protected volatile StateMachine fsm;
     // TODO: Switch to immutable writer pipeline implementation?
     protected volatile WriterPipeline writerPipeline;

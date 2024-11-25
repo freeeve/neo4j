@@ -32,7 +32,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.neo4j.bolt.BoltServer;
@@ -42,6 +41,8 @@ import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.protocol.common.BoltProtocol;
 import org.neo4j.bolt.protocol.common.connection.Job;
 import org.neo4j.bolt.protocol.common.connector.Connector;
+import org.neo4j.bolt.protocol.common.connector.admissioncontrol.ConnectionAdmissionControlTracker;
+import org.neo4j.bolt.protocol.common.connector.admissioncontrol.ConnectionAdmissionControlTrackerFactory;
 import org.neo4j.bolt.protocol.common.connector.connection.listener.ConnectionListener;
 import org.neo4j.bolt.protocol.common.fsm.error.AuthenticationStateTransitionException;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
@@ -85,14 +86,13 @@ public class AtomicSchedulingConnection extends AbstractConnection {
 
     private final AtomicInteger remainingInterrupts = new AtomicInteger();
     private final AtomicReference<Transaction> transaction = new AtomicReference<>();
+    protected final ConnectionAdmissionControlTracker admissionControlTracker;
 
     /**
      * A flag to denote that the connection should create a new admission control token.
      * This is set to false when a transaction receives it's first RUN currently, and is reset when the transaction
      * finishes. This is likely to change, but as a solution it works.
      */
-    private final AtomicBoolean connectionRequiresAdmissionControl = new AtomicBoolean(true);
-
     public AtomicSchedulingConnection(
             Connector connector,
             String id,
@@ -102,10 +102,12 @@ public class AtomicSchedulingConnection extends AbstractConnection {
             LogService logService,
             ExecutorService executor,
             Clock clock,
-            AdmissionControlService admissionControlService) {
+            AdmissionControlService admissionControlService,
+            ConnectionAdmissionControlTracker admissionControlTracker) {
         super(connector, id, channel, connectedAt, memoryTracker, logService, admissionControlService);
         this.executor = executor;
         this.clock = clock;
+        this.admissionControlTracker = admissionControlTracker;
     }
 
     @Override
@@ -121,13 +123,14 @@ public class AtomicSchedulingConnection extends AbstractConnection {
     @Override
     public void submit(RequestMessage message) {
         this.notifyListeners(listener -> listener.onRequestReceived(message));
-        if (this.admissionControl.enabled()
-                && message.requiresAdmissionControl()
-                && this.connectionRequiresAdmissionControl.compareAndSet(true, false)) {
-            this.submit(new ProcessJob(this, this.clock.millis(), message, this.admissionControl.requestToken()));
-        } else {
+
+        if (!this.admissionControl.enabled()) {
             this.submit(new ProcessJob(this, this.clock.millis(), message, null));
+            return;
         }
+
+        var token = this.admissionControlTracker.onMessage(message);
+        this.submit(new ProcessJob(this, this.clock.millis(), message, token));
     }
 
     @Override
@@ -423,8 +426,6 @@ public class AtomicSchedulingConnection extends AbstractConnection {
 
     @Override
     public void closeTransaction() throws TransactionException {
-        this.connectionRequiresAdmissionControl.set(true);
-
         var tx = this.transaction.getAndSet(null);
         if (tx == null) {
             return;
@@ -646,16 +647,19 @@ public class AtomicSchedulingConnection extends AbstractConnection {
         private final Clock clock;
         private final LogService logService;
         private final AdmissionControlService admissionControl;
+        private final ConnectionAdmissionControlTrackerFactory connectionAdmissionControlTrackerFactory;
 
         public Factory(
                 ExecutorService executor,
                 Clock clock,
                 LogService logService,
-                AdmissionControlService admissionControl) {
+                AdmissionControlService admissionControl,
+                ConnectionAdmissionControlTrackerFactory connectionAdmissionControlTrackerFactory) {
             this.executor = executor;
             this.clock = clock;
             this.logService = logService;
             this.admissionControl = admissionControl;
+            this.connectionAdmissionControlTrackerFactory = connectionAdmissionControlTrackerFactory;
         }
 
         @Override
@@ -673,7 +677,8 @@ public class AtomicSchedulingConnection extends AbstractConnection {
                     this.logService,
                     this.executor,
                     this.clock,
-                    this.admissionControl);
+                    this.admissionControl,
+                    this.connectionAdmissionControlTrackerFactory.createNewTracker());
         }
     }
 }

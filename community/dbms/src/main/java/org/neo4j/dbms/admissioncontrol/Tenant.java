@@ -19,19 +19,26 @@
  */
 package org.neo4j.dbms.admissioncontrol;
 
-public final class NoopAdmissionControlService implements AdmissionControlService {
-    @Override
-    public AdmissionControlToken requestToken(Tenant ignored) {
-        return AdmissionControlToken.RELEASED;
-    }
+public interface Tenant {
+    Tenant DEFAULT = new Tenant() {
+        @Override
+        public String name() {
+            return "";
+        }
 
-    @Override
-    public AdmissionControlResponse awaitRelease(AdmissionControlToken ignored) {
-        return AdmissionControlResponse.RELEASED;
-    }
+        @Override
+        public int hashCode() {
+            return name().hashCode();
+        }
 
-    @Override
-    public boolean enabled() {
-        return false;
-    }
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof Tenant) {
+                return this.hashCode() == obj.hashCode();
+            }
+            return false;
+        }
+    };
+
+    String name();
 }

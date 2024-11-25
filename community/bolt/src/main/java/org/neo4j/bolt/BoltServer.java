@@ -58,6 +58,7 @@ import org.neo4j.bolt.protocol.common.connector.accounting.error.NoopErrorAccoun
 import org.neo4j.bolt.protocol.common.connector.accounting.traffic.AtomicTrafficAccountant;
 import org.neo4j.bolt.protocol.common.connector.accounting.traffic.NoopTrafficAccountant;
 import org.neo4j.bolt.protocol.common.connector.accounting.traffic.TrafficAccountant;
+import org.neo4j.bolt.protocol.common.connector.admissioncontrol.ConnectionAdmissionControlTrackerFactory;
 import org.neo4j.bolt.protocol.common.connector.connection.AtomicSchedulingConnection;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.connector.executor.ExecutorServiceFactory;
@@ -139,6 +140,7 @@ public class BoltServer extends LifecycleAdapter {
     private final TransactionManager transactionManager;
     private final RoutingService routingService;
     private final InternalLog log;
+    private final ConnectionAdmissionControlTrackerFactory admissionControlTrackerFactory;
 
     private final List<Connector> connectors = new ArrayList<>();
     private final LifeSupport connectorLife = new LifeSupport();
@@ -167,7 +169,8 @@ public class BoltServer extends LifecycleAdapter {
             MemoryPools memoryPools,
             RoutingService routingService,
             DefaultDatabaseResolver defaultDatabaseResolver,
-            AdmissionControlService admissionControl) {
+            AdmissionControlService admissionControl,
+            ConnectionAdmissionControlTrackerFactory admissionControlTrackerFactory) {
         this.dbmsInfo = dbmsInfo;
         this.jobScheduler = jobScheduler;
         this.connectorPortRegister = connectorPortRegister;
@@ -202,6 +205,7 @@ public class BoltServer extends LifecycleAdapter {
         this.sslPolicyLoader = dependencyResolver.resolveDependency(SslPolicyLoader.class);
         this.authConfigProvider = dependencyResolver.resolveDependency(AuthConfigProvider.class);
         this.log = logService.getInternalLog(BoltServer.class);
+        this.admissionControlTrackerFactory = admissionControlTrackerFactory;
         var minProtocolVersion = Optional.ofNullable(config.get(BoltConnectorInternalSettings.min_protocol_version))
                 .map(version -> new ProtocolVersion(version.major(), version.minor()));
         var maxProtocolVersion = Optional.ofNullable(config.get(BoltConnectorInternalSettings.max_protocol_version))
@@ -515,7 +519,8 @@ public class BoltServer extends LifecycleAdapter {
     }
 
     private Connection.Factory createConnectionFactory() {
-        return new AtomicSchedulingConnection.Factory(executorService, clock, logService, admissionControl);
+        return new AtomicSchedulingConnection.Factory(
+                executorService, clock, logService, admissionControl, admissionControlTrackerFactory);
     }
 
     private static Authentication createAuthentication(AuthManager authManager) {

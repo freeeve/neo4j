@@ -38,6 +38,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import org.neo4j.bolt.BoltServer;
 import org.neo4j.bolt.dbapi.BoltGraphDatabaseManagementServiceSPI;
+import org.neo4j.bolt.protocol.common.connector.admissioncontrol.ConnectionAdmissionControlTrackerFactory;
 import org.neo4j.bolt.transport.Netty4LoggerFactory;
 import org.neo4j.bolt.tx.TransactionManager;
 import org.neo4j.bolt.tx.TransactionManagerImpl;
@@ -205,7 +206,18 @@ public class DatabaseManagementServiceFactory {
 
         var acs =
                 tryResolveOrCreate(AdmissionControlService.class, globalDependencies, NoopAdmissionControlService::new);
-        var boltServer = createBoltServer(globalModule, edition, transactionManager, routingService, config, acs);
+        var connectionTenantResolverFactory = tryResolveOrCreate(
+                ConnectionAdmissionControlTrackerFactory.class,
+                globalDependencies,
+                ConnectionAdmissionControlTrackerFactory::noop);
+        var boltServer = createBoltServer(
+                globalModule,
+                edition,
+                transactionManager,
+                routingService,
+                config,
+                acs,
+                connectionTenantResolverFactory);
 
         globalLife.add(boltServer);
         globalDependencies.satisfyDependency(boltServer);
@@ -435,7 +447,8 @@ public class DatabaseManagementServiceFactory {
             TransactionManager transactionManager,
             RoutingService routingService,
             Config config,
-            AdmissionControlService admissionControlService) {
+            AdmissionControlService admissionControlService,
+            ConnectionAdmissionControlTrackerFactory connectionTenantResolverFactory) {
 
         // Must be called before loading any Netty classes in order to override the factory
         InternalLoggerFactory.setDefaultFactory(
@@ -464,7 +477,8 @@ public class DatabaseManagementServiceFactory {
                 globalModule.getMemoryPools(),
                 routingService,
                 edition.getDefaultDatabaseResolver(),
-                admissionControlService);
+                admissionControlService,
+                connectionTenantResolverFactory);
     }
 
     private static void dumpDbmsInfo(InternalLog log, GraphDatabaseAPI system) {

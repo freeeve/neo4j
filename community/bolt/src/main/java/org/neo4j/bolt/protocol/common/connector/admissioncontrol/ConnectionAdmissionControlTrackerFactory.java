@@ -17,21 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.dbms.admissioncontrol;
+package org.neo4j.bolt.protocol.common.connector.admissioncontrol;
 
-public final class NoopAdmissionControlService implements AdmissionControlService {
-    @Override
-    public AdmissionControlToken requestToken(Tenant ignored) {
-        return AdmissionControlToken.RELEASED;
-    }
+@FunctionalInterface
+public interface ConnectionAdmissionControlTrackerFactory {
+    ConnectionAdmissionControlTracker createNewTracker();
 
-    @Override
-    public AdmissionControlResponse awaitRelease(AdmissionControlToken ignored) {
-        return AdmissionControlResponse.RELEASED;
-    }
-
-    @Override
-    public boolean enabled() {
-        return false;
+    static ConnectionAdmissionControlTrackerFactory noop() {
+        return () -> (ConnectionAdmissionControlTracker) message -> null;
     }
 }
