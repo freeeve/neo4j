@@ -42,6 +42,7 @@ import static org.neo4j.values.storable.Values.stringValue;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import org.eclipse.collections.api.factory.Sets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -159,9 +160,12 @@ class LuceneIndexProviderTest {
         populator.create();
 
         // When multiple threads are populating the index
+        var nextEntityId = new AtomicLong();
         race.addContestants(2, throwing(() -> {
             for (int value = 0; value < 3000; value++) {
-                populator.add(List.of(add(value, descriptor, stringValue(String.valueOf(value)))), NULL_CONTEXT);
+                populator.add(
+                        List.of(add(nextEntityId.getAndIncrement(), descriptor, stringValue(String.valueOf(value)))),
+                        NULL_CONTEXT);
             }
         }));
 
@@ -179,9 +183,9 @@ class LuceneIndexProviderTest {
         // Then the index population completes
         assertThat(populator.progress(DONE).getCompleted()).isEqualTo(1);
         var sample = populator.sample(NULL_CONTEXT);
-        assertThat(sample.sampleSize()).isEqualTo(7000);
+        assertThat(sample.sampleSize()).isBetween(6000L, 7000L);
         assertThat(sample.uniqueValues()).isEqualTo(3000L);
-        assertThat(sample.indexSize()).isGreaterThanOrEqualTo(5000L);
+        assertThat(sample.indexSize()).isGreaterThanOrEqualTo(6000L);
         populator.close(true, NULL_CONTEXT);
     }
 
