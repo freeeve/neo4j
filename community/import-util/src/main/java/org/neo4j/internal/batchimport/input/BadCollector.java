@@ -67,10 +67,12 @@ public final class BadCollector implements Collector {
     static final int DUPLICATE_NODES = 0x2;
     static final int EXTRA_COLUMNS = 0x4;
     static final int VIOLATING_NODES = 0x8;
-    static final int VIOLATING_SCHEMA = 0x16;
-    static final int BAD_NODES = DUPLICATE_NODES | VIOLATING_NODES;
+    static final int VIOLATING_SCHEMA = 0x10;
+    static final int OTHER_NODE_VIOLATION = 0x20;
+    static final int OTHER_RELATIONSHIP_VIOLATION = 0x40;
+    static final int BAD_NODES = DUPLICATE_NODES | VIOLATING_NODES | OTHER_NODE_VIOLATION;
 
-    static final int COLLECT_ALL = BAD_RELATIONSHIPS | BAD_NODES | EXTRA_COLUMNS | VIOLATING_SCHEMA;
+    static final int COLLECT_ALL = -1;
     public static final long UNLIMITED_TOLERANCE = -1;
     static final int DEFAULT_BACK_PRESSURE_THRESHOLD = 10_000;
 
@@ -158,6 +160,16 @@ public final class BadCollector implements Collector {
     @Override
     public void collectSchemaCommandFailure(EntityType entityType, String failureMessage) {
         collect(new SchemaCommandFailureReporter(entityType, failureMessage));
+    }
+
+    @Override
+    public void collectOtherNodeViolation(String format, Object... parameters) {
+        collect(new OtherViolationReporter(EntityType.NODE, format, parameters));
+    }
+
+    @Override
+    public void collectOtherRelationshipViolation(String format, Object... parameters) {
+        collect(new OtherViolationReporter(EntityType.RELATIONSHIP, format, parameters));
     }
 
     @Override
@@ -413,6 +425,27 @@ public final class BadCollector implements Collector {
         @Override
         String message() {
             return failureMessage;
+        }
+
+        @Override
+        InputException exception() {
+            return new InputException(message());
+        }
+    }
+
+    private static class OtherViolationReporter extends ProblemReporter {
+        private final String format;
+        private final Object[] parameters;
+
+        public OtherViolationReporter(EntityType entityType, String format, Object[] parameters) {
+            super(entityType == EntityType.NODE ? OTHER_NODE_VIOLATION : OTHER_RELATIONSHIP_VIOLATION);
+            this.format = format;
+            this.parameters = parameters;
+        }
+
+        @Override
+        String message() {
+            return format(format, parameters);
         }
 
         @Override

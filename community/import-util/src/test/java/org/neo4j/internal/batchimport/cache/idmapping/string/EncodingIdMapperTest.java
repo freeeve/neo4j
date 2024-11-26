@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -59,7 +60,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.batchimport.api.PropertyValueLookup;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Group;
-import org.neo4j.common.EntityType;
 import org.neo4j.function.Factory;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
 import org.neo4j.internal.batchimport.cache.idmapping.IdMapper;
@@ -608,11 +608,18 @@ public class EncodingIdMapperTest {
         }
 
         // WHEN
-        CountingCollector collector = new CountingCollector();
+        var reportedCount = new AtomicLong();
+        var collector = mock(Collector.class);
+        doAnswer(invocationOnMock -> {
+                    reportedCount.incrementAndGet();
+                    return null;
+                })
+                .when(collector)
+                .collectDuplicateNode(any(Object.class), anyLong(), any());
         mapper.prepare(values(ids.toArray()), collector, NONE);
 
         // THEN
-        assertEquals(count, collector.count.get());
+        assertEquals(count, reportedCount.intValue());
     }
 
     @ParameterizedTest(name = "processors:{0}")
@@ -964,66 +971,5 @@ public class EncodingIdMapperTest {
         abstract Factory<Radix> radix();
 
         abstract Factory<Object> data(Random random);
-    }
-
-    private static class CountingCollector implements Collector {
-        private final AtomicInteger count = new AtomicInteger();
-
-        @Override
-        public void collectBadRelationship(
-                Object startId, Group startIdGroup, Object type, Object endId, Group endIdGroup, Object specificValue) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void collectDuplicateNode(Object id, long actualId, Group group) {
-            count.incrementAndGet();
-        }
-
-        @Override
-        public boolean isCollectingBadRelationships() {
-            return false;
-        }
-
-        @Override
-        public void collectExtraColumns(String source, long row, String value) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void collectEntityViolatingConstraint(
-                Object id,
-                long actualId,
-                Map<String, Object> properties,
-                String constraintDescription,
-                EntityType entityType) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void collectRelationshipViolatingConstraint(
-                Map<String, Object> properties,
-                String constraintDescription,
-                Object startId,
-                Group startIdGroup,
-                String type,
-                Object endId,
-                Group endIdGroup) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void collectSchemaCommandFailure(EntityType entityType, String failureMessage) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public long badEntries() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void close() { // Nothing to close
-        }
     }
 }

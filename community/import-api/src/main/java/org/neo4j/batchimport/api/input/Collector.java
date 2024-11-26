@@ -59,6 +59,10 @@ public interface Collector extends AutoCloseable {
      */
     void collectSchemaCommandFailure(EntityType entityType, String failureMessage);
 
+    void collectOtherNodeViolation(String format, Object... parameters);
+
+    void collectOtherRelationshipViolation(String format, Object... parameters);
+
     long badEntries();
 
     boolean isCollectingBadRelationships();
@@ -113,6 +117,12 @@ public interface Collector extends AutoCloseable {
 
         @Override
         public void collectSchemaCommandFailure(EntityType entityType, String failureMessage) {}
+
+        @Override
+        public void collectOtherNodeViolation(String format, Object... parameters) {}
+
+        @Override
+        public void collectOtherRelationshipViolation(String format, Object... parameters) {}
 
         @Override
         public boolean isCollectingBadRelationships() {
@@ -179,8 +189,75 @@ public interface Collector extends AutoCloseable {
         }
 
         @Override
+        public void collectOtherNodeViolation(String format, Object... parameters) {
+            throw new IllegalStateException(format(format, parameters));
+        }
+
+        @Override
+        public void collectOtherRelationshipViolation(String format, Object... parameters) {
+            throw new IllegalStateException(format(format, parameters));
+        }
+
+        @Override
         public boolean isCollectingBadRelationships() {
             return false;
         }
     };
+
+    class Adapter implements Collector {
+        @Override
+        public void collectBadRelationship(
+                Object startId,
+                Group startIdGroup,
+                Object type,
+                Object endId,
+                Group endIdGroup,
+                Object specificValue) {}
+
+        @Override
+        public void collectDuplicateNode(Object id, long actualId, Group group) {}
+
+        @Override
+        public void collectEntityViolatingConstraint(
+                Object id,
+                long actualId,
+                Map<String, Object> properties,
+                String constraintDescription,
+                EntityType entityType) {}
+
+        @Override
+        public void collectRelationshipViolatingConstraint(
+                Map<String, Object> properties,
+                String constraintDescription,
+                Object startId,
+                Group startIdGroup,
+                String type,
+                Object endId,
+                Group endIdGroup) {}
+
+        @Override
+        public void collectExtraColumns(String source, long row, String value) {}
+
+        @Override
+        public void collectSchemaCommandFailure(EntityType entityType, String failureMessage) {}
+
+        @Override
+        public void collectOtherNodeViolation(String format, Object... parameters) {}
+
+        @Override
+        public void collectOtherRelationshipViolation(String format, Object... parameters) {}
+
+        @Override
+        public long badEntries() {
+            return 0;
+        }
+
+        @Override
+        public boolean isCollectingBadRelationships() {
+            return false;
+        }
+
+        @Override
+        public void close() {}
+    }
 }
