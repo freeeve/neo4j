@@ -19,13 +19,9 @@
  */
 package org.neo4j.test;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import org.neo4j.util.Preconditions;
 
@@ -55,15 +51,5 @@ public final class ReflectionUtil {
                 "Method '%s' does not exist in class %s",
                 methodName,
                 owner);
-    }
-
-    public static List<Field> getAllFields(Class<?> baseClazz) {
-        List<Field> fields = new ArrayList<>();
-        Class<?> clazz = baseClazz;
-        do {
-            Collections.addAll(fields, clazz.getDeclaredFields());
-            clazz = clazz.getSuperclass();
-        } while (clazz != null);
-        return fields;
     }
 }

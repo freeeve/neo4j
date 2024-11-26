@@ -22,12 +22,11 @@ package org.neo4j.test.extension.actors;
 import static java.lang.String.format;
 import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS;
 import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_METHOD;
-import static org.neo4j.test.ReflectionUtil.getAllFields;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.List;
 import java.util.Optional;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -76,7 +75,7 @@ public class ActorsSupportExtension implements TestInstancePostProcessor, AfterE
         ActorsManager manager = (ActorsManager) getStore(extensionContext)
                 .getOrComputeIfAbsent(ACTOR_MANAGER, k -> new ActorsManager(extensionContext.getDisplayName()));
         Class<?> clazz = testInstance.getClass();
-        List<Field> declaredFields = getAllFields(clazz);
+        Field[] declaredFields = FieldUtils.getAllFields(clazz);
         for (Field declaredField : declaredFields) {
             if (declaredField.getType() == Actor.class && declaredField.isAnnotationPresent(Inject.class)) {
                 if (Modifier.isStatic(declaredField.getModifiers())) {

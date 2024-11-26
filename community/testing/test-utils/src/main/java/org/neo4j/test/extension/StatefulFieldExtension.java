@@ -20,10 +20,9 @@
 package org.neo4j.test.extension;
 
 import static java.lang.String.format;
-import static org.neo4j.test.ReflectionUtil.getAllFields;
 
 import java.lang.reflect.Field;
-import java.util.List;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.ExtensionConfigurationException;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -49,7 +48,7 @@ public abstract class StatefulFieldExtension<T> implements TestInstancePostProce
     public void postProcessTestInstance(Object testInstance, ExtensionContext context) throws Exception {
         Class<?> clazz = testInstance.getClass();
         Object instance = createInstance(context);
-        List<Field> declaredFields = getAllFields(clazz);
+        Field[] declaredFields = FieldUtils.getAllFields(clazz);
         for (Field declaredField : declaredFields) {
             if (declaredField.isAnnotationPresent(Inject.class)
                     && declaredField.getType().isAssignableFrom(getFieldType())) {
