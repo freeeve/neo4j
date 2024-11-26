@@ -44,7 +44,6 @@ import org.neo4j.kernel.impl.query.NotificationConfiguration;
 import org.neo4j.test.extension.OtherThreadExtension;
 import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
 
-@Disabled("Disabled since 25/10/24 whilst debugging test framework issues")
 @EphemeralTestDirectoryExtension
 @Neo4jWithSocketExtension
 @BoltTestExtension
@@ -375,6 +374,8 @@ public class LegacyNotificationsConfigIT {
         assertThat(connection).receivesSuccess(x -> Assertions.assertThat(x).doesNotContainKey("notifications"));
     }
 
+    // FIXME: Disabled on 25/11/2025 - Message of type PullMessage cannot be handled by a session in the READY state.
+    @Disabled
     @ProtocolTest
     @IncludeWire({@Version(major = 5, minor = 4, range = 2)})
     public void shouldNotReturnNotificationsWhenNotHighEnoughSeverity(

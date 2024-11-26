@@ -19,20 +19,19 @@
  */
 package org.neo4j.bolt.testing.client.error;
 
-public abstract sealed class BoltTestClientException extends RuntimeException
-        permits BoltTestClientIOException, BoltTestClientInterruptedException, BoltTestClientStateException {
+public final class BoltTestClientClosedException extends BoltTestClientIOException {
 
-    public BoltTestClientException() {}
+    public BoltTestClientClosedException() {}
 
-    public BoltTestClientException(String message) {
+    public BoltTestClientClosedException(String message) {
         super(message);
     }
 
-    public BoltTestClientException(String message, Throwable cause) {
+    public BoltTestClientClosedException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public BoltTestClientException(Throwable cause) {
+    public BoltTestClientClosedException(Throwable cause) {
         super(cause);
     }
 }

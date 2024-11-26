@@ -17,22 +17,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.bolt.testing.client.error;
+package org.neo4j.bolt.test.extension.error;
 
-public abstract sealed class BoltTestClientException extends RuntimeException
-        permits BoltTestClientIOException, BoltTestClientInterruptedException, BoltTestClientStateException {
+import org.neo4j.bolt.test.extension.store.RetryInfo;
+import org.opentest4j.TestAbortedException;
 
-    public BoltTestClientException() {}
+/**
+ * Signals to the Bolt test support extension that a test has been aborted and should be retried due
+ * to a temporary network condition or otherwise permissible condition.
+ */
+public class TestRetryException extends TestAbortedException {
 
-    public BoltTestClientException(String message) {
-        super(message);
+    private final RetryInfo retryInfo;
+
+    public TestRetryException(RetryInfo retryInfo, String message, Throwable cause) {
+        super("Retrying test (" + retryInfo + ") due to permissible failure: " + message, cause);
+        this.retryInfo = retryInfo;
     }
 
-    public BoltTestClientException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public BoltTestClientException(Throwable cause) {
-        super(cause);
+    public RetryInfo getRetryInfo() {
+        return this.retryInfo;
     }
 }

@@ -49,7 +49,6 @@ import org.neo4j.test.extension.OtherThreadExtension;
 import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
 import org.neo4j.values.storable.Values;
 
-@Disabled("Disabled since 25/10/24 whilst debugging test framework issues")
 @EphemeralTestDirectoryExtension
 @Neo4jWithSocketExtension
 @BoltTestExtension
@@ -70,6 +69,8 @@ public class NotificationsConfigIT {
         assertThat(connection).receivesSuccessWithStatus(GqlStatusInfoCodes.STATUS_00000);
     }
 
+    // FIXME: Disabled on 25/11/2025 - Message of type PullMessage cannot be handled by a session in the READY state.
+    @Disabled
     @ProtocolTest
     @ExcludeWire({@Version(major = 5, minor = 4, range = 4), @Version(major = 4)})
     public void shouldReturnNoData(BoltWire wire, @VersionSelected BoltTestConnection connection) throws Throwable {
@@ -97,6 +98,8 @@ public class NotificationsConfigIT {
         assertThat(connection).receivesSuccessWithStatus(GqlStatusInfoCodes.STATUS_00001);
     }
 
+    // FIXME: Disabled on 25/11/2025 - Message of type PullMessage cannot be handled by a session in the READY state.
+    @Disabled
     @ProtocolTest
     @ExcludeWire({@Version(major = 5, minor = 4, range = 4), @Version(major = 4)})
     public void shouldReturnWarning(BoltWire wire, @VersionSelected BoltTestConnection connection) throws Throwable {
