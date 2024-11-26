@@ -318,10 +318,7 @@ public class ImportCommand {
                 paramLabel = "<size>",
                 defaultValue = "90%",
                 converter = MaxOffHeapMemoryConverter.class,
-                description =
-                        "Maximum memory that neo4j-admin can use for various data structures and caching to improve performance. "
-                                + "Values can be plain numbers, such as 10000000, or 20G for 20 gigabytes. "
-                                + "It can also be specified as a percentage of the available memory, for example 70%%.")
+                description = MaxOffHeapMemoryConverter.DESCRIPTION)
         private long maxOffHeapMemory;
 
         @Option(
