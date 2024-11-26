@@ -52,6 +52,15 @@ public class WriteOperationsNotAllowedException extends GqlRuntimeException impl
                 gql, format(NOT_LEADER_ERROR_MSG, currentRole), Status.Cluster.NotALeader);
     }
 
+    public static WriteOperationsNotAllowedException noWriteOperationAllowed() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N08)
+                .build();
+        return new WriteOperationsNotAllowedException(
+                gql,
+                "No write operations are allowed on this database. This is a read only Neo4j instance.",
+                Status.General.ForbiddenOnReadOnlyDatabase);
+    }
+
     /** The Neo4j status code associated with this exception type. */
     @Override
     public Status status() {

@@ -22,7 +22,6 @@ package org.neo4j.dbms.routing;
 import static org.neo4j.dbms.routing.RoutingTableServiceHelpers.FROM_ALIAS_KEY;
 import static org.neo4j.kernel.api.exceptions.Status.Database.IllegalAliasChain;
 import static org.neo4j.kernel.api.exceptions.Status.General.DatabaseUnavailable;
-import static org.neo4j.kernel.api.exceptions.Status.Procedure.ProcedureCallFailed;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.time.Clock;
@@ -37,10 +36,6 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.connectors.BoltConnector;
 import org.neo4j.configuration.helpers.SocketAddress;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlParams;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
-import org.neo4j.kernel.api.exceptions.Status.Routing;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.database.DatabaseReferenceImpl;
 import org.neo4j.kernel.database.DatabaseReferenceRepository;
@@ -115,9 +110,7 @@ public class DefaultRoutingService implements RoutingService, PanicEventHandler 
 
     private void assertNotInPanic() throws RoutingException {
         if (panicReason != null) {
-            var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N32)
-                    .build();
-            throw new RoutingException(gql, Routing.DbmsInPanic, panicReason.toString());
+            throw RoutingException.serverPanic(panicReason.toString());
         }
     }
 
@@ -188,17 +181,7 @@ public class DefaultRoutingService implements RoutingService, PanicEventHandler 
 
     private void assertBoltConnectorEnabled(DatabaseReference databaseReference) throws RoutingException {
         if (!boltEnabled.get()) {
-            var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N70)
-                    .withParam(
-                            GqlParams.StringParam.db, databaseReference.alias().name())
-                    .build();
-            throw new RoutingException(
-                    gql,
-                    ProcedureCallFailed,
-                    "Cannot get routing table for " + databaseReference.alias()
-                            + " because Bolt is not enabled. Please update your configuration for '"
-                            + BoltConnector.enabled.name()
-                            + "'");
+            throw RoutingException.boltNotEnabled(databaseReference.alias());
         }
     }
 

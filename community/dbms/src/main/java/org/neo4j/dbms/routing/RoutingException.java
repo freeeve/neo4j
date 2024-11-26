@@ -20,13 +20,16 @@
 package org.neo4j.dbms.routing;
 
 import static java.lang.String.format;
+import static org.neo4j.kernel.api.exceptions.Status.Procedure.ProcedureCallFailed;
 
+import org.neo4j.configuration.connectors.BoltConnector;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlException;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
+import org.neo4j.kernel.database.NormalizedDatabaseName;
 
 public class RoutingException extends GqlException implements Status.HasStatus {
     private final Status status;
@@ -37,7 +40,7 @@ public class RoutingException extends GqlException implements Status.HasStatus {
         this.status = status;
     }
 
-    public RoutingException(ErrorGqlStatusObject gqlStatusObject, Status status, String message) {
+    private RoutingException(ErrorGqlStatusObject gqlStatusObject, Status status, String message) {
         super(gqlStatusObject, message);
         this.status = status;
     }
@@ -50,6 +53,37 @@ public class RoutingException extends GqlException implements Status.HasStatus {
                 gql,
                 Status.Routing.RoutingFailed,
                 format("Policy definition for '%s' could not be found.", policyName));
+    }
+
+    public static RoutingException serverPanic(String panicReason) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N32)
+                .build();
+        return new RoutingException(gql, Status.Routing.DbmsInPanic, panicReason);
+    }
+
+    public static RoutingException invalidAddressKey() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N16)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N10)
+                        .build())
+                .build();
+        return new RoutingException(
+                gql,
+                Status.Procedure.ProcedureCallFailed,
+                "An address key is included in the query string provided to the "
+                        + "GetRoutingTableProcedure, but its value could not be parsed.");
+    }
+
+    public static RoutingException boltNotEnabled(NormalizedDatabaseName dbName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N70)
+                .withParam(GqlParams.StringParam.db, dbName.name())
+                .build();
+        return new RoutingException(
+                gql,
+                ProcedureCallFailed,
+                "Cannot get routing table for " + dbName
+                        + " because Bolt is not enabled. Please update your configuration for '"
+                        + BoltConnector.enabled.name()
+                        + "'");
     }
 
     @Override

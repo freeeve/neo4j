@@ -914,6 +914,50 @@ object SemanticError {
       .build()
     SemanticError(gql, legacyMessage, position)
   }
+
+  def numPrimariesOutOfRange(
+    count: Int,
+    command: String,
+    topologyString: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N52)
+        .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.NumberParam.count, count)
+        .withParam(GqlParams.NumberParam.upper, 11)
+        .build())
+      .build()
+
+    SemanticError(
+      gql,
+      s"Failed to $command with `$topologyString`, PRIMARY must be greater than 0.",
+      position
+    )
+  }
+
+  def numSecondariesOutOfRange(
+    count: Int,
+    command: String,
+    topologyString: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N53)
+        .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.NumberParam.count, count)
+        .withParam(GqlParams.NumberParam.upper, 20)
+        .build())
+      .build()
+
+    SemanticError(
+      gql,
+      s"Failed to $command with `$topologyString`, SECONDARY must be a positive value",
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

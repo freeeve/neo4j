@@ -221,38 +221,18 @@ sealed trait WriteAdministrationCommand extends AdministrationCommand {
 
     def numPrimaryGreaterThanZero(topology: Topology): SemanticCheck =
       if (topology.primaries.flatMap(_.left.toOption).exists(_ < 1)) {
-        val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
-          .atPosition(position.offset, position.line, position.column)
-          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N52)
-            .atPosition(position.offset, position.line, position.column)
-            .withParam(GqlParams.NumberParam.count, topology.primaries.flatMap(_.left.toOption).get)
-            .withParam(GqlParams.NumberParam.upper, 11)
-            .build())
-          .build()
-        error(
-          gql,
-          s"Failed to $command with `${Prettifier.extractTopology(topology).trim}`, PRIMARY must be greater than 0.",
-          position
-        )
+        val count = topology.primaries.flatMap(_.left.toOption).get
+        val topologyString = Prettifier.extractTopology(topology).trim
+        error(SemanticError.numPrimariesOutOfRange(count, command, topologyString, position))
       } else {
         SemanticCheck.success
       }
 
     def numSecondaryPositive(topology: Topology): SemanticCheck =
       if (topology.secondaries.flatMap(_.left.toOption).exists(_ < 0)) {
-        val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
-          .atPosition(position.offset, position.line, position.column)
-          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N53)
-            .atPosition(position.offset, position.line, position.column)
-            .withParam(GqlParams.NumberParam.count, topology.primaries.flatMap(_.left.toOption).get)
-            .withParam(GqlParams.NumberParam.upper, 20)
-            .build())
-          .build()
-        error(
-          gql,
-          s"Failed to $command with `${Prettifier.extractTopology(topology).trim}`, SECONDARY must be a positive value.",
-          position
-        )
+        val count = topology.secondaries.flatMap(_.left.toOption).get
+        val topologyString = Prettifier.extractTopology(topology).trim
+        error(SemanticError.numSecondariesOutOfRange(count, command, topologyString, position))
       } else {
         SemanticCheck.success
       }

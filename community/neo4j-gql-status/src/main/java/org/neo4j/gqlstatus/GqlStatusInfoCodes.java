@@ -4634,11 +4634,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_52N05(
             new GqlStatus("52N05"),
             """
-                    Can't invoke procedure on this member because it is not a secondary for database { %s }.""",
+                    Cannot invoke procedure on this member because it is not a secondary for the database { %s }.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
-            "cannot invoke procedure on a primary",
+            "must invoke procedure on secondary",
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N06(
             new GqlStatus("52N06"),

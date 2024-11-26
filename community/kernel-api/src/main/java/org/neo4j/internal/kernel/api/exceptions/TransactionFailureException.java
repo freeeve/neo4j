@@ -117,4 +117,13 @@ public class TransactionFailureException extends KernelException {
                 .build();
         return new TransactionFailureException(gql, Status.General.UnknownError, e);
     }
+
+    public static TransactionFailureException cannotBeCommitedInReadOnlyDb() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N08)
+                .build();
+        return new TransactionFailureException(
+                gql,
+                Status.General.ForbiddenOnReadOnlyDatabase,
+                "Transactions cannot be committed in a read-only Neo4j database");
+    }
 }

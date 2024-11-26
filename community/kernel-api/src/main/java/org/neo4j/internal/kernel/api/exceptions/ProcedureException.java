@@ -22,10 +22,14 @@ package org.neo4j.internal.kernel.api.exceptions;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.exception.ExceptionUtils.getRootCause;
 import static org.neo4j.kernel.api.exceptions.Status.Database.DatabaseNotFound;
+import static org.neo4j.kernel.api.exceptions.Status.Database.Unknown;
 import static org.neo4j.kernel.api.exceptions.Status.Procedure.ProcedureCallFailed;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import javax.management.ObjectName;
+import org.neo4j.configuration.connectors.ConnectorType;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorClassification;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
@@ -715,5 +719,105 @@ public class ProcedureException extends KernelException {
                 "JMX error while accessing `%s`, please report this. Message was: %s",
                 name,
                 e.getMessage());
+    }
+
+    public static ProcedureException notWriter(String name) {
+        return new ProcedureException(
+                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N02)
+                        .withParam(GqlParams.StringParam.proc, name)
+                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N07)
+                                .build())
+                        .build(),
+                Status.Cluster.NotALeader,
+                "No write operations are allowed directly on this database. Writes must pass through the writer.");
+    }
+
+    public static ProcedureException mustInvokeProcedureOnSecondary(String dbName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N05)
+                .withParam(GqlParams.StringParam.db, dbName)
+                .build();
+        return new ProcedureException(
+                gql,
+                Unknown,
+                String.format(
+                        "Can't invoke procedure on this server because it is not a read replica for database '%s'",
+                        dbName));
+    }
+
+    public static ProcedureException checkConnectivityWrongNumberArguments(int count) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N16)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N06)
+                        .withParam(GqlParams.NumberParam.count, count)
+                        .build())
+                .build();
+        return new ProcedureException(
+                gql,
+                Status.Procedure.ProcedureCallFailed,
+                "Unexpected number of parameters: should have 0-2 parameters, but was %d",
+                count);
+    }
+
+    public static ProcedureException checkConnectivityinvalidPortArgument(
+            String port, Set<ConnectorType> portSet, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N16)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N07)
+                        .withParam(GqlParams.StringParam.port, port)
+                        .withParam(
+                                GqlParams.ListParam.portList, portSet.stream().toList())
+                        .build())
+                .build();
+        return new ProcedureException(
+                gql,
+                Status.Procedure.ProcedureCallFailed,
+                e,
+                "Unrecognised port name '%s'. Valid values are: %s",
+                port,
+                Arrays.toString(portSet.toArray()));
+    }
+
+    public static ProcedureException checkConnectivityInvalidServerId(String server, String rawServer, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N16)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N08)
+                        .withParam(GqlParams.StringParam.server, server)
+                        .build())
+                .build();
+        return new ProcedureException(
+                gql,
+                Status.Procedure.ProcedureCallFailed,
+                e,
+                "Provided identifier '%s' is not a valid server name or id",
+                rawServer);
+    }
+
+    public static ProcedureException quarantineChangeFailed(String procedureName, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N02)
+                .withParam(GqlParams.StringParam.proc, procedureName)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N17)
+                        .build())
+                .build();
+
+        return new ProcedureException(gql, ProcedureCallFailed, e, e.getMessage());
+    }
+
+    public static ProcedureException quarantineChangeFailedWithCustomMessage(String procedureName, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N02)
+                .withParam(GqlParams.StringParam.proc, procedureName)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N17)
+                        .build())
+                .build();
+        var message =
+                "Setting/removing the quarantine marker failed. Please refer to the server's debug log for more information.";
+        return new ProcedureException(gql, ProcedureCallFailed, e, message);
+    }
+
+    public static ProcedureException generalProcedureException(String procedure, Throwable e) {
+        var gql = GqlHelper.getGql52N02_52N11(procedure);
+        return new ProcedureException(gql, ProcedureCallFailed, e, e.getMessage());
+    }
+
+    public static ProcedureException generalProcedureExceptionWithCustomMessage(String procedure, Throwable e) {
+        var gql = GqlHelper.getGql52N02_52N11(procedure);
+        var message = "An unexpected error has occurred. Please refer to the server's debug log for more information.";
+        return new ProcedureException(gql, ProcedureCallFailed, e, message);
     }
 }

@@ -26,9 +26,6 @@ import static org.neo4j.values.storable.Values.NO_VALUE;
 import java.util.Optional;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.configuration.helpers.SocketAddressParser;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
-import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.virtual.MapValue;
@@ -58,16 +55,7 @@ public class RoutingTableServiceHelpers {
                 log.warn("Exception attempting to determine address value from routing context", e);
             }
         }
-
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N16)
-                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N10)
-                        .build())
-                .build();
-        throw new RoutingException(
-                gql,
-                Status.Procedure.ProcedureCallFailed,
-                "An address key is included in the query string provided to the "
-                        + "GetRoutingTableProcedure, but its value could not be parsed.");
+        throw RoutingException.invalidAddressKey();
     }
 
     public static RoutingException databaseNotFoundException(String databaseName) {

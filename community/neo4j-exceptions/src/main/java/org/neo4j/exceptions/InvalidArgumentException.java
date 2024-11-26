@@ -22,8 +22,10 @@ package org.neo4j.exceptions;
 import static java.lang.String.format;
 
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
@@ -103,7 +105,7 @@ public class InvalidArgumentException extends Neo4jException {
                         .withParam(GqlParams.StringParam.component, component)
                         .build())
                 .build();
-        throw new InvalidArgumentException(
+        return new InvalidArgumentException(
                 gql, String.format("%s cannot be selected together with %s.", fieldName, component));
     }
 
@@ -600,5 +602,179 @@ public class InvalidArgumentException extends Neo4jException {
     public static InvalidArgumentException failedConvertFunction(String function, Throwable cause) {
         var gql = GqlHelper.getGql22000_22N11(function);
         return new InvalidArgumentException(gql, cause.getMessage(), cause);
+    }
+
+    public static InvalidArgumentException incompleteAllocationPicking() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N57)
+                .withParam(GqlParams.StringParam.msg, "incomplete")
+                .build();
+        return new InvalidArgumentException(gql, "Unexpected error while picking allocations - incomplete.");
+    }
+
+    public static InvalidArgumentException primaryExceededAllocationPicking() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N57)
+                .withParam(GqlParams.StringParam.msg, "primary exceeded")
+                .build();
+        return new InvalidArgumentException(gql, "Unexpected error while picking allocations - primary exceeded.");
+    }
+
+    public static InvalidArgumentException secondaryExceededAllocationPicking() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N57)
+                .withParam(GqlParams.StringParam.msg, "secondary exceeded")
+                .build();
+        return new InvalidArgumentException(gql, "Unexpected error while picking allocations - secondary exceeded.");
+    }
+
+    public static InvalidArgumentException resourceExhaustion(long desiredAllocations, long allocations) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N66)
+                .build();
+        return new InvalidArgumentException(
+                gql,
+                "Desired number of allocations is '" + desiredAllocations + "', but only '"
+                        + (desiredAllocations - allocations)
+                        + "' possible servers found - some servers may be constrained.");
+    }
+
+    public static InvalidArgumentException cannotChangeDefaultDb(String oldDatabaseName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N02)
+                .withParam(GqlParams.StringParam.proc, "dbms.setDefaultDatabase")
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N12)
+                        .withParam(GqlParams.StringParam.db, oldDatabaseName)
+                        .build())
+                .build();
+        return new InvalidArgumentException(
+                gql, String.format("The old default database %s is still running.", oldDatabaseName));
+    }
+
+    public static InvalidArgumentException newDefaultDbDoesNotExist(String databaseName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N16)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N13)
+                        .withParam(GqlParams.StringParam.db, databaseName)
+                        .build())
+                .build();
+        return new InvalidArgumentException(
+                gql, String.format("New default database %s does not exist.", databaseName));
+    }
+
+    public static InvalidArgumentException systemCannotBeDefaultDb() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N16)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N14)
+                        .build())
+                .build();
+        return new InvalidArgumentException(gql, "System database cannot be set as default");
+    }
+
+    public static InvalidArgumentException cannotDeallocateServers(
+            Collection<String> servers, boolean withCauseMessage, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N41)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N43)
+                        .withParam(
+                                GqlParams.ListParam.serverList, servers.stream().toList())
+                        .build())
+                .build();
+
+        String serversString = servers.stream().collect(Collectors.joining(",", "'", "'"));
+        var operation = "Could not deallocate server(s) " + serversString + ".";
+        return createException(gql, operation, withCauseMessage, e);
+    }
+
+    public static InvalidArgumentException cannotDropServer(String server, boolean withCauseMessage, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N41)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N44)
+                        .withParam(GqlParams.StringParam.server, server)
+                        .build())
+                .build();
+        var operation = "Could not drop server '" + server + "'.";
+        return createException(gql, operation, withCauseMessage, e);
+    }
+
+    public static InvalidArgumentException cannotCordonServer(String server, boolean withCauseMessage, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N41)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N45)
+                        .withParam(GqlParams.StringParam.server, server)
+                        .build())
+                .build();
+        var operation = "Could not cordon server '" + server + "'.";
+        return createException(gql, operation, withCauseMessage, e);
+    }
+
+    public static InvalidArgumentException cannotAlterServer(String server, boolean withCauseMessage, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N41)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N46)
+                        .withParam(GqlParams.StringParam.server, server)
+                        .build())
+                .build();
+        var operation = "Could not alter server '" + server + "'.";
+        return createException(gql, operation, withCauseMessage, e);
+    }
+
+    public static InvalidArgumentException cannotRenameServer(String server, boolean withCauseMessage, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N41)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N47)
+                        .withParam(GqlParams.StringParam.server, server)
+                        .build())
+                .build();
+        var operation = "Could not rename server '" + server + "'.";
+        return createException(gql, operation, withCauseMessage, e);
+    }
+
+    public static InvalidArgumentException cannotEnableServer(String server, boolean withCauseMessage, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N41)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N48)
+                        .withParam(GqlParams.StringParam.server, server)
+                        .build())
+                .build();
+        var operation = "Could not enable server '" + server + "'.";
+        return createException(gql, operation, withCauseMessage, e);
+    }
+
+    public static InvalidArgumentException cannotAlterDatabase(
+            String databaseName, boolean withCauseMessage, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N41)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N49)
+                        .withParam(GqlParams.StringParam.db, databaseName)
+                        .build())
+                .build();
+        var operation = "Could not alter database '" + databaseName + "'.";
+        return createException(gql, operation, withCauseMessage, e);
+    }
+
+    public static InvalidArgumentException cannotRecreateDatabase(
+            String databaseName, boolean withCauseMessage, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N41)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N50)
+                        .withParam(GqlParams.StringParam.db, databaseName)
+                        .build())
+                .build();
+        var operation = "Could not recreate database '" + databaseName + "'.";
+        return createException(gql, operation, withCauseMessage, e);
+    }
+
+    public static InvalidArgumentException cannotCreateDatabase(
+            String databaseName, boolean withCauseMessage, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N41)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N51)
+                        .withParam(GqlParams.StringParam.db, databaseName)
+                        .build())
+                .build();
+        var operation = "Could not create database '" + databaseName + "'.";
+        return createException(gql, operation, withCauseMessage, e);
+    }
+
+    public static InvalidArgumentException cannotReallocate(boolean withCauseMessage, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N41)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N54)
+                        .build())
+                .build();
+        var operation = "Could not calculate reallocation for databases.";
+        return createException(gql, operation, withCauseMessage, e);
+    }
+
+    private static InvalidArgumentException createException(
+            ErrorGqlStatusObject gql, String operation, boolean withCauseMessage, Throwable e) {
+        if (withCauseMessage) {
+            return new InvalidArgumentException(gql, operation + " " + e.getMessage());
+        }
+        return new InvalidArgumentException(gql, operation, e);
     }
 }
