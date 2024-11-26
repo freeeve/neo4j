@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.batchimport.cache;
 
+import static java.lang.Math.ceilDiv;
 import static java.lang.Math.multiplyExact;
 import static java.lang.invoke.MethodHandles.lookup;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
@@ -31,7 +32,6 @@ import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import org.neo4j.internal.helpers.ArrayUtil;
-import org.neo4j.internal.helpers.MathUtil;
 import org.neo4j.internal.helpers.Numbers;
 import org.neo4j.io.IOUtils;
 import org.neo4j.memory.DefaultScopedMemoryTracker;
@@ -87,7 +87,7 @@ abstract class BaseDynamicArray implements NumberArray, MemoryStatsVisitor.Visit
             bufferMask = (1 << bufferPower) - 1;
             int elementsPerBuffer = 1 << bufferPower;
 
-            int numberOfBuffers = (int) MathUtil.ceil(maxNumberOfElements, elementsPerBuffer);
+            int numberOfBuffers = (int) ceilDiv(maxNumberOfElements, elementsPerBuffer);
             buffers = new ByteBuffer[numberOfBuffers];
             lastBufferIndex = numberOfBuffers - 1;
 
