@@ -183,7 +183,7 @@ class TestNFABuilder(startStateId: Int, startStateName: String) extends NFABuild
             direction
           ),
           NodePredicate(toName, toNodePredicateFromRel)
-        ) =>
+        ) if compoundPredicate == "" =>
         val types = LabelExpression.getRelTypes(relTypeExpression)
         val relVariablePredicate = maybeRelPredicate match {
           case Some(pred) => Some(Expand.VariablePredicate(rel, pred(rel)))
@@ -257,12 +257,20 @@ class TestNFABuilder(startStateId: Int, startStateName: String) extends NFABuild
     pattern: String,
     compoundPredicate: String
   ): TestNFABuilder = {
+    val compoundPred = if (compoundPredicate.trim.isEmpty) None else Some(Parser.parseExpression(compoundPredicate))
+    addMultiRelationshipTransitionWithExpression(fromId, toId, pattern, compoundPred)
+  }
 
+  def addMultiRelationshipTransitionWithExpression(
+    fromId: Int,
+    toId: Int,
+    pattern: String,
+    compoundPred: Option[Expression]
+  ): TestNFABuilder = {
     parsePattern(pattern) match {
       // (n1)-[r1:R]->(n2)-[r2:R]->(n3)
       case chain: RelationshipChain =>
         val (from, rels, nodes, to) = unnestRelationshipChain(chain)
-        val compoundPred = if (compoundPredicate.trim.isEmpty) None else Some(Parser.parseExpression(compoundPredicate))
         val fromState = getOrCreateState(fromId, from.nodeVariable)
         assertFromNameMatchesFromId(fromState, from.nodeVariable.name, fromId, pattern)
         val transition = MultiRelationshipExpansionTransition(rels, nodes, compoundPred, toId)

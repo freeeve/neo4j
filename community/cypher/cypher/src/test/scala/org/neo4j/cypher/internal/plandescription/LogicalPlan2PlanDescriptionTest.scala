@@ -6481,12 +6481,13 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Seq(details(
           s"""$solvedExpressionStr
              |        expanding from: a
-             |    inlined predicates: b.p1 = c.p1 AND b.p2 = c.p2
-             |                        b.prop = 5
+             |    inlined predicates: b.prop = 5
              |                        c.prop = 5
              |                        d.prop = 5
              |                        r1.prop = 5
              |                        r2.prop = 5
+             |    compound predicates: b.p1 = c.p1 AND b.p2 = c.p2
+             |
              |non-inlined predicates: b.prop > 10
              |                        c.prop > 10
              |                        r1.prop > 10""".stripMargin

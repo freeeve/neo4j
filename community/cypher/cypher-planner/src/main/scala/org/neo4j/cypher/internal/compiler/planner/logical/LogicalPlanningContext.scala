@@ -142,7 +142,9 @@ object LogicalPlanningContext {
     planVarExpandInto: CypherPlanVarExpandInto = CypherPlanVarExpandInto.default,
     remoteBatchPropertiesStrategy: RemoteBatchingStrategy = RemoteBatchingStrategy.defaultValue(),
     cachePropertiesForEntitiesWithFilter: Boolean =
-      GraphDatabaseInternalSettings.push_predicates_into_remote_batch_properties.defaultValue()
+      GraphDatabaseInternalSettings.push_predicates_into_remote_batch_properties.defaultValue(),
+    multiRelationshipExpansion: Boolean =
+      GraphDatabaseInternalSettings.multi_relationship_expansion_enabled.defaultValue()
   ) {
 
     private def cacheKey(): Seq[Any] = this match {
@@ -164,7 +166,8 @@ object LogicalPlanningContext {
           statefulShortestPlanningRewriteQuantifiersAbove: Int,
           planVarExpandInto: CypherPlanVarExpandInto,
           remoteBatchPropertiesStrategy: RemoteBatchingStrategy,
-          cachePropertiesForEntitiesWithFilter: Boolean
+          cachePropertiesForEntitiesWithFilter: Boolean,
+          multiRelationshipExpansion: Boolean
         ) =>
         val builder = Seq.newBuilder[Any]
 
@@ -208,6 +211,9 @@ object LogicalPlanningContext {
 
         if (GraphDatabaseInternalSettings.push_predicates_into_remote_batch_properties.dynamic())
           builder.addOne(cachePropertiesForEntitiesWithFilter)
+
+        if (GraphDatabaseInternalSettings.multi_relationship_expansion_enabled.dynamic())
+          builder.addOne(multiRelationshipExpansion)
         builder.result()
     }
 

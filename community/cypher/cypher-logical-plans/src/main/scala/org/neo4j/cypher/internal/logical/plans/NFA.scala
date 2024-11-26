@@ -279,6 +279,16 @@ case class NFA(
         variablePredicate ++ relTypePredicate
       }).toSet
 
+  def compoundPredicates: Set[Expression] =
+    transitions.values.flatten.iterator.flatMap { t =>
+      t match {
+        case _: NFA.NodeJuxtapositionTransition     => Seq.empty
+        case _: NFA.RelationshipExpansionTransition => Seq.empty
+        case MultiRelationshipExpansionTransition(_, _, compoundPredicate, _) =>
+          compoundPredicate
+      }
+    }.toSet
+
   /**
    * All the variables used in [[VariablePredicate]]s.
    * Note that this does not contain relationship type predicates.

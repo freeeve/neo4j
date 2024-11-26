@@ -116,7 +116,8 @@ case object QueryPlanner
         context.config.statefulShortestPlanningRewriteQuantifiersAbove(),
       planVarExpandInto = context.planVarExpandInto,
       remoteBatchPropertiesStrategy = RemoteBatchingStrategy.fromConfig(from.query, context),
-      cachePropertiesForEntitiesWithFilter = context.config.cachePropertiesForEntitiesWithFilter()
+      cachePropertiesForEntitiesWithFilter = context.config.cachePropertiesForEntitiesWithFilter(),
+      multiRelationshipExpansion = context.config.multiRelationshipExpansionEnabled()
     )
 
     LogicalPlanningContext(staticComponents, settings)

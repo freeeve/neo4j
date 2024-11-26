@@ -266,6 +266,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description(
+            "Feature flag to enable/disable the usage of MultiRelationship Expansions inside StatefulShortestPath NFA")
+    public static final Setting<Boolean> multi_relationship_expansion_enabled = newBuilder(
+                    "internal.cypher.enable_multi_relationship_expansion", BOOL, false)
+            .build();
+
+    @Internal
     @Description("Any quantifier in a selective path pattern above this limit gets removed and instead expressed "
             + "as a predicate. This is done to limit the size of the NFA. Note that for a QPP, the limit "
             + "is divided by the number of relationships in the QPP. As an example, if this limit is "

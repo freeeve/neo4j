@@ -409,7 +409,8 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
       debugOptions = CypherDebugOptions.default,
       predicatesAsUnionMaxSize = config.predicatesAsUnionMaxSize(),
       useErrorsOverWarnings = useErrorsOverWarnings,
-      legacyCsvQuoteEscaping = config.legacyCsvQuoteEscaping()
+      legacyCsvQuoteEscaping = config.legacyCsvQuoteEscaping(),
+      multiRelationshipExpansion = config.multiRelationshipExpansionEnabled()
     )
 
     LogicalPlanningContext(staticComponents, settings)

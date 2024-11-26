@@ -127,7 +127,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((expectedNfa, Selections.empty, Map.empty))
   }
 
@@ -153,7 +154,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((
       expectedNfa,
       Selections.from(nonInlineablePredicate),
@@ -184,7 +186,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((
       expectedNfa,
       Selections.from(nonInlineablePredicate),
@@ -210,7 +213,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
         fromLeft = true,
         Set.empty,
         Seq.empty,
-        new AnonymousVariableNameGenerator
+        new AnonymousVariableNameGenerator,
+        false
       )
     }
   }
@@ -236,7 +240,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = false,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((expectedNfa, Selections.empty, Map.empty))
   }
 
@@ -295,7 +300,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = false,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((expectedNfa, Selections.empty, Map.empty))
   }
 
@@ -321,7 +327,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq(hasLabels("end", "E")),
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((
       expectedNfa,
       Selections.empty,
@@ -380,7 +387,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set(v"foo"),
       Seq(equals(prop("end", "prop"), v"foo")),
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((
       expectedNfa,
       Selections.empty,
@@ -446,7 +454,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set(),
       Seq(),
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((
       expectedNfa,
       Selections.from(
@@ -482,7 +491,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((expectedNfa, Selections.empty, Map.empty))
   }
 
@@ -513,7 +523,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((expectedNfa, Selections.empty, Map.empty))
   }
 
@@ -547,7 +558,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((expectedNfa, Selections.empty, Map.empty))
   }
 
@@ -580,7 +592,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((expectedNfa, Selections.empty, Map.empty))
   }
 
@@ -612,7 +625,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq(hasLabels("end", "E")),
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((
       expectedNfa,
       Selections.empty,
@@ -646,7 +660,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((expectedNfa, Selections.empty, Map.empty))
   }
 
@@ -679,7 +694,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((expectedNfa, Selections.empty, Map(v"r" -> v"  r@0")))
   }
 
@@ -712,7 +728,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((expectedNfa, Selections.empty, Map(v"r" -> v"  r@0")))
   }
 
@@ -746,7 +763,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((expectedNfa, Selections.empty, Map(v"r" -> v"  r@0")))
   }
 
@@ -781,7 +799,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((expectedNfa, Selections.empty, Map(v"r" -> v"  r@0")))
   }
 
@@ -816,7 +835,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((expectedNfa, Selections.empty, Map(v"r" -> v"  r@0")))
   }
 
@@ -853,7 +873,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      false
     ) should equal((expectedNfa, Selections.empty, Map(v"r" -> v"  r@0")))
   }
 
@@ -899,7 +920,8 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       fromLeft = true,
       Set.empty,
       Seq.empty,
-      new AnonymousVariableNameGenerator
+      new AnonymousVariableNameGenerator,
+      useMultiRelationshipExpansions = false
     ) should equal((
       expectedNfa,
       Selections.from(Seq(startNodePredicate, relationshipPredicate)),

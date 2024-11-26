@@ -1829,3 +1829,23 @@ Feature: PathSelectorAcceptance
     Then the result should be, in any order:
       | l |
       | 4 |
+
+  Scenario: Find shortest path with nested exists expression
+    Given having executed:
+      """
+        CREATE (u:User {prop: 2}), (u)-[:R]->(v:User {prop: 1}), (u)-[:R]->(w:User {prop: 3}), (u)-[:R]->(x:User), (v)-[:R]->(:N), (w)-[:R]->(:N)
+      """
+    When executing query:
+      """
+         MATCH p = ANY SHORTEST((u:User)(
+            (n)-[r]->(m)
+              WHERE CASE
+                WHEN (m)-[]->(:N) THEN n.prop > m.prop
+                ELSE false
+              END
+            )+(v))
+         RETURN p
+      """
+    Then the result should be, in any order:
+      | p                                              |
+      | <(:User {prop: 2})-[:R {}]->(:User {prop: 1})> |
