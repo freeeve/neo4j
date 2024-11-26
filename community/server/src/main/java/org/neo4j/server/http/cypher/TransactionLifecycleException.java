@@ -19,6 +19,8 @@
  */
 package org.neo4j.server.http.cypher;
 
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlException;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.server.rest.Neo4jError;
 
@@ -27,13 +29,21 @@ import org.neo4j.server.rest.Neo4jError;
  * due to server transaction lifecycle transitions that map directly on a
  * {@link Status.Code}.
  */
-abstract class TransactionLifecycleException extends Exception {
+abstract class TransactionLifecycleException extends GqlException {
     protected TransactionLifecycleException(String message) {
         super(message);
     }
 
+    protected TransactionLifecycleException(ErrorGqlStatusObject gql, String message) {
+        super(gql, message);
+    }
+
     protected TransactionLifecycleException(String message, Throwable cause) {
         super(message, cause);
+    }
+
+    protected TransactionLifecycleException(ErrorGqlStatusObject gql, String message, Throwable cause) {
+        super(gql, message, cause);
     }
 
     Neo4jError toNeo4jError() {

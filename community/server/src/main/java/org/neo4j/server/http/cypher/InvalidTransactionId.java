@@ -19,11 +19,31 @@
  */
 package org.neo4j.server.http.cypher;
 
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 class InvalidTransactionId extends TransactionLifecycleException {
+    private static final String msg =
+            "Unrecognized transaction id. Transaction may have timed out and been rolled back.";
+
+    @Deprecated
     InvalidTransactionId() {
-        super("Unrecognized transaction id. Transaction may have timed out and been rolled back.");
+        super(msg);
+    }
+
+    private InvalidTransactionId(ErrorGqlStatusObject gqlStatusObject) {
+        super(gqlStatusObject, msg);
+    }
+
+    public static InvalidTransactionId transactionDoesNotExists(long transactionId) {
+        return new InvalidTransactionId(
+                // KNL-127
+                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N04)
+                        .withParam(GqlParams.NumberParam.transactionId, transactionId)
+                        .build());
     }
 
     @Override

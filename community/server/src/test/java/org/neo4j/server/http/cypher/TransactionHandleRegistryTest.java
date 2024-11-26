@@ -19,6 +19,7 @@
  */
 package org.neo4j.server.http.cypher;
 
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -360,7 +361,12 @@ class TransactionHandleRegistryTest {
 
         // When & Then
         LoginContext otherUser = mockLoginContext("Dr. Evil");
-        assertThrows(InvalidTransactionId.class, () -> registry.terminate(id, otherUser));
+        var exception = catchThrowableOfType(InvalidTransactionId.class, () -> registry.terminate(id, otherUser));
+        assertThat(exception.gqlStatus()).isEqualTo("25N04");
+        assertThat(exception.statusDescription())
+                .isEqualTo(String.format(
+                        "error: invalid transaction state - specified transaction does not exist. Transaction '%s' does not exist.",
+                        id));
     }
 
     @Test
@@ -387,6 +393,61 @@ class TransactionHandleRegistryTest {
         verify(handle, times(1)).terminate();
         verify(handle).loginContext();
         verifyNoMoreInteractions(handle);
+    }
+
+    @Test
+    void shouldThrowGqlErrorWhenObtainingLoginContextForTransactionThatDoesNotExist() {
+        // given
+        AssertableLogProvider logProvider = new AssertableLogProvider();
+        var memoryPool = mock(MemoryPool.class);
+        TransactionHandleRegistry registry =
+                new TransactionHandleRegistry(Clocks.fakeClock(), Duration.ofMillis(0), logProvider, memoryPool);
+
+        // when
+        var exception =
+                catchThrowableOfType(InvalidTransactionId.class, () -> registry.getLoginContextForTransaction(1234));
+
+        // then
+        assertThat(exception.gqlStatus()).isEqualTo("25N04");
+        assertThat(exception.statusDescription())
+                .isEqualTo(
+                        "error: invalid transaction state - specified transaction does not exist. Transaction '1234' does not exist.");
+    }
+
+    @Test
+    void shouldThrowGqlErrorWhenAcquiringATransactionThatDoesNotExist() {
+        // given
+        AssertableLogProvider logProvider = new AssertableLogProvider();
+        var memoryPool = mock(MemoryPool.class);
+        TransactionHandleRegistry registry =
+                new TransactionHandleRegistry(Clocks.fakeClock(), Duration.ofMillis(0), logProvider, memoryPool);
+
+        // when
+        var exception = catchThrowableOfType(InvalidTransactionId.class, () -> registry.acquire(1234));
+
+        // then
+        assertThat(exception.gqlStatus()).isEqualTo("25N04");
+        assertThat(exception.statusDescription())
+                .isEqualTo(
+                        "error: invalid transaction state - specified transaction does not exist. Transaction '1234' does not exist.");
+    }
+
+    @Test
+    void shouldThrowGqlErrorWhenTerminatingATransactionThatDoesNotExist() {
+        // given
+        AssertableLogProvider logProvider = new AssertableLogProvider();
+        var memoryPool = mock(MemoryPool.class);
+        TransactionHandleRegistry registry =
+                new TransactionHandleRegistry(Clocks.fakeClock(), Duration.ofMillis(0), logProvider, memoryPool);
+
+        // when
+        var exception = catchThrowableOfType(InvalidTransactionId.class, () -> registry.terminate(1234));
+
+        // then
+        assertThat(exception.gqlStatus()).isEqualTo("25N04");
+        assertThat(exception.statusDescription())
+                .isEqualTo(
+                        "error: invalid transaction state - specified transaction does not exist. Transaction '1234' does not exist.");
     }
 
     private LoginContext mockLoginContext(String userName) {

@@ -42,21 +42,22 @@ public interface TransactionRegistry {
     void rollbackSuspendedTransactionsIdleSince(long oldestLastActiveTime);
 
     default TransactionHandle acquire(long id, LoginContext requestingUser) throws TransactionLifecycleException {
-        assertSameUser(getLoginContextForTransaction(id), requestingUser);
+        assertSameUser(id, getLoginContextForTransaction(id), requestingUser);
         return acquire(id);
     }
 
     default TransactionHandle terminate(long id, LoginContext requestingUser) throws TransactionLifecycleException {
-        assertSameUser(getLoginContextForTransaction(id), requestingUser);
+        assertSameUser(id, getLoginContextForTransaction(id), requestingUser);
         return terminate(id);
     }
 
-    default void assertSameUser(LoginContext owningUser, LoginContext requestingUser) throws InvalidTransactionId {
+    default void assertSameUser(long id, LoginContext owningUser, LoginContext requestingUser)
+            throws InvalidTransactionId {
         if (!owningUser
                 .subject()
                 .authenticatedUser()
                 .equals(requestingUser.subject().authenticatedUser())) {
-            throw new InvalidTransactionId();
+            throw InvalidTransactionId.transactionDoesNotExists(id);
         }
     }
 

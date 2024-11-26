@@ -189,7 +189,7 @@ public class TransactionHandleRegistry implements TransactionRegistry {
     public LoginContext getLoginContextForTransaction(long id) throws InvalidTransactionId {
         var marker = registry.get(id);
         if (marker == null) {
-            throw new InvalidTransactionId();
+            throw InvalidTransactionId.transactionDoesNotExists(id);
         }
         return marker.getLoginContext();
     }
@@ -199,7 +199,7 @@ public class TransactionHandleRegistry implements TransactionRegistry {
         TransactionMarker marker = registry.get(id);
 
         if (null == marker) {
-            throw new InvalidTransactionId();
+            throw InvalidTransactionId.transactionDoesNotExists(id);
         }
 
         SuspendedTransaction transaction = marker.getSuspendedTransaction();
@@ -235,7 +235,7 @@ public class TransactionHandleRegistry implements TransactionRegistry {
     public TransactionHandle terminate(long id) throws TransactionLifecycleException {
         TransactionMarker marker = registry.get(id);
         if (null == marker) {
-            throw new InvalidTransactionId();
+            throw InvalidTransactionId.transactionDoesNotExists(id);
         }
 
         memoryPool.releaseHeap(ACTIVE_TRANSACTION_SHALLOW_SIZE);
