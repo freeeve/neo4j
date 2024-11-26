@@ -804,10 +804,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 }
             }
 
-            throw new UniquePropertyValueValidationException(
+            throw UniquePropertyValueValidationException.propertyUniquenessViolation(
                     constraint,
                     VALIDATION,
-                    new IndexEntryConflictException(
+                    IndexEntryConflictException.indexEntryConflict(
                             index.schema(),
                             allowsReadAllProperties ? existingNodeId : NO_SUCH_NODE,
                             NO_SUCH_NODE,
@@ -900,10 +900,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 }
             }
 
-            throw new UniquePropertyValueValidationException(
+            throw UniquePropertyValueValidationException.propertyUniquenessViolation(
                     constraint,
                     VALIDATION,
-                    new IndexEntryConflictException(
+                    IndexEntryConflictException.indexEntryConflict(
                             index.schema(),
                             allowsReadAllProperties ? existingRelationshipId : NO_SUCH_RELATIONSHIP,
                             NO_SUCH_RELATIONSHIP,
@@ -2743,7 +2743,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             return constraint;
         } catch (UniquePropertyValueValidationException | TransactionFailureException | AlreadyConstrainedException e) {
             throw CreateConstraintFailureException.constraintCreationFailed(
-                    constraint, constraint.userDescription(token), e.gqlStatusObject(), e);
+                    constraint, constraint.userDescription(token), e);
         }
     }
 

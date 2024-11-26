@@ -135,7 +135,7 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
                                 void doReportConflict(long existingNodeId, long addedNodeId, Value[] toReport)
                                         throws IndexEntryConflictException {
                                     switch (conflictHandler.indexEntryConflict(existingNodeId, addedNodeId, toReport)) {
-                                        case THROW -> throw new IndexEntryConflictException(
+                                        case THROW -> throw IndexEntryConflictException.indexEntryConflict(
                                                 descriptor.schema(), existingNodeId, addedNodeId, toReport);
                                         case DELETE -> {
                                             /*then just skip it*/

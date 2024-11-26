@@ -29,6 +29,9 @@ import java.util.stream.Collectors;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaUserDescription;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -43,33 +46,19 @@ public class IndexEntryConflictException extends KernelException {
     private final long existingEntityId;
 
     public IndexEntryConflictException(
-            SchemaDescriptor schemaDescriptor, long existingEntityId, long addedEntityId, Value... propertyValue) {
-        this(schemaDescriptor, existingEntityId, addedEntityId, ValueTuple.of(propertyValue));
-    }
-
-    public IndexEntryConflictException(
             ErrorGqlStatusObject gqlStatusObject,
             SchemaDescriptor schemaDescriptor,
             long existingEntityId,
             long addedEntityId,
+            String legacyMessage,
             Value... propertyValue) {
-        this(gqlStatusObject, schemaDescriptor, existingEntityId, addedEntityId, ValueTuple.of(propertyValue));
-    }
-
-    public IndexEntryConflictException(
-            SchemaDescriptor schemaDescriptor, long existingEntityId, long addedEntityId, ValueTuple propertyValues) {
-        super(
-                Status.Schema.ConstraintViolation,
-                buildErrorMessage(
-                        SchemaUserDescription.TOKEN_ID_NAME_LOOKUP,
-                        schemaDescriptor,
-                        propertyValues,
-                        addedEntityId,
-                        existingEntityId));
-        this.schemaDescriptor = schemaDescriptor;
-        this.existingEntityId = existingEntityId;
-        this.addedEntityId = addedEntityId;
-        this.propertyValues = propertyValues;
+        this(
+                gqlStatusObject,
+                schemaDescriptor,
+                existingEntityId,
+                addedEntityId,
+                ValueTuple.of(propertyValue),
+                legacyMessage);
     }
 
     public IndexEntryConflictException(
@@ -77,16 +66,9 @@ public class IndexEntryConflictException extends KernelException {
             SchemaDescriptor schemaDescriptor,
             long existingEntityId,
             long addedEntityId,
-            ValueTuple propertyValues) {
-        super(
-                gqlStatusObject,
-                Status.Schema.ConstraintViolation,
-                buildErrorMessage(
-                        SchemaUserDescription.TOKEN_ID_NAME_LOOKUP,
-                        schemaDescriptor,
-                        propertyValues,
-                        addedEntityId,
-                        existingEntityId));
+            ValueTuple propertyValues,
+            String legacyMessage) {
+        super(gqlStatusObject, Status.Schema.ConstraintViolation, legacyMessage);
 
         this.schemaDescriptor = schemaDescriptor;
         this.existingEntityId = existingEntityId;
@@ -152,6 +134,27 @@ public class IndexEntryConflictException extends KernelException {
                     tokenName,
                     propertyString(tokenNameLookup, schemaDescriptor.getPropertyIds(), propertyValues));
         }
+    }
+
+    public static IndexEntryConflictException indexEntryConflict(
+            SchemaDescriptor schemaDescriptor, long existingEntityId, long addedEntityId, Value... propertyValue) {
+        return indexEntryConflict(schemaDescriptor, existingEntityId, addedEntityId, ValueTuple.of(propertyValue));
+    }
+
+    public static IndexEntryConflictException indexEntryConflict(
+            SchemaDescriptor schemaDescriptor, long existingEntityId, long addedEntityId, ValueTuple propertyValues) {
+        var message = buildErrorMessage(
+                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP,
+                schemaDescriptor,
+                propertyValues,
+                addedEntityId,
+                existingEntityId);
+
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N80)
+                .withParam(GqlParams.StringParam.value, message)
+                .build();
+        return new IndexEntryConflictException(
+                gql, schemaDescriptor, existingEntityId, addedEntityId, propertyValues, message);
     }
 
     @VisibleForTesting

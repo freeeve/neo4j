@@ -109,8 +109,7 @@ public class ConstraintIndexCreator {
         } catch (AlreadyConstrainedException e) {
             throw e;
         } catch (KernelException e) {
-            throw CreateConstraintFailureException.constraintCreationFailed(
-                    constraint, constraintString, e.gqlStatusObject(), e);
+            throw CreateConstraintFailureException.constraintCreationFailed(constraint, constraintString, e);
         }
 
         boolean success = false;
@@ -147,10 +146,9 @@ public class ConstraintIndexCreator {
                 throw new TransactionFailureException(
                         format("Index (%s) that we just created does not exist.", indexString), e);
             } catch (IndexPopulationFailedKernelException e) {
-                throw CreateConstraintFailureException.constraintCreationFailed(
-                        constraint, constraintString, e.gqlStatusObject(), e);
+                throw CreateConstraintFailureException.constraintCreationFailed(constraint, constraintString, e);
             } catch (InterruptedException e) {
-                throw CreateConstraintFailureException.constraintCreationFailed(constraint, constraintString, null, e);
+                throw CreateConstraintFailureException.constraintCreationFailed(constraint, constraintString, e);
             }
 
             propertyExistenceEnforcer.existenceEnforcement(index.schema());
@@ -221,7 +219,7 @@ public class ConstraintIndexCreator {
         } catch (IndexPopulationFailedKernelException e) {
             Throwable cause = e.getCause();
             if (cause instanceof IndexEntryConflictException exc) {
-                throw new UniquePropertyValueValidationException(
+                throw UniquePropertyValueValidationException.propertyUniquenessViolation(
                         constraint, VERIFICATION, exc, transaction.tokenRead());
             } else if (cause instanceof IllegalArgumentException exc) {
                 throw new UniquePropertyValueValidationException(

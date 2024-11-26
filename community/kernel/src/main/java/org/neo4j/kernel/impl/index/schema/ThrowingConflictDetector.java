@@ -35,6 +35,7 @@ final class ThrowingConflictDetector<KEY extends NativeIndexKey<KEY>>
 
     @Override
     void doReportConflict(long existingNodeId, long addedNodeId, Value[] values) throws IndexEntryConflictException {
-        throw new IndexEntryConflictException(schemaDescriptor, existingNodeId, addedNodeId, ValueTuple.of(values));
+        throw IndexEntryConflictException.indexEntryConflict(
+                schemaDescriptor, existingNodeId, addedNodeId, ValueTuple.of(values));
     }
 }

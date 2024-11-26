@@ -21,7 +21,9 @@ package org.neo4j.kernel.impl.api.constraints;
 
 import static java.lang.String.format;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -134,7 +136,8 @@ class ConstraintIndexCreatorTest {
         when(indexProxy.getDescriptor()).thenReturn(index);
         when(schemaRead.indexGetForName(constraint.getName())).thenReturn(IndexDescriptor.NO_INDEX, index);
 
-        IndexEntryConflictException cause = new IndexEntryConflictException(index.schema(), 2, 1, Values.of("a"));
+        IndexEntryConflictException cause =
+                IndexEntryConflictException.indexEntryConflict(index.schema(), 2, 1, Values.of("a"));
         doThrow(new IndexPopulationFailedKernelException("some index", cause))
                 .when(indexProxy)
                 .awaitStoreScanCompleted(anyLong(), any());
@@ -153,7 +156,20 @@ class ConstraintIndexCreatorTest {
                 "Existing data does not satisfy Constraint( name='constraint', type='NODE PROPERTY UNIQUENESS', schema=(:Label {prop}) ): "
                         + "Both Node(2) and Node(1) have the label `Label[123]` and property `PropertyKey[456]` = 'a'",
                 exception.getMessage());
+
+        assertEquals("22N79", exception.gqlStatus());
+        assertEquals(
+                "error: data exception - property uniqueness constraint violated. Property uniqueness constraint violated: Both Node(2) and Node(1) have the label `Label` and property `prop` = 'a'.",
+                exception.statusDescription());
+        assertTrue(exception.cause().isPresent());
+        var exceptionCause = exception.cause().get();
+        assertEquals("22N80", exceptionCause.gqlStatus());
+        assertEquals(
+                "error: data exception - index entry conflict. Index entry conflict: Both Node(2) and Node(1) have the label `Label[123]` and property `PropertyKey[456]` = 'a'.",
+                exceptionCause.statusDescription());
         assertEquals(2, kernel.transactions.size());
+        assertFalse(exceptionCause.cause().isPresent());
+
         KernelTransactionImplementation tx1 = kernel.transactions.get(0);
         verify(tx1).indexUniqueCreate(prototype);
         verify(schemaRead, times(2)).indexGetForName(constraint.getName());

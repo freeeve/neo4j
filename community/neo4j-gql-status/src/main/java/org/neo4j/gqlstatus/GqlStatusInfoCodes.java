@@ -1775,17 +1775,20 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N79(
             new GqlStatus("22N79"),
             """
-                    Both { %s } ({ %s }) and { %s } ({ %s }) have the same value for property { %s }.""",
-            new GqlParams.GqlParam[] {
-                GqlParams.StringParam.entityType,
-                GqlParams.StringParam.entityId1,
-                GqlParams.StringParam.entityType,
-                GqlParams.StringParam.entityId2,
-                GqlParams.StringParam.propKey
-            },
+                    Property uniqueness constraint violated: { %s }.""",
+            new GqlParams.GqlParam[] {GqlParams.ListParam.reasonList},
+            Map.of(GqlParams.ListParam.reasonList, GqlParams.JoinStyle.COMMAD),
+            Condition.DATA_EXCEPTION,
+            "property uniqueness constraint violated",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_22N80(
+            new GqlStatus("22N80"),
+            """
+                    Index entry conflict: { %s }.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.value},
             emptyMap(),
             Condition.DATA_EXCEPTION,
-            "property uniqueness verification failed",
+            "index entry conflict",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N81(
             new GqlStatus("22N81"),

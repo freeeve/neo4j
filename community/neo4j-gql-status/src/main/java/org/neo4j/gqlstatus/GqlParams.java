@@ -211,7 +211,8 @@ public class GqlParams {
                 .withInner(StringParam.server.processor)), // Comma-separated list of servers | 'a.com', 'b.com'
         valueList(new NELIST().withInner(StringParam.value.processor)),
         valueTypeList(new NELIST().withInner(StringParam.valueType.processor)),
-        variableList(new NELIST().withInner(StringParam.variable.processor)); // Comma-separated list of values
+        variableList(new NELIST().withInner(StringParam.variable.processor)), // Comma-separated list of values
+        reasonList(new NELIST().withInner(StringParam.value.processor));
 
         public final ListProcessor processor;
 

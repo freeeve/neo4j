@@ -61,28 +61,23 @@ public class CreateConstraintFailureException extends SchemaKernelException {
 
     public static CreateConstraintFailureException constraintCreationFailed(
             ConstraintValidationException cause, TokenNameLookup tokenNameLookup) {
-        return constraintCreationFailed(cause.constraint, tokenNameLookup, cause.gqlStatusObject(), cause);
+        return constraintCreationFailed(cause.constraint, tokenNameLookup, cause);
     }
 
     public static CreateConstraintFailureException constraintCreationFailed(
-            ConstraintDescriptor constraint,
-            TokenNameLookup tokenNameLookup,
-            ErrorGqlStatusObject gqlCause,
-            Throwable cause) {
+            ConstraintDescriptor constraint, TokenNameLookup tokenNameLookup, Throwable cause) {
         var constraintString = constraint.userDescription(tokenNameLookup);
-        return constraintCreationFailed(constraint, constraintString, gqlCause, cause);
+        return constraintCreationFailed(constraint, constraintString, cause);
     }
 
     public static CreateConstraintFailureException constraintCreationFailed(
-            ConstraintDescriptor constraint, String constraintString, ErrorGqlStatusObject gqlCause, Throwable cause) {
-        var errorGqlStatusObjectBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
+            ConstraintDescriptor constraint, String constraintString, Throwable cause) {
+        var errorGqlStatusObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
                 .withParam(
                         GqlParams.StringParam.constrDescrOrName,
-                        constraint.getName() != null ? constraint.getName() : constraintString);
-        if (gqlCause != null) {
-            errorGqlStatusObjectBuilder.withCause(gqlCause);
-        }
-        return new CreateConstraintFailureException(errorGqlStatusObjectBuilder.build(), constraint, cause);
+                        constraint.getName() != null ? constraint.getName() : constraintString)
+                .build();
+        return new CreateConstraintFailureException(errorGqlStatusObject, constraint, cause);
     }
 
     public CreateConstraintFailureException(ConstraintDescriptor constraint, String cause) {

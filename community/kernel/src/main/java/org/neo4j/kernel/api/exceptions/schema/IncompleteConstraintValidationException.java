@@ -43,6 +43,7 @@ public class IncompleteConstraintValidationException extends Exception {
 
     public UniquePropertyValueValidationException turnIntoRealException(
             IndexBackedConstraintDescriptor constraint, TokenNameLookup tokenNameLookup) {
-        return new UniquePropertyValueValidationException(constraint, phase, conflicts, tokenNameLookup);
+        return UniquePropertyValueValidationException.propertyUniquenessViolation(
+                constraint, phase, conflicts, tokenNameLookup);
     }
 }
