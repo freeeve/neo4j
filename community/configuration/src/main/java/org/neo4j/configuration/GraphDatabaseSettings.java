@@ -722,16 +722,6 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
             .dynamic()
             .build();
 
-    @Deprecated(since = "5.12.0", forRemoval = true)
-    @Description(
-            """
-            Log the annotation data as a JSON strings instead of a cypher map.
-            This only have effect when the query log is in JSON format.""")
-    public static final Setting<Boolean> log_queries_annotation_data_as_json = newBuilder(
-                    "db.logs.query.annotation_data_as_json_enabled", BOOL, false)
-            .dynamic()
-            .build();
-
     public enum AnnotationDataFormat {
         CYPHER,
         JSON,
@@ -750,7 +740,7 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
     public static final Setting<AnnotationDataFormat> log_queries_annotation_data_format = newBuilder(
                     "db.logs.query.annotation_data_format",
                     ofEnum(AnnotationDataFormat.class),
-                    AnnotationDataFormat.CYPHER)
+                    AnnotationDataFormat.JSON)
             .dynamic()
             .build();
 
