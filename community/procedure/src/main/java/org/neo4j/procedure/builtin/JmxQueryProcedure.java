@@ -102,12 +102,17 @@ public class JmxQueryProcedure extends CallableProcedure.BasicProcedure {
                 }
             });
         } catch (MalformedObjectNameException e) {
-            throw new ProcedureException(
+            throw ProcedureException.invalidProcedureArgument(
+                    query,
+                    "JMX name pattern",
+                    "JmxQueryProcedure",
+                    "javax.management.ObjectName",
                     Status.Procedure.ProcedureCallFailed,
-                    "'%s' is an invalid JMX name pattern. Valid queries should use "
-                            + "the syntax outlined in the javax.management.ObjectName API documentation."
-                            + "For instance, use '*:*' to find all JMX beans.",
-                    query);
+                    String.format(
+                            "'%s' is an invalid JMX name pattern. Valid queries should use "
+                                    + "the syntax outlined in the javax.management.ObjectName API documentation."
+                                    + "For instance, use '*:*' to find all JMX beans.",
+                            query));
         }
     }
 

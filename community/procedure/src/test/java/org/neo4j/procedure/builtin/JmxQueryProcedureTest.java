@@ -20,6 +20,7 @@
 package org.neo4j.procedure.builtin;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.neo4j.internal.helpers.collection.Iterators.asList;
@@ -183,5 +184,30 @@ class JmxQueryProcedureTest {
         //      that independent of platform, we never throw exceptions even when converting every
         //      single MBean into Neo4j types, and we always get the correct number of MBeans out.
         assertThat(asList(result)).hasSize(jmxServer.getMBeanCount());
+    }
+
+    @Test
+    void shouldThrowGqlError() {
+        // given
+        MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
+
+        JmxQueryProcedure procedure = new JmxQueryProcedure(new QualifiedName("bob"), jmxServer);
+
+        // when
+        var exception = catchThrowableOfType(
+                ProcedureException.class,
+                () -> procedure.apply(
+                        null,
+                        new AnyValue[] {stringValue("invalidArgumentForJMXNamePattern")},
+                        EMPTY_RESOURCE_TRACKER));
+        assertThat(exception.gqlStatus()).isEqualTo("52N16");
+        assertThat(exception.statusDescription())
+                .isEqualTo(
+                        "error: procedure exception - invalid procedure argument list. Invalid arguments to procedure.");
+        assertThat(exception.cause().isPresent()).isEqualTo(true);
+        assertThat(exception.cause().get().gqlStatus()).isEqualTo("52N36");
+        assertThat(exception.cause().get().statusDescription())
+                .isEqualTo(
+                        "error: procedure exception - invalid procedure argument with API documentation hint. Invalid argument `invalidArgumentForJMXNamePattern` for `JMX name pattern` on procedure JmxQueryProcedure(). The expected format of `JMX name pattern` is outlined in the javax.management.ObjectName API documentation.");
     }
 }

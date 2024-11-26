@@ -820,4 +820,22 @@ public class ProcedureException extends KernelException {
         var message = "An unexpected error has occurred. Please refer to the server's debug log for more information.";
         return new ProcedureException(gql, ProcedureCallFailed, e, message);
     }
+
+    public static ProcedureException invalidProcedureArgument(
+            String invalidArgumentValue,
+            String invalidArgumentProcParamName,
+            String invalidArgumentProcName,
+            String invalidArgumentProcParamFmt,
+            Status statusCode,
+            String legacyMessage) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N16)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N36)
+                        .withParam(GqlParams.StringParam.field, invalidArgumentValue)
+                        .withParam(GqlParams.StringParam.procParam, invalidArgumentProcParamName)
+                        .withParam(GqlParams.StringParam.proc, invalidArgumentProcName)
+                        .withParam(GqlParams.StringParam.procParamFmt, invalidArgumentProcParamFmt)
+                        .build())
+                .build();
+        return new ProcedureException(gql, statusCode, legacyMessage);
+    }
 }

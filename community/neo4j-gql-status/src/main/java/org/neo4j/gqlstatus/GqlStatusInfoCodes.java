@@ -4925,6 +4925,21 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.PROCEDURE_EXCEPTION,
             "procedure compilation failed",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_52N36(
+            new GqlStatus("52N36"),
+            """
+                    Invalid argument { %s } for { %s } on procedure { %s }. The expected format of { %s } is outlined in the { %s } API documentation.""",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.field,
+                GqlParams.StringParam.procParam,
+                GqlParams.StringParam.proc,
+                GqlParams.StringParam.procParam,
+                GqlParams.StringParam.procParamFmt
+            },
+            emptyMap(),
+            Condition.PROCEDURE_EXCEPTION,
+            "invalid procedure argument with API documentation hint",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_G1000(
             new GqlStatus("G1000"),
             """
