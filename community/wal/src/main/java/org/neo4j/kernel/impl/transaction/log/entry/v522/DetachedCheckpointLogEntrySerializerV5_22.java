@@ -33,6 +33,7 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializer;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.StoreIdSerialization;
@@ -41,6 +42,14 @@ import org.neo4j.storageengine.api.TransactionId;
 public class DetachedCheckpointLogEntrySerializerV5_22 extends LogEntrySerializer<LogEntryDetachedCheckpointV5_22> {
     public static final int RECORD_LENGTH_BYTES = 232;
     public static final int MAX_DESCRIPTION_LENGTH = 75;
+
+    public static int checkPointRecordSizeDependingOnVersion(KernelVersion version) {
+        if (version.isLessThan(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
+            return RECORD_LENGTH_BYTES;
+        }
+        // The checksum and kernel version are only in the envelope header
+        return RECORD_LENGTH_BYTES - Integer.BYTES - Byte.BYTES + LogEnvelopeHeader.HEADER_SIZE;
+    }
 
     public DetachedCheckpointLogEntrySerializerV5_22() {
         super(DETACHED_CHECK_POINT_V5_0);

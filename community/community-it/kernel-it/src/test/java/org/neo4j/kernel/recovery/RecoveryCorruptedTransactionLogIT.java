@@ -100,7 +100,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.IncompleteLogHeaderException;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
 import org.neo4j.kernel.impl.transaction.log.entry.UnsupportedLogVersionException;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
-import org.neo4j.kernel.impl.transaction.log.entry.v520.DetachedCheckpointLogEntrySerializerV5_20;
+import org.neo4j.kernel.impl.transaction.log.entry.v522.DetachedCheckpointLogEntrySerializerV5_22;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
@@ -129,7 +129,8 @@ import org.neo4j.test.extension.RandomExtension;
 @Neo4jLayoutExtension
 @ExtendWith(RandomExtension.class)
 class RecoveryCorruptedTransactionLogIT {
-    private static final int CHECKPOINT_RECORD_SIZE = DetachedCheckpointLogEntrySerializerV5_20.RECORD_LENGTH_BYTES;
+    private static final int CHECKPOINT_RECORD_SIZE =
+            DetachedCheckpointLogEntrySerializerV5_22.checkPointRecordSizeDependingOnVersion(LATEST_KERNEL_VERSION);
     private static final LogCommandSerialization LATEST_LOG_SERIALIZATION =
             RecordStorageCommandReaderFactory.INSTANCE.get(LATEST_KERNEL_VERSION);
 
