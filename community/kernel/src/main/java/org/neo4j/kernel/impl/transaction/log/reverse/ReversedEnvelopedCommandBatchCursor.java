@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.impl.transaction.log.reverse;
 
+import static org.apache.commons.lang3.ArrayUtils.EMPTY_LONG_ARRAY;
+
 import java.io.IOException;
 import org.eclipse.collections.api.iterator.LongIterator;
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList;
@@ -30,6 +32,7 @@ import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.UnsupportedLogVersionException;
 import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
+import org.neo4j.kernel.impl.transaction.log.enveloped.IncompleteEnvelopeReadException;
 import org.neo4j.kernel.impl.transaction.log.enveloped.InvalidEndOfFileReadException;
 
 /**
@@ -82,11 +85,15 @@ public class ReversedEnvelopedCommandBatchCursor implements CommandBatchCursor {
             // Should have read to the end of the file.. Something is wrong
             throw new IOException("Failed to read to end of log file version %d. Last seen byte offset %d"
                     .formatted(logVersion, pos));
-        } catch (ReadPastEndException | InvalidEndOfFileReadException e) {
+        } catch (ReadPastEndException | InvalidEndOfFileReadException | IncompleteEnvelopeReadException e) {
             // Expected
-        } catch (IOException | UnsupportedLogVersionException e) {
+            // Or well, IncompleteEnvelopeReadException isn't really expected, but it is signaling that the last
+            // entry is broken. Last broken entry is not considered a corrupted log, and is recoverable.
+            // The logs will be truncated after forward recovery.
+        } catch (IOException e) {
+            boolean first = entryStartPositions.isEmpty();
             monitor.transactionalLogRecordReadFailure(
-                    new long[] {entryStartPositions.isEmpty() ? 0 : entryStartPositions.getLast()}, 1, logVersion);
+                    first ? EMPTY_LONG_ARRAY : new long[] {entryStartPositions.getLast()}, first ? 0 : 1, logVersion);
             if (failOnCorruptedLogFiles) {
                 throw e;
             }

@@ -32,6 +32,8 @@ import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryRollback;
+import org.neo4j.kernel.impl.transaction.log.enveloped.IncompleteEnvelopeReadException;
+import org.neo4j.kernel.impl.transaction.log.enveloped.InvalidLogEnvelopeReadException;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.util.FeatureToggles;
 
@@ -87,16 +89,24 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
             return entry;
         } catch (ReadPastEndException e) {
             return null;
-        } catch (UnsupportedLogVersionException | IllegalStateException e) {
+        } catch (UnsupportedLogVersionException | IllegalStateException | InvalidLogEnvelopeReadException e) {
             throw e;
+        } catch (IncompleteEnvelopeReadException e) {
+            // This exception signals that the tail is already checked and the last entry is broken.
+            return brokenLastEntry(channel, entryStartPosition);
         } catch (IOException | RuntimeException e) {
             LogPosition currentLogPosition = channel.getCurrentLogPosition();
             // check if error was in the last command or is there anything else after that
             checkTail(channel, currentLogPosition, e);
-            brokenLastEntry = true;
-            rewindToEntryStartPosition(channel, positionMarker, entryStartPosition);
-            return null;
+            return brokenLastEntry(channel, entryStartPosition);
         }
+    }
+
+    private LogEntry brokenLastEntry(ReadableLogPositionAwareChannel channel, long entryStartPosition)
+            throws IOException {
+        brokenLastEntry = true;
+        rewindToEntryStartPosition(channel, positionMarker, entryStartPosition);
+        return null;
     }
 
     public boolean hasBrokenLastEntry() {

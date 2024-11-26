@@ -28,6 +28,7 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.IGNO
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.MAX_ZERO_PADDING_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_TERM;
+import static org.neo4j.kernel.impl.transaction.log.entry.TailUtils.checkTail;
 import static org.neo4j.util.Preconditions.checkState;
 import static org.neo4j.util.Preconditions.requireNonNegative;
 import static org.neo4j.util.Preconditions.requirePowerOfTwo;
@@ -565,7 +566,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
 
     private void bufferCheck(int requestedNumberOfBytes) throws IOException {
         if (buffer.remaining() < requestedNumberOfBytes) {
-            throw new InvalidLogEnvelopeReadException(
+            throw new IncompleteEnvelopeReadException(
                     "Entry underflow. %d bytes was requested but only %d are available."
                             .formatted(requestedNumberOfBytes, buffer.remaining()));
         }
@@ -626,7 +627,12 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
 
             // Must be padding
             if (buffer.remaining() <= HEADER_SIZE) {
-                enforceTerminalZeros();
+                // Or could be broken last entry if we technically had room for the header
+                if (buffer.capacity() - buffer.position() > HEADER_SIZE) {
+                    checkIfIncompleteEnvelopeHeader();
+                } else {
+                    enforceTerminalZeros();
+                }
                 nextSegment();
             }
 
@@ -644,8 +650,16 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
                 break;
             }
 
-            checkState(
-                    nextEnvelopeChecksum == 0, "Unexpected trailing data, expected zero, was: " + nextEnvelopeChecksum);
+            if (nextEnvelopeChecksum != 0) {
+                LogPosition currentLogPosition = getCurrentLogPosition();
+                checkTail(this, currentLogPosition, null);
+                // If tail was fine it is still an incomplete envelope to be handled
+                throw new IncompleteEnvelopeReadException("Unexpected data found at "
+                        + new LogPosition(
+                                currentLogPosition.getLogVersion(),
+                                currentLogPosition.getByteOffset() - Integer.BYTES - Byte.BYTES)
+                        + " Found: " + nextEnvelopeChecksum);
+            }
 
             // Found zeroes, figure out if we are in padding or end of pre-allocated file
             final var remaining = buffer.remaining();
@@ -699,7 +713,37 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         checksum.update(checksumView);
         int readChecksum = (int) checksum.getValue();
         if (readChecksum != nextEnvelopeChecksum) {
-            throw new ChecksumMismatchException(nextEnvelopeChecksum, readChecksum);
+            throwOnMismatchingChecksum(nextEnvelopeChecksum, readChecksum);
+        }
+    }
+
+    private void throwOnMismatchingChecksum(int nextEnvelopeChecksum, int readChecksum) throws IOException {
+        // Oh no it didn't match! It could be because of an incomplete envelope..
+        // Let's assume it is as long as there is no more data after the current envelope.
+        ChecksumMismatchException e = new ChecksumMismatchException(nextEnvelopeChecksum, readChecksum);
+        if (buffer.limit() >= payloadEndOffset) {
+            buffer.position(payloadEndOffset);
+            try {
+                checkTail(this, getCurrentLogPosition(), null);
+            } catch (IllegalStateException exception) {
+                // It's a bigger corruption, let's throw our original checksum error
+                // since that was the first problem.
+                throw e;
+            }
+        }
+        throw new IncompleteEnvelopeReadException(e);
+    }
+
+    private void checkIfIncompleteEnvelopeHeader() throws IOException {
+        assert buffer.remaining() <= HEADER_SIZE;
+        try {
+            enforceTerminalZeros();
+        } catch (InvalidLogEnvelopeReadException e) {
+            // We saw some data - this means either broken last entry or corruption
+            checkTail(this, getCurrentLogPosition(), e);
+            // Either check tail threw an exception or we just had zeroes. If just zeroes it should be
+            // considered as a last broken entry
+            throw new IncompleteEnvelopeReadException("Found incomplete envelope header", e);
         }
     }
 
@@ -728,7 +772,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             }
             byte[] excess = new byte[read];
             buffer.get(excess);
-            throw new InvalidLogEnvelopeReadException(
+            throw new IncompleteEnvelopeReadException(
                     "Unexpected data found at start of buffer - expecting a valid header. Found: "
                             + Arrays.toString(excess));
         }

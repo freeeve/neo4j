@@ -20,25 +20,24 @@
 package org.neo4j.kernel.impl.transaction.log.enveloped;
 
 import java.io.IOException;
-import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.EnvelopeType;
 
 /**
- * Used to signal an invalid log envelope read, e.g. expecting to read data in a zero-padded region.
- * This should only be used in non-recoverable scenarios, i.e. not when it is just the last write being incomplete.
+ * Used to signal an incomplete log envelope read.
+ * Differs from {@link InvalidLogEnvelopeReadException} in that this could be a recoverable scenario, where it is
+ * only the last entry of the last file that was not completely written to the log.
  * This exception is still an {@link IOException}, but a specific subclass of it as to make possible
  * special handling.
  */
-public class InvalidLogEnvelopeReadException extends IOException {
-    public InvalidLogEnvelopeReadException(EnvelopeType unexpectedType, long segment, int position) {
-        this(message("unexpected chunk type '%s' at position %d of segment %d"
-                .formatted(unexpectedType, position, segment)));
-    }
-
-    public InvalidLogEnvelopeReadException(String message) {
+public class IncompleteEnvelopeReadException extends IOException {
+    public IncompleteEnvelopeReadException(String message) {
         super(message);
     }
 
-    private static String message(String message) {
-        return "Unable to read log envelope data: " + message;
+    public IncompleteEnvelopeReadException(Throwable cause) {
+        super(cause);
+    }
+
+    public IncompleteEnvelopeReadException(String message, Throwable e) {
+        super(message, e);
     }
 }

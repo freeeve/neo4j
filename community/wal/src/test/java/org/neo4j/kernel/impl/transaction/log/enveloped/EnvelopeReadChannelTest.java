@@ -558,7 +558,7 @@ class EnvelopeReadChannelTest {
             channel.get(bytesRead, bytes.length);
 
             assertThatThrownBy(channel::get)
-                    .isInstanceOf(InvalidLogEnvelopeReadException.class)
+                    .isInstanceOf(IncompleteEnvelopeReadException.class)
                     .hasMessageContainingAll("start of buffer", "expecting a valid header", "[13]");
         }
     }
@@ -692,6 +692,8 @@ class EnvelopeReadChannelTest {
             // THEN
             final var bytesRead = new byte[bytes.length];
             assertThatThrownBy(() -> channel.get(bytesRead, bytes.length))
+                    .isInstanceOf(IncompleteEnvelopeReadException.class)
+                    .cause()
                     .isInstanceOf(ChecksumMismatchException.class);
         }
     }
@@ -1059,7 +1061,7 @@ class EnvelopeReadChannelTest {
             channel.get(bytesRead, bytes.length - 1);
 
             assertThatThrownBy(channel::getShort)
-                    .isInstanceOf(InvalidLogEnvelopeReadException.class)
+                    .isInstanceOf(IncompleteEnvelopeReadException.class)
                     .hasMessageContaining("Entry underflow. 2 bytes was requested but only 1 are available.");
         }
     }
