@@ -19,16 +19,14 @@
  */
 package org.neo4j.hashing;
 
-import java.lang.invoke.MethodHandles;
+import static org.neo4j.internal.helpers.VarHandleUtils.byteArrayViewVarHandle;
+
 import java.lang.invoke.VarHandle;
 import java.nio.ByteOrder;
 
 public final class WyHash {
-    private static final VarHandle LE_INTEGER = MethodHandles.byteArrayViewVarHandle(
-                    int[].class, ByteOrder.LITTLE_ENDIAN)
-            .withInvokeExactBehavior();
-    private static final VarHandle LE_LONG = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.LITTLE_ENDIAN)
-            .withInvokeExactBehavior();
+    private static final VarHandle LE_INTEGER = byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
+    private static final VarHandle LE_LONG = byteArrayViewVarHandle(long[].class, ByteOrder.LITTLE_ENDIAN);
     private static final long WYP_0 = 0xa0761d6478bd642fL;
     private static final long WYP_1 = 0xe7037ed1a0b428dbL;
     private static final long WYP_2 = 0x8ebc6af09c88c6e3L;

@@ -25,7 +25,7 @@ import java.util.function.Function;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.batchimport.api.IndexImporterFactory;
 import org.neo4j.counts.CountsUpdater;
-import org.neo4j.internal.batchimport.cache.NodeLabelsCache;
+import org.neo4j.internal.batchimport.cache.legacy.NodeLabelsCache;
 import org.neo4j.internal.batchimport.staging.BatchFeedStep;
 import org.neo4j.internal.batchimport.staging.ReadRecordsStep;
 import org.neo4j.internal.batchimport.staging.Stage;

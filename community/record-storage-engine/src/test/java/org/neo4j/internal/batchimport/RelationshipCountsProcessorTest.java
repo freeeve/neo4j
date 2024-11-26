@@ -32,9 +32,9 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
 import org.neo4j.counts.CountsUpdater;
-import org.neo4j.internal.batchimport.cache.NodeLabelsCache;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactory;
+import org.neo4j.internal.batchimport.cache.legacy.NodeLabelsCache;
 import org.neo4j.kernel.impl.store.record.RelationshipRecord;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
@@ -91,12 +91,7 @@ class RelationshipCountsProcessorTest {
         when(nodeLabelCache.get(eq(client), eq(4L))).thenReturn(new int[] {});
 
         RelationshipCountsProcessor countsProcessor = new RelationshipCountsProcessor(
-                nodeLabelCache,
-                labels,
-                relationTypes,
-                countsUpdater,
-                NumberArrayFactories.AUTO_WITHOUT_PAGECACHE,
-                INSTANCE);
+                nodeLabelCache, labels, relationTypes, countsUpdater, NumberArrayFactories.AUTO_WITHOUT_SWAP, INSTANCE);
 
         countsProcessor.process(record(1, 0, 3), StoreCursors.NULL, EmptyMemoryTracker.INSTANCE);
         countsProcessor.process(record(2, 1, 4), StoreCursors.NULL, EmptyMemoryTracker.INSTANCE);

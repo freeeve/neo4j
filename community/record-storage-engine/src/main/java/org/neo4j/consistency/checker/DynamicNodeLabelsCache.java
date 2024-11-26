@@ -47,7 +47,9 @@ class DynamicNodeLabelsCache implements AutoCloseable {
     }
 
     int[] get(long index, int[] into) {
-        int count = cache.get(index);
+        // Index can be negative, which is apparently fine, use default value
+        int count = index < 0 ? 0 : cache.get(index);
+
         if (count > into.length) {
             into = Arrays.copyOf(into, count);
         }

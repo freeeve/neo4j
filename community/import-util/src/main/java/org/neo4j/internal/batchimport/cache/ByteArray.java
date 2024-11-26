@@ -36,14 +36,24 @@ package org.neo4j.internal.batchimport.cache;
  *
  * @see NumberArrayFactory
  */
-public interface ByteArray extends NumberArray<ByteArray> {
+public interface ByteArray extends NumberArray {
     /**
      * Gets the data at the given {@code index}. The data is read into the given byte array.
+     * This method is safe to use even if the data length spans multiple backing buffers.
      *
      * @param index array index to get.
      * @param into byte[] to read into.
      */
     void get(long index, byte[] into);
+
+    /**
+     * Gets the data at the given {@code index}. The data is read into the given byte array.
+     * In contrast to {@link #get(long, byte[])}, this can only be done on one element at a time.
+     *
+     * @param index array index to get.
+     * @param into byte[] to read into.
+     */
+    void getElement(long index, byte[] into);
 
     /**
      * Gets a part of an item, at the given {@code index}. An item in this array can consist of
@@ -107,11 +117,21 @@ public interface ByteArray extends NumberArray<ByteArray> {
 
     /**
      * Sets the given {@code data} at the given {@code index}, overwriting all the values in it.
+     * This method is safe to use even if the data length spans multiple backing buffers.
      *
      * @param index array index to get.
      * @param value the byte[] to copy into the given offset at the given array index.
      */
     void set(long index, byte[] value);
+
+    /**
+     * Sets the element at the given {@code index}. In contrast to {@link #set(long, byte[])}, this
+     * can only be done on one element at a time.
+     *
+     * @param index element index.
+     * @param value element.
+     */
+    void setElement(long index, byte[] value);
 
     /**
      * Sets a part of an item, at the given {@code index}. An item in this array can consist of
@@ -192,4 +212,115 @@ public interface ByteArray extends NumberArray<ByteArray> {
      * @param value the 3-byte int value to set at the given offset at the given array index.
      */
     void set3ByteInt(long index, int offset, int value);
+
+    ByteArray EMPTY_ARRAY = new ByteArray() {
+        @Override
+        public void acceptMemoryStatsVisitor(MemoryStatsVisitor visitor) {}
+
+        @Override
+        public long length() {
+            return 0;
+        }
+
+        @Override
+        public void swap(long fromIndex, long toIndex) {
+            throw new IndexOutOfBoundsException(fromIndex);
+        }
+
+        @Override
+        public void clear() {}
+
+        @Override
+        public void close() {}
+
+        @Override
+        public void getElement(long index, byte[] into) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public void get(long index, byte[] into) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public byte getByte(long index, int offset) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public short getShort(long index, int offset) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public int getInt(long index, int offset) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public long get5ByteLong(long index, int offset) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public long get6ByteLong(long index, int offset) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public long getLong(long index, int offset) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public void set(long index, byte[] value) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public void setElement(long index, byte[] value) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public void setByte(long index, int offset, byte value) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public void setShort(long index, int offset, short value) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public void setInt(long index, int offset, int value) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public void set5ByteLong(long index, int offset, long value) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public void set6ByteLong(long index, int offset, long value) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public void setLong(long index, int offset, long value) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public int get3ByteInt(long index, int offset) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public void set3ByteInt(long index, int offset, int value) {
+            throw new IndexOutOfBoundsException(index);
+        }
+    };
 }

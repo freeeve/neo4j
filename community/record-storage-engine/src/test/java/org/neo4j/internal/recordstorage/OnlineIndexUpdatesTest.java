@@ -151,7 +151,7 @@ class OnlineIndexUpdatesTest {
                 fileSystem,
                 immediate(),
                 new CountsComputer(
-                        neoStores, pageCache, contextFactory, databaseLayout, INSTANCE, NullLog.getInstance()),
+                        neoStores, fileSystem, contextFactory, databaseLayout, INSTANCE, NullLog.getInstance()),
                 false,
                 GBPTreeGenericCountsStore.NO_MONITOR,
                 databaseLayout.getDatabaseName(),

@@ -188,7 +188,6 @@ class DegreesRebuildFromStoreTest {
                         LogTailLogVersionsMetadata.EMPTY_LOG_TAIL)
                 .openAllNeoStores()) {
             DegreesRebuildFromStore rebuild = new DegreesRebuildFromStore(
-                    pageCache,
                     neoStores,
                     layout,
                     NULL_CONTEXT_FACTORY,

@@ -755,11 +755,6 @@ public class EncodingIdMapper implements IdMapper {
             }
 
             @Override
-            public LongArray at(long index) {
-                return null;
-            }
-
-            @Override
             public void set(long index, long value) {
                 throw new UnsupportedOperationException();
             }
@@ -771,6 +766,11 @@ public class EncodingIdMapper implements IdMapper {
 
             @Override
             public long compareAndExchange(long index, long expected, long value) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void getAndAdd(long index, long delta) {
                 throw new UnsupportedOperationException();
             }
 

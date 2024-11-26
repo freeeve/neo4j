@@ -21,6 +21,8 @@ package org.neo4j.io.fs;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 
 public class DelegatingStoreChannel<T extends StoreChannel> implements StoreChannel {
@@ -150,5 +152,10 @@ public class DelegatingStoreChannel<T extends StoreChannel> implements StoreChan
     @Override
     public void tryMakeUninterruptible() {
         delegate.tryMakeUninterruptible();
+    }
+
+    @Override
+    public MappedByteBuffer map(FileChannel.MapMode mode, long position, long size) throws IOException {
+        return delegate.map(mode, position, size);
     }
 }

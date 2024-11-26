@@ -19,7 +19,7 @@
  */
 package org.neo4j.internal.batchimport;
 
-import org.neo4j.internal.batchimport.cache.NodeRelationshipCache;
+import org.neo4j.internal.batchimport.cache.legacy.NodeRelationshipCache;
 import org.neo4j.kernel.impl.store.record.NodeRecord;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.cursor.StoreCursors;

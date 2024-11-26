@@ -611,7 +611,7 @@ class CountsComputerTest {
                     relationshipStore,
                     highLabelId,
                     highRelationshipTypeId,
-                    NumberArrayFactories.AUTO_WITHOUT_PAGECACHE,
+                    NumberArrayFactories.AUTO_WITHOUT_SWAP,
                     progressMonitorFactory,
                     CONTEXT_FACTORY,
                     INSTANCE);

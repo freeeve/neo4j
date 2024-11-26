@@ -20,9 +20,8 @@
 package org.neo4j.internal.batchimport.cache.idmapping.string;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+import static org.neo4j.internal.batchimport.cache.BufferFactories.fileBacked;
 import static org.neo4j.io.pagecache.PageCache.PAGE_SIZE;
-import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.nio.file.Path;
@@ -30,31 +29,27 @@ import java.util.Arrays;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactory;
-import org.neo4j.internal.batchimport.cache.PageCachedNumberArrayFactory;
-import org.neo4j.io.pagecache.PageCache;
-import org.neo4j.io.pagecache.context.CursorContextFactory;
-import org.neo4j.io.pagecache.tracing.PageCacheTracer;
-import org.neo4j.logging.NullLog;
+import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.pagecache.PageCacheExtension;
+import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
 
-@PageCacheExtension
+@TestDirectoryExtension
+@ExtendWith(RandomExtension.class)
 class StringCollisionValuesTest {
     @Inject
     private RandomSupport random;
 
     @Inject
     private TestDirectory testDirectory;
-
-    @Inject
-    private PageCache pageCache;
 
     @BeforeEach
     void before() {
@@ -67,26 +62,21 @@ class StringCollisionValuesTest {
         random.reset();
     }
 
-    private static Stream<BiFunction<PageCache, Path, NumberArrayFactory>> data() {
+    private static Stream<BiFunction<FileSystemAbstraction, Path, NumberArrayFactory>> data() {
         return Stream.of(
-                (PageCache pageCache, Path homePath) -> NumberArrayFactories.HEAP,
-                (PageCache pageCache, Path homePath) -> NumberArrayFactories.OFF_HEAP,
-                (PageCache pageCache, Path homePath) -> NumberArrayFactories.AUTO_WITHOUT_PAGECACHE,
-                (PageCache pageCache, Path homePath) -> NumberArrayFactories.CHUNKED_FIXED_SIZE,
-                (PageCache pageCache, Path homePath) -> new PageCachedNumberArrayFactory(
-                        pageCache,
-                        new CursorContextFactory(PageCacheTracer.NULL, EMPTY_CONTEXT_SUPPLIER),
-                        homePath,
-                        NullLog.getInstance(),
-                        DEFAULT_DATABASE_NAME));
+                (FileSystemAbstraction fs, Path homePath) -> NumberArrayFactories.HEAP,
+                (FileSystemAbstraction fs, Path homePath) -> NumberArrayFactories.OFF_HEAP,
+                (FileSystemAbstraction fs, Path homePath) -> NumberArrayFactories.AUTO_WITHOUT_SWAP,
+                (FileSystemAbstraction fs, Path homePath) ->
+                        NumberArrayFactories.fromBufferFactory(fileBacked(fs, homePath)));
     }
 
     @ParameterizedTest
     @MethodSource("data")
-    void shouldStoreAndLoadStrings(BiFunction<PageCache, Path, NumberArrayFactory> factory) {
+    void shouldStoreAndLoadStrings(BiFunction<FileSystemAbstraction, Path, NumberArrayFactory> factory) {
         // given
-        try (StringCollisionValues values =
-                new StringCollisionValues(factory.apply(pageCache, testDirectory.homePath()), 10_000, INSTANCE)) {
+        try (StringCollisionValues values = new StringCollisionValues(
+                factory.apply(testDirectory.getFileSystem(), testDirectory.homePath()), 10_000, INSTANCE)) {
             // when
             long[] offsets = new long[100];
             String[] strings = new String[offsets.length];
@@ -105,10 +95,10 @@ class StringCollisionValuesTest {
 
     @ParameterizedTest
     @MethodSource("data")
-    void shouldMoveOverToNextChunkOnNearEnd(BiFunction<PageCache, Path, NumberArrayFactory> factory) {
+    void shouldMoveOverToNextChunkOnNearEnd(BiFunction<FileSystemAbstraction, Path, NumberArrayFactory> factory) {
         // given
-        try (StringCollisionValues values =
-                new StringCollisionValues(factory.apply(pageCache, testDirectory.homePath()), 10_000, INSTANCE)) {
+        try (StringCollisionValues values = new StringCollisionValues(
+                factory.apply(testDirectory.getFileSystem(), testDirectory.homePath()), 10_000, INSTANCE)) {
             char[] chars = new char[PAGE_SIZE - 3];
             Arrays.fill(chars, 'a');
 

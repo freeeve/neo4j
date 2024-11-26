@@ -17,11 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.internal.batchimport.cache;
+package org.neo4j.internal.batchimport.cache.legacy;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.AUTO_WITHOUT_PAGECACHE;
+import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.AUTO_WITHOUT_SWAP;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.util.Arrays;
@@ -41,7 +41,7 @@ class NodeLabelsCacheTest {
     @Test
     void shouldCacheSmallSetOfLabelsPerNode() {
         // GIVEN
-        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_PAGECACHE, 5, 4, INSTANCE);
+        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, 5, 4, INSTANCE);
         NodeLabelsCache.Client client = cache.newClient();
         long nodeId = 0;
 
@@ -57,7 +57,7 @@ class NodeLabelsCacheTest {
     void shouldHandleLargeAmountOfLabelsPerNode() {
         // GIVEN
         int highLabelId = 1000;
-        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_PAGECACHE, 10, highLabelId, INSTANCE);
+        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, 10, highLabelId, INSTANCE);
         NodeLabelsCache.Client client = cache.newClient();
         long nodeId = 0;
 
@@ -75,7 +75,7 @@ class NodeLabelsCacheTest {
         // GIVEN a really weird scenario where we have 5000 different labels
         int highLabelId = 1_000;
         int numberOfNodes = 100_000;
-        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_PAGECACHE, numberOfNodes, highLabelId, INSTANCE);
+        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, numberOfNodes, highLabelId, INSTANCE);
         NodeLabelsCache.Client client = cache.newClient();
         int[][] expectedLabels = new int[numberOfNodes][];
         for (int i = 0; i < numberOfNodes; i++) {
@@ -94,7 +94,7 @@ class NodeLabelsCacheTest {
     @Test
     void shouldEndTargetArrayWithMinusOne() {
         // GIVEN
-        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_PAGECACHE, 20, 10, INSTANCE);
+        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, 20, 10, INSTANCE);
         NodeLabelsCache.Client client = cache.newClient();
         cache.put(10, new int[] {5, 6, 7, 8});
 
@@ -112,7 +112,7 @@ class NodeLabelsCacheTest {
     @Test
     void shouldReturnEmptyArrayForNodeWithNoLabelsAndNoLabelsWhatsoever() {
         // GIVEN
-        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_PAGECACHE, 10, 0, INSTANCE);
+        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, 10, 0, INSTANCE);
         NodeLabelsCache.Client client = cache.newClient();
 
         // WHEN
@@ -128,7 +128,7 @@ class NodeLabelsCacheTest {
         int highLabelId = 10;
         int numberOfNodes = 100;
         int[][] expectedLabels = new int[numberOfNodes][];
-        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_PAGECACHE, numberOfNodes, highLabelId, INSTANCE);
+        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, numberOfNodes, highLabelId, INSTANCE);
         for (int i = 0; i < numberOfNodes; i++) {
             cache.put(i, expectedLabels[i] = randomLabels(random.nextInt(5), highLabelId));
         }

@@ -373,7 +373,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                         contextFactory,
                         pageCacheTracer,
                         getOpenOptions(),
-                        new RecordCountsBuilder(internalLogProvider, pageCache, contextFactory, layout),
+                        new RecordCountsBuilder(internalLogProvider, fs, contextFactory, layout),
                         false,
                         versionStorage);
     }
@@ -400,12 +400,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                         contextFactory,
                         pageCacheTracer,
                         new DegreesRebuildFromStore(
-                                pageCache,
-                                neoStores,
-                                databaseLayout,
-                                contextFactory,
-                                internalLogProvider,
-                                Configuration.DEFAULT),
+                                neoStores, databaseLayout, contextFactory, internalLogProvider, Configuration.DEFAULT),
                         getOpenOptions(),
                         false,
                         versionStorage);
@@ -839,16 +834,16 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
 
     private class RecordCountsBuilder implements CountsBuilder {
         private final InternalLog log;
-        private final PageCache pageCache;
+        private final FileSystemAbstraction fs;
         private final CursorContextFactory contextFactory;
         private final RecordDatabaseLayout layout;
 
         public RecordCountsBuilder(
                 InternalLogProvider internalLogProvider,
-                PageCache pageCache,
+                FileSystemAbstraction fs,
                 CursorContextFactory contextFactory,
                 RecordDatabaseLayout layout) {
-            this.pageCache = pageCache;
+            this.fs = fs;
             this.contextFactory = contextFactory;
             this.layout = layout;
             log = internalLogProvider.getLog(MetaDataStore.class);
@@ -857,7 +852,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
         @Override
         public void initialize(CountsUpdater updater, CursorContext cursorContext, MemoryTracker memoryTracker) {
             log.warn("Missing counts store, rebuilding it.");
-            new CountsComputer(neoStores, pageCache, contextFactory, layout, memoryTracker, log)
+            new CountsComputer(neoStores, fs, contextFactory, layout, memoryTracker, log)
                     .initialize(updater, cursorContext, memoryTracker);
             log.warn("Counts store rebuild completed.");
         }

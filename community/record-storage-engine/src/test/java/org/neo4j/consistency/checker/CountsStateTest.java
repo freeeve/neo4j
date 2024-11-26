@@ -42,7 +42,6 @@ import org.neo4j.consistency.checking.cache.CacheAccess;
 import org.neo4j.consistency.checking.cache.DefaultCacheAccess;
 import org.neo4j.consistency.report.ConsistencyReport;
 import org.neo4j.consistency.report.ConsistencyReporter;
-import org.neo4j.consistency.statistics.Counts;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.internal.recordstorage.RelationshipCounter;
 import org.neo4j.kernel.impl.store.record.RelationshipRecord;
@@ -63,8 +62,7 @@ class CountsStateTest {
 
     @BeforeEach
     void setUp() {
-        cacheAccess = new DefaultCacheAccess(
-                HEAP.newByteArray(HIGH_NODE_ID, new byte[MAX_SLOT_BITS], INSTANCE), Counts.NONE, 1);
+        cacheAccess = new DefaultCacheAccess(HEAP.newByteArray(HIGH_NODE_ID, new byte[MAX_SLOT_BITS], INSTANCE));
         cacheAccess.setCacheSlotSizes(DEFAULT_SLOT_SIZES);
         countsState = new CountsState(HIGH_TOKEN_ID, HIGH_TOKEN_ID, HIGH_NODE_ID, cacheAccess, INSTANCE);
         noConsistencyReporter = mock(ConsistencyReporter.class);

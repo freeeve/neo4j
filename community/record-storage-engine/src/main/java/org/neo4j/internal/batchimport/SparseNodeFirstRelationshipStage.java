@@ -23,8 +23,8 @@ import static org.neo4j.internal.recordstorage.RecordCursorTypes.NODE_CURSOR;
 
 import java.util.function.Function;
 import org.neo4j.batchimport.api.Configuration;
-import org.neo4j.internal.batchimport.cache.NodeRelationshipCache;
-import org.neo4j.internal.batchimport.cache.NodeType;
+import org.neo4j.internal.batchimport.cache.legacy.NodeRelationshipCache;
+import org.neo4j.internal.batchimport.cache.legacy.NodeType;
 import org.neo4j.internal.batchimport.staging.ReadRecordsStep;
 import org.neo4j.internal.batchimport.staging.Stage;
 import org.neo4j.internal.batchimport.staging.Step;

@@ -27,56 +27,13 @@ import org.neo4j.memory.MemoryTracker;
  * favoring the primary candidates.
  */
 public interface NumberArrayFactory {
-    interface Monitor {
-        /**
-         * Notifies about a successful allocation where information about both successful and failed attempts are included.
-         *
-         * @param memory amount of memory for this allocation.
-         * @param successfulFactory the {@link NumberArrayFactory} which proved successful allocating this amount of memory.
-         * @param attemptedAllocationFailures list of failed attempts to allocate this memory in other allocators.
-         */
-        void allocationSuccessful(
-                long memory,
-                NumberArrayFactory successfulFactory,
-                Iterable<AllocationFailure> attemptedAllocationFailures);
-    }
-
-    class AllocationFailure {
-        private final Throwable failure;
-        private final NumberArrayFactory factory;
-
-        AllocationFailure(Throwable failure, NumberArrayFactory factory) {
-            this.failure = failure;
-            this.factory = factory;
-        }
-
-        public Throwable getFailure() {
-            return failure;
-        }
-
-        public NumberArrayFactory getFactory() {
-            return factory;
-        }
-    }
-
     /**
      * @param length size of the array.
      * @param defaultValue value which will represent unset values.
      * @param memoryTracker underlying buffers allocation memory tracker
      * @return a fixed size {@link IntArray}.
      */
-    default IntArray newIntArray(long length, int defaultValue, MemoryTracker memoryTracker) {
-        return newIntArray(length, defaultValue, 0, memoryTracker);
-    }
-
-    /**
-     * @param length size of the array.
-     * @param defaultValue value which will represent unset values.
-     * @param base base index to rebase all requested indexes with.
-     * @param memoryTracker underlying buffers allocation memory tracker
-     * @return a fixed size {@link IntArray}.
-     */
-    IntArray newIntArray(long length, int defaultValue, long base, MemoryTracker memoryTracker);
+    IntArray newIntArray(long length, int defaultValue, MemoryTracker memoryTracker);
 
     /**
      * @param chunkSize the size of each array (number of items). Where new chunks are added when needed.
@@ -84,7 +41,7 @@ public interface NumberArrayFactory {
      * @param memoryTracker underlying buffers allocation memory tracker
      * @return dynamically growing {@link IntArray}.
      */
-    IntArray newDynamicIntArray(long chunkSize, int defaultValue, MemoryTracker memoryTracker);
+    IntArray newDynamicIntArray(int chunkSize, int defaultValue, MemoryTracker memoryTracker);
 
     /**
      * @param length size of the array.
@@ -92,18 +49,7 @@ public interface NumberArrayFactory {
      * @param memoryTracker underlying buffers allocation memory tracker
      * @return a fixed size {@link LongArray}.
      */
-    default LongArray newLongArray(long length, long defaultValue, MemoryTracker memoryTracker) {
-        return newLongArray(length, defaultValue, 0, memoryTracker);
-    }
-
-    /**
-     * @param length size of the array.
-     * @param defaultValue value which will represent unset values.
-     * @param base base index to rebase all requested indexes with.
-     * @param memoryTracker underlying buffers allocation memory tracker
-     * @return a fixed size {@link LongArray}.
-     */
-    LongArray newLongArray(long length, long defaultValue, long base, MemoryTracker memoryTracker);
+    LongArray newLongArray(long length, long defaultValue, MemoryTracker memoryTracker);
 
     /**
      * @param chunkSize the size of each array (number of items). Where new chunks are added when needed.
@@ -111,7 +57,7 @@ public interface NumberArrayFactory {
      * @param memoryTracker underlying buffers allocation memory tracker
      * @return dynamically growing {@link LongArray}.
      */
-    LongArray newDynamicLongArray(long chunkSize, long defaultValue, MemoryTracker memoryTracker);
+    LongArray newDynamicLongArray(int chunkSize, long defaultValue, MemoryTracker memoryTracker);
 
     /**
      * @param length size of the array.
@@ -119,18 +65,7 @@ public interface NumberArrayFactory {
      * @param memoryTracker underlying buffers allocation memory tracker
      * @return a fixed size {@link ByteArray}.
      */
-    default ByteArray newByteArray(long length, byte[] defaultValue, MemoryTracker memoryTracker) {
-        return newByteArray(length, defaultValue, 0, memoryTracker);
-    }
-
-    /**
-     * @param length size of the array.
-     * @param defaultValue value which will represent unset values.
-     * @param base base index to rebase all requested indexes with.
-     * @param memoryTracker underlying buffers allocation memory tracker
-     * @return a fixed size {@link ByteArray}.
-     */
-    ByteArray newByteArray(long length, byte[] defaultValue, long base, MemoryTracker memoryTracker);
+    ByteArray newByteArray(long length, byte[] defaultValue, MemoryTracker memoryTracker);
 
     /**
      * @param chunkSize the size of each array (number of items). Where new chunks are added when needed.
@@ -138,25 +73,5 @@ public interface NumberArrayFactory {
      * @param memoryTracker underlying buffers allocation memory tracker
      * @return dynamically growing {@link ByteArray}.
      */
-    ByteArray newDynamicByteArray(long chunkSize, byte[] defaultValue, MemoryTracker memoryTracker);
-
-    /**
-     * Implements the dynamic array methods, because they are the same in most implementations.
-     */
-    abstract class Adapter implements NumberArrayFactory {
-        @Override
-        public IntArray newDynamicIntArray(long chunkSize, int defaultValue, MemoryTracker memoryTracker) {
-            return new DynamicIntArray(this, chunkSize, defaultValue, memoryTracker);
-        }
-
-        @Override
-        public LongArray newDynamicLongArray(long chunkSize, long defaultValue, MemoryTracker memoryTracker) {
-            return new DynamicLongArray(this, chunkSize, defaultValue, memoryTracker);
-        }
-
-        @Override
-        public ByteArray newDynamicByteArray(long chunkSize, byte[] defaultValue, MemoryTracker memoryTracker) {
-            return new DynamicByteArray(this, chunkSize, defaultValue, memoryTracker);
-        }
-    }
+    ByteArray newDynamicByteArray(int chunkSize, byte[] defaultValue, MemoryTracker memoryTracker);
 }

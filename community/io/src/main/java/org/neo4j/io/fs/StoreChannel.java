@@ -22,6 +22,8 @@ package org.neo4j.io.fs;
 import java.io.Flushable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.InterruptibleChannel;
@@ -103,4 +105,9 @@ public interface StoreChannel
      * An uninterruptible channel will not automatically close itself if a calling thread is interrupted before or during an IO operation.
      */
     void tryMakeUninterruptible();
+
+    /**
+     * {@link FileChannel#map(FileChannel.MapMode, long, long)}
+     */
+    MappedByteBuffer map(FileChannel.MapMode mode, long position, long size) throws IOException;
 }

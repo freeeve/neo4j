@@ -105,7 +105,6 @@ public final class UnsafeUtil {
         VarHandle bbAddress = null;
         MethodHandle dbbCtor;
         try {
-
             var bufferLookup = MethodHandles.privateLookupIn(Buffer.class, MethodHandles.lookup());
             bbMark = getVarHandle(bufferLookup, Buffer.class, "mark", int.class);
             bbPosition = getVarHandle(bufferLookup, Buffer.class, "position", int.class);
@@ -285,9 +284,24 @@ public final class UnsafeUtil {
         memoryTracker.releaseNative(bytes);
     }
 
-    private static void addAllocatedPointer(long pointer, long sizeInBytes) {
+    public static boolean isCheckNativeAccessEnabled() {
+        return CHECK_NATIVE_ACCESS;
+    }
+
+    public static void addAllocatedPointer(long pointer, long sizeInBytes) {
         if (CHECK_NATIVE_ACCESS) {
             allocations.put(pointer, new Allocation(pointer, sizeInBytes));
+        }
+    }
+
+    public static void removeAllocatedPointer(long pointer) {
+        if (CHECK_NATIVE_ACCESS) {
+            Allocation allocation = allocations.remove(pointer);
+            if (allocation == null) {
+                StringBuilder sb = new StringBuilder(format("Bad free: 0x%x, valid pointers are:", pointer));
+                allocations.forEach((k, v) -> sb.append('\n').append("0x").append(Long.toHexString(k)));
+                throw new AssertionError(sb.toString());
+            }
         }
     }
 
@@ -621,7 +635,8 @@ public final class UnsafeUtil {
 
     private static void assertUnsafeByteBufferAccess() {
         if (!unsafeByteBufferAccessAvailable()) {
-            throw new IllegalStateException("java.nio.DirectByteBuffer is not available");
+            throw new IllegalStateException(
+                    "java.nio.DirectByteBuffer is not available. Start with --add-opens=java.base/java.nio=ALL-UNNAMED");
         }
     }
 

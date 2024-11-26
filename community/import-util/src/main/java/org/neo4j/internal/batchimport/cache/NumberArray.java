@@ -22,9 +22,12 @@ package org.neo4j.internal.batchimport.cache;
 /**
  * Abstraction over primitive arrays.
  *
+ * The arrays provide the same concurrency guarantees as regular arrays. I.e. updating different parts of the array
+ * from different threads are fine, but for sharing, some external synchronization will be needed.
+ *
  * @see NumberArrayFactory
  */
-public interface NumberArray<N extends NumberArray<N>> extends MemoryStatsVisitor.Visitable, AutoCloseable {
+public interface NumberArray extends MemoryStatsVisitor.Visitable, AutoCloseable {
     /**
      * @return length of the array, i.e. the capacity.
      */
@@ -49,18 +52,4 @@ public interface NumberArray<N extends NumberArray<N>> extends MemoryStatsVisito
      */
     @Override
     void close();
-
-    /**
-     * Part of the nature of {@link NumberArray} is that {@link #length()} can be dynamically growing.
-     * For that to work some implementations (those coming from e.g
-     * {@link NumberArrayFactory#newDynamicIntArray(long, int, org.neo4j.memory.MemoryTracker)} and such dynamic calls) has an indirection,
-     * one that is a bit costly when comparing to raw array access. In scenarios where there will be two or
-     * more access to the same index in the array it will be more efficient to resolve this indirection once
-     * and return the "raw" array for that given index so that it can be used directly in multiple calls,
-     * knowing that the returned array holds the given index.
-     *
-     * @param index index into the array which the returned array will contain.
-     * @return array sure to hold the given index.
-     */
-    N at(long index);
 }

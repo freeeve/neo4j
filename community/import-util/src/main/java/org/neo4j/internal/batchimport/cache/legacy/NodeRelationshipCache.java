@@ -17,17 +17,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.internal.batchimport.cache;
+package org.neo4j.internal.batchimport.cache.legacy;
 
 import static java.lang.Long.min;
 import static java.lang.Math.toIntExact;
+import static org.neo4j.graphdb.Direction.BOTH;
+import static org.neo4j.graphdb.Direction.INCOMING;
+import static org.neo4j.graphdb.Direction.OUTGOING;
 
-import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.neo4j.graphdb.Direction;
+import org.neo4j.internal.batchimport.cache.ByteArray;
+import org.neo4j.internal.batchimport.cache.LongArray;
+import org.neo4j.internal.batchimport.cache.MemoryStatsVisitor;
+import org.neo4j.internal.batchimport.cache.NumberArrayFactory;
 import org.neo4j.internal.batchimport.cache.idmapping.string.BigIdTracker;
 import org.neo4j.internal.helpers.Numbers;
+import org.neo4j.io.IOUtils;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.util.VisibleForTesting;
 
@@ -102,21 +109,17 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
     private long numberOfDenseNodes;
 
     public NodeRelationshipCache(NumberArrayFactory arrayFactory, int denseNodeThreshold, MemoryTracker memoryTracker) {
-        this(arrayFactory, denseNodeThreshold, CHUNK_SIZE, 0, memoryTracker);
+        this(arrayFactory, denseNodeThreshold, CHUNK_SIZE, memoryTracker);
     }
 
     NodeRelationshipCache(
-            NumberArrayFactory arrayFactory,
-            int denseNodeThreshold,
-            int chunkSize,
-            long base,
-            MemoryTracker memoryTracker) {
+            NumberArrayFactory arrayFactory, int denseNodeThreshold, int chunkSize, MemoryTracker memoryTracker) {
         this.arrayFactory = arrayFactory;
         this.chunkSize = chunkSize;
         this.denseNodeThreshold = denseNodeThreshold;
         this.memoryTracker = memoryTracker;
         this.bigCounts = arrayFactory.newDynamicLongArray(1_000, 0, memoryTracker);
-        this.relGroupCache = new RelGroupCache(arrayFactory, chunkSize, base, memoryTracker);
+        this.relGroupCache = new RelGroupCache(arrayFactory, chunkSize, memoryTracker);
     }
 
     /**
@@ -131,7 +134,7 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
     @VisibleForTesting
     public void setCount(long nodeId, long count, int typeId, Direction direction) {
         if (isDense(nodeId)) {
-            long relGroupId = all48Bits(array, nodeId, SPARSE_ID_OFFSET);
+            long relGroupId = getRelationshipId(nodeId);
             relGroupCache.setCount(relGroupId, typeId, direction, count);
         } else {
             setCount(array, nodeId, SPARSE_COUNT_OFFSET, count);
@@ -216,10 +219,7 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
         }
 
         this.highNodeId = nodeCount;
-        var defaultValue = new byte[ID_AND_COUNT_SIZE];
-        Arrays.fill(defaultValue, 0, ID_SIZE, (byte) -1);
-        Arrays.fill(defaultValue, ID_SIZE, ID_AND_COUNT_SIZE, (byte) 0);
-        this.array = arrayFactory.newByteArray(highNodeId, defaultValue, memoryTracker);
+        this.array = arrayFactory.newByteArray(highNodeId, new byte[ID_AND_COUNT_SIZE], memoryTracker);
         this.chunkChangedArray = new byte[chunkOf(nodeCount) + 1];
     }
 
@@ -243,7 +243,6 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
     }
 
     private long incrementCount(ByteArray array, long index, int offset) {
-        array = array.at(index);
         long count = getCount(array, index, offset) + 1;
         setCount(array, index, offset, count);
         return count;
@@ -255,7 +254,12 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
      * e.g. has had less calls to {@link #incrementCount(long)}, then the given dense node threshold.
      */
     public boolean isDense(long nodeId) {
-        return isDense(array, nodeId);
+        if (denseNodeThreshold == EMPTY) { // We haven't initialized the rel group cache yet
+            return false;
+        }
+
+        var explicitlyDense = (array.getInt(nodeId, SPARSE_COUNT_OFFSET) & EXPLICITLY_DENSE_MASK) != 0;
+        return explicitlyDense || getCount(array, nodeId, SPARSE_COUNT_OFFSET) >= denseNodeThreshold;
     }
 
     /**
@@ -266,15 +270,6 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
     public void markAsExplicitlyDense(long nodeId) {
         int bits = array.getInt(nodeId, SPARSE_COUNT_OFFSET);
         array.setInt(nodeId, SPARSE_COUNT_OFFSET, bits | EXPLICITLY_DENSE_MASK);
-    }
-
-    private boolean isDense(ByteArray array, long nodeId) {
-        if (denseNodeThreshold == EMPTY) { // We haven't initialized the rel group cache yet
-            return false;
-        }
-
-        var explicitlyDense = (array.getInt(nodeId, SPARSE_COUNT_OFFSET) & EXPLICITLY_DENSE_MASK) != 0;
-        return explicitlyDense || getCount(array, nodeId, SPARSE_COUNT_OFFSET) >= denseNodeThreshold;
     }
 
     /**
@@ -302,21 +297,20 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
          * not increment the global count, but it should increment the type/direction counts.
          */
 
-        ByteArray array = this.array.at(nodeId);
-        long existingId = all48Bits(array, nodeId, SPARSE_ID_OFFSET);
-        boolean dense = isDense(array, nodeId);
-        boolean wasChanged = markAsChanged(array, nodeId, changeMask(dense));
+        long existingId = getRelationshipId(nodeId);
+        boolean dense = isDense(nodeId);
+        boolean wasChanged = markAsChanged(nodeId, changeMask(dense));
         markChunkAsChanged(nodeId, dense);
         if (dense) {
             if (existingId == EMPTY) {
                 existingId = relGroupCache.allocate(typeId);
-                setRelationshipId(array, nodeId, existingId);
+                setRelationshipId(nodeId, existingId);
             }
             return relGroupCache.getAndPutRelationship(existingId, typeId, direction, firstRelId, incrementCount);
         }
 
         // Don't increment count for sparse node since that has already been done in a previous pass
-        setRelationshipId(array, nodeId, firstRelId);
+        setRelationshipId(nodeId, firstRelId);
         return wasChanged ? EMPTY : existingId;
     }
 
@@ -352,7 +346,7 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
         return (byte) (1 << (dense ? 1 : 0));
     }
 
-    private boolean markAsChanged(ByteArray array, long nodeId, int mask) {
+    private boolean markAsChanged(long nodeId, int mask) {
         int bits = array.getInt(nodeId, SPARSE_COUNT_OFFSET);
         boolean changeBitIsSet = (bits & mask) != 0;
         boolean changeBitWasFlipped = changeBitIsSet != forward;
@@ -363,7 +357,7 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
         return changeBitWasFlipped;
     }
 
-    private boolean nodeIsChanged(ByteArray array, long nodeId, long mask) {
+    private boolean nodeIsChanged(long nodeId, long mask) {
         int bits = array.getInt(nodeId, SPARSE_COUNT_OFFSET);
 
         // The values in the cache are initialized with -1, i.e. all bits set, i.e. also the
@@ -379,20 +373,18 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
         return changeBitIsSet == forward;
     }
 
-    private static void setRelationshipId(ByteArray array, long nodeId, long firstRelId) {
-        array.set6ByteLong(nodeId, SPARSE_ID_OFFSET, firstRelId);
+    private void setRelationshipId(long nodeId, long firstRelId) {
+        // 0 is used to represent EMPTY, but 0 is also a valid id, so we offset by one
+        array.set6ByteLong(nodeId, SPARSE_ID_OFFSET, firstRelId + 1);
     }
 
-    private static long getRelationshipId(ByteArray array, long nodeId) {
-        return array.get6ByteLong(nodeId, SPARSE_ID_OFFSET);
+    private long getRelationshipId(long nodeId) {
+        // 0 is used to represent EMPTY, but 0 is also a valid id, so we offset by one
+        return toUnsigned6Byte(array.get6ByteLong(nodeId, SPARSE_ID_OFFSET)) - 1;
     }
 
-    private static long all48Bits(ByteArray array, long index, int offset) {
-        return all48Bits(array.get6ByteLong(index, offset));
-    }
-
-    private static long all48Bits(long raw) {
-        return raw == -1L ? raw : raw & 0xFFFFFFFFFFFFL;
+    private static long toUnsigned6Byte(long raw) {
+        return raw & 0xFFFFFFFFFFFFL;
     }
 
     /**
@@ -406,9 +398,8 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
      * @return the first relationship if node is sparse, or the result of {@link GroupVisitor} if dense.
      */
     public long getFirstRel(long nodeId, GroupVisitor visitor) {
-        ByteArray array = this.array.at(nodeId);
-        long id = getRelationshipId(array, nodeId);
-        if (id != EMPTY && isDense(array, nodeId)) { // Indirection into rel group cache
+        long id = getRelationshipId(nodeId);
+        if (id != EMPTY && isDense(nodeId)) { // Indirection into rel group cache
             return relGroupCache.visitGroup(nodeId, id, visitor);
         }
 
@@ -445,7 +436,7 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
         if (denseNodes) {
             if (forward) {
                 // Clear relationship group cache and references to it
-                visitChangedNodes((nodeId, array) -> setRelationshipId(array, nodeId, EMPTY), NodeType.NODE_TYPE_DENSE);
+                visitChangedNodes(nodeId -> setRelationshipId(nodeId, EMPTY), NodeType.NODE_TYPE_DENSE);
                 clearChangedChunks(true);
                 relGroupCache.clear();
             } else {
@@ -471,10 +462,9 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
      * @return count (degree) of the requested relationship chain.
      */
     public long getCount(long nodeId, int typeId, Direction direction, boolean resetCountAfterRead) {
-        ByteArray array = this.array.at(nodeId);
-        boolean dense = isDense(array, nodeId);
+        boolean dense = isDense(nodeId);
         if (dense) { // Indirection into rel group cache
-            long id = getRelationshipId(array, nodeId);
+            long id = getRelationshipId(nodeId);
             return id == EMPTY ? 0 : relGroupCache.getAndResetCount(id, typeId, direction, resetCountAfterRead);
         }
 
@@ -504,78 +494,53 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
         private static final int BASE_IDS_OFFSET = NEXT_OFFSET + ID_SIZE;
 
         // Used for testing high id values. Should always be zero in production
-        private final byte[] DEFAULT_VALUE = buildDefaultValue();
-        private final long chunkSize;
-        private final long base;
-        private final ByteArray array;
-        private final AtomicLong nextFreeId;
+        private final byte[] DEFAULT_VALUE = new byte[GROUP_ENTRY_SIZE];
+        private final ByteArray relGroupCacheArray;
+        private final AtomicLong nextFreeId = new AtomicLong(0);
 
-        RelGroupCache(NumberArrayFactory arrayFactory, long chunkSize, long base, MemoryTracker memoryTracker) {
-            this.chunkSize = chunkSize;
-            this.base = base;
+        RelGroupCache(NumberArrayFactory arrayFactory, long chunkSize, MemoryTracker memoryTracker) {
             assert chunkSize > 0;
-            this.array = arrayFactory.newDynamicByteArray(chunkSize, DEFAULT_VALUE, memoryTracker);
-            this.nextFreeId = new AtomicLong(base);
-        }
-
-        private static byte[] buildDefaultValue() {
-            // TYPE,NEXT,3x[ID,COUNT]
-            // all COUNT should have 0 as default value
-            byte[] value = new byte[GROUP_ENTRY_SIZE];
-            Arrays.fill(value, (byte) -1);
-            for (int i = 0; i < Direction.values().length; i++) {
-                var fromIndex = BASE_IDS_OFFSET + (ID_AND_COUNT_SIZE * i) + ID_SIZE;
-                Arrays.fill(value, fromIndex, fromIndex + COUNT_SIZE, (byte) 0);
-            }
-            return value;
+            this.relGroupCacheArray = arrayFactory.newDynamicByteArray((int) chunkSize, DEFAULT_VALUE, memoryTracker);
         }
 
         private void clearIndex(ByteArray array, long relGroupId) {
-            array.set(relGroupId, DEFAULT_VALUE);
+            array.setElement(relGroupId, DEFAULT_VALUE);
         }
 
         long getAndResetCount(long relGroupIndex, int typeId, Direction direction, boolean resetCountAfterRead) {
-            long index = rebase(relGroupIndex);
+            long index = relGroupIndex;
             while (index != EMPTY) {
-                ByteArray array = this.array.at(index);
-                if (getTypeId(array, index) == typeId) {
+                if (getTypeId(relGroupCacheArray, index) == typeId) {
                     int offset = countOffset(direction);
-                    long count = NodeRelationshipCache.this.getCount(array, index, offset);
+                    long count = NodeRelationshipCache.this.getCount(relGroupCacheArray, index, offset);
                     if (resetCountAfterRead) {
-                        NodeRelationshipCache.this.setCount(array, index, offset, 0);
+                        NodeRelationshipCache.this.setCount(relGroupCacheArray, index, offset, 0);
                     }
                     return count;
                 }
-                index = getNext(array, index);
+                index = getNext(relGroupCacheArray, index);
             }
             return 0;
         }
 
         void setCount(long relGroupIndex, int typeId, Direction direction, long count) {
-            long index = rebase(relGroupIndex);
+            long index = relGroupIndex;
             while (index != EMPTY) {
-                ByteArray array = this.array.at(index);
-                if (getTypeId(array, index) == typeId) {
-                    NodeRelationshipCache.this.setCount(array, index, countOffset(direction), count);
+                if (getTypeId(relGroupCacheArray, index) == typeId) {
+                    NodeRelationshipCache.this.setCount(relGroupCacheArray, index, countOffset(direction), count);
                     break;
                 }
-                index = getNext(array, index);
+                index = getNext(relGroupCacheArray, index);
             }
         }
 
         long getNext(ByteArray array, long index) {
-            return all48Bits(array, index, NEXT_OFFSET);
+            // 0 is used to represent EMPTY, but 0 is also a valid id, so we offset by one
+            return toUnsigned6Byte(array.get6ByteLong(index, NEXT_OFFSET)) - 1;
         }
 
         int getTypeId(ByteArray array, long index) {
-            return array.get3ByteInt(index, TYPE_OFFSET);
-        }
-
-        /**
-         * Compensate for test value of index (to avoid allocating all your RAM)
-         */
-        private long rebase(long index) {
-            return index - base;
+            return array.get3ByteInt(index, TYPE_OFFSET) & 0xFFFFFF;
         }
 
         private long nextFreeId() {
@@ -583,15 +548,16 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
         }
 
         private long visitGroup(long nodeId, long relGroupIndex, GroupVisitor visitor) {
-            long currentIndex = rebase(relGroupIndex);
+            long currentIndex = relGroupIndex;
             long first = EMPTY;
             while (currentIndex != EMPTY) {
-                ByteArray array = this.array.at(currentIndex);
-                long out = all48Bits(array, currentIndex, idOffset(Direction.OUTGOING));
-                int typeId = getTypeId(array, currentIndex);
-                long in = all48Bits(array, currentIndex, idOffset(Direction.INCOMING));
-                long loop = all48Bits(array, currentIndex, idOffset(Direction.BOTH));
-                long next = getNext(array, currentIndex);
+                // 0 is used to represent EMPTY, but 0 is also a valid id, so we offset by one
+                long out = toUnsigned6Byte(relGroupCacheArray.get6ByteLong(currentIndex, idOffset(OUTGOING))) - 1;
+                long in = toUnsigned6Byte(relGroupCacheArray.get6ByteLong(currentIndex, idOffset(INCOMING))) - 1;
+                long loop = toUnsigned6Byte(relGroupCacheArray.get6ByteLong(currentIndex, idOffset(BOTH))) - 1;
+
+                int typeId = getTypeId(relGroupCacheArray, currentIndex);
+                long next = getNext(relGroupCacheArray, currentIndex);
                 long nextId = out == EMPTY && in == EMPTY && loop == EMPTY
                         ? EMPTY
                         : visitor.visit(nodeId, typeId, out, in, loop);
@@ -613,75 +579,70 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
 
         long allocate(int typeId) {
             long index = nextFreeId();
-            long rebasedIndex = rebase(index);
-            ByteArray array = this.array.at(rebasedIndex);
-            clearIndex(array, rebasedIndex);
-            array.set3ByteInt(rebasedIndex, TYPE_OFFSET, Numbers.safeCheck3ByteInt(typeId));
+            clearIndex(relGroupCacheArray, index);
+            relGroupCacheArray.set3ByteInt(index, TYPE_OFFSET, Numbers.safeCheck3ByteInt(typeId));
             return index;
         }
 
         private long getAndPutRelationship(
                 long relGroupIndex, int typeId, Direction direction, long relId, boolean incrementCount) {
-            long index = rebase(relGroupIndex);
+            long index = relGroupIndex;
             index = findOrAllocateIndex(index, typeId);
-            ByteArray array = this.array.at(index);
             int directionOffset = idOffset(direction);
-            long previousId = all48Bits(array, index, directionOffset);
-            array.set6ByteLong(index, directionOffset, relId);
+
+            // 0 is used to represent EMPTY, but 0 is also a valid id, so we offset by one
+            long previousId = toUnsigned6Byte(relGroupCacheArray.get6ByteLong(index, directionOffset)) - 1;
+            relGroupCacheArray.set6ByteLong(index, directionOffset, relId + 1);
             if (incrementCount) {
-                incrementCount(array, index, countOffset(direction));
+                incrementCount(relGroupCacheArray, index, countOffset(direction));
             }
             return previousId;
         }
 
         private void clearRelationshipIds(ByteArray array, long index) {
-            array.set6ByteLong(index, idOffset(Direction.OUTGOING), EMPTY);
-            array.set6ByteLong(index, idOffset(Direction.INCOMING), EMPTY);
-            array.set6ByteLong(index, idOffset(Direction.BOTH), EMPTY);
+            array.set6ByteLong(index, idOffset(OUTGOING), 0);
+            array.set6ByteLong(index, idOffset(INCOMING), 0);
+            array.set6ByteLong(index, idOffset(BOTH), 0);
         }
 
         private long findOrAllocateIndex(long index, int typeId) {
             long lastIndex = index;
-            ByteArray array = this.array.at(index);
             while (index != EMPTY) {
                 lastIndex = index;
-                array = this.array.at(index);
-                int candidateTypeId = getTypeId(array, index);
+                int candidateTypeId = getTypeId(relGroupCacheArray, index);
                 if (candidateTypeId == typeId) {
                     return index;
                 }
-                index = getNext(array, index);
+                index = getNext(relGroupCacheArray, index);
             }
 
             // No such found, create at the end
             long newIndex = allocate(typeId);
-            array.set6ByteLong(lastIndex, NEXT_OFFSET, newIndex);
+            // 0 is used to represent EMPTY, but 0 is also a valid id, so we offset by one
+            relGroupCacheArray.set6ByteLong(lastIndex, NEXT_OFFSET, newIndex + 1);
             return newIndex;
         }
 
         @Override
         public void close() {
-            if (array != null) {
-                array.close();
+            if (relGroupCacheArray != null) {
+                relGroupCacheArray.close();
             }
         }
 
         @Override
         public void acceptMemoryStatsVisitor(MemoryStatsVisitor visitor) {
-            nullSafeMemoryStatsVisitor(array, visitor);
+            nullSafeMemoryStatsVisitor(relGroupCacheArray, visitor);
         }
 
         public void clear() {
-            nextFreeId.set(base);
+            nextFreeId.set(0);
         }
 
         public void clearRelationshipIds() {
-            long highId = rebase(nextFreeId.get());
-            for (long i = 0; i < highId; ) {
-                ByteArray chunk = array.at(i);
-                for (int j = 0; j < chunkSize && i < highId; j++, i++) {
-                    clearRelationshipIds(chunk, i);
-                }
+            long highId = nextFreeId.get();
+            for (long i = 0; i < highId; i++) {
+                clearRelationshipIds(relGroupCacheArray, i);
             }
         }
     }
@@ -693,12 +654,7 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
 
     @Override
     public void close() {
-        if (array != null) {
-            array.close();
-        }
-        if (relGroupCache != null) {
-            relGroupCache.close();
-        }
+        IOUtils.closeAllUnchecked(array, bigCounts, relGroupCache);
     }
 
     public long highNodeId() {
@@ -723,7 +679,7 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
 
     @FunctionalInterface
     public interface NodeChangeVisitor {
-        void change(long nodeId, ByteArray array);
+        void change(long nodeId);
     }
 
     public void visitChangedNodes(NodeChangeVisitor visitor, int nodeTypes) {
@@ -750,11 +706,11 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
                 continue;
             }
 
-            boolean nodeHasChanged = (NodeType.isDense(nodeTypes) && nodeIsChanged(array, nodeId, denseMask))
-                    || (NodeType.isSparse(nodeTypes) && nodeIsChanged(array, nodeId, sparseMask));
+            boolean nodeHasChanged = (NodeType.isDense(nodeTypes) && nodeIsChanged(nodeId, denseMask))
+                    || (NodeType.isSparse(nodeTypes) && nodeIsChanged(nodeId, sparseMask));
 
-            if (nodeHasChanged && NodeType.matchesDense(nodeTypes, isDense(array, nodeId))) {
-                visitor.change(nodeId, array);
+            if (nodeHasChanged && NodeType.matchesDense(nodeTypes, isDense(nodeId))) {
+                visitor.change(nodeId);
             }
             nodeId++;
         }

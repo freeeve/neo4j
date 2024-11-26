@@ -25,14 +25,32 @@ package org.neo4j.internal.batchimport.cache;
  *
  * @see NumberArrayFactory
  */
-public interface LongArray extends NumberArray<LongArray> {
+public interface LongArray extends NumberArray {
     long get(long index);
 
     void set(long index, long value);
 
+    /**
+     * Atomically compare and set a value with volatile memory semantic.
+     *
+     * @param index The index in the array.
+     * @param expected expected value to compare with.
+     * @param value new value to set if {@code expected} matches.
+     * @return {@code true} if CAS was successful, {@code false} otherwise.
+     */
     boolean compareAndSet(long index, long expected, long value);
 
+    /**
+     * Atomically compare and exchange a value with volatile memory semantic.
+     *
+     * @param index The index in the array.
+     * @param expected expected value to compare with.
+     * @param value new value to set if {@code expected} matches.
+     * @return the witness value.
+     */
     long compareAndExchange(long index, long expected, long value);
+
+    void getAndAdd(long index, long delta);
 
     @Override
     default void swap(long fromIndex, long toIndex) {
@@ -40,4 +58,45 @@ public interface LongArray extends NumberArray<LongArray> {
         set(fromIndex, get(toIndex));
         set(toIndex, intermediary);
     }
+
+    LongArray EMPTY_ARRAY = new LongArray() {
+        @Override
+        public void acceptMemoryStatsVisitor(MemoryStatsVisitor visitor) {}
+
+        @Override
+        public long length() {
+            return 0;
+        }
+
+        @Override
+        public void clear() {}
+
+        @Override
+        public void close() {}
+
+        @Override
+        public long get(long index) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public void set(long index, long value) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public boolean compareAndSet(long index, long expected, long value) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public long compareAndExchange(long index, long expected, long value) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public void getAndAdd(long index, long delta) {
+            throw new IndexOutOfBoundsException(index);
+        }
+    };
 }

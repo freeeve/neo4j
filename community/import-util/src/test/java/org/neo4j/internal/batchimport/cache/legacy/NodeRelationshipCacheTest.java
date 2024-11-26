@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.internal.batchimport.cache;
+package org.neo4j.internal.batchimport.cache.legacy;
 
 import static java.lang.Math.max;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,7 +41,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
@@ -52,9 +51,8 @@ import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.graphdb.Direction;
+import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
@@ -74,15 +72,10 @@ public class NodeRelationshipCacheTest {
         }
     }
 
-    private static Stream<Long> data() {
-        return Stream.of(0L, Integer.MAX_VALUE * 2L);
-    }
-
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldReportCorrectNumberOfDenseNodes(long base) {
+    @Test
+    public void shouldReportCorrectNumberOfDenseNodes() {
         // GIVEN
-        cache = new NodeRelationshipCache(NumberArrayFactories.AUTO_WITHOUT_PAGECACHE, 5, 100, base, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.AUTO_WITHOUT_SWAP, 5, 100, INSTANCE);
         cache.setNodeCount(26);
         increment(cache, 2, 10);
         increment(cache, 5, 2);
@@ -101,12 +94,11 @@ public class NodeRelationshipCacheTest {
         assertTrue(cache.isDense(25));
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldGoThroughThePhases(long base) {
+    @Test
+    public void shouldGoThroughThePhases() {
         // GIVEN
         int nodeCount = 10;
-        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, 20, 100, base, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, 20, 100, INSTANCE);
         cache.setNodeCount(nodeCount);
         incrementRandomCounts(cache, nodeCount, nodeCount * 20);
 
@@ -124,11 +116,10 @@ public class NodeRelationshipCacheTest {
         }
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldObserveFirstRelationshipAsEmptyInEachDirection(long base) {
+    @Test
+    public void shouldObserveFirstRelationshipAsEmptyInEachDirection() {
         // GIVEN
-        cache = new NodeRelationshipCache(NumberArrayFactories.AUTO_WITHOUT_PAGECACHE, 1, 100, base, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.AUTO_WITHOUT_SWAP, 1, 100, INSTANCE);
         int nodes = 100;
         int typeId = 5;
         Direction[] directions = Direction.values();
@@ -158,11 +149,10 @@ public class NodeRelationshipCacheTest {
         }
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldResetCountAfterGetOnDenseNodes(long base) {
+    @Test
+    public void shouldResetCountAfterGetOnDenseNodes() {
         // GIVEN
-        cache = new NodeRelationshipCache(NumberArrayFactories.AUTO_WITHOUT_PAGECACHE, 1, 100, base, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.AUTO_WITHOUT_SWAP, 1, 100, INSTANCE);
         long nodeId = 0;
         int typeId = 3;
         cache.setNodeCount(1);
@@ -182,9 +172,8 @@ public class NodeRelationshipCacheTest {
         assertEquals(0, cache.getCount(nodeId, typeId, OUTGOING, false));
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldGetAndPutRelationshipAroundChunkEdge(long base) {
+    @Test
+    public void shouldGetAndPutRelationshipAroundChunkEdge() {
         // GIVEN
         cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 10, INSTANCE);
 
@@ -199,14 +188,13 @@ public class NodeRelationshipCacheTest {
         assertEquals(relId, cache.getFirstRel(nodeId, mock(NodeRelationshipCache.GroupVisitor.class)));
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldPutRandomStuff(long base) {
+    @Test
+    public void shouldPutRandomStuff() {
         // GIVEN
         int typeId = 10;
         int nodes = 10_000;
         MutableLongObjectMap<long[]> key = new LongObjectHashMap<>(nodes);
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 1000, base, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 1000, INSTANCE);
 
         // mark random nodes as dense (dense node threshold is 1 so enough with one increment
         cache.setNodeCount(nodes);
@@ -233,11 +221,10 @@ public class NodeRelationshipCacheTest {
         }
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldPut6ByteRelationshipIds(long base) {
+    @Test
+    public void shouldPut6ByteRelationshipIds() {
         // GIVEN
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 100, base, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 100, INSTANCE);
         long sparseNode = 0;
         long denseNode = 1;
         long relationshipId = (1L << 48) - 2;
@@ -254,12 +241,11 @@ public class NodeRelationshipCacheTest {
         assertEquals(relationshipId, cache.getAndPutRelationship(denseNode, typeId, OUTGOING, 1, false));
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldFailFastIfTooBigRelationshipId(long base) {
+    @Test
+    public void shouldFailFastIfTooBigRelationshipId() {
         // GIVEN
         int typeId = 10;
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 100, base, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 100, INSTANCE);
         cache.setNodeCount(1);
 
         // WHEN
@@ -269,15 +255,14 @@ public class NodeRelationshipCacheTest {
                 .hasMessageContaining("max");
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldVisitChangedNodes(long base) {
+    @Test
+    public void shouldVisitChangedNodes() {
         // GIVEN
         int nodes = 100;
         int typeId = 10;
         int chunkSize = 10;
         List<Long> changedNodes = new ArrayList<>();
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 2, chunkSize, base, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 2, chunkSize, INSTANCE);
         cache.setNodeCount(nodes);
         for (long nodeId = 0; nodeId < nodes; nodeId++) {
             if (nodeId >= chunkSize && nodeId < 2 * chunkSize) {
@@ -301,7 +286,7 @@ public class NodeRelationshipCacheTest {
 
         {
             // WHEN (sparse)
-            NodeRelationshipCache.NodeChangeVisitor visitor = (nodeId, array) -> {
+            NodeRelationshipCache.NodeChangeVisitor visitor = (nodeId) -> {
                 // THEN (sparse)
                 assertTrue(keySparseChanged.remove(nodeId), "Unexpected sparse change reported for " + nodeId);
             };
@@ -313,7 +298,7 @@ public class NodeRelationshipCacheTest {
 
         {
             // WHEN (dense)
-            NodeRelationshipCache.NodeChangeVisitor visitor = (nodeId, array) -> {
+            NodeRelationshipCache.NodeChangeVisitor visitor = (nodeId) -> {
                 // THEN (dense)
                 assertTrue(keyDenseChanged.remove(nodeId), "Unexpected dense change reported for " + nodeId);
             };
@@ -324,9 +309,8 @@ public class NodeRelationshipCacheTest {
         }
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    void visitChangedNodesFromDifferentChunks(long base) {
+    @Test
+    void visitChangedNodesFromDifferentChunks() {
         int nodes = 720;
         int typeId = 2;
         // chunk size and batch step here created to have steps where one batch is part of several chunks, where one of
@@ -336,7 +320,7 @@ public class NodeRelationshipCacheTest {
         int denseNodeThreshold = 5;
 
         List<Long> expectedDenseNodes = new ArrayList<>();
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, denseNodeThreshold, chunkSize, base, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, denseNodeThreshold, chunkSize, INSTANCE);
         cache.setNodeCount(nodes);
 
         // we need to make every second node in every second chunk dense
@@ -351,9 +335,7 @@ public class NodeRelationshipCacheTest {
         assertEquals(expectedDenseNodes.size(), cache.calculateNumberOfDenseNodes());
 
         MutableLong changeNotCounter = new MutableLong();
-        NodeRelationshipCache.NodeChangeVisitor visitor = (nodeId, array) -> {
-            changeNotCounter.increment();
-        };
+        NodeRelationshipCache.NodeChangeVisitor visitor = nodeId -> changeNotCounter.increment();
 
         long batchStart = 0;
         long batchEnd = batchStart + batchStep;
@@ -366,11 +348,10 @@ public class NodeRelationshipCacheTest {
         assertEquals(expectedDenseNodes.size(), changeNotCounter.longValue());
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldFailFastOnTooHighCountOnNode(long base) {
+    @Test
+    public void shouldFailFastOnTooHighCountOnNode() {
         // GIVEN
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 10, 100, base, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 10, 100, INSTANCE);
         long nodeId = 5;
         long count = NodeRelationshipCache.MAX_COUNT - 1;
         int typeId = 10;
@@ -382,11 +363,10 @@ public class NodeRelationshipCacheTest {
         assertThatThrownBy(() -> cache.incrementCount(nodeId)).isInstanceOf(IllegalStateException.class);
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldKeepNextGroupIdForNextRound(long base) {
+    @Test
+    public void shouldKeepNextGroupIdForNextRound() {
         // GIVEN
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 100, base, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 100, INSTANCE);
         long nodeId = 0;
         int typeId = 10;
         cache.setNodeCount(nodeId + 1);
@@ -439,15 +419,14 @@ public class NodeRelationshipCacheTest {
         }
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldHaveDenseNodesWithBigCounts(long base) {
+    @Test
+    public void shouldHaveDenseNodesWithBigCounts() {
         // A count of a dense node follow a different path during import, first there's counting per node
         // then import goes into actual import of relationships where individual chain degrees are
         // kept. So this test will first set a total count, then set count for a specific chain
 
         // GIVEN
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 100, base, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 100, INSTANCE);
         long nodeId = 1;
         int typeId = 10;
         cache.setNodeCount(nodeId + 1);
@@ -468,9 +447,8 @@ public class NodeRelationshipCacheTest {
         assertEquals(highCountIn + 1, cache.getCount(nodeId, typeId, INCOMING, false));
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldCacheMultipleDenseNodeRelationshipHeads(long base) {
+    @Test
+    public void shouldCacheMultipleDenseNodeRelationshipHeads() {
         // GIVEN
         cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, INSTANCE);
         cache.setNodeCount(10);
@@ -501,11 +479,10 @@ public class NodeRelationshipCacheTest {
         assertEquals(typeCount, visitCount.get());
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldHaveSparseNodesWithBigCounts(long base) {
+    @Test
+    public void shouldHaveSparseNodesWithBigCounts() {
         // GIVEN
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 100, base, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 100, INSTANCE);
         long nodeId = 1;
         int typeId = 10;
         cache.setNodeCount(nodeId + 1);
@@ -519,9 +496,8 @@ public class NodeRelationshipCacheTest {
         assertEquals(highCount + 1, nextHighCount);
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldFailFastOnTooHighNodeCount(long base) {
+    @Test
+    public void shouldFailFastOnTooHighNodeCount() {
         // given
         cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, INSTANCE);
 
@@ -529,9 +505,8 @@ public class NodeRelationshipCacheTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void shouldAllocateRelationshipGroupWithHighTypeId(long base) {
+    @Test
+    public void shouldAllocateRelationshipGroupWithHighTypeId() {
         // given
         int denseNodeThreshold = 1;
         long nodeId = 99;

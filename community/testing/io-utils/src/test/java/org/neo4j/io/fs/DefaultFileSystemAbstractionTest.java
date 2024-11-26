@@ -32,11 +32,15 @@ import static org.neo4j.io.fs.FileSystemAbstraction.INVALID_FILE_DESCRIPTOR;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.EnumSet;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -158,6 +162,18 @@ public class DefaultFileSystemAbstractionTest extends FileSystemAbstractionTest 
 
         byte[] contentFromDrive = Files.readAllBytes(testFile);
         assertArrayEquals(sourceData, contentFromDrive);
+    }
+
+    @Test
+    void mappingFile() throws IOException {
+        Path testFile = testDirectory.file("testFile");
+        try (DefaultFileSystemAbstraction fs = new DefaultFileSystemAbstraction()) {
+            StoreFileChannel channel = fs.open(
+                    testFile, Set.of(StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.READ));
+            MappedByteBuffer mapped = channel.map(FileChannel.MapMode.PRIVATE, 0, 32);
+            mapped.putLong(0, 42L);
+            assertThat(mapped.getLong(0)).isEqualTo(42L);
+        }
     }
 
     @Test

@@ -19,22 +19,17 @@
  */
 package org.neo4j.consistency.checking.cache;
 
-import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.AUTO_WITHOUT_PAGECACHE;
+import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.AUTO_WITHOUT_SWAP;
 
-import java.util.Collection;
 import org.neo4j.consistency.checking.ByteArrayBitsManipulator;
 import org.neo4j.consistency.checking.IdAssigningThreadLocal;
-import org.neo4j.consistency.statistics.Counts;
-import org.neo4j.consistency.statistics.Counts.Type;
 import org.neo4j.internal.batchimport.cache.ByteArray;
-import org.neo4j.kernel.impl.store.record.PropertyRecord;
 import org.neo4j.memory.MemoryTracker;
 
 /**
  * {@link CacheAccess} that uses {@link PackedMultiFieldCache} for cache.
  */
 public class DefaultCacheAccess implements CacheAccess {
-    public static final int DEFAULT_QUEUE_SIZE = 1_000;
 
     private final IdAssigningThreadLocal<Client> clients = new IdAssigningThreadLocal<>() {
         @Override
@@ -43,21 +38,14 @@ public class DefaultCacheAccess implements CacheAccess {
         }
     };
 
-    private final Collection<PropertyRecord>[] propertiesProcessed;
-    private boolean forwardScan = true;
     private final PackedMultiFieldCache cache;
-    private long recordsPerCPU;
-    private final Counts counts;
     private long pivotId;
 
     public static ByteArray defaultByteArray(long highNodeId, MemoryTracker memoryTracker) {
-        return AUTO_WITHOUT_PAGECACHE.newByteArray(
-                highNodeId, new byte[ByteArrayBitsManipulator.MAX_BYTES], memoryTracker);
+        return AUTO_WITHOUT_SWAP.newByteArray(highNodeId, new byte[ByteArrayBitsManipulator.MAX_BYTES], memoryTracker);
     }
 
-    public DefaultCacheAccess(ByteArray array, Counts counts, int threads) {
-        this.counts = counts;
-        this.propertiesProcessed = new Collection[threads];
+    public DefaultCacheAccess(ByteArray array) {
         this.cache = new PackedMultiFieldCache(array, ByteArrayBitsManipulator.MAX_SLOT_BITS, 1);
     }
 
@@ -91,22 +79,6 @@ public class DefaultCacheAccess implements CacheAccess {
         return id - pivotId;
     }
 
-    @Override
-    public void setForward(boolean forward) {
-        forwardScan = forward;
-    }
-
-    @Override
-    public boolean isForward() {
-        return forwardScan;
-    }
-
-    @Override
-    public void prepareForProcessingOfSingleStore(long recordsPerCPU) {
-        clients.resetId();
-        this.recordsPerCPU = recordsPerCPU;
-    }
-
     private class DefaultClient implements Client {
         private final int threadIndex;
 
@@ -135,60 +107,8 @@ public class DefaultCacheAccess implements CacheAccess {
         }
 
         @Override
-        public void clearCache(long index) {
-            cache.clear(index);
-            counts.incAndGet(Counts.Type.clearCache, threadIndex);
-            counts.incAndGet(Counts.Type.activeCache, threadIndex);
-        }
-
-        @Override
-        public boolean withinBounds(long id) {
-            return recordsPerCPU == 0
-                    || // We haven't split the id space into segments per thread
-                    id >= threadIndex * recordsPerCPU && id < (threadIndex + 1) * recordsPerCPU;
-        }
-
-        @Override
-        public void putPropertiesToCache(Collection<PropertyRecord> properties) {
-            propertiesProcessed[threadIndex] = properties;
-        }
-
-        @Override
-        public Iterable<PropertyRecord> getPropertiesFromCache() {
-            return cachedProperties(true);
-        }
-
-        @Override
-        public PropertyRecord getPropertyFromCache(long id) {
-            Collection<PropertyRecord> properties = cachedProperties(false);
-            if (properties != null) {
-                for (PropertyRecord property : properties) {
-                    if (property.getId() == id) {
-                        return property;
-                    }
-                }
-            }
-            return null;
-        }
-
-        private Collection<PropertyRecord> cachedProperties(boolean clear) {
-            try {
-                return propertiesProcessed[threadIndex];
-            } finally {
-                if (clear) {
-                    propertiesProcessed[threadIndex] = null;
-                }
-            }
-        }
-
-        @Override
-        public void incAndGetCount(Type type) {
-            counts.incAndGet(type, threadIndex);
-        }
-
-        @Override
         public String toString() {
-            return "Client[" + threadIndex + ", records/CPU:" + recordsPerCPU + "]";
+            return "Client[" + threadIndex + "]";
         }
     }
 }

@@ -17,12 +17,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.internal.batchimport.cache;
+package org.neo4j.internal.batchimport.cache.legacy;
 
 import static java.lang.Integer.numberOfLeadingZeros;
 import static java.lang.Math.max;
 
 import java.util.concurrent.atomic.AtomicLong;
+import org.neo4j.internal.batchimport.cache.LongArray;
+import org.neo4j.internal.batchimport.cache.MemoryStatsVisitor;
+import org.neo4j.internal.batchimport.cache.NumberArrayFactory;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.util.BitBuffer;
 

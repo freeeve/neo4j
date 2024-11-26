@@ -24,6 +24,8 @@ import static org.neo4j.io.fs.FileSystemAbstraction.INVALID_FILE_DESCRIPTOR;
 import java.io.Flushable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.SeekableByteChannel;
 import org.neo4j.io.fs.StoreChannel;
@@ -169,6 +171,11 @@ public class StorageChannel implements StoreChannel {
     @Override
     public void tryMakeUninterruptible() {
         // no-op
+    }
+
+    @Override
+    public MappedByteBuffer map(FileChannel.MapMode mode, long position, long size) throws IOException {
+        throw new UnsupportedOperationException();
     }
 
     @Override

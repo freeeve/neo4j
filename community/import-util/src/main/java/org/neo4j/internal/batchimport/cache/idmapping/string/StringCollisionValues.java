@@ -19,8 +19,6 @@
  */
 package org.neo4j.internal.batchimport.cache.idmapping.string;
 
-import static java.lang.Integer.min;
-import static java.lang.Long.max;
 import static org.neo4j.io.pagecache.PageCache.PAGE_SIZE;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -35,19 +33,11 @@ import org.neo4j.string.UTF8;
  * length, where maximum string length is 2^16 - 1.
  */
 public class StringCollisionValues implements CollisionValues {
-    private final long chunkSize;
     private final ByteArray cache;
     private final AtomicLong offset = new AtomicLong();
 
-    public StringCollisionValues(NumberArrayFactory factory, long length, MemoryTracker memoryTracker) {
-        // Let's have length (also chunk size) be divisible by PAGE_SIZE, such that our calculations below
-        // works for all NumberArray implementations.
-        int remainder = (int) (length % PAGE_SIZE);
-        if (remainder != 0) {
-            length += PAGE_SIZE - remainder;
-        }
-
-        chunkSize = max(length, PAGE_SIZE);
+    public StringCollisionValues(NumberArrayFactory factory, long numberOfCollisions, MemoryTracker memoryTracker) {
+        int chunkSize = Math.max((int) numberOfCollisions, PAGE_SIZE);
         cache = factory.newDynamicByteArray(chunkSize, new byte[1], memoryTracker);
     }
 
@@ -64,20 +54,7 @@ public class StringCollisionValues implements CollisionValues {
         long offset = startOffset;
         cache.setByte(offset++, 0, (byte) length);
         cache.setByte(offset++, 0, (byte) (length >>> Byte.SIZE));
-        var current = cache.at(offset);
-        for (int i = 0; i < length; ) {
-            int bytesLeftToWrite = length - i;
-            int bytesLeftInChunk = (int) (chunkSize - offset % chunkSize);
-            int bytesToWriteInThisChunk = min(bytesLeftToWrite, bytesLeftInChunk);
-            for (int j = 0; j < bytesToWriteInThisChunk; j++) {
-                current.setByte(offset++, 0, bytes[i++]);
-            }
-
-            if (length > i) {
-                current = cache.at(offset);
-            }
-        }
-
+        cache.set(offset, bytes);
         return startOffset;
     }
 
@@ -85,20 +62,8 @@ public class StringCollisionValues implements CollisionValues {
     public Object get(long offset) {
         int length = cache.getByte(offset++, 0) & 0xFF;
         length |= (cache.getByte(offset++, 0) & 0xFF) << Byte.SIZE;
-        ByteArray array = cache.at(offset);
         byte[] bytes = new byte[length];
-        for (int i = 0; i < length; ) {
-            int bytesLeftToRead = length - i;
-            int bytesLeftInChunk = (int) (chunkSize - offset % chunkSize);
-            int bytesToReadInThisChunk = min(bytesLeftToRead, bytesLeftInChunk);
-            for (int j = 0; j < bytesToReadInThisChunk; j++) {
-                bytes[i++] = array.getByte(offset++, 0);
-            }
-
-            if (length > i) {
-                array = cache.at(offset);
-            }
-        }
+        cache.get(offset, bytes);
         return UTF8.decode(bytes);
     }
 

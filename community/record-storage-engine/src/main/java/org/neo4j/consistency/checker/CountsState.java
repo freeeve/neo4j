@@ -38,7 +38,6 @@ import org.neo4j.consistency.store.synthetic.CountsEntry;
 import org.neo4j.counts.CountsVisitor;
 import org.neo4j.internal.batchimport.cache.LongArray;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
-import org.neo4j.internal.batchimport.cache.OffHeapLongArray;
 import org.neo4j.internal.counts.CountsKey;
 import org.neo4j.internal.recordstorage.RelationshipCounter;
 import org.neo4j.kernel.impl.store.NeoStores;
@@ -54,7 +53,7 @@ class CountsState implements AutoCloseable {
     private final int highRelationshipTypeId;
     private final long highNodeId;
     private final CacheAccess cacheAccess;
-    private final OffHeapLongArray nodeCounts;
+    private final LongArray nodeCounts;
     private final ConcurrentMap<CountsKey, AtomicLong> nodeCountsStray = new ConcurrentHashMap<>();
     private final LongArray relationshipLabelCounts;
     private final LongArray relationshipWildcardCounts;
@@ -81,7 +80,7 @@ class CountsState implements AutoCloseable {
         this.highNodeId = highNodeId;
         this.cacheAccess = cacheAccess;
         var arrayFactory = NumberArrayFactories.OFF_HEAP;
-        this.nodeCounts = (OffHeapLongArray) arrayFactory.newLongArray(highLabelId + 1, 0, memoryTracker);
+        this.nodeCounts = arrayFactory.newLongArray(highLabelId + 1, 0, memoryTracker);
         this.relationshipLabelCounts =
                 arrayFactory.newLongArray(labelsCountsLength(highLabelId, highRelationshipTypeId), 0, memoryTracker);
         this.relationshipWildcardCounts =
@@ -104,7 +103,7 @@ class CountsState implements AutoCloseable {
                 highRelationshipTypeId,
                 relationshipWildcardCounts,
                 relationshipLabelCounts,
-                (array, index) -> ((OffHeapLongArray) array).getAndAdd(index, 1));
+                (array, index) -> array.getAndAdd(index, 1));
     }
 
     long cacheDynamicNodeLabels(int[] labelIds) {

@@ -20,8 +20,7 @@
 package org.neo4j.internal.batchimport.cache.idmapping.string;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.AUTO_WITHOUT_PAGECACHE;
-import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.CHUNKED_FIXED_SIZE;
+import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.AUTO_WITHOUT_SWAP;
 import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.HEAP;
 import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.OFF_HEAP;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
@@ -42,7 +41,7 @@ class LongCollisionValuesTest {
     private RandomSupport random;
 
     static Collection<NumberArrayFactory> data() {
-        return Arrays.asList(HEAP, OFF_HEAP, AUTO_WITHOUT_PAGECACHE, CHUNKED_FIXED_SIZE);
+        return Arrays.asList(HEAP, OFF_HEAP, AUTO_WITHOUT_SWAP);
     }
 
     @ParameterizedTest

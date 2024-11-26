@@ -23,10 +23,9 @@ import java.util.ArrayList;
 import java.util.List;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.collection.PrimitiveLongCollections.RangedLongIterator;
-import org.neo4j.internal.batchimport.cache.ByteArray;
-import org.neo4j.internal.batchimport.cache.NodeRelationshipCache;
-import org.neo4j.internal.batchimport.cache.NodeRelationshipCache.NodeChangeVisitor;
-import org.neo4j.internal.batchimport.cache.NodeType;
+import org.neo4j.internal.batchimport.cache.legacy.NodeRelationshipCache;
+import org.neo4j.internal.batchimport.cache.legacy.NodeRelationshipCache.NodeChangeVisitor;
+import org.neo4j.internal.batchimport.cache.legacy.NodeType;
 import org.neo4j.internal.batchimport.staging.BatchSender;
 import org.neo4j.internal.batchimport.staging.ProcessorStep;
 import org.neo4j.internal.batchimport.staging.StageControl;
@@ -80,7 +79,7 @@ public class ReadGroupRecordsByCacheStep extends ProcessorStep<RangedLongIterato
         }
 
         @Override
-        public void change(long nodeId, ByteArray array) {
+        public void change(long nodeId) {
             cache.getFirstRel(nodeId, this);
         }
 

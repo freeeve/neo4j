@@ -19,116 +19,147 @@
  */
 package org.neo4j.internal.batchimport.cache;
 
-import static java.lang.System.currentTimeMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.DynamicTest.stream;
-import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Random;
-import java.util.function.Function;
-import java.util.stream.Stream;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.TestFactory;
-import org.junit.jupiter.api.function.ThrowingConsumer;
-import org.neo4j.internal.helpers.collection.Iterators;
-import org.neo4j.io.pagecache.PageCache;
-import org.neo4j.logging.NullLog;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.neo4j.memory.LocalMemoryTracker;
+import org.neo4j.memory.MemoryPools;
+import org.neo4j.test.RandomSupport;
+import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
+import org.neo4j.test.utils.TestDirectory;
 
-class IntArrayTest extends NumberArrayPageCacheTestSupport {
-    private static Fixture fixture;
-    private final long seed = currentTimeMillis();
-    private final Random random = new Random(seed);
+@TestDirectoryExtension
+@ExtendWith(RandomExtension.class)
+class IntArrayTest {
+    @Inject
+    private TestDirectory testDirectory;
 
-    @BeforeAll
-    static void setUp() throws IOException {
-        fixture = prepareDirectoryAndPageCache(IntArrayTest.class);
-    }
+    @Inject
+    private RandomSupport random;
 
-    @AfterAll
-    static void tearDown() throws Exception {
-        fixture.close();
-    }
-
-    @TestFactory
-    Stream<DynamicTest> shouldHandleSomeRandomSetAndGet() {
+    @ParameterizedTest
+    @ArgumentsSource(NumberArraysArgumentProvider.class)
+    void shouldHandleSomeRandomSetAndGet(NumberArraysArgumentProvider.Factory factory) {
         // GIVEN
-        ThrowingConsumer<NumberArrayFactory> arrayFactoryConsumer = factory -> {
-            int length = random.nextInt(100_000) + 100;
-            int defaultValue = random.nextInt(2) - 1; // 0 or -1
-            try (IntArray array = factory.newIntArray(length, defaultValue, INSTANCE)) {
-                int[] expected = new int[length];
-                Arrays.fill(expected, defaultValue);
-
-                // WHEN
-                int operations = random.nextInt(1_000) + 10;
-                for (int i = 0; i < operations; i++) {
-                    // THEN
-                    int index = random.nextInt(length);
-                    int value = random.nextInt();
-                    switch (random.nextInt(3)) {
-                        case 0: // set
-                            array.set(index, value);
-                            expected[index] = value;
-                            break;
-                        case 1: // get
-                            assertEquals(expected[index], array.get(index), "Seed:" + seed);
-                            break;
-                        default: // swap
-                            int toIndex = random.nextInt(length);
-                            array.swap(index, toIndex);
-                            swap(expected, index, toIndex);
-                            break;
-                    }
-                }
-            }
-        };
-        return stream(arrayFactories(), getNumberArrayFactoryName(), arrayFactoryConsumer);
-    }
-
-    @TestFactory
-    Stream<DynamicTest> shouldHandleMultipleCallsToClose() {
-        return DynamicTest.stream(arrayFactories(), getNumberArrayFactoryName(), factory -> {
-            // GIVEN
-            NumberArray<?> array = factory.newIntArray(10, -1, INSTANCE);
+        int length = random.nextInt(100_000) + 100;
+        int defaultValue = random.nextInt(2) - 1; // 0 or -1
+        try (IntArray array = getNumberArrayFactory(factory).newIntArray(length, defaultValue, INSTANCE)) {
+            int[] expected = new int[length];
+            Arrays.fill(expected, defaultValue);
 
             // WHEN
-            array.close();
-
-            // THEN should also work
-            array.close();
-        });
+            int operations = random.nextInt(1_000) + 10;
+            for (int i = 0; i < operations; i++) {
+                // THEN
+                int index = random.nextInt(length);
+                int value = random.nextInt();
+                switch (random.nextInt(3)) {
+                    case 0: // set
+                        array.set(index, value);
+                        expected[index] = value;
+                        break;
+                    case 1: // get
+                        assertEquals(expected[index], array.get(index));
+                        break;
+                    default: // swap
+                        int toIndex = random.nextInt(length);
+                        array.swap(index, toIndex);
+                        swap(expected, index, toIndex);
+                        break;
+                }
+            }
+        }
     }
 
-    private static Function<NumberArrayFactory, String> getNumberArrayFactoryName() {
-        return factory -> factory.getClass().getName();
+    @ParameterizedTest
+    @ArgumentsSource(NumberArraysArgumentProvider.class)
+    void shouldHandleMultipleCallsToClose(NumberArraysArgumentProvider.Factory factory) {
+        // GIVEN
+        NumberArray array = getNumberArrayFactory(factory).newIntArray(10, -1, INSTANCE);
+
+        // WHEN
+        array.close();
+
+        // THEN should also work
+        array.close();
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(NumberArraysArgumentProvider.class)
+    void shouldWorkOnSingleChunk(NumberArraysArgumentProvider.Factory factory) {
+        // GIVEN
+        int defaultValue = 0;
+        try (IntArray array = getNumberArrayFactory(factory).newDynamicIntArray(10, defaultValue, INSTANCE)) {
+            array.set(4, 5);
+
+            // WHEN
+            assertEquals(5, array.get(4));
+            assertEquals(defaultValue, array.get(12));
+            array.set(7, 1324);
+            assertEquals(1324, array.get(7));
+        }
+    }
+
+    @Test
+    void trackHeapMemoryOnArrayAllocations() {
+        var memoryTracker = new LocalMemoryTracker(MemoryPools.NO_TRACKING, 300, 0, null);
+        var longArray = NumberArrayFactories.HEAP.newDynamicLongArray(10, 0, memoryTracker);
+
+        assertEquals(0, memoryTracker.estimatedHeapMemory());
+        assertEquals(0, memoryTracker.usedNativeMemory());
+
+        longArray.set(0, 5);
+
+        assertEquals(80, memoryTracker.estimatedHeapMemory());
+        assertEquals(0, memoryTracker.usedNativeMemory());
+    }
+
+    @Test
+    void trackNativeMemoryOnArrayAllocations() {
+        var memoryTracker = new LocalMemoryTracker(MemoryPools.NO_TRACKING, 300, 0, null);
+        try (var longArray = NumberArrayFactories.OFF_HEAP.newDynamicLongArray(10, 0, memoryTracker)) {
+
+            assertEquals(0, memoryTracker.estimatedHeapMemory());
+            assertEquals(0, memoryTracker.usedNativeMemory());
+
+            longArray.set(0, 5);
+
+            assertEquals(0, memoryTracker.estimatedHeapMemory());
+            assertEquals(64, memoryTracker.usedNativeMemory());
+        }
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(NumberArraysArgumentProvider.class)
+    void shouldAddChunksAsNeeded(NumberArraysArgumentProvider.Factory factory) {
+        NumberArrayFactory numberArrayFactory = getNumberArrayFactory(factory);
+        // GIVEN
+        try (IntArray array = numberArrayFactory.newDynamicIntArray(10, 0, INSTANCE)) {
+
+            // WHEN
+            long index = 243;
+            int value = 5485748;
+            array.set(index, value);
+
+            // THEN
+            assertEquals(value, array.get(index));
+        }
+    }
+
+    private NumberArrayFactory getNumberArrayFactory(NumberArraysArgumentProvider.Factory factory) {
+        return factory.create(testDirectory.getFileSystem(), testDirectory.homePath());
     }
 
     private static void swap(int[] expected, int fromIndex, int toIndex) {
         int fromValue = expected[fromIndex];
         expected[fromIndex] = expected[toIndex];
         expected[toIndex] = fromValue;
-    }
-
-    private static Iterator<NumberArrayFactory> arrayFactories() {
-        PageCache pageCache = fixture.pageCache;
-        Path dir = fixture.directory;
-        var contextFactory = fixture.contextFactory;
-        NullLog log = NullLog.getInstance();
-        NumberArrayFactory autoWithPageCacheFallback = NumberArrayFactories.auto(
-                pageCache, contextFactory, dir, true, NumberArrayFactories.NO_MONITOR, log, DEFAULT_DATABASE_NAME);
-        NumberArrayFactory pageCacheArrayFactory =
-                new PageCachedNumberArrayFactory(pageCache, contextFactory, dir, log, DEFAULT_DATABASE_NAME);
-        return Iterators.iterator(
-                NumberArrayFactories.HEAP,
-                NumberArrayFactories.OFF_HEAP,
-                autoWithPageCacheFallback,
-                pageCacheArrayFactory);
     }
 }

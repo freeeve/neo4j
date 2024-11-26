@@ -39,6 +39,7 @@ class EphemeralFileData {
     private EphemeralDynamicByteBuffer forcedBuffer;
     private long lastModified;
     private int locked; // Guarded by lock on 'channels'
+    private boolean isMapped; // True if memory mapped
 
     EphemeralFileData(Path file, Clock clock) {
         this(file, new EphemeralDynamicByteBuffer(), clock);
@@ -187,5 +188,13 @@ class EphemeralFileData {
 
     synchronized long getLastModified() {
         return lastModified;
+    }
+
+    synchronized void setIsMapped() {
+        isMapped = true;
+    }
+
+    synchronized boolean isMapped() {
+        return isMapped;
     }
 }

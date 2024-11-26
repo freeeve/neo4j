@@ -19,26 +19,16 @@
  */
 package org.neo4j.internal.batchimport.cache;
 
-import static org.neo4j.internal.helpers.Numbers.safeCastLongToInt;
+import java.nio.ByteBuffer;
+import org.neo4j.logging.InternalLog;
+import org.neo4j.memory.MemoryTracker;
 
-/**
- * Base class for common functionality for any {@link NumberArray} where the data lives inside heap.
- */
-abstract class HeapNumberArray<N extends NumberArray<N>> extends BaseNumberArray<N> {
-    protected HeapNumberArray(int itemSize, long base) {
-        super(itemSize, base);
-    }
+public interface BufferFactory {
+    record AllocatedBuffer(ByteBuffer buffer, AutoCloseable closeable) {}
 
-    @Override
-    public void acceptMemoryStatsVisitor(MemoryStatsVisitor visitor) {
-        visitor.heapUsage(length() * itemSize); // roughly
-    }
+    AllocatedBuffer allocate(int size, MemoryTracker memoryTracker);
 
-    @Override
-    public void close() { // Nothing to close
-    }
+    void clear(ByteBuffer buffer, byte defaultValue);
 
-    protected int index(long index) {
-        return safeCastLongToInt(rebase(index));
-    }
+    default void warnForUsage(InternalLog log) {}
 }

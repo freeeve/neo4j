@@ -25,14 +25,30 @@ package org.neo4j.internal.batchimport.cache;
  *
  * @see NumberArrayFactory
  */
-public interface IntArray extends NumberArray<IntArray> {
+public interface IntArray extends NumberArray {
     int get(long index);
 
     void set(long index, int value);
 
-    default boolean compareAndSwap(long index, int expectedValue, int updatedValue) {
-        throw new UnsupportedOperationException();
-    }
+    /**
+     * Atomically compare and set a value with volatile memory semantic.
+     *
+     * @param index The index in the array.
+     * @param expected expected value to compare with.
+     * @param value new value to set if {@code expected} matches.
+     * @return {@code true} if CAS was successful, {@code false} otherwise.
+     */
+    boolean compareAndSet(long index, int expected, int value);
+
+    /**
+     * Atomically compare and exchange a value with volatile memory semantic.
+     *
+     * @param index The index in the array.
+     * @param expected expected value to compare with.
+     * @param value new value to set if {@code expected} matches.
+     * @return the witness value.
+     */
+    int compareAndExchange(long index, int expected, int value);
 
     @Override
     default void swap(long fromIndex, long toIndex) {
@@ -40,4 +56,40 @@ public interface IntArray extends NumberArray<IntArray> {
         set(fromIndex, get(toIndex));
         set(toIndex, intermediary);
     }
+
+    IntArray EMPTY_ARRAY = new IntArray() {
+        @Override
+        public void acceptMemoryStatsVisitor(MemoryStatsVisitor visitor) {}
+
+        @Override
+        public long length() {
+            return 0;
+        }
+
+        @Override
+        public void clear() {}
+
+        @Override
+        public void close() {}
+
+        @Override
+        public int get(long index) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public void set(long index, int value) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public boolean compareAndSet(long index, int expectedValue, int updatedValue) {
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        @Override
+        public int compareAndExchange(long index, int expected, int value) {
+            throw new IndexOutOfBoundsException(index);
+        }
+    };
 }

@@ -24,8 +24,7 @@ import static org.neo4j.collection.PrimitiveLongCollections.iterator;
 
 import java.util.Arrays;
 import org.neo4j.batchimport.api.Configuration;
-import org.neo4j.internal.batchimport.cache.ByteArray;
-import org.neo4j.internal.batchimport.cache.NodeRelationshipCache;
+import org.neo4j.internal.batchimport.cache.legacy.NodeRelationshipCache;
 import org.neo4j.internal.batchimport.staging.ProducerStep;
 import org.neo4j.internal.batchimport.staging.StageControl;
 import org.neo4j.kernel.impl.store.record.NodeRecord;
@@ -59,7 +58,7 @@ public class ReadNodeIdsByCacheStep extends ProducerStep {
         private long time = nanoTime();
 
         @Override
-        public void change(long nodeId, ByteArray array) {
+        public void change(long nodeId) {
             batch[cursor++] = nodeId;
             if (cursor == batchSize) {
                 send();

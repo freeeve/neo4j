@@ -22,23 +22,8 @@ package org.neo4j.consistency.checking.cache;
 import static java.lang.Math.ceil;
 
 public interface CacheSlots {
-    int LABELS_SLOT_SIZE = 40;
     int ID_SLOT_SIZE = 40;
-    long MAX_ID_SLOT_SIZE = 1L << ID_SLOT_SIZE - 1;
     long CACHE_LINE_SIZE_BYTES = (long) ceil((2D * ID_SLOT_SIZE + 3) / Byte.SIZE);
-
-    interface NodeLabel {
-        int SLOT_LABEL_FIELD = 0;
-        int SLOT_IN_USE = 1;
-    }
-
-    interface NextRelationship {
-        int SLOT_RELATIONSHIP_ID = 0;
-        int SLOT_FIRST_IN_SOURCE = 1;
-        int SLOT_FIRST_IN_TARGET = 2;
-        int SLOT_NODE_IS_DENSE = 3;
-        int SLOT_CHECK_MARK = 4;
-    }
 
     interface NodeLink {
         int SLOT_RELATIONSHIP_ID = 0;

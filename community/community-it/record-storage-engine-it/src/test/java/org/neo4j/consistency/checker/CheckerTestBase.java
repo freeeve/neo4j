@@ -68,7 +68,6 @@ import org.neo4j.consistency.report.ConsistencyReporter;
 import org.neo4j.consistency.report.ConsistencySummaryStatistics;
 import org.neo4j.consistency.report.InconsistencyMessageLogger;
 import org.neo4j.consistency.report.InconsistencyReport;
-import org.neo4j.consistency.statistics.Counts;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.Transaction;
@@ -194,9 +193,7 @@ class CheckerTestBase {
         tokenHolders = dependencies.resolveDependency(TokenHolders.class);
         schemaStorage = new SchemaStorage(schemaStore, tokenHolders);
         cacheAccess = new DefaultCacheAccess(
-                NumberArrayFactories.HEAP.newDynamicByteArray(10_000, new byte[MAX_BYTES], INSTANCE),
-                Counts.NONE,
-                NUMBER_OF_THREADS);
+                NumberArrayFactories.HEAP.newDynamicByteArray(10_000, new byte[MAX_BYTES], INSTANCE));
         cacheAccess.setCacheSlotSizes(DEFAULT_SLOT_SIZES);
         pageCache = dependencies.resolveDependency(PageCache.class);
         storeCursors = new CachedStoreCursors(neoStores, CursorContext.NULL_CONTEXT);

@@ -28,7 +28,7 @@ import static org.neo4j.kernel.impl.store.record.Record.NULL_REFERENCE;
 
 import org.junit.jupiter.api.Test;
 import org.neo4j.batchimport.api.Configuration;
-import org.neo4j.internal.batchimport.cache.NodeRelationshipCache;
+import org.neo4j.internal.batchimport.cache.legacy.NodeRelationshipCache;
 import org.neo4j.internal.batchimport.staging.SimpleStageControl;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;

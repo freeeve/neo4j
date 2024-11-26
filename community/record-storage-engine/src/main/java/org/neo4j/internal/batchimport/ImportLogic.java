@@ -53,13 +53,12 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.counts.CountsUpdater;
 import org.neo4j.internal.batchimport.cache.GatheringMemoryStatsVisitor;
 import org.neo4j.internal.batchimport.cache.MemoryStatsVisitor;
-import org.neo4j.internal.batchimport.cache.NodeLabelsCache;
-import org.neo4j.internal.batchimport.cache.NodeRelationshipCache;
-import org.neo4j.internal.batchimport.cache.NodeType;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactory;
-import org.neo4j.internal.batchimport.cache.PageCacheArrayFactoryMonitor;
 import org.neo4j.internal.batchimport.cache.idmapping.IdMapper;
 import org.neo4j.internal.batchimport.cache.idmapping.IdMappers;
+import org.neo4j.internal.batchimport.cache.legacy.NodeLabelsCache;
+import org.neo4j.internal.batchimport.cache.legacy.NodeRelationshipCache;
+import org.neo4j.internal.batchimport.cache.legacy.NodeType;
 import org.neo4j.internal.batchimport.input.EstimationSanityChecker;
 import org.neo4j.internal.batchimport.staging.ExecutionMonitor;
 import org.neo4j.internal.batchimport.staging.ExecutionSupervisors;
@@ -176,15 +175,7 @@ public class ImportLogic implements Closeable {
         log.info("Import starting");
         startTime = currentTimeMillis();
         this.input = input;
-        PageCacheArrayFactoryMonitor numberArrayFactoryMonitor = new PageCacheArrayFactoryMonitor();
-        numberArrayFactory = auto(
-                neoStore.getPageCache(),
-                contextFactory,
-                databaseDirectory,
-                false,
-                numberArrayFactoryMonitor,
-                log,
-                databaseName);
+        numberArrayFactory = auto(neoStore.fileSystem(), databaseDirectory, false, log);
         // Some temporary caches and indexes in the import
         Input.Estimates inputEstimates =
                 input.validateAndEstimate(neoStore.getPropertyStore().newValueEncodedSizeCalculator());
@@ -202,8 +193,7 @@ public class ImportLogic implements Closeable {
                         NodeRelationshipCache.memoryEstimation(inputEstimates.numberOfNodes()),
                         idMapper.memoryEstimation(inputEstimates.numberOfNodes()));
 
-        dependencies.satisfyDependencies(
-                inputEstimates, idMapper, neoStore, nodeRelationshipCache, numberArrayFactoryMonitor);
+        dependencies.satisfyDependencies(inputEstimates, idMapper, neoStore, nodeRelationshipCache);
 
         if (neoStore.determineDoubleRelationshipRecordUnits(inputEstimates)) {
             monitor.doubleRelationshipRecordUnitsEnabled();

@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.store;
 
-import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.NO_MONITOR;
 import static org.neo4j.internal.batchimport.staging.ExecutionSupervisors.superviseDynamicExecution;
 
 import java.util.function.Function;
@@ -27,14 +26,14 @@ import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.counts.CountsUpdater;
 import org.neo4j.internal.batchimport.NodeCountsStage;
 import org.neo4j.internal.batchimport.RelationshipCountsStage;
-import org.neo4j.internal.batchimport.cache.NodeLabelsCache;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactory;
+import org.neo4j.internal.batchimport.cache.legacy.NodeLabelsCache;
 import org.neo4j.internal.counts.CountsBuilder;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
+import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
-import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
@@ -56,7 +55,7 @@ public class CountsComputer implements CountsBuilder {
 
     public CountsComputer(
             NeoStores stores,
-            PageCache pageCache,
+            FileSystemAbstraction fs,
             CursorContextFactory contextFactory,
             DatabaseLayout databaseLayout,
             MemoryTracker memoryTracker,
@@ -64,7 +63,7 @@ public class CountsComputer implements CountsBuilder {
         this(
                 stores,
                 stores.getMetaDataStore().getLastCommittedTransactionId(),
-                pageCache,
+                fs,
                 contextFactory,
                 databaseLayout,
                 memoryTracker,
@@ -74,7 +73,7 @@ public class CountsComputer implements CountsBuilder {
     public CountsComputer(
             NeoStores stores,
             long lastCommittedTransactionId,
-            PageCache pageCache,
+            FileSystemAbstraction fs,
             CursorContextFactory contextFactory,
             DatabaseLayout databaseLayout,
             MemoryTracker memoryTracker,
@@ -86,14 +85,7 @@ public class CountsComputer implements CountsBuilder {
                 stores.getRelationshipStore(),
                 (int) stores.getLabelTokenStore().getIdGenerator().getHighId(),
                 (int) stores.getRelationshipTypeTokenStore().getIdGenerator().getHighId(),
-                NumberArrayFactories.auto(
-                        pageCache,
-                        contextFactory,
-                        databaseLayout.databaseDirectory(),
-                        true,
-                        NO_MONITOR,
-                        log,
-                        databaseLayout.getDatabaseName()),
+                NumberArrayFactories.auto(fs, databaseLayout.databaseDirectory(), true, log),
                 ProgressMonitorFactory.NONE,
                 contextFactory,
                 memoryTracker);

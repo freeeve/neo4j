@@ -256,7 +256,7 @@ class RelationshipGroupDefragmenterTest {
                 CONFIG,
                 ExecutionMonitor.INVISIBLE,
                 monitor,
-                NumberArrayFactories.AUTO_WITHOUT_PAGECACHE,
+                NumberArrayFactories.AUTO_WITHOUT_SWAP,
                 contextFactory,
                 INSTANCE);
 

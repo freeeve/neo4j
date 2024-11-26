@@ -21,8 +21,8 @@ package org.neo4j.internal.batchimport;
 
 import java.util.function.Predicate;
 import org.neo4j.batchimport.api.Configuration;
-import org.neo4j.internal.batchimport.cache.NodeRelationshipCache;
-import org.neo4j.internal.batchimport.cache.NodeType;
+import org.neo4j.internal.batchimport.cache.legacy.NodeRelationshipCache;
+import org.neo4j.internal.batchimport.cache.legacy.NodeType;
 import org.neo4j.internal.batchimport.staging.ForkedProcessorStep;
 import org.neo4j.internal.batchimport.staging.StageControl;
 import org.neo4j.internal.batchimport.stats.StatsProvider;

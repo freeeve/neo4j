@@ -24,7 +24,7 @@ import static org.neo4j.graphdb.Direction.BOTH;
 import java.util.function.Predicate;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.graphdb.Direction;
-import org.neo4j.internal.batchimport.cache.NodeRelationshipCache;
+import org.neo4j.internal.batchimport.cache.legacy.NodeRelationshipCache;
 import org.neo4j.internal.batchimport.staging.StageControl;
 import org.neo4j.internal.batchimport.stats.StatsProvider;
 import org.neo4j.kernel.impl.store.record.RelationshipRecord;

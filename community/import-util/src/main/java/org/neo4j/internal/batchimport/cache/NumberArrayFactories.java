@@ -19,121 +19,66 @@
  */
 package org.neo4j.internal.batchimport.cache;
 
-import static java.lang.Math.toIntExact;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static org.neo4j.internal.helpers.Exceptions.chain;
+import static org.neo4j.internal.unsafe.UnsafeUtil.getDirectByteBufferAddress;
 import static org.neo4j.io.ByteUnit.bytesToString;
+import static org.neo4j.util.Preconditions.checkArgument;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
-import java.util.function.Function;
+import org.apache.commons.lang3.ArrayUtils;
 import org.neo4j.internal.unsafe.NativeMemoryAllocationRefusedError;
-import org.neo4j.io.pagecache.PageCache;
-import org.neo4j.io.pagecache.context.CursorContextFactory;
+import org.neo4j.internal.unsafe.UnsafeUtil;
+import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.logging.InternalLog;
+import org.neo4j.logging.NullLog;
 import org.neo4j.memory.MemoryTracker;
 
-public class NumberArrayFactories {
+public final class NumberArrayFactories {
     private NumberArrayFactories() {}
-
-    public static final NumberArrayFactory.Monitor NO_MONITOR =
-            (memory, successfulFactory, attemptedAllocationFailures) -> {
-                /* no-op */
-            };
 
     /**
      * Puts arrays inside the heap.
      */
-    public static final NumberArrayFactory HEAP = new NumberArrayFactory.Adapter() {
-        @Override
-        public IntArray newIntArray(long length, int defaultValue, long base, MemoryTracker memoryTracker) {
-            return new HeapIntArray(toIntExact(length), defaultValue, base, memoryTracker);
-        }
-
-        @Override
-        public LongArray newLongArray(long length, long defaultValue, long base, MemoryTracker memoryTracker) {
-            return new HeapLongArray(toIntExact(length), defaultValue, base, memoryTracker);
-        }
-
-        @Override
-        public HeapByteArray newByteArray(long length, byte[] defaultValue, long base, MemoryTracker memoryTracker) {
-            return new HeapByteArray(toIntExact(length), defaultValue, base, memoryTracker);
-        }
-
-        @Override
-        public String toString() {
-            return "HEAP";
-        }
-    };
+    public static final NumberArrayFactory HEAP = new NumberArrayFactoryImpl(BufferFactories.HEAP);
 
     /**
      * Puts arrays off-heap, using unsafe calls.
      */
-    public static final NumberArrayFactory OFF_HEAP = new NumberArrayFactory.Adapter() {
-        @Override
-        public IntArray newIntArray(long length, int defaultValue, long base, MemoryTracker memoryTracker) {
-            return new OffHeapIntArray(length, defaultValue, base, memoryTracker);
-        }
-
-        @Override
-        public LongArray newLongArray(long length, long defaultValue, long base, MemoryTracker memoryTracker) {
-            return new OffHeapLongArray(length, defaultValue, base, memoryTracker);
-        }
-
-        @Override
-        public ByteArray newByteArray(long length, byte[] defaultValue, long base, MemoryTracker memoryTracker) {
-            return new OffHeapByteArray(length, defaultValue, base, memoryTracker);
-        }
-
-        @Override
-        public String toString() {
-            return "OFF_HEAP";
-        }
-    };
+    public static final NumberArrayFactory OFF_HEAP = new NumberArrayFactoryImpl(BufferFactories.OFF_HEAP);
 
     /**
-     * Used as part of the fallback strategy for {@link Auto}. Tries to split up fixed-size arrays ({@link NumberArrayFactory#newLongArray(long, long,
-     * MemoryTracker)} and {@link NumberArrayFactory#newIntArray(long, int, MemoryTracker)} into smaller chunks where some can live on heap and some off heap.
+     * {@link Auto} factory.
      */
-    public static final NumberArrayFactory CHUNKED_FIXED_SIZE =
-            new ChunkedNumberArrayFactory(NO_MONITOR, OFF_HEAP, HEAP);
-
-    /**
-     * {@link Auto} factory which uses JVM stats for gathering information about available memory.
-     */
-    public static final NumberArrayFactory AUTO_WITHOUT_PAGECACHE =
-            new Auto(NO_MONITOR, OFF_HEAP, HEAP, CHUNKED_FIXED_SIZE);
+    public static final NumberArrayFactory AUTO_WITHOUT_SWAP =
+            new NumberArrayFactoryImpl(new Auto(NullLog.getInstance(), BufferFactories.OFF_HEAP, BufferFactories.HEAP));
 
     /**
      * {@link Auto} factory which has a page cache backed number array as final fallback, in order to prevent OOM errors.
      *
-     * @param pageCache           {@link PageCache} to fallback allocation into, if no more memory is available.
-     * @param contextFactory      underlying page cache cursor context factory.
      * @param dir                 directory where cached files are placed.
      * @param allowHeapAllocation whether or not to allow allocation on heap. Otherwise allocation is restricted to off-heap and the page cache fallback. This
      *                            to be more in control of available space in the heap at all times.
-     * @param monitor             for monitoring successful and failed allocations and which factory was selected.
      * @return a {@link NumberArrayFactory} which tries to allocation off-heap, then potentially on heap and lastly falls back to allocating inside the given
      * {@code pageCache}.
      */
     public static NumberArrayFactory auto(
-            PageCache pageCache,
-            CursorContextFactory contextFactory,
-            Path dir,
-            boolean allowHeapAllocation,
-            NumberArrayFactory.Monitor monitor,
-            InternalLog log,
-            String databaseName) {
-        PageCachedNumberArrayFactory pagedArrayFactory =
-                new PageCachedNumberArrayFactory(pageCache, contextFactory, dir, log, databaseName);
-        ChunkedNumberArrayFactory chunkedArrayFactory =
-                new ChunkedNumberArrayFactory(monitor, allocationAlternatives(allowHeapAllocation, pagedArrayFactory));
-        return new Auto(monitor, allocationAlternatives(allowHeapAllocation, chunkedArrayFactory));
+            FileSystemAbstraction fs, Path dir, boolean allowHeapAllocation, InternalLog log) {
+        try {
+            SwappingBufferFactory swappingBufferFactory = new SwappingBufferFactory(fs, dir);
+            return new NumberArrayFactoryImpl(
+                    new Auto(log, allocationAlternatives(allowHeapAllocation, swappingBufferFactory)));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     /**
@@ -141,70 +86,146 @@ public class NumberArrayFactories {
      * @param additional          other means of allocation to try after the standard off/on heap alternatives.
      * @return an array of {@link NumberArrayFactory} with the desired alternatives.
      */
-    private static NumberArrayFactory[] allocationAlternatives(
-            boolean allowHeapAllocation, NumberArrayFactory... additional) {
-        List<NumberArrayFactory> result = new ArrayList<>(Collections.singletonList(OFF_HEAP));
+    private static BufferFactory[] allocationAlternatives(boolean allowHeapAllocation, BufferFactory... additional) {
+        List<BufferFactory> result = new ArrayList<>(Collections.singletonList(BufferFactories.OFF_HEAP));
         if (allowHeapAllocation) {
-            result.add(HEAP);
+            result.add(BufferFactories.HEAP);
         }
         result.addAll(asList(additional));
-        return result.toArray(new NumberArrayFactory[0]);
+        return result.toArray(new BufferFactory[0]);
+    }
+
+    public static NumberArrayFactory fromBufferFactory(BufferFactory bufferFactory) {
+        return new NumberArrayFactoryImpl(bufferFactory);
+    }
+
+    static class NumberArrayFactoryImpl implements NumberArrayFactory {
+        private final BufferFactory bufferFactory;
+
+        NumberArrayFactoryImpl(BufferFactory bufferFactory) {
+            this.bufferFactory = bufferFactory;
+        }
+
+        @Override
+        public IntArray newIntArray(long length, int defaultValue, MemoryTracker memoryTracker) {
+            if (length == 0) {
+                return IntArray.EMPTY_ARRAY;
+            }
+            return new IntArrayImpl(length, 0, toUniformByte(defaultValue), bufferFactory, memoryTracker);
+        }
+
+        @Override
+        public IntArray newDynamicIntArray(int chunkSize, int defaultValue, MemoryTracker memoryTracker) {
+            return new IntArrayImpl(0, chunkSize, toUniformByte(defaultValue), bufferFactory, memoryTracker);
+        }
+
+        @Override
+        public LongArray newLongArray(long length, long defaultValue, MemoryTracker memoryTracker) {
+            if (length == 0) {
+                return LongArray.EMPTY_ARRAY;
+            }
+            return new LongArrayImpl(length, 0, toUniformByte(defaultValue), bufferFactory, memoryTracker);
+        }
+
+        @Override
+        public LongArray newDynamicLongArray(int chunkSize, long defaultValue, MemoryTracker memoryTracker) {
+            return new LongArrayImpl(0, chunkSize, toUniformByte(defaultValue), bufferFactory, memoryTracker);
+        }
+
+        @Override
+        public ByteArray newByteArray(long length, byte[] defaultValue, MemoryTracker memoryTracker) {
+            if (length == 0) {
+                return ByteArray.EMPTY_ARRAY;
+            }
+            return new ByteArrayImpl(
+                    length, defaultValue.length, 0, toUniformByte(defaultValue), bufferFactory, memoryTracker);
+        }
+
+        @Override
+        public ByteArray newDynamicByteArray(int chunkSize, byte[] defaultValue, MemoryTracker memoryTracker) {
+            return new ByteArrayImpl(
+                    0, defaultValue.length, chunkSize, toUniformByte(defaultValue), bufferFactory, memoryTracker);
+        }
+
+        private static byte toUniformByte(int v) {
+            return toUniformByte(new byte[] {(byte) (v >> 24), (byte) (v >> 16), (byte) (v >> 8), (byte) v});
+        }
+
+        private static byte toUniformByte(long v) {
+            return toUniformByte(new byte[] {
+                (byte) (v >> 56),
+                (byte) (v >> 48),
+                (byte) (v >> 40),
+                (byte) (v >> 32),
+                (byte) (v >> 24),
+                (byte) (v >> 16),
+                (byte) (v >> 8),
+                (byte) v
+            });
+        }
+
+        private static byte toUniformByte(byte[] bytes) {
+            byte reference = bytes[0];
+            for (int i = 1; i < bytes.length; i++) {
+                checkArgument(reference == bytes[i], "Default value must be uniform");
+            }
+            return reference;
+        }
     }
 
     /**
      * Looks at available memory and decides where the requested array fits best. Tries to allocate the whole array with the first candidate, falling back to
      * others as needed.
      */
-    static class Auto extends NumberArrayFactory.Adapter {
-        private final Monitor monitor;
-        private final NumberArrayFactory[] candidates;
+    static class Auto implements BufferFactory {
+        private final InternalLog log;
+        private final BufferFactory[] candidates;
+        private volatile BufferFactory currentFactory;
+        private Error error;
 
-        Auto(Monitor monitor, NumberArrayFactory... candidates) {
-            Objects.requireNonNull(monitor);
-            this.monitor = monitor;
+        Auto(InternalLog log, BufferFactory... candidates) {
+            this.log = log;
             this.candidates = candidates;
+            this.currentFactory = candidates[0];
         }
 
         @Override
-        public LongArray newLongArray(long length, long defaultValue, long base, MemoryTracker memoryTracker) {
-            return tryAllocate(length, 8, f -> f.newLongArray(length, defaultValue, base, memoryTracker));
-        }
-
-        @Override
-        public IntArray newIntArray(long length, int defaultValue, long base, MemoryTracker memoryTracker) {
-            return tryAllocate(length, 4, f -> f.newIntArray(length, defaultValue, base, memoryTracker));
-        }
-
-        @Override
-        public ByteArray newByteArray(long length, byte[] defaultValue, long base, MemoryTracker memoryTracker) {
-            return tryAllocate(
-                    length, defaultValue.length, f -> f.newByteArray(length, defaultValue, base, memoryTracker));
-        }
-
-        private <T extends NumberArray<? extends T>> T tryAllocate(
-                long length, int itemSize, Function<NumberArrayFactory, T> allocator) {
-            List<AllocationFailure> failures = new ArrayList<>();
-            Error error = null;
-            for (NumberArrayFactory candidate : candidates) {
+        public AllocatedBuffer allocate(int size, MemoryTracker memoryTracker) {
+            BufferFactory bufferFactory = currentFactory;
+            while (true) {
                 try {
-                    try {
-                        T array = allocator.apply(candidate);
-                        monitor.allocationSuccessful(length * itemSize, candidate, failures);
-                        return array;
-                    } catch (ArithmeticException e) {
-                        throw new OutOfMemoryError(e.getMessage());
-                    }
+                    return bufferFactory.allocate(size, memoryTracker);
                 } catch (OutOfMemoryError | NativeMemoryAllocationRefusedError e) { // Alright let's try the next one
-
-                    error = chain(e, error);
-                    failures.add(new AllocationFailure(e, candidate));
+                    bufferFactory = switchFactory(bufferFactory, size, e);
                 }
             }
-            throw chain(
-                    new OutOfMemoryError(format(
-                            "Not enough memory available for allocating %s, tried %s",
-                            bytesToString(length * itemSize), Arrays.toString(candidates))),
-                    error);
+        }
+
+        private synchronized BufferFactory switchFactory(BufferFactory failedCandidate, int size, Error e) {
+            if (currentFactory == failedCandidate) {
+                error = chain(e, error);
+                int nextIndex = ArrayUtils.indexOf(candidates, failedCandidate) + 1;
+                if (nextIndex > candidates.length) {
+                    throw chain(
+                            new OutOfMemoryError(format(
+                                    "Not enough memory available for allocating %s, tried %s",
+                                    bytesToString(size), Arrays.toString(candidates))),
+                            error);
+                }
+                currentFactory = candidates[nextIndex];
+                currentFactory.warnForUsage(log);
+            }
+
+            return currentFactory;
+        }
+
+        @Override
+        public void clear(ByteBuffer buffer, byte defaultValue) {
+            if (buffer.hasArray()) {
+                Arrays.fill(buffer.array(), defaultValue);
+            } else {
+                UnsafeUtil.setMemory(getDirectByteBufferAddress(buffer), buffer.capacity(), defaultValue);
+            }
         }
     }
 }

@@ -45,7 +45,6 @@ import org.neo4j.consistency.report.ConsistencyReporter;
 import org.neo4j.consistency.report.ConsistencySummaryStatistics;
 import org.neo4j.consistency.report.InconsistencyMessageLogger;
 import org.neo4j.consistency.report.InconsistencyReport;
-import org.neo4j.consistency.statistics.Counts;
 import org.neo4j.counts.CountsUpdater;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
@@ -180,7 +179,7 @@ public class RecordStorageConsistencyChecker implements AutoCloseable {
         RecordLoading recordLoading = new RecordLoading(neoStores);
         this.limiter = instantiateMemoryLimiter(memoryLimit);
         this.cacheAccessMemory = DefaultCacheAccess.defaultByteArray(limiter.rangeSize(), memoryTracker);
-        this.cacheAccess = new DefaultCacheAccess(cacheAccessMemory, Counts.NONE, numberOfThreads);
+        this.cacheAccess = new DefaultCacheAccess(cacheAccessMemory);
         this.observedCounts = new CountsState(neoStores, cacheAccess, memoryTracker);
         this.progress = progressFactory.multipleParts("Consistency check");
         this.indexAccessors = instantiateIndexAccessors(

@@ -50,7 +50,6 @@ import org.neo4j.internal.batchimport.DataStatistics;
 import org.neo4j.internal.batchimport.DefaultAdditionalIds;
 import org.neo4j.internal.batchimport.NodeDegreeCountStage;
 import org.neo4j.internal.batchimport.ParallelBatchImporter;
-import org.neo4j.internal.batchimport.cache.PageCacheArrayFactoryMonitor;
 import org.neo4j.internal.batchimport.cache.idmapping.IdMappers;
 import org.neo4j.internal.batchimport.input.DataGeneratorInput;
 import org.neo4j.internal.batchimport.input.Groups;
@@ -148,7 +147,6 @@ class HumanUnderstandableExecutionMonitorIT {
         when(neoStores.getRelationshipStore()).thenReturn(relationshipStore);
         dependencies.satisfyDependency(neoStores);
         dependencies.satisfyDependency(IdMappers.actual());
-        dependencies.satisfyDependency(mock(PageCacheArrayFactoryMonitor.class));
         dependencies.satisfyDependency(new DataStatistics(10, 10, new DataStatistics.RelationshipTypeCount[0]));
         monitor.initialize(dependencies);
 

@@ -21,6 +21,7 @@ package org.neo4j.internal.helpers;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.nio.ByteOrder;
 
 public final class VarHandleUtils {
 
@@ -82,6 +83,32 @@ public final class VarHandleUtils {
      */
     public static VarHandle arrayElementVarHandle(Class<?> arrayClass) {
         return MethodHandles.arrayElementVarHandle(arrayClass).withInvokeExactBehavior();
+    }
+
+    /**
+     * Produces a VarHandle of a view over a {@link java.nio.ByteBuffer} with {@link VarHandle#withInvokeExactBehavior()}
+     * reinterpreting the bytes to primitive values with a give {@code byteOrder}.
+     *
+     * @param primitiveArrayClass the class of an array, of type T[].
+     * @param byteOrder the byte order to use when getting the primitive value for the array.
+     * @return a VarHandle of a view over a {@link java.nio.ByteBuffer}.
+     */
+    public static VarHandle byteBufferViewVarHandle(Class<?> primitiveArrayClass, ByteOrder byteOrder) {
+        return MethodHandles.byteBufferViewVarHandle(primitiveArrayClass, byteOrder)
+                .withInvokeExactBehavior();
+    }
+
+    /**
+     * Produces a VarHandle of a view over a {@code byte[]} with {@link VarHandle#withInvokeExactBehavior()}
+     * reinterpreting the bytes to primitive values with a give {@code byteOrder}.
+     *
+     * @param primitiveArrayClass the class of an array, of type T[].
+     * @param byteOrder the byte order to use when getting the primitive value for the array.
+     * @return a VarHandle of a view over a {@link java.nio.ByteBuffer}.
+     */
+    public static VarHandle byteArrayViewVarHandle(Class<?> primitiveArrayClass, ByteOrder byteOrder) {
+        return MethodHandles.byteArrayViewVarHandle(primitiveArrayClass, byteOrder)
+                .withInvokeExactBehavior();
     }
 
     /**
