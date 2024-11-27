@@ -19,6 +19,7 @@
  */
 package org.neo4j.values.virtual;
 
+import static org.neo4j.memory.HeapEstimator.SCOPED_MEMORY_TRACKER_SHALLOW_SIZE;
 import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 import static org.neo4j.values.SequenceValue.IterationPreference.ITERATION;
 import static org.neo4j.values.storable.Values.NO_VALUE;
@@ -27,6 +28,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.SequencedSet;
 import org.github.jamm.Unmetered;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.Equality;
 import org.neo4j.values.SequenceValue;
@@ -46,7 +48,10 @@ public final class SetListValue extends ListValue {
     public static final class Builder {
         private static final long LINKED_SET_SHALLOW_SIZE = shallowSizeOfInstance(LinkedHashSet.class);
         private long estimatedHeapUsage;
+
+        @Unmetered
         private ValueRepresentation valueRepresentation;
+
         private final LinkedHashSet<AnyValue> set = new LinkedHashSet<>();
 
         private Builder() {
@@ -69,8 +74,78 @@ public final class SetListValue extends ListValue {
         }
     }
 
+    public static final class HeapTrackingBuilder implements AutoCloseable {
+        private static final long SHALLOW_SIZE = shallowSizeOfInstance(HeapTrackingBuilder.class);
+
+        @Unmetered
+        private ValueRepresentation valueRepresentation;
+        /*
+         * Estimated heap usage in bytes of items that has been added to the
+         * builder but not yet accounted for in the memory tracker.
+         *
+         * We have seen queries that spend a lot of time to allocate heap in the
+         * memory tracker when adding lots of small items (RollupApply micro
+         * benchmark). This is an optimisation for such cases.
+         */
+        private long unAllocatedHeapSize;
+
+        private final LinkedHashSet<AnyValue> set = new LinkedHashSet<>();
+        // We wait to track memory (bytes) below this threshold (see `unAllocatedHeapSize`).
+        private static final long HEAP_SIZE_ALLOCATION_THRESHOLD = 4096;
+        private final MemoryTracker scopedMemoryTracker;
+
+        private HeapTrackingBuilder(MemoryTracker memoryTracker) {
+            // To be in control of the heap usage of both the added values and the internal array list holding them,
+            // we use a scoped memory tracker
+            scopedMemoryTracker = memoryTracker.getScopedMemoryTracker();
+            scopedMemoryTracker.allocateHeap(SHALLOW_SIZE + SCOPED_MEMORY_TRACKER_SHALLOW_SIZE);
+            valueRepresentation = ValueRepresentation.ANYTHING;
+        }
+
+        public void add(AnyValue value) {
+            // NOTE: that since we are only using this in COLLECT(DISTINCT ..) which will filter out NO_VALUE
+            //     If we lift this restriction we must also update set.contains and set.ternaryContains
+            assert value != NO_VALUE;
+            if (set.add(value)) {
+                unAllocatedHeapSize += value.estimatedHeapUsage();
+                if (unAllocatedHeapSize >= HEAP_SIZE_ALLOCATION_THRESHOLD) {
+                    scopedMemoryTracker.allocateHeap(unAllocatedHeapSize);
+                    unAllocatedHeapSize = 0;
+                }
+                valueRepresentation = valueRepresentation.coerce(value.valueRepresentation());
+            }
+        }
+
+        public SetListValue build() {
+            scopedMemoryTracker.allocateHeap(unAllocatedHeapSize);
+            unAllocatedHeapSize = 0;
+            return new SetListValue(set, payloadSize(), valueRepresentation);
+        }
+
+        public SetListValue buildAndClose() {
+            var value = build();
+            close();
+            return value;
+        }
+
+        @Override
+        public void close() {
+            scopedMemoryTracker.close();
+        }
+
+        private long payloadSize() {
+            // The shallow size should not be transferred to the ListValue (but the ScopedMemoryTracker is)
+            // Note if the scopedMemoryTracker is an EmptyMemoryTracker then we might get a negative value here
+            return Math.max(unAllocatedHeapSize + scopedMemoryTracker.estimatedHeapMemory() - SHALLOW_SIZE, 0L);
+        }
+    }
+
     public static Builder builder() {
         return new Builder();
+    }
+
+    public static HeapTrackingBuilder heapTrackingBuilder(MemoryTracker memoryTracker) {
+        return new HeapTrackingBuilder(memoryTracker);
     }
 
     @Unmetered

@@ -98,8 +98,7 @@ case object collectDistinctRewriter extends Rewriter {
 
     def build: Set[LogicalVariable] = {
       val variables = unsafe.flatMap(v => flattenAliases(v))
-      val foo = unsafe ++ variables
-      foo
+      unsafe ++ variables
     }
 
     def withAliases(newAliases: Map[LogicalVariable, LogicalVariable]): Acc = {
