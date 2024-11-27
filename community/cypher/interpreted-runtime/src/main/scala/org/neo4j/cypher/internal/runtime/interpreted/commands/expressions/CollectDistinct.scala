@@ -33,9 +33,9 @@ case class CollectDistinct(anInner: Expression, isOrdered: Boolean) extends Aggr
     memoryTracker.allocateHeap(CollectDistinctFunction.SHALLOW_SIZE)
     if (isOrdered) {
       memoryTracker.allocateHeap(OrderedDistinctFunction.SHALLOW_SIZE)
-      new OrderedDistinctFunction(anInner, new CollectDistinctFunction(anInner))
+      new OrderedDistinctFunction(anInner, new CollectDistinctFunction(anInner, memoryTracker))
     } else {
-      new CollectDistinctFunction(anInner)
+      new CollectDistinctFunction(anInner, memoryTracker)
     }
   }
 

@@ -24,11 +24,12 @@ import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.memory.HeapEstimator.shallowSizeOfInstance
+import org.neo4j.memory.MemoryTracker
 import org.neo4j.values.AnyValue
 import org.neo4j.values.virtual.SetListValue
 
-class CollectDistinctFunction(value: Expression) extends AggregationFunction {
-  private[this] val builder = SetListValue.builder()
+class CollectDistinctFunction(value: Expression, memoryTracker: MemoryTracker) extends AggregationFunction {
+  private[this] val builder = SetListValue.heapTrackingBuilder(memoryTracker)
 
   override def apply(data: ReadableRow, state: QueryState): Unit = {
     value(data, state) match {
@@ -39,7 +40,7 @@ class CollectDistinctFunction(value: Expression) extends AggregationFunction {
   }
 
   override def result(state: QueryState): AnyValue = {
-    builder.build()
+    builder.buildAndClose()
   }
 }
 
