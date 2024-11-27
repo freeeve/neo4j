@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
+import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryGraphSolver
@@ -129,7 +130,7 @@ case class IDPQueryGraphSolver(
       if (components.isEmpty)
         planEmptyComponent(queryGraph, context, kit)
       else
-        planComponents(components, interestingOrderConfig, context, kit)
+        planComponents(components, interestingOrderConfig, context, kit, queryGraph)
 
     connectComponentsAndSolveOptionalMatch(plannedComponents, queryGraph, interestingOrderConfig, context, kit)
   }
@@ -162,10 +163,28 @@ case class IDPQueryGraphSolver(
     components: Seq[QueryGraph],
     interestingOrderConfig: InterestingOrderConfig,
     context: LogicalPlanningContext,
-    kit: QueryPlannerKit
+    kit: QueryPlannerKit,
+    parentQueryGraph: QueryGraph
   ): Seq[PlannedComponent] =
     components.map { qg =>
-      PlannedComponent(qg, singleComponentSolver.planComponent(qg, context, kit, interestingOrderConfig))
+      val relatedPredicates = parentQueryGraph.selections.flatPredicatesSet.diff(
+        qg.selections.flatPredicatesSet
+      ).filter(_.dependencies.exists(qg.dependencies.contains))
+      val updatedPropertyAccessInCurrentQueryGraph = PropertyAccessHelper.findPropertyAccesses(Seq(qg))
+      val propertyAccessInRelatedQueryQueryGraph = PropertyAccessHelper.findPropertyAccesses(relatedPredicates.toSeq)
+      val updatedContextualPropertyAccess = context.plannerState.contextualPropertyAccess.copy(
+        queryGraph = updatedPropertyAccessInCurrentQueryGraph,
+        propertyAccessInOtherComponents = propertyAccessInRelatedQueryQueryGraph
+      )
+      PlannedComponent(
+        qg,
+        singleComponentSolver.planComponent(
+          qg,
+          context.withModifiedPlannerState(_.withContextualPropertyAccess(updatedContextualPropertyAccess)),
+          kit,
+          interestingOrderConfig
+        )
+      )
     }
 
   private def planEmptyComponent(

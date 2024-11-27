@@ -38,7 +38,6 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.QueryGraph
-import org.neo4j.cypher.internal.logical.plans.GetValueFromIndexBehavior
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
@@ -107,12 +106,11 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
         variable,
         labelPredicate,
         labelName,
-        newPredicates,
         context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehaviors(
           indexDescriptor,
           newPredicates,
           exactPredicatesCanGetValue,
-          context.plannerState.contextualPropertyAccess,
+          context,
           queryGraph
         )
       )
@@ -122,8 +120,7 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
     variable: LogicalVariable,
     labelPredicate: HasLabels,
     symbolicName: LabelName,
-    propertyPredicates: Seq[IndexCompatiblePredicate],
-    getValueBehaviors: Seq[GetValueFromIndexBehavior]
+    propertyPredicates: Seq[IndexCompatiblePredicateWithValueBehavior]
   ) extends PredicateSet {
 
     override def allSolvedPredicates: Seq[Expression] =

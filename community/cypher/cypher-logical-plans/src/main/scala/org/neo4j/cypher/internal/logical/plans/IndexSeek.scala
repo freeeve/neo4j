@@ -19,11 +19,13 @@
  */
 package org.neo4j.cypher.internal.logical.plans
 
+import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelToken
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
+import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertyKeyToken
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
@@ -64,6 +66,9 @@ object IndexSeek {
   // predicates
   private val EXACT = s"$ID ?= ?$VALUE".r
   private val EXACT_TWO = s"$ID = ?$VALUE OR ?$VALUE".r
+  private val SAME_AS_PROPERTY_ON = s"$ID ?= ?$ID.$ID".r
+  private val SAME_AS_CACHED_NODE_PROPERTY_ON = s"$ID ?= ?cacheN\\[$ID.$ID\\]".r
+  private val SAME_AS_CACHED_REL_PROPERTY_ON = s"$ID ?= ?cacheR\\[$ID.$ID\\]".r
   private val IN = s"$ID IN \\?\\?\\?".r
   private val EXISTS = s"$ID".r
   private val LESS_THAN = s"$ID ?< ?$VALUE".r
@@ -644,6 +649,18 @@ object IndexSeek {
       IndexedProperty(PropertyKeyToken(PropertyKeyName(prop)(pos), PropertyKeyId(id)), getValue(prop), entityType)
     }
 
+    def propFor(variableStr: String, prop: String): Property = {
+      Property(varFor(variableStr), PropertyKeyName(prop)(pos))(pos)
+    }
+
+    def cachedNodeProp(variableStr: String, prop: String): CachedProperty = {
+      CachedProperty(varFor(variableStr), varFor(variableStr), PropertyKeyName(prop)(pos), NODE_TYPE)(pos)
+    }
+
+    def cachedRelProp(variableStr: String, prop: String): CachedProperty = {
+      CachedProperty(varFor(variableStr), varFor(variableStr), PropertyKeyName(prop)(pos), RELATIONSHIP_TYPE)(pos)
+    }
+
     val paramQueue = mutable.Queue.from(paramExpr)
     def value(value: String): Expression =
       value match {
@@ -670,6 +687,18 @@ object IndexSeek {
 
         case EXACT(propStr, valueStr) =>
           val valueExpr = SingleQueryExpression(value(valueStr))
+          createSeek(List(prop(propStr)), valueExpr)
+
+        case SAME_AS_PROPERTY_ON(propStr, otherVariable, otherProperty) =>
+          val valueExpr = SingleQueryExpression(propFor(otherVariable, otherProperty))
+          createSeek(List(prop(propStr)), valueExpr)
+
+        case SAME_AS_CACHED_NODE_PROPERTY_ON(propStr, otherVariable, otherProperty) =>
+          val valueExpr = SingleQueryExpression(cachedNodeProp(otherVariable, otherProperty))
+          createSeek(List(prop(propStr)), valueExpr)
+
+        case SAME_AS_CACHED_REL_PROPERTY_ON(propStr, otherVariable, otherProperty) =>
+          val valueExpr = SingleQueryExpression(cachedRelProp(otherVariable, otherProperty))
           createSeek(List(prop(propStr)), valueExpr)
 
         case LESS_THAN(propStr, valueStr) =>

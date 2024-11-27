@@ -71,12 +71,12 @@ abstract class AbstractNodeIndexSeekPlanProvider extends NodeIndexPlanProvider {
         queryGraph
       )
 
-    if (predicateSet.propertyPredicates.forall(_.isExists)) {
+    if (predicateSet.propertyPredicates.forall(_.indexCompatiblePredicate.isExists)) {
       None
     } else {
 
       val queryExpression: QueryExpression[Expression] =
-        mergeQueryExpressionsToSingleOne(predicateSet.propertyPredicates)
+        mergeQueryExpressionsToSingleOne(predicateSet.propertyPredicates.map(_.indexCompatiblePredicate))
 
       val properties = predicateSet.indexedProperties(context)
 

@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyA
 import org.neo4j.cypher.internal.compiler.helpers.predicatesPushedDownToRemote
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexLeafPlanner.IndexCompatiblePredicate
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicateWithValueBehavior
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -38,7 +39,6 @@ import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.CanGetValue
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
-import org.neo4j.cypher.internal.logical.plans.GetValueFromIndexBehavior
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.SHARDED
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
@@ -55,9 +55,9 @@ sealed trait RemoteBatchingStrategy {
     indexDescriptor: IndexDescriptor,
     propertyPredicates: Seq[IndexCompatiblePredicate],
     exactPredicatesCanGetValue: Boolean,
-    contextualPropertyAccess: ContextualPropertyAccess,
+    context: LogicalPlanningContext,
     queryGraph: QueryGraph
-  ): Seq[GetValueFromIndexBehavior]
+  ): Seq[IndexCompatiblePredicateWithValueBehavior]
 
   def planBatchPropertiesForSelections(
     queryGraph: QueryGraph,
@@ -140,7 +140,8 @@ object RemoteBatchingStrategy {
     ): RemoteBatchingResult = {
       val accessedProperties = accessedPropertiesForPredicates(queryGraph, input, context) ++
         context.plannerState.contextualPropertyAccess.interestingOrder ++
-        context.plannerState.contextualPropertyAccess.horizon
+        context.plannerState.contextualPropertyAccess.horizon ++
+        context.plannerState.contextualPropertyAccess.propertyAccessInOtherComponents
 
       val rewriter = cachedPropertiesRewriter(input, context)
       val rewrittenSelections = predicatesToSolve.map(expr => expr -> expr.endoRewrite(rewriter))
@@ -271,7 +272,9 @@ object RemoteBatchingStrategy {
     ): (Expression, LogicalPlan) = {
       val accessedProperties = accessedPropertiesForPredicates(queryGraph, input, context) ++
         context.plannerState.contextualPropertyAccess.interestingOrder ++
-        context.plannerState.contextualPropertyAccess.horizon
+        context.plannerState.contextualPropertyAccess.horizon ++
+        context.plannerState.contextualPropertyAccess.propertyAccessInOtherComponents
+
       val rewriter = cachedPropertiesRewriter(input, context)
       val rewrittenExpr = expression.endoRewrite(rewriter)
       (rewrittenExpr, planBatchProperties(input, context, accessedProperties, Seq(rewrittenExpr)))
@@ -286,35 +289,64 @@ object RemoteBatchingStrategy {
         propertyPredicate.variable,
         propertyPredicate.propertyKeyName.name
       )
-      propsAccessForPredsMap.propertyAccessInPredicatesOtherThat(
-        propertyAccess,
-        propertyPredicate.predicate
-      ) || contextualPropertyAccess.horizon.contains(propertyAccess)
+
+      propsAccessForPredsMap
+        .propertyAccessInPredicatesOtherThat(propertyAccess, propertyPredicate.predicate) ||
+      contextualPropertyAccess.horizon.contains(propertyAccess) ||
+      contextualPropertyAccess.propertyAccessInOtherComponents.contains(propertyAccess)
     }
 
     override def getValueFromIndexBehaviors(
       indexDescriptor: IndexDescriptor,
       propertyPredicates: Seq[IndexCompatiblePredicate],
       exactPredicatesCanGetValue: Boolean,
-      contextualPropertyAccess: ContextualPropertyAccess,
+      context: LogicalPlanningContext,
       queryGraph: QueryGraph
-    ): Seq[GetValueFromIndexBehavior] = {
+    ): Seq[IndexCompatiblePredicateWithValueBehavior] = {
       val propsAccessForPredsMap = propertyAccessesToPredicatesMap(queryGraph.selections.flatPredicatesSet)
+      val contextualPropertyAccess = context.plannerState.contextualPropertyAccess
+      val rewriter = externalPropertyAccessesRewriter(context)
 
-      propertyPredicates.map {
-        case predicate if predicate.predicateExactness.isExact && exactPredicatesCanGetValue =>
-          if (shouldGetPropertyValue(predicate, propsAccessForPredsMap, contextualPropertyAccess))
-            GetValue
-          else DoNotGetValue
-        case predicate =>
-          indexDescriptor.valueCapability match {
-            case DoNotGetValue => DoNotGetValue
-            case _ =>
-              if (shouldGetPropertyValue(predicate, propsAccessForPredsMap, contextualPropertyAccess))
-                GetValue
-              else DoNotGetValue
-          }
+      def determineGetValueBehaviour(predicate: IndexCompatiblePredicate) = {
+        if (shouldGetPropertyValue(predicate, propsAccessForPredsMap, contextualPropertyAccess))
+          IndexCompatiblePredicateWithValueBehavior(predicate, GetValue)
+        else IndexCompatiblePredicateWithValueBehavior(predicate, DoNotGetValue)
       }
+
+      propertyPredicates.map { predicate =>
+        val rewrittenQueryExpression = predicate.queryExpression.endoRewrite(rewriter)
+        predicate.copy(queryExpression = rewrittenQueryExpression) match {
+          case predicateWithRewrittenExpr
+            if predicateWithRewrittenExpr.predicateExactness.isExact && exactPredicatesCanGetValue =>
+            determineGetValueBehaviour(predicateWithRewrittenExpr)
+          case predicateWithRewrittenExpr =>
+            indexDescriptor.valueCapability match {
+              case DoNotGetValue =>
+                IndexCompatiblePredicateWithValueBehavior(predicateWithRewrittenExpr, DoNotGetValue)
+              case _ =>
+                determineGetValueBehaviour(predicateWithRewrittenExpr)
+            }
+        }
+      }
+    }
+
+    private def externalPropertyAccessesRewriter(context: LogicalPlanningContext) = {
+      bottomUp.apply(
+        rewriter = Rewriter.lift {
+          case property @ Property(logicalVariable: LogicalVariable, propertyKeyName)
+            if context.plannerState.previouslyCachedProperties.contains(logicalVariable, propertyKeyName) =>
+            val entry = context.plannerState.previouslyCachedProperties.entries(logicalVariable)
+            CachedProperty(
+              entry.originalEntity,
+              logicalVariable,
+              propertyKeyName,
+              entry.entityType
+            )(
+              property.position
+            )
+        },
+        cancellation = context.staticComponents.cancellationChecker
+      )
     }
 
     private def accessedPropertiesForPredicates(
@@ -483,11 +515,12 @@ object RemoteBatchingStrategy {
       indexDescriptor: IndexDescriptor,
       propertyPredicates: Seq[IndexCompatiblePredicate],
       exactPredicatesCanGetValue: Boolean,
-      contextualPropertyAccess: ContextualPropertyAccess,
+      context: LogicalPlanningContext,
       queryGraph: QueryGraph
-    ): Seq[GetValueFromIndexBehavior] = propertyPredicates.map {
-      case predicate if predicate.predicateExactness.isExact && exactPredicatesCanGetValue => CanGetValue
-      case _ => indexDescriptor.valueCapability
+    ): Seq[IndexCompatiblePredicateWithValueBehavior] = propertyPredicates.map {
+      case predicate if predicate.predicateExactness.isExact && exactPredicatesCanGetValue =>
+        IndexCompatiblePredicateWithValueBehavior(predicate, CanGetValue)
+      case predicate => IndexCompatiblePredicateWithValueBehavior(predicate, indexDescriptor.valueCapability)
     }
 
     override def planBatchPropertiesForSelections(

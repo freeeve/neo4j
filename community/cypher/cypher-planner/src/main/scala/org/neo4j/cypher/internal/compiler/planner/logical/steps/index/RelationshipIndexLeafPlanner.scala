@@ -38,7 +38,6 @@ import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.SimplePatternLength
-import org.neo4j.cypher.internal.logical.plans.GetValueFromIndexBehavior
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
@@ -113,12 +112,11 @@ object RelationshipIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
       RelationshipPredicateSet(
         variable,
         relTypeName,
-        newPredicates,
         context.settings.remoteBatchPropertiesStrategy.getValueFromIndexBehaviors(
           indexDescriptor,
           newPredicates,
           exactPredicatesCanGetValue,
-          context.plannerState.contextualPropertyAccess,
+          context,
           queryGraph
         )
       )
@@ -128,10 +126,8 @@ object RelationshipIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
   case class RelationshipPredicateSet(
     variable: LogicalVariable,
     symbolicName: RelTypeName,
-    propertyPredicates: Seq[IndexCompatiblePredicate],
-    getValueBehaviors: Seq[GetValueFromIndexBehavior]
+    propertyPredicates: Seq[IndexCompatiblePredicateWithValueBehavior]
   ) extends PredicateSet {
-
     override def getEntityType: EntityType = RELATIONSHIP_TYPE
   }
 

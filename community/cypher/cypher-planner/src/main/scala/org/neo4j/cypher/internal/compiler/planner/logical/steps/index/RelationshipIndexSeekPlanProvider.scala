@@ -62,7 +62,7 @@ object RelationshipIndexSeekPlanProvider extends RelationshipIndexPlanProvider {
         context,
         queryGraph
       )
-    if (predicateSet.propertyPredicates.forall(_.isExists))
+    if (predicateSet.propertyPredicates.forall(_.indexCompatiblePredicate.isExists))
       None
     else
       Some(predicateSet)
@@ -85,7 +85,8 @@ object RelationshipIndexSeekPlanProvider extends RelationshipIndexPlanProvider {
     context: LogicalPlanningContext
   ): LogicalPlan = {
 
-    val queryExpression: QueryExpression[Expression] = mergeQueryExpressionsToSingleOne(predicateSet.propertyPredicates)
+    val queryExpression: QueryExpression[Expression] =
+      mergeQueryExpressionsToSingleOne(predicateSet.propertyPredicates.map(_.indexCompatiblePredicate))
 
     val hint = predicateSet
       .fulfilledHints(hints, indexMatch.indexDescriptor.indexType, planIsScan = false)

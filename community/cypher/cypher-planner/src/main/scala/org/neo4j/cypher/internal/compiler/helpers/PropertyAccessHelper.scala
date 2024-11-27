@@ -39,7 +39,9 @@ object PropertyAccessHelper {
   case class ContextualPropertyAccess(
     queryGraph: Set[PropertyAccess],
     horizon: Set[PropertyAccess],
-    interestingOrder: Set[PropertyAccess]
+    interestingOrder: Set[PropertyAccess],
+    propertyAccessInOtherComponents: Set[PropertyAccess] =
+      Set.empty // keeps property accesses from parts of the query graphs that are not in the connected component.
   ) {
     def allPropertyAccesses: Set[PropertyAccess] = queryGraph ++ horizon ++ interestingOrder
   }

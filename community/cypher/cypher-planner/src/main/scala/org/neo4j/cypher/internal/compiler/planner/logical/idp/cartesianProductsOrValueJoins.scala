@@ -550,7 +550,10 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
     rightSymbols match {
       case SetExtractor(rightSymbol) =>
         val contextForRhs = context.withModifiedPlannerState(_
-          .withUpdatedLabelInfo(lhsPlan, context.staticComponents.planningAttributes.solveds))
+          .withUpdatedLabelInfo(lhsPlan, context.staticComponents.planningAttributes.solveds)
+          .withPreviouslyCachedProperties(
+            context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(lhsPlan.id)
+          ))
         val leafPlanCandidates = {
           val contextForRhsLeaves =
             contextForRhs.withModifiedPlannerState(_.withConfig(context.plannerState.config.withLeafPlanners(

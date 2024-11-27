@@ -1238,4 +1238,60 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest extends CypherFun
       )
       .build()
   }
+
+  test("should cache index values if they are used in other index seeks: index_backed_order_by-q15") {
+    val query =
+      """
+        |MATCH (a:PROFILES), (b:PROFILES)
+        |WHERE
+        |    a.pets STARTS WITH "x" AND
+        |    b.children STARTS WITH "x" AND
+        |    a.pets = b.children
+        |RETURN id(a), id(b)
+        |""".stripMargin
+
+    val planner = spdPlanner
+      .setAllNodesCardinality(1632803)
+      .setLabelCardinality("PROFILES", 1632803)
+      .addNodeIndex(
+        "PROFILES",
+        Seq("gender", "pets", "children"),
+        existsSelectivity = 371135.0 / 1632803,
+        uniqueSelectivity = 1.0 / 253204.0
+      )
+      .addNodeIndex(
+        "PROFILES",
+        Seq("gender", "hair_color", "eye_color", "pets", "children"),
+        existsSelectivity = 337392.0 / 1632803,
+        uniqueSelectivity = 1.0 / 273680.0
+      )
+      .addNodeIndex(
+        "PROFILES",
+        Seq("pets", "children"),
+        existsSelectivity = 371135.0 / 1632803,
+        uniqueSelectivity = 1.0 / 247714.0
+      )
+      .addNodeIndex(
+        "PROFILES",
+        Seq("children"),
+        existsSelectivity = 475697.0 / 1632803,
+        uniqueSelectivity = 1.0 / 176353
+      )
+      .addNodeIndex("PROFILES", Seq("pets"), existsSelectivity = 700681.0 / 1632803, uniqueSelectivity = 1.0 / 268273.0)
+      .build()
+
+    planner.plan(query) shouldEqual planner.planBuilder()
+      .produceResults("`id(a)`", "`id(b)`")
+      .projection("id(a) AS `id(a)`", "id(b) AS `id(b)`")
+      .filter("cacheN[a.pets] STARTS WITH 'x'")
+      .apply()
+      .|.nodeIndexOperator(
+        "a:PROFILES(pets = cacheN[b.children])",
+        argumentIds = Set("b"),
+        getValue = Map("pets" -> GetValue)
+      )
+      .nodeIndexOperator("b:PROFILES(children STARTS WITH 'x')", getValue = Map("children" -> GetValue))
+      .build()
+  }
+
 }

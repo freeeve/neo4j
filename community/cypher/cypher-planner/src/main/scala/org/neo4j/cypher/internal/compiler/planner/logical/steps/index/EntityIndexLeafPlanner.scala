@@ -360,23 +360,30 @@ trait IndexMatch {
   def variable: LogicalVariable
 }
 
+case class IndexCompatiblePredicateWithValueBehavior(
+  indexCompatiblePredicate: IndexCompatiblePredicate,
+  getValueFromIndexBehavior: GetValueFromIndexBehavior
+)
+
 /**
  * Information needed to create a index leaf plan.
  */
 trait PredicateSet {
   def variable: LogicalVariable
   def symbolicName: SymbolicName
-  def propertyPredicates: Seq[IndexCompatiblePredicate]
-  def getValueBehaviors: Seq[GetValueFromIndexBehavior]
+  def propertyPredicates: Seq[IndexCompatiblePredicateWithValueBehavior]
 
   def getEntityType: EntityType
 
   def allSolvedPredicates: Seq[Expression] =
-    propertyPredicates.flatMap(_.solvedPredicate)
+    propertyPredicates.flatMap(_.indexCompatiblePredicate.solvedPredicate)
 
   def indexedProperties(context: LogicalPlanningContext): Seq[IndexedProperty] =
-    propertyPredicates.zip(getValueBehaviors).map {
-      case (predicate, behavior) =>
+    propertyPredicates.map {
+      case IndexCompatiblePredicateWithValueBehavior(
+          predicate: IndexCompatiblePredicate,
+          behavior: GetValueFromIndexBehavior
+        ) =>
         val propertyName = predicate.propertyKeyName
         val getValue = behavior
         IndexedProperty(
@@ -387,7 +394,7 @@ trait PredicateSet {
     }
 
   private def matchingHints(hints: Set[Hint]): Set[UsingIndexHint] = {
-    val propertyNames = propertyPredicates.map(_.propertyKeyName.name)
+    val propertyNames = propertyPredicates.map(_.indexCompatiblePredicate.propertyKeyName.name)
     val localVariableName = variable
     val entityTypeName = symbolicName.name
     hints.collect {
