@@ -33,72 +33,88 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       Either[List[String], Expression],
       Option[(ast.Where, InputPosition)],
       Boolean,
-      List[ast.CommandResultItem]
+      List[ast.CommandResultItem],
+      Option[ast.With]
     ) => InputPosition => ast.CommandClause
 
   private type CommandClauseNoNames =
     (
       Option[(ast.Where, InputPosition)],
       Boolean,
-      List[ast.CommandResultItem]
+      List[ast.CommandResultItem],
+      Option[ast.With]
     ) => InputPosition => ast.CommandClause
 
   private def showTx(
     ids: Either[List[String], Expression],
     where: Option[(ast.Where, InputPosition)],
     yieldAll: Boolean,
-    yieldItems: List[ast.CommandResultItem]
+    yieldItems: List[ast.CommandResultItem],
+    yieldWith: Option[ast.With]
   ): InputPosition => ast.CommandClause =
-    ast.ShowTransactionsClause(ids, where.map(_._1), yieldItems, yieldAll, returnCypher5Types = false)
+    ast.ShowTransactionsClause(ids, where.map(_._1), yieldItems, yieldAll, yieldWith, returnCypher5Types = false)
 
   private def terminateTx(
     ids: Either[List[String], Expression],
     where: Option[(ast.Where, InputPosition)],
     yieldAll: Boolean,
-    yieldItems: List[ast.CommandResultItem]
+    yieldItems: List[ast.CommandResultItem],
+    yieldWith: Option[ast.With]
   ): InputPosition => ast.CommandClause =
-    ast.TerminateTransactionsClause(ids, yieldItems, yieldAll, where.map(_._2))
+    ast.TerminateTransactionsClause(ids, yieldItems, yieldAll, yieldWith, where.map(_._2))
 
   private def showSetting(
     ids: Either[List[String], Expression],
     where: Option[(ast.Where, InputPosition)],
     yieldAll: Boolean,
-    yieldItems: List[ast.CommandResultItem]
+    yieldItems: List[ast.CommandResultItem],
+    yieldWith: Option[ast.With]
   ): InputPosition => ast.CommandClause =
-    ast.ShowSettingsClause(ids, where.map(_._1), yieldItems, yieldAll)
+    ast.ShowSettingsClause(ids, where.map(_._1), yieldItems, yieldAll, yieldWith)
 
   private def showFunction(
     functionType: ast.ShowFunctionType,
     executable: Option[ast.ExecutableBy],
     where: Option[(ast.Where, InputPosition)],
     yieldAll: Boolean,
-    yieldItems: List[ast.CommandResultItem]
+    yieldItems: List[ast.CommandResultItem],
+    yieldWith: Option[ast.With]
   ): InputPosition => ast.CommandClause =
-    ast.ShowFunctionsClause(functionType, executable, where.map(_._1), yieldItems, yieldAll)
+    ast.ShowFunctionsClause(functionType, executable, where.map(_._1), yieldItems, yieldAll, yieldWith)
 
   private def showProcedure(
     executable: Option[ast.ExecutableBy],
     where: Option[(ast.Where, InputPosition)],
     yieldAll: Boolean,
-    yieldItems: List[ast.CommandResultItem]
+    yieldItems: List[ast.CommandResultItem],
+    yieldWith: Option[ast.With]
   ): InputPosition => ast.CommandClause =
-    ast.ShowProceduresClause(executable, where.map(_._1), yieldItems, yieldAll)
+    ast.ShowProceduresClause(executable, where.map(_._1), yieldItems, yieldAll, yieldWith)
 
   private def showConstraint(
     constraintType: ast.ShowConstraintType,
     where: Option[(ast.Where, InputPosition)],
     yieldAll: Boolean,
-    yieldItems: List[ast.CommandResultItem]
+    yieldItems: List[ast.CommandResultItem],
+    yieldWith: Option[ast.With]
   ): InputPosition => ast.CommandClause =
-    ast.ShowConstraintsClause(constraintType, where.map(_._1), yieldItems, yieldAll, returnCypher5Columns = false)
+    ast.ShowConstraintsClause(
+      constraintType,
+      where.map(_._1),
+      yieldItems,
+      yieldAll,
+      yieldWith,
+      returnCypher5Columns = false
+    )
 
   private def showIndex(
     indexType: ast.ShowIndexType,
     where: Option[(ast.Where, InputPosition)],
     yieldAll: Boolean,
-    yieldItems: List[ast.CommandResultItem]
+    yieldItems: List[ast.CommandResultItem],
+    yieldWith: Option[ast.With]
   ): InputPosition => ast.CommandClause =
-    ast.ShowIndexesClause(indexType, where.map(_._1), yieldItems, yieldAll)
+    ast.ShowIndexesClause(indexType, where.map(_._1), yieldItems, yieldAll, yieldWith)
 
   private def getWherePosition(startIndex: Int = 0) = {
     val startOfWhereClause = testName.indexOf("WHERE", startIndex)
@@ -127,159 +143,159 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       // show functions only combinations
       (
         "SHOW FUNCTIONS",
-        showFunction(ast.AllFunctions, None, _, _, _),
+        showFunction(ast.AllFunctions, None, _, _, _, _),
         "SHOW FUNCTIONS EXECUTABLE",
-        showFunction(ast.AllFunctions, Some(ast.CurrentUser), _, _, _)
+        showFunction(ast.AllFunctions, Some(ast.CurrentUser), _, _, _, _)
       ),
       (
         "SHOW ALL FUNCTIONS",
-        showFunction(ast.AllFunctions, None, _, _, _),
+        showFunction(ast.AllFunctions, None, _, _, _, _),
         "SHOW ALL FUNCTIONS",
-        showFunction(ast.AllFunctions, None, _, _, _)
+        showFunction(ast.AllFunctions, None, _, _, _, _)
       ),
       (
         "SHOW BUILT IN FUNCTIONS EXECUTABLE BY CURRENT USER",
-        showFunction(ast.BuiltInFunctions, Some(ast.CurrentUser), _, _, _),
+        showFunction(ast.BuiltInFunctions, Some(ast.CurrentUser), _, _, _, _),
         "SHOW BUILT IN FUNCTIONS",
-        showFunction(ast.BuiltInFunctions, None, _, _, _)
+        showFunction(ast.BuiltInFunctions, None, _, _, _, _)
       ),
       (
         "SHOW USER DEFINED FUNCTIONS",
-        showFunction(ast.UserDefinedFunctions, None, _, _, _),
+        showFunction(ast.UserDefinedFunctions, None, _, _, _, _),
         "SHOW USER DEFINED FUNCTIONS EXECUTABLE BY user",
-        showFunction(ast.UserDefinedFunctions, Some(ast.User("user")), _, _, _)
+        showFunction(ast.UserDefinedFunctions, Some(ast.User("user")), _, _, _, _)
       ),
       (
         "SHOW FUNCTIONS EXECUTABLE BY user",
-        showFunction(ast.AllFunctions, Some(ast.User("user")), _, _, _),
+        showFunction(ast.AllFunctions, Some(ast.User("user")), _, _, _, _),
         "SHOW BUILT IN FUNCTIONS",
-        showFunction(ast.BuiltInFunctions, None, _, _, _)
+        showFunction(ast.BuiltInFunctions, None, _, _, _, _)
       ),
       (
         "SHOW BUILT IN FUNCTIONS",
-        showFunction(ast.BuiltInFunctions, None, _, _, _),
+        showFunction(ast.BuiltInFunctions, None, _, _, _, _),
         "SHOW USER DEFINED FUNCTIONS",
-        showFunction(ast.UserDefinedFunctions, None, _, _, _)
+        showFunction(ast.UserDefinedFunctions, None, _, _, _, _)
       ),
       (
         "SHOW USER DEFINED FUNCTIONS EXECUTABLE",
-        showFunction(ast.UserDefinedFunctions, Some(ast.CurrentUser), _, _, _),
+        showFunction(ast.UserDefinedFunctions, Some(ast.CurrentUser), _, _, _, _),
         "SHOW ALL FUNCTIONS",
-        showFunction(ast.AllFunctions, None, _, _, _)
+        showFunction(ast.AllFunctions, None, _, _, _, _)
       )
     ) ++ Seq(
       // show procedures only combinations
       (
         "SHOW PROCEDURES",
-        showProcedure(None, _, _, _),
+        showProcedure(None, _, _, _, _),
         "SHOW PROCEDURES",
-        showProcedure(None, _, _, _)
+        showProcedure(None, _, _, _, _)
       ),
       (
         "SHOW PROCEDURES",
-        showProcedure(None, _, _, _),
+        showProcedure(None, _, _, _, _),
         "SHOW PROCEDURES EXECUTABLE",
-        showProcedure(Some(ast.CurrentUser), _, _, _)
+        showProcedure(Some(ast.CurrentUser), _, _, _, _)
       ),
       (
         "SHOW PROCEDURES EXECUTABLE BY CURRENT USER",
-        showProcedure(Some(ast.CurrentUser), _, _, _),
+        showProcedure(Some(ast.CurrentUser), _, _, _, _),
         "SHOW PROCEDURES",
-        showProcedure(None, _, _, _)
+        showProcedure(None, _, _, _, _)
       ),
       (
         "SHOW PROCEDURES",
-        showProcedure(None, _, _, _),
+        showProcedure(None, _, _, _, _),
         "SHOW PROCEDURES EXECUTABLE BY user",
-        showProcedure(Some(ast.User("user")), _, _, _)
+        showProcedure(Some(ast.User("user")), _, _, _, _)
       ),
       (
         "SHOW PROCEDURES EXECUTABLE",
-        showProcedure(Some(ast.CurrentUser), _, _, _),
+        showProcedure(Some(ast.CurrentUser), _, _, _, _),
         "SHOW PROCEDURES EXECUTABLE BY SHOW",
-        showProcedure(Some(ast.User("SHOW")), _, _, _)
+        showProcedure(Some(ast.User("SHOW")), _, _, _, _)
       )
     ) ++ Seq(
       // show constraints only combinations
       (
         "SHOW CONSTRAINTS",
-        showConstraint(ast.AllConstraints, _, _, _),
+        showConstraint(ast.AllConstraints, _, _, _, _),
         "SHOW CONSTRAINTS",
-        showConstraint(ast.AllConstraints, _, _, _)
+        showConstraint(ast.AllConstraints, _, _, _, _)
       ),
       (
         "SHOW ALL CONSTRAINTS",
-        showConstraint(ast.AllConstraints, _, _, _),
+        showConstraint(ast.AllConstraints, _, _, _, _),
         "SHOW NODE KEY CONSTRAINTS",
-        showConstraint(ast.NodeKeyConstraints, _, _, _)
+        showConstraint(ast.NodeKeyConstraints, _, _, _, _)
       ),
       (
         "SHOW RELATIONSHIP KEY CONSTRAINTS",
-        showConstraint(ast.RelKeyConstraints, _, _, _),
+        showConstraint(ast.RelKeyConstraints, _, _, _, _),
         "SHOW KEY CONSTRAINTS",
-        showConstraint(ast.KeyConstraints, _, _, _)
+        showConstraint(ast.KeyConstraints, _, _, _, _)
       ),
       (
         "SHOW NODE UNIQUENESS CONSTRAINTS",
-        showConstraint(ast.NodeUniqueConstraints.cypher25, _, _, _),
+        showConstraint(ast.NodeUniqueConstraints.cypher25, _, _, _, _),
         "SHOW UNIQUE CONSTRAINTS",
-        showConstraint(ast.UniqueConstraints.cypher25, _, _, _)
+        showConstraint(ast.UniqueConstraints.cypher25, _, _, _, _)
       ),
       (
         "SHOW REL UNIQUE CONSTRAINTS",
-        showConstraint(ast.RelUniqueConstraints.cypher25, _, _, _),
+        showConstraint(ast.RelUniqueConstraints.cypher25, _, _, _, _),
         "SHOW PROPERTY EXISTENCE CONSTRAINTS",
-        showConstraint(ast.PropExistsConstraints.cypher25, _, _, _)
+        showConstraint(ast.PropExistsConstraints.cypher25, _, _, _, _)
       ),
       (
         "SHOW NODE PROPERTY EXIST CONSTRAINTS",
-        showConstraint(ast.NodePropExistsConstraints.cypher25, _, _, _),
+        showConstraint(ast.NodePropExistsConstraints.cypher25, _, _, _, _),
         "SHOW REL EXIST CONSTRAINTS",
-        showConstraint(ast.RelAllExistsConstraints, _, _, _)
+        showConstraint(ast.RelAllExistsConstraints, _, _, _, _)
       ),
       (
         "SHOW PROPERTY TYPE CONSTRAINTS",
-        showConstraint(ast.PropTypeConstraints, _, _, _),
+        showConstraint(ast.PropTypeConstraints, _, _, _, _),
         "SHOW NODE PROPERTY TYPE CONSTRAINTS",
-        showConstraint(ast.NodePropTypeConstraints, _, _, _)
+        showConstraint(ast.NodePropTypeConstraints, _, _, _, _)
       ),
       (
         "SHOW CONSTRAINTS",
-        showConstraint(ast.AllConstraints, _, _, _),
+        showConstraint(ast.AllConstraints, _, _, _, _),
         "SHOW RELATIONSHIP PROPERTY TYPE CONSTRAINTS",
-        showConstraint(ast.RelPropTypeConstraints, _, _, _)
+        showConstraint(ast.RelPropTypeConstraints, _, _, _, _)
       )
     ) ++ Seq(
       // show indexes only combinations
       (
         "SHOW INDEXES",
-        showIndex(ast.AllIndexes, _, _, _),
+        showIndex(ast.AllIndexes, _, _, _, _),
         "SHOW INDEXES",
-        showIndex(ast.AllIndexes, _, _, _)
+        showIndex(ast.AllIndexes, _, _, _, _)
       ),
       (
         "SHOW ALL INDEXES",
-        showIndex(ast.AllIndexes, _, _, _),
+        showIndex(ast.AllIndexes, _, _, _, _),
         "SHOW RANGE INDEXES",
-        showIndex(ast.RangeIndexes, _, _, _)
+        showIndex(ast.RangeIndexes, _, _, _, _)
       ),
       (
         "SHOW FULLTEXT INDEXES",
-        showIndex(ast.FulltextIndexes, _, _, _),
+        showIndex(ast.FulltextIndexes, _, _, _, _),
         "SHOW TEXT INDEXES",
-        showIndex(ast.TextIndexes, _, _, _)
+        showIndex(ast.TextIndexes, _, _, _, _)
       ),
       (
         "SHOW POINT INDEXES",
-        showIndex(ast.PointIndexes, _, _, _),
+        showIndex(ast.PointIndexes, _, _, _, _),
         "SHOW LOOKUP INDEXES",
-        showIndex(ast.LookupIndexes, _, _, _)
+        showIndex(ast.LookupIndexes, _, _, _, _)
       ),
       (
         "SHOW INDEXES",
-        showIndex(ast.AllIndexes, _, _, _),
+        showIndex(ast.AllIndexes, _, _, _, _),
         "SHOW VECTOR INDEXES",
-        showIndex(ast.VectorIndexes, _, _, _)
+        showIndex(ast.VectorIndexes, _, _, _, _)
       )
     ) ++ Seq(
       // mixed show and terminate commands
@@ -289,230 +305,230 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       // show transaction combined with remaining commands
       (
         "SHOW TRANSACTIONS",
-        showTx(Left(List.empty), _, _, _),
+        showTx(Left(List.empty), _, _, _, _),
         "SHOW FUNCTIONS",
-        showFunction(ast.AllFunctions, None, _, _, _)
+        showFunction(ast.AllFunctions, None, _, _, _, _)
       ),
       (
         "SHOW SETTINGS",
-        showSetting(Left(List.empty), _, _, _),
+        showSetting(Left(List.empty), _, _, _, _),
         "SHOW TRANSACTIONS",
-        showTx(Left(List.empty), _, _, _)
+        showTx(Left(List.empty), _, _, _, _)
       ),
       (
         "SHOW ALL FUNCTIONS EXECUTABLE BY SHOW",
-        showFunction(ast.AllFunctions, Some(ast.User("SHOW")), _, _, _),
+        showFunction(ast.AllFunctions, Some(ast.User("SHOW")), _, _, _, _),
         "SHOW TRANSACTIONS 'db1-transaction-123'",
-        showTx(Right(literalString("db1-transaction-123")), _, _, _)
+        showTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
       (
         "SHOW TRANSACTIONS",
-        showTx(Left(List.empty), _, _, _),
+        showTx(Left(List.empty), _, _, _, _),
         "SHOW PROCEDURES EXECUTABLE BY SHOW",
-        showProcedure(Some(ast.User("SHOW")), _, _, _)
+        showProcedure(Some(ast.User("SHOW")), _, _, _, _)
       ),
       (
         "SHOW PROCEDURES",
-        showProcedure(None, _, _, _),
+        showProcedure(None, _, _, _, _),
         "SHOW TRANSACTIONS 'db1-transaction-123'",
-        showTx(Right(literalString("db1-transaction-123")), _, _, _)
+        showTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
       (
         "SHOW TRANSACTIONS",
-        showTx(Left(List.empty), _, _, _),
+        showTx(Left(List.empty), _, _, _, _),
         "SHOW CONSTRAINTS",
-        showConstraint(ast.AllConstraints, _, _, _)
+        showConstraint(ast.AllConstraints, _, _, _, _)
       ),
       (
         "SHOW PROPERTY TYPE CONSTRAINTS",
-        showConstraint(ast.PropTypeConstraints, _, _, _),
+        showConstraint(ast.PropTypeConstraints, _, _, _, _),
         "SHOW TRANSACTIONS 'db1-transaction-123'",
-        showTx(Right(literalString("db1-transaction-123")), _, _, _)
+        showTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
       (
         "SHOW TRANSACTIONS",
-        showTx(Left(List.empty), _, _, _),
+        showTx(Left(List.empty), _, _, _, _),
         "SHOW INDEXES",
-        showIndex(ast.AllIndexes, _, _, _)
+        showIndex(ast.AllIndexes, _, _, _, _)
       ),
       (
         "SHOW POINT INDEXES",
-        showIndex(ast.PointIndexes, _, _, _),
+        showIndex(ast.PointIndexes, _, _, _, _),
         "SHOW TRANSACTIONS 'db1-transaction-123'",
-        showTx(Right(literalString("db1-transaction-123")), _, _, _)
+        showTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
       // terminate transaction combined with remaining commands
       (
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
-        terminateTx(Right(literalString("db1-transaction-123")), _, _, _),
+        terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _),
         "SHOW BUILT IN FUNCTIONS",
-        showFunction(ast.BuiltInFunctions, None, _, _, _)
+        showFunction(ast.BuiltInFunctions, None, _, _, _, _)
       ),
       (
         "SHOW FUNCTIONS EXECUTABLE BY TERMINATE",
-        showFunction(ast.AllFunctions, Some(ast.User("TERMINATE")), _, _, _),
+        showFunction(ast.AllFunctions, Some(ast.User("TERMINATE")), _, _, _, _),
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
-        terminateTx(Right(literalString("db1-transaction-123")), _, _, _)
+        terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
       (
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
-        terminateTx(Right(literalString("db1-transaction-123")), _, _, _),
+        terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _),
         "SHOW PROCEDURES",
-        showProcedure(None, _, _, _)
+        showProcedure(None, _, _, _, _)
       ),
       (
         "SHOW PROCEDURES EXECUTABLE BY TERMINATE",
-        showProcedure(Some(ast.User("TERMINATE")), _, _, _),
+        showProcedure(Some(ast.User("TERMINATE")), _, _, _, _),
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
-        terminateTx(Right(literalString("db1-transaction-123")), _, _, _)
+        terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
       (
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
-        terminateTx(Right(literalString("db1-transaction-123")), _, _, _),
+        terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _),
         "SHOW NODE EXISTENCE CONSTRAINTS",
-        showConstraint(ast.NodeAllExistsConstraints, _, _, _)
+        showConstraint(ast.NodeAllExistsConstraints, _, _, _, _)
       ),
       (
         "SHOW CONSTRAINTS",
-        showConstraint(ast.AllConstraints, _, _, _),
+        showConstraint(ast.AllConstraints, _, _, _, _),
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
-        terminateTx(Right(literalString("db1-transaction-123")), _, _, _)
+        terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
       (
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
-        terminateTx(Right(literalString("db1-transaction-123")), _, _, _),
+        terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _),
         "SHOW RANGE INDEXES",
-        showIndex(ast.RangeIndexes, _, _, _)
+        showIndex(ast.RangeIndexes, _, _, _, _)
       ),
       (
         "SHOW INDEXES",
-        showIndex(ast.AllIndexes, _, _, _),
+        showIndex(ast.AllIndexes, _, _, _, _),
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
-        terminateTx(Right(literalString("db1-transaction-123")), _, _, _)
+        terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
       // show settings combined with remaining commands
       (
         "SHOW SETTINGS",
-        showSetting(Left(List.empty), _, _, _),
+        showSetting(Left(List.empty), _, _, _, _),
         "SHOW USER DEFINED FUNCTIONS EXECUTABLE",
-        showFunction(ast.UserDefinedFunctions, Some(ast.CurrentUser), _, _, _)
+        showFunction(ast.UserDefinedFunctions, Some(ast.CurrentUser), _, _, _, _)
       ),
       (
         "SHOW FUNCTIONS",
-        showFunction(ast.AllFunctions, None, _, _, _),
+        showFunction(ast.AllFunctions, None, _, _, _, _),
         "SHOW SETTINGS $setting",
-        showSetting(Right(parameter("setting", CTAny)), _, _, _)
+        showSetting(Right(parameter("setting", CTAny)), _, _, _, _)
       ),
       (
         "SHOW SETTINGS",
-        showSetting(Left(List.empty), _, _, _),
+        showSetting(Left(List.empty), _, _, _, _),
         "SHOW PROCEDURES EXECUTABLE",
-        showProcedure(Some(ast.CurrentUser), _, _, _)
+        showProcedure(Some(ast.CurrentUser), _, _, _, _)
       ),
       (
         "SHOW PROCEDURES",
-        showProcedure(None, _, _, _),
+        showProcedure(None, _, _, _, _),
         "SHOW SETTINGS $setting",
-        showSetting(Right(parameter("setting", CTAny)), _, _, _)
+        showSetting(Right(parameter("setting", CTAny)), _, _, _, _)
       ),
       (
         "SHOW SETTINGS",
-        showSetting(Left(List.empty), _, _, _),
+        showSetting(Left(List.empty), _, _, _, _),
         "SHOW UNIQUENESS CONSTRAINTS",
-        showConstraint(ast.UniqueConstraints.cypher25, _, _, _)
+        showConstraint(ast.UniqueConstraints.cypher25, _, _, _, _)
       ),
       (
         "SHOW CONSTRAINTS",
-        showConstraint(ast.AllConstraints, _, _, _),
+        showConstraint(ast.AllConstraints, _, _, _, _),
         "SHOW SETTINGS $setting",
-        showSetting(Right(parameter("setting", CTAny)), _, _, _)
+        showSetting(Right(parameter("setting", CTAny)), _, _, _, _)
       ),
       (
         "SHOW SETTINGS",
-        showSetting(Left(List.empty), _, _, _),
+        showSetting(Left(List.empty), _, _, _, _),
         "SHOW TEXT INDEXES",
-        showIndex(ast.TextIndexes, _, _, _)
+        showIndex(ast.TextIndexes, _, _, _, _)
       ),
       (
         "SHOW INDEXES",
-        showIndex(ast.AllIndexes, _, _, _),
+        showIndex(ast.AllIndexes, _, _, _, _),
         "SHOW SETTINGS $setting",
-        showSetting(Right(parameter("setting", CTAny)), _, _, _)
+        showSetting(Right(parameter("setting", CTAny)), _, _, _, _)
       ),
       // show functions combined with remaining commands
       (
         "SHOW BUILT IN FUNCTIONS EXECUTABLE BY CURRENT USER",
-        showFunction(ast.BuiltInFunctions, Some(ast.CurrentUser), _, _, _),
+        showFunction(ast.BuiltInFunctions, Some(ast.CurrentUser), _, _, _, _),
         "SHOW PROCEDURES",
-        showProcedure(None, _, _, _)
+        showProcedure(None, _, _, _, _)
       ),
       (
         "SHOW PROCEDURES",
-        showProcedure(None, _, _, _),
+        showProcedure(None, _, _, _, _),
         "SHOW FUNCTIONS",
-        showFunction(ast.AllFunctions, None, _, _, _)
+        showFunction(ast.AllFunctions, None, _, _, _, _)
       ),
       (
         "SHOW BUILT IN FUNCTIONS EXECUTABLE BY CURRENT USER",
-        showFunction(ast.BuiltInFunctions, Some(ast.CurrentUser), _, _, _),
+        showFunction(ast.BuiltInFunctions, Some(ast.CurrentUser), _, _, _, _),
         "SHOW KEY CONSTRAINTS",
-        showConstraint(ast.KeyConstraints, _, _, _)
+        showConstraint(ast.KeyConstraints, _, _, _, _)
       ),
       (
         "SHOW CONSTRAINTS",
-        showConstraint(ast.AllConstraints, _, _, _),
+        showConstraint(ast.AllConstraints, _, _, _, _),
         "SHOW FUNCTIONS",
-        showFunction(ast.AllFunctions, None, _, _, _)
+        showFunction(ast.AllFunctions, None, _, _, _, _)
       ),
       (
         "SHOW BUILT IN FUNCTIONS EXECUTABLE BY CURRENT USER",
-        showFunction(ast.BuiltInFunctions, Some(ast.CurrentUser), _, _, _),
+        showFunction(ast.BuiltInFunctions, Some(ast.CurrentUser), _, _, _, _),
         "SHOW INDEXES",
-        showIndex(ast.AllIndexes, _, _, _)
+        showIndex(ast.AllIndexes, _, _, _, _)
       ),
       (
         "SHOW LOOKUP INDEXES",
-        showIndex(ast.LookupIndexes, _, _, _),
+        showIndex(ast.LookupIndexes, _, _, _, _),
         "SHOW FUNCTIONS",
-        showFunction(ast.AllFunctions, None, _, _, _)
+        showFunction(ast.AllFunctions, None, _, _, _, _)
       ),
       // show procedures combined with remaining commands
       (
         "SHOW ALL CONSTRAINTS",
-        showConstraint(ast.AllConstraints, _, _, _),
+        showConstraint(ast.AllConstraints, _, _, _, _),
         "SHOW PROCEDURES",
-        showProcedure(None, _, _, _)
+        showProcedure(None, _, _, _, _)
       ),
       (
         "SHOW PROCEDURES",
-        showProcedure(None, _, _, _),
+        showProcedure(None, _, _, _, _),
         "SHOW CONSTRAINTS",
-        showConstraint(ast.AllConstraints, _, _, _)
+        showConstraint(ast.AllConstraints, _, _, _, _)
       ),
       (
         "SHOW ALL INDEXES",
-        showIndex(ast.AllIndexes, _, _, _),
+        showIndex(ast.AllIndexes, _, _, _, _),
         "SHOW PROCEDURES",
-        showProcedure(None, _, _, _)
+        showProcedure(None, _, _, _, _)
       ),
       (
         "SHOW PROCEDURES",
-        showProcedure(None, _, _, _),
+        showProcedure(None, _, _, _, _),
         "SHOW INDEXES",
-        showIndex(ast.AllIndexes, _, _, _)
+        showIndex(ast.AllIndexes, _, _, _, _)
       ),
       // show constraints combined with remaining commands
       (
         "SHOW ALL CONSTRAINTS",
-        showConstraint(ast.AllConstraints, _, _, _),
+        showConstraint(ast.AllConstraints, _, _, _, _),
         "SHOW INDEXES",
-        showIndex(ast.AllIndexes, _, _, _)
+        showIndex(ast.AllIndexes, _, _, _, _)
       ),
       (
         "SHOW FULLTEXT INDEXES",
-        showIndex(ast.FulltextIndexes, _, _, _),
+        showIndex(ast.FulltextIndexes, _, _, _, _),
         "SHOW CONSTRAINTS",
-        showConstraint(ast.AllConstraints, _, _, _)
+        showConstraint(ast.AllConstraints, _, _, _, _)
       )
     )
 
@@ -520,9 +536,9 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     commandCombinationsAllowingStringExpressions.map { case (firstCommand, firstClause, secondCommand, secondClause) =>
       (
         s"$firstCommand 'txId1'",
-        firstClause(Right(literalString("txId1")), _, _, _),
+        firstClause(Right(literalString("txId1")), _, _, _, _),
         s"$secondCommand 'txId2'",
-        secondClause(Right(literalString("txId2")), _, _, _)
+        secondClause(Right(literalString("txId2")), _, _, _, _)
       )
     } ++ commandCombinationsWithoutExpressions
 
@@ -545,6 +561,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         scc.where,
         scc.yieldItems,
         scc.yieldAll,
+        scc.yieldWith,
         returnCypher5Columns = true
       )(scc.position)
     case stc: ast.ShowTransactionsClause =>
@@ -556,6 +573,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         stc.where,
         stc.yieldItems,
         stc.yieldAll,
+        stc.yieldWith,
         returnCypher5Types = true
       )(stc.position)
     case other => other
@@ -579,16 +597,16 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     case (firstCommand, firstClause, secondCommand, secondClause) =>
       test(s"$firstCommand $secondCommand") {
         assertAst(
-          firstClause(None, false, List.empty)(defaultPos),
-          secondClause(None, false, List.empty)(pos)
+          firstClause(None, false, List.empty, None)(defaultPos),
+          secondClause(None, false, List.empty, None)(pos)
         )
       }
 
       test(s"USE db $firstCommand $secondCommand") {
         assertAstDontComparePos(
           use(List("db")),
-          firstClause(None, false, List.empty)(pos),
-          secondClause(None, false, List.empty)(pos)
+          firstClause(None, false, List.empty, None)(pos),
+          secondClause(None, false, List.empty, None)(pos)
         )
       }
 
@@ -597,19 +615,21 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
           firstClause(
             Some((where(equals(varFor("transactionId"), literalString("123"))), getWherePosition())),
             false,
-            List.empty
+            List.empty,
+            None
           )(defaultPos),
-          secondClause(None, false, List.empty)(pos)
+          secondClause(None, false, List.empty, None)(pos)
         )
       }
 
       test(s"$firstCommand $secondCommand WHERE transactionId = '123'") {
         assertAst(
-          firstClause(None, false, List.empty)(defaultPos),
+          firstClause(None, false, List.empty, None)(defaultPos),
           secondClause(
             Some((where(equals(varFor("transactionId"), literalString("123"))), getWherePosition())),
             false,
-            List.empty
+            List.empty,
+            None
           )(pos)
         )
       }
@@ -621,29 +641,39 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
           firstClause(
             Some((where(equals(varFor("transactionId"), literalString("123"))), where1Pos)),
             false,
-            List.empty
+            List.empty,
+            None
           )(defaultPos),
           secondClause(
             Some((where(equals(varFor("transactionId"), literalString("123"))), where2Pos)),
             false,
-            List.empty
+            List.empty,
+            None
           )(pos)
         )
       }
 
       test(s"$firstCommand YIELD transactionId AS txId $secondCommand") {
         assertAst(
-          firstClause(None, false, List(commandResultItem("transactionId", Some("txId"))))(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))),
-          secondClause(None, false, List.empty)(pos)
+          firstClause(
+            None,
+            false,
+            List(commandResultItem("transactionId", Some("txId"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
+          )(defaultPos),
+          secondClause(None, false, List.empty, None)(pos)
         )
       }
 
       test(s"$firstCommand $secondCommand YIELD transactionId AS txId") {
         assertAst(
-          firstClause(None, false, List.empty)(defaultPos),
-          secondClause(None, false, List(commandResultItem("transactionId", Some("txId"))))(pos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId")))
+          firstClause(None, false, List.empty, None)(defaultPos),
+          secondClause(
+            None,
+            false,
+            List(commandResultItem("transactionId", Some("txId"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
+          )(pos)
         )
       }
 
@@ -651,14 +681,18 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         s"$firstCommand YIELD transactionId AS txId $secondCommand YIELD username"
       ) {
         assertAst(
-          firstClause(None, false, List(commandResultItem("transactionId", Some("txId"))))(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))),
+          firstClause(
+            None,
+            false,
+            List(commandResultItem("transactionId", Some("txId"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
+          )(defaultPos),
           secondClause(
             None,
             false,
-            List(commandResultItem("username"))
-          )(pos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username")))
+            List(commandResultItem("username")),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username"))))
+          )(pos)
         )
       }
 
@@ -666,10 +700,18 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         s"$firstCommand YIELD transactionId AS txId $secondCommand YIELD username RETURN txId, username"
       ) {
         assertAst(
-          firstClause(None, false, List(commandResultItem("transactionId", Some("txId"))))(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))),
-          secondClause(None, false, List(commandResultItem("username")))(pos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username"))),
+          firstClause(
+            None,
+            false,
+            List(commandResultItem("transactionId", Some("txId"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
+          )(defaultPos),
+          secondClause(
+            None,
+            false,
+            List(commandResultItem("username")),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username"))))
+          )(pos),
           returnClause(returnItems(variableReturnItem("txId"), variableReturnItem("username")))
         )
       }
@@ -678,10 +720,13 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         s"$firstCommand YIELD * $secondCommand YIELD username RETURN txId, username"
       ) {
         assertAst(
-          firstClause(None, true, List.empty)(defaultPos),
-          withFromYield(returnAllItems),
-          secondClause(None, false, List(commandResultItem("username")))(pos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username"))),
+          firstClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(defaultPos),
+          secondClause(
+            None,
+            false,
+            List(commandResultItem("username")),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username"))))
+          )(pos),
           returnClause(returnItems(variableReturnItem("txId"), variableReturnItem("username")))
         )
       }
@@ -690,10 +735,13 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         s"$firstCommand YIELD transactionId AS txId $secondCommand YIELD * RETURN txId, username"
       ) {
         assertAst(
-          firstClause(None, false, List(commandResultItem("transactionId", Some("txId"))))(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))),
-          secondClause(None, true, List.empty)(pos),
-          withFromYield(returnAllItems),
+          firstClause(
+            None,
+            false,
+            List(commandResultItem("transactionId", Some("txId"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
+          )(defaultPos),
+          secondClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(pos),
           returnClause(returnItems(variableReturnItem("txId"), variableReturnItem("username")))
         )
       }
@@ -702,10 +750,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         s"$firstCommand YIELD * $secondCommand YIELD * RETURN txId, username"
       ) {
         assertAst(
-          firstClause(None, true, List.empty)(defaultPos),
-          withFromYield(returnAllItems),
-          secondClause(None, true, List.empty)(pos),
-          withFromYield(returnAllItems),
+          firstClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(defaultPos),
+          secondClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(pos),
           returnClause(returnItems(variableReturnItem("txId"), variableReturnItem("username")))
         )
       }
@@ -714,15 +760,19 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         s"$firstCommand YIELD transactionId AS txId RETURN txId $secondCommand YIELD username RETURN txId, username"
       ) {
         assertAst(
-          firstClause(None, false, List(commandResultItem("transactionId", Some("txId"))))(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))),
+          firstClause(
+            None,
+            false,
+            List(commandResultItem("transactionId", Some("txId"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
+          )(defaultPos),
           returnClause(returnItems(variableReturnItem("txId"))),
           secondClause(
             None,
             false,
-            List(commandResultItem("username"))
+            List(commandResultItem("username")),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username"))))
           )(pos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username"))),
           returnClause(returnItems(variableReturnItem("txId"), variableReturnItem("username")))
         )
       }
@@ -742,18 +792,18 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
               commandResultItem("transactionId", Some("txId")),
               commandResultItem("currentQuery"),
               commandResultItem("username", Some("user"))
-            )
+            ),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "currentQuery", "user"))))
           )(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "currentQuery", "user"))),
           secondClause(
             None,
             false,
             List(
               commandResultItem("username"),
               commandResultItem("message")
-            )
+            ),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username", "message"))))
           )(pos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username", "message"))),
           returnAll
         )
       }
@@ -765,10 +815,10 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
           s"$firstCommand $secondCommand $thirdCommand $fourthCommand"
         ) {
           assertAst(
-            firstClause(None, false, List.empty)(defaultPos),
-            secondClause(None, false, List.empty)(pos),
-            thirdClause(None, false, List.empty)(pos),
-            fourthClause(None, false, List.empty)(pos)
+            firstClause(None, false, List.empty, None)(defaultPos),
+            secondClause(None, false, List.empty, None)(pos),
+            thirdClause(None, false, List.empty, None)(pos),
+            fourthClause(None, false, List.empty, None)(pos)
           )
         }
 
@@ -783,14 +833,10 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
              |YIELD *""".stripMargin
         ) {
           assertAst(
-            firstClause(None, true, List.empty)(defaultPos),
-            withFromYield(returnAllItems),
-            secondClause(None, true, List.empty)(pos),
-            withFromYield(returnAllItems),
-            thirdClause(None, true, List.empty)(pos),
-            withFromYield(returnAllItems),
-            fourthClause(None, true, List.empty)(pos),
-            withFromYield(returnAllItems)
+            firstClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(defaultPos),
+            secondClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(pos),
+            thirdClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(pos),
+            fourthClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(pos)
           )
         }
 
@@ -809,33 +855,33 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             firstClause(
               None,
               false,
-              List(commandResultItem("transactionId", Some("txId")))
+              List(commandResultItem("transactionId", Some("txId"))),
+              Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
             )(defaultPos),
-            withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))),
             secondClause(
               None,
               false,
               List(
                 commandResultItem("transactionId", Some("txId")),
                 commandResultItem("username")
-              )
+              ),
+              Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "username"))))
             )(pos),
-            withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "username"))),
             thirdClause(
               None,
               false,
-              List(commandResultItem("transactionId", Some("txId")))
+              List(commandResultItem("transactionId", Some("txId"))),
+              Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
             )(pos),
-            withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))),
             fourthClause(
               None,
               false,
               List(
                 commandResultItem("transactionId", Some("txId")),
                 commandResultItem("message", Some("status"))
-              )
+              ),
+              Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "status"))))
             )(pos),
-            withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "status"))),
             returnAll
           )
         }
@@ -855,22 +901,26 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             firstClause(
               Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where1Pos)),
               false,
-              List.empty
+              List.empty,
+              None
             )(defaultPos),
             secondClause(
               Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where2Pos)),
               false,
-              List.empty
+              List.empty,
+              None
             )(pos),
             thirdClause(
               Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where3Pos)),
               false,
-              List.empty
+              List.empty,
+              None
             )(pos),
             fourthClause(
               Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where4Pos)),
               false,
-              List.empty
+              List.empty,
+              None
             )(pos)
           )
         }
@@ -881,8 +931,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     case (firstCommand, firstClause, secondCommand, secondClause) =>
       test(s"$firstCommand 'db1-transaction-123' $secondCommand 'db1-transaction-123'") {
         assertAst(
-          firstClause(Right(literalString("db1-transaction-123")), None, false, List.empty)(defaultPos),
-          secondClause(Right(literalString("db1-transaction-123")), None, false, List.empty)(pos)
+          firstClause(Right(literalString("db1-transaction-123")), None, false, List.empty, None)(defaultPos),
+          secondClause(Right(literalString("db1-transaction-123")), None, false, List.empty, None)(pos)
         )
       }
 
@@ -890,15 +940,21 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         s"$firstCommand 'db1-transaction-123', 'db1-transaction-123' $secondCommand 'db1-transaction-123', 'db1-transaction-123'"
       ) {
         assertAst(
-          firstClause(Left(List("db1-transaction-123", "db1-transaction-123")), None, false, List.empty)(defaultPos),
-          secondClause(Left(List("db1-transaction-123", "db1-transaction-123")), None, false, List.empty)(pos)
+          firstClause(
+            Left(List("db1-transaction-123", "db1-transaction-123")),
+            None,
+            false,
+            List.empty,
+            None
+          )(defaultPos),
+          secondClause(Left(List("db1-transaction-123", "db1-transaction-123")), None, false, List.empty, None)(pos)
         )
       }
 
       test(s"$firstCommand $$txId $secondCommand $$txId") {
         assertAst(
-          firstClause(Right(parameter("txId", CTAny)), None, false, List.empty)(defaultPos),
-          secondClause(Right(parameter("txId", CTAny)), None, false, List.empty)(pos)
+          firstClause(Right(parameter("txId", CTAny)), None, false, List.empty, None)(defaultPos),
+          secondClause(Right(parameter("txId", CTAny)), None, false, List.empty, None)(pos)
         )
       }
 
@@ -908,20 +964,22 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             Right(literalString("id")),
             Some((where(equals(varFor("transactionId"), literalString("123"))), getWherePosition())),
             false,
-            List.empty
+            List.empty,
+            None
           )(defaultPos),
-          secondClause(Right(literalString("db1-transaction-123")), None, false, List.empty)(pos)
+          secondClause(Right(literalString("db1-transaction-123")), None, false, List.empty, None)(pos)
         )
       }
 
       test(s"$firstCommand 'id' $secondCommand 'db1-transaction-123' WHERE transactionId = '123'") {
         assertAst(
-          firstClause(Right(literalString("id")), None, false, List.empty)(defaultPos),
+          firstClause(Right(literalString("id")), None, false, List.empty, None)(defaultPos),
           secondClause(
             Right(literalString("db1-transaction-123")),
             Some((where(equals(varFor("transactionId"), literalString("123"))), getWherePosition())),
             false,
-            List.empty
+            List.empty,
+            None
           )(pos)
         )
       }
@@ -936,13 +994,15 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             Right(literalString("id")),
             Some((where(equals(varFor("transactionId"), literalString("123"))), where1Pos)),
             false,
-            List.empty
+            List.empty,
+            None
           )(defaultPos),
           secondClause(
             Right(literalString("db1-transaction-123")),
             Some((where(equals(varFor("transactionId"), literalString("123"))), where2Pos)),
             false,
-            List.empty
+            List.empty,
+            None
           )(pos)
         )
       }
@@ -953,23 +1013,23 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             Right(literalString("id")),
             None,
             false,
-            List(commandResultItem("transactionId", Some("txId")))
+            List(commandResultItem("transactionId", Some("txId"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
           )(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))),
-          secondClause(Right(literalString("db1-transaction-123")), None, false, List.empty)(pos)
+          secondClause(Right(literalString("db1-transaction-123")), None, false, List.empty, None)(pos)
         )
       }
 
       test(s"$firstCommand 'id' $secondCommand 'db1-transaction-123' YIELD transactionId AS txId") {
         assertAst(
-          firstClause(Right(literalString("id")), None, false, List.empty)(defaultPos),
+          firstClause(Right(literalString("id")), None, false, List.empty, None)(defaultPos),
           secondClause(
             Right(literalString("db1-transaction-123")),
             None,
             false,
-            List(commandResultItem("transactionId", Some("txId")))
-          )(pos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId")))
+            List(commandResultItem("transactionId", Some("txId"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
+          )(pos)
         )
       }
 
@@ -981,16 +1041,16 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             Right(literalString("id")),
             None,
             false,
-            List(commandResultItem("transactionId", Some("txId")))
+            List(commandResultItem("transactionId", Some("txId"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
           )(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))),
           secondClause(
             Right(literalString("db1-transaction-123")),
             None,
             false,
-            List(commandResultItem("username"))
-          )(pos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username")))
+            List(commandResultItem("username")),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username"))))
+          )(pos)
         )
       }
 
@@ -1002,17 +1062,17 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             Right(literalString("id")),
             None,
             false,
-            List(commandResultItem("transactionId", Some("txId")))
+            List(commandResultItem("transactionId", Some("txId"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
           )(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))),
           returnClause(returnItems(variableReturnItem("txId"))),
           secondClause(
             Right(literalString("db1-transaction-123")),
             None,
             false,
-            List(commandResultItem("username"))
+            List(commandResultItem("username")),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username"))))
           )(pos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username"))),
           returnClause(returnItems(variableReturnItem("txId"), variableReturnItem("username")))
         )
       }
@@ -1025,16 +1085,16 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             Right(literalString("id")),
             None,
             false,
-            List(commandResultItem("transactionId", Some("txId")))
+            List(commandResultItem("transactionId", Some("txId"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
           )(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))),
           secondClause(
             Right(literalString("db1-transaction-123")),
             None,
             false,
-            List(commandResultItem("username"))
+            List(commandResultItem("username")),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username"))))
           )(pos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username"))),
           returnClause(returnItems(variableReturnItem("txId"), variableReturnItem("username")))
         )
       }
@@ -1055,9 +1115,9 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
               commandResultItem("transactionId", Some("txId")),
               commandResultItem("currentQuery"),
               commandResultItem("username", Some("user"))
-            )
+            ),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "currentQuery", "user"))))
           )(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "currentQuery", "user"))),
           secondClause(
             Right(literalString("db1-transaction-123")),
             None,
@@ -1065,9 +1125,9 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             List(
               commandResultItem("username"),
               commandResultItem("message")
-            )
+            ),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username", "message"))))
           )(pos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username", "message"))),
           returnAll
         )
       }
@@ -1083,10 +1143,10 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
                |${fourthCommand}S 'db1-transaction-123'""".stripMargin
           ) {
             assertAst(
-              firstClause(Right(literalString("db1-transaction-123")), None, false, List.empty)(defaultPos),
-              secondClause(Right(literalString("db1-transaction-123")), None, false, List.empty)(pos),
-              thirdClause(Right(literalString("db1-transaction-123")), None, false, List.empty)(pos),
-              fourthClause(Right(literalString("db1-transaction-123")), None, false, List.empty)(pos)
+              firstClause(Right(literalString("db1-transaction-123")), None, false, List.empty, None)(defaultPos),
+              secondClause(Right(literalString("db1-transaction-123")), None, false, List.empty, None)(pos),
+              thirdClause(Right(literalString("db1-transaction-123")), None, false, List.empty, None)(pos),
+              fourthClause(Right(literalString("db1-transaction-123")), None, false, List.empty, None)(pos)
             )
           }
 
@@ -1094,10 +1154,10 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             s"${firstCommand}S $$txId $secondCommand $$txId ${thirdCommand}S $$txId $fourthCommand $$txId"
           ) {
             assertAst(
-              firstClause(Right(parameter("txId", CTAny)), None, false, List.empty)(defaultPos),
-              secondClause(Right(parameter("txId", CTAny)), None, false, List.empty)(pos),
-              thirdClause(Right(parameter("txId", CTAny)), None, false, List.empty)(pos),
-              fourthClause(Right(parameter("txId", CTAny)), None, false, List.empty)(pos)
+              firstClause(Right(parameter("txId", CTAny)), None, false, List.empty, None)(defaultPos),
+              secondClause(Right(parameter("txId", CTAny)), None, false, List.empty, None)(pos),
+              thirdClause(Right(parameter("txId", CTAny)), None, false, List.empty, None)(pos),
+              fourthClause(Right(parameter("txId", CTAny)), None, false, List.empty, None)(pos)
             )
           }
 
@@ -1112,14 +1172,34 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
                |YIELD *""".stripMargin
           ) {
             assertAst(
-              firstClause(Right(literalString("db1-transaction-123")), None, true, List.empty)(defaultPos),
-              withFromYield(returnAllItems),
-              secondClause(Right(literalString("db1-transaction-123")), None, true, List.empty)(pos),
-              withFromYield(returnAllItems),
-              thirdClause(Right(literalString("db1-transaction-123")), None, true, List.empty)(pos),
-              withFromYield(returnAllItems),
-              fourthClause(Right(literalString("db1-transaction-123")), None, true, List.empty)(pos),
-              withFromYield(returnAllItems)
+              firstClause(
+                Right(literalString("db1-transaction-123")),
+                None,
+                true,
+                List.empty,
+                Some(withFromYield(returnAllItems))
+              )(defaultPos),
+              secondClause(
+                Right(literalString("db1-transaction-123")),
+                None,
+                true,
+                List.empty,
+                Some(withFromYield(returnAllItems))
+              )(pos),
+              thirdClause(
+                Right(literalString("db1-transaction-123")),
+                None,
+                true,
+                List.empty,
+                Some(withFromYield(returnAllItems))
+              )(pos),
+              fourthClause(
+                Right(literalString("db1-transaction-123")),
+                None,
+                true,
+                List.empty,
+                Some(withFromYield(returnAllItems))
+              )(pos)
             )
           }
 
@@ -1139,9 +1219,9 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
                 Right(literalString("db1-transaction-123")),
                 None,
                 false,
-                List(commandResultItem("transactionId", Some("txId")))
+                List(commandResultItem("transactionId", Some("txId"))),
+                Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
               )(defaultPos),
-              withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))),
               secondClause(
                 Right(literalString("db1-transaction-123")),
                 None,
@@ -1149,16 +1229,16 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
                 List(
                   commandResultItem("transactionId", Some("txId")),
                   commandResultItem("username")
-                )
+                ),
+                Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "username"))))
               )(pos),
-              withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "username"))),
               thirdClause(
                 Right(literalString("db1-transaction-123")),
                 None,
                 false,
-                List(commandResultItem("transactionId", Some("txId")))
+                List(commandResultItem("transactionId", Some("txId"))),
+                Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
               )(pos),
-              withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))),
               fourthClause(
                 Right(literalString("db1-transaction-123")),
                 None,
@@ -1166,9 +1246,9 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
                 List(
                   commandResultItem("transactionId", Some("txId")),
                   commandResultItem("message", Some("status"))
-                )
+                ),
+                Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "status"))))
               )(pos),
-              withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "status"))),
               returnAll
             )
           }
@@ -1189,25 +1269,29 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
                 Right(literalString("db1-transaction-123")),
                 Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where1Pos)),
                 false,
-                List.empty
+                List.empty,
+                None
               )(defaultPos),
               secondClause(
                 Right(literalString("db1-transaction-123")),
                 Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where2Pos)),
                 false,
-                List.empty
+                List.empty,
+                None
               )(pos),
               thirdClause(
                 Right(literalString("db1-transaction-123")),
                 Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where3Pos)),
                 false,
-                List.empty
+                List.empty,
+                None
               )(pos),
               fourthClause(
                 Right(literalString("db1-transaction-123")),
                 Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where4Pos)),
                 false,
-                List.empty
+                List.empty,
+                None
               )(pos)
             )
           }
@@ -1221,10 +1305,10 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             Right(literalString("id")),
             None,
             false,
-            List(commandResultItem("transactionId", Some("txId")))
+            List(commandResultItem("transactionId", Some("txId"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
           )(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))),
-          secondClause(Right(varFor("txId")), None, false, List.empty)(pos)
+          secondClause(Right(varFor("txId")), None, false, List.empty, None)(pos)
         )
       }
 
@@ -1234,10 +1318,10 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             Right(varFor("foo")),
             None,
             false,
-            List(commandResultItem("transactionId", Some("show")))
+            List(commandResultItem("transactionId", Some("show"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("show"))))
           )(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("show"))),
-          secondClause(Right(varFor("show")), None, false, List.empty)(pos)
+          secondClause(Right(varFor("show")), None, false, List.empty, None)(pos)
         )
       }
 
@@ -1249,10 +1333,10 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             Right(listOfString("db1-transaction-123", "db2-transaction-456")),
             None,
             false,
-            List(commandResultItem("transactionId", Some("show")))
+            List(commandResultItem("transactionId", Some("show"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("show"))))
           )(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("show"))),
-          secondClause(Right(varFor("show")), None, false, List.empty)(pos)
+          secondClause(Right(varFor("show")), None, false, List.empty, None)(pos)
         )
       }
 
@@ -1262,10 +1346,10 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             Right(literalString("id")),
             None,
             false,
-            List(commandResultItem("transactionId", Some("txId")))
+            List(commandResultItem("transactionId", Some("txId"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
           )(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))),
-          secondClause(Right(add(varFor("txId"), literalString("123"))), None, false, List.empty)(pos)
+          secondClause(Right(add(varFor("txId"), literalString("123"))), None, false, List.empty, None)(pos)
         )
       }
 
@@ -1275,10 +1359,10 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             Right(varFor("yield")),
             None,
             false,
-            List(commandResultItem("transactionId", Some("show")))
+            List(commandResultItem("transactionId", Some("show"))),
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("show"))))
           )(defaultPos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("show"))),
-          secondClause(Right(varFor("show")), None, false, List.empty)(pos)
+          secondClause(Right(varFor("show")), None, false, List.empty, None)(pos)
         )
       }
   }
@@ -1304,12 +1388,22 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     def expected(variablesAreEscaped: Boolean, returnCypher5Types: Boolean) =
       singleQuery(
         use(List("test")),
-        ast.ShowTransactionsClause(Right(literalString("")), None, List.empty, yieldAll = true, returnCypher5Types)(
-          pos
-        ),
-        withFromYield(returnAllItems),
-        ast.ShowTransactionsClause(Left(List("", "", "")), None, List.empty, yieldAll = true, returnCypher5Types)(pos),
-        withFromYield(returnAllItems),
+        ast.ShowTransactionsClause(
+          Right(literalString("")),
+          None,
+          List.empty,
+          yieldAll = true,
+          Some(withFromYield(returnAllItems)),
+          returnCypher5Types
+        )(pos),
+        ast.ShowTransactionsClause(
+          Left(List("", "", "")),
+          None,
+          List.empty,
+          yieldAll = true,
+          Some(withFromYield(returnAllItems)),
+          returnCypher5Types
+        )(pos),
         ast.ShowTransactionsClause(
           Right(varFor("콺", variablesAreEscaped)),
           None,
@@ -1319,14 +1413,14 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             commandResultItem("麪", variablesAreEscaped)
           ),
           yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("碌", "脃", "麪")),
+            Some(orderBy(sortItem(nullLiteral))),
+            Some(skip(1)),
+            where = Some(where(SignedOctalIntegerLiteral("0o1")(pos)))
+          )),
           returnCypher5Types
         )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("碌", "脃", "麪")),
-          Some(orderBy(sortItem(nullLiteral))),
-          Some(skip(1)),
-          where = Some(where(SignedOctalIntegerLiteral("0o1")(pos)))
-        ),
         returnClause(
           returnItems(
             ast.AliasedReturnItem(isNotNull(literalString("")), varFor("ጤ", variablesAreEscaped))(pos)
@@ -1366,27 +1460,27 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
           commandResultItem("d1", Some("d1")),
           commandResultItem("e1", Some("f1")),
           commandResultItem("g1", Some("e1"))
-        )
-      ),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("a1", "c1", "d1", "f1", "e1")),
-        Some(orderBy(
-          sortItem(varFor("a1")),
-          sortItem(varFor("c1")),
-          sortItem(varFor("d1")),
-          sortItem(varFor("e1"))
-        )),
-        where = Some(where(
-          and(
+        ),
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a1", "c1", "d1", "f1", "e1")),
+          Some(orderBy(
+            sortItem(varFor("a1")),
+            sortItem(varFor("c1")),
+            sortItem(varFor("d1")),
+            sortItem(varFor("e1"))
+          )),
+          where = Some(where(
             and(
               and(
-                varFor("a1"),
-                varFor("c1")
+                and(
+                  varFor("a1"),
+                  varFor("c1")
+                ),
+                varFor("d1")
               ),
-              varFor("d1")
-            ),
-            varFor("e1")
-          )
+              varFor("e1")
+            )
+          ))
         ))
       ),
       terminateTx(
@@ -1399,27 +1493,27 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
           commandResultItem("d2", Some("d2")),
           commandResultItem("e2", Some("f2")),
           commandResultItem("g2", Some("e2"))
-        )
-      ),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("a2", "c2", "d2", "f2", "e2")),
-        Some(orderBy(
-          sortItem(varFor("a2")),
-          sortItem(varFor("c2")),
-          sortItem(varFor("d2")),
-          sortItem(varFor("e2"))
-        )),
-        where = Some(where(
-          and(
+        ),
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a2", "c2", "d2", "f2", "e2")),
+          Some(orderBy(
+            sortItem(varFor("a2")),
+            sortItem(varFor("c2")),
+            sortItem(varFor("d2")),
+            sortItem(varFor("e2"))
+          )),
+          where = Some(where(
             and(
               and(
-                varFor("a2"),
-                varFor("c2")
+                and(
+                  varFor("a2"),
+                  varFor("c2")
+                ),
+                varFor("d2")
               ),
-              varFor("d2")
-            ),
-            varFor("e2")
-          )
+              varFor("e2")
+            )
+          ))
         ))
       ),
       showSetting(
@@ -1432,27 +1526,27 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
           commandResultItem("d3", Some("d3")),
           commandResultItem("e3", Some("f3")),
           commandResultItem("g3", Some("e3"))
-        )
-      ),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("a3", "c3", "d3", "f3", "e3")),
-        Some(orderBy(
-          sortItem(varFor("a3")),
-          sortItem(varFor("c3")),
-          sortItem(varFor("d3")),
-          sortItem(varFor("e3"))
-        )),
-        where = Some(where(
-          and(
+        ),
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a3", "c3", "d3", "f3", "e3")),
+          Some(orderBy(
+            sortItem(varFor("a3")),
+            sortItem(varFor("c3")),
+            sortItem(varFor("d3")),
+            sortItem(varFor("e3"))
+          )),
+          where = Some(where(
             and(
               and(
-                varFor("a3"),
-                varFor("c3")
+                and(
+                  varFor("a3"),
+                  varFor("c3")
+                ),
+                varFor("d3")
               ),
-              varFor("d3")
-            ),
-            varFor("e3")
-          )
+              varFor("e3")
+            )
+          ))
         ))
       ),
       showFunction(
@@ -1466,27 +1560,27 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
           commandResultItem("d4", Some("d4")),
           commandResultItem("e4", Some("f4")),
           commandResultItem("g4", Some("e4"))
-        )
-      ),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("a4", "c4", "d4", "f4", "e4")),
-        Some(orderBy(
-          sortItem(varFor("a4")),
-          sortItem(varFor("c4")),
-          sortItem(varFor("d4")),
-          sortItem(varFor("e4"))
-        )),
-        where = Some(where(
-          and(
+        ),
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a4", "c4", "d4", "f4", "e4")),
+          Some(orderBy(
+            sortItem(varFor("a4")),
+            sortItem(varFor("c4")),
+            sortItem(varFor("d4")),
+            sortItem(varFor("e4"))
+          )),
+          where = Some(where(
             and(
               and(
-                varFor("a4"),
-                varFor("c4")
+                and(
+                  varFor("a4"),
+                  varFor("c4")
+                ),
+                varFor("d4")
               ),
-              varFor("d4")
-            ),
-            varFor("e4")
-          )
+              varFor("e4")
+            )
+          ))
         ))
       ),
       showProcedure(
@@ -1499,27 +1593,27 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
           commandResultItem("d5", Some("d5")),
           commandResultItem("e5", Some("f5")),
           commandResultItem("g5", Some("e5"))
-        )
-      ),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("a5", "c5", "d5", "f5", "e5")),
-        Some(orderBy(
-          sortItem(varFor("a5")),
-          sortItem(varFor("c5")),
-          sortItem(varFor("d5")),
-          sortItem(varFor("e5"))
-        )),
-        where = Some(where(
-          and(
+        ),
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a5", "c5", "d5", "f5", "e5")),
+          Some(orderBy(
+            sortItem(varFor("a5")),
+            sortItem(varFor("c5")),
+            sortItem(varFor("d5")),
+            sortItem(varFor("e5"))
+          )),
+          where = Some(where(
             and(
               and(
-                varFor("a5"),
-                varFor("c5")
+                and(
+                  varFor("a5"),
+                  varFor("c5")
+                ),
+                varFor("d5")
               ),
-              varFor("d5")
-            ),
-            varFor("e5")
-          )
+              varFor("e5")
+            )
+          ))
         ))
       ),
       showIndex(
@@ -1532,27 +1626,27 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
           commandResultItem("d6", Some("d6")),
           commandResultItem("e6", Some("f6")),
           commandResultItem("g6", Some("e6"))
-        )
-      ),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("a6", "c6", "d6", "f6", "e6")),
-        Some(orderBy(
-          sortItem(varFor("a6")),
-          sortItem(varFor("c6")),
-          sortItem(varFor("d6")),
-          sortItem(varFor("e6"))
-        )),
-        where = Some(where(
-          and(
+        ),
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a6", "c6", "d6", "f6", "e6")),
+          Some(orderBy(
+            sortItem(varFor("a6")),
+            sortItem(varFor("c6")),
+            sortItem(varFor("d6")),
+            sortItem(varFor("e6"))
+          )),
+          where = Some(where(
             and(
               and(
-                varFor("a6"),
-                varFor("c6")
+                and(
+                  varFor("a6"),
+                  varFor("c6")
+                ),
+                varFor("d6")
               ),
-              varFor("d6")
-            ),
-            varFor("e6")
-          )
+              varFor("e6")
+            )
+          ))
         ))
       ),
       showConstraint(
@@ -1565,27 +1659,27 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
           commandResultItem("d7", Some("d7")),
           commandResultItem("e7", Some("f7")),
           commandResultItem("g7", Some("e7"))
-        )
-      ),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("a7", "c7", "d7", "f7", "e7")),
-        Some(orderBy(
-          sortItem(varFor("a7")),
-          sortItem(varFor("c7")),
-          sortItem(varFor("d7")),
-          sortItem(varFor("e7"))
-        )),
-        where = Some(where(
-          and(
+        ),
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a7", "c7", "d7", "f7", "e7")),
+          Some(orderBy(
+            sortItem(varFor("a7")),
+            sortItem(varFor("c7")),
+            sortItem(varFor("d7")),
+            sortItem(varFor("e7"))
+          )),
+          where = Some(where(
             and(
               and(
-                varFor("a7"),
-                varFor("c7")
+                and(
+                  varFor("a7"),
+                  varFor("c7")
+                ),
+                varFor("d7")
               ),
-              varFor("d7")
-            ),
-            varFor("e7")
-          )
+              varFor("e7")
+            )
+          ))
         ))
       ),
       returnAll
@@ -1628,202 +1722,202 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         Left(List.empty),
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       terminateTx(
         Right(literalString("id")),
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showSetting(
         Left(List.empty),
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showFunction(
         ast.AllFunctions,
         None,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showProcedure(
         None,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showIndex(
         ast.AllIndexes,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showConstraint(
         ast.AllConstraints,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showTx(
         Left(List.empty),
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       terminateTx(
         Right(literalString("id")),
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showSetting(
         Left(List.empty),
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showFunction(
         ast.AllFunctions,
         None,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showProcedure(
         None,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showIndex(
         ast.AllIndexes,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showConstraint(
         ast.AllConstraints,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showTx(
         Left(List.empty),
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       terminateTx(
         Right(literalString("id")),
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showSetting(
         Left(List.empty),
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showFunction(
         ast.AllFunctions,
         None,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showProcedure(
         None,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showIndex(
         ast.AllIndexes,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showConstraint(
         ast.AllConstraints,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showTx(
         Left(List.empty),
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       terminateTx(
         Right(literalString("id")),
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showSetting(
         Left(List.empty),
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showFunction(
         ast.AllFunctions,
         None,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showProcedure(
         None,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showIndex(
         ast.AllIndexes,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       showConstraint(
         ast.AllConstraints,
         None,
         yieldAll = false,
-        List(commandResultItem("a"))
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
       ),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))),
       returnAll
     )
   }
@@ -1832,8 +1926,13 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test(manyCommands) {
     val clauses = (for (_ <- 1 to 300) yield List(
-      showTx(Left(List.empty), None, yieldAll = false, List(commandResultItem("a")))(pos),
-      withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a")))
+      showTx(
+        Left(List.empty),
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      )(pos)
     )).flatten
     assertAst(clauses: _*)
   }
@@ -2123,6 +2222,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
           None,
           List.empty,
           yieldAll = false,
+          None,
           fromCypher5
         )(pos)
       )

@@ -2106,8 +2106,10 @@ sealed trait CommandClause extends Clause with SemanticAnalysisTooling {
     else semanticCheckFold(unfilteredColumns.columns)(sc => declareVariable(sc.variable, sc.cypherType))
 
   def where: Option[Where]
-
   def moveWhereToProjection: CommandClause
+
+  def yieldWith: Option[With]
+  def moveOutWith: CommandClause
 }
 
 object CommandClause {
@@ -2207,7 +2209,8 @@ case class ShowIndexesClause(
   indexType: ShowIndexType,
   where: Option[Where],
   yieldItems: List[CommandResultItem],
-  yieldAll: Boolean
+  yieldAll: Boolean,
+  yieldWith: Option[With]
 )(val position: InputPosition) extends CommandClause {
   override def name: String = "SHOW INDEXES"
 
@@ -2223,6 +2226,7 @@ case class ShowIndexesClause(
     DefaultOrAllShowColumns(useAllColumns, briefColumns, allColumns)
 
   override def moveWhereToProjection: CommandClause = copy(where = None)(position)
+  override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 }
 
 object ShowIndexesClause {
@@ -2247,7 +2251,8 @@ object ShowIndexesClause {
     indexType: ShowIndexType,
     where: Option[Where],
     yieldItems: List[CommandResultItem],
-    yieldAll: Boolean
+    yieldAll: Boolean,
+    yieldWith: Option[With]
   )(position: InputPosition): ShowIndexesClause = {
     val briefCols = List(
       ShowAndTerminateColumn(idColumn, CTInteger),
@@ -2276,7 +2281,8 @@ object ShowIndexesClause {
       indexType,
       where,
       yieldItems,
-      yieldAll
+      yieldAll,
+      yieldWith
     )(position)
   }
 }
@@ -2287,7 +2293,8 @@ case class ShowConstraintsClause(
   constraintType: ShowConstraintType,
   where: Option[Where],
   yieldItems: List[CommandResultItem],
-  yieldAll: Boolean
+  yieldAll: Boolean,
+  yieldWith: Option[With]
 )(val position: InputPosition) extends CommandClause {
   override def name: String = "SHOW CONSTRAINTS"
 
@@ -2303,6 +2310,7 @@ case class ShowConstraintsClause(
     DefaultOrAllShowColumns(useAllColumns, briefColumns, allColumns)
 
   override def moveWhereToProjection: CommandClause = copy(where = None)(position)
+  override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 
   // Don't want to declare the graph type columns without the feature flag enabled
   override def clauseSpecificSemanticCheck: SemanticCheck = fromState { s =>
@@ -2344,6 +2352,7 @@ object ShowConstraintsClause {
     where: Option[Where],
     yieldItems: List[CommandResultItem],
     yieldAll: Boolean,
+    yieldWith: Option[With],
     returnCypher5Columns: Boolean
   )(position: InputPosition): ShowConstraintsClause = {
     val columns = List(
@@ -2375,7 +2384,8 @@ object ShowConstraintsClause {
       constraintType,
       where,
       yieldItems,
-      yieldAll
+      yieldAll,
+      yieldWith
     )(position)
   }
 }
@@ -2386,7 +2396,8 @@ case class ShowProceduresClause(
   executable: Option[ExecutableBy],
   where: Option[Where],
   yieldItems: List[CommandResultItem],
-  yieldAll: Boolean
+  yieldAll: Boolean,
+  yieldWith: Option[With]
 )(val position: InputPosition) extends CommandClause with CommandClauseAllowedOnSystem {
   override def name: String = "SHOW PROCEDURES"
 
@@ -2402,6 +2413,7 @@ case class ShowProceduresClause(
     DefaultOrAllShowColumns(useAllColumns, briefColumns, allColumns)
 
   override def moveWhereToProjection: CommandClause = copy(where = None)(position)
+  override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 }
 
 object ShowProceduresClause {
@@ -2423,7 +2435,8 @@ object ShowProceduresClause {
     executable: Option[ExecutableBy],
     where: Option[Where],
     yieldItems: List[CommandResultItem],
-    yieldAll: Boolean
+    yieldAll: Boolean,
+    yieldWith: Option[With]
   )(position: InputPosition): ShowProceduresClause = {
     val briefCols = List(
       ShowAndTerminateColumn(nameColumn),
@@ -2449,7 +2462,8 @@ object ShowProceduresClause {
       executable,
       where,
       yieldItems,
-      yieldAll
+      yieldAll,
+      yieldWith
     )(position)
   }
 }
@@ -2461,7 +2475,8 @@ case class ShowFunctionsClause(
   executable: Option[ExecutableBy],
   where: Option[Where],
   yieldItems: List[CommandResultItem],
-  yieldAll: Boolean
+  yieldAll: Boolean,
+  yieldWith: Option[With]
 )(val position: InputPosition) extends CommandClause with CommandClauseAllowedOnSystem {
   override def name: String = "SHOW FUNCTIONS"
 
@@ -2477,6 +2492,7 @@ case class ShowFunctionsClause(
     DefaultOrAllShowColumns(useAllColumns, briefColumns, allColumns)
 
   override def moveWhereToProjection: CommandClause = copy(where = None)(position)
+  override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 }
 
 object ShowFunctionsClause {
@@ -2498,7 +2514,8 @@ object ShowFunctionsClause {
     executable: Option[ExecutableBy],
     where: Option[Where],
     yieldItems: List[CommandResultItem],
-    yieldAll: Boolean
+    yieldAll: Boolean,
+    yieldWith: Option[With]
   )(position: InputPosition): ShowFunctionsClause = {
     val briefCols = List(
       ShowAndTerminateColumn(nameColumn),
@@ -2524,7 +2541,8 @@ object ShowFunctionsClause {
       executable,
       where,
       yieldItems,
-      yieldAll
+      yieldAll,
+      yieldWith
     )(position)
   }
 }
@@ -2537,7 +2555,8 @@ case class ShowTransactionsClause(
   names: Either[List[String], Expression],
   where: Option[Where],
   yieldItems: List[CommandResultItem],
-  yieldAll: Boolean
+  yieldAll: Boolean,
+  yieldWith: Option[With]
 )(val position: InputPosition) extends TransactionsCommandClause {
 
   override def name: String = "SHOW TRANSACTIONS"
@@ -2554,6 +2573,7 @@ case class ShowTransactionsClause(
     DefaultOrAllShowColumns(useAllColumns, briefColumns, allColumns)
 
   override def moveWhereToProjection: CommandClause = copy(where = None)(position)
+  override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 }
 
 object ShowTransactionsClause {
@@ -2602,6 +2622,7 @@ object ShowTransactionsClause {
     where: Option[Where],
     yieldItems: List[CommandResultItem],
     yieldAll: Boolean,
+    yieldWith: Option[With],
     returnCypher5Types: Boolean
   )(position: InputPosition): ShowTransactionsClause = {
     val columns = List(
@@ -2655,7 +2676,8 @@ object ShowTransactionsClause {
       ids,
       where,
       yieldItems,
-      yieldAll
+      yieldAll,
+      yieldWith
     )(position)
   }
 }
@@ -2665,6 +2687,7 @@ case class TerminateTransactionsClause(
   names: Either[List[String], Expression],
   yieldItems: List[CommandResultItem],
   yieldAll: Boolean,
+  yieldWith: Option[With],
   wherePos: Option[InputPosition]
 )(val position: InputPosition) extends TransactionsCommandClause {
 
@@ -2684,6 +2707,8 @@ case class TerminateTransactionsClause(
 
   override def where: Option[Where] = None
   override def moveWhereToProjection: CommandClause = this
+
+  override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 }
 
 object TerminateTransactionsClause {
@@ -2695,6 +2720,7 @@ object TerminateTransactionsClause {
     ids: Either[List[String], Expression],
     yieldItems: List[CommandResultItem],
     yieldAll: Boolean,
+    yieldWith: Option[With],
     wherePos: Option[InputPosition]
   )(position: InputPosition): TerminateTransactionsClause = {
     // All columns are currently default
@@ -2709,6 +2735,7 @@ object TerminateTransactionsClause {
       ids,
       yieldItems,
       yieldAll,
+      yieldWith,
       wherePos
     )(position)
   }
@@ -2720,7 +2747,8 @@ case class ShowSettingsClause(
   names: Either[List[String], Expression],
   where: Option[Where],
   yieldItems: List[CommandResultItem],
-  yieldAll: Boolean
+  yieldAll: Boolean,
+  yieldWith: Option[With]
 )(val position: InputPosition) extends CommandClauseWithNames with CommandClauseAllowedOnSystem {
 
   override def name: String = "SHOW SETTINGS"
@@ -2737,6 +2765,7 @@ case class ShowSettingsClause(
     DefaultOrAllShowColumns(useAllColumns, briefColumns, allColumns)
 
   override def moveWhereToProjection: CommandClause = copy(where = None)(position)
+  override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
 
   override def clauseSpecificSemanticCheck: SemanticCheck = {
     requireFeatureSupport(
@@ -2762,7 +2791,8 @@ object ShowSettingsClause {
     names: Either[List[String], Expression],
     where: Option[Where],
     yieldItems: List[CommandResultItem],
-    yieldAll: Boolean
+    yieldAll: Boolean,
+    yieldWith: Option[With]
   )(position: InputPosition): ShowSettingsClause = {
     val defaultCols = List(
       ShowAndTerminateColumn(nameColumn),
@@ -2784,7 +2814,8 @@ object ShowSettingsClause {
       names,
       where,
       yieldItems,
-      yieldAll
+      yieldAll,
+      yieldWith
     )(position)
   }
 }

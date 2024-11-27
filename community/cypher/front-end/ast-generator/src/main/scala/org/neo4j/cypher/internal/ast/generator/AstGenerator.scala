@@ -1712,41 +1712,30 @@ class AstGenerator(
             indexType,
             Some(w),
             List.empty,
-            yieldAll = false
+            yieldAll = false,
+            None
           )(pos)
         )
-      case Some(Left((y, Some(r)))) =>
+      case Some(Left((y, r))) =>
         val (w, yi) = turnYieldToWith(y)
         Seq(
           ShowIndexesClause(
             indexType,
             None,
             yi,
-            yieldAll = false
-          )(pos),
-          w,
-          r
-        )
-      case Some(Left((y, None))) =>
-        val (w, yi) = turnYieldToWith(y)
-        Seq(
-          ShowIndexesClause(
-            indexType,
-            None,
-            yi,
-            yieldAll = false
-          )(pos),
-          w
-        )
+            yieldAll = false,
+            Some(w)
+          )(pos)
+        ) ++ r
       case _ if yieldAll =>
         Seq(
           ShowIndexesClause(
             indexType,
             None,
             List.empty,
-            yieldAll = true
-          )(pos),
-          getFullWithStarFromYield
+            yieldAll = true,
+            Some(getFullWithStarFromYield)
+          )(pos)
         )
       case _ =>
         Seq(
@@ -1754,7 +1743,8 @@ class AstGenerator(
             indexType,
             None,
             List.empty,
-            yieldAll = false
+            yieldAll = false,
+            None
           )(pos)
         )
     }
@@ -1771,20 +1761,23 @@ class AstGenerator(
     val usesCypher5 = whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)
     val showClauses = yields match {
       case Some(Right(w)) =>
-        Seq(ShowConstraintsClause(constraintType, Some(w), List.empty, yieldAll = false, usesCypher5)(pos))
-      case Some(Left((y, Some(r)))) =>
+        Seq(ShowConstraintsClause(constraintType, Some(w), List.empty, yieldAll = false, None, usesCypher5)(pos))
+      case Some(Left((y, r))) =>
         val (w, yi) = turnYieldToWith(y)
-        Seq(ShowConstraintsClause(constraintType, None, yi, yieldAll = false, usesCypher5)(pos), w, r)
-      case Some(Left((y, None))) =>
-        val (w, yi) = turnYieldToWith(y)
-        Seq(ShowConstraintsClause(constraintType, None, yi, yieldAll = false, usesCypher5)(pos), w)
+        Seq(ShowConstraintsClause(constraintType, None, yi, yieldAll = false, Some(w), usesCypher5)(pos)) ++ r
       case _ if yieldAll =>
         Seq(
-          ShowConstraintsClause(constraintType, None, List.empty, yieldAll = true, usesCypher5)(pos),
-          getFullWithStarFromYield
+          ShowConstraintsClause(
+            constraintType,
+            None,
+            List.empty,
+            yieldAll = true,
+            Some(getFullWithStarFromYield),
+            usesCypher5
+          )(pos)
         )
       case _ =>
-        Seq(ShowConstraintsClause(constraintType, None, List.empty, yieldAll = false, usesCypher5)(pos))
+        Seq(ShowConstraintsClause(constraintType, None, List.empty, yieldAll = false, None, usesCypher5)(pos))
     }
     val fullClauses = use.map(u => u +: showClauses).getOrElse(showClauses)
     SingleQuery(fullClauses)(pos)
@@ -1799,17 +1792,14 @@ class AstGenerator(
   } yield {
     val showClauses = yields match {
       case Some(Right(w)) =>
-        Seq(ShowProceduresClause(exec, Some(w), List.empty, yieldAll = false)(pos))
-      case Some(Left((y, Some(r)))) =>
+        Seq(ShowProceduresClause(exec, Some(w), List.empty, yieldAll = false, None)(pos))
+      case Some(Left((y, r))) =>
         val (w, yi) = turnYieldToWith(y)
-        Seq(ShowProceduresClause(exec, None, yi, yieldAll = false)(pos), w, r)
-      case Some(Left((y, None))) =>
-        val (w, yi) = turnYieldToWith(y)
-        Seq(ShowProceduresClause(exec, None, yi, yieldAll = false)(pos), w)
+        Seq(ShowProceduresClause(exec, None, yi, yieldAll = false, Some(w))(pos)) ++ r
       case _ if yieldAll =>
-        Seq(ShowProceduresClause(exec, None, List.empty, yieldAll = true)(pos), getFullWithStarFromYield)
+        Seq(ShowProceduresClause(exec, None, List.empty, yieldAll = true, Some(getFullWithStarFromYield))(pos))
       case _ =>
-        Seq(ShowProceduresClause(exec, None, List.empty, yieldAll = false)(pos))
+        Seq(ShowProceduresClause(exec, None, List.empty, yieldAll = false, None)(pos))
     }
     val fullClauses = use.map(u => u +: showClauses).getOrElse(showClauses)
     SingleQuery(fullClauses)(pos)
@@ -1825,17 +1815,14 @@ class AstGenerator(
   } yield {
     val showClauses = yields match {
       case Some(Right(w)) =>
-        Seq(ShowFunctionsClause(funcType, exec, Some(w), List.empty, yieldAll = false)(pos))
-      case Some(Left((y, Some(r)))) =>
+        Seq(ShowFunctionsClause(funcType, exec, Some(w), List.empty, yieldAll = false, None)(pos))
+      case Some(Left((y, r))) =>
         val (w, yi) = turnYieldToWith(y)
-        Seq(ShowFunctionsClause(funcType, exec, None, yi, yieldAll = false)(pos), w, r)
-      case Some(Left((y, None))) =>
-        val (w, yi) = turnYieldToWith(y)
-        Seq(ShowFunctionsClause(funcType, exec, None, yi, yieldAll = false)(pos), w)
+        Seq(ShowFunctionsClause(funcType, exec, None, yi, yieldAll = false, Some(w))(pos)) ++ r
       case _ if yieldAll =>
-        Seq(ShowFunctionsClause(funcType, exec, None, List.empty, yieldAll = true)(pos), getFullWithStarFromYield)
+        Seq(ShowFunctionsClause(funcType, exec, None, List.empty, yieldAll = true, Some(getFullWithStarFromYield))(pos))
       case _ =>
-        Seq(ShowFunctionsClause(funcType, exec, None, List.empty, yieldAll = false)(pos))
+        Seq(ShowFunctionsClause(funcType, exec, None, List.empty, yieldAll = false, None)(pos))
     }
     val fullClauses = use.map(u => u +: showClauses).getOrElse(showClauses)
     SingleQuery(fullClauses)(pos)
@@ -1850,20 +1837,23 @@ class AstGenerator(
     val returnCypher5Types = whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)
     val showClauses = yields match {
       case Some(Right(w)) =>
-        Seq(ShowTransactionsClause(ids, Some(w), List.empty, yieldAll = false, returnCypher5Types)(pos))
-      case Some(Left((y, Some(r)))) =>
+        Seq(ShowTransactionsClause(ids, Some(w), List.empty, yieldAll = false, None, returnCypher5Types)(pos))
+      case Some(Left((y, r))) =>
         val (w, yi) = turnYieldToWith(y)
-        Seq(ShowTransactionsClause(ids, None, yi, yieldAll = false, returnCypher5Types)(pos), w, r)
-      case Some(Left((y, None))) =>
-        val (w, yi) = turnYieldToWith(y)
-        Seq(ShowTransactionsClause(ids, None, yi, yieldAll = false, returnCypher5Types)(pos), w)
+        Seq(ShowTransactionsClause(ids, None, yi, yieldAll = false, Some(w), returnCypher5Types)(pos)) ++ r
       case _ if yieldAll =>
         Seq(
-          ShowTransactionsClause(ids, None, List.empty, yieldAll = true, returnCypher5Types)(pos),
-          getFullWithStarFromYield
+          ShowTransactionsClause(
+            ids,
+            None,
+            List.empty,
+            yieldAll = true,
+            Some(getFullWithStarFromYield),
+            returnCypher5Types
+          )(pos)
         )
       case _ =>
-        Seq(ShowTransactionsClause(ids, None, List.empty, yieldAll = false, returnCypher5Types)(pos))
+        Seq(ShowTransactionsClause(ids, None, List.empty, yieldAll = false, None, returnCypher5Types)(pos))
     }
     val fullClauses = use.map(u => u +: showClauses).getOrElse(showClauses)
     SingleQuery(fullClauses)(pos)
@@ -1877,15 +1867,12 @@ class AstGenerator(
     use <- option(_use)
   } yield {
     val terminateClauses = (yields, returns) match {
-      case (Some(y), Some(r)) =>
+      case (Some(y), r) =>
         val (w, yi) = turnYieldToWith(y)
-        Seq(TerminateTransactionsClause(ids, yi, yieldAll = false, None)(pos), w, r)
-      case (Some(y), None) =>
-        val (w, yi) = turnYieldToWith(y)
-        Seq(TerminateTransactionsClause(ids, yi, yieldAll = false, None)(pos), w)
+        Seq(TerminateTransactionsClause(ids, yi, yieldAll = false, Some(w), None)(pos)) ++ r
       case _ if yieldAll =>
-        Seq(TerminateTransactionsClause(ids, List.empty, yieldAll = true, None)(pos), getFullWithStarFromYield)
-      case _ => Seq(TerminateTransactionsClause(ids, List.empty, yieldAll = false, None)(pos))
+        Seq(TerminateTransactionsClause(ids, List.empty, yieldAll = true, Some(getFullWithStarFromYield), None)(pos))
+      case _ => Seq(TerminateTransactionsClause(ids, List.empty, yieldAll = false, None, None)(pos))
     }
     val fullClauses = use.map(u => u +: terminateClauses).getOrElse(terminateClauses)
     SingleQuery(fullClauses)(pos)
@@ -1898,16 +1885,13 @@ class AstGenerator(
     use <- option(_use)
   } yield {
     val showClauses = yields match {
-      case Some(Right(w)) => Seq(ShowSettingsClause(names, Some(w), List.empty, yieldAll = false)(pos))
-      case Some(Left((y, Some(r)))) =>
+      case Some(Right(w)) => Seq(ShowSettingsClause(names, Some(w), List.empty, yieldAll = false, None)(pos))
+      case Some(Left((y, r))) =>
         val (w, yi) = turnYieldToWith(y)
-        Seq(ShowSettingsClause(names, None, yi, yieldAll = false)(pos), w, r)
-      case Some(Left((y, None))) =>
-        val (w, yi) = turnYieldToWith(y)
-        Seq(ShowSettingsClause(names, None, yi, yieldAll = false)(pos), w)
+        Seq(ShowSettingsClause(names, None, yi, yieldAll = false, Some(w))(pos)) ++ r
       case _ if yieldAll =>
-        Seq(ShowSettingsClause(names, None, List.empty, yieldAll = true)(pos), getFullWithStarFromYield)
-      case _ => Seq(ShowSettingsClause(names, None, List.empty, yieldAll = false)(pos))
+        Seq(ShowSettingsClause(names, None, List.empty, yieldAll = true, Some(getFullWithStarFromYield))(pos))
+      case _ => Seq(ShowSettingsClause(names, None, List.empty, yieldAll = false, None)(pos))
     }
     val fullClauses = use.map(u => u +: showClauses).getOrElse(showClauses)
     SingleQuery(fullClauses)(pos)
@@ -1960,19 +1944,22 @@ class AstGenerator(
     yieldAll <- boolean
     usesCypher5 = whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)
     clause <- oneOf(
-      (item: List[CommandResultItem], all: Boolean) => ShowTransactionsClause(ids, None, item, all, usesCypher5)(pos),
-      (item: List[CommandResultItem], all: Boolean) => ShowFunctionsClause(funcType, exec, None, item, all)(pos),
-      (item: List[CommandResultItem], all: Boolean) => ShowProceduresClause(exec, None, item, all)(pos),
-      (item: List[CommandResultItem], all: Boolean) => ShowSettingsClause(ids, None, item, all)(pos),
-      (item: List[CommandResultItem], all: Boolean) =>
-        ShowConstraintsClause(constraintType, None, item, all, usesCypher5)(pos),
-      (item: List[CommandResultItem], all: Boolean) =>
-        ShowIndexesClause(indexType, None, item, all)(pos)
+      (item: List[CommandResultItem], all: Boolean, w: With) =>
+        ShowTransactionsClause(ids, None, item, all, Some(w), usesCypher5)(pos),
+      (item: List[CommandResultItem], all: Boolean, w: With) =>
+        ShowFunctionsClause(funcType, exec, None, item, all, Some(w))(pos),
+      (item: List[CommandResultItem], all: Boolean, w: With) =>
+        ShowProceduresClause(exec, None, item, all, Some(w))(pos),
+      (item: List[CommandResultItem], all: Boolean, w: With) => ShowSettingsClause(ids, None, item, all, Some(w))(pos),
+      (item: List[CommandResultItem], all: Boolean, w: With) =>
+        ShowConstraintsClause(constraintType, None, item, all, Some(w), usesCypher5)(pos),
+      (item: List[CommandResultItem], all: Boolean, w: With) =>
+        ShowIndexesClause(indexType, None, item, all, Some(w))(pos)
     )
   } yield {
     val (withClause, items) = turnYieldToWith(yields)
-    if (yieldAll) Seq(clause(List.empty, true), getFullWithStarFromYield)
-    else Seq(clause(items, false), withClause)
+    if (yieldAll) Seq(clause(List.empty, true, getFullWithStarFromYield))
+    else Seq(clause(items, false, withClause))
   }
 
   private def terminateAsPartOfCombined: Gen[Seq[Clause]] = for {
@@ -1982,8 +1969,8 @@ class AstGenerator(
   } yield {
     val (withClause, items) = turnYieldToWith(yields)
     if (yieldAll)
-      Seq(TerminateTransactionsClause(ids, List.empty, yieldAll = true, None)(pos), getFullWithStarFromYield)
-    else Seq(TerminateTransactionsClause(ids, items, yieldAll = false, None)(pos), withClause)
+      Seq(TerminateTransactionsClause(ids, List.empty, yieldAll = true, Some(getFullWithStarFromYield), None)(pos))
+    else Seq(TerminateTransactionsClause(ids, items, yieldAll = false, Some(withClause), None)(pos))
   }
 
   /* names for show commands:

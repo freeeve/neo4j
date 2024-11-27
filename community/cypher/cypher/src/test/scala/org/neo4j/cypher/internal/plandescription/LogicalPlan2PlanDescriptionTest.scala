@@ -7124,7 +7124,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     assertGood(
       attach(
         AllowedNonAdministrationCommands(
-          SingleQuery(Seq(ShowProceduresClause(None, None, List.empty, yieldAll = false)(pos)))(pos)
+          SingleQuery(Seq(ShowProceduresClause(None, None, List.empty, yieldAll = false, None)(pos)))(pos)
         ),
         1.0
       ),

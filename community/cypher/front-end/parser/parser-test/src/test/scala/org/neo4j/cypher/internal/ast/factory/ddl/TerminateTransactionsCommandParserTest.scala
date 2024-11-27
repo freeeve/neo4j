@@ -35,6 +35,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(literalString("db1-transaction-123")),
           List.empty,
           yieldAll = false,
+          None,
           None
         )(defaultPos))
       )
@@ -46,6 +47,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(literalString("db1-transaction-123")),
           List.empty,
           yieldAll = false,
+          None,
           None
         )(defaultPos))
       )
@@ -58,6 +60,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
             Right(literalString("my.db-transaction-123")),
             List.empty,
             yieldAll = false,
+            None,
             None
           )(pos)
         ),
@@ -68,7 +71,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
     test(s"TERMINATE $transactionKeyword $$param") {
       assertAst(
         singleQuery(
-          TerminateTransactionsClause(Right(parameter("param", CTAny)), List.empty, yieldAll = false, None)(pos)
+          TerminateTransactionsClause(Right(parameter("param", CTAny)), List.empty, yieldAll = false, None, None)(pos)
         ),
         comparePosition = false
       )
@@ -77,7 +80,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
     test(s"TERMINATE $transactionKeyword $$yield") {
       assertAst(
         singleQuery(
-          TerminateTransactionsClause(Right(parameter("yield", CTAny)), List.empty, yieldAll = false, None)(pos)
+          TerminateTransactionsClause(Right(parameter("yield", CTAny)), List.empty, yieldAll = false, None, None)(pos)
         ),
         comparePosition = false
       )
@@ -88,6 +91,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
         Left(List("db1 - transaction - 123", "db2-transaction-45a6")),
         List.empty,
         yieldAll = false,
+        None,
         None
       )(defaultPos)))
     }
@@ -98,6 +102,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(literalString("yield-transaction-123")),
           List.empty,
           yieldAll = false,
+          None,
           None
         )(defaultPos))
       )
@@ -110,6 +115,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
             Right(literalString("where-transaction-123")),
             List.empty,
             yieldAll = false,
+            None,
             None
           )(pos)
         ),
@@ -125,6 +131,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
             Right(literalString("db1-transaction-123")),
             List.empty,
             yieldAll = false,
+            None,
             None
           )(pos)
         ),
@@ -140,6 +147,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
         Right(subtract(subtract(varFor("db"), varFor("transaction")), literalInt(123))),
         List.empty,
         yieldAll = false,
+        None,
         None
       )(pos)
     ))
@@ -151,6 +159,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
         Right(listOfString("db1-transaction-123", "db2-transaction-456")),
         List.empty,
         yieldAll = false,
+        None,
         None
       )(pos)
     ))
@@ -158,19 +167,19 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
 
   test("TERMINATE TRANSACTION foo") {
     assertAst(singleQuery(
-      TerminateTransactionsClause(Right(varFor("foo")), List.empty, yieldAll = false, None)(pos)
+      TerminateTransactionsClause(Right(varFor("foo")), List.empty, yieldAll = false, None, None)(pos)
     ))
   }
 
   test("TERMINATE TRANSACTION x+2") {
     assertAst(singleQuery(
-      TerminateTransactionsClause(Right(add(varFor("x"), literalInt(2))), List.empty, yieldAll = false, None)(pos)
+      TerminateTransactionsClause(Right(add(varFor("x"), literalInt(2))), List.empty, yieldAll = false, None, None)(pos)
     ))
   }
 
   test("TERMINATE TRANSACTIONS ALL") {
     assertAst(singleQuery(
-      TerminateTransactionsClause(Right(varFor("ALL")), List.empty, yieldAll = false, None)(pos)
+      TerminateTransactionsClause(Right(varFor("ALL")), List.empty, yieldAll = false, None, None)(pos)
     ))
   }
 
@@ -183,6 +192,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
       Left(List("db1-transaction-123", "db2-transaction-456")),
       List.empty,
       yieldAll = false,
+      None,
       Some(InputPosition(67, 1, 68))
     )(defaultPos)))
   }
@@ -194,9 +204,9 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(literalString("id")),
           List(commandResultItem("username")),
           yieldAll = false,
+          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username")))),
           None
-        )(pos),
-        withFromYield(returnAllItems.withDefaultOrderOnColumns(List("username")))
+        )(pos)
       ),
       comparePosition = false
     )
@@ -209,9 +219,9 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Left(List("db1-transaction-123", "db2-transaction-456")),
           List.empty,
           yieldAll = true,
+          Some(withFromYield(returnAllItems)),
           None
-        )(defaultPos),
-        withFromYield(returnAllItems)
+        )(defaultPos)
       )
     )
   }
@@ -223,9 +233,9 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Left(List("db1-transaction-123", "db2-transaction-456", "yield")),
           List.empty,
           yieldAll = true,
+          Some(withFromYield(returnAllItems)),
           None
-        )(pos),
-        withFromYield(returnAllItems)
+        )(pos)
       ),
       comparePosition = false
     )
@@ -234,8 +244,18 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
   test("TERMINATE TRANSACTIONS $param YIELD * ORDER BY transactionId SKIP 2 LIMIT 5") {
     assertAst(
       singleQuery(
-        TerminateTransactionsClause(Right(parameter("param", CTAny)), List.empty, yieldAll = true, None)(pos),
-        withFromYield(returnAllItems, Some(orderBy(sortItem(varFor("transactionId")))), Some(skip(2)), Some(limit(5)))
+        TerminateTransactionsClause(
+          Right(parameter("param", CTAny)),
+          List.empty,
+          yieldAll = true,
+          Some(withFromYield(
+            returnAllItems,
+            Some(orderBy(sortItem(varFor("transactionId")))),
+            Some(skip(2)),
+            Some(limit(5))
+          )),
+          None
+        )(pos)
       ),
       comparePosition = false
     )
@@ -251,15 +271,15 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(literalString("db1-transaction-123")),
           List(commandResultItem("transactionId"), commandResultItem("username", Some("pp"))),
           yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("transactionId", "pp")),
+            Some(orderBy(sortItem(varFor("pp")))),
+            Some(skip(2)),
+            Some(limit(5)),
+            Some(where(lessThan(function("length", varFor("pp")), literalInt(5L))))
+          )),
           None
         )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("transactionId", "pp")),
-          Some(orderBy(sortItem(varFor("pp")))),
-          Some(skip(2)),
-          Some(limit(5)),
-          Some(where(lessThan(function("length", varFor("pp")), literalInt(5L))))
-        ),
         return_(variableReturnItem("transactionId"))
       ),
       comparePosition = false
@@ -276,15 +296,15 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(literalString("db1-transaction-123")),
           List(commandResultItem("transactionId"), commandResultItem("username", Some("pp"))),
           yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("transactionId", "pp")),
+            Some(orderBy(sortItem(varFor("pp")))),
+            Some(skip(2)),
+            Some(limit(5)),
+            Some(where(lessThan(function("length", varFor("pp")), literalInt(5L))))
+          )),
           None
         )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("transactionId", "pp")),
-          Some(orderBy(sortItem(varFor("pp")))),
-          Some(skip(2)),
-          Some(limit(5)),
-          Some(where(lessThan(function("length", varFor("pp")), literalInt(5L))))
-        ),
         return_(variableReturnItem("transactionId"))
       ),
       comparePosition = false
@@ -298,9 +318,9 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(literalString("where")),
           List(commandResultItem("transactionId", Some("TRANSACTION")), commandResultItem("username", Some("OUTPUT"))),
           yieldAll = false,
+          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("TRANSACTION", "OUTPUT")))),
           None
-        )(pos),
-        withFromYield(returnAllItems.withDefaultOrderOnColumns(List("TRANSACTION", "OUTPUT")))
+        )(pos)
       ),
       comparePosition = false
     )
@@ -309,8 +329,16 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
   test("TERMINATE TRANSACTION 'yield' YIELD * WHERE transactionId = 'where'") {
     assertAst(
       singleQuery(
-        TerminateTransactionsClause(Right(literalString("yield")), List.empty, yieldAll = true, None)(pos),
-        withFromYield(returnAllItems, where = Some(where(equals(varFor("transactionId"), literalString("where")))))
+        TerminateTransactionsClause(
+          Right(literalString("yield")),
+          List.empty,
+          yieldAll = true,
+          Some(withFromYield(
+            returnAllItems,
+            where = Some(where(equals(varFor("transactionId"), literalString("where"))))
+          )),
+          None
+        )(pos)
       ),
       comparePosition = false
     )
@@ -319,11 +347,16 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
   test("TERMINATE TRANSACTION $yield YIELD * WHERE transactionId IN ['yield', $where]") {
     assertAst(
       singleQuery(
-        TerminateTransactionsClause(Right(parameter("yield", CTAny)), List.empty, yieldAll = true, None)(pos),
-        withFromYield(
-          returnAllItems,
-          where = Some(where(in(varFor("transactionId"), listOf(literalString("yield"), parameter("where", CTAny)))))
-        )
+        TerminateTransactionsClause(
+          Right(parameter("yield", CTAny)),
+          List.empty,
+          yieldAll = true,
+          Some(withFromYield(
+            returnAllItems,
+            where = Some(where(in(varFor("transactionId"), listOf(literalString("yield"), parameter("where", CTAny)))))
+          )),
+          None
+        )(pos)
       ),
       comparePosition = false
     )
@@ -337,6 +370,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
         Right(subtract(subtract(varFor("db1"), varFor("transaction")), literalInt(123))),
         List.empty,
         yieldAll = false,
+        None,
         Some(InputPosition(42, 1, 43))
       )(pos)),
       comparePosition = false
@@ -350,9 +384,9 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(listOfString("db1-transaction-123", "db2-transaction-456")),
           List.empty,
           yieldAll = true,
+          Some(withFromYield(returnAllItems)),
           None
-        )(pos),
-        withFromYield(returnAllItems)
+        )(pos)
       ),
       comparePosition = false
     )
@@ -365,9 +399,9 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(multiply(varFor("x"), literalInt(2))),
           List(commandResultItem("transactionId", Some("TRANSACTION")), commandResultItem("database", Some("SHOW"))),
           yieldAll = false,
+          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("TRANSACTION", "SHOW")))),
           None
-        )(pos),
-        withFromYield(returnAllItems.withDefaultOrderOnColumns(List("TRANSACTION", "SHOW")))
+        )(pos)
       ),
       comparePosition = false
     )
@@ -380,9 +414,9 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(varFor("where")),
           List.empty,
           yieldAll = true,
+          Some(withFromYield(returnAllItems)),
           None
-        )(pos),
-        withFromYield(returnAllItems)
+        )(pos)
       ),
       comparePosition = false
     )
@@ -395,9 +429,9 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(varFor("yield")),
           List.empty,
           yieldAll = true,
+          Some(withFromYield(returnAllItems)),
           None
-        )(pos),
-        withFromYield(returnAllItems)
+        )(pos)
       ),
       comparePosition = false
     )
@@ -410,9 +444,9 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(varFor("show")),
           List.empty,
           yieldAll = true,
+          Some(withFromYield(returnAllItems)),
           None
-        )(pos),
-        withFromYield(returnAllItems)
+        )(pos)
       ),
       comparePosition = false
     )
@@ -425,9 +459,9 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(varFor("terminate")),
           List.empty,
           yieldAll = true,
+          Some(withFromYield(returnAllItems)),
           None
-        )(pos),
-        withFromYield(returnAllItems)
+        )(pos)
       ),
       comparePosition = false
     )
@@ -440,9 +474,9 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(literalString("id")),
           List(commandResultItem("yield")),
           yieldAll = false,
+          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("yield")))),
           None
-        )(pos),
-        withFromYield(returnAllItems.withDefaultOrderOnColumns(List("yield")))
+        )(pos)
       ),
       comparePosition = false
     )
@@ -455,6 +489,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(varFor("where")),
           List.empty,
           yieldAll = false,
+          None,
           Some(InputPosition(29, 1, 30))
         )(pos)
       ),
@@ -469,6 +504,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(varFor("yield")),
           List.empty,
           yieldAll = false,
+          None,
           Some(InputPosition(29, 1, 30))
         )(pos)
       ),
@@ -483,6 +519,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(varFor("show")),
           List.empty,
           yieldAll = false,
+          None,
           Some(InputPosition(28, 1, 29))
         )(pos)
       ),
@@ -497,6 +534,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(varFor("terminate")),
           List.empty,
           yieldAll = false,
+          None,
           Some(InputPosition(33, 1, 34))
         )(pos)
       ),
@@ -511,9 +549,9 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(varFor("yield", yieldIsEscaped)),
           List.empty,
           yieldAll = true,
+          Some(withFromYield(returnAllItems)),
           None
-        )(pos),
-        withFromYield(returnAllItems)
+        )(pos)
       )
     parsesIn[Statement] {
       case Cypher5 => _.toAst(expected(yieldIsEscaped = true))
@@ -528,6 +566,7 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           Right(varFor("where", whereIsEscaped)),
           List.empty,
           yieldAll = false,
+          None,
           Some(InputPosition(31, 1, 32))
         )(pos)
       )
@@ -543,13 +582,13 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
         Right(literalString("id")),
         List(commandResultItem("a")),
         yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a")),
+          Some(orderBy(sortItem(varFor("a")))),
+          where = Some(where(equals(varFor("a"), literalInt(1))))
+        )),
         None
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("a")),
-        Some(orderBy(sortItem(varFor("a")))),
-        where = Some(where(equals(varFor("a"), literalInt(1))))
-      )
+      )(pos)
     ))
   }
 
@@ -559,13 +598,13 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
         Right(literalString("id")),
         List(commandResultItem("a", Some("b"))),
         yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("b")),
+          Some(orderBy(sortItem(varFor("b")))),
+          where = Some(where(equals(varFor("b"), literalInt(1))))
+        )),
         None
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("b")),
-        Some(orderBy(sortItem(varFor("b")))),
-        where = Some(where(equals(varFor("b"), literalInt(1))))
-      )
+      )(pos)
     ))
   }
 
@@ -575,13 +614,13 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
         Right(literalString("id")),
         List(commandResultItem("a", Some("b"))),
         yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("b")),
+          Some(orderBy(sortItem(varFor("b")))),
+          where = Some(where(equals(varFor("b"), literalInt(1))))
+        )),
         None
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("b")),
-        Some(orderBy(sortItem(varFor("b")))),
-        where = Some(where(equals(varFor("b"), literalInt(1))))
-      )
+      )(pos)
     ))
   }
 
@@ -591,13 +630,13 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
         Right(literalString("id")),
         List(commandResultItem("a")),
         yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a")),
+          Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))),
+          where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))
+        )),
         None
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("a")),
-        Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))),
-        where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))
-      )
+      )(pos)
     ))
   }
 
@@ -607,13 +646,13 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
         Right(literalString("id")),
         List(commandResultItem("a")),
         yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a")),
+          Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))),
+          where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
+        )),
         None
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("a")),
-        Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))),
-        where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
-      )
+      )(pos)
     ))
   }
 
@@ -623,13 +662,13 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
         Right(literalString("id")),
         List(commandResultItem("a", Some("b"))),
         yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("b")),
+          Some(orderBy(sortItem(simpleCountExpression(patternForMatch(nodePat(Some("b"))), None)))),
+          where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
+        )),
         None
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("b")),
-        Some(orderBy(sortItem(simpleCountExpression(patternForMatch(nodePat(Some("b"))), None)))),
-        where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
-      )
+      )(pos)
     ))
   }
 
@@ -639,16 +678,16 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
         Right(literalString("id")),
         List(commandResultItem("a", Some("b"))),
         yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("b")),
+          Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))),
+          where = Some(where(notEquals(
+            simpleCollectExpression(patternForMatch(nodePat(Some("b"))), None, return_(returnItem(varFor("b"), "a"))),
+            listOf()
+          )))
+        )),
         None
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("b")),
-        Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))),
-        where = Some(where(notEquals(
-          simpleCollectExpression(patternForMatch(nodePat(Some("b"))), None, return_(returnItem(varFor("b"), "a"))),
-          listOf()
-        )))
-      )
+      )(pos)
     ))
   }
 
@@ -658,13 +697,13 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
         Right(literalString("id")),
         List(commandResultItem("a", Some("b"))),
         yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("b")),
+          Some(orderBy(sortItem(add(varFor("b"), simpleCountExpression(patternForMatch(nodePat()), None))))),
+          where = Some(where(or(varFor("b"), simpleExistsExpression(patternForMatch(nodePat()), None))))
+        )),
         None
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("b")),
-        Some(orderBy(sortItem(add(varFor("b"), simpleCountExpression(patternForMatch(nodePat()), None))))),
-        where = Some(where(or(varFor("b"), simpleExistsExpression(patternForMatch(nodePat()), None))))
-      )
+      )(pos)
     ))
   }
 
@@ -676,20 +715,20 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
         Right(literalString("id")),
         List(commandResultItem("a", Some("b"))),
         yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("b")),
+          Some(orderBy(sortItem(add(varFor("b"), simpleExistsExpression(patternForMatch(nodePat()), None))))),
+          where = Some(where(or(
+            varFor("b"),
+            AllIterablePredicate(
+              varFor("x"),
+              listOfInt(1, 2),
+              Some(isTyped(varFor("x"), IntegerType(isNullable = true)(pos)))
+            )(pos)
+          )))
+        )),
         None
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("b")),
-        Some(orderBy(sortItem(add(varFor("b"), simpleExistsExpression(patternForMatch(nodePat()), None))))),
-        where = Some(where(or(
-          varFor("b"),
-          AllIterablePredicate(
-            varFor("x"),
-            listOfInt(1, 2),
-            Some(isTyped(varFor("x"), IntegerType(isNullable = true)(pos)))
-          )(pos)
-        )))
-      )
+      )(pos)
     ))
   }
 
@@ -704,14 +743,14 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
           commandResultItem("transactionId", Some("username"))
         ),
         yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("transactionId", "username")),
+          where = Some(where(
+            greaterThan(size(varFor("transactionId")), literalInt(0))
+          ))
+        )),
         None
       )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("transactionId", "username")),
-        where = Some(where(
-          greaterThan(size(varFor("transactionId")), literalInt(0))
-        ))
-      ),
       return_(aliasedReturnItem("transactionId", "username"))
     ))
   }
@@ -798,6 +837,10 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
 
   test("TERMINATE ALL TRANSACTIONS") {
     failsParsing[Statements]
+  }
+
+  test("TERMINATE TRANSACTIONS id WHERE true RETURN *") {
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'RETURN'")
   }
 
   // Invalid clause order

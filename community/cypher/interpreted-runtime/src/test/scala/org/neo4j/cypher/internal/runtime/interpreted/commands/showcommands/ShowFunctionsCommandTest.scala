@@ -45,6 +45,7 @@ import org.neo4j.internal.kernel.api.security.AuthSubject
 import org.neo4j.internal.kernel.api.security.PermissionState
 import org.neo4j.internal.kernel.api.security.PrivilegeAction.SHOW_ROLE
 import org.neo4j.internal.kernel.api.security.Segment
+import org.neo4j.kernel.api.QueryLanguage
 import org.neo4j.kernel.api.QueryLanguage.CYPHER_5
 import org.neo4j.kernel.impl.query.FunctionInformation
 import org.neo4j.kernel.impl.query.FunctionInformation.InputInformation
@@ -60,12 +61,13 @@ import scala.jdk.CollectionConverters.SetHasAsJava
 class ShowFunctionsCommandTest extends ShowCommandTestBase {
 
   private val defaultColumns =
-    ShowFunctionsClause(AllFunctions, None, None, List.empty, yieldAll = false)(InputPosition.NONE)
+    ShowFunctionsClause(AllFunctions, None, None, List.empty, yieldAll = false, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
 
+  // The yield/with doesn't impact columns so can set it to None here even if we have the yieldAll=true
   private val allColumns =
-    ShowFunctionsClause(AllFunctions, None, None, List.empty, yieldAll = true)(InputPosition.NONE)
+    ShowFunctionsClause(AllFunctions, None, None, List.empty, yieldAll = true, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
 
@@ -80,7 +82,8 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     true,
     true,
     false,
-    false
+    false,
+    QueryLanguage.ALL
   )
 
   private val func2 = new UserFunctionSignature(
@@ -94,7 +97,8 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     true,
     true,
     false,
-    false
+    false,
+    QueryLanguage.ALL
   )
 
   private val func3 = new UserFunctionSignature(
@@ -111,7 +115,8 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     true,
     false,
     false,
-    false
+    false,
+    QueryLanguage.ALL
   )
 
   private val func4 = new UserFunctionSignature(
@@ -127,7 +132,8 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     true,
     false,
     false,
-    false
+    false,
+    QueryLanguage.ALL
   )
 
   private val func5 = TestLanguageFunction(
@@ -658,7 +664,8 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
       true,
       true,
       true,
-      false
+      false,
+      QueryLanguage.ALL
     )
     val internalAggregatingFunc = new UserFunctionSignature(
       new QualifiedName("internal.aggregating", "func"),
@@ -671,7 +678,8 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
       true,
       true,
       true,
-      false
+      false,
+      QueryLanguage.ALL
     )
     when(procedures.functionGetAll(CYPHER_5)).thenReturn(List(func1, internalFunc).asJava.stream())
     when(procedures.aggregationFunctionGetAll(CYPHER_5)).thenReturn(List(
@@ -704,7 +712,8 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
       true,
       true,
       false,
-      false
+      false,
+      QueryLanguage.ALL
     )
     val deprecatedFuncWithoutReplacement = new UserFunctionSignature(
       new QualifiedName("deprecatedWithoutReplacement", "func"),
@@ -717,7 +726,8 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
       true,
       true,
       false,
-      false
+      false,
+      QueryLanguage.ALL
     )
     val deprecatedAggregatingFunc = new UserFunctionSignature(
       new QualifiedName("deprecated.aggregating", "func"),
@@ -730,7 +740,8 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
       true,
       false,
       false,
-      false
+      false,
+      QueryLanguage.ALL
     )
     val deprecatedAggregatingFuncWithoutReplacement = new UserFunctionSignature(
       new QualifiedName("deprecatedWithoutReplacement.aggregating", "func"),
@@ -743,7 +754,8 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
       true,
       false,
       false,
-      false
+      false,
+      QueryLanguage.ALL
     )
     val deprecatedLanguageFunction = TestLanguageFunction(
       name = "deprecated.language",

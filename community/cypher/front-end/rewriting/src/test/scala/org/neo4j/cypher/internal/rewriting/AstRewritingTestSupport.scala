@@ -161,6 +161,7 @@ trait AstRewritingTestSupport extends AstConstructionTestSupport {
           stc.where,
           stc.yieldItems,
           stc.yieldAll,
+          stc.yieldWith,
           // let's just update all of them to be version > 5
           returnCypher5Types = false
         )(stc.position)

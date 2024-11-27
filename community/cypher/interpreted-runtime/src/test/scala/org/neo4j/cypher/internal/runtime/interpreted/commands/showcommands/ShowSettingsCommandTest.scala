@@ -43,12 +43,13 @@ import scala.util.Try
 class ShowSettingsCommandTest extends ShowCommandTestBase {
 
   private val defaultColumns =
-    ShowSettingsClause(Left(List.empty), None, List.empty, yieldAll = false)(InputPosition.NONE)
+    ShowSettingsClause(Left(List.empty), None, List.empty, yieldAll = false, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
 
+  // The yield/with doesn't impact columns so can set it to None here even if we have the yieldAll=true
   private val allColumns =
-    ShowSettingsClause(Left(List.empty), None, List.empty, yieldAll = true)(InputPosition.NONE)
+    ShowSettingsClause(Left(List.empty), None, List.empty, yieldAll = true, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
 

@@ -58,7 +58,8 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           AllIndexes,
           None,
           List.empty,
-          yieldAll = false
+          yieldAll = false,
+          None
         )(defaultPos))
       )
     }
@@ -69,7 +70,8 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           AllIndexes,
           None,
           List.empty,
-          yieldAll = false
+          yieldAll = false,
+          None
         )(defaultPos))
       )
     }
@@ -80,7 +82,8 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           RangeIndexes,
           None,
           List.empty,
-          yieldAll = false
+          yieldAll = false,
+          None
         )(defaultPos))
       )
     }
@@ -92,7 +95,8 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
             FulltextIndexes,
             None,
             List.empty,
-            yieldAll = false
+            yieldAll = false,
+            None
           )(defaultPos)
         )
       )
@@ -104,7 +108,8 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           TextIndexes,
           None,
           List.empty,
-          yieldAll = false
+          yieldAll = false,
+          None
         )(defaultPos))
       )
     }
@@ -115,7 +120,8 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           PointIndexes,
           None,
           List.empty,
-          yieldAll = false
+          yieldAll = false,
+          None
         )(defaultPos))
       )
     }
@@ -127,7 +133,8 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
             VectorIndexes,
             None,
             List.empty,
-            yieldAll = false
+            yieldAll = false,
+            None
           )(defaultPos)
         )
       )
@@ -140,7 +147,8 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
             LookupIndexes,
             None,
             List.empty,
-            yieldAll = false
+            yieldAll = false,
+            None
           )(defaultPos)
         )
       )
@@ -150,7 +158,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
       assertAst(
         singleQuery(
           use(List("db")),
-          ShowIndexesClause(AllIndexes, None, List.empty, yieldAll = false)(pos)
+          ShowIndexesClause(AllIndexes, None, List.empty, yieldAll = false, None)(pos)
         ),
         comparePosition = false
       )
@@ -165,7 +173,8 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
         AllIndexes,
         Some(where(equals(varFor("uniqueness"), literalString("UNIQUE")))),
         List.empty,
-        yieldAll = false
+        yieldAll = false,
+        None
       )(pos)),
       comparePosition = false
     )
@@ -178,9 +187,9 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           AllIndexes,
           None,
           List(commandResultItem("populationPercent")),
-          yieldAll = false
-        )(pos),
-        withFromYield(returnAllItems.withDefaultOrderOnColumns(List("populationPercent")))
+          yieldAll = false,
+          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("populationPercent"))))
+        )(pos)
       ),
       comparePosition = false
     )
@@ -193,9 +202,9 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           PointIndexes,
           None,
           List(commandResultItem("populationPercent")),
-          yieldAll = false
-        )(pos),
-        withFromYield(returnAllItems.withDefaultOrderOnColumns(List("populationPercent")))
+          yieldAll = false,
+          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("populationPercent"))))
+        )(pos)
       ),
       comparePosition = false
     )
@@ -204,8 +213,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
   test("SHOW ALL INDEXES YIELD *") {
     assertAst(
       singleQuery(
-        ShowIndexesClause(AllIndexes, None, List.empty, yieldAll = true)(pos),
-        withFromYield(returnAllItems)
+        ShowIndexesClause(AllIndexes, None, List.empty, yieldAll = true, Some(withFromYield(returnAllItems)))(pos)
       ),
       comparePosition = false
     )
@@ -214,8 +222,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
   test("SHOW INDEXES YIELD * ORDER BY name SKIP 2 LIMIT 5") {
     assertAst(
       singleQuery(
-        ShowIndexesClause(AllIndexes, None, List.empty, yieldAll = true)(pos),
-        withFromYield(returnAllItems, Some(orderBy(sortItem(varFor("name")))), Some(skip(2)), Some(limit(5)))
+        ShowIndexesClause(
+          AllIndexes,
+          None,
+          List.empty,
+          yieldAll = true,
+          Some(withFromYield(returnAllItems, Some(orderBy(sortItem(varFor("name")))), Some(skip(2)), Some(limit(5))))
+        )(pos)
       ),
       comparePosition = false
     )
@@ -224,8 +237,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
   test("SHOW RANGE INDEXES YIELD * ORDER BY name SKIP 2 LIMIT 5") {
     assertAst(
       singleQuery(
-        ShowIndexesClause(RangeIndexes, None, List.empty, yieldAll = true)(pos),
-        withFromYield(returnAllItems, Some(orderBy(sortItem(varFor("name")))), Some(skip(2)), Some(limit(5)))
+        ShowIndexesClause(
+          RangeIndexes,
+          None,
+          List.empty,
+          yieldAll = true,
+          Some(withFromYield(returnAllItems, Some(orderBy(sortItem(varFor("name")))), Some(skip(2)), Some(limit(5))))
+        )(pos)
       ),
       comparePosition = false
     )
@@ -239,12 +257,12 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           FulltextIndexes,
           None,
           List(commandResultItem("name"), commandResultItem("populationPercent", Some("pp"))),
-          yieldAll = false
+          yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
+            where = Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
+          ))
         )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
-          where = Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
-        ),
         return_(variableReturnItem("name"))
       ),
       comparePosition = false
@@ -261,15 +279,15 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           VectorIndexes,
           None,
           List(commandResultItem("name"), commandResultItem("populationPercent", Some("pp"))),
-          yieldAll = false
+          yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
+            Some(orderBy(sortItem(varFor("pp")))),
+            Some(skip(2)),
+            Some(limit(5)),
+            Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
+          ))
         )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
-          Some(orderBy(sortItem(varFor("pp")))),
-          Some(skip(2)),
-          Some(limit(5)),
-          Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
-        ),
         return_(variableReturnItem("name"))
       ),
       comparePosition = false
@@ -286,15 +304,15 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           VectorIndexes,
           None,
           List(commandResultItem("name"), commandResultItem("populationPercent", Some("pp"))),
-          yieldAll = false
+          yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
+            Some(orderBy(sortItem(varFor("pp")))),
+            Some(skip(2)),
+            Some(limit(5)),
+            Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
+          ))
         )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
-          Some(orderBy(sortItem(varFor("pp")))),
-          Some(skip(2)),
-          Some(limit(5)),
-          Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
-        ),
         return_(variableReturnItem("name"))
       ),
       comparePosition = false
@@ -308,9 +326,9 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           AllIndexes,
           None,
           List(commandResultItem("name", Some("INDEX")), commandResultItem("type", Some("OUTPUT"))),
-          yieldAll = false
-        )(pos),
-        withFromYield(returnAllItems.withDefaultOrderOnColumns(List("INDEX", "OUTPUT")))
+          yieldAll = false,
+          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("INDEX", "OUTPUT"))))
+        )(pos)
       ),
       comparePosition = false
     )
@@ -323,9 +341,9 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           TextIndexes,
           None,
           List(commandResultItem("name", Some("INDEX")), commandResultItem("type", Some("OUTPUT"))),
-          yieldAll = false
-        )(pos),
-        withFromYield(returnAllItems.withDefaultOrderOnColumns(List("INDEX", "OUTPUT")))
+          yieldAll = false,
+          Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("INDEX", "OUTPUT"))))
+        )(pos)
       ),
       comparePosition = false
     )
@@ -337,7 +355,8 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
         LookupIndexes,
         Some(where(equals(varFor("name"), literalString("GRANT")))),
         List.empty,
-        yieldAll = false
+        yieldAll = false,
+        None
       )(pos)),
       comparePosition = false
     )
@@ -349,13 +368,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
         AllIndexes,
         None,
         List(commandResultItem("a")),
-        yieldAll = false
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("a")),
-        Some(orderBy(sortItem(varFor("a")))),
-        where = Some(where(equals(varFor("a"), literalInt(1))))
-      )
+        yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a")),
+          Some(orderBy(sortItem(varFor("a")))),
+          where = Some(where(equals(varFor("a"), literalInt(1))))
+        ))
+      )(pos)
     ))
   }
 
@@ -365,13 +384,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
         AllIndexes,
         None,
         List(commandResultItem("a", Some("b"))),
-        yieldAll = false
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("b")),
-        Some(orderBy(sortItem(varFor("b")))),
-        where = Some(where(equals(varFor("b"), literalInt(1))))
-      )
+        yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("b")),
+          Some(orderBy(sortItem(varFor("b")))),
+          where = Some(where(equals(varFor("b"), literalInt(1))))
+        ))
+      )(pos)
     ))
   }
 
@@ -381,13 +400,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
         AllIndexes,
         None,
         List(commandResultItem("a", Some("b"))),
-        yieldAll = false
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("b")),
-        Some(orderBy(sortItem(varFor("b")))),
-        where = Some(where(equals(varFor("b"), literalInt(1))))
-      )
+        yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("b")),
+          Some(orderBy(sortItem(varFor("b")))),
+          where = Some(where(equals(varFor("b"), literalInt(1))))
+        ))
+      )(pos)
     ))
   }
 
@@ -397,13 +416,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
         AllIndexes,
         None,
         List(commandResultItem("a")),
-        yieldAll = false
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("a")),
-        Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))),
-        where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))
-      )
+        yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a")),
+          Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))),
+          where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))
+        ))
+      )(pos)
     ))
   }
 
@@ -413,13 +432,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
         AllIndexes,
         None,
         List(commandResultItem("a")),
-        yieldAll = false
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("a")),
-        Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))),
-        where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
-      )
+        yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a")),
+          Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))),
+          where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
+        ))
+      )(pos)
     ))
   }
 
@@ -429,13 +448,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
         AllIndexes,
         None,
         List(commandResultItem("a", Some("b"))),
-        yieldAll = false
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("b")),
-        Some(orderBy(sortItem(simpleCountExpression(patternForMatch(nodePat(Some("b"))), None)))),
-        where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
-      )
+        yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("b")),
+          Some(orderBy(sortItem(simpleCountExpression(patternForMatch(nodePat(Some("b"))), None)))),
+          where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
+        ))
+      )(pos)
     ))
   }
 
@@ -445,16 +464,16 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
         AllIndexes,
         None,
         List(commandResultItem("a", Some("b"))),
-        yieldAll = false
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("b")),
-        Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))),
-        where = Some(where(notEquals(
-          simpleCollectExpression(patternForMatch(nodePat(Some("b"))), None, return_(returnItem(varFor("b"), "a"))),
-          listOf()
-        )))
-      )
+        yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("b")),
+          Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))),
+          where = Some(where(notEquals(
+            simpleCollectExpression(patternForMatch(nodePat(Some("b"))), None, return_(returnItem(varFor("b"), "a"))),
+            listOf()
+          )))
+        ))
+      )(pos)
     ))
   }
 
@@ -464,13 +483,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
         AllIndexes,
         None,
         List(commandResultItem("a", Some("b"))),
-        yieldAll = false
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("b")),
-        Some(orderBy(sortItem(add(varFor("b"), simpleCountExpression(patternForMatch(nodePat()), None))))),
-        where = Some(where(or(varFor("b"), simpleExistsExpression(patternForMatch(nodePat()), None))))
-      )
+        yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("b")),
+          Some(orderBy(sortItem(add(varFor("b"), simpleCountExpression(patternForMatch(nodePat()), None))))),
+          where = Some(where(or(varFor("b"), simpleExistsExpression(patternForMatch(nodePat()), None))))
+        ))
+      )(pos)
     ))
   }
 
@@ -480,20 +499,20 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
         AllIndexes,
         None,
         List(commandResultItem("a", Some("b"))),
-        yieldAll = false
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("b")),
-        Some(orderBy(sortItem(add(varFor("b"), simpleExistsExpression(patternForMatch(nodePat()), None))))),
-        where = Some(where(or(
-          varFor("b"),
-          AllIterablePredicate(
-            varFor("x"),
-            listOfInt(1, 2),
-            Some(isTyped(varFor("x"), IntegerType(isNullable = true)(pos)))
-          )(pos)
-        )))
-      )
+        yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("b")),
+          Some(orderBy(sortItem(add(varFor("b"), simpleExistsExpression(patternForMatch(nodePat()), None))))),
+          where = Some(where(or(
+            varFor("b"),
+            AllIterablePredicate(
+              varFor("x"),
+              listOfInt(1, 2),
+              Some(isTyped(varFor("x"), IntegerType(isNullable = true)(pos)))
+            )(pos)
+          )))
+        ))
+      )(pos)
     ))
   }
 
@@ -506,14 +525,14 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           commandResultItem("name", Some("options")),
           commandResultItem("options", Some("name"))
         ),
-        yieldAll = false
-      )(pos),
-      withFromYield(
-        returnAllItems.withDefaultOrderOnColumns(List("options", "name")),
-        where = Some(where(
-          greaterThan(size(varFor("options")), literalInt(0))
+        yieldAll = false,
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("options", "name")),
+          where = Some(where(
+            greaterThan(size(varFor("options")), literalInt(0))
+          ))
         ))
-      ),
+      )(pos),
       return_(aliasedReturnItem("options", "name"))
     ))
   }
@@ -554,6 +573,10 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
 
   test("SHOW INDEXES YIELD a b RETURN *") {
     failsParsing[Statements]
+  }
+
+  test("SHOW INDEXES WHERE true RETURN *") {
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'RETURN'")
   }
 
   test("SHOW INDEXES RETURN *") {
@@ -816,6 +839,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
                 None,
                 List.empty,
                 yieldAll = false,
+                None,
                 fromCypher5
               )(defaultPos))
             )
@@ -831,6 +855,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
                     None,
                     List.empty,
                     yieldAll = false,
+                    None,
                     fromCypher5
                   )(pos)
                 ),
@@ -853,6 +878,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
                   None,
                   List.empty,
                   yieldAll = false,
+                  None,
                   returnCypher5Columns = false
                 )(defaultPos))))
             }
@@ -871,6 +897,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
                     None,
                     List.empty,
                     yieldAll = false,
+                    None,
                     returnCypher5Columns = false
                   )(pos)
                 )))
@@ -889,6 +916,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           Some(where(equals(varFor("entityType"), literalString("RELATIONSHIP")))),
           List.empty,
           yieldAll = false,
+          None,
           fromCypher5
         )(pos)),
       comparePosition = false
@@ -904,9 +932,9 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
             None,
             List(commandResultItem("labelsOrTypes")),
             yieldAll = false,
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("labelsOrTypes")))),
             fromCypher5
-          )(pos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("labelsOrTypes")))
+          )(pos)
         ),
       comparePosition = false
     )
@@ -921,9 +949,9 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
             None,
             List.empty,
             yieldAll = true,
+            Some(withFromYield(returnAllItems)),
             fromCypher5
-          )(pos),
-          withFromYield(returnAllItems)
+          )(pos)
         ),
       comparePosition = false
     )
@@ -938,9 +966,9 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
             None,
             List.empty,
             yieldAll = true,
+            Some(withFromYield(returnAllItems, Some(orderBy(sortItem(varFor("name")))), Some(skip(2)), Some(limit(5)))),
             fromCypher5
-          )(pos),
-          withFromYield(returnAllItems, Some(orderBy(sortItem(varFor("name")))), Some(skip(2)), Some(limit(5)))
+          )(pos)
         ),
       comparePosition = false
     )
@@ -959,12 +987,12 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
               commandResultItem("properties", Some("pp"))
             ),
             yieldAll = false,
+            Some(withFromYield(
+              returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
+              where = Some(where(greaterThan(function("size", varFor("pp")), literalInt(1))))
+            )),
             fromCypher5
           )(pos),
-          withFromYield(
-            returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
-            where = Some(where(greaterThan(function("size", varFor("pp")), literalInt(1))))
-          ),
           return_(variableReturnItem("name"))
         ),
       comparePosition = false
@@ -986,15 +1014,15 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
               commandResultItem("populationPercent", Some("pp"))
             ),
             yieldAll = false,
+            Some(withFromYield(
+              returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
+              Some(orderBy(sortItem(varFor("pp")))),
+              Some(skip(2)),
+              Some(limit(5)),
+              Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
+            )),
             fromCypher5
           )(pos),
-          withFromYield(
-            returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
-            Some(orderBy(sortItem(varFor("pp")))),
-            Some(skip(2)),
-            Some(limit(5)),
-            Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
-          ),
           return_(variableReturnItem("name"))
         ),
       comparePosition = false
@@ -1013,9 +1041,9 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
               commandResultItem("type", Some("OUTPUT"))
             ),
             yieldAll = false,
+            Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("CONSTRAINT", "OUTPUT")))),
             fromCypher5
-          )(pos),
-          withFromYield(returnAllItems.withDefaultOrderOnColumns(List("CONSTRAINT", "OUTPUT")))
+          )(pos)
         ),
       comparePosition = false
     )
@@ -1029,6 +1057,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           Some(where(equals(varFor("name"), literalString("GRANT")))),
           List.empty,
           yieldAll = false,
+          None,
           fromCypher5
         )(pos)),
       comparePosition = false
@@ -1043,13 +1072,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           None,
           List(commandResultItem("a")),
           yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("a")),
+            Some(orderBy(sortItem(varFor("a")))),
+            where = Some(where(equals(varFor("a"), literalInt(1))))
+          )),
           fromCypher5
-        )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("a")),
-          Some(orderBy(sortItem(varFor("a")))),
-          where = Some(where(equals(varFor("a"), literalInt(1))))
-        )
+        )(pos)
       )
     )
   }
@@ -1062,13 +1091,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           None,
           List(commandResultItem("a", Some("b"))),
           yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("b")),
+            Some(orderBy(sortItem(varFor("b")))),
+            where = Some(where(equals(varFor("b"), literalInt(1))))
+          )),
           fromCypher5
-        )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("b")),
-          Some(orderBy(sortItem(varFor("b")))),
-          where = Some(where(equals(varFor("b"), literalInt(1))))
-        )
+        )(pos)
       )
     )
   }
@@ -1081,13 +1110,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           None,
           List(commandResultItem("a", Some("b"))),
           yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("b")),
+            Some(orderBy(sortItem(varFor("b")))),
+            where = Some(where(equals(varFor("b"), literalInt(1))))
+          )),
           fromCypher5
-        )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("b")),
-          Some(orderBy(sortItem(varFor("b")))),
-          where = Some(where(equals(varFor("b"), literalInt(1))))
-        )
+        )(pos)
       )
     )
   }
@@ -1100,13 +1129,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           None,
           List(commandResultItem("a")),
           yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("a")),
+            Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))),
+            where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))
+          )),
           fromCypher5
-        )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("a")),
-          Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))),
-          where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("a"))), None)))
-        )
+        )(pos)
       )
     )
   }
@@ -1119,13 +1148,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           None,
           List(commandResultItem("a")),
           yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("a")),
+            Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))),
+            where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
+          )),
           fromCypher5
-        )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("a")),
-          Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))),
-          where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
-        )
+        )(pos)
       )
     )
   }
@@ -1138,13 +1167,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           None,
           List(commandResultItem("a", Some("b"))),
           yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("b")),
+            Some(orderBy(sortItem(simpleCountExpression(patternForMatch(nodePat(Some("b"))), None)))),
+            where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
+          )),
           fromCypher5
-        )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("b")),
-          Some(orderBy(sortItem(simpleCountExpression(patternForMatch(nodePat(Some("b"))), None)))),
-          where = Some(where(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))
-        )
+        )(pos)
       )
     )
   }
@@ -1157,16 +1186,16 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           None,
           List(commandResultItem("a", Some("b"))),
           yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("b")),
+            Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))),
+            where = Some(where(notEquals(
+              simpleCollectExpression(patternForMatch(nodePat(Some("b"))), None, return_(returnItem(varFor("b"), "a"))),
+              listOf()
+            )))
+          )),
           fromCypher5
-        )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("b")),
-          Some(orderBy(sortItem(simpleExistsExpression(patternForMatch(nodePat(Some("b"))), None)))),
-          where = Some(where(notEquals(
-            simpleCollectExpression(patternForMatch(nodePat(Some("b"))), None, return_(returnItem(varFor("b"), "a"))),
-            listOf()
-          )))
-        )
+        )(pos)
       )
     )
   }
@@ -1179,13 +1208,13 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           None,
           List(commandResultItem("a", Some("b"))),
           yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("b")),
+            Some(orderBy(sortItem(add(varFor("b"), simpleCountExpression(patternForMatch(nodePat()), None))))),
+            where = Some(where(or(varFor("b"), simpleExistsExpression(patternForMatch(nodePat()), None))))
+          )),
           fromCypher5
-        )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("b")),
-          Some(orderBy(sortItem(add(varFor("b"), simpleCountExpression(patternForMatch(nodePat()), None))))),
-          where = Some(where(or(varFor("b"), simpleExistsExpression(patternForMatch(nodePat()), None))))
-        )
+        )(pos)
       )
     )
   }
@@ -1198,20 +1227,20 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           None,
           List(commandResultItem("a", Some("b"))),
           yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("b")),
+            Some(orderBy(sortItem(add(varFor("b"), simpleExistsExpression(patternForMatch(nodePat()), None))))),
+            where = Some(where(or(
+              varFor("b"),
+              AllIterablePredicate(
+                varFor("x"),
+                listOfInt(1, 2),
+                Some(isTyped(varFor("x"), IntegerType(isNullable = true)(pos)))
+              )(pos)
+            )))
+          )),
           fromCypher5
-        )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("b")),
-          Some(orderBy(sortItem(add(varFor("b"), simpleExistsExpression(patternForMatch(nodePat()), None))))),
-          where = Some(where(or(
-            varFor("b"),
-            AllIterablePredicate(
-              varFor("x"),
-              listOfInt(1, 2),
-              Some(isTyped(varFor("x"), IntegerType(isNullable = true)(pos)))
-            )(pos)
-          )))
-        )
+        )(pos)
       )
     )
   }
@@ -1227,14 +1256,14 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
             commandResultItem("properties", Some("name"))
           ),
           yieldAll = false,
+          Some(withFromYield(
+            returnAllItems.withDefaultOrderOnColumns(List("options", "name")),
+            where = Some(where(
+              greaterThan(size(varFor("name")), literalInt(0))
+            ))
+          )),
           fromCypher5
         )(pos),
-        withFromYield(
-          returnAllItems.withDefaultOrderOnColumns(List("options", "name")),
-          where = Some(where(
-            greaterThan(size(varFor("name")), literalInt(0))
-          ))
-        ),
         return_(aliasedReturnItem("options", "name"))
       )
     )
@@ -1338,6 +1367,10 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
 
   test("SHOW CONSTRAINTS YIELD a b RETURN *") {
     failsParsing[Statements]
+  }
+
+  test("SHOW CONSTRAINTS WHERE true RETURN *") {
+    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'RETURN'")
   }
 
   test("SHOW EXISTENCE CONSTRAINT RETURN *") {

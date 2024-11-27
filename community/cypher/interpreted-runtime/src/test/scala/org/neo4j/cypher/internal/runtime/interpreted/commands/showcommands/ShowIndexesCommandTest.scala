@@ -82,7 +82,8 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       AllIndexes,
       None,
       List.empty,
-      yieldAll = false
+      yieldAll = false,
+      None
     )(InputPosition.NONE)
       .unfilteredColumns
       .columns
@@ -92,7 +93,9 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       AllIndexes,
       None,
       List.empty,
-      yieldAll = true
+      yieldAll = true,
+      // This yield/with doesn't impact columns so can set it to None here even if we have the yieldAll=true
+      None
     )(InputPosition.NONE)
       .unfilteredColumns
       .columns

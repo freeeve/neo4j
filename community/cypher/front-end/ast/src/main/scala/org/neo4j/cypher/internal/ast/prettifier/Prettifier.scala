@@ -1177,14 +1177,14 @@ case class Prettifier(
       val indexType = s.indexType.prettyPrint
       val ind = indented()
       val where = s.where.map(ind.asString).map(asNewLine).getOrElse("")
-      val yielded = partialYieldAsString(s.yieldItems, s.yieldAll)
+      val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
       s"SHOW $indexType INDEXES$where$yielded"
     }
 
     def asString(s: ShowConstraintsClause): String = {
       val ind = indented()
       val where = s.where.map(ind.asString).map(asNewLine).getOrElse("")
-      val yielded = partialYieldAsString(s.yieldItems, s.yieldAll)
+      val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
       s"SHOW ${s.constraintType.prettyPrint} CONSTRAINTS$where$yielded"
     }
 
@@ -1192,7 +1192,7 @@ case class Prettifier(
       val executable = getExecutablePart(s.executable)
       val ind = indented()
       val where = s.where.map(ind.asString).map(asNewLine).getOrElse("")
-      val yielded = partialYieldAsString(s.yieldItems, s.yieldAll)
+      val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
       s"${s.name}$executable$where$yielded"
     }
 
@@ -1201,7 +1201,7 @@ case class Prettifier(
       val executable = getExecutablePart(s.executable)
       val ind = indented()
       val where = s.where.map(ind.asString).map(asNewLine).getOrElse("")
-      val yielded = partialYieldAsString(s.yieldItems, s.yieldAll)
+      val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
       s"SHOW $functionType FUNCTIONS$executable$where$yielded"
     }
 
@@ -1215,13 +1215,13 @@ case class Prettifier(
       val ids = namesAsString(s.names)
       val ind = indented()
       val where = s.where.map(ind.asString).map(asNewLine).getOrElse("")
-      val yielded = partialYieldAsString(s.yieldItems, s.yieldAll)
+      val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
       s"SHOW TRANSACTIONS$ids$where$yielded"
     }
 
     def asString(s: TerminateTransactionsClause): String = {
       val ids = namesAsString(s.names)
-      val yielded = partialYieldAsString(s.yieldItems, s.yieldAll)
+      val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
       s"TERMINATE TRANSACTIONS$ids$yielded"
     }
 
@@ -1229,7 +1229,7 @@ case class Prettifier(
       val names = namesAsString(s.names)
       val ind = indented()
       val where = s.where.map(ind.asString).map(asNewLine).getOrElse("")
-      val yielded = partialYieldAsString(s.yieldItems, s.yieldAll)
+      val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
       s"${s.name}$names$where$yielded"
     }
 
@@ -1238,8 +1238,12 @@ case class Prettifier(
       case Right(e) => s" ${expr(e)}"
     }
 
-    private def partialYieldAsString(yieldItems: List[CommandResultItem], yieldAll: Boolean): String =
-      if (yieldItems.nonEmpty) {
+    private def yieldAsString(
+      yieldItems: List[CommandResultItem],
+      yieldAll: Boolean,
+      yieldWith: Option[With]
+    ): String = {
+      val yieldPart = if (yieldItems.nonEmpty) {
         val items = yieldItems.map(c => {
           if (!c.aliasedVariable.name.equals(c.originalName)) {
             backtick(c.originalName) + " AS " + expr(c.aliasedVariable)
@@ -1248,6 +1252,9 @@ case class Prettifier(
         asNewLine(s"${INDENT}YIELD $items")
       } else if (yieldAll) asNewLine(s"${INDENT}YIELD *")
       else ""
+      val extraClauses = yieldWith.map(asString).filter(_.nonEmpty).map(asNewLine).getOrElse("")
+      yieldPart + extraClauses
+    }
 
     def asString(s: SetClause): String = {
       s"${INDENT}SET ${prettifySetItems(s.items)}"

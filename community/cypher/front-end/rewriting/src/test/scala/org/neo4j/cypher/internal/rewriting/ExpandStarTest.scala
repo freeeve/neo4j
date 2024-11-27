@@ -339,41 +339,36 @@ class ExpandStarTest extends CypherFunSuite with AstRewritingTestSupport {
           expectedUpdatedReturn,
           clauses => {
             // show and terminate commands parses YIELD as WITH *
-            clauses.map {
+            clauses.flatMap {
               case s: ShowTransactionsClause =>
-                s.copy(yieldAll = true, yieldItems = List.empty)(s.position)
+                Seq[Clause](s.copy(yieldAll = true, yieldItems = List.empty, yieldWith = None)(s.position)) ++
+                  s.yieldWith.map(rewriteWithForShowCommands)
 
               case t: TerminateTransactionsClause =>
-                t.copy(yieldAll = true, yieldItems = List.empty)(t.position)
+                Seq[Clause](t.copy(yieldAll = true, yieldItems = List.empty, yieldWith = None)(t.position)) ++
+                  t.yieldWith.map(rewriteWithForShowCommands)
 
               case s: ShowSettingsClause =>
-                s.copy(yieldAll = true, yieldItems = List.empty)(s.position)
+                Seq[Clause](s.copy(yieldAll = true, yieldItems = List.empty, yieldWith = None)(s.position)) ++
+                  s.yieldWith.map(rewriteWithForShowCommands)
 
               case s: ShowFunctionsClause =>
-                s.copy(yieldAll = true, yieldItems = List.empty)(s.position)
+                Seq[Clause](s.copy(yieldAll = true, yieldItems = List.empty, yieldWith = None)(s.position)) ++
+                  s.yieldWith.map(rewriteWithForShowCommands)
 
               case s: ShowProceduresClause =>
-                s.copy(yieldAll = true, yieldItems = List.empty)(s.position)
+                Seq[Clause](s.copy(yieldAll = true, yieldItems = List.empty, yieldWith = None)(s.position)) ++
+                  s.yieldWith.map(rewriteWithForShowCommands)
 
               case s: ShowConstraintsClause =>
-                s.copy(yieldAll = true, yieldItems = List.empty)(s.position)
+                Seq[Clause](s.copy(yieldAll = true, yieldItems = List.empty, yieldWith = None)(s.position)) ++
+                  s.yieldWith.map(rewriteWithForShowCommands)
 
               case s: ShowIndexesClause =>
-                s.copy(yieldAll = true, yieldItems = List.empty)(s.position)
+                Seq[Clause](s.copy(yieldAll = true, yieldItems = List.empty, yieldWith = None)(s.position)) ++
+                  s.yieldWith.map(rewriteWithForShowCommands)
 
-              case w: With =>
-                val returnItems = w.returnItems.defaultOrderOnColumns.map(c =>
-                  c.map(v => aliasedReturnItem(varFor(v)))
-                ).getOrElse(List.empty)
-                w.copy(returnItems =
-                  w.returnItems.copy(
-                    includeExisting = false,
-                    items = returnItems,
-                    defaultOrderOnColumns = None
-                  )(w.returnItems.position)
-                )(w.position)
-
-              case c => c
+              case c => Seq(c)
             }
           }
         )
@@ -384,6 +379,19 @@ class ExpandStarTest extends CypherFunSuite with AstRewritingTestSupport {
 
     val result = original.rewrite(rewriter)
     assert(result === expectedUpdatedYield)
+  }
+
+  private def rewriteWithForShowCommands(w: With): With = {
+    val returnItems = w.returnItems.defaultOrderOnColumns.map(c =>
+      c.map(v => aliasedReturnItem(varFor(v)))
+    ).getOrElse(List.empty)
+    w.copy(returnItems =
+      w.returnItems.copy(
+        includeExisting = false,
+        items = returnItems,
+        defaultOrderOnColumns = None
+      )(w.returnItems.position)
+    )(w.position)
   }
 
   private def prepRewrite(q: String, rewriteShowCommand: Boolean = false) = {

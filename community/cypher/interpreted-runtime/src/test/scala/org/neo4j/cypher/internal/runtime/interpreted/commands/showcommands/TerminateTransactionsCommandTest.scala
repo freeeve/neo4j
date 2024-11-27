@@ -57,7 +57,7 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
 
   // Terminate transaction currently have no non-default columns
   private val columns =
-    TerminateTransactionsClause(Left(List.empty), List.empty, yieldAll = false, None)(InputPosition.NONE)
+    TerminateTransactionsClause(Left(List.empty), List.empty, yieldAll = false, None, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
 

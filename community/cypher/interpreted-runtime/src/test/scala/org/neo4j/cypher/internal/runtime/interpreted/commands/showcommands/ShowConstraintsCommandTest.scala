@@ -67,6 +67,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       None,
       List.empty,
       yieldAll = false,
+      None,
       returnCypher5Columns = false
     )(InputPosition.NONE)
       .unfilteredColumns
@@ -78,6 +79,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       None,
       List.empty,
       yieldAll = true,
+      // This yield/with doesn't impact columns so can set it to None here even if we have the yieldAll=true
+      None,
       returnCypher5Columns = false
     )(InputPosition.NONE)
       .unfilteredColumns
@@ -89,6 +92,8 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
       None,
       List.empty,
       yieldAll = true,
+      // This yield/with doesn't impact columns so can set it to None here even if we have the yieldAll=true
+      None,
       returnCypher5Columns = true
     )(InputPosition.NONE)
       .unfilteredColumns

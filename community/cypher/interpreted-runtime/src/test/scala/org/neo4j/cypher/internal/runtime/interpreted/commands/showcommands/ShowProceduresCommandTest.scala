@@ -53,12 +53,13 @@ import scala.jdk.CollectionConverters.SetHasAsJava
 class ShowProceduresCommandTest extends ShowCommandTestBase {
 
   private val defaultColumns =
-    ShowProceduresClause(None, None, List.empty, yieldAll = false)(InputPosition.NONE)
+    ShowProceduresClause(None, None, List.empty, yieldAll = false, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
 
+  // The yield/with doesn't impact columns so can set it to None here even if we have the yieldAll=true
   private val allColumns =
-    ShowProceduresClause(None, None, List.empty, yieldAll = true)(InputPosition.NONE)
+    ShowProceduresClause(None, None, List.empty, yieldAll = true, None)(InputPosition.NONE)
       .unfilteredColumns
       .columns
 
@@ -222,7 +223,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
 
   test("show procedures should give back correct community default values") {
     // Set-up which procedures to return:
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer((_) => Stream.of(proc1, proc2, proc3, proc4))
+    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1, proc2, proc3, proc4))
 
     // When
     val showProcedures = ShowProceduresCommand(None, defaultColumns, List.empty, isCommunity = true, CYPHER_5)
@@ -276,7 +277,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
 
   test("show procedures should give back correct enterprise default values") {
     // Set-up which procedures to return:
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer((_) => Stream.of(proc1, proc2, proc3, proc4))
+    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1, proc2, proc3, proc4))
 
     // When
     val showProcedures = ShowProceduresCommand(None, defaultColumns, List.empty, isCommunity = false, CYPHER_5)
@@ -330,7 +331,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
 
   test("show procedures should give back correct community full values") {
     // Set-up which procedures to return:
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer((_) => Stream.of(proc1, proc2, proc3, proc4))
+    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1, proc2, proc3, proc4))
 
     // When
     val showProcedures = ShowProceduresCommand(None, allColumns, List.empty, isCommunity = true, CYPHER_5)
@@ -415,7 +416,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
 
   test("show procedures should give back correct enterprise full values") {
     // Set-up which procedures to return:
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer((_) => Stream.of(proc1, proc2, proc3, proc4))
+    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1, proc2, proc3, proc4))
 
     // When
     val showProcedures = ShowProceduresCommand(None, allColumns, List.empty, isCommunity = false, CYPHER_5)
@@ -500,7 +501,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
 
   test("show procedures should return the procedures sorted on name") {
     // Set-up which procedures to return, not ordered by name:
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer((_) => Stream.of(proc2, proc4, proc3, proc1))
+    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc2, proc4, proc3, proc1))
 
     // When
     val showProcedures = ShowProceduresCommand(None, defaultColumns, List.empty, isCommunity = true, CYPHER_5)
@@ -534,7 +535,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
       false,
       QueryLanguage.ALL
     )
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer((_) => Stream.of(proc1, internalProc))
+    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1, internalProc))
 
     // When
     val showProcedures = ShowProceduresCommand(None, defaultColumns, List.empty, isCommunity = true, CYPHER_5)
@@ -583,7 +584,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
       false,
       QueryLanguage.ALL
     )
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer((_) =>
+    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ =>
       Stream.of(deprecatedProc, deprecatedProcWithoutReplacement)
     )
 
@@ -611,7 +612,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
 
   test("show procedures should not give back roles without SHOW ROLE privilege") {
     // Set-up which procedures to return:
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer((_) => Stream.of(proc1))
+    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1))
 
     // Block SHOW ROLE
     when(securityContext.allowsAdminAction(any())).thenAnswer(_.getArgument[AdminActionOnResource](0) match {
@@ -632,7 +633,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
 
   test("show procedures should not give back roles when denied SHOW ROLE privilege") {
     // Set-up which procedures to return:
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer((_) => Stream.of(proc1))
+    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1))
 
     // Block SHOW ROLE
     when(securityContext.allowsAdminAction(any())).thenAnswer(_.getArgument[AdminActionOnResource](0) match {
@@ -692,7 +693,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     }
 
     // Set-up which procedures to return:
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer((_) => Stream.of(proc1, proc2, proc3, proc4))
+    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1, proc2, proc3, proc4))
 
     // Set-up role and privileges
     when(systemTx.execute(any())).thenAnswer(invocation => specialHandlingOfPrivileges(invocation.getArgument(0)))
@@ -733,7 +734,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
 
   test("show procedures executable by current user should return everything with AUTH_DISABLED") {
     // Set-up which procedures exists:
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer((_) => Stream.of(proc1, proc2))
+    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1, proc2))
 
     // Set user and privileges
     when(securityContext.subject()).thenReturn(AuthSubject.AUTH_DISABLED)
@@ -755,7 +756,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
 
   test("show procedures executable by current user should only return executable procedures") {
     // Set-up which procedures exists:
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer((_) => Stream.of(proc1, proc2))
+    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1, proc2))
 
     // Set user and privileges
     val username = "my_user"
@@ -784,7 +785,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
 
   test("show procedures executable by given user should only return executable procedures") {
     // Set-up which procedures exists:
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer((_) => Stream.of(proc1, proc2))
+    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1, proc2))
 
     // Set user and privileges
     val user = mock[AuthSubject]
@@ -811,7 +812,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     }
 
     // Set-up which procedures exists:
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer((_) => Stream.of(proc1))
+    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1))
 
     // Set user and privileges
     val user = mock[AuthSubject]
@@ -851,7 +852,7 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
     )
 
     // Set-up which procedures exists:
-    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer((_) => Stream.of(proc1))
+    when(procedures.proceduresGetAll(CYPHER_5)).thenAnswer(_ => Stream.of(proc1))
 
     // When
     val showProcedures =

@@ -574,6 +574,7 @@ object DdlShowBuilder {
           where,
           yieldedItems,
           yieldAll,
+          yieldClause.map(turnYieldToWith),
           returnCypher5Columns = false
         )(position)
       )
@@ -585,7 +586,8 @@ object DdlShowBuilder {
           indexType,
           where,
           yieldedItems,
-          yieldAll = yieldAll
+          yieldAll,
+          yieldClause.map(turnYieldToWith)
         )(position)
       )
     }
@@ -601,42 +603,56 @@ object DdlShowBuilder {
           executableBy,
           where,
           yieldedItems,
-          yieldAll
+          yieldAll,
+          yieldClause.map(turnYieldToWith)
         )(position)
       )
     }
 
     def buildProcedureClauses(executableBy: Option[ExecutableBy], position: InputPosition): Seq[Clause] = {
       buildClauses(
-        ShowProceduresClause(executableBy, where, yieldedItems, yieldAll)(position)
+        ShowProceduresClause(executableBy, where, yieldedItems, yieldAll, yieldClause.map(turnYieldToWith))(position)
       )
     }
 
     def buildSettingsClauses(position: InputPosition): Seq[Clause] = {
       buildClauses(
-        ShowSettingsClause(names, where, yieldedItems, yieldAll)(position)
+        ShowSettingsClause(names, where, yieldedItems, yieldAll, yieldClause.map(turnYieldToWith))(position)
       )
     }
 
     def buildShowTransactions(position: InputPosition): Seq[Clause] = {
       buildClauses(
-        ShowTransactionsClause(names, where, yieldedItems, yieldAll, returnCypher5Types = false)(position)
+        ShowTransactionsClause(
+          names,
+          where,
+          yieldedItems,
+          yieldAll,
+          yieldClause.map(turnYieldToWith),
+          returnCypher5Types = false
+        )(position)
       )
     }
 
     def buildTerminateTransaction(position: InputPosition): Seq[Clause] = {
       buildClauses(
-        TerminateTransactionsClause(names, yieldedItems, yieldAll, where.map(_.position))(position)
+        TerminateTransactionsClause(
+          names,
+          yieldedItems,
+          yieldAll,
+          yieldClause.map(turnYieldToWith),
+          where.map(_.position)
+        )(position)
       )
     }
 
     private def buildClauses(cmdClause: Clause): Seq[Clause] = {
       ArraySeq.from(
-        Seq(cmdClause) ++ yieldClause.map(turnYieldToWith) ++ returnClause ++ composableClauses.getOrElse(Seq.empty)
+        Seq(cmdClause) ++ returnClause ++ composableClauses.getOrElse(Seq.empty)
       )
     }
 
-    private def turnYieldToWith(yieldClause: Yield): Clause = {
+    private def turnYieldToWith(yieldClause: Yield): With = {
       val returnItems = yieldClause.returnItems
       val itemOrder = Option.when(returnItems.items.nonEmpty)(returnItems.items.map(_.name).toList)
       val (orderBy, where) = CommandClause.updateAliasedVariablesFromYieldInOrderByAndWhere(yieldClause)

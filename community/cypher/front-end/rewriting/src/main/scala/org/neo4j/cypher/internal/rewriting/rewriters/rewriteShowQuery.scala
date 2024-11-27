@@ -64,16 +64,18 @@ case object rewriteShowQuery extends Step with DefaultPostCondition with Prepara
   @tailrec
   private def rewriteClauses(clauses: List[Clause], rewrittenClause: List[Clause]): List[Clause] = clauses match {
     // Just a single command clause (with or without WHERE)
-    case (commandClause: CommandClause) :: Nil =>
+    case (commandClause: CommandClause) :: Nil if commandClause.yieldWith.isEmpty =>
       rewrittenClause ++ rewriteToWithAndReturn(commandClause, commandClause.where)
     // Command clause with only a WITH (parsed as YIELD)
-    case (commandClause: CommandClause) :: (withClause: With) :: Nil =>
-      rewrittenClause :+ commandClause :+ updateDefaultOrderOnProjection(withClause, commandClause) :+
+    case (commandClause: CommandClause) :: Nil if commandClause.yieldWith.nonEmpty =>
+      val withClause = commandClause.yieldWith.get
+      rewrittenClause :+ commandClause.moveOutWith :+ updateDefaultOrderOnProjection(withClause, commandClause) :+
         returnClause(lastPosition(withClause), getDefaultOrderFromProjectionOrCommand(withClause, commandClause))
     // Command clause with WITH (parsed as YIELD) and RETURN * (to fix column order)
-    case (commandClause: CommandClause) :: (withClause: With) :: (returnClause: Return) :: Nil
-      if returnClause.returnItems.includeExisting =>
-      rewrittenClause :+ commandClause :+ updateDefaultOrderOnProjection(
+    case (commandClause: CommandClause) :: (returnClause: Return) :: Nil
+      if commandClause.yieldWith.nonEmpty && returnClause.returnItems.includeExisting =>
+      val withClause = commandClause.yieldWith.get
+      rewrittenClause :+ commandClause.moveOutWith :+ updateDefaultOrderOnProjection(
         withClause,
         commandClause
       ) :+ updateDefaultOrderOnReturn(
@@ -81,6 +83,13 @@ case object rewriteShowQuery extends Step with DefaultPostCondition with Prepara
         withClause,
         commandClause
       )
+    // Command clause with WITH (parsed as YIELD) in the middle of a query
+    // Move out the with from the first part of the command when combining multiple commands as well, not just the last one
+    case (commandClause: CommandClause) :: cs if commandClause.yieldWith.nonEmpty =>
+      val withClause = commandClause.yieldWith.get
+      val newRewritten = rewrittenClause :+ commandClause.moveOutWith :+
+        updateDefaultOrderOnProjection(withClause, commandClause)
+      rewriteClauses(cs, newRewritten)
     case c :: cs => rewriteClauses(cs, rewrittenClause :+ c)
     case Nil     => rewrittenClause
   }
