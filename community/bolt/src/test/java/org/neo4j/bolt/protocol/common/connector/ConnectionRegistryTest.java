@@ -19,6 +19,8 @@
  */
 package org.neo4j.bolt.protocol.common.connector;
 
+import static org.mockito.ArgumentMatchers.eq;
+
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -205,7 +207,7 @@ class ConnectionRegistryTest {
         Mockito.verify(connection1).close();
         Mockito.verify(connection2).close();
 
-        Mockito.verify(future).get(Duration.ofHours(5).toMillis(), TimeUnit.MILLISECONDS);
+        Mockito.verify(future).get(eq(Duration.ofHours(5).toMillis()), eq(TimeUnit.MILLISECONDS));
 
         Mockito.verify(connectionTracker).remove(connection1);
         Mockito.verify(connectionTracker).remove(connection2);
@@ -244,13 +246,13 @@ class ConnectionRegistryTest {
         Mockito.verify(connection1, Mockito.times(2)).id();
         Mockito.verify(connection1).close();
         Mockito.verify(connection1).closeFuture();
-        Mockito.verify(future1).get(Duration.ofHours(5).toMillis(), TimeUnit.MILLISECONDS);
+        Mockito.verify(future1).get(eq(Duration.ofHours(5).toMillis()), eq(TimeUnit.MILLISECONDS));
         Mockito.verifyNoMoreInteractions(connection1);
 
         Mockito.verify(connection2, Mockito.times(2)).id();
         Mockito.verify(connection2).close();
         Mockito.verify(connection2).closeFuture();
-        Mockito.verify(future2).get(Duration.ofHours(5).toMillis(), TimeUnit.MILLISECONDS);
+        Mockito.verify(future2).get(eq(Duration.ofHours(5).toMillis()), eq(TimeUnit.MILLISECONDS));
         Mockito.verifyNoMoreInteractions(connection2);
 
         Mockito.verify(connectionTracker).remove(connection1);
@@ -291,7 +293,7 @@ class ConnectionRegistryTest {
         Mockito.verify(connection1).close();
         Mockito.verify(connection2).close();
 
-        Mockito.verify(future).get(Duration.ofHours(2).toMillis(), TimeUnit.MILLISECONDS);
+        Mockito.verify(future).get(eq(Duration.ofHours(2).toMillis()), eq(TimeUnit.MILLISECONDS));
 
         Mockito.verify(connectionTracker).remove(connection1);
         Mockito.verify(connectionTracker).remove(connection2);
@@ -322,7 +324,7 @@ class ConnectionRegistryTest {
         Mockito.verify(connection1).close();
         Mockito.verify(connection2).close();
 
-        Mockito.verify(future).get(Duration.ofHours(2).toMillis(), TimeUnit.MILLISECONDS);
+        Mockito.verify(future).get(eq(Duration.ofHours(2).toMillis()), eq(TimeUnit.MILLISECONDS));
 
         Mockito.verify(connectionTracker).remove(connection1);
         Mockito.verify(connectionTracker).remove(connection2);
