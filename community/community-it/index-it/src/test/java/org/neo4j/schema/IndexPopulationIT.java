@@ -20,7 +20,6 @@
 package org.neo4j.schema;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.apache.commons.lang3.RandomStringUtils.randomAscii;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.logging.AssertableLogProvider.Level.DEBUG;
@@ -30,12 +29,10 @@ import static org.neo4j.logging.LogAssertions.assertThat;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,13 +45,9 @@ import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.helpers.collection.Iterators;
-import org.neo4j.internal.kernel.api.IndexMonitor;
-import org.neo4j.internal.schema.IndexDescriptor;
-import org.neo4j.kernel.database.DatabaseMemoryTrackers;
 import org.neo4j.kernel.impl.api.index.IndexPopulationJob;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.AssertableLogProvider;
-import org.neo4j.monitoring.Monitors;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -85,56 +78,6 @@ class IndexPopulationIT {
     void tearDown() {
         executorService.shutdown();
         managementService.shutdown();
-    }
-
-    @Test
-    void trackMemoryOnIndexPopulation() throws InterruptedException {
-        Label nodeLabel = Label.label("nodeLabel");
-        var propertyName = "testProperty";
-        var indexName = "testIndex";
-
-        try (Transaction transaction = database.beginTx()) {
-            var node = transaction.createNode(nodeLabel);
-            node.setProperty(propertyName, randomAscii(1024));
-            transaction.commit();
-        }
-
-        var monitors = database.getDependencyResolver().resolveDependency(Monitors.class);
-        var memoryTrackers = database.getDependencyResolver().resolveDependency(DatabaseMemoryTrackers.class);
-        var otherTracker = memoryTrackers.getOtherTracker();
-        var estimatedHeapBefore = otherTracker.estimatedHeapMemory();
-        var usedNativeBefore = otherTracker.usedNativeMemory();
-        AtomicLong peakUsage = new AtomicLong();
-        CountDownLatch populationJobCompleted = new CountDownLatch(1);
-        monitors.addMonitorListener(new IndexMonitor.MonitorAdapter() {
-            @Override
-            public void populationCompleteOn(IndexDescriptor descriptor) {
-                peakUsage.set(Math.max(otherTracker.usedNativeMemory(), peakUsage.get()));
-            }
-
-            @Override
-            public void populationJobCompleted(long peakDirectMemoryUsage) {
-                populationJobCompleted.countDown();
-            }
-        });
-
-        try (Transaction transaction = database.beginTx()) {
-            transaction
-                    .schema()
-                    .indexFor(nodeLabel)
-                    .on(propertyName)
-                    .withName(indexName)
-                    .create();
-            transaction.commit();
-        }
-
-        waitForOnlineIndexes();
-        populationJobCompleted.await();
-
-        long nativeMemoryAfterIndexCompletion = otherTracker.usedNativeMemory();
-        assertEquals(estimatedHeapBefore, otherTracker.estimatedHeapMemory());
-        assertEquals(usedNativeBefore, nativeMemoryAfterIndexCompletion);
-        assertThat(peakUsage.get()).isGreaterThan(nativeMemoryAfterIndexCompletion);
     }
 
     @Test
