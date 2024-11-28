@@ -24,7 +24,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.collections.impl.factory.Sets.immutable;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.INDEX_TYPES;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.RANGE_DESCRIPTOR;
@@ -40,6 +44,7 @@ import static org.neo4j.token.ReadOnlyTokenCreator.READ_ONLY;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -67,6 +72,7 @@ import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.PopulationProgress;
+import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.IndexCapability;
 import org.neo4j.internal.schema.IndexConfig;
@@ -145,6 +151,7 @@ class BulkIndexesCreatorTest {
         when(storageEngine.newReader()).thenReturn(storageReader);
         when(storageEngine.indexingBehaviour()).thenReturn(StorageEngineIndexingBehaviour.EMPTY);
 
+        when(storageReader.indexesGetAll()).thenReturn(Collections.emptyIterator());
         when(storageReader.allocateNodeCursor(any(), any(), any())).thenReturn(nodeCursor);
         when(storageReader.allocateRelationshipScanCursor(any(), any(), any())).thenReturn(relCursor);
     }
@@ -276,7 +283,8 @@ class BulkIndexesCreatorTest {
     }
 
     @Test
-    void longerRunningIndexingReportsCorrectly() throws IOException {
+    void longerRunningIndexingReportsCorrectly()
+            throws IOException, IndexPopulationFailedKernelException, IndexNotFoundKernelException {
         final var config = Config.defaults();
         final var context = new BulkIndexCreationContext(
                 config,
@@ -322,14 +330,17 @@ class BulkIndexesCreatorTest {
             final var d2p5 = 0.9f;
             final var d2p6 = 1.0f;
 
+            final var tentativeProxy = populatingProxy(descriptor2, d2p6);
+
             final var state1 = Sets.mutable.of(populatingProxy(descriptor1, d1p1), populatingProxy(descriptor2, d2p1));
             final var state2 = Sets.mutable.of(populatingProxy(descriptor1, d1p2), populatingProxy(descriptor2, d2p2));
             final var state3 = Sets.mutable.of(failedProxy(descriptor1, d1p2), populatingProxy(descriptor2, d2p3));
             final var state4 = Sets.mutable.of(failedProxy(descriptor1, d1p2), populatingProxy(descriptor2, d2p4));
             final var state5 = Sets.mutable.of(failedProxy(descriptor1, d1p2), populatingProxy(descriptor2, d2p5));
-            final var state6 = Sets.mutable.of(failedProxy(descriptor1, d1p2), populatingProxy(descriptor2, d2p6));
+            final var state6 = Sets.mutable.of(failedProxy(descriptor1, d1p2), tentativeProxy);
+            final var state7 = Sets.mutable.of(failedProxy(descriptor1, d1p2), onlineProxy(descriptor2));
             //noinspection unchecked
-            when(indexingService.getIndexProxies()).thenReturn(state1, state2, state3, state4, state5, state6);
+            when(indexingService.getIndexProxies()).thenReturn(state1, state2, state3, state4, state5, state6, state7);
 
             final var completed = new MutableBoolean();
             final var errors = Lists.mutable.<IndexDescriptor>empty();
@@ -368,6 +379,8 @@ class BulkIndexesCreatorTest {
                     assertThat(delta).isGreaterThan(0.0f);
                 }
             });
+
+            verify(indexingService, times(1)).activateIndex(eq(descriptor2));
         }
     }
 
@@ -456,6 +469,15 @@ class BulkIndexesCreatorTest {
         when(proxy.getState()).thenReturn(InternalIndexState.POPULATING);
         when(proxy.getDescriptor()).thenReturn(descriptor);
         when(proxy.getIndexPopulationProgress()).thenReturn(populationProgress);
+
+        if (percent == 1.0f) {
+            try {
+                when(proxy.awaitStoreScanCompleted(anyLong(), any())).thenReturn(true);
+            } catch (IndexPopulationFailedKernelException | InterruptedException ex) {
+                // mocking so ignore
+            }
+        }
+
         return proxy;
     }
 
@@ -473,6 +495,18 @@ class BulkIndexesCreatorTest {
         when(proxy.getDescriptor()).thenReturn(descriptor);
         when(proxy.getIndexPopulationProgress()).thenReturn(populationProgress);
         when(proxy.getPopulationFailure()).thenReturn(failure);
+        return proxy;
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private static IndexProxy onlineProxy(IndexDescriptor descriptor) {
+        final var populationProgress = mock(PopulationProgress.class);
+        when(populationProgress.getProgress()).thenReturn(1.0f);
+
+        final var proxy = mock(IndexProxy.class);
+        when(proxy.getState()).thenReturn(InternalIndexState.ONLINE);
+        when(proxy.getDescriptor()).thenReturn(descriptor);
+        when(proxy.getIndexPopulationProgress()).thenReturn(populationProgress);
         return proxy;
     }
 

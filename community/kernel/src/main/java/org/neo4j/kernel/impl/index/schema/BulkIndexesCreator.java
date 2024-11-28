@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.index.schema;
 
 import static java.util.Objects.requireNonNull;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
+import static org.neo4j.kernel.database.Database.initialSchemaRulesLoader;
 import static org.neo4j.kernel.impl.api.TransactionVisibilityProvider.EMPTY_VISIBILITY_PROVIDER;
 import static org.neo4j.kernel.impl.locking.LockManager.NO_LOCKS_LOCK_MANAGER;
 import static org.neo4j.lock.LockService.NO_LOCK_SERVICE;
@@ -39,10 +40,13 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HostedOnMode;
 import org.neo4j.index.internal.gbptree.GroupingRecoveryCleanupWorkCollector;
 import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.InternalIndexState;
+import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
+import org.neo4j.kernel.api.exceptions.index.IndexPopulationFailedKernelException;
 import org.neo4j.kernel.api.index.BulkIndexCreationContext;
 import org.neo4j.kernel.impl.api.DatabaseSchemaState;
+import org.neo4j.kernel.impl.api.index.IndexProxy;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.index.IndexingServiceFactory;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
@@ -94,24 +98,20 @@ public class BulkIndexesCreator implements IndexesCreator {
 
         var noErrors = true;
         final var progressTracker = ObjectFloatMaps.mutable.<IndexDescriptor>empty();
-        final var seenIndexes = Sets.mutable.<IndexDescriptor>empty();
-        while (seenIndexes.size() < descriptorCount) {
+        final var descriptorsToCreate = Sets.mutable.ofAll(indexDescriptors);
+        final var tentatives = Sets.mutable.<IndexProxy>empty();
+        while (!descriptorsToCreate.isEmpty()) {
             for (var indexProxy : indexingService.getIndexProxies()) {
                 final var descriptor = indexProxy.getDescriptor();
-                if (seenIndexes.contains(descriptor)) {
+                if (!descriptorsToCreate.contains(descriptor)) {
+                    // skip over indexes from before create call or those recently done
                     continue;
                 }
 
                 final var state = indexProxy.getState();
                 if (state == InternalIndexState.FAILED) {
                     noErrors = false;
-                    seenIndexes.add(descriptor);
-                    creationListener.onFailure(
-                            descriptor,
-                            indexProxy
-                                    .getPopulationFailure()
-                                    .asIndexPopulationFailure(
-                                            descriptor.schema(), descriptor.userDescription(context.tokenHolders())));
+                    descriptorsToCreate.remove(reportIndexPopulationFailure(indexProxy, creationListener));
                 } else {
                     final var latestProgress =
                             indexProxy.getIndexPopulationProgress().getProgress();
@@ -129,14 +129,29 @@ public class BulkIndexesCreator implements IndexesCreator {
                         return latestProgress;
                     });
 
-                    if (state == InternalIndexState.ONLINE || latestProgress == 1.0f) {
+                    if (state == InternalIndexState.ONLINE) {
                         // some proxies are 'tentative' and stay at POPULATING even though they are actually done
-                        seenIndexes.add(descriptor);
+                        descriptorsToCreate.remove(descriptor);
+                    } else if (latestProgress == 1.0f) {
+                        tentatives.add(indexProxy);
                     }
                 }
             }
 
-            sleepIgnoreInterrupt();
+            if (tentatives.isEmpty()) {
+                sleepIgnoreInterrupt();
+            } else {
+                for (var indexProxy : tentatives) {
+                    try {
+                        indexingService.activateIndex(indexProxy.getDescriptor());
+                    } catch (IndexPopulationFailedKernelException | IndexNotFoundKernelException ex) {
+                        noErrors = false;
+                        descriptorsToCreate.remove(reportIndexPopulationFailure(indexProxy, creationListener));
+                    }
+                }
+
+                tentatives.clear();
+            }
         }
 
         creationListener.onCreationCompleted(noErrors);
@@ -217,7 +232,7 @@ public class BulkIndexesCreator implements IndexesCreator {
                 indexStoreViewFactory,
                 tokenHolders,
                 context.elementIdMapper(),
-                List.of(),
+                initialSchemaRulesLoader(storageEngine),
                 logService.getInternalLogProvider(),
                 IndexMonitor.NO_MONITOR,
                 new DatabaseSchemaState(logProvider),
@@ -231,6 +246,17 @@ public class BulkIndexesCreator implements IndexesCreator {
                 context.metadataCache(),
                 fileSystem,
                 EMPTY_VISIBILITY_PROVIDER));
+    }
+
+    private IndexDescriptor reportIndexPopulationFailure(IndexProxy indexProxy, CreationListener creationListener) {
+        final var descriptor = indexProxy.getDescriptor();
+        creationListener.onFailure(
+                descriptor,
+                indexProxy
+                        .getPopulationFailure()
+                        .asIndexPopulationFailure(
+                                descriptor.schema(), descriptor.userDescription(context.tokenHolders())));
+        return descriptor;
     }
 
     private static void sleepIgnoreInterrupt() {

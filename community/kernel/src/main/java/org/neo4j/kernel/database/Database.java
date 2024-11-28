@@ -187,6 +187,7 @@ import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.DeprecatedFormatWarning;
 import org.neo4j.storageengine.api.MetadataProvider;
+import org.neo4j.storageengine.api.ReadableStorageEngine;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StorageReader;
@@ -1250,7 +1251,7 @@ public class Database extends AbstractDatabase {
                 .toMillis();
     }
 
-    public static Iterable<IndexDescriptor> initialSchemaRulesLoader(StorageEngine storageEngine) {
+    public static Iterable<IndexDescriptor> initialSchemaRulesLoader(ReadableStorageEngine storageEngine) {
         return () -> {
             try (StorageReader reader = storageEngine.newReader()) {
                 return asList(reader.indexesGetAll()).iterator();
