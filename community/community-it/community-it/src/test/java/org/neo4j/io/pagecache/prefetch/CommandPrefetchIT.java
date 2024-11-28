@@ -22,6 +22,7 @@ package org.neo4j.io.pagecache.prefetch;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import org.junit.jupiter.api.Test;
 import org.neo4j.collection.Dependencies;
@@ -29,9 +30,12 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.internal.recordstorage.RecordStorageEngineFactory;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseFile;
 import org.neo4j.kernel.database.NamedDatabaseId;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
+import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
@@ -60,13 +64,19 @@ class CommandPrefetchIT {
             tx.commit();
         }
         String databaseName = db.databaseName();
+        List<String> expected = ((GraphDatabaseAPI) db)
+                                .getDependencyResolver()
+                                .resolveDependency(StorageEngineFactory.class)
+                                .id()
+                        == RecordStorageEngineFactory.ID
+                ? List.of(RecordDatabaseFile.NODE_STORE.getName(), RecordDatabaseFile.RELATIONSHIP_STORE.getName())
+                : List.of("block.x1.db");
         var prefetchedFiles = prefetcher.tasks.stream()
                 .filter(file -> file.toString().contains(databaseName))
                 .map(Path::getFileName)
                 .map(Path::toString)
                 .toList();
-        assertThat(prefetchedFiles)
-                .contains(RecordDatabaseFile.NODE_STORE.getName(), RecordDatabaseFile.RELATIONSHIP_STORE.getName());
+        assertThat(prefetchedFiles).containsAll(expected);
     }
 
     @Test
@@ -80,16 +90,22 @@ class CommandPrefetchIT {
             tx.commit();
         }
         String databaseName = db.databaseName();
+        List<String> expected = ((GraphDatabaseAPI) db)
+                                .getDependencyResolver()
+                                .resolveDependency(StorageEngineFactory.class)
+                                .id()
+                        == RecordStorageEngineFactory.ID
+                ? List.of(
+                        RecordDatabaseFile.PROPERTY_STORE.getName(),
+                        RecordDatabaseFile.PROPERTY_ARRAY_STORE.getName(),
+                        RecordDatabaseFile.PROPERTY_STRING_STORE.getName())
+                : List.of("block.x1.db", "block.big_values.db");
         var prefetchedFiles = prefetcher.tasks.stream()
                 .filter(file -> file.toString().contains(databaseName))
                 .map(Path::getFileName)
                 .map(Path::toString)
                 .toList();
-        assertThat(prefetchedFiles)
-                .contains(
-                        RecordDatabaseFile.PROPERTY_STORE.getName(),
-                        RecordDatabaseFile.PROPERTY_ARRAY_STORE.getName(),
-                        RecordDatabaseFile.PROPERTY_STRING_STORE.getName());
+        assertThat(prefetchedFiles).containsAll(expected);
     }
 
     private static class TestPrefetcher extends LifecycleAdapter implements PagePrefetcher {
