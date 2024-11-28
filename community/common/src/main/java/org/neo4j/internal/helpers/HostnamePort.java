@@ -22,7 +22,6 @@ package org.neo4j.internal.helpers;
 import static java.lang.String.format;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Objects;
@@ -185,7 +184,7 @@ public class HostnamePort {
         return hostnamePort.split(":");
     }
 
-    public SocketAddress toSocketAddress() {
+    public InetSocketAddress toSocketAddress() {
         return new InetSocketAddress(getHost(), getPort());
     }
 
