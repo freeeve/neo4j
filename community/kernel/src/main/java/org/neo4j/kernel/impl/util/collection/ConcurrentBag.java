@@ -22,13 +22,14 @@ package org.neo4j.kernel.impl.util.collection;
 import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.neo4j.memory.MemoryTracker;
 
 /**
  * A specialized concurrent collection used in parallel runtime.
  * <p>
- * The collection exposes only two methods, {@link #add(Object)} and {@link #iterator()}, it doesn't keep track of its size nor does it automatically track memory.
+ * The collection exposes methods, {@link #add(Object)}, {@link #iterator()}, {@link #getFirst()}, {@link #isEmpty()}, and {@link #hasSingleElement()}, it doesn't keep track of its size nor does it automatically track memory.
  * However, memory tracking can easily be added by the client using {@link #SIZE_OF_NODE} to compute the size of each added item. The imagined use-case for
  * this collection, and what it has been optimised for, is when you have multiple threads adding to the collection and then a single reader reading the accumulated
  * result. The implementation is based on the LockFreeQueue in "The ART of MULTIPROCESSOR PROGRAMMING" (Herlihy, Luchangco, Shavi & Spear) and it is based
@@ -68,6 +69,29 @@ public final class ConcurrentBag<T> {
         Node node = new Node(null);
         this.head = node;
         this.tail = node;
+    }
+
+    public boolean isEmpty() {
+        return head == tail;
+    }
+
+    public boolean hasSingleElement() {
+        return head.next == tail;
+    }
+
+    /**
+     * Gets the first element of this bag.
+     *
+     * @return the retrieved element
+     * @throws NoSuchElementException if this collection is empty
+     */
+    @SuppressWarnings("unchecked")
+    public T getFirst() {
+        var current = head.next;
+        if (current == null) {
+            throw new NoSuchElementException();
+        }
+        return (T) current.value;
     }
 
     public void add(T value) {

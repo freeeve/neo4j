@@ -78,6 +78,12 @@ public class HeapTrackingListValueBuilder implements AutoCloseable {
         representation = ValueRepresentation.ANYTHING;
     }
 
+    public void addAll(Iterable<AnyValue> values) {
+        for (AnyValue value : values) {
+            add(value);
+        }
+    }
+
     public void add(AnyValue value) {
         unAllocatedHeapSize += value.estimatedHeapUsage();
         if (unAllocatedHeapSize >= HEAP_SIZE_ALLOCATION_THRESHOLD) {

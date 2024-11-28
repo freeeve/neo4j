@@ -102,6 +102,12 @@ public final class SetListValue extends ListValue {
             valueRepresentation = ValueRepresentation.ANYTHING;
         }
 
+        public void addAll(Iterable<? extends AnyValue> values) {
+            for (AnyValue value : values) {
+                add(value);
+            }
+        }
+
         public void add(AnyValue value) {
             // NOTE: that since we are only using this in COLLECT(DISTINCT ..) which will filter out NO_VALUE
             //     If we lift this restriction we must also update set.contains and set.ternaryContains
