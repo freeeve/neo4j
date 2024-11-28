@@ -275,7 +275,7 @@ public final class DirectedTypes {
         }
     }
 
-    private void addType(int newType, Direction direction) {
+    public void addType(int newType, Direction direction) {
         int insertionIndex = -1;
         for (int i = 0; i < this.types.size(); i++) {
             int type = this.types.get(i);

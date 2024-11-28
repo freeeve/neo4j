@@ -19,7 +19,14 @@
  */
 package org.neo4j.internal.schema;
 
+import org.neo4j.graphdb.Direction;
+
 public enum EndpointType {
-    START,
-    END
+    START(Direction.OUTGOING),
+    END(Direction.INCOMING);
+    public final Direction direction;
+
+    EndpointType(Direction direction) {
+        this.direction = direction;
+    }
 }
