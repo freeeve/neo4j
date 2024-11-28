@@ -45,7 +45,9 @@ import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.LabelSchemaDescriptor;
+import org.neo4j.internal.schema.NodeLabelExistenceSchemaDescriptor;
 import org.neo4j.internal.schema.RelationTypeSchemaDescriptor;
+import org.neo4j.internal.schema.RelationshipEndpointLabelSchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaRule;
 import org.neo4j.internal.schema.constraints.PropertyTypeSet;
@@ -167,6 +169,13 @@ class SchemaChecker {
                 }
 
                 SchemaRule schemaRule = schemaStorage.loadSingleSchemaRule(id, storeCursors, context.memoryTracker);
+
+                if (schemaRule.schema().isSchemaDescriptorType(RelationshipEndpointLabelSchemaDescriptor.class)
+                        || schemaRule.schema().isSchemaDescriptorType(NodeLabelExistenceSchemaDescriptor.class)) {
+                    // graph type constraints are not checked for record format, so skip those!
+                    continue;
+                }
+
                 SchemaRecord previousContentRecord =
                         verifiedRulesWithRecords.put(SchemaRuleKey.from(schemaRule), new SchemaRecord(record));
                 if (previousContentRecord != null) {
