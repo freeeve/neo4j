@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
-import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
@@ -683,7 +682,7 @@ class SubqueryCallPlanningIntegrationTest
         |RETURN a AS q, b AS a, q AS b
         |""".stripMargin
 
-    cfg.plan(Cypher5, query) should equal {
+    cfg.plan(query) should equal {
       new LogicalPlanBuilder()
         .produceResults("`  q@7`", "`  a@8`", "`  b@9`")
         .projection("`  a@5` AS `  q@7`", "`  b@6` AS `  a@8`", "`  q@0` AS `  b@9`")
@@ -2000,7 +1999,7 @@ class SubqueryCallPlanningIntegrationTest
         |RETURN a AS q, b AS a, q AS b
         |""".stripMargin
 
-    cfg.plan(Cypher5, query) should equal {
+    cfg.plan(query) should equal {
       new LogicalPlanBuilder()
         .produceResults("`  q@7`", "`  a@8`", "`  b@9`")
         .projection("`  a@5` AS `  q@7`", "`  b@6` AS `  a@8`", "`  q@0` AS `  b@9`")
