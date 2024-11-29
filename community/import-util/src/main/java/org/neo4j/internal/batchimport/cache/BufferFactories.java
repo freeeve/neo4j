@@ -58,12 +58,8 @@ public final class BufferFactories {
     public static final BufferFactory OFF_HEAP = new BufferFactory() {
         @Override
         public AllocatedBuffer allocate(int size, MemoryTracker memoryTracker) {
-            try {
-                NativeScopedBuffer nativeScopedBuffer = new NativeScopedBuffer(size, LITTLE_ENDIAN, memoryTracker);
-                return new AllocatedBuffer(nativeScopedBuffer.getBuffer(), nativeScopedBuffer);
-            } catch (Throwable e) {
-                throw new RuntimeException(e);
-            }
+            NativeScopedBuffer nativeScopedBuffer = new NativeScopedBuffer(size, LITTLE_ENDIAN, memoryTracker);
+            return new AllocatedBuffer(nativeScopedBuffer.getBuffer(), nativeScopedBuffer);
         }
 
         @Override

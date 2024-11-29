@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
+import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.memory.MemoryTracker;
 import sun.misc.Unsafe;
 
@@ -652,6 +653,7 @@ public final class UnsafeUtil {
             setMemory(addr, size, (byte) 0);
             return newDirectByteBuffer(addr, size);
         } catch (Throwable e) {
+            Exceptions.throwIfUnchecked(e);
             throw new RuntimeException(e);
         }
     }
