@@ -19,9 +19,10 @@
  */
 package org.neo4j.internal.schema;
 
-import java.util.List;
+import java.util.Collection;
 import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.set.ImmutableSet;
+import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeExistence;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeKey;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodePropertyType;
@@ -30,6 +31,7 @@ import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.Relation
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.RelationshipKey;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.RelationshipPropertyType;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.RelationshipUniqueness;
+import org.neo4j.internal.schema.SchemaCommand.IndexCommand;
 import org.neo4j.internal.schema.SchemaCommand.IndexCommand.Create.NodeFulltext;
 import org.neo4j.internal.schema.SchemaCommand.IndexCommand.Create.NodeLookup;
 import org.neo4j.internal.schema.SchemaCommand.IndexCommand.Create.NodePoint;
@@ -49,7 +51,7 @@ public record SchemaTokens(
      * @param commands the schema commands whose tokens should be collected
      * @return all the various tokens required by the provided schema commands
      */
-    public static SchemaTokens collect(List<SchemaCommand> commands) {
+    public static SchemaTokens collect(Collection<SchemaCommand> commands) {
         final var labels = Sets.mutable.<String>empty();
         final var relationships = Sets.mutable.<String>empty();
         final var properties = Sets.mutable.<String>empty();
@@ -109,14 +111,27 @@ public record SchemaTokens(
             } else if (command instanceof RelationshipPropertyType constraintCommand) {
                 relationships.add(constraintCommand.type());
                 properties.add(constraintCommand.property());
-            } else if (command instanceof NodeLookup || command instanceof RelationshipLookup) {
-                // these have no tokens to collect
-            } else {
+            } else if (!canIgnoreCommand(command)) {
                 throw new IllegalStateException(
                         "Unrecognised command - unable to collect schema tokens for: " + command);
             }
         }
 
         return new SchemaTokens(labels.toImmutable(), relationships.toImmutable(), properties.toImmutable());
+    }
+
+    /**
+     * @return <code>true</code> if there are no label, relationship or property tokens referenced in the schema commands
+     */
+    public boolean isEmpty() {
+        return labels.isEmpty() && relationships().isEmpty() && properties.isEmpty();
+    }
+
+    private static boolean canIgnoreCommand(SchemaCommand command) {
+        // these have no tokens to collect as they just have a name
+        return command instanceof NodeLookup
+                || command instanceof RelationshipLookup
+                || command instanceof IndexCommand.Drop
+                || command instanceof ConstraintCommand.Drop;
     }
 }

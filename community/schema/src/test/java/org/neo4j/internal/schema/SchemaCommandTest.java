@@ -46,6 +46,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.common.EntityType;
+import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeExistence;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeKey;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodePropertyType;
@@ -54,6 +55,7 @@ import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.Relation
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.RelationshipKey;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.RelationshipPropertyType;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.RelationshipUniqueness;
+import org.neo4j.internal.schema.SchemaCommand.IndexCommand;
 import org.neo4j.internal.schema.SchemaCommand.IndexCommand.Create.NodeFulltext;
 import org.neo4j.internal.schema.SchemaCommand.IndexCommand.Create.NodeLookup;
 import org.neo4j.internal.schema.SchemaCommand.IndexCommand.Create.NodePoint;
@@ -685,7 +687,9 @@ class SchemaCommandTest {
                         track(TYPES, relationships, random),
                         track(PROPERTIES, properties, random),
                         random.among(PROPERTY_TYPES),
-                        IF_NOT_EXISTS));
+                        IF_NOT_EXISTS),
+                new IndexCommand.Drop("command" + id, IF_NOT_EXISTS),
+                new ConstraintCommand.Drop("command" + id, IF_NOT_EXISTS));
         final var tokens = SchemaTokens.collect(commands);
         assertThat(tokens.labels()).containsAll(labels);
         assertThat(tokens.relationships()).containsAll(relationships);
