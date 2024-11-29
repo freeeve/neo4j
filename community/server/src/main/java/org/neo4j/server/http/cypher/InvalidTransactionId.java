@@ -26,16 +26,8 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 class InvalidTransactionId extends TransactionLifecycleException {
-    private static final String msg =
-            "Unrecognized transaction id. Transaction may have timed out and been rolled back.";
-
-    @Deprecated
-    InvalidTransactionId() {
-        super(msg);
-    }
-
     private InvalidTransactionId(ErrorGqlStatusObject gqlStatusObject) {
-        super(gqlStatusObject, msg);
+        super(gqlStatusObject, "Unrecognized transaction id. Transaction may have timed out and been rolled back.");
     }
 
     public static InvalidTransactionId transactionDoesNotExists(long transactionId) {
