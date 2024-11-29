@@ -114,9 +114,13 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
   }
 
   test("MATCH shortestPath( ((a)-[]->(b))+ ) RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      GqlHelper.getGql42001_42I23("shortestPath", 20, 1, 21),
       "shortestPath(...) contains quantified pattern. This is currently not supported.",
-      "shortestPath(...) requires a pattern containing a single relationship"
+      InputPosition(20, 1, 21),
+      GqlHelper.getGql42001_42N40("shortestPath", 6, 1, 7),
+      "shortestPath(...) requires a pattern containing a single relationship",
+      InputPosition(6, 1, 7)
     )
   }
 
@@ -128,9 +132,13 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
   }
 
   test("MATCH shortestPath((n)-[]->+({s: 1})) RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      GqlHelper.getGql42001_42I23("shortestPath", 22, 1, 23),
       "shortestPath(...) contains quantified pattern. This is currently not supported.",
-      "shortestPath(...) requires a pattern containing a single relationship"
+      InputPosition(22, 1, 23),
+      GqlHelper.getGql42001_42N40("shortestPath", 6, 1, 7),
+      "shortestPath(...) requires a pattern containing a single relationship",
+      InputPosition(6, 1, 7)
     )
   }
 

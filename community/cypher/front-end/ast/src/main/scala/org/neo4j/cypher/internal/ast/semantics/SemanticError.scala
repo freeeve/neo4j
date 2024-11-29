@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.ast.semantics
 
 import org.neo4j.cypher.internal.ast.UsingJoinHint
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
@@ -885,14 +886,7 @@ object SemanticError {
   }
 
   def singleRelationshipPatternRequired(name: String, position: InputPosition): SemanticError = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.offset, position.line, position.column)
-      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N40)
-        .atPosition(position.offset, position.line, position.column)
-        .withParam(GqlParams.StringParam.fun, name)
-        .build())
-      .build()
-
+    val gql = GqlHelper.getGql42001_42N40(name, position.offset, position.line, position.column)
     SemanticError(gql, s"$name(...) requires a pattern containing a single relationship", position)
   }
 
@@ -955,6 +949,67 @@ object SemanticError {
     SemanticError(
       gql,
       s"Failed to $command with `$topologyString`, SECONDARY must be a positive value",
+      position
+    )
+  }
+
+  def unsupportedUseOfProperties(props: Expression, funcName: String, position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N56)
+        .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.StringParam.fun, funcName)
+        .build())
+      .build()
+    SemanticError(
+      gql,
+      s"$funcName(...) contains properties $props. This is currently not supported.",
+      position
+    )
+  }
+
+  def nodeVariableNotBound(funcName: String, position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N65)
+        .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.StringParam.fun, funcName)
+        .build())
+      .build()
+    SemanticError(gql, s"A $funcName(...) requires bound nodes when not part of a MATCH clause.", position)
+  }
+
+  def relationshipVariableAlreadyBound(funcName: String, position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N66)
+        .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.StringParam.fun, funcName)
+        .build())
+      .build()
+    SemanticError(gql, s"Bound relationships not allowed in $funcName(...)", position)
+  }
+
+  def qppInShortestPath(funcName: String, position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42I23(funcName, position.offset, position.line, position.column),
+      s"$funcName(...) contains quantified pattern. This is currently not supported.",
+      position
+    )
+  }
+
+  def invalidLowerBound(funcName: String, position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I08)
+        .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.StringParam.fun, funcName)
+        .build())
+      .build()
+
+    SemanticError(
+      gql,
+      s"$funcName(...) does not support a minimal length different from 0 or 1",
       position
     )
   }

@@ -161,11 +161,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
           x.element match {
             case RelationshipChain(_: NodePattern, r, _: NodePattern) =>
               r.properties.map {
-                props =>
-                  SemanticError(
-                    s"${x.name}(...) contains properties $props. This is currently not supported.",
-                    x.position
-                  )
+                props => SemanticError.unsupportedUseOfProperties(props, x.name, x.position)
               }
             case _ => SemanticError.singleRelationshipPatternRequired(x.name, x.position)
           }
@@ -174,10 +170,8 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
           (ctx, x.element) match {
             case (Match, _) => None
             case (_, RelationshipChain(l: NodePattern, _, r: NodePattern)) =>
-              if (l.variable.isEmpty)
-                SemanticError(s"A ${x.name}(...) requires bound nodes when not part of a MATCH clause.", x.position)
-              else if (r.variable.isEmpty)
-                SemanticError(s"A ${x.name}(...) requires bound nodes when not part of a MATCH clause.", x.position)
+              if (l.variable.isEmpty || r.variable.isEmpty)
+                SemanticError.nodeVariableNotBound(x.name, x.position)
               else
                 None
             case (_, _) =>
@@ -189,10 +183,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
             case RelationshipChain(_, rel, _) =>
               rel.length match {
                 case Some(Some(Range(Some(min), _))) if min.value < 0 || min.value > 1 =>
-                  error(
-                    s"${x.name}(...) does not support a minimal length different from 0 or 1",
-                    min.position
-                  )
+                  error(SemanticError.invalidLowerBound(x.name, min.position))
 
                 case Some(None) =>
                   val expressionStringifier = ExpressionStringifier(preferSingleQuotes = true)
@@ -212,7 +203,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
                   case Some(symbol) if symbol.references.size > 1 =>
                     SemanticCheckResult.error(
                       state,
-                      SemanticError(s"Bound relationships not allowed in ${x.name}(...)", rel.position)
+                      SemanticError.relationshipVariableAlreadyBound(x.name, rel.position)
                     )
                   case _ =>
                     SemanticCheckResult.success(state)
@@ -224,11 +215,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
 
         def checkNoQuantifiedPatterns: SemanticCheck = {
           x.element.folder.treeCollect {
-            case qp: QuantifiedPath =>
-              SemanticError(
-                s"${x.name}(...) contains quantified pattern. This is currently not supported.",
-                qp.position
-              )
+            case qp: QuantifiedPath => SemanticError.qppInShortestPath(x.name, qp.position)
           }
         }
 
