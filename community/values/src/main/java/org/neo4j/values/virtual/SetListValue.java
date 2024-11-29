@@ -227,6 +227,10 @@ public final class SetListValue extends ListValue {
         }
     }
 
+    public boolean contains(AnyValue value) {
+        return set.contains(value);
+    }
+
     private Value ternaryContainsSafe(AnyValue value) {
         return value != NO_VALUE ? Values.booleanValue(set.contains(value)) : NO_VALUE;
     }
