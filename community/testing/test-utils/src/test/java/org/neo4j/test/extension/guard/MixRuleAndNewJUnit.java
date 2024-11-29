@@ -23,11 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.Rule;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.rules.TestName;
 
 class MixRuleAndNewJUnit {
     @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+    public TestName testName = new TestName();
 
     @Test
     void anything() {
