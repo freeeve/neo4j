@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.CostModel
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.QueryGraphSolverInput
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.LabelInferenceStrategy
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPLogger
 import org.neo4j.cypher.internal.compiler.planner.logical.limit.LimitSelectivityConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.CostComparisonListener
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.LogicalPlanProducer
@@ -98,7 +99,8 @@ object LogicalPlanningContext {
     semanticTable: SemanticTable,
     costComparisonListener: CostComparisonListener,
     readOnly: Boolean,
-    labelInferenceStrategy: LabelInferenceStrategy
+    labelInferenceStrategy: LabelInferenceStrategy,
+    idpLogger: IDPLogger = IDPLogger.NoLogging
   )
 
   /**

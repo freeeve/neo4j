@@ -86,6 +86,20 @@ case class SingleComponentPlanner(
     kit: QueryPlannerKit,
     interestingOrderConfig: InterestingOrderConfig
   ): BestPlans = {
+    val idpLogger = context.staticComponents.idpLogger
+    idpLogger.markScope("planComponent") {
+      idpLogger.log(s"component = ${IDPLoggable.summary(qg)}")
+      doPlanComponent(bestLeafPlansPerAvailableSymbol, qg, context, kit, interestingOrderConfig)
+    }
+  }
+
+  private def doPlanComponent(
+    bestLeafPlansPerAvailableSymbol: Map[Set[LogicalVariable], BestPlans],
+    qg: QueryGraph,
+    context: LogicalPlanningContext,
+    kit: QueryPlannerKit,
+    interestingOrderConfig: InterestingOrderConfig
+  ): BestPlans = {
     val componentInterestingOrderConfig = interestingOrderConfig.forQueryGraph(qg)
     val qppInnerPlanner = new CacheBackedQPPInnerPlanner(IDPQPPInnerPlanner(context))
 
@@ -104,7 +118,8 @@ case class SingleComponentPlanner(
           extraRequirement = orderRequirement,
           monitor = monitor,
           stopWatchFactory = () => Stopwatch.start(),
-          cancellationChecker = context.staticComponents.cancellationChecker
+          cancellationChecker = context.staticComponents.cancellationChecker,
+          idpLogger = context.staticComponents.idpLogger
         )
 
         monitor.initTableFor(qg)
@@ -160,6 +175,19 @@ case class SingleComponentPlanner(
     (qg.idsWithoutOptionalMatchesOrUpdates -- plan.availableSymbols -- qg.argumentIds).isEmpty
 
   private def initTable(
+    qg: QueryGraph,
+    kit: QueryPlannerKit,
+    bestLeafPlansPerAvailableSymbol: Map[Set[LogicalVariable], BestPlans],
+    qppInnerPlanner: QPPInnerPlanner,
+    context: LogicalPlanningContext,
+    interestingOrderConfig: InterestingOrderConfig
+  ): Seed[NodeConnection, LogicalPlan] = {
+    context.staticComponents.idpLogger.markScope("initTable") {
+      doInitTable(qg, kit, bestLeafPlansPerAvailableSymbol, qppInnerPlanner, context, interestingOrderConfig)
+    }
+  }
+
+  private def doInitTable(
     qg: QueryGraph,
     kit: QueryPlannerKit,
     bestLeafPlansPerAvailableSymbol: Map[Set[LogicalVariable], BestPlans],

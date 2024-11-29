@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.compiler.planner.ResolveTokens
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext.Settings
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext.StaticComponents
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.QueryGraphSolverInput
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPLogger
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.CostComparisonListener
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.LogicalPlanProducer
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.VerifyBestPlan
@@ -71,6 +72,10 @@ case object QueryPlanner
     val produceResultColumns = from.statement().returnColumns
     val logicalPlan = plan(from.query, logicalPlanningContext, produceResultColumns)
 
+    if (context.debugOptions.printIDPLog) {
+      logicalPlanningContext.staticComponents.idpLogger.result().foreach(println)
+    }
+
     from.copy(
       maybeLogicalPlan = Some(logicalPlan),
       maybeSemanticTable = Some(logicalPlanningContext.semanticTable),
@@ -97,7 +102,8 @@ case object QueryPlanner
       semanticTable = from.semanticTable(),
       costComparisonListener = CostComparisonListener.givenDebugOptions(context.debugOptions, context.log),
       readOnly = from.query.readOnly,
-      labelInferenceStrategy = context.labelInferenceStrategy
+      labelInferenceStrategy = context.labelInferenceStrategy,
+      idpLogger = IDPLogger.givenDebugOptions(context.debugOptions)
     )
 
     val settings = Settings(
@@ -279,12 +285,14 @@ case object plannerQueryPlanner {
    * Plan a subquery from an IRExpression with the given context.
    */
   def planSubquery(subqueryExpression: IRExpression, context: LogicalPlanningContext): LogicalPlan = {
-    plan(
-      subqueryExpression.query,
-      context.withModifiedPlannerState(_.forSubquery(
-        subqueryExpression.computedScopeDependencies.getOrElse(Set.empty)
-      ))
-    )
+    context.staticComponents.idpLogger.markScope("planSubquery") {
+      plan(
+        subqueryExpression.query,
+        context.withModifiedPlannerState(_.forSubquery(
+          subqueryExpression.computedScopeDependencies.getOrElse(Set.empty)
+        ))
+      )
+    }
   }
 }
 

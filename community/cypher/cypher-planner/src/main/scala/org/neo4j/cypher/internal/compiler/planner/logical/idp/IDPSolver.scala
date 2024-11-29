@@ -74,7 +74,7 @@ case class BestResults[+Result](bestResult: Result, bestResultFulfillingReq: Opt
  *
  * written by Donald Kossmann and Konrad Stocker
  */
-class IDPSolver[Solvable, Result, Context](
+class IDPSolver[Solvable: IDPLoggable, Result, Context](
   generator: IDPSolverStep[Solvable, Result, Context], // generates candidates at each step
   projectingSelector: ProjectingSelector[Result], // pick best from a set of candidates
   registryFactory: () => IdRegistry[Solvable] = () => IdRegistry[Solvable], // maps from Set[S] to BitSet
@@ -85,15 +85,22 @@ class IDPSolver[Solvable, Result, Context](
   extraRequirement: ExtraRequirement[Result],
   monitor: IDPSolverMonitor,
   stopWatchFactory: () => Stopwatch,
-  cancellationChecker: CancellationChecker
+  cancellationChecker: CancellationChecker,
+  idpLogger: IDPLogger = IDPLogger.NoLogging
 ) {
+
+  def apply(seed: Seed[Solvable, Result], initialToDo: Seq[Solvable], context: Context): BestResults[Result] = {
+    idpLogger.markScope("IDP") {
+      run(seed, initialToDo, context)
+    }
+  }
 
   /**
    * Run the IDP solver
    *
    * The Goal which is created from initialTodo will have the bits in the same order as initialTodo.
    */
-  def apply(seed: Seed[Solvable, Result], initialToDo: Seq[Solvable], context: Context): BestResults[Result] = {
+  private def run(seed: Seed[Solvable, Result], initialToDo: Seq[Solvable], context: Context): BestResults[Result] = {
     val registry = registryFactory()
     var toDo = Goal(registry.registerAll(initialToDo))
     val table = tableFactory(registry, seed)
@@ -114,6 +121,7 @@ class IDPSolver[Solvable, Result, Context](
       var blockSize = 1
       var keepGoing = true
       val start = stopWatchFactory()
+      val tableSizeBefore = table.size
 
       while (keepGoing && blockSize <= maxBlockSize) {
         var foundNoCandidate = true
@@ -146,12 +154,27 @@ class IDPSolver[Solvable, Result, Context](
               foundNoCandidate = false
               table.put(goal, sorted = true, candidate)
             }
-            keepGoing = blockSize == 2 ||
-              (table.size <= maxTableSize && !start.hasTimedOut(iterationDurationLimit, TimeUnit.MILLISECONDS))
+
+            keepGoing =
+              if (blockSize == 2) {
+                true
+              } else if (table.size > maxTableSize) {
+                logTableSizeLimitReached(start, table, tableSizeBefore, blockSize, maxBlockSize)
+                false
+              } else if (start.hasTimedOut(iterationDurationLimit, TimeUnit.MILLISECONDS)) {
+                logTimeLimitReached(start, table, tableSizeBefore, blockSize, maxBlockSize)
+                false
+              } else {
+                true
+              }
           }
         }
         largestFinishedIteration = if (foundNoCandidate || goals.hasNext) largestFinishedIteration else blockSize
       }
+      if (keepGoing) {
+        logIterationFullyCompleted(start, table, tableSizeBefore, blockSize, maxBlockSize)
+      }
+
       largestFinishedIteration
     }
 
@@ -169,20 +192,27 @@ class IDPSolver[Solvable, Result, Context](
     }
 
     def compactBlock(original: Goal): Unit = {
+      logCompaction(registry, table, original)
+
       val newId = registry.compact(original.bitSet)
       val IDPCache.Results(result, sortedResult) = table(original)
       result.foreach { table.put(Goal(BitSet.empty + newId), sorted = false, _) }
       sortedResult.foreach { table.put(Goal(BitSet.empty + newId), sorted = true, _) }
       toDo = Goal(toDo.bitSet -- original.bitSet + newId)
       table.removeAllTracesOf(original)
+
+      idpLogger.log(s"New compacted goal id = $newId")
     }
 
     // actual algorithm
 
     var iterations = 0
 
+    logStart(registry, table, toDo)
+
     while (toDo.size > 1) {
       iterations += 1
+      idpLogger.log(s"Iteration $iterations")
       monitor.startIteration(iterations)
       val largestFinished = generateBestCandidates(toDo.size)
       if (largestFinished <= 0) {
@@ -200,6 +230,7 @@ class IDPSolver[Solvable, Result, Context](
       compactBlock(bestGoal)
     }
     monitor.foundPlanAfter(iterations)
+    idpLogger.log(s"Done after $iterations iteration(s)")
 
     val (plansFulfillingReq, plans) = table.plans
       .map { case ((_, fulfilsReq), result) => (fulfilsReq, result) }
@@ -220,5 +251,88 @@ class IDPSolver[Solvable, Result, Context](
     } else {
       BestResults(bestResult, None)
     }
+  }
+
+  private def logStart(registry: IdRegistry[Solvable], table: IDPTable[Result], toDo: Goal): Unit = {
+    idpLogger.log {
+      val goalsSummaries = toDo
+        .bitSet
+        .toVector
+        .sorted
+        .flatMap(i => registry.lookup(i).map(i -> _))
+        .map {
+          case (idx, solvable) =>
+            s"[$idx] ${IDPLoggable.summary(solvable)}"
+        }
+
+      s"Initial table size = ${table.size}\n" +
+        s"Goals [${goalsSummaries.size}]: ${goalsSummaries.mkString("[\n  ", ",\n  ", "\n]")}"
+    }
+  }
+
+  private def logCompaction(registry: IdRegistry[Solvable], table: IDPTable[Result], original: Goal): Unit = {
+    idpLogger.log {
+      val originalGoalsSummaries = registry.explode(original.bitSet).map(IDPLoggable.summary(_))
+      val originalGoalsBits = registry.explodedBitSet(original.bitSet)
+
+      s"Compacting goal ${original.bitSet} (exploded = $originalGoalsBits) = ${originalGoalsSummaries.mkString("[\n  ", ",\n  ", "\n]")}\n" +
+        s"Compacted table size: ${table.size}"
+    }
+  }
+
+  private def logIterationFullyCompleted(
+    start: Stopwatch,
+    table: IDPTable[Result],
+    tableSizeBefore: Int,
+    blockSize: Int,
+    maxBlockSize: Int
+  ): Unit = {
+    idpLogger.log {
+      s"[✓] all done, ${formatIterationState(start, table, tableSizeBefore, blockSize, maxBlockSize)}"
+    }
+  }
+
+  private def logTableSizeLimitReached(
+    start: Stopwatch,
+    table: IDPTable[Result],
+    tableSizeBefore: Int,
+    blockSize: Int,
+    maxBlockSize: Int
+  ): Unit = {
+    logLimitReached("table size", start, table, tableSizeBefore, blockSize, maxBlockSize)
+  }
+
+  private def logTimeLimitReached(
+    start: Stopwatch,
+    table: IDPTable[Result],
+    tableSizeBefore: Int,
+    blockSize: Int,
+    maxBlockSize: Int
+  ): Unit = {
+    logLimitReached("time", start, table, tableSizeBefore, blockSize, maxBlockSize)
+  }
+
+  private def logLimitReached(
+    limitType: String,
+    start: Stopwatch,
+    table: IDPTable[Result],
+    tableSizeBefore: Int,
+    blockSize: Int,
+    maxBlockSize: Int
+  ): Unit = {
+    idpLogger.log {
+      s"[!] $limitType limit reached, ${formatIterationState(start, table, tableSizeBefore, blockSize, maxBlockSize)}"
+    }
+  }
+
+  private def formatIterationState(
+    start: Stopwatch,
+    table: IDPTable[Result],
+    tableSizeBefore: Int,
+    blockSize: Int,
+    maxBlockSize: Int
+  ): String = {
+    val elapsedTimeMs = start.elapsed(TimeUnit.MILLISECONDS)
+    s"time(ms)=$elapsedTimeMs/$iterationDurationLimit, table=[${table.size}/$maxTableSize (+${table.size - tableSizeBefore})], blockSize=[$blockSize/$maxBlockSize]"
   }
 }

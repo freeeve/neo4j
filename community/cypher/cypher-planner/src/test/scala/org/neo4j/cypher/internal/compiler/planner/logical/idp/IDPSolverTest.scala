@@ -35,6 +35,8 @@ import scala.collection.immutable.BitSet
 
 class IDPSolverTest extends CypherFunSuite {
 
+  implicit val loggableChar: IDPLoggable[Char] = _.toString
+
   private val context: Unit = ()
   private val neverTimesOut = () => new FakeClock().startStopWatch()
 

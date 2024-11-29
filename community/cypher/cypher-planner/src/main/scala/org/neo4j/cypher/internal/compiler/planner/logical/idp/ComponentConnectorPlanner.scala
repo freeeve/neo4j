@@ -103,6 +103,18 @@ case class ComponentConnectorPlanner(singleComponentPlanner: SingleComponentPlan
     context: LogicalPlanningContext,
     kit: QueryPlannerKit
   ): BestPlans = {
+    context.staticComponents.idpLogger.markScope("connectWithIDP") {
+      doConnectWithIDP(components, queryGraph, interestingOrderConfig, context, kit)
+    }
+  }
+
+  private def doConnectWithIDP(
+    components: Set[PlannedComponent],
+    queryGraph: QueryGraph,
+    interestingOrderConfig: InterestingOrderConfig,
+    context: LogicalPlanningContext,
+    kit: QueryPlannerKit
+  ): BestPlans = {
     val orderRequirement = extraRequirementForInterestingOrder(context, interestingOrderConfig)
     val (goalBitAllocation, initialTodo) = GoalBitAllocation.create(components.map(_.queryGraph), queryGraph)
 
@@ -137,7 +149,8 @@ case class ComponentConnectorPlanner(singleComponentPlanner: SingleComponentPlan
       extraRequirement = orderRequirement,
       monitor = monitor,
       stopWatchFactory = () => Stopwatch.start(),
-      cancellationChecker = context.staticComponents.cancellationChecker
+      cancellationChecker = context.staticComponents.cancellationChecker,
+      idpLogger = context.staticComponents.idpLogger
     )
 
     val seed: Seed[QueryGraph, LogicalPlan] = components.flatMap {

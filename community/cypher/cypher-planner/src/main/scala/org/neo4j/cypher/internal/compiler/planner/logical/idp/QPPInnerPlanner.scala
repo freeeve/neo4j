@@ -160,6 +160,17 @@ case class IDPQPPInnerPlanner(context: LogicalPlanningContext) extends QPPInnerP
     extractedPredicates: ExtractedPredicates,
     labelInfoOuter: LabelInfo
   ): LogicalPlan = {
+    context.staticComponents.idpLogger.markScope("planQPP") {
+      doPlanQPP(qpp, fromLeft, extractedPredicates, labelInfoOuter)
+    }
+  }
+
+  private def doPlanQPP(
+    qpp: QuantifiedPathPattern,
+    fromLeft: Boolean,
+    extractedPredicates: ExtractedPredicates,
+    labelInfoOuter: LabelInfo
+  ): LogicalPlan = {
     val argumentsIntroducedByExtractedPredicates = extractedPredicates.requiredSymbols
     val additionalArguments = argumentsIntroducedByExtractedPredicates + getQPPStartNode(qpp, fromLeft)
     val additionalPredicates = extractedPredicates.predicates.map(_.extracted) ++ additionalTrailPredicates(qpp)
