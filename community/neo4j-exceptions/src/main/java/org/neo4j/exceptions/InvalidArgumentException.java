@@ -301,6 +301,32 @@ public class InvalidArgumentException extends Neo4jException {
                 cause);
     }
 
+    public static InvalidArgumentException invalidCommandMissingUser(
+            String command, String username, String parameterName) {
+        var gql = GqlHelper.getGql42002_42NA8_ifRelevant42N51_42N09(command, username, parameterName);
+        return new InvalidArgumentException(gql, GqlHelper.getCompleteMessage(gql));
+    }
+
+    public static InvalidArgumentException invalidCommandMissingRole(
+            String command, String role, String parameterName) {
+        var gql = GqlHelper.getGql42002_42NA8_ifRelevant42N51_42N10(command, role, parameterName);
+        return new InvalidArgumentException(gql, GqlHelper.getCompleteMessage(gql));
+    }
+
+    public static InvalidArgumentException invalidCommandDatabaseDoesNotExists(
+            String command, String dbname, String parameterName) {
+        var gql = GqlHelper.getGql42002_42NA8_ifRelevant42N51_42N00(command, dbname, parameterName);
+        return new InvalidArgumentException(gql, GqlHelper.getCompleteMessage(gql));
+    }
+
+    public static InvalidArgumentException invalidCommandParameterizedDatabaseNameDoesNotSupportWildcards(
+            String command) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N86)
+                .withParam(GqlParams.StringParam.syntax, command)
+                .build();
+        return new InvalidArgumentException(gql, GqlHelper.getCompleteMessage(gql));
+    }
+
     public static InvalidArgumentException compositeAlias(String operationType, String alias, String dbName) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA6)
                 .build();
@@ -376,15 +402,36 @@ public class InvalidArgumentException extends Neo4jException {
                         formattedServerType, constrainedServers, formattedAllocationType, desiredAllocations));
     }
 
-    public static InvalidArgumentException notAValidCidrIp(String wrongIp, String legacyMessage, Throwable cause) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+    public static InvalidArgumentException notAValidCidrIp(
+            String wrongIp,
+            Boolean cypher5,
+            String legacyErrorMessage,
+            String command,
+            Throwable cause,
+            String paramName) {
+        var gqlBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
                 .withParam(GqlParams.StringParam.input, wrongIp)
-                .withParam(GqlParams.StringParam.context, "CIDR IP")
-                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N88)
-                        .withParam(GqlParams.StringParam.input, wrongIp)
-                        .build())
+                .withParam(GqlParams.StringParam.context, GqlParams.StringParam.cmd.process(command));
+
+        var invalidParamCause = paramName == null
+                ? null
+                : ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N51)
+                        .withParam(GqlParams.StringParam.param, paramName);
+
+        var invalidCidrCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N88)
+                .withParam(GqlParams.StringParam.input, wrongIp)
                 .build();
-        return new InvalidArgumentException(gql, legacyMessage, cause);
+
+        if (invalidParamCause != null) {
+            gqlBuilder.withCause(invalidParamCause.withCause(invalidCidrCause).build());
+        } else {
+            gqlBuilder.withCause(invalidCidrCause);
+        }
+
+        var gql = gqlBuilder.build();
+        String message = cypher5 ? legacyErrorMessage : gql.getMessage();
+
+        return new InvalidArgumentException(gql, message, cause);
     }
 
     public static InvalidArgumentException mustSpecifyField(String mustAssign) {

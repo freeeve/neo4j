@@ -3776,6 +3776,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "referenced database not found",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42NA8(
+            new GqlStatus("42NA8"),
+            """
+                    Invalid reference in command { %s }.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.cmd},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "invalid reference in command",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42NFC(
             new GqlStatus("42NFC"),
             """
