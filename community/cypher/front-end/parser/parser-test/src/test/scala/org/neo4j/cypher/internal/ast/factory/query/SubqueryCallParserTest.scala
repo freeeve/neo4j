@@ -21,7 +21,6 @@ import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.SubqueryCall
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.util.InputPosition
@@ -38,7 +37,13 @@ class SubqueryCallParserTest extends AstParsingTestBase {
 
   test("CALL { RETURN 1 AS a UNION RETURN 2 AS a }") {
     parsesIn[SubqueryCall] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.toAst(importingWithSubqueryCall(
+          union(
+            singleQuery(return_(literalInt(1).as("a"))),
+            singleQuery(return_(literalInt(2).as("a")))
+          )
+        ))
+      case _ => _.toAst(
           importingWithSubqueryCall(
             union(
               singleQuery(return_(literalInt(1).as("a"))),
@@ -46,12 +51,6 @@ class SubqueryCallParserTest extends AstParsingTestBase {
             )
           )
         )
-      case _ => _.toAst(importingWithSubqueryCall(
-          union(
-            singleQuery(return_(literalInt(1).as("a"))),
-            singleQuery(return_(literalInt(2).as("a")))
-          )
-        ))
     }
   }
 
@@ -150,7 +149,7 @@ class SubqueryCallParserTest extends AstParsingTestBase {
 
   test("OPTIONAL CALL { RETURN 1 AS a UNION RETURN 2 AS a }") {
     parsesIn[SubqueryCall] {
-      case Cypher25 => _.toAst(optionalImportingWithSubqueryCall(
+      case Cypher5 => _.toAst(optionalImportingWithSubqueryCall(
           unionDistinct(
             singleQuery(return_(literalInt(1).as("a"))),
             singleQuery(return_(literalInt(2).as("a")))

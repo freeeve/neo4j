@@ -22,7 +22,7 @@ import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.TopLevelBraces
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.util.InputPosition
 
@@ -30,7 +30,8 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
 
   test("{ RETURN 1 AS x }") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(
             TopLevelBraces(
               singleQuery(return_(aliasedReturnItem(literal(1), "x"))),
@@ -38,13 +39,13 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             )(pos)
           ))
         )
-      case _ => _.withAnyFailure
     }
   }
 
   test("{{ RETURN 1 AS x }}") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(
             TopLevelBraces(
               TopLevelBraces(
@@ -55,13 +56,13 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             )(pos)
           ))
         )
-      case _ => _.withAnyFailure
     }
   }
 
   test("{{{ RETURN 1 AS x }}}") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(
             TopLevelBraces(
               TopLevelBraces(
@@ -75,13 +76,13 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             )(pos)
           ))
         )
-      case _ => _.withAnyFailure
     }
   }
 
   test("{{{{ RETURN 1 AS x }}}}") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(
             TopLevelBraces(
               TopLevelBraces(
@@ -98,13 +99,13 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             )(pos)
           ))
         )
-      case _ => _.withAnyFailure
     }
   }
 
   test("{{{{ MATCH (n) RETURN n.age + 1 AS x }}}}") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(
             TopLevelBraces(
               TopLevelBraces(
@@ -124,7 +125,6 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             )(pos)
           ))
         )
-      case _ => _.withAnyFailure
     }
   }
 
@@ -132,10 +132,10 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
     val lhs = TopLevelBraces(singleQuery(create(nodePat(Some("n"), Some(labelLeaf("Person"))))), None)(pos)
     val rhs = TopLevelBraces(singleQuery(create(nodePat(Some("n"), Some(labelLeaf("Animal"))))), None)(pos)
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(union(lhs, rhs)))
         )
-      case _ => _.withAnyFailure
     }
   }
 
@@ -143,27 +143,28 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
     val lhs = TopLevelBraces(singleQuery(merge(nodePat(Some("n"), Some(labelLeaf("Person"))))), None)(pos)
     val rhs = TopLevelBraces(singleQuery(merge(nodePat(Some("n"), Some(labelLeaf("Animal"))))), None)(pos)
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(union(lhs, rhs)))
         )
-      case _ => _.withAnyFailure
     }
   }
 
   test("USE graph { RETURN 1 AS x }") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(
             TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(1), "x"))), Some(use(List("graph"))))(pos)
           ))
         )
-      case _ => _.withAnyFailure
     }
   }
 
   test("USE graph { USE innerGraph { RETURN 1 AS x } }") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(
             TopLevelBraces(
               TopLevelBraces(
@@ -174,13 +175,13 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             )(pos)
           ))
         )
-      case _ => _.withAnyFailure
     }
   }
 
   test("USE graph { USE innerGraph { USE innerInnerGraph { RETURN 1 AS x } } }") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(
             TopLevelBraces(
               TopLevelBraces(
@@ -194,13 +195,13 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             )(pos)
           ))
         )
-      case _ => _.withAnyFailure
     }
   }
 
   test("USE graph { { USE innerGraph { RETURN 1 AS x } } }") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(
             TopLevelBraces(
               TopLevelBraces(
@@ -214,13 +215,13 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             )(pos)
           ))
         )
-      case _ => _.withAnyFailure
     }
   }
 
   test("USE graph { USE innerGraph { USE innerInnerGraph { USE innerInnerInnerGraph { RETURN 1 AS x } } } }") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(
             TopLevelBraces(
               TopLevelBraces(
@@ -237,13 +238,13 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             )(pos)
           ))
         )
-      case _ => _.withAnyFailure
     }
   }
 
   test("USE graph { { USE innerGraph { { RETURN 1 AS x } } } }") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(
             TopLevelBraces(
               TopLevelBraces(
@@ -260,13 +261,13 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             )(pos)
           ))
         )
-      case _ => _.withAnyFailure
     }
   }
 
   test("USE graph { { { USE innerGraph { RETURN 1 AS x } } } }") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(
             TopLevelBraces(
               TopLevelBraces(
@@ -283,7 +284,6 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             )(pos)
           ))
         )
-      case _ => _.withAnyFailure
     }
   }
 
@@ -291,29 +291,27 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
 
   test("{ RETURN 1 AS x } UNION { RETURN 2 AS x }") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(Statements(Seq(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(Statements(Seq(
           union(
             TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(1), "x"))), None)(pos),
-            TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(2), "x"))), None)(pos),
-            differentReturnOrderAllowed = false
+            TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(2), "x"))), None)(pos)
           )
         )))
-      case _ => _.withAnyFailure
     }
   }
 
   test("USE graphLeft { RETURN 1 AS x } UNION USE graphRight { RETURN 2 AS x }") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(Statements(Seq(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(Statements(Seq(
           union(
             TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(1), "x"))), Some(use(List("graphLeft"))))(pos),
             TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(2), "x"))), Some(use(List("graphRight"))))(
               pos
-            ),
-            differentReturnOrderAllowed = false
+            )
           )
         )))
-      case _ => _.withAnyFailure
     }
   }
 
@@ -321,7 +319,8 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
     "{ USE graphLeft { RETURN 1 AS x } UNION ALL USE graphRight { RETURN 2 AS x } } UNION USE graphRight { RETURN 2 AS x }"
   ) {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(Statements(Seq(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(Statements(Seq(
           union(
             TopLevelBraces(
               union(
@@ -332,19 +331,15 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
                 TopLevelBraces(
                   singleQuery(return_(aliasedReturnItem(literal(2), "x"))),
                   Some(use(List("graphRight")))
-                )(pos),
-                differentReturnOrderAllowed = false
+                )(pos)
               ).all,
               None
             )(pos),
             TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(2), "x"))), Some(use(List("graphRight"))))(
               pos
-            ),
-            differentReturnOrderAllowed = false
+            )
           )
         )))
-
-      case _ => _.withAnyFailure
     }
   }
 
@@ -352,30 +347,27 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
     "{ { { RETURN 1 AS x } UNION { RETURN 2 AS x } } UNION ALL { RETURN 2 AS x } } UNION { RETURN 2 AS x }"
   ) {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(Statements(Seq(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(Statements(Seq(
           union(
             TopLevelBraces(
               union(
                 TopLevelBraces(
                   union(
                     TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(1), "x"))), None)(pos),
-                    TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(2), "x"))), None)(pos),
-                    differentReturnOrderAllowed = false
+                    TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(2), "x"))), None)(pos)
                   ),
                   None
                 )(pos),
-                TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(2), "x"))), None)(pos),
-                differentReturnOrderAllowed = false
+                TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(2), "x"))), None)(pos)
               ).all,
               None
             )(pos),
             TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(2), "x"))), None)(
               pos
-            ),
-            differentReturnOrderAllowed = false
+            )
           )
         )))
-      case _ => _.withAnyFailure
     }
   }
 
@@ -383,7 +375,8 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
     "{ { USE graphLeft { RETURN 1 AS x } UNION USE graphRight { RETURN 2 AS x } } UNION ALL USE graphRight { RETURN 2 AS x } } UNION USE graphRight { RETURN 2 AS x }"
   ) {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(Statements(Seq(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(Statements(Seq(
           union(
             TopLevelBraces(
               union(
@@ -396,25 +389,21 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
                     TopLevelBraces(
                       singleQuery(return_(aliasedReturnItem(literal(2), "x"))),
                       Some(use(List("graphRight")))
-                    )(pos),
-                    differentReturnOrderAllowed = false
+                    )(pos)
                   ),
                   None
                 )(pos),
                 TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(2), "x"))), Some(use(List("graphRight"))))(
                   pos
-                ),
-                differentReturnOrderAllowed = false
+                )
               ).all,
               None
             )(pos),
             TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(2), "x"))), Some(use(List("graphRight"))))(
               pos
-            ),
-            differentReturnOrderAllowed = false
+            )
           )
         )))
-      case _ => _.withAnyFailure
     }
   }
 
@@ -426,7 +415,8 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
 
   test("WITH 1 AS x CALL (x) { USE graph { RETURN 1 + x AS y } } RETURN y") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(
             singleQuery(
               with_(aliasedReturnItem(literal(1), "x")),
@@ -442,13 +432,13 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             )
           ))
         )
-      case _ => _.withAnyFailure
     }
   }
 
   test("WITH 1 AS x CALL (x) { { { USE graph { RETURN 1 + x AS y } } } } RETURN y") {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(
             singleQuery(
               with_(aliasedReturnItem(literal(1), "x")),
@@ -470,7 +460,6 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             )
           ))
         )
-      case _ => _.withAnyFailure
     }
   }
 
@@ -478,7 +467,8 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
     "WITH 1 AS x CALL (x) { {RETURN 1 + x AS y UNION ALL RETURN 2 + x AS y } UNION { { USE graph { RETURN 1 + x AS y } } } } RETURN y"
   ) {
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           Statements(Seq(
             singleQuery(
               with_(aliasedReturnItem(literal(1), "x")),
@@ -509,7 +499,6 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             )
           ))
         )
-      case _ => _.withAnyFailure
     }
   }
 
@@ -530,7 +519,8 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
     )
 
     parsesIn[Statement] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           singleQuery(
             match_(
               nodePat(name = Some("m")),
@@ -546,7 +536,6 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             return_(variableReturnItem("m"))
           )
         )
-      case _ => _.withAnyFailure
     }
   }
 
@@ -565,7 +554,8 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
     )
 
     parsesIn[Statement] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           singleQuery(
             match_(
               nodePat(name = Some("m")),
@@ -582,7 +572,6 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             return_(variableReturnItem("m"))
           )
         )
-      case _ => _.withAnyFailure
     }
   }
 
@@ -601,7 +590,8 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
     )
 
     parsesIn[Statement] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
           singleQuery(
             match_(
               nodePat(name = Some("m")),
@@ -618,7 +608,6 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             return_(variableReturnItem("m"))
           )
         )
-      case _ => _.withAnyFailure
     }
   }
 

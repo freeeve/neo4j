@@ -17,7 +17,6 @@
 package org.neo4j.cypher.internal.ast.factory.query
 
 import org.neo4j.cypher.internal.ast.Statement
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 
@@ -220,26 +219,26 @@ class WhitespaceParserTest extends AstParsingTestBase {
 
   test("CREATE (f\u0085oo)") {
     parsesIn[Statement] {
-      case Cypher25 =>
+      case Cypher5 => _.toAst(singleQuery(
+          create(nodePat(name = Some("f\u0085oo")))
+        ))
+      case _ =>
         _.withSyntaxError(s"""Invalid input 'oo': expected a graph pattern, a parameter, ')', ':', 'IS', 'WHERE' or '{' (line 1, column 11 (offset: 10))
                              |"CREATE (f\u0085oo)"
                              |           ^""".stripMargin)
-      case _ => _.toAst(singleQuery(
-          create(nodePat(name = Some("f\u0085oo")))
-        ))
     }
   }
 
   test("CREATE (f\\u0085oo)") {
     val whitespace = "\\u0085"
     parsesIn[Statement] {
-      case Cypher25 =>
+      case Cypher5 => _.toAst(singleQuery(
+          create(nodePat(name = Some("f\u0085oo")))
+        ))
+      case _ =>
         _.withSyntaxError(s"""Invalid input 'oo': expected a graph pattern, a parameter, ')', ':', 'IS', 'WHERE' or '{' (line 1, column 16 (offset: 15))
                              |"CREATE (f${whitespace}oo)"
                              |                ^""".stripMargin)
-      case _ => _.toAst(singleQuery(
-          create(nodePat(name = Some("f\u0085oo")))
-        ))
     }
   }
 }

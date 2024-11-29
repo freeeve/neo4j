@@ -31,7 +31,6 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParseSuccess
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
@@ -393,25 +392,14 @@ class MiscParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport
         |RETURN 3 AS x
         |""".stripMargin
 
-    q should parseIn[Statement] {
-      case Cypher25 => _.toAst(
-          union(
-            union(
-              singleQuery(returnLit(1 -> "x")),
-              singleQuery(returnLit(2 -> "x"))
-            ),
-            singleQuery(returnLit(3 -> "x"))
-          )
-        )
-      case _ => _.toAst(
-          union(
-            union(
-              singleQuery(returnLit(1 -> "x")),
-              singleQuery(returnLit(2 -> "x"))
-            ),
-            singleQuery(returnLit(3 -> "x"))
-          )
-        )
+    q should parseTo[Statement] {
+      union(
+        union(
+          singleQuery(returnLit(1 -> "x")),
+          singleQuery(returnLit(2 -> "x"))
+        ),
+        singleQuery(returnLit(3 -> "x"))
+      )
     }
   }
 

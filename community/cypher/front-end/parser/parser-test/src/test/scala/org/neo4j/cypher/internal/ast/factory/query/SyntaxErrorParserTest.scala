@@ -19,7 +19,6 @@ package org.neo4j.cypher.internal.ast.factory.query
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.query.SyntaxErrorParserTest.clauseExpected
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.util.InputPosition
@@ -42,8 +41,8 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
          |"$testName"
          | ${" ".repeat(pos.offset)}^""".stripMargin
     failsParsing[Statements].in {
-      case Cypher5  => _.withSyntaxError(expectedMessageCypher5)
-      case Cypher25 => _.withSyntaxError(expectedMessageCypher25)
+      case Cypher5 => _.withSyntaxError(expectedMessageCypher5)
+      case _       => _.withSyntaxError(expectedMessageCypher25)
     }
   }
 

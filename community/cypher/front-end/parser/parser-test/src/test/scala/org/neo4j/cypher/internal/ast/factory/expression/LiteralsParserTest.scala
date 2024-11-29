@@ -120,7 +120,7 @@ class LiteralsParserTest extends AstParsingTestBase
             |"RETURN 0_.0"
             |          ^""".stripMargin
         )
-      case Cypher25 => _.withSyntaxError(
+      case _ => _.withSyntaxError(
           """Invalid input '0_': expected an expression, '*' or 'DISTINCT' (line 1, column 8 (offset: 7))
             |"RETURN 0_.0"
             |        ^""".stripMargin
@@ -157,7 +157,7 @@ class LiteralsParserTest extends AstParsingTestBase
             |"$0_2"
             |  ^""".stripMargin
         )
-      case Cypher25 => _.toAst(parameter("0_2", CTAny))
+      case _ => _.toAst(parameter("0_2", CTAny))
     }
     "return $1.0f" should notParse[Statements].in {
       case Cypher5 => _.withSyntaxError(

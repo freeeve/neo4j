@@ -20,7 +20,7 @@ import org.neo4j.cypher.internal.ast.CatalogName
 import org.neo4j.cypher.internal.ast.GraphDirectReference
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
 
@@ -77,15 +77,11 @@ class UseParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport 
   }
 
   test("USE foo UNION ALL RETURN 1") {
-    parsesIn[Statement] {
-      case Cypher25 => _.toAst(union(
-          singleQuery(use(List("foo"))),
-          singleQuery(return_(returnItem(literal(1), "1")))
-        ).all)
-      case _ => _.toAst(union(
-          singleQuery(use(List("foo"))),
-          singleQuery(return_(returnItem(literal(1), "1")))
-        ).all)
+    parsesTo[Statement] {
+      union(
+        singleQuery(use(List("foo"))),
+        singleQuery(return_(returnItem(literal(1), "1")))
+      ).all
     }
   }
 
@@ -100,9 +96,9 @@ class UseParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport 
 
   // Should be able to have database name "graph" (only works in Antlr).
   test("USE GRAPH RETURN 1") {
-    parsesIn[Statements] {
-      case _ => _.toAst(Statements(Seq(singleQuery(use(List("GRAPH")), return_(returnItem(literal(1), "1"))))))
-    }
+    parsesIn[Statements](_ =>
+      _.toAst(Statements(Seq(singleQuery(use(List("GRAPH")), return_(returnItem(literal(1), "1"))))))
+    )
   }
 
   test(
@@ -125,10 +121,10 @@ class UseParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport 
       return_(returnItem(varFor("product"), "product"))
     )
     parsesIn[Statements] {
-      case Cypher25 => _.toAst(
+      case Cypher5 => _.toAst(Statements(Seq(union(lhs, rhs, differentReturnOrderAllowed = true))))
+      case _ => _.toAst(
           Statements(Seq(union(lhs, rhs)))
         )
-      case _ => _.toAst(Statements(Seq(union(lhs, rhs, differentReturnOrderAllowed = true))))
     }
   }
 }

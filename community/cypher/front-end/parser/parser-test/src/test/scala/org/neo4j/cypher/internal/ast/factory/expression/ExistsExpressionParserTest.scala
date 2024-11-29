@@ -19,7 +19,6 @@ package org.neo4j.cypher.internal.ast.factory.expression
 import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.expressions.Equals
@@ -158,33 +157,18 @@ class ExistsExpressionParserTest extends AstParsingTestBase {
       return_(variableReturnItem("p"))
     )
 
-    parsesIn[Statement] {
-      case Cypher25 => _.toAst(
-          singleQuery(
-            match_(
-              nodePat(name = Some("m")),
-              where = Some(where(
-                ExistsExpression(
-                  union(lhs, rhs)
-                )(InputPosition(16, 2, 7), None, None)
-              ))
-            ),
-            return_(variableReturnItem("m"))
-          )
-        )
-      case _ => _.toAst(
-          singleQuery(
-            match_(
-              nodePat(name = Some("m")),
-              where = Some(where(
-                ExistsExpression(
-                  union(lhs, rhs)
-                )(InputPosition(16, 2, 7), None, None)
-              ))
-            ),
-            return_(variableReturnItem("m"))
-          )
-        )
+    parsesTo[Statement] {
+      singleQuery(
+        match_(
+          nodePat(name = Some("m")),
+          where = Some(where(
+            ExistsExpression(
+              union(lhs, rhs)
+            )(InputPosition(16, 2, 7), None, None)
+          ))
+        ),
+        return_(variableReturnItem("m"))
+      )
     }
   }
 
