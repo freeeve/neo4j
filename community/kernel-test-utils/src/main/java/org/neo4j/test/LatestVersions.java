@@ -35,5 +35,9 @@ public final class LatestVersions {
             new BinarySupportedKernelVersions(Config.defaults());
     public static final LogFormat LATEST_LOG_FORMAT = LogFormat.fromKernelVersion(LATEST_KERNEL_VERSION);
 
+    // TODO MERGELOG: remember to update version
+    public static final KernelVersion LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES = LATEST_KERNEL_VERSION;
+    public static final DbmsRuntimeVersion LATEST_RUNTIME_VERSION_WITHOUT_ENVELOPES = LATEST_RUNTIME_VERSION;
+
     private LatestVersions() {}
 }

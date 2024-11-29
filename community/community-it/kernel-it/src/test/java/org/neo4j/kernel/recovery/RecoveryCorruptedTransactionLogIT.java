@@ -27,6 +27,7 @@ import static org.neo4j.configuration.GraphDatabaseInternalSettings.checkpoint_l
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.fail_on_corrupted_log_files;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_COMMIT;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_START;
 import static org.neo4j.logging.LogAssertions.assertThat;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
@@ -35,8 +36,9 @@ import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TRANSACTION_ID;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
-import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION_PROVIDER;
+import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
+import static org.neo4j.test.LatestVersions.LATEST_RUNTIME_VERSION_WITHOUT_ENVELOPES;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -46,10 +48,12 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,6 +62,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.dbms.DatabaseStateService;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.database.DatabaseContextProvider;
@@ -66,6 +71,7 @@ import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.config.Setting;
 import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.internal.recordstorage.Command;
 import org.neo4j.internal.recordstorage.LogCommandSerialization;
@@ -77,6 +83,7 @@ import org.neo4j.io.fs.StoreFileChannel;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.memory.ByteBuffers;
+import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.store.record.NodeRecord;
 import org.neo4j.kernel.impl.store.record.PropertyRecord;
@@ -101,6 +108,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
 import org.neo4j.kernel.impl.transaction.log.entry.UnsupportedLogVersionException;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.v522.DetachedCheckpointLogEntrySerializerV5_22;
+import org.neo4j.kernel.impl.transaction.log.enveloped.InvalidLogEnvelopeReadException;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
@@ -119,7 +127,6 @@ import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.StoreIdProvider;
 import org.neo4j.storageengine.api.TransactionIdStore;
-import org.neo4j.test.LatestVersions;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
@@ -129,10 +136,10 @@ import org.neo4j.test.extension.RandomExtension;
 @Neo4jLayoutExtension
 @ExtendWith(RandomExtension.class)
 class RecoveryCorruptedTransactionLogIT {
-    private static final int CHECKPOINT_RECORD_SIZE =
-            DetachedCheckpointLogEntrySerializerV5_22.checkPointRecordSizeDependingOnVersion(LATEST_KERNEL_VERSION);
-    private static final LogCommandSerialization LATEST_LOG_SERIALIZATION =
-            RecordStorageCommandReaderFactory.INSTANCE.get(LATEST_KERNEL_VERSION);
+    private int CHECKPOINT_RECORD_SIZE;
+    private LogCommandSerialization LATEST_LOG_SERIALIZATION;
+    private BinarySupportedKernelVersions BINARY_VERSIONS;
+    private Config CONFIG;
 
     @Inject
     private DefaultFileSystemAbstraction fileSystem;
@@ -156,15 +163,34 @@ class RecoveryCorruptedTransactionLogIT {
 
     @BeforeEach
     void setUp() {
+        CHECKPOINT_RECORD_SIZE =
+                DetachedCheckpointLogEntrySerializerV5_22.checkPointRecordSizeDependingOnVersion(kernelVersion());
+        LATEST_LOG_SERIALIZATION = RecordStorageCommandReaderFactory.INSTANCE.get(kernelVersion());
+        CONFIG = Config.defaults(additionalConfig());
+        BINARY_VERSIONS = new BinarySupportedKernelVersions(CONFIG);
+
         monitors.addMonitorListener(recoveryMonitor);
         monitors.addMonitorListener(corruptedFilesMonitor);
         databaseFactory = new TestDatabaseManagementServiceBuilder(databaseLayout)
+                .setConfig(additionalConfig())
                 .setConfig(checkpoint_logical_log_keep_threshold, 25)
                 .setInternalLogProvider(logProvider)
                 .setMonitors(monitors)
                 .setFileSystem(fileSystem);
 
         txOffsetAfterStart = startStopDatabaseAndGetTxOffset();
+    }
+
+    protected KernelVersion kernelVersion() {
+        return LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES;
+    }
+
+    protected Map<Setting<?>, Object> additionalConfig() {
+        return Map.of(
+                GraphDatabaseInternalSettings.latest_kernel_version,
+                LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES.version(),
+                GraphDatabaseInternalSettings.latest_runtime_version,
+                LATEST_RUNTIME_VERSION_WITHOUT_ENVELOPES.getVersion());
     }
 
     @Test
@@ -196,7 +222,7 @@ class RecoveryCorruptedTransactionLogIT {
                             LogCheckPointEvent.NULL,
                             transactionIdStore.getLastCommittedTransaction(),
                             transactionIdStore.getLastCommittedTransaction().id() + 1,
-                            LATEST_KERNEL_VERSION,
+                            kernelVersion(),
                             logOffsetBeforeTestTransactions,
                             logOffsetBeforeTestTransactions,
                             Instant.now(),
@@ -214,10 +240,15 @@ class RecoveryCorruptedTransactionLogIT {
         }
     }
 
+    protected int minimumBytesToConsiderACheckpointRecordBroken() {
+        return 3;
+    }
+
     @Test
     void recoverFromLastCorruptedBrokenCheckpointRecord() throws IOException {
         for (int iteration = 0; iteration < 10; iteration++) {
-            int bytesToAdd = random.nextInt(3, CHECKPOINT_RECORD_SIZE + 1);
+            int bytesToAdd =
+                    random.nextInt(minimumBytesToConsiderACheckpointRecordBroken(), CHECKPOINT_RECORD_SIZE + 1);
 
             DatabaseManagementService managementService = databaseFactory.build();
             GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
@@ -243,7 +274,7 @@ class RecoveryCorruptedTransactionLogIT {
                             LogCheckPointEvent.NULL,
                             transactionIdStore.getLastCommittedTransaction(),
                             transactionIdStore.getLastCommittedTransaction().id() + 1,
-                            LATEST_KERNEL_VERSION,
+                            kernelVersion(),
                             logOffsetBeforeTestTransactions,
                             logOffsetBeforeTestTransactions,
                             Instant.now(),
@@ -288,7 +319,7 @@ class RecoveryCorruptedTransactionLogIT {
                         LogCheckPointEvent.NULL,
                         transactionIdStore.getLastCommittedTransaction(),
                         transactionIdStore.getLastCommittedTransaction().id() + 1,
-                        LATEST_KERNEL_VERSION,
+                        kernelVersion(),
                         logOffsetBeforeTestTransactions,
                         logOffsetBeforeTestTransactions,
                         Instant.now(),
@@ -415,7 +446,7 @@ class RecoveryCorruptedTransactionLogIT {
                         LogCheckPointEvent.NULL,
                         transactionIdStore.getLastCommittedTransaction(),
                         transactionIdStore.getLastCommittedTransaction().id() + 7,
-                        LATEST_KERNEL_VERSION,
+                        kernelVersion(),
                         logOffsetBeforeTestTransactions,
                         logOffsetBeforeTestTransactions,
                         Instant.now(),
@@ -471,7 +502,8 @@ class RecoveryCorruptedTransactionLogIT {
                     db.getDependencyResolver().resolveDependency(DatabaseStateService.class);
             assertTrue(dbStateService.causeOfFailure(db.databaseId()).isPresent());
             assertThat(dbStateService.causeOfFailure(db.databaseId()).get())
-                    .hasRootCauseInstanceOf(UnsupportedLogVersionException.class);
+                    .rootCause()
+                    .isInstanceOfAny(UnsupportedLogVersionException.class, InvalidLogEnvelopeReadException.class);
         } finally {
             managementService.shutdown();
         }
@@ -527,7 +559,6 @@ class RecoveryCorruptedTransactionLogIT {
         assertThat(logProvider)
                 .containsMessages(
                         "Fail to read transaction log version 0.",
-                        "Fail to read first transaction of log version 0.",
                         "Recovery required from position LogPosition{logVersion=0, byteOffset=" + txOffsetAfterStart
                                 + "}",
                         "Fail to recover database. Any transactional logs after position LogPosition{logVersion=0, "
@@ -541,7 +572,7 @@ class RecoveryCorruptedTransactionLogIT {
                     Files.size(logFiles.getCheckpointFile().getCurrentFile()));
         } else {
             assertEquals(
-                    LATEST_LOG_FORMAT.getHeaderSize()
+                    getLastFileStartPosition(logFiles.getLogFile()).getByteOffset()
                             + CHECKPOINT_RECORD_SIZE * 4 /* checkpoint for setup, start and stop */,
                     Files.size(logFiles.getCheckpointFile().getCurrentFile()));
         }
@@ -555,13 +586,15 @@ class RecoveryCorruptedTransactionLogIT {
         long txSize = generateTransaction(database);
         managementService.shutdown();
 
-        writeRandomBytesAfterLastCommandInLastLogFile(() -> ByteBuffer.wrap(new byte[] {1, 2, 3, 4, 5}));
+        writeRandomBytesAfterLastCommandInLastLogFile(() -> ByteBuffer.wrap(new byte[] {1, 2, 3, 4, 6}));
 
         startStopDatabase();
         assertThat(logProvider)
                 .assertExceptionForLogMessage("Fail to read transaction log version 0.")
-                .hasMessageContaining(
-                        "Failure to read transaction log file number 0. Unreadable bytes are encountered after last readable position.");
+                .message()
+                .containsAnyOf(
+                        "Failure to read transaction log file number 0. Unreadable bytes are encountered after last readable position.",
+                        "Invalid envelope type: 6");
     }
 
     @Test
@@ -574,7 +607,7 @@ class RecoveryCorruptedTransactionLogIT {
 
         logFiles = buildDefaultLogFiles(database);
         final var transactionLogFile = logFiles.getLogFile().getHighestLogFile();
-        final var position = getLastReadablePosition(transactionLogFile);
+        final var position = getLastReadablePosition(transactionLogFile).lastReadable;
 
         managementService.shutdown();
 
@@ -588,8 +621,11 @@ class RecoveryCorruptedTransactionLogIT {
                     .containsMessages("Recovery required from position " + "LogPosition{logVersion=0, byteOffset="
                             + initialTransactionOffset + "}")
                     .assertExceptionForLogMessage("Fail to read transaction log version 0.")
-                    .hasMessageContaining(
-                            "Failure to read transaction log file number 0. Unreadable bytes are encountered after last readable position.");
+                    .message()
+                    .containsAnyOf(
+                            "Failure to read transaction log file number 0. Unreadable bytes are encountered after last readable position.",
+                            "Envelope span segment boundary",
+                            "Unexpected data found at end of buffer at position");
             GraphDatabaseAPI restartedDb = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             assertEquals(initialTransactionOffset, getLastClosedTransactionOffset(restartedDb));
         } finally {
@@ -683,7 +719,7 @@ class RecoveryCorruptedTransactionLogIT {
                         LogCheckPointEvent.NULL,
                         UNKNOWN_TRANSACTION_ID,
                         UNKNOWN_TRANSACTION_ID.id() + 8,
-                        LATEST_KERNEL_VERSION,
+                        kernelVersion(),
                         new LogPosition(0, HEADER_OFFSET),
                         new LogPosition(0, HEADER_OFFSET),
                         Instant.now(),
@@ -861,7 +897,8 @@ class RecoveryCorruptedTransactionLogIT {
         managementService.shutdown();
 
         Path highestLogFile = logFiles.getLogFile().getHighestLogFile();
-        long originalFileLength = getLastReadablePosition(highestLogFile).getByteOffset();
+        Positions positions = getLastReadablePosition(highestLogFile);
+        long originalFileLength = positions.lastReadable.getByteOffset();
         removeLastCheckpointRecordFromLastLogFile();
 
         addCorruptedCommandsToLastLogFile(logEntryWriterWrapper);
@@ -886,7 +923,7 @@ class RecoveryCorruptedTransactionLogIT {
         // 2 shutdowns will create a checkpoint and recovery that will be triggered by removing tx logs for default db
         // during the setup and starting db as part of the test, plus checkpoints on creation
         assertEquals(
-                LATEST_LOG_FORMAT.getHeaderSize() + 4 * CHECKPOINT_RECORD_SIZE,
+                positions.startPosition.getByteOffset() + 4 * CHECKPOINT_RECORD_SIZE,
                 Files.size(logFiles.getCheckpointFile().getCurrentFile()));
     }
 
@@ -908,7 +945,8 @@ class RecoveryCorruptedTransactionLogIT {
         managementService.shutdown();
 
         Path highestLogFile = logFiles.getLogFile().getHighestLogFile();
-        long originalFileLength = getLastReadablePosition(highestLogFile).getByteOffset();
+        Positions positions = getLastReadablePosition(highestLogFile);
+        long originalFileLength = positions.lastReadable.getByteOffset();
         removeLastCheckpointRecordFromLastLogFile();
 
         addCorruptedCommandsToLastLogFile(logEntryWriterWrapper);
@@ -925,7 +963,7 @@ class RecoveryCorruptedTransactionLogIT {
                                 + "}",
                         "Fail to recover database.",
                         "Any transactional logs after position LogPosition{logVersion=3, byteOffset="
-                                + (txSize + additionalTxSizes + HEADER_OFFSET)
+                                + (txSize + additionalTxSizes + positions.startPosition.getByteOffset())
                                 + "} can not be recovered and will be truncated.");
 
         assertEquals(3, logFiles.getLogFile().getHighestLogVersion());
@@ -934,7 +972,7 @@ class RecoveryCorruptedTransactionLogIT {
         // 2 shutdowns will create a checkpoint and recovery that will be triggered by removing tx logs for default db
         // during the setup and starting db as part of the test
         assertEquals(
-                LATEST_LOG_FORMAT.getHeaderSize() + 4 * CHECKPOINT_RECORD_SIZE,
+                positions.startPosition.getByteOffset() + 4 * CHECKPOINT_RECORD_SIZE,
                 Files.size(logFiles.getCheckpointFile().getCurrentFile()));
     }
 
@@ -954,7 +992,8 @@ class RecoveryCorruptedTransactionLogIT {
         managementService.shutdown();
 
         Path highestLogFile = logFiles.getLogFile().getHighestLogFile();
-        long originalFileLength = getLastReadablePosition(highestLogFile).getByteOffset();
+        Positions positions = getLastReadablePosition(highestLogFile);
+        long originalFileLength = positions.lastReadable.getByteOffset();
         removeLastCheckpointRecordFromLastLogFile();
 
         addCorruptedCommandsToLastLogFile(logEntryWriterWrapper);
@@ -968,17 +1007,17 @@ class RecoveryCorruptedTransactionLogIT {
                 .containsMessages(
                         "Fail to read transaction log version 3.",
                         "Recovery required from position LogPosition{logVersion=3, byteOffset="
-                                + (txSize + HEADER_OFFSET) + "}",
+                                + (txSize + positions.startPosition.getByteOffset()) + "}",
                         "Fail to recover database.",
                         "Any transactional logs after position LogPosition{logVersion=3, byteOffset="
-                                + (txSize + additionalTxSizes + HEADER_OFFSET)
+                                + (txSize + additionalTxSizes + positions.startPosition.getByteOffset())
                                 + "} can not be recovered and will be truncated.");
 
         assertEquals(3, logFiles.getLogFile().getHighestLogVersion());
         assertEquals(transactionsToRecover, recoveryMonitor.getNumberOfRecoveredTransactions());
         assertEquals(originalFileLength, fileSystem.getFileSize(highestLogFile));
         assertEquals(
-                LATEST_LOG_FORMAT.getHeaderSize() + 7 * CHECKPOINT_RECORD_SIZE,
+                positions.startPosition.getByteOffset() + 7 * CHECKPOINT_RECORD_SIZE,
                 Files.size(logFiles.getCheckpointFile().getCurrentFile()));
     }
 
@@ -993,7 +1032,8 @@ class RecoveryCorruptedTransactionLogIT {
         managementService.shutdown();
 
         Path highestLogFile = logFiles.getLogFile().getHighestLogFile();
-        long originalFileLength = getLastReadablePosition(highestLogFile).getByteOffset();
+        Positions positions = getLastReadablePosition(highestLogFile);
+        long originalFileLength = positions.lastReadable.getByteOffset();
         addCorruptedCommandsToLastLogFile(logEntryWriterWrapper);
         long modifiedFileLength = fileSystem.getFileSize(highestLogFile);
 
@@ -1004,11 +1044,11 @@ class RecoveryCorruptedTransactionLogIT {
         assertThat(logProvider)
                 .containsMessages(
                         "Fail to read transaction log version 5.",
-                        "Fail to read first transaction of log version 5.",
                         "Recovery required from position LogPosition{logVersion=5, byteOffset="
-                                + (txSize + HEADER_OFFSET) + "}",
+                                + (txSize + positions.startPosition.getByteOffset()) + "}",
                         "Fail to recover database. Any transactional logs after position LogPosition{logVersion=5, byteOffset="
-                                + (txSize + HEADER_OFFSET) + "} can not be recovered and will be truncated.");
+                                + (txSize + positions.startPosition.getByteOffset())
+                                + "} can not be recovered and will be truncated.");
 
         assertEquals(5, logFiles.getLogFile().getHighestLogVersion());
         assertEquals(originalFileLength, fileSystem.getFileSize(highestLogFile));
@@ -1020,7 +1060,7 @@ class RecoveryCorruptedTransactionLogIT {
                     Files.size(logFiles.getCheckpointFile().getCurrentFile()));
         } else {
             assertEquals(
-                    LATEST_LOG_FORMAT.getHeaderSize() + 5 * CHECKPOINT_RECORD_SIZE,
+                    positions.startPosition.getByteOffset() + 5 * CHECKPOINT_RECORD_SIZE,
                     Files.size(logFiles.getCheckpointFile().getCurrentFile()));
         }
     }
@@ -1047,6 +1087,11 @@ class RecoveryCorruptedTransactionLogIT {
 
     @Test
     void dontTruncateOnCorruptedLogsWithoutSettingForZeroByteInWrongPlace() throws IOException {
+        // This test doesn't make sense for envelopes. Either the zero byte is first in the header, or first in the
+        // content, either way the checksum validation would discover it. And this test where it is first in the
+        // header doesn't break the tx because the first byte of the checksum is zero.
+        Assumptions.assumeTrue(kernelVersion().isLessThan(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED));
+
         // There was a case where corrupted transaction logs could be truncated even without the
         // fail on truncate setting disabled. If the first byte on a transaction boundary was 0 the reader
         // would just think it reached the end of the file and say there were no more transactions and then
@@ -1097,6 +1142,11 @@ class RecoveryCorruptedTransactionLogIT {
 
     @Test
     void truncateOnCorruptedLogsWithSettingForZeroByteInWrongPlace() throws IOException {
+        // This test doesn't make sense for envelopes. Either the zero byte is first in the header, or first in the
+        // content, either way the checksum validation would discover it. And this test where it is first in the
+        // header doesn't break the tx because the first byte of the checksum is zero.
+        Assumptions.assumeTrue(kernelVersion().isLessThan(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED));
+
         // There was a case where corrupted transaction logs could be truncated even without reporting it.
         // If the first byte on a transaction boundary was 0 the reader
         // would just think it reached the end of the file and say there were no more transactions and then
@@ -1237,7 +1287,7 @@ class RecoveryCorruptedTransactionLogIT {
     }
 
     private boolean checkpointEntryLooksCorrupted(byte[] array) {
-        var testReader = new VersionAwareLogEntryReader(version -> null, LatestVersions.BINARY_VERSIONS);
+        var testReader = new VersionAwareLogEntryReader(version -> null, BINARY_VERSIONS);
         var ch = new InMemoryVersionableReadableClosablePositionAwareChannel();
         ch.putVersion(array[0]);
         ch.putAll(ByteBuffer.wrap(array).position(1));
@@ -1264,7 +1314,8 @@ class RecoveryCorruptedTransactionLogIT {
     private void truncateBytesFromLastLogFile(long bytesToTrim) throws IOException {
         if (logFiles.getLogFile().getHighestLogVersion() > 0) {
             Path highestLogFile = logFiles.getLogFile().getHighestLogFile();
-            long readableOffset = getLastReadablePosition(highestLogFile).getByteOffset();
+            long readableOffset =
+                    getLastReadablePosition(highestLogFile).lastReadable.getByteOffset();
             if (bytesToTrim > readableOffset) {
                 fileSystem.deleteFile(highestLogFile);
                 if (logFiles.logFiles().length > 0) {
@@ -1303,9 +1354,11 @@ class RecoveryCorruptedTransactionLogIT {
         }
     }
 
-    private LogPosition getLastReadablePosition(Path logFile) throws IOException {
-        VersionAwareLogEntryReader entryReader = new VersionAwareLogEntryReader(
-                storageEngineFactory.commandReaderFactory(), LatestVersions.BINARY_VERSIONS);
+    record Positions(LogPosition startPosition, LogPosition lastReadable) {}
+
+    private Positions getLastReadablePosition(Path logFile) throws IOException {
+        VersionAwareLogEntryReader entryReader =
+                new VersionAwareLogEntryReader(storageEngineFactory.commandReaderFactory(), BINARY_VERSIONS);
         LogFile txLogFile = logFiles.getLogFile();
         long logVersion = txLogFile.getLogVersion(logFile);
         LogPosition startPosition = txLogFile.extractHeader(logVersion).getStartPosition();
@@ -1314,9 +1367,14 @@ class RecoveryCorruptedTransactionLogIT {
                 // scroll to the end of readable entries
             }
         } catch (IncompleteLogHeaderException e) {
-            return new LogPosition(logVersion, 0);
+            return new Positions(startPosition, new LogPosition(logVersion, 0));
         }
-        return entryReader.lastPosition();
+        return new Positions(startPosition, entryReader.lastPosition());
+    }
+
+    private LogPosition getLastFileStartPosition(LogFile logFile) throws IOException {
+        return logFile.extractHeader(logFiles.getLogFile().getHighestLogVersion())
+                .getStartPosition();
     }
 
     private ReadableLogChannel openTransactionFileChannel(long logVersion, LogPosition startPosition)
@@ -1328,8 +1386,8 @@ class RecoveryCorruptedTransactionLogIT {
     }
 
     private LogPosition getLastReadablePosition(LogFile logFile) throws IOException {
-        VersionAwareLogEntryReader entryReader = new VersionAwareLogEntryReader(
-                storageEngineFactory.commandReaderFactory(), LatestVersions.BINARY_VERSIONS);
+        VersionAwareLogEntryReader entryReader =
+                new VersionAwareLogEntryReader(storageEngineFactory.commandReaderFactory(), BINARY_VERSIONS);
         LogPosition startPosition = logFile.extractHeader(logFiles.getLogFile().getHighestLogVersion())
                 .getStartPosition();
         try (ReadableLogChannel reader = logFile.getReader(startPosition)) {
@@ -1341,15 +1399,7 @@ class RecoveryCorruptedTransactionLogIT {
     }
 
     private void addRandomBytesToLastLogFile(Supplier<Byte> byteSource) throws IOException {
-        try (Lifespan lifespan = new Lifespan()) {
-            LogFile transactionLogFile = logFiles.getLogFile();
-            lifespan.add(logFiles);
-
-            var channel = transactionLogFile.getTransactionLogWriter().getChannel();
-            for (int i = 0; i < 10; i++) {
-                channel.put(byteSource.get());
-            }
-        }
+        writeRandomBytesAfterLastCommandInLastLogFile(() -> ByteBuffer.wrap(new byte[] {byteSource.get()}));
     }
 
     private byte randomInvalidVersionsBytes() {
@@ -1375,30 +1425,31 @@ class RecoveryCorruptedTransactionLogIT {
 
     private void addCorruptedCommandsToLastLogFile(LogEntryWriterWrapper logEntryWriterWrapper) throws IOException {
         var versionRepository = new SimpleLogVersionRepository(getInitialVersion(logFiles), 0);
-        LogFiles internalLogFiles = LogFilesBuilder.builder(databaseLayout, fileSystem, LATEST_KERNEL_VERSION_PROVIDER)
+        LogFiles internalLogFiles = LogFilesBuilder.builder(databaseLayout, fileSystem, this::kernelVersion)
                 .withLogVersionRepository(versionRepository)
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withStoreId(new StoreId(4, 5, "engine-1", "format-1", 1, 2))
-                .withStorageEngineFactory(StorageEngineFactory.selectStorageEngine(Config.defaults()))
+                .withStorageEngineFactory(StorageEngineFactory.selectStorageEngine(CONFIG))
+                .withConfig(CONFIG)
                 .build();
         try (Lifespan lifespan = new Lifespan(internalLogFiles)) {
             LogFile transactionLogFile = internalLogFiles.getLogFile();
             LogEntryWriter<FlushableLogPositionAwareChannel> realLogEntryWriter =
                     transactionLogFile.getTransactionLogWriter().getWriter();
             LogEntryWriter<FlushableLogPositionAwareChannel> wrappedLogEntryWriter =
-                    logEntryWriterWrapper.wrap(realLogEntryWriter);
+                    logEntryWriterWrapper.wrap(realLogEntryWriter, BINARY_VERSIONS);
             TransactionLogWriter writer = new TransactionLogWriter(
                     realLogEntryWriter.getChannel(),
                     wrappedLogEntryWriter,
-                    LATEST_KERNEL_VERSION_PROVIDER,
+                    this::kernelVersion,
                     LogRotation.NO_ROTATION);
             List<StorageCommand> commands = new ArrayList<>();
             commands.add(new Command.PropertyCommand(
                     LATEST_LOG_SERIALIZATION, new PropertyRecord(1), new PropertyRecord(2)));
             commands.add(new Command.NodeCommand(LATEST_LOG_SERIALIZATION, new NodeRecord(2), new NodeRecord(3)));
-            CompleteCommandBatch transaction = new CompleteCommandBatch(
-                    commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, LATEST_KERNEL_VERSION, ANONYMOUS);
+            CompleteCommandBatch transaction =
+                    new CompleteCommandBatch(commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, kernelVersion(), ANONYMOUS);
             writer.append(
                     transaction,
                     1000,
@@ -1424,18 +1475,19 @@ class RecoveryCorruptedTransactionLogIT {
     }
 
     private LogFiles buildDefaultLogFiles(StoreId storeId) throws IOException {
-        return LogFilesBuilder.builder(databaseLayout, fileSystem, LATEST_KERNEL_VERSION_PROVIDER)
+        return LogFilesBuilder.builder(databaseLayout, fileSystem, this::kernelVersion)
                 .withLogVersionRepository(new SimpleLogVersionRepository())
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withStoreId(storeId)
                 .withLogProvider(logProvider)
-                .withStorageEngineFactory(StorageEngineFactory.selectStorageEngine(Config.defaults()))
+                .withStorageEngineFactory(StorageEngineFactory.selectStorageEngine(CONFIG))
+                .withConfig(CONFIG)
                 .build();
     }
 
     private LogFiles buildDefaultLogFiles(GraphDatabaseAPI database) throws IOException {
-        return LogFilesBuilder.builder(databaseLayout, fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+        return LogFilesBuilder.builder(databaseLayout, fileSystem, this::kernelVersion)
                 .withLogVersionRepository(new SimpleLogVersionRepository())
                 .withDependencies(database.getDependencyResolver())
                 .withLogProvider(logProvider)
@@ -1468,11 +1520,14 @@ class RecoveryCorruptedTransactionLogIT {
         return lastTxSize;
     }
 
-    private static long generateTransaction(GraphDatabaseAPI database) {
+    private static long generateTransaction(GraphDatabaseAPI database) throws IOException {
         LogPosition lastTx = getLastClosedTransaction(database);
         LogFiles logFiles = database.getDependencyResolver().resolveDependency(LogFiles.class);
-        long initialOffset = logFiles.getLogFile().getCurrentLogVersion() > lastTx.getLogVersion()
-                ? HEADER_OFFSET
+        LogFile logFile = logFiles.getLogFile();
+        long initialOffset = logFile.getCurrentLogVersion() > lastTx.getLogVersion()
+                ? logFile.extractHeader(logFile.getCurrentLogVersion())
+                        .getStartPosition()
+                        .getByteOffset()
                 : lastTx.getByteOffset();
 
         try (Transaction transaction = database.beginTx()) {
@@ -1531,16 +1586,17 @@ class RecoveryCorruptedTransactionLogIT {
 
     @FunctionalInterface
     private interface LogEntryWriterWrapper {
-        default <T extends WritableChannel> LogEntryWriter<T> wrap(LogEntryWriter<T> logEntryWriter) {
-            return to(logEntryWriter.getChannel());
+        default <T extends WritableChannel> LogEntryWriter<T> wrap(
+                LogEntryWriter<T> logEntryWriter, BinarySupportedKernelVersions versions) {
+            return to(logEntryWriter.getChannel(), versions);
         }
 
-        <T extends WritableChannel> LogEntryWriter<T> to(T channel);
+        <T extends WritableChannel> LogEntryWriter<T> to(T channel, BinarySupportedKernelVersions versions);
     }
 
     private static class CorruptedLogEntryWriter<T extends WritableChannel> extends LogEntryWriter<T> {
-        CorruptedLogEntryWriter(T channel) {
-            super(channel, LatestVersions.BINARY_VERSIONS);
+        CorruptedLogEntryWriter(T channel, BinarySupportedKernelVersions versions) {
+            super(channel, versions);
         }
 
         @Override
@@ -1557,8 +1613,8 @@ class RecoveryCorruptedTransactionLogIT {
     }
 
     private static class CorruptedLogEntryVersionWriter<T extends WritableChannel> extends LogEntryWriter<T> {
-        CorruptedLogEntryVersionWriter(T channel) {
-            super(channel, LatestVersions.BINARY_VERSIONS);
+        CorruptedLogEntryVersionWriter(T channel, BinarySupportedKernelVersions versions) {
+            super(channel, versions);
         }
 
         /**
@@ -1581,6 +1637,17 @@ class RecoveryCorruptedTransactionLogIT {
                     .putInt(previousChecksum)
                     .putInt(additionalHeaderData.length)
                     .put(additionalHeaderData, additionalHeaderData.length);
+        }
+
+        // Envelope channel uses the last kernel version seen when writing the envelope header. Need to override commit
+        // entry writer as well to get non-existing version in the header.
+        @Override
+        public int writeCommitEntry(KernelVersion kernelVersion, long transactionId, long timeWritten)
+                throws IOException {
+            byte nonExistingLogEntryVersion = (byte) (LATEST_KERNEL_VERSION.version() + 10);
+            channel.putVersion(nonExistingLogEntryVersion).put(TX_COMMIT);
+            channel.putLong(transactionId).putLong(timeWritten);
+            return channel.putChecksum();
         }
     }
 
