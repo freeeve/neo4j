@@ -72,8 +72,8 @@ public interface UserAggregationUpdater {
 
     /**
      * Can be called multiple times, but there is a guarantee that the last interaction with the updater will always be to call applyUpdates.
-     *
-     * If the updater maintains state
+     * <p>
+     * If the updater maintains state it should reset it after this call.
      */
     void applyUpdates() throws ProcedureException;
 }
