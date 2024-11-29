@@ -85,7 +85,7 @@ class DefaultFileSystemWatcherServiceTest {
 
     private static class TestFileWatcher extends SilentFileWatcher {
 
-        private CountDownLatch latch;
+        private final CountDownLatch latch;
 
         TestFileWatcher(CountDownLatch latch) {
             this.latch = latch;

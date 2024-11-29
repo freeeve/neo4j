@@ -57,15 +57,16 @@ class DefaultFileSystemWatcherTest {
     @Inject
     TestDirectory testDirectory;
 
-    private WatchService watchServiceMock = mock(WatchService.class);
+    private final WatchService watchServiceMock = mock(WatchService.class);
 
     @Test
-    void fileWatchRegistrationIsIllegal() {
-        DefaultFileSystemWatcher watcher = createWatcher();
+    void fileWatchRegistrationIsIllegal() throws IOException {
+        try (var watcher = createWatcher()) {
 
-        IllegalArgumentException exception =
-                assertThrows(IllegalArgumentException.class, () -> watcher.watch(Path.of("notADirectory")));
-        assertThat(exception.getMessage()).contains("Only directories can be registered to be monitored.");
+            IllegalArgumentException exception =
+                    assertThrows(IllegalArgumentException.class, () -> watcher.watch(Path.of("notADirectory")));
+            assertThat(exception.getMessage()).contains("Only directories can be registered to be monitored.");
+        }
     }
 
     @Test
@@ -216,7 +217,7 @@ class DefaultFileSystemWatcherTest {
         return new TestFileSystemWatcher(watchServiceMock);
     }
 
-    private static class TestFileSystemWatcher extends DefaultFileSystemWatcher {
+    private static class TestFileSystemWatcher extends DefaultFileSystemWatcher implements AutoCloseable {
 
         private boolean closed;
 
@@ -236,8 +237,7 @@ class DefaultFileSystemWatcherTest {
     }
 
     private static class TestWatchKey implements WatchKey {
-        private List<WatchEvent<?>> events;
-        private boolean canceled;
+        private final List<WatchEvent<?>> events;
 
         TestWatchKey(List<WatchEvent<?>> events) {
             this.events = events;
@@ -259,9 +259,7 @@ class DefaultFileSystemWatcherTest {
         }
 
         @Override
-        public void cancel() {
-            canceled = true;
-        }
+        public void cancel() {}
 
         @Override
         public Watchable watchable() {
@@ -271,8 +269,8 @@ class DefaultFileSystemWatcherTest {
 
     private static class TestWatchEvent<T> implements WatchEvent {
 
-        private Kind<T> eventKind;
-        private T fileName;
+        private final Kind<T> eventKind;
+        private final T fileName;
 
         TestWatchEvent(Kind<T> eventKind, T fileName) {
             this.eventKind = eventKind;

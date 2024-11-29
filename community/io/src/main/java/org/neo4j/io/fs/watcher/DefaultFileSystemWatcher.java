@@ -21,7 +21,6 @@ package org.neo4j.io.fs.watcher;
 
 import static java.lang.String.format;
 
-import com.sun.nio.file.SensitivityWatchEventModifier;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -41,12 +40,11 @@ import org.neo4j.io.fs.watcher.resource.WatchedResource;
 
 /**
  * File watcher that monitors registered directories state using possibilities provided by {@link WatchService}.
- *
  * Safe to be used from multiple threads
  */
 public class DefaultFileSystemWatcher implements FileWatcher {
-    private static final WatchEvent.Kind[] OBSERVED_EVENTS =
-            new WatchEvent.Kind[] {StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY};
+    private static final WatchEvent.Kind<?>[] OBSERVED_EVENTS =
+            new WatchEvent.Kind<?>[] {StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY};
     private final WatchService watchService;
     private final List<FileWatchEventListener> listeners = new CopyOnWriteArrayList<>();
     private final Map<Path, SharedWatchedFile> watchedFiles = new ConcurrentHashMap<>();
@@ -132,7 +130,7 @@ public class DefaultFileSystemWatcher implements FileWatcher {
 
     private WatchKey uncheckedRegister(Path path) {
         try {
-            return path.register(watchService, OBSERVED_EVENTS, SensitivityWatchEventModifier.HIGH);
+            return path.register(watchService, OBSERVED_EVENTS);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
