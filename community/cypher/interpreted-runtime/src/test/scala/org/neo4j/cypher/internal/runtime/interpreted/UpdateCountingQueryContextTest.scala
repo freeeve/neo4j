@@ -36,6 +36,8 @@ import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.Relationship
 import org.neo4j.internal.schema.IndexPrototype
 import org.neo4j.internal.schema.SchemaDescriptors
+import org.neo4j.internal.schema.constraints.PropertyTypeSet
+import org.neo4j.internal.schema.constraints.SchemaValueType
 import org.neo4j.values.storable.Values
 
 class UpdateCountingQueryContextTest extends CypherFunSuite {
@@ -247,6 +249,30 @@ class UpdateCountingQueryContextTest extends CypherFunSuite {
     context.getStatistics should equal(QueryStatistics(nodePropExistenceConstraintsAdded = 1))
   }
 
+  test("create node key constraint") {
+    context.createNodeKeyConstraint(0, Array(1), None, None)
+
+    context.getStatistics should equal(QueryStatistics(nodekeyConstraintsAdded = 1))
+  }
+
+  test("create node key constraint with name") {
+    context.createNodeKeyConstraint(0, Array(1), Some("name"), None)
+
+    context.getStatistics should equal(QueryStatistics(nodekeyConstraintsAdded = 1))
+  }
+
+  test("create node property type constraint") {
+    context.createNodePropertyTypeConstraint(0, 0, PropertyTypeSet.of(SchemaValueType.INTEGER), None)
+
+    context.getStatistics should equal(QueryStatistics(nodePropTypeConstraintsAdded = 1))
+  }
+
+  test("create node property type constraint with name") {
+    context.createNodePropertyTypeConstraint(0, 0, PropertyTypeSet.of(SchemaValueType.INTEGER), Some("name"))
+
+    context.getStatistics should equal(QueryStatistics(nodePropTypeConstraintsAdded = 1))
+  }
+
   test("create rel property existence constraint") {
     context.createRelationshipPropertyExistenceConstraint(0, 42, None)
 
@@ -259,16 +285,40 @@ class UpdateCountingQueryContextTest extends CypherFunSuite {
     context.getStatistics should equal(QueryStatistics(relPropExistenceConstraintsAdded = 1))
   }
 
-  test("create node key constraint") {
-    context.createNodeKeyConstraint(0, Array(1), None, None)
+  test("create rel property uniqueness constraint") {
+    context.createRelationshipUniqueConstraint(0, Array(1), None, None)
 
-    context.getStatistics should equal(QueryStatistics(nodekeyConstraintsAdded = 1))
+    context.getStatistics should equal(QueryStatistics(relPropUniquenessConstraintsAdded = 1))
   }
 
-  test("create node key constraint with name") {
-    context.createNodeKeyConstraint(0, Array(1), Some("name"), None)
+  test("create rel property uniqueness constraint with name") {
+    context.createRelationshipUniqueConstraint(0, Array(1), Some("name"), None)
 
-    context.getStatistics should equal(QueryStatistics(nodekeyConstraintsAdded = 1))
+    context.getStatistics should equal(QueryStatistics(relPropUniquenessConstraintsAdded = 1))
+  }
+
+  test("create rel key constraint") {
+    context.createRelationshipKeyConstraint(0, Array(1), None, None)
+
+    context.getStatistics should equal(QueryStatistics(relkeyConstraintsAdded = 1))
+  }
+
+  test("create rel key constraint with name") {
+    context.createRelationshipKeyConstraint(0, Array(1), Some("name"), None)
+
+    context.getStatistics should equal(QueryStatistics(relkeyConstraintsAdded = 1))
+  }
+
+  test("create rel property type constraint") {
+    context.createRelationshipPropertyTypeConstraint(0, 0, PropertyTypeSet.of(SchemaValueType.INTEGER), None)
+
+    context.getStatistics should equal(QueryStatistics(relPropTypeConstraintsAdded = 1))
+  }
+
+  test("create rel property type constraint with name") {
+    context.createRelationshipPropertyTypeConstraint(0, 0, PropertyTypeSet.of(SchemaValueType.INTEGER), Some("name"))
+
+    context.getStatistics should equal(QueryStatistics(relPropTypeConstraintsAdded = 1))
   }
 
   test("drop named constraint") {
