@@ -304,7 +304,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
       execute(s"CREATE CONSTRAINT $constraintName FOR (n:$label) REQUIRE n.$prop IS UNIQUE").queryStatistics()
 
     // THEN
-    statistics should be(QueryStatistics(uniqueConstraintsAdded = 1))
+    statistics should be(QueryStatistics(nodePropUniquenessConstraintsAdded = 1))
     statistics.constraintsAdded should be(1)
 
     graph.constraintExists(constraintName) should be(true)
@@ -317,7 +317,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
       execute(s"CREATE CONSTRAINT $constraintName FOR ()-[r:$relType]-() REQUIRE r.$prop IS UNIQUE").queryStatistics()
 
     // THEN
-    statistics should be(QueryStatistics(relUniqueConstraintsAdded = 1))
+    statistics should be(QueryStatistics(relPropUniquenessConstraintsAdded = 1))
     statistics.constraintsAdded should be(1)
 
     graph.constraintExists(constraintName) should be(true)

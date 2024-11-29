@@ -226,37 +226,37 @@ class UpdateCountingQueryContextTest extends CypherFunSuite {
   test("create_unique_constraint") {
     context.createNodeUniqueConstraint(0, Array(1), None, None)
 
-    context.getStatistics should equal(QueryStatistics(uniqueConstraintsAdded = 1))
+    context.getStatistics should equal(QueryStatistics(nodePropUniquenessConstraintsAdded = 1))
   }
 
   test("create_unique_constraint with name") {
     context.createNodeUniqueConstraint(0, Array(1), Some("name"), None)
 
-    context.getStatistics should equal(QueryStatistics(uniqueConstraintsAdded = 1))
+    context.getStatistics should equal(QueryStatistics(nodePropUniquenessConstraintsAdded = 1))
   }
 
   test("create node property existence constraint") {
     context.createNodePropertyExistenceConstraint(0, 1, None)
 
-    context.getStatistics should equal(QueryStatistics(existenceConstraintsAdded = 1))
+    context.getStatistics should equal(QueryStatistics(nodePropExistenceConstraintsAdded = 1))
   }
 
   test("create node property existence constraint with name") {
     context.createNodePropertyExistenceConstraint(0, 1, Some("name"))
 
-    context.getStatistics should equal(QueryStatistics(existenceConstraintsAdded = 1))
+    context.getStatistics should equal(QueryStatistics(nodePropExistenceConstraintsAdded = 1))
   }
 
   test("create rel property existence constraint") {
     context.createRelationshipPropertyExistenceConstraint(0, 42, None)
 
-    context.getStatistics should equal(QueryStatistics(existenceConstraintsAdded = 1))
+    context.getStatistics should equal(QueryStatistics(relPropExistenceConstraintsAdded = 1))
   }
 
   test("create rel property existence constraint with name") {
     context.createRelationshipPropertyExistenceConstraint(0, 42, Some("name"))
 
-    context.getStatistics should equal(QueryStatistics(existenceConstraintsAdded = 1))
+    context.getStatistics should equal(QueryStatistics(relPropExistenceConstraintsAdded = 1))
   }
 
   test("create node key constraint") {

@@ -36,9 +36,10 @@ case class QueryStatistics(
   @BeanProperty labelsRemoved: Int = 0,
   @BeanProperty indexesAdded: Int = 0,
   @BeanProperty indexesRemoved: Int = 0,
-  uniqueConstraintsAdded: Int = 0,
-  relUniqueConstraintsAdded: Int = 0,
-  existenceConstraintsAdded: Int = 0,
+  nodePropUniquenessConstraintsAdded: Int = 0,
+  relPropUniquenessConstraintsAdded: Int = 0,
+  nodePropExistenceConstraintsAdded: Int = 0,
+  relPropExistenceConstraintsAdded: Int = 0,
   nodePropTypeConstraintsAdded: Int = 0,
   relPropTypeConstraintsAdded: Int = 0,
   nodekeyConstraintsAdded: Int = 0,
@@ -51,8 +52,9 @@ case class QueryStatistics(
 ) extends org.neo4j.graphdb.QueryStatistics with ExtendedQueryStatistics {
 
   @BeanProperty
-  val constraintsAdded: Int = uniqueConstraintsAdded + relUniqueConstraintsAdded +
-    existenceConstraintsAdded + nodekeyConstraintsAdded + relkeyConstraintsAdded +
+  val constraintsAdded: Int = nodePropUniquenessConstraintsAdded + relPropUniquenessConstraintsAdded +
+    nodePropExistenceConstraintsAdded + relPropExistenceConstraintsAdded +
+    nodekeyConstraintsAdded + relkeyConstraintsAdded +
     nodePropTypeConstraintsAdded + relPropTypeConstraintsAdded
 
   override def containsUpdates: Boolean =
@@ -85,9 +87,14 @@ case class QueryStatistics(
       includeIfNonZero(builder, "Labels removed: ", labelsRemoved)
       includeIfNonZero(builder, "Indexes added: ", indexesAdded)
       includeIfNonZero(builder, "Indexes removed: ", indexesRemoved)
-      includeIfNonZero(builder, "Unique constraints added: ", uniqueConstraintsAdded)
-      includeIfNonZero(builder, "Relationship uniqueness constraints added: ", relUniqueConstraintsAdded)
-      includeIfNonZero(builder, "Property existence constraints added: ", existenceConstraintsAdded)
+      includeIfNonZero(builder, "Node property uniqueness constraints added: ", nodePropUniquenessConstraintsAdded)
+      includeIfNonZero(
+        builder,
+        "Relationship property uniqueness constraints added: ",
+        relPropUniquenessConstraintsAdded
+      )
+      includeIfNonZero(builder, "Node property existence constraints added: ", nodePropExistenceConstraintsAdded)
+      includeIfNonZero(builder, "Relationship property existence constraints added: ", relPropExistenceConstraintsAdded)
       includeIfNonZero(builder, "Node property type constraints added: ", nodePropTypeConstraintsAdded)
       includeIfNonZero(builder, "Relationship property type constraints added: ", relPropTypeConstraintsAdded)
       includeIfNonZero(builder, "Node key constraints added: ", nodekeyConstraintsAdded)
@@ -117,9 +124,13 @@ case class QueryStatistics(
       labelsRemoved = this.labelsRemoved + other.labelsRemoved,
       indexesAdded = this.indexesAdded + other.indexesAdded,
       indexesRemoved = this.indexesRemoved + other.indexesRemoved,
-      uniqueConstraintsAdded = this.uniqueConstraintsAdded + other.uniqueConstraintsAdded,
-      relUniqueConstraintsAdded = this.relUniqueConstraintsAdded + other.relUniqueConstraintsAdded,
-      existenceConstraintsAdded = this.existenceConstraintsAdded + other.existenceConstraintsAdded,
+      nodePropUniquenessConstraintsAdded =
+        this.nodePropUniquenessConstraintsAdded + other.nodePropUniquenessConstraintsAdded,
+      relPropUniquenessConstraintsAdded =
+        this.relPropUniquenessConstraintsAdded + other.relPropUniquenessConstraintsAdded,
+      nodePropExistenceConstraintsAdded =
+        this.nodePropExistenceConstraintsAdded + other.nodePropExistenceConstraintsAdded,
+      relPropExistenceConstraintsAdded = this.relPropExistenceConstraintsAdded + other.relPropExistenceConstraintsAdded,
       nodePropTypeConstraintsAdded = this.nodePropTypeConstraintsAdded + other.nodePropTypeConstraintsAdded,
       relPropTypeConstraintsAdded = this.relPropTypeConstraintsAdded + other.relPropTypeConstraintsAdded,
       nodekeyConstraintsAdded = this.nodekeyConstraintsAdded + other.nodekeyConstraintsAdded,
@@ -143,9 +154,13 @@ case class QueryStatistics(
       labelsRemoved = this.labelsRemoved - other.labelsRemoved,
       indexesAdded = this.indexesAdded - other.indexesAdded,
       indexesRemoved = this.indexesRemoved - other.indexesRemoved,
-      uniqueConstraintsAdded = this.uniqueConstraintsAdded - other.uniqueConstraintsAdded,
-      relUniqueConstraintsAdded = this.relUniqueConstraintsAdded - other.relUniqueConstraintsAdded,
-      existenceConstraintsAdded = this.existenceConstraintsAdded - other.existenceConstraintsAdded,
+      nodePropUniquenessConstraintsAdded =
+        this.nodePropUniquenessConstraintsAdded - other.nodePropUniquenessConstraintsAdded,
+      relPropUniquenessConstraintsAdded =
+        this.relPropUniquenessConstraintsAdded - other.relPropUniquenessConstraintsAdded,
+      nodePropExistenceConstraintsAdded =
+        this.nodePropExistenceConstraintsAdded - other.nodePropExistenceConstraintsAdded,
+      relPropExistenceConstraintsAdded = this.relPropExistenceConstraintsAdded - other.relPropExistenceConstraintsAdded,
       nodePropTypeConstraintsAdded = this.nodePropTypeConstraintsAdded - other.nodePropTypeConstraintsAdded,
       relPropTypeConstraintsAdded = this.relPropTypeConstraintsAdded - other.relPropTypeConstraintsAdded,
       nodekeyConstraintsAdded = this.nodekeyConstraintsAdded - other.nodekeyConstraintsAdded,
@@ -175,7 +190,7 @@ object QueryStatistics {
         labelsRemoved = q.getLabelsRemoved,
         indexesAdded = q.getIndexesAdded,
         indexesRemoved = q.getIndexesRemoved,
-        uniqueConstraintsAdded = q.getConstraintsAdded,
+        nodePropUniquenessConstraintsAdded = q.getConstraintsAdded,
         constraintsRemoved = q.getConstraintsRemoved,
         systemUpdates = q.getSystemUpdates,
         transactionsCommitted = q.getTransactionsCommitted,
@@ -193,7 +208,7 @@ object QueryStatistics {
         labelsRemoved = statistics.getLabelsRemoved,
         indexesAdded = statistics.getIndexesAdded,
         indexesRemoved = statistics.getIndexesRemoved,
-        uniqueConstraintsAdded = statistics.getConstraintsAdded,
+        nodePropUniquenessConstraintsAdded = statistics.getConstraintsAdded,
         constraintsRemoved = statistics.getConstraintsRemoved,
         systemUpdates = statistics.getSystemUpdates
       )

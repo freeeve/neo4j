@@ -181,7 +181,7 @@ class ExecutionResultTest extends ExecutionEngineFunSuite {
     val result = execute("create constraint for (n:Person) require n.name is unique")
     val stats = result.queryStatistics()
 
-    assert(stats.uniqueConstraintsAdded === 1)
+    assert(stats.nodePropUniquenessConstraintsAdded === 1)
     assert(stats.constraintsRemoved === 0)
   }
 
