@@ -247,6 +247,7 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.util.Stringifier.backtick
 
 //noinspection DuplicatedCode
 case class Prettifier(
@@ -1000,7 +1001,7 @@ case class Prettifier(
         case None                  => ""
       }
       val reportStatus = ip.reportParams.map(_.reportAs) match {
-        case Some(statusVar) => s" REPORT STATUS AS ${ExpressionStringifier.backtick(statusVar.name)}"
+        case Some(statusVar) => s" REPORT STATUS AS ${backtick(statusVar.name)}"
         case None            => ""
       }
       s" IN$concurrency TRANSACTIONS$ofRows$onError$reportStatus"
@@ -1207,7 +1208,7 @@ case class Prettifier(
 
     private def getExecutablePart(executable: Option[ExecutableBy]): String = executable match {
       case Some(CurrentUser) => " EXECUTABLE BY CURRENT USER"
-      case Some(User(name))  => s" EXECUTABLE BY ${ExpressionStringifier.backtick(name)}"
+      case Some(User(name))  => s" EXECUTABLE BY ${backtick(name)}"
       case None              => ""
     }
 
@@ -1379,11 +1380,11 @@ object Prettifier {
   ): String = {
 
     val resourceName = resource match {
-      case Some(PropertyResource(name))    => s" {${ExpressionStringifier.backtick(name)}}"
-      case Some(PropertiesResource(names)) => s" {${names.map(ExpressionStringifier.backtick(_)).mkString(", ")}}"
+      case Some(PropertyResource(name))    => s" {${backtick(name)}}"
+      case Some(PropertiesResource(names)) => s" {${names.map(backtick(_)).mkString(", ")}}"
       case Some(AllPropertyResource())     => " {*}"
-      case Some(LabelResource(name))       => s" ${ExpressionStringifier.backtick(name)}"
-      case Some(LabelsResource(names))     => s" ${names.map(ExpressionStringifier.backtick(_)).mkString(", ")}"
+      case Some(LabelResource(name))       => s" ${backtick(name)}"
+      case Some(LabelsResource(names))     => s" ${names.map(backtick(_)).mkString(", ")}"
       case Some(AllLabelResource())        => " *"
       case None                            => ""
       case _                               => throw new IllegalStateException(s"Unknown resource: $resource")
@@ -1416,18 +1417,18 @@ object Prettifier {
       // If we have multiple . in a row, just escape the whole thing to not loose any of them
       // or risk breaking parsing of the prettified string, as multiple . in a row cannot be parsed unescaped
       if (glob.contains("..")) {
-        ExpressionStringifier.backtick(glob, globbing = true)
+        backtick(glob, false, true)
       } else {
-        val escapedGlob = glob.split('.').map(ExpressionStringifier.backtick(_, globbing = true)).mkString(".")
+        val escapedGlob = glob.split('.').map(backtick(_, false, true)).mkString(".")
         // If we had a trailing . the splitting above would remove it so lets re-add it
         if (glob.last.equals('.')) s"$escapedGlob." else escapedGlob
       }
     }
 
     def stringify: PartialFunction[PrivilegeQualifier, String] = {
-      case LabelQualifier(name)        => ExpressionStringifier.backtick(name)
-      case RelationshipQualifier(name) => ExpressionStringifier.backtick(name)
-      case ElementQualifier(name)      => ExpressionStringifier.backtick(name)
+      case LabelQualifier(name)        => backtick(name)
+      case RelationshipQualifier(name) => backtick(name)
+      case ElementQualifier(name)      => backtick(name)
       case UserQualifier(name)         => escapeName(name)
       case ProcedureQualifier(glob)    => stringifyQualifiedName(glob)
       case FunctionQualifier(glob)     => stringifyQualifiedName(glob)
@@ -1441,21 +1442,21 @@ object Prettifier {
     ) = {
       val labels = Some(labelQualifiers
         .flatMap {
-          case lq: LabelQualifier => Some(ExpressionStringifier.backtick(lq.label))
+          case lq: LabelQualifier => Some(backtick(lq.label))
           case _                  => None
         }.mkString("|"))
         .filterNot(_.equals(""))
         .map(labels => s":$labels")
         .getOrElse("")
 
-      val variableNameString = variable.map(v => ExpressionStringifier.backtick(v.name))
+      val variableNameString = variable.map(v => backtick(v.name))
 
       def propertyAndWherePrettifier(e: Expression) =
         s"(${variableNameString.getOrElse("")}$labels) WHERE ${ExpressionStringifier.apply(e => e.asCanonicalStringVal).apply(e)}"
 
       def propertyInNodePrettifier(propertyKeyName: PropertyKeyName, value: Expression) =
         s"(${variableNameString.getOrElse("n")}$labels) " +
-          s"WHERE ${variableNameString.getOrElse("n")}.${ExpressionStringifier.backtick(propertyKeyName.name)} = " +
+          s"WHERE ${variableNameString.getOrElse("n")}.${backtick(propertyKeyName.name)} = " +
           s"${ExpressionStringifier.apply(value => value.asCanonicalStringVal).apply(value)}"
 
       expression match {
@@ -1545,20 +1546,20 @@ object Prettifier {
   }
 
   def escapeName(name: Either[String, Parameter]): String = name match {
-    case Left(s)  => ExpressionStringifier.backtick(s)
-    case Right(p) => s"$$${ExpressionStringifier.backtick(p.name)}"
+    case Left(s)  => backtick(s)
+    case Right(p) => s"$$${backtick(p.name)}"
   }
 
   def escapeName(name: DatabaseName)(implicit d: DummyImplicit): String = name match {
     case NamespacedName(names, Some(namespace)) =>
-      ExpressionStringifier.backtick(namespace) + "." + ExpressionStringifier.backtick(names.mkString("."))
-    case NamespacedName(names, None) => ExpressionStringifier.backtick(names.mkString("."))
-    case ParameterName(p)            => "$" + ExpressionStringifier.backtick(p.name)
+      backtick(namespace) + "." + backtick(names.mkString("."))
+    case NamespacedName(names, None) => backtick(names.mkString("."))
+    case ParameterName(p)            => "$" + backtick(p.name)
   }
 
   val escapeName: PartialFunction[Expression, String] = {
-    case StringLiteral(s) => ExpressionStringifier.backtick(s)
-    case p: Parameter     => s"$$${ExpressionStringifier.backtick(p.name)}"
+    case StringLiteral(s) => backtick(s)
+    case p: Parameter     => s"$$${backtick(p.name)}"
   }
 
   def escapeNames(names: Seq[Expression]): String = names.map(escapeName).mkString(", ")
@@ -1570,12 +1571,12 @@ object Prettifier {
     val primariesString = topology.primaries.flatMap {
       case Left(1)  => Some(s" 1 PRIMARY")
       case Left(n)  => Some(s" $n PRIMARIES")
-      case Right(p) => Some(s" $$${ExpressionStringifier.backtick(p.name)} PRIMARIES")
+      case Right(p) => Some(s" $$${backtick(p.name)} PRIMARIES")
     }.getOrElse("")
     val maybeSecondariesString = topology.secondaries.flatMap {
       case Left(1)  => Some(s" 1 SECONDARY")
       case Left(n)  => Some(s" $n SECONDARIES")
-      case Right(p) => Some(s" $$${ExpressionStringifier.backtick(p.name)} SECONDARIES")
+      case Right(p) => Some(s" $$${backtick(p.name)} SECONDARIES")
     }.getOrElse("")
     s" TOPOLOGY$primariesString$maybeSecondariesString"
   }

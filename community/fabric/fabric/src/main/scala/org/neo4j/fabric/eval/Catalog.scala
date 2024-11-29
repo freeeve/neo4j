@@ -25,6 +25,7 @@ import org.neo4j.fabric.eval.Catalog.normalize
 import org.neo4j.fabric.util.Errors
 import org.neo4j.fabric.util.Errors.show
 import org.neo4j.internal.kernel.api.security.SecurityContext
+import org.neo4j.kernel.api.QueryLanguage
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.DatabaseReferenceImpl
 import org.neo4j.kernel.database.DatabaseReferenceImpl.External
@@ -232,11 +233,15 @@ case class Catalog(
   ): Option[Catalog.Graph] =
     views.get(normalize(name)).map(v => v.eval(args, this, sessionDb))
 
-  def graphNamesIn(namespace: String, securityContext: SecurityContext): Array[String] = {
+  def graphNamesIn(namespace: String, securityContext: SecurityContext, queryLanguage: QueryLanguage): Array[String] = {
     graphs.collect {
       case (cn @ CatalogName(List(`namespace`, _)), graph: Catalog.Graph)
         if canAccessDatabase(graph, securityContext) =>
-        cn.qualifiedNameString
+        if (queryLanguage == QueryLanguage.CYPHER_25) {
+          cn.toCatalogEntry.stringRepresentation()
+        } else {
+          cn.qualifiedNameString
+        }
     }.toArray
   }
 

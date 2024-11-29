@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.ast.prettifier
 
-import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.CollectExpression
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.ExistsExpression
@@ -136,8 +135,7 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpressionDynamicLeafExp
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
 import org.neo4j.cypher.internal.logical.plans.CoerceToPredicate
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.UnicodeHelper
-import org.neo4j.internal.helpers.Strings
+import org.neo4j.util.Stringifier
 
 trait ExpressionStringifier {
   def apply(ast: Expression): String
@@ -615,7 +613,7 @@ private class DefaultExpressionStringifier(
   }
 
   override def backtick(txt: String): String = {
-    ExpressionStringifier.backtick(txt, alwaysBacktick)
+    Stringifier.backtick(txt, alwaysBacktick)
   }
 
   override def quote(txt: String): String = {
@@ -633,7 +631,7 @@ private class DefaultExpressionStringifier(
   override def escapePassword(password: Expression): String = password match {
     case _: SensitiveAutoParameter if !sensitiveParamsAsParams => "'******'"
     case _: SensitiveLiteral                                   => "'******'"
-    case param: Parameter                                      => s"$$${ExpressionStringifier.backtick(param.name)}"
+    case param: Parameter                                      => s"$$${Stringifier.backtick(param.name)}"
     case _                                                     => throw new InternalError("illegal password expression")
   }
 
@@ -722,32 +720,6 @@ object ExpressionStringifier {
 
     def simple(func: Expression => String): Extension = new Extension {
       def apply(ctx: ExpressionStringifier)(expression: Expression): String = func(expression)
-    }
-  }
-
-  /*
-   * Some strings (identifiers) were escaped with back-ticks to allow non-identifier characters
-   * When printing these again, the knowledge of the back-ticks is lost, but the same test for
-   * non-identifier characters can be used to recover that knowledge.
-   */
-  def backtick(txt: String, alwaysBacktick: Boolean = false, globbing: Boolean = false): String = {
-    def escaped = txt.replace("`", "``")
-    def orGlobbedCharacter(p: Int) = globbing && (p == '*'.asInstanceOf[Int] || p == '?'.asInstanceOf[Int])
-
-    if (alwaysBacktick)
-      s"`$escaped`"
-    else {
-      val isJavaIdentifier =
-        Strings.codePoints(txt).limit(1).allMatch(p =>
-          UnicodeHelper.isIdentifierStart(p, CypherVersion.Cypher25) || orGlobbedCharacter(p)
-        ) &&
-          Strings.codePoints(txt).skip(1).allMatch(p =>
-            UnicodeHelper.isIdentifierPart(p, CypherVersion.Cypher25) || orGlobbedCharacter(p)
-          )
-      if (!isJavaIdentifier)
-        s"`$escaped`"
-      else
-        txt
     }
   }
 

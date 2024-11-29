@@ -16,13 +16,12 @@
  */
 package org.neo4j.cypher.internal.ast.factory.query
 
-import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
-import org.neo4j.cypher.internal.util.UnicodeHelper
 import org.neo4j.cypher.internal.util.symbols.CTAny
+import org.neo4j.util.UnicodeHelper
 
 class ParameterIdentifiersParserTest extends AstParsingTestBase {
 
@@ -36,7 +35,7 @@ class ParameterIdentifiersParserTest extends AstParsingTestBase {
         val paramWithCharName = f"paramWithChar_${Integer.valueOf(c)}%04X"
 
         s"RETURN $$${c}abc AS `$paramWithCharName`" should parseIn[Statements] {
-          case Cypher25 if UnicodeHelper.isIdentifierPart(c, CypherVersion.Cypher25) =>
+          case Cypher25 if UnicodeHelper.isIdentifierPart(c, org.neo4j.util.CypherVersion.Cypher25) =>
             _.toAstPositioned(
               singleQuery(
                 return_(aliasedReturnItem(parameter(s"${c}abc", CTAny), paramWithCharName))
@@ -61,13 +60,15 @@ class ParameterIdentifiersParserTest extends AstParsingTestBase {
               )
             )
           case Cypher25 => _.withSyntaxErrorContaining("Invalid input")
-          case Cypher5 if UnicodeHelper.isIdentifierStart(c, CypherVersion.Cypher5) || (c >= 0x31 && c <= 0x39) =>
+          case Cypher5
+            if UnicodeHelper.isIdentifierStart(c, org.neo4j.util.CypherVersion.Cypher5) || (c >= 0x31 && c <= 0x39) =>
             _.toAstPositioned(
               singleQuery(
                 return_(aliasedReturnItem(parameter(s"${c}abc", CTAny), paramWithCharName, isIsolated = true))
               )
             )
-          case _ if UnicodeHelper.isIdentifierStart(c, CypherVersion.Cypher5) || (c >= 0x31 && c <= 0x39) =>
+          case _
+            if UnicodeHelper.isIdentifierStart(c, org.neo4j.util.CypherVersion.Cypher5) || (c >= 0x31 && c <= 0x39) =>
             _.toAstPositioned(
               singleQuery(
                 return_(aliasedReturnItem(parameter(s"${c}abc", CTAny), paramWithCharName))
@@ -84,20 +85,20 @@ class ParameterIdentifiersParserTest extends AstParsingTestBase {
       val paramWithCharName = f"paramWithChar_${Integer.valueOf(c)}%04X"
       if (Character.getType(c) != Character.SURROGATE && !specialChars.contains(c)) {
         s"RETURN $$a${c}abc AS `$paramWithCharName`" should parseIn[Statements] {
-          case Cypher25 if UnicodeHelper.isIdentifierPart(c, CypherVersion.Cypher25) =>
+          case Cypher25 if UnicodeHelper.isIdentifierPart(c, org.neo4j.util.CypherVersion.Cypher25) =>
             _.toAstPositioned(
               singleQuery(
                 return_(aliasedReturnItem(parameter(s"a${c}abc", CTAny), paramWithCharName))
               )
             )
           case Cypher25 => _.withSyntaxErrorContaining("Invalid input")
-          case Cypher5 if UnicodeHelper.isIdentifierPart(c, CypherVersion.Cypher5) =>
+          case Cypher5 if UnicodeHelper.isIdentifierPart(c, org.neo4j.util.CypherVersion.Cypher5) =>
             _.toAstPositioned(
               singleQuery(
                 return_(aliasedReturnItem(parameter(s"a${c}abc", CTAny), paramWithCharName, isIsolated = true))
               )
             )
-          case _ if UnicodeHelper.isIdentifierPart(c, CypherVersion.Cypher5) =>
+          case _ if UnicodeHelper.isIdentifierPart(c, org.neo4j.util.CypherVersion.Cypher5) =>
             _.toAstPositioned(
               singleQuery(
                 return_(aliasedReturnItem(parameter(s"a${c}abc", CTAny), paramWithCharName))

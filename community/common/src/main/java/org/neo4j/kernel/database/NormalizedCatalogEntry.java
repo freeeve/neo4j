@@ -22,6 +22,7 @@ package org.neo4j.kernel.database;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.neo4j.util.Stringifier;
 
 /**
  * contains normalized catalog entries consisting of an optional composite name (for constituents)
@@ -61,8 +62,13 @@ public class NormalizedCatalogEntry {
         return databaseAlias;
     }
 
+    /**
+     * @return a string representation of the normalized catalog entry, suitable for use in cypher queries. It will be quoted, if necessary.
+     */
     public String stringRepresentation() {
-        return compositeDb.map(s -> s + "." + databaseAlias).orElse(databaseAlias);
+        return compositeDb
+                .map(s -> Stringifier.backtick(s) + "." + Stringifier.backtick(databaseAlias))
+                .orElse(Stringifier.backtick(databaseAlias));
     }
 
     @Override

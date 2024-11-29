@@ -27,8 +27,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.neo4j.cypher.internal.CypherVersion;
-import org.neo4j.cypher.internal.util.UnicodeHelper;
+import org.neo4j.util.CypherVersion;
+import org.neo4j.util.UnicodeHelper;
 
 /**
  * This utility class is more or less copy&pasted from Cypher-DSL. Find the original here:

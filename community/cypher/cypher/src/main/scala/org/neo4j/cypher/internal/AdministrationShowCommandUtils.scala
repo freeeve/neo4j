@@ -34,11 +34,12 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.runtime.ast.ParameterFromSlot
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.util.Stringifier.backtick
 
 object AdministrationShowCommandUtils {
 
   private val prettifier = Prettifier(ExpressionStringifier {
-    case ParameterFromSlot(_, name, _) => s"$$${ExpressionStringifier.backtick(name)}"
+    case ParameterFromSlot(_, name, _) => s"$$${backtick(name)}"
     case expression                    => ExpressionStringifier.failingExtender(expression)
   }).IndentingQueryPrettifier()
 

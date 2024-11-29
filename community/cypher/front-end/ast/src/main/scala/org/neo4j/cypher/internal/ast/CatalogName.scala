@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.CatalogName.quote
 import org.neo4j.cypher.internal.ast.CatalogName.separatorChar
 import org.neo4j.cypher.internal.ast.CatalogName.separatorString
+import org.neo4j.kernel.database.NormalizedCatalogEntry
 
 import java.util
 
@@ -76,4 +77,10 @@ case class CatalogName(parts: List[String]) {
   }
 
   override def hashCode(): Int = qualifiedNameString.toLowerCase.hashCode
+
+  /**
+   * @return the catalog name as a normalized catalog entry
+   * @throws if there are more than 2 catalog parts
+   */
+  def toCatalogEntry: NormalizedCatalogEntry = NormalizedCatalogEntry.fromList(parts.asJava)
 }
