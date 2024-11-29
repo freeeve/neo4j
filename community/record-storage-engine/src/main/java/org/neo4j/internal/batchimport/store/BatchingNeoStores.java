@@ -395,7 +395,7 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
 
         // Get the upper bound of what we can get from the default config calculation
         // We even want to limit amount of memory a bit more since we don't need very much during import
-        long maxFreeMemory = OsBeanUtil.getFreePhysicalMemory();
+        long maxFreeMemory = OsBeanUtil.getFreeMemory();
         if (0 < maxFreeMemory && maxFreeMemory < Long.MAX_VALUE) {
             // We got a reading of amount of free memory from the OS, use this to potentially reduce the page cache
             // size if the amount of free memory is very small.

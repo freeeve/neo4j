@@ -55,9 +55,7 @@ public class ToolingMemoryCalculations {
      */
     public long calculateMaxAvailableOffHeapMemoryFromPercent(int percent) {
         return calculateMaxAvailableOffHeapMemoryFromPercent(
-                percent,
-                OsBeanUtil.getFreePhysicalMemory(),
-                Runtime.getRuntime().maxMemory());
+                percent, OsBeanUtil.getFreeMemory(), Runtime.getRuntime().maxMemory());
     }
 
     /**

@@ -48,8 +48,8 @@ final class MetaSection {
         systemData.put("jvmMemoryFree", Runtime.getRuntime().freeMemory());
         systemData.put("jvmMemoryTotal", Runtime.getRuntime().totalMemory());
         systemData.put("jvmMemoryMax", Runtime.getRuntime().maxMemory());
-        systemData.put("systemTotalPhysicalMemory", OsBeanUtil.getTotalPhysicalMemory());
-        systemData.put("systemFreePhysicalMemory", OsBeanUtil.getFreePhysicalMemory());
+        systemData.put("systemTotalPhysicalMemory", OsBeanUtil.getTotalMemory());
+        systemData.put("systemFreePhysicalMemory", OsBeanUtil.getFreeMemory());
         systemData.put("systemCommittedVirtualMemory", OsBeanUtil.getCommittedVirtualMemory());
         systemData.put("systemTotalSwapSpace", OsBeanUtil.getTotalSwapSpace());
         systemData.put("systemFreeSwapSpace", OsBeanUtil.getFreeSwapSpace());

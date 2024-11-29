@@ -38,7 +38,7 @@ class HeapSizeSanityChecker {
     private final LongSupplier actualHeapSizeLookup;
 
     HeapSizeSanityChecker(Monitor monitor) {
-        this(monitor, OsBeanUtil::getFreePhysicalMemory, Runtime.getRuntime()::maxMemory);
+        this(monitor, OsBeanUtil::getFreeMemory, Runtime.getRuntime()::maxMemory);
     }
 
     HeapSizeSanityChecker(Monitor monitor, LongSupplier freeMemoryLookup, LongSupplier actualHeapSizeLookup) {

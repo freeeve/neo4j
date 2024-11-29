@@ -86,7 +86,7 @@ public class MemoryRecommendationsCommand extends AbstractAdminCommand {
     @Override
     protected void execute() throws IOException {
         if (memory == null) {
-            memory = OsBeanUtil.getTotalPhysicalMemory();
+            memory = OsBeanUtil.getTotalMemory();
         }
         Path configFile = ctx.confDir().resolve(Config.DEFAULT_CONFIG_FILE_NAME);
         Config config = getConfig(configFile);

@@ -190,7 +190,7 @@ public class ConfiguringPageCacheFactory {
         String pageCacheMemory = pageCacheMemoryBytes != null
                 ? ByteUnit.bytesToStringWithoutScientificNotation(pageCacheMemoryBytes)
                 : "<not specified>";
-        long totalPhysicalMemory = OsBeanUtil.getTotalPhysicalMemory();
+        long totalPhysicalMemory = OsBeanUtil.getTotalMemory();
         String totalPhysicalMem = (totalPhysicalMemory == OsBeanUtil.VALUE_UNAVAILABLE)
                 ? "?"
                 : "" + ByteUnit.bytesToString(totalPhysicalMemory);

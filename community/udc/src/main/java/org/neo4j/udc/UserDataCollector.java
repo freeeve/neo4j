@@ -105,7 +105,7 @@ public class UserDataCollector extends LifecycleAdapter {
 
         data.put("edition", dbmsInfo.edition.toString().toLowerCase(Locale.ROOT));
         data.put("numberOfProcessors", valueOf(Runtime.getRuntime().availableProcessors()));
-        data.put("totalMemory", valueOf(OsBeanUtil.getTotalPhysicalMemory()));
+        data.put("totalMemory", valueOf(OsBeanUtil.getTotalMemory()));
         data.put("totalHeap", valueOf(Runtime.getRuntime().maxMemory()));
         data.put("version", Version.getNeo4jVersion());
         data.put("packaging", getPackagingInformation(config, fs));

@@ -43,7 +43,7 @@ public interface MachineMemory {
     MachineMemory DEFAULT = new MachineMemory() {
         @Override
         public long getTotalPhysicalMemory() {
-            return OsBeanUtil.getTotalPhysicalMemory();
+            return OsBeanUtil.getTotalMemory();
         }
 
         @Override

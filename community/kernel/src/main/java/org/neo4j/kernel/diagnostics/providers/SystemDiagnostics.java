@@ -63,8 +63,8 @@ public enum SystemDiagnostics implements DiagnosticsProvider {
     SYSTEM_MEMORY("System memory information") {
         @Override
         public void dump(DiagnosticsLogger logger) {
-            logBytes(logger, "Total Physical memory: ", OsBeanUtil.getTotalPhysicalMemory());
-            logBytes(logger, "Free Physical memory: ", OsBeanUtil.getFreePhysicalMemory());
+            logBytes(logger, "Total Physical memory: ", OsBeanUtil.getTotalMemory());
+            logBytes(logger, "Free Physical memory: ", OsBeanUtil.getFreeMemory());
             logBytes(logger, "Committed virtual memory: ", OsBeanUtil.getCommittedVirtualMemory());
             logBytes(logger, "Total swap space: ", OsBeanUtil.getTotalSwapSpace());
             logBytes(logger, "Free swap space: ", OsBeanUtil.getFreeSwapSpace());

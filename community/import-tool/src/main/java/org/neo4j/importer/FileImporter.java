@@ -329,8 +329,8 @@ class FileImporter {
         printInputFiles("Relationships", relationshipFiles, stdOut);
         stdOut.println();
         stdOut.println("Available resources:");
-        printIndented("Total machine memory: " + bytesToString(OsBeanUtil.getTotalPhysicalMemory()), stdOut);
-        printIndented("Free machine memory: " + bytesToString(OsBeanUtil.getFreePhysicalMemory()), stdOut);
+        printIndented("Total machine memory: " + bytesToString(OsBeanUtil.getTotalMemory()), stdOut);
+        printIndented("Free machine memory: " + bytesToString(OsBeanUtil.getFreeMemory()), stdOut);
         printIndented("Max heap memory : " + bytesToString(Runtime.getRuntime().maxMemory()), stdOut);
         printIndented("Max worker threads: " + importConfig.maxNumberOfWorkerThreads(), stdOut);
         printIndented("Configured max memory: " + bytesToString(importConfig.maxOffHeapMemory()), stdOut);

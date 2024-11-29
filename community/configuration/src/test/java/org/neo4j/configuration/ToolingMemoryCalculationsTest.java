@@ -31,7 +31,7 @@ class ToolingMemoryCalculationsTest {
     @Test
     void shouldCalculateCorrectMaxMemorySetting() {
         // given
-        long freeMachineMemory = OsBeanUtil.getFreePhysicalMemory();
+        long freeMachineMemory = OsBeanUtil.getFreeMemory();
         long maxMemory = Runtime.getRuntime().maxMemory();
         assumeTrue(freeMachineMemory != VALUE_UNAVAILABLE);
         int percent = 70;
