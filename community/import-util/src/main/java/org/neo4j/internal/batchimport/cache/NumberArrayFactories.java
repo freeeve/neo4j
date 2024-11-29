@@ -37,6 +37,7 @@ import java.util.List;
 import org.apache.commons.lang3.ArrayUtils;
 import org.neo4j.internal.unsafe.NativeMemoryAllocationRefusedError;
 import org.neo4j.internal.unsafe.UnsafeUtil;
+import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.NullLog;
@@ -147,6 +148,11 @@ public final class NumberArrayFactories {
                     0, defaultValue.length, chunkSize, toUniformByte(defaultValue), bufferFactory, memoryTracker);
         }
 
+        @Override
+        public void close() throws IOException {
+            IOUtils.closeAllUnchecked(bufferFactory);
+        }
+
         private static byte toUniformByte(int v) {
             return toUniformByte(new byte[] {(byte) (v >> 24), (byte) (v >> 16), (byte) (v >> 8), (byte) v});
         }
@@ -226,6 +232,11 @@ public final class NumberArrayFactories {
             } else {
                 UnsafeUtil.setMemory(getDirectByteBufferAddress(buffer), buffer.capacity(), defaultValue);
             }
+        }
+
+        @Override
+        public void close() {
+            IOUtils.closeAllUnchecked(candidates);
         }
     }
 }

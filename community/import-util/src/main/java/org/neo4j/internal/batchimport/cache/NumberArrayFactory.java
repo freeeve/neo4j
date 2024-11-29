@@ -26,7 +26,7 @@ import org.neo4j.memory.MemoryTracker;
  * {@link NumberArrayFactories#HEAP}, {@link NumberArrayFactories#OFF_HEAP}, or use an auto allocator which will have each instance placed where it fits best,
  * favoring the primary candidates.
  */
-public interface NumberArrayFactory {
+public interface NumberArrayFactory extends AutoCloseable {
     /**
      * @param length size of the array.
      * @param defaultValue value which will represent unset values.

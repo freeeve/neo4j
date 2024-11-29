@@ -31,6 +31,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.neo4j.internal.unsafe.UnsafeUtil;
+import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.memory.MemoryTracker;
 
@@ -80,6 +81,11 @@ public class NumberArraysArgumentProvider implements ArgumentsProvider {
             } else {
                 UnsafeUtil.setMemory(getDirectByteBufferAddress(buffer), buffer.capacity(), defaultValue);
             }
+        }
+
+        @Override
+        public void close() throws Exception {
+            IOUtils.closeAllUnchecked(bufferFactories);
         }
     }
 }

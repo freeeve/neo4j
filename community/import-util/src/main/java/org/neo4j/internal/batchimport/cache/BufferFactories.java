@@ -47,6 +47,9 @@ public final class BufferFactories {
         }
 
         @Override
+        public void close() {}
+
+        @Override
         public String toString() {
             return "HeapBufferFactory";
         }
@@ -67,6 +70,9 @@ public final class BufferFactories {
         public void clear(ByteBuffer buffer, byte defaultValue) {
             UnsafeUtil.setMemory(getDirectByteBufferAddress(buffer), buffer.capacity(), defaultValue);
         }
+
+        @Override
+        public void close() {}
 
         @Override
         public String toString() {

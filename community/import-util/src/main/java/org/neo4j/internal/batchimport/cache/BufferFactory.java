@@ -23,7 +23,7 @@ import java.nio.ByteBuffer;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.memory.MemoryTracker;
 
-public interface BufferFactory {
+public interface BufferFactory extends AutoCloseable {
     record AllocatedBuffer(ByteBuffer buffer, AutoCloseable closeable) {}
 
     AllocatedBuffer allocate(int size, MemoryTracker memoryTracker);
