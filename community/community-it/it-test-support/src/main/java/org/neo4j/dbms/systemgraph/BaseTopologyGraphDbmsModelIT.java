@@ -45,6 +45,7 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_SEEDING
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_SEED_CONFIG_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_SEED_CREDENTIALS_ENCRYPTED_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_SEED_CREDENTIALS_IV_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_SEED_RESTORE_UNTIL_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_SEED_URI_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_STATUS_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_STORE_FORMAT_NEW_DB_PROPERTY;
@@ -391,11 +392,20 @@ public abstract class BaseTopologyGraphDbmsModelIT {
             return this;
         }
 
-        public DatabaseNodeBuilder withSeedingParameters(String uri, byte[] password, byte[] iv, String config) {
+        public DatabaseNodeBuilder withSeedingParameters(
+                String uri, byte[] password, byte[] iv, String config, SeedRestoreUntil seedRestoreUntil) {
             node.setProperty(DATABASE_SEED_URI_PROPERTY, uri);
             node.setProperty(DATABASE_SEED_CREDENTIALS_ENCRYPTED_PROPERTY, password);
             node.setProperty(DATABASE_SEED_CREDENTIALS_IV_PROPERTY, iv);
             node.setProperty(DATABASE_SEED_CONFIG_PROPERTY, config);
+            seedRestoreUntil
+                    .txId()
+                    .ifPresentOrElse(
+                            txId -> node.setProperty(DATABASE_SEED_RESTORE_UNTIL_PROPERTY, txId), () -> seedRestoreUntil
+                                    .dateTime()
+                                    .ifPresent(dateTime ->
+                                            node.setProperty(DATABASE_SEED_RESTORE_UNTIL_PROPERTY, dateTime)));
+
             return this;
         }
 

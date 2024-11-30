@@ -23,14 +23,16 @@ import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.MapValueOps.Ops
+import org.neo4j.dbms.systemgraph.SeedRestoreUntil
 import org.neo4j.dbms.systemgraph.allocation.DatabaseAllocationHints
 import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException
 import org.neo4j.storageengine.api.StorageEngineFactory
 import org.neo4j.storageengine.api.StorageEngineFactory.allAvailableStorageEngines
 import org.neo4j.values.AnyValue
-import org.neo4j.values.storable.IntValue
+import org.neo4j.values.storable.DateTimeValue
 import org.neo4j.values.storable.NoValue
+import org.neo4j.values.storable.NumberValue
 import org.neo4j.values.storable.TextValue
 import org.neo4j.values.utils.PrettyPrinter
 import org.neo4j.values.virtual.MapValue
@@ -92,17 +94,24 @@ trait StringOptionValidator extends OptionValidator[String] {
   }
 }
 
-trait IntOptionValidator extends OptionValidator[Int] {
+object SeedRestoreUntilOption extends OptionValidator[SeedRestoreUntil] {
+  override val KEY: String = "seedRestoreUntil"
 
-  protected def validateContent(value: Int, config: Option[Config])(implicit operation: String): Unit
-
-  override protected def validate(value: AnyValue, config: Option[Config])(implicit operation: String): Int = {
+  override protected def validate(value: AnyValue, config: Option[Config])(implicit
+  operation: String): SeedRestoreUntil = {
     value match {
-      case intValue: IntValue =>
-        validateContent(intValue.intValue, config)
-        intValue.intValue
+      case numberValue: NumberValue =>
+        SeedRestoreUntil.txId(numberValue.asObject().longValue())
+      case dateTimeValue: DateTimeValue =>
+        SeedRestoreUntil.datetime(dateTimeValue.asObjectCopy())
       case _ =>
-        throw new InvalidArgumentsException(s"Could not $operation with specified $KEY '$value', Integer expected.")
+        val pp = new PrettyPrinter
+        value.writeTo(pp)
+        val gql = GqlHelper.getGql22G03_22N27(pp.value, KEY, java.util.List.of("INTEGER", "DATETIME"))
+        throw new InvalidArgumentsException(
+          gql,
+          s"Could not $operation with specified $KEY '$value', Integer or datetime expected."
+        )
     }
   }
 }
