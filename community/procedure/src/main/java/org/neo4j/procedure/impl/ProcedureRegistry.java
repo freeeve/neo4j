@@ -20,8 +20,8 @@
 package org.neo4j.procedure.impl;
 
 import static java.lang.String.format;
+import static org.neo4j.internal.helpers.ArrayUtil.contains;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -207,8 +207,7 @@ public class ProcedureRegistry {
 
     private void verifyDBType(Context ctx, CallableProcedure proc) throws ProcedureException {
         if (ctx.kernelTransaction().isSPDTransaction()
-                && Arrays.stream(proc.signature().unsupportedDbTypes())
-                        .anyMatch(t -> t.equals(UnsupportedDatabaseTypes.DatabaseType.SPD))) {
+                && contains(proc.signature().unsupportedDbTypes(), UnsupportedDatabaseTypes.DatabaseType.SPD)) {
             throw new ProcedureException(
                     Status.Statement.SyntaxError,
                     "Procedure '" + proc.signature().name() + "' is not supported in SPD.");
