@@ -20,6 +20,7 @@
 package org.neo4j.kernel.api.database.enrichment;
 
 import static java.time.ZoneOffset.UTC;
+import static org.neo4j.internal.helpers.TimeUtil.zoneOffsetOfTotalSeconds;
 import static org.neo4j.values.storable.Values.dateTimeArray;
 import static org.neo4j.values.storable.Values.localDateTimeArray;
 import static org.neo4j.values.storable.Values.localTimeArray;
@@ -32,7 +33,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
 import org.eclipse.collections.api.map.primitive.ImmutableByteObjectMap;
@@ -498,7 +498,7 @@ public enum ValuesReader {
     private static OffsetTime readRawTime(ByteBuffer buffer) {
         final var nanosOfDayUTC = buffer.getLong();
         final var offsetSeconds = buffer.getInt();
-        return OffsetTime.ofInstant(Instant.ofEpochSecond(0, nanosOfDayUTC), ZoneOffset.ofTotalSeconds(offsetSeconds));
+        return OffsetTime.ofInstant(Instant.ofEpochSecond(0, nanosOfDayUTC), zoneOffsetOfTotalSeconds(offsetSeconds));
     }
 
     private static ZoneId toZoneId(int z) {
@@ -509,7 +509,7 @@ public enum ValuesReader {
         }
         // otherwise it's a shifted offset seconds value
         // preserve sign-bit for negative offsets
-        return ZoneOffset.ofTotalSeconds(z >> 1);
+        return zoneOffsetOfTotalSeconds(z >> 1);
     }
 
     public byte id() {

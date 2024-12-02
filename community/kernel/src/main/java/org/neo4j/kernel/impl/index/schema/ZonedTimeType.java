@@ -19,8 +19,9 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
+import static org.neo4j.internal.helpers.TimeUtil.zoneOffsetOfTotalSeconds;
+
 import java.time.OffsetTime;
-import java.time.ZoneOffset;
 import java.util.StringJoiner;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.values.storable.TimeValue;
@@ -75,7 +76,7 @@ class ZonedTimeType extends Type {
     }
 
     static OffsetTime asValueRaw(long long0, long long1) {
-        return TimeValue.timeRaw(long0, ZoneOffset.ofTotalSeconds(Math.toIntExact(long1)));
+        return TimeValue.timeRaw(long0, zoneOffsetOfTotalSeconds(Math.toIntExact(long1)));
     }
 
     static void put(PageCursor cursor, long long0, long long1) {

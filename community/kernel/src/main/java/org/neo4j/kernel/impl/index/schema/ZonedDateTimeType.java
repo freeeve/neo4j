@@ -19,8 +19,9 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
+import static org.neo4j.internal.helpers.TimeUtil.zoneOffsetOfTotalSeconds;
+
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.StringJoiner;
 import org.neo4j.io.pagecache.PageCursor;
@@ -143,7 +144,7 @@ class ZonedDateTimeType extends Type {
     static ZonedDateTime asValueRaw(long long0, long long1, long long2, long long3) {
         return TimeZones.validZoneId((short) long2)
                 ? DateTimeValue.datetimeRaw(long0, long1, ZoneId.of(TimeZones.map((short) long2)))
-                : DateTimeValue.datetimeRaw(long0, long1, ZoneOffset.ofTotalSeconds((int) long3));
+                : DateTimeValue.datetimeRaw(long0, long1, zoneOffsetOfTotalSeconds((int) long3));
     }
 
     static void write(GenericKey<?> state, long epochSecondUTC, int nano, short zoneId, int offsetSeconds) {

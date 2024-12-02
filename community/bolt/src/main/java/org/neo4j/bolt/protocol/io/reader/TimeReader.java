@@ -19,7 +19,8 @@
  */
 package org.neo4j.bolt.protocol.io.reader;
 
-import java.time.ZoneOffset;
+import static org.neo4j.internal.helpers.TimeUtil.zoneOffsetOfTotalSeconds;
+
 import org.neo4j.bolt.protocol.io.StructType;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.error.struct.IllegalStructArgumentException;
@@ -66,6 +67,6 @@ public final class TimeReader<CTX> implements StructReader<CTX, TimeValue> {
 
         return TimeValue.time(
                 TemporalUtil.nanosOfDayToUTC(nanoOfDay, (int) offsetSeconds),
-                ZoneOffset.ofTotalSeconds((int) offsetSeconds));
+                zoneOffsetOfTotalSeconds((int) offsetSeconds));
     }
 }

@@ -21,6 +21,7 @@ package org.neo4j.bolt.protocol.io.writer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
+import static org.neo4j.internal.helpers.TimeUtil.zoneOffsetOfTotalSeconds;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -272,12 +273,12 @@ class DefaultStructWriterTest {
     @TestFactory
     Stream<DynamicTest> shouldWriteDateTime() {
         return Stream.of(
-                        OffsetDateTime.of(1995, 6, 14, 13, 57, 15, 9494, ZoneOffset.ofTotalSeconds(3600)),
-                        OffsetDateTime.of(1999, 7, 14, 2, 20, 4, 66712, ZoneOffset.ofTotalSeconds(300)),
-                        OffsetDateTime.of(2003, 5, 16, 17, 53, 53, 223, ZoneOffset.ofTotalSeconds(10000)),
-                        OffsetDateTime.of(2003, 10, 27, 22, 59, 57, 993999, ZoneOffset.ofTotalSeconds(90)),
-                        OffsetDateTime.of(2021, 12, 22, 2, 19, 45, 3325, ZoneOffset.ofTotalSeconds(32)),
-                        OffsetDateTime.of(2060, 3, 12, 1, 17, 3, 12, ZoneOffset.ofTotalSeconds(16)))
+                        OffsetDateTime.of(1995, 6, 14, 13, 57, 15, 9494, zoneOffsetOfTotalSeconds(3600)),
+                        OffsetDateTime.of(1999, 7, 14, 2, 20, 4, 66712, zoneOffsetOfTotalSeconds(300)),
+                        OffsetDateTime.of(2003, 5, 16, 17, 53, 53, 223, zoneOffsetOfTotalSeconds(10000)),
+                        OffsetDateTime.of(2003, 10, 27, 22, 59, 57, 993999, zoneOffsetOfTotalSeconds(90)),
+                        OffsetDateTime.of(2021, 12, 22, 2, 19, 45, 3325, zoneOffsetOfTotalSeconds(32)),
+                        OffsetDateTime.of(2060, 3, 12, 1, 17, 3, 12, zoneOffsetOfTotalSeconds(16)))
                 .map(dateTime -> dynamicTest(dateTime.toString(), () -> {
                     var buf = PackstreamBuf.allocUnpooled();
                     var ctx = Mockito.mock(WriterContext.class);

@@ -20,6 +20,7 @@
 package org.neo4j.values.utils;
 
 import static java.time.temporal.ChronoUnit.DAYS;
+import static org.neo4j.internal.helpers.TimeUtil.zoneOffsetOfTotalSeconds;
 
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
@@ -35,7 +36,7 @@ public final class TemporalUtil {
 
     static OffsetTime truncateOffsetToMinutes(OffsetTime value) {
         int offsetMinutes = value.getOffset().getTotalSeconds() / 60;
-        ZoneOffset truncatedOffset = ZoneOffset.ofTotalSeconds(offsetMinutes * 60);
+        ZoneOffset truncatedOffset = zoneOffsetOfTotalSeconds(offsetMinutes * 60);
         return value.withOffsetSameInstant(truncatedOffset);
     }
 

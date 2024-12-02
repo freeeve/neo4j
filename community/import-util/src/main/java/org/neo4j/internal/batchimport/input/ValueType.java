@@ -24,6 +24,7 @@ import static java.time.temporal.ChronoUnit.DAYS;
 import static java.time.temporal.ChronoUnit.MONTHS;
 import static java.time.temporal.ChronoUnit.NANOS;
 import static java.time.temporal.ChronoUnit.SECONDS;
+import static org.neo4j.internal.helpers.TimeUtil.zoneOffsetOfTotalSeconds;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -263,7 +264,7 @@ public abstract class ValueType {
             @Override
             public Object read(ReadableChannel from) throws IOException {
                 return OffsetTime.ofInstant(
-                        Instant.ofEpochSecond(0, from.getLong()), ZoneOffset.ofTotalSeconds(from.getInt()));
+                        Instant.ofEpochSecond(0, from.getLong()), zoneOffsetOfTotalSeconds(from.getInt()));
             }
 
             @Override
@@ -286,7 +287,7 @@ public abstract class ValueType {
                     int nanos = from.getInt();
                     int offsetSeconds = from.getInt();
                     return ZonedDateTime.ofInstant(
-                            Instant.ofEpochSecond(epochSecondsUTC, nanos), ZoneOffset.ofTotalSeconds(offsetSeconds));
+                            Instant.ofEpochSecond(epochSecondsUTC, nanos), zoneOffsetOfTotalSeconds(offsetSeconds));
                 } else {
                     long epochSecondsUTC = from.getLong();
                     int nanos = from.getInt();

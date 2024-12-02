@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.index.schema;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.neo4j.internal.helpers.TimeUtil.zoneOffsetOfTotalSeconds;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -97,8 +98,8 @@ class IndexKeyStateCompareTest {
                 // only runnable it JVM supports East-Saskatchewan
                 // DateTimeValue.datetime( 2001, 1, 25, 11, 11, 30, 0, "Canada/East-Saskatchewan" ),
                 DateTimeValue.datetime(2038, 1, 18, 9, 14, 7, 0, "-18:00"),
-                DateTimeValue.datetime(10000, 100, ZoneOffset.ofTotalSeconds(3)),
-                DateTimeValue.datetime(10000, 101, ZoneOffset.ofTotalSeconds(-3)),
+                DateTimeValue.datetime(10000, 100, zoneOffsetOfTotalSeconds(3)),
+                DateTimeValue.datetime(10000, 101, zoneOffsetOfTotalSeconds(-3)),
                 DurationValue.duration(10, 20, 30, 40),
                 DurationValue.duration(11, 20, 30, 40),
                 DurationValue.duration(10, 21, 30, 40),

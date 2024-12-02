@@ -20,6 +20,7 @@
 package org.neo4j.internal.recordstorage.idx.value;
 
 import static java.time.ZoneOffset.UTC;
+import static org.neo4j.internal.helpers.TimeUtil.zoneOffsetOfTotalSeconds;
 import static org.neo4j.values.storable.DateTimeValue.datetime;
 import static org.neo4j.values.storable.DateValue.date;
 import static org.neo4j.values.storable.DateValue.epochDateRaw;
@@ -709,7 +710,7 @@ public class ValueStream {
         long nanosOfDayLocal = readLong(in);
         int offsetSeconds = readInteger(in);
         return timeRaw(
-                TemporalUtil.nanosOfDayToUTC(nanosOfDayLocal, offsetSeconds), ZoneOffset.ofTotalSeconds(offsetSeconds));
+                TemporalUtil.nanosOfDayToUTC(nanosOfDayLocal, offsetSeconds), zoneOffsetOfTotalSeconds(offsetSeconds));
     }
 
     private static LocalDateTime readRawLocalDateTime(PeekableChannel in) throws IOException {
@@ -728,14 +729,14 @@ public class ValueStream {
         long epochSecondLocal = readLong(in);
         long nano = readLong(in);
         int offsetSeconds = readInteger(in);
-        return datetime(newZonedDateTime(epochSecondLocal, nano, ZoneOffset.ofTotalSeconds(offsetSeconds)));
+        return datetime(newZonedDateTime(epochSecondLocal, nano, zoneOffsetOfTotalSeconds(offsetSeconds)));
     }
 
     private static ZonedDateTime readRawDateTimeWithZoneOffset(PeekableChannel in) throws IOException {
         long epochSecondLocal = readLong(in);
         long nano = readLong(in);
         int offsetSeconds = readInteger(in);
-        return newZonedDateTime(epochSecondLocal, nano, ZoneOffset.ofTotalSeconds(offsetSeconds));
+        return newZonedDateTime(epochSecondLocal, nano, zoneOffsetOfTotalSeconds(offsetSeconds));
     }
 
     private static DateTimeValue readDateTimeWithZoneName(PeekableChannel in) throws IOException {

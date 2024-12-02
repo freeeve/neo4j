@@ -20,6 +20,7 @@
 package org.neo4j.bolt.protocol.io.reader.legacy;
 
 import static java.time.ZoneOffset.UTC;
+import static org.neo4j.internal.helpers.TimeUtil.zoneOffsetOfTotalSeconds;
 
 import java.time.DateTimeException;
 import java.time.Instant;
@@ -85,7 +86,7 @@ public final class LegacyDateTimeReader<CTX> implements StructReader<CTX, DateTi
         LocalDateTime localDateTime;
 
         try {
-            offset = ZoneOffset.ofTotalSeconds((int) offsetSeconds);
+            offset = zoneOffsetOfTotalSeconds((int) offsetSeconds);
             instant = Instant.ofEpochSecond(epochSecond, nanos);
             localDateTime = LocalDateTime.ofInstant(instant, UTC);
         } catch (DateTimeException | ArithmeticException ex) {

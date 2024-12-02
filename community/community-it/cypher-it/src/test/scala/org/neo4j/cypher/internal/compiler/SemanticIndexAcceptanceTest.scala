@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler
 
 import org.neo4j.cypher.ExecutionEngineFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropertyChecks
+import org.neo4j.internal.helpers.TimeUtil.zoneOffsetOfTotalSeconds
 import org.neo4j.kernel.impl.coreapi.InternalTransaction
 import org.neo4j.kernel.impl.query.QueryExecutionConfiguration
 import org.neo4j.values.storable.CoordinateReferenceSystem
@@ -184,7 +185,7 @@ class SemanticIndexAcceptanceTest extends ExecutionEngineFunSuite with CypherSca
   def zoneIdGen: Gen[ZoneId] = Gen.oneOf(timeZones)
 
   def zoneOffsetGen: Gen[ZoneOffset] =
-    Gen.chooseNum(-18 * 60, 18 * 60).map(minute => ZoneOffset.ofTotalSeconds(minute * 60))
+    Gen.chooseNum(-18 * 60, 18 * 60).map(minute => zoneOffsetOfTotalSeconds(minute * 60))
 
   /**
    * Test a single value setup and operator

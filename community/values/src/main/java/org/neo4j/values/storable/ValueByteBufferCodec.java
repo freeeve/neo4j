@@ -20,6 +20,7 @@
 package org.neo4j.values.storable;
 
 import static java.time.ZoneOffset.UTC;
+import static org.neo4j.internal.helpers.TimeUtil.zoneOffsetOfTotalSeconds;
 import static org.neo4j.util.Preconditions.checkArgument;
 import static org.neo4j.util.Preconditions.checkState;
 import static org.neo4j.values.storable.DateValue.epochDate;
@@ -514,7 +515,7 @@ public final class ValueByteBufferCodec {
         final long nanosOfDayUTC = bb.getLong(offset);
         offset += Long.BYTES;
         final int offsetSeconds = bb.getInt(offset);
-        return OffsetTime.ofInstant(Instant.ofEpochSecond(0, nanosOfDayUTC), ZoneOffset.ofTotalSeconds(offsetSeconds));
+        return OffsetTime.ofInstant(Instant.ofEpochSecond(0, nanosOfDayUTC), zoneOffsetOfTotalSeconds(offsetSeconds));
     }
 
     private static DateTimeValue readDateTime(ByteBuffer bb, int offset) {
@@ -534,7 +535,7 @@ public final class ValueByteBufferCodec {
         }
         // otherwise it's a shifted offset seconds value
         // preserve sign bit for negative offsets
-        return ZoneOffset.ofTotalSeconds(z >> 1);
+        return zoneOffsetOfTotalSeconds(z >> 1);
     }
 
     private static ArrayValue readDateTimeArray(ByteBuffer bb, int offset) {

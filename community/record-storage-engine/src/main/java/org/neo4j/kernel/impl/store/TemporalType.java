@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.store;
 
 import static java.time.ZoneOffset.UTC;
+import static org.neo4j.internal.helpers.TimeUtil.zoneOffsetOfTotalSeconds;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -169,7 +170,7 @@ public enum TemporalType {
             int secondOffset = (int) (valueBlocks[offset] >>> 32);
             long nanoOfDay = valueBlocks[1 + offset];
             checkValidNanoOfDayWithOffset(nanoOfDay, secondOffset);
-            return TimeValue.time(nanoOfDay, ZoneOffset.ofTotalSeconds(secondOffset));
+            return TimeValue.time(nanoOfDay, zoneOffsetOfTotalSeconds(secondOffset));
         }
 
         @Override
@@ -185,7 +186,7 @@ public enum TemporalType {
                     long nanoOfDay = numbers.longValue(i * BLOCKS_TIME);
                     int secondOffset = (int) numbers.longValue(i * BLOCKS_TIME + 1);
                     checkValidNanoOfDay(nanoOfDay);
-                    times[i] = OffsetTime.of(LocalTime.ofNanoOfDay(nanoOfDay), ZoneOffset.ofTotalSeconds(secondOffset));
+                    times[i] = OffsetTime.of(LocalTime.ofNanoOfDay(nanoOfDay), zoneOffsetOfTotalSeconds(secondOffset));
                 }
                 return Values.timeArray(times);
             } else {
@@ -202,7 +203,7 @@ public enum TemporalType {
                 checkValidNanoOfSecond(nanoOfSecond);
                 long epochSecond = valueBlocks[1 + offset];
                 int secondOffset = (int) valueBlocks[2 + offset];
-                return DateTimeValue.datetime(epochSecond, nanoOfSecond, ZoneOffset.ofTotalSeconds(secondOffset));
+                return DateTimeValue.datetime(epochSecond, nanoOfSecond, zoneOffsetOfTotalSeconds(secondOffset));
             } else {
                 int nanoOfSecond = (int) (valueBlocks[offset] >>> 33);
                 checkValidNanoOfSecond(nanoOfSecond);
@@ -230,7 +231,7 @@ public enum TemporalType {
                         int secondOffset = (int) (zoneValue >>> 1);
                         dateTimes[i] = ZonedDateTime.ofInstant(
                                 Instant.ofEpochSecond(epochSecond, nanoOfSecond),
-                                ZoneOffset.ofTotalSeconds(secondOffset));
+                                zoneOffsetOfTotalSeconds(secondOffset));
                     } else {
                         short zoneNumber = (short) (zoneValue >>> 1);
                         dateTimes[i] = ZonedDateTime.ofInstant(

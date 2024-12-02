@@ -27,12 +27,17 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.time.DateTimeException;
+import java.time.ZoneOffset;
 import java.util.Locale;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 public final class TimeUtil {
     public static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.SECONDS;
+
+    public static final ConcurrentHashMap<Integer, ZoneOffset> SECONDS_CACHE = new ConcurrentHashMap<>();
 
     public static final String VALID_TIME_DESCRIPTION =
             "Valid units are: `ns`, `μs`, `ms`, `s`, `m`, `h` and `d`; default unit is `s`";
@@ -133,10 +138,36 @@ public final class TimeUtil {
             nanoSeconds -= MICROSECONDS.toNanos(microseconds);
             timeString.append(microseconds).append("μs");
         }
-        if (nanoSeconds > 0 || timeString.length() == 0) {
+        if (nanoSeconds > 0 || timeString.isEmpty()) {
             timeString.append(nanoSeconds).append("ns");
         }
         return timeString.toString();
+    }
+
+    /**
+     * Obtains an instance of {@code ZoneOffset} specifying the total offset in seconds
+     * <p>
+     * The offset must be in the range {@code -18:00} to {@code +18:00}, which corresponds to -64800 to +64800.
+     *
+     * @param totalSeconds  the total time-zone offset in seconds, from -64800 to +64800
+     * @return the ZoneOffset, not null
+     * @throws DateTimeException if the offset is not in the required range
+     */
+    public static ZoneOffset zoneOffsetOfTotalSeconds(int totalSeconds) {
+        // Due to a regression introduced by https://bugs.openjdk.org/browse/JDK-8288723
+        // we have to have our own cache for now. Regression was up to 25x in some benchmarks
+        // so the addition memory usage is warranted.
+        if (totalSeconds % (15 * 60) == 0) {
+            Integer totalSecs = totalSeconds;
+            ZoneOffset result = SECONDS_CACHE.get(totalSecs);
+            if (result == null) {
+                result = ZoneOffset.ofTotalSeconds(totalSeconds);
+                SECONDS_CACHE.putIfAbsent(totalSecs, result);
+            }
+            return result;
+        } else {
+            return ZoneOffset.ofTotalSeconds(totalSeconds);
+        }
     }
 
     private TimeUtil() {
