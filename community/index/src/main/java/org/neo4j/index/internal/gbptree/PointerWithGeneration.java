@@ -19,4 +19,7 @@
  */
 package org.neo4j.index.internal.gbptree;
 
-public record PointerWithGeneration(long pointer, long generation) {}
+public record PointerWithGeneration(long pointer, long generation) {
+    public static final PointerWithGeneration EMPTY =
+            new PointerWithGeneration(GenerationSafePointer.EMPTY_POINTER, GenerationSafePointer.EMPTY_GENERATION);
+}

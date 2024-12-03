@@ -180,7 +180,6 @@ class FreeListIdProvider implements IdProvider {
         }
 
         boolean moreAfterThis = false;
-        GenerationKeeper generationKeeper = new GenerationKeeper();
         ListHeadMetaData writeMetaDataSnapshot = this.writeMetaData;
         long readPageId = readMetaData.pageId;
         int readPos = readMetaData.pos;
@@ -188,9 +187,10 @@ class FreeListIdProvider implements IdProvider {
             // It looks like reader isn't even caught up to the writer page-wise,
             // or the read pos is < write pos so check if we can grab the next id (generation could still mismatch).
             goTo(cursor, "Free-list read page ", readPageId);
-            long resultPageId = freelistNode.read(cursor, stableGeneration, readPos, generationKeeper);
-            if (resultPageId != FreelistNode.NO_PAGE_ID) {
-                FreelistEntry entry = new FreelistEntry(readPageId, readPos, resultPageId, generationKeeper.generation);
+            PointerWithGeneration resultPageId = freelistNode.read(cursor, stableGeneration, readPos);
+            if (resultPageId.pointer() != FreelistNode.NO_PAGE_ID) {
+                FreelistEntry entry =
+                        new FreelistEntry(readPageId, readPos, resultPageId.pointer(), resultPageId.generation());
 
                 // FreelistNode compares generation and so this means that we have an available
                 // id in the free list which we can acquire from a stable generation. Increment readPos
@@ -299,7 +299,6 @@ class FreeListIdProvider implements IdProvider {
         }
 
         try (var cursor = cursorCreator.create()) {
-            GenerationKeeper generation = new GenerationKeeper();
             long prevPage;
             ListHeadMetaData writeMetaDataSnapshot;
             do {
@@ -310,11 +309,11 @@ class FreeListIdProvider implements IdProvider {
                         pageId == writeMetaDataSnapshot.pageId ? writeMetaDataSnapshot.pos : freelistNode.maxEntries();
                 while (pos < targetPos) {
                     // Read next un-acquired id
-                    long unacquiredId;
+                    PointerWithGeneration unacquiredId;
                     do {
-                        unacquiredId = freelistNode.read(cursor, Long.MAX_VALUE, pos, generation);
+                        unacquiredId = freelistNode.read(cursor, Long.MAX_VALUE, pos);
                     } while (cursor.shouldRetry());
-                    visitor.freelistEntry(unacquiredId, generation.generation, pos);
+                    visitor.freelistEntry(unacquiredId.pointer(), unacquiredId.generation(), pos);
                     pos++;
                 }
                 visitor.endFreelistPage(pageId);

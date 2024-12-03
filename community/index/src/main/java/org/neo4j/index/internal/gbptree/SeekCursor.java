@@ -341,14 +341,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
      * <p>
      * Pointer to successor of node.
      */
-    private long successor;
-
-    /**
-     * Set within should retry loop.
-     * <p>
-     * Generation of successor pointer
-     */
-    private long successorGeneration;
+    private PointerWithGeneration successor = PointerWithGeneration.EMPTY;
 
     /**
      * Set within should retry loop.
@@ -362,14 +355,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
      * <p>
      * Used to store next sibling pointer to follow if traversing along the leaves.
      */
-    private long pointerId;
-
-    /**
-     * Set within should retry loop.
-     * <p>
-     * Generation of {@link #pointerId}.
-     */
-    private long pointerGeneration;
+    private PointerWithGeneration pointerId;
 
     // ┌── Special variables for backwards seek ──┐
     // v                                          v
@@ -379,14 +365,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
      * <p>
      * Pointer to sibling opposite to seek direction. Only used when seeking backwards.
      */
-    private long prevSiblingId;
-
-    /**
-     * Set within should retry loop.
-     * <p>
-     * Generation of {@link #prevSiblingId}.
-     */
-    private long prevSiblingGeneration;
+    private PointerWithGeneration prevSiblingId;
 
     /**
      * Set by linked cursor scouting next sibling to go to when seeking backwards.
@@ -504,13 +483,10 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
         this.concurrentWriteHappened = false;
         this.currentNodeGeneration = 0;
         this.nodeType = 0;
-        this.successor = 0;
-        this.successorGeneration = 0;
+        this.successor = PointerWithGeneration.EMPTY;
         this.isInternal = false;
-        this.pointerId = 0;
-        this.pointerGeneration = 0;
-        this.prevSiblingId = 0;
-        this.prevSiblingGeneration = 0;
+        this.pointerId = PointerWithGeneration.EMPTY;
+        this.prevSiblingId = PointerWithGeneration.EMPTY;
 
         try {
             traverseDownToCorrectLevel();
@@ -605,13 +581,13 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
                     cursor.getCurrentPageId(),
                     nodeType,
                     currentNodeGeneration,
-                    successor,
-                    successorGeneration,
+                    successor.pointer(),
+                    successor.generation(),
                     isInternal,
                     keyCount,
                     pos,
-                    pointerId,
-                    pointerGeneration);
+                    pointerId.pointer(),
+                    pointerId.generation());
         }
     }
 
@@ -677,7 +653,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
 
                 // Below, the cached key/value at slot [0] will be used
                 if (!seekForward && pos >= keyCount) {
-                    goTo(prevSiblingId, prevSiblingGeneration, GBPPointerType.RIGHT_SIBLING, true);
+                    goTo(prevSiblingId.pointer(), prevSiblingId.generation(), GBPPointerType.RIGHT_SIBLING, true);
                     // Continue in the read loop above so that we can continue reading from previous sibling
                     // or on next position
                     continue;
@@ -740,18 +716,14 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
 
                     if (!seekForward && pos >= keyCount) {
                         // We may need to go to previous sibling to find correct place to start seeking from
-                        PointerWithGeneration tmp = readPrevSibling();
-                        prevSiblingId = tmp.pointer();
-                        prevSiblingGeneration = tmp.generation();
+                        prevSiblingId = readPrevSibling();
                     }
                 }
 
                 // Next result
                 if ((seekForward && pos >= keyCount) || (!seekForward && pos <= 0)) {
                     // Read right sibling
-                    PointerWithGeneration tmp = readNextSibling();
-                    pointerId = tmp.pointer();
-                    pointerGeneration = tmp.generation();
+                    pointerId = readNextSibling();
                 }
                 for (int readPos = pos;
                         cachedLength < mutableKeys.length && 0 <= readPos && readPos < keyCount;
@@ -893,7 +865,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
      * Calls {@link #goTo(long, long, String, boolean)} with successor fields.
      */
     private boolean goToSuccessor() throws IOException {
-        return goTo(successor, successorGeneration, GBPPointerType.SUCCESSOR, true);
+        return goTo(successor.pointer(), successor.generation(), GBPPointerType.SUCCESSOR, true);
     }
 
     /**
@@ -943,9 +915,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
         isInternal = TreeNodeUtil.isInternal(cursor);
         keyCount = TreeNodeUtil.keyCount(cursor);
         currentNodeGeneration = TreeNodeUtil.generation(cursor);
-        PointerWithGeneration tmp = TreeNodeUtil.successor(cursor, stableGeneration, unstableGeneration);
-        successor = tmp.pointer();
-        successorGeneration = tmp.generation();
+        successor = TreeNodeUtil.successor(cursor, stableGeneration, unstableGeneration);
 
         forceReadHeader = false;
         return keyCountIsSane(keyCount);
@@ -968,18 +938,18 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
      */
     private boolean goToNextSibling() throws IOException {
         if (pointerCheckingWithGenerationCatchup(
-                pointerId, true, seekForward ? GBPPointerType.RIGHT_SIBLING : GBPPointerType.LEFT_SIBLING)) {
+                pointerId.pointer(), true, seekForward ? GBPPointerType.RIGHT_SIBLING : GBPPointerType.LEFT_SIBLING)) {
             // Reading sibling pointer resulted in a bad read, but generation had changed
             // (a checkpoint has occurred since we started this cursor) so the generation fields in this
             // cursor are now updated with the latest, so let's try that read again.
             concurrentWriteHappened = true;
             return true;
-        } else if (TreeNodeUtil.isNode(pointerId)) {
+        } else if (TreeNodeUtil.isNode(pointerId.pointer())) {
             if (seekForward) {
                 // TODO: Check if rightSibling is within expected range before calling next.
                 // TODO: Possibly by getting highest expected from IdProvider
-                TreeNodeUtil.goTo(cursor, "sibling", pointerId);
-                lastFollowedPointerGeneration = pointerGeneration;
+                TreeNodeUtil.goTo(cursor, "sibling", pointerId.pointer());
+                lastFollowedPointerGeneration = pointerId.generation();
                 if (first) {
                     // Have not yet found first hit among leaves.
                     // First hit can be several leaves to the right.
@@ -995,9 +965,9 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
             } else {
                 // Need to scout next sibling because we are seeking backwards
                 if (scoutNextSibling()) {
-                    TreeNodeUtil.goTo(cursor, "sibling", pointerId);
+                    TreeNodeUtil.goTo(cursor, "sibling", pointerId.pointer());
                     verifyExpectedFirstAfterGoToNext = true;
-                    lastFollowedPointerGeneration = pointerGeneration;
+                    lastFollowedPointerGeneration = pointerId.generation();
                 } else {
                     concurrentWriteHappened = true;
                 }
@@ -1025,7 +995,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
         assert !seekForward; // only happens when we go backward
         assert !isInternal; // only happens when we go through leafs
 
-        try (PageCursor scout = this.cursor.openLinkedCursor(GenerationSafePointerPair.pointer(pointerId))) {
+        try (PageCursor scout = this.cursor.openLinkedCursor(GenerationSafePointerPair.pointer(pointerId.pointer()))) {
             scout.next();
 
             if (TreeNodeUtil.nodeType(scout) != TreeNodeUtil.NODE_TYPE_TREE_NODE) {
@@ -1148,13 +1118,10 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
         currentNodeGeneration = 0;
         expectedCurrentNodeGeneration = 0;
         nodeType = 0;
-        successor = 0;
-        successorGeneration = 0;
+        successor = PointerWithGeneration.EMPTY;
         isInternal = false;
-        pointerId = 0;
-        pointerGeneration = 0;
-        prevSiblingId = 0;
-        prevSiblingGeneration = 0;
+        pointerId = PointerWithGeneration.EMPTY;
+        prevSiblingId = PointerWithGeneration.EMPTY;
         forceReadHeader = false;
     }
 

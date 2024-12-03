@@ -74,16 +74,11 @@ class FreelistNode {
         }
     }
 
-    long read(PageCursor cursor, long stableGeneration, int pos) {
-        return read(cursor, stableGeneration, pos, GBPTreeGenerationTarget.NO_GENERATION_TARGET);
-    }
-
-    long read(PageCursor cursor, long stableGeneration, int pos, GBPTreeGenerationTarget target) {
+    PointerWithGeneration read(PageCursor cursor, long stableGeneration, int pos) {
         assertPos(pos);
         cursor.setOffset(entryOffset(pos));
         long generation = getUnsignedInt(cursor);
-        target.accept(generation);
-        return generation <= stableGeneration ? get6BLong(cursor) : NO_PAGE_ID;
+        return new PointerWithGeneration(generation <= stableGeneration ? get6BLong(cursor) : NO_PAGE_ID, generation);
     }
 
     private static int entryOffset(int pos) {

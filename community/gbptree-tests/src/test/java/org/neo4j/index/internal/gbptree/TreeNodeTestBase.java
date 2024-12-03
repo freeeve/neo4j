@@ -56,8 +56,6 @@ public abstract class TreeNodeTestBase<KEY, VALUE> {
     LeafNodeBehaviour<KEY, VALUE> leaf;
     InternalNodeBehaviour<KEY> internal;
 
-    private final GenerationKeeper generationTarget = new GenerationKeeper();
-
     @Inject
     private RandomSupport random;
 

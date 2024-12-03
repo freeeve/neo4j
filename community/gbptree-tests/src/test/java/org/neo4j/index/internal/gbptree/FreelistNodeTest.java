@@ -86,8 +86,8 @@ class FreelistNodeTest {
         // WHEN
         freelist.write(cursor, generationA, pointerA, 0);
         freelist.write(cursor, generationB, pointerB, 1);
-        long readPointerA = freelist.read(cursor, generationA + 1, 0);
-        long readPointerB = freelist.read(cursor, generationB + 1, 1);
+        long readPointerA = freelist.read(cursor, generationA + 1, 0).pointer();
+        long readPointerB = freelist.read(cursor, generationB + 1, 1).pointer();
 
         // THEN
         assertEquals(pointerA, readPointerA);
@@ -121,7 +121,7 @@ class FreelistNodeTest {
         freelist.write(cursor, unstableGeneration, pageId, pos);
 
         // WHEN
-        long read = freelist.read(cursor, stableGeneration, pos);
+        long read = freelist.read(cursor, stableGeneration, pos).pointer();
 
         // THEN
         assertEquals(FreelistNode.NO_PAGE_ID, read);
