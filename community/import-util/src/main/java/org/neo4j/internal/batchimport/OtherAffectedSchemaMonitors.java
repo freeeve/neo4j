@@ -246,8 +246,8 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
                     var mandatoryPropertyKeysLeftToCheck = IntSets.mutable.ofAll(mandatoryPropertyKeys);
                     properties.keySet().forEach(mandatoryPropertyKeysLeftToCheck::remove);
                     if (!mandatoryPropertyKeysLeftToCheck.isEmpty()) {
-                        var existingRemainingKeys =
-                                existingPropertyKeysLookup.lookup(entityId, mandatoryPropertyKeysLeftToCheck);
+                        var existingRemainingKeys = existingPropertyKeysLookup.lookupPropertyKeys(
+                                entityId, mandatoryPropertyKeysLeftToCheck);
                         existingRemainingKeys.forEach(key -> {
                             if (!removedProperties.contains(key)) {
                                 mandatoryPropertyKeysLeftToCheck.remove(key);

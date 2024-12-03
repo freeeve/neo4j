@@ -460,6 +460,28 @@ public class InputEntity implements InputEntityVisitor {
         visitor.endOfEntity();
     }
 
+    public void updateWithDataFrom(InputEntity increment) {
+        // properties
+        for (var property : increment.properties) {
+            properties.stream()
+                    .filter(p -> p.key.equals(property.key))
+                    .findFirst()
+                    .ifPresent(properties::remove);
+            properties.add(property);
+        }
+
+        // removed properties
+        for (var key : increment.removedProperties) {
+            properties.stream().filter(p -> p.key.equals(key)).findFirst().ifPresent(properties::remove);
+        }
+
+        // labels
+        increment.labels.stream().filter(l -> !labels.contains(l)).forEach(labels::add);
+
+        // removed labels
+        increment.removedLabels.forEach(labels::remove);
+    }
+
     public record Property(Object key, Object value, boolean identifier) {
         public Value asValue() {
             return value instanceof Value v ? v : Values.of(value);

@@ -98,6 +98,6 @@ public interface SchemaMonitor {
     }
 
     interface ExistingPropertyKeysLookup {
-        IntSet lookup(long entityId, IntSet keysToLookup);
+        IntSet lookupPropertyKeys(long entityId, IntSet keysToLookup);
     }
 }

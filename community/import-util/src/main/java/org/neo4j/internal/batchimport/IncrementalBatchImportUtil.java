@@ -45,6 +45,7 @@ import org.neo4j.batchimport.api.input.Input;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.batchimport.cache.idmapping.IndexIdMapper;
+import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -189,8 +190,12 @@ public class IncrementalBatchImportUtil {
 
     private static IndexDescriptor findLikelyIndex(
             SchemaCache schemaCache, SchemaDescriptor schemaDescriptor, TokenNameLookup tokenNameLookup) {
-        IndexDescriptor descriptor =
-                firstOrNull(filter(IndexDescriptor::isUnique, schemaCache.indexesForSchema(schemaDescriptor)));
+        List<IndexDescriptor> matches = Iterators.asList(schemaCache.indexesForSchema(schemaDescriptor));
+        var descriptor = firstOrNull(filter(IndexDescriptor::isUnique, matches.iterator()));
+        if (descriptor != null) {
+            return descriptor;
+        }
+        descriptor = firstOrNull(matches.iterator());
         Preconditions.checkState(
                 descriptor != null,
                 "Couldn't find a matching index for %s",

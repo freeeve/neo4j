@@ -25,6 +25,7 @@ import static org.neo4j.internal.batchimport.cache.idmapping.string.TrackerFacto
 import static org.neo4j.io.ByteUnit.gibiBytes;
 import static org.neo4j.util.FeatureToggles.flag;
 
+import java.util.Arrays;
 import java.util.function.LongPredicate;
 import org.eclipse.collections.api.iterator.LongIterator;
 import org.eclipse.collections.api.set.primitive.LongSet;
@@ -221,55 +222,54 @@ public final class IdMappers {
         return new MergingLongIterator(duplicateIds, sortedViolations);
     }
 
-    private static class MergingLongIterator extends PrimitiveLongCollections.AbstractPrimitiveLongBaseIterator {
-        private final LongIterator first;
-        private final LongIterator other;
+    public static class MergingLongIterator extends PrimitiveLongCollections.AbstractPrimitiveLongBaseIterator {
+        private final PeekableLongIterator[] iterators;
 
-        private boolean hasFirst;
-        private boolean hasOther;
-        private long firstHead;
-        private long otherHead;
-
-        private MergingLongIterator(LongIterator first, LongIterator other) {
-            this.first = first;
-            this.other = other;
-            getAndAdvanceFirst();
-            getAndAdvanceOther();
-        }
-
-        private long getAndAdvanceFirst() {
-            long result = firstHead;
-            hasFirst = first.hasNext();
-            firstHead = hasFirst ? first.next() : 0;
-            return result;
-        }
-
-        private long getAndAdvanceOther() {
-            long result = otherHead;
-            hasOther = other.hasNext();
-            otherHead = hasOther ? other.next() : 0;
-            return result;
+        public MergingLongIterator(LongIterator... iterators) {
+            this.iterators =
+                    Arrays.stream(iterators).map(PeekableLongIterator::new).toArray(PeekableLongIterator[]::new);
         }
 
         @Override
         protected boolean fetchNext() {
-            if (hasFirst && hasOther) {
-                if (firstHead < otherHead) {
-                    return next(getAndAdvanceFirst());
-                } else if (otherHead < firstHead) {
-                    return next(getAndAdvanceOther());
-                } else {
-                    getAndAdvanceFirst();
-                    return next(getAndAdvanceOther());
+            boolean hasSmallest = false;
+            long smallest = 0;
+            for (var iterator : iterators) {
+                if (iterator.hasNext) {
+                    if (!hasSmallest || iterator.head < smallest) {
+                        smallest = iterator.head;
+                        hasSmallest = true;
+                    }
                 }
             }
-            if (hasFirst) {
-                return next(getAndAdvanceFirst());
-            }
-            if (hasOther) {
-                return next(getAndAdvanceOther());
+            if (hasSmallest) {
+                // There may be multiple heads w/ the smallest value, so advance all that has it
+                for (var iterator : iterators) {
+                    if (iterator.hasNext) {
+                        if (iterator.head == smallest) {
+                            iterator.advance();
+                        }
+                    }
+                }
+                return next(smallest);
             }
             return false;
+        }
+    }
+
+    private static class PeekableLongIterator {
+        private final LongIterator iterator;
+        private boolean hasNext;
+        private long head;
+
+        PeekableLongIterator(LongIterator iterator) {
+            this.iterator = iterator;
+            advance();
+        }
+
+        void advance() {
+            this.hasNext = iterator.hasNext();
+            this.head = hasNext ? iterator.next() : 0;
         }
     }
 }
