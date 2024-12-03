@@ -58,12 +58,46 @@ class SumFunctionTest extends CypherFunSuite with AggregateTest {
     result should equal(DurationValue.duration(0, 0, 1, 2))
   }
 
-  test("cantMixDurationAndNumber") {
-    val durationValue = DurationValue.duration(0, 0, 0, 1)
+  test("cantMixDurationAndNumber - number after duration") {
+    val durationValue = DurationValue.duration(0, 0, 1, 0)
     val numberValue = longValue(1)
-    a[CypherTypeException] shouldBe thrownBy {
+    val exception = intercept[CypherTypeException] {
       aggregateOn(durationValue, numberValue)
     }
+    exception.gqlStatus() should be("22N38")
+    exception.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function SUM(x)."
+    )
+
+    exception.cause().isEmpty should be(false)
+    val exceptionCause = exception.cause().get()
+    exceptionCause.gqlStatus() should be("22N01")
+    exceptionCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value Long(1) to be of type DURATION, but was of type Long."
+    )
+
+    exceptionCause.cause().isEmpty should be(true)
+  }
+
+  test("cantMixDurationAndNumber - duration after number") {
+    val durationValue = DurationValue.duration(0, 0, 1, 0)
+    val numberValue = longValue(1)
+    val exception = intercept[CypherTypeException] {
+      aggregateOn(numberValue, durationValue)
+    }
+    exception.gqlStatus() should be("22N38")
+    exception.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function SUM(x)."
+    )
+
+    exception.cause().isEmpty should be(false)
+    val exceptionCause = exception.cause().get()
+    exceptionCause.gqlStatus() should be("22N01")
+    exceptionCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value PT1S to be of type INTEGER or FLOAT, but was of type Duration."
+    )
+
+    exceptionCause.cause().isEmpty should be(true)
   }
 
   test("catches duration overflows") {

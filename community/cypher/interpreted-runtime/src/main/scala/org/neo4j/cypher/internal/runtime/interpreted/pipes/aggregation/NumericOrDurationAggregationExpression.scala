@@ -51,7 +51,11 @@ trait NumericOrDurationAggregationExpression extends AggregationFunction {
           case None =>
             aggregatingType = Some(AggregatingNumbers)
           case Some(AggregatingDurations) =>
-            throw new CypherTypeException("%s(%s) cannot mix number and duration".format(name, value))
+            throw CypherTypeException.onlyDurationValuesAllowed(
+              "%s(%s)".format(name, value),
+              String.valueOf(vl),
+              vl.getTypeName
+            )
           case _ =>
         }
         aggNumber(number)
@@ -60,12 +64,20 @@ trait NumericOrDurationAggregationExpression extends AggregationFunction {
           case None =>
             aggregatingType = Some(AggregatingDurations)
           case Some(AggregatingNumbers) =>
-            throw new CypherTypeException("%s(%s) cannot mix number and duration".format(name, value))
+            throw CypherTypeException.onlyNumericalValuesAllowed(
+              "%s(%s)".format(name, value),
+              String.valueOf(vl),
+              vl.getTypeName
+            )
           case _ =>
         }
         aggDuration(dur)
       case _ =>
-        throw new CypherTypeException("%s(%s) can only handle numerical values, duration, or null.".format(name, value))
+        throw CypherTypeException.onlyNumericalValuesDurationsOrNullAllowed(
+          "%s(%s)".format(name, value),
+          String.valueOf(vl),
+          vl.getTypeName
+        )
     }
   }
 }

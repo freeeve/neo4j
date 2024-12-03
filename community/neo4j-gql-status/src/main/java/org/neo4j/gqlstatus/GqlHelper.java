@@ -276,7 +276,7 @@ public class GqlHelper {
     public static ErrorGqlStatusObject getGql22N38_22N01(
             String functionName, String value, List<String> valueTypeList, String valueType) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N38)
-                .withParam(GqlParams.StringParam.fun, functionName)
+                .withParam(GqlParams.StringParam.value, functionName)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
                         .withParam(GqlParams.StringParam.value, value)
                         .withParam(GqlParams.ListParam.valueTypeList, valueTypeList)

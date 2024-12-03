@@ -24,8 +24,10 @@ import org.neo4j.cypher.internal.runtime.interpreted.QueryStateHelper
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Variable
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.kernel.impl.util.ValueUtils
 import org.neo4j.values.storable.DoubleValue
+import org.neo4j.values.storable.DurationValue
 
 trait StdevTest {
   val state = QueryStateHelper.empty
@@ -81,6 +83,58 @@ class StdevSampleTest extends CypherFunSuite with StdevTest {
     val values = List(1, 2, 3, 4, 5, 6, 7)
     getStdev(values) should equal(2.16024689947 +- 0.000001)
   }
+
+  test("stdev cannot handle character value") {
+    val values = List('a')
+    val exception = intercept[CypherTypeException](getStdev(values))
+    exception.gqlStatus() should be("22N38")
+    exception.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function STDEV(x)."
+    )
+
+    exception.cause().isEmpty should be(false)
+    val exceptionCause = exception.cause().get()
+    exceptionCause.gqlStatus() should be("22N01")
+    exceptionCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value Char('a') to be of type INTEGER, FLOAT or NULL, but was of type org.neo4j.values.storable.CharValue."
+    )
+
+    exceptionCause.cause().isEmpty should be(true)
+  }
+
+  test("stdev cannot handle string value") {
+    val values = List("abc")
+    val exception = intercept[CypherTypeException](getStdev(values))
+    exception.gqlStatus() should be("22N38")
+    exception.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function STDEV(x)."
+    )
+
+    exception.cause().isEmpty should be(false)
+    val exceptionCause = exception.cause().get()
+    exceptionCause.gqlStatus() should be("22N01")
+    exceptionCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value String(\"abc\") to be of type INTEGER, FLOAT or NULL, but was of type org.neo4j.values.storable.UTF8StringValue."
+    )
+    exception.cause().isEmpty should be(false)
+  }
+
+  test("stdev cannot duration") {
+    val values = List(DurationValue.duration(0, 0, 10, 0))
+    val exception = intercept[CypherTypeException](getStdev(values))
+    exception.gqlStatus() should be("22N38")
+    exception.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function STDEV(x)."
+    )
+
+    exception.cause().isEmpty should be(false)
+    val exceptionCause = exception.cause().get()
+    exceptionCause.gqlStatus() should be("22N01")
+    exceptionCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value PT10S to be of type INTEGER, FLOAT or NULL, but was of type org.neo4j.values.storable.DurationValue."
+    )
+    exception.cause().isEmpty should be(false)
+  }
 }
 
 class StdevPopulationTest extends CypherFunSuite with StdevTest {
@@ -119,5 +173,57 @@ class StdevPopulationTest extends CypherFunSuite with StdevTest {
   test("oneTwoThreeFourFiveSixSeven") {
     val values = List(1, 2, 3, 4, 5, 6, 7)
     getStdev(values) should equal(2.0 +- 0.000001)
+  }
+
+  test("stdevp cannot handle character value") {
+    val values = List('a')
+    val exception = intercept[CypherTypeException](getStdev(values))
+    exception.gqlStatus() should be("22N38")
+    exception.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function STDEVP(x)."
+    )
+
+    exception.cause().isEmpty should be(false)
+    val exceptionCause = exception.cause().get()
+    exceptionCause.gqlStatus() should be("22N01")
+    exceptionCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value Char('a') to be of type INTEGER, FLOAT or NULL, but was of type org.neo4j.values.storable.CharValue."
+    )
+
+    exceptionCause.cause().isEmpty should be(true)
+  }
+
+  test("stdevp cannot handle string value") {
+    val values = List("abc")
+    val exception = intercept[CypherTypeException](getStdev(values))
+    exception.gqlStatus() should be("22N38")
+    exception.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function STDEVP(x)."
+    )
+
+    exception.cause().isEmpty should be(false)
+    val exceptionCause = exception.cause().get()
+    exceptionCause.gqlStatus() should be("22N01")
+    exceptionCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value String(\"abc\") to be of type INTEGER, FLOAT or NULL, but was of type org.neo4j.values.storable.UTF8StringValue."
+    )
+    exception.cause().isEmpty should be(false)
+  }
+
+  test("stdevp cannot duration") {
+    val values = List(DurationValue.duration(0, 0, 10, 0))
+    val exception = intercept[CypherTypeException](getStdev(values))
+    exception.gqlStatus() should be("22N38")
+    exception.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function STDEVP(x)."
+    )
+
+    exception.cause().isEmpty should be(false)
+    val exceptionCause = exception.cause().get()
+    exceptionCause.gqlStatus() should be("22N01")
+    exceptionCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value PT10S to be of type INTEGER, FLOAT or NULL, but was of type org.neo4j.values.storable.DurationValue."
+    )
+    exception.cause().isEmpty should be(false)
   }
 }

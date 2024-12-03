@@ -21,10 +21,8 @@ package org.neo4j.exceptions;
 
 import java.util.List;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class CypherTypeException extends Neo4jException {
@@ -49,15 +47,8 @@ public class CypherTypeException extends Neo4jException {
 
     public static CypherTypeException invalidType(
             String value, List<String> expectedTypes, String actualType, String signature) {
-        return new CypherTypeException(
-                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
-                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
-                                .withParam(GqlParams.StringParam.value, value)
-                                .withParam(GqlParams.ListParam.valueTypeList, expectedTypes)
-                                .withParam(GqlParams.StringParam.valueType, actualType)
-                                .build())
-                        .build(),
-                String.format("Wrong type. Expected %s, got %s", signature, actualType));
+        var gql = GqlHelper.getGql22G03_22N01(value, expectedTypes, actualType);
+        return new CypherTypeException(gql, String.format("Wrong type. Expected %s, got %s", signature, actualType));
     }
 
     public static CypherTypeException nodeCreationNotAMap(String value, String gotCypherType) {
@@ -176,7 +167,7 @@ public class CypherTypeException extends Neo4jException {
 
     public static CypherTypeException functionArgumentMustBeNumber(
             String msg, String functionName, String gotPretty, String gotCypherType) {
-        var gql = GqlHelper.getGql22N38_22N01(functionName, gotPretty, List.of("INTEGER", "FLOAT"), gotCypherType);
+        var gql = GqlHelper.getGql22N38_22N01(GqlParams.StringParam.fun.process(functionName), gotPretty, List.of("INTEGER", "FLOAT"), gotCypherType);
         return new CypherTypeException(gql, msg);
     }
 
@@ -435,6 +426,41 @@ public class CypherTypeException extends Neo4jException {
     public static CypherTypeException expectedNodeAtRow(String row, String got) {
         var gql = GqlHelper.getGql22G03_22N27(row, got, List.of("NODE"));
         return new CypherTypeException(gql, String.format("Expected a node at `%s` but got %s", row, got));
+    }
+
+    public static CypherTypeException onlyNumericalValuesOrNullAllowed(
+            String function, String value, String actualType) {
+        var gql = GqlHelper.getGql22N38_22N01(
+                function, value, List.of("INTEGER", "FLOAT", "NULL"), actualType);
+        return new CypherTypeException(
+                gql,
+                String.format("%s can only handle numerical values or null, but received: %s", function, actualType));
+    }
+
+    public static CypherTypeException onlyNumericalValuesDurationsOrNullAllowed(
+            String function, String value, String actualType) {
+        var gql = GqlHelper.getGql22N38_22N01(
+                function,
+                value,
+                List.of("INTEGER", "FLOAT", "DURATION", "NULL"),
+                actualType);
+        return new CypherTypeException(
+                gql,
+                String.format(
+                        "%s can only handle numerical values, duration, or null, but received: %s",
+                        function, actualType));
+    }
+
+    public static CypherTypeException onlyNumericalValuesAllowed(String function, String value, String actualType) {
+        var gql = GqlHelper.getGql22N38_22N01(
+                function, value, List.of("INTEGER", "FLOAT"), actualType);
+        return new CypherTypeException(gql, String.format("%s cannot mix number and duration", function));
+    }
+
+    public static CypherTypeException onlyDurationValuesAllowed(String function, String value, String actualType) {
+        var gql = GqlHelper.getGql22N38_22N01(
+                function, value, List.of("DURATION"), actualType);
+        return new CypherTypeException(gql, String.format("%s cannot mix number and duration", function));
     }
 
     @Override

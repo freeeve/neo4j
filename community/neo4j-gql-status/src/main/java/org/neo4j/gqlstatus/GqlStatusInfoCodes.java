@@ -1439,7 +1439,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlStatus("22N38"),
             """
                     Invalid argument to the function { %s }.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            new GqlParams.GqlParam[] {GqlParams.StringParam.value},
             emptyMap(),
             Condition.DATA_EXCEPTION,
             "invalid function argument",
