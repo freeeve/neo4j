@@ -89,6 +89,7 @@ import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
 import org.neo4j.kernel.impl.locking.LockManager;
 import org.neo4j.kernel.impl.monitoring.TransactionMonitor;
 import org.neo4j.kernel.impl.query.TransactionExecutionMonitor;
+import org.neo4j.kernel.impl.security.URIAccessRules;
 import org.neo4j.kernel.impl.transaction.log.TransactionCommitmentFactory;
 import org.neo4j.kernel.impl.transaction.tracing.TransactionWriteEvent;
 import org.neo4j.kernel.internal.event.DatabaseTransactionEventListeners;
@@ -248,7 +249,7 @@ class KernelTransactionTestBase {
             LeaseService leaseService, Config config, NamedDatabaseId databaseId) {
         var locks = mock(LockManager.class);
         when(locks.newClient()).thenReturn(locksClient);
-        var dependencies = dependenciesOf(mock(GraphDatabaseFacade.class));
+        var dependencies = dependenciesOf(mock(GraphDatabaseFacade.class), mock(URIAccessRules.class));
         var memoryPool = new MemoryPools().pool(MemoryGroup.TRANSACTION, ByteUnit.mebiBytes(4), null);
 
         DatabaseIdRepository databaseIdRepository = mock(DatabaseIdRepository.class);

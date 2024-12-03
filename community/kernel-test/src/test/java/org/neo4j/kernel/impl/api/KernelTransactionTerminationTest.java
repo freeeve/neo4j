@@ -78,6 +78,7 @@ import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
 import org.neo4j.kernel.impl.locking.LockManager;
 import org.neo4j.kernel.impl.monitoring.TransactionMonitor;
 import org.neo4j.kernel.impl.query.TransactionExecutionMonitor;
+import org.neo4j.kernel.impl.security.URIAccessRules;
 import org.neo4j.kernel.impl.transaction.log.TransactionCommitmentFactory;
 import org.neo4j.kernel.internal.event.DatabaseTransactionEventListeners;
 import org.neo4j.logging.NullLogProvider;
@@ -323,7 +324,8 @@ class KernelTransactionTerminationTest {
 
         static TestKernelTransaction create() {
             return new TestKernelTransaction(
-                    new CommitTrackingMonitor(), dependenciesOf(mock(GraphDatabaseFacade.class)));
+                    new CommitTrackingMonitor(),
+                    dependenciesOf(mock(GraphDatabaseFacade.class), mock(URIAccessRules.class)));
         }
 
         TestKernelTransaction initialize() {

@@ -117,6 +117,7 @@ import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
 import org.neo4j.kernel.impl.locking.LockManager;
 import org.neo4j.kernel.impl.monitoring.TransactionMonitor;
 import org.neo4j.kernel.impl.query.TransactionExecutionMonitor;
+import org.neo4j.kernel.impl.security.URIAccessRules;
 import org.neo4j.kernel.impl.transaction.log.TransactionCommitmentFactory;
 import org.neo4j.kernel.internal.event.DatabaseTransactionEventListeners;
 import org.neo4j.kernel.lifecycle.LifeSupport;
@@ -883,6 +884,7 @@ class KernelTransactionsTest {
                 enrichmentStrategy,
                 mock(GraphDatabaseFacade.class),
                 CommunitySecurityLog.NULL_LOG,
+                mock(URIAccessRules.class),
                 databaseReferenceRepository);
     }
 

@@ -21,12 +21,12 @@ package org.neo4j.kernel.impl.api.parallel;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 
 import java.util.List;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
-import org.neo4j.collection.Dependencies;
 import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler;
@@ -40,6 +40,7 @@ import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.kernel.impl.locking.LockManager;
 import org.neo4j.kernel.impl.newapi.DefaultPooledCursors;
+import org.neo4j.kernel.impl.security.URIAccessRules;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.StorageLocks;
@@ -72,7 +73,7 @@ class ThreadExecutionContextTest {
                 mock(SchemaState.class),
                 mock(IndexingService.class),
                 mock(IndexStatisticsStore.class),
-                mock(Dependencies.class),
+                dependenciesOf(mock(URIAccessRules.class)),
                 mock(StorageLocks.class),
                 mock(LockManager.Client.class),
                 mock(LockTracer.class),
