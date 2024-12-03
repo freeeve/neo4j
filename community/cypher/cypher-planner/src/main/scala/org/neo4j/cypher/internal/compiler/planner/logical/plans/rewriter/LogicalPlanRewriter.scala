@@ -33,7 +33,6 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.Compilat
 import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.EffectiveCardinalities
@@ -124,10 +123,6 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
 
     val rewritersAfterUnnestApply: Seq[Rewriter] = Seq(
       Some(unnestCartesianProduct),
-      Option.when(context.eagerAnalyzer != CypherEagerAnalyzerOption.lp)(cleanUpEager(
-        cardinalities,
-        otherAttributes.withAlso(solveds, effectiveCardinalities, labelAndRelTypeInfos, providedOrders)
-      )),
       Some(simplifyPredicates),
       Some(unnestOptional),
       Some(predicateRemovalThroughJoins(

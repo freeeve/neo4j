@@ -49,7 +49,6 @@ import org.neo4j.cypher.internal.logical.plans.ordering.ParallelExecutionProvide
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrderFactory
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.options.CypherDebugOptions
-import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.PlanContext
@@ -138,7 +137,6 @@ object LogicalPlanningContext {
       GraphDatabaseInternalSettings.planning_intersection_scans_enabled.defaultValue(),
     planningSubtractionScansEnabled: Boolean =
       GraphDatabaseInternalSettings.planning_subtraction_scans_enabled.defaultValue(),
-    eagerAnalyzer: CypherEagerAnalyzerOption = CypherEagerAnalyzerOption.default,
     statefulShortestPlanningRewriteQuantifiersAbove: Int =
       GraphDatabaseInternalSettings.stateful_shortest_planning_rewrite_quantifiers_above.defaultValue(),
     planVarExpandInto: CypherPlanVarExpandInto = CypherPlanVarExpandInto.default,
@@ -164,7 +162,6 @@ object LogicalPlanningContext {
           csvBufferSize: Int,
           planningIntersectionScansEnabled: Boolean,
           planningSubtractionScansEnabled: Boolean,
-          eagerAnalyzer: CypherEagerAnalyzerOption,
           statefulShortestPlanningRewriteQuantifiersAbove: Int,
           planVarExpandInto: CypherPlanVarExpandInto,
           remoteBatchPropertiesStrategy: RemoteBatchingStrategy,
@@ -198,9 +195,6 @@ object LogicalPlanningContext {
 
         if (GraphDatabaseInternalSettings.planning_subtraction_scans_enabled.dynamic())
           builder.addOne(planningSubtractionScansEnabled)
-
-        if (GraphDatabaseInternalSettings.cypher_eager_analysis_implementation.dynamic())
-          builder.addOne(eagerAnalyzer)
 
         if (GraphDatabaseInternalSettings.stateful_shortest_planning_rewrite_quantifiers_above.dynamic())
           builder.addOne(statefulShortestPlanningRewriteQuantifiersAbove)

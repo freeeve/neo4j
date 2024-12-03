@@ -35,7 +35,6 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.options.CypherDebugOptions
-import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
@@ -119,7 +118,6 @@ class PlannerContext(
   val executionModel: ExecutionModel,
   cancellationChecker: CancellationChecker,
   val materializedEntitiesMode: Boolean,
-  val eagerAnalyzer: CypherEagerAnalyzerOption,
   val statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption,
   val planVarExpandInto: CypherPlanVarExpandInto,
   val databaseReferenceRepository: DatabaseReferenceRepository,
@@ -163,7 +161,6 @@ class PlannerContext(
       executionModel,
       cancellationChecker,
       materializedEntitiesMode,
-      eagerAnalyzer,
       statefulShortestPlanningMode,
       planVarExpandInto,
       databaseReferenceRepository,
@@ -199,7 +196,6 @@ object PlannerContext {
     params: MapValue,
     cancellationChecker: CancellationChecker,
     materializedEntitiesMode: Boolean,
-    eagerAnalyzer: CypherEagerAnalyzerOption,
     labelInference: CypherInferSchemaPartsOption,
     statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption,
     planVarExpandInto: CypherPlanVarExpandInto,
@@ -240,7 +236,6 @@ object PlannerContext {
       executionModel,
       cancellationChecker,
       materializedEntitiesMode,
-      eagerAnalyzer,
       statefulShortestPlanningMode,
       planVarExpandInto,
       databaseReferenceRepository,

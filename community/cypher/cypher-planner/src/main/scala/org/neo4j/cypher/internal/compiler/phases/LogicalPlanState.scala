@@ -31,7 +31,6 @@ import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption
 import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttribute
 import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttributes
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes
@@ -67,7 +66,6 @@ case class LogicalPlanState(
   hasLoadCSV: Boolean = false,
   maybeReturnColumns: Option[Seq[String]] = None,
   maybeObfuscationMetadata: Option[ObfuscationMetadata] = None,
-  maybeEagerAnalyzerOption: Option[CypherEagerAnalyzerOption] = None,
   maybeRemoteBatchPropertiesImplementation: Option[RemoteBatchPropertiesImplementation] = None
 ) extends BaseState {
 

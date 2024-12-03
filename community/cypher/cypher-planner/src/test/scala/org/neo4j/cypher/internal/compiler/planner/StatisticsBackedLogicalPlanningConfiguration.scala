@@ -1473,7 +1473,6 @@ class StatisticsBackedLogicalPlanningConfiguration(
       logicalPlanIdGen = idGen,
       debugOptions = options.debug,
       executionModel = options.executionModel,
-      eagerAnalyzer = plannerConfiguration.eagerAnalyzer(),
       statefulShortestPlanningMode = plannerConfiguration.statefulShortestPlanningMode(),
       planVarExpandInto = plannerConfiguration.planVarExpandInto(),
       databaseReferenceRepository = options.databaseReferenceRepository,

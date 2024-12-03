@@ -402,7 +402,6 @@ case class CypherPlanner(
       params,
       transactionalContextWrapper.cancellationChecker,
       options.materializedEntitiesMode,
-      options.queryOptions.eagerAnalyzer,
       options.queryOptions.inferSchemaParts,
       options.queryOptions.statefulShortestPlanningModeOption,
       options.queryOptions.planVarExpandInto,

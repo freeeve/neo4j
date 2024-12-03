@@ -36,7 +36,6 @@ import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransform
 import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
@@ -64,7 +63,6 @@ case object EagerRewriter extends Phase[PlannerContext, LogicalPlanState, Logica
   override def phase: CompilationPhaseTracer.CompilationPhase = LOGICAL_PLANNING
 
   override def process(from: LogicalPlanState, context: PlannerContext): LogicalPlanState = {
-    if (!from.maybeEagerAnalyzerOption.contains(CypherEagerAnalyzerOption.lp)) return from
     if (from.logicalPlan.readOnly) return from
 
     val attributes: Attributes[LogicalPlan] = from.planningAttributes.asAttributes(context.logicalPlanIdGen)

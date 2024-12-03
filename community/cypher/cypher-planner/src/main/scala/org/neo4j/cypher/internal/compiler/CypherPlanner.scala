@@ -38,7 +38,6 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.macros.AssertMacros
-import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
 import org.neo4j.cypher.internal.options.CypherVersion
@@ -266,13 +265,6 @@ class CypherPlannerConfiguration(
       !GraphDatabaseInternalSettings.predicates_as_union_max_size.dynamic()
     )
     () => config.predicatesAsUnionMaxSize
-  }
-
-  val eagerAnalyzer: () => CypherEagerAnalyzerOption = {
-    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
-      !GraphDatabaseInternalSettings.cypher_eager_analysis_implementation.dynamic()
-    )
-    () => config.eagerAnalyzer
   }
 
   val queryRouterForCompositeQueriesEnabled: Boolean = config.allowCompositeQueries

@@ -25,7 +25,6 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.config.CypherConfiguration.statsDivergenceFromConfig
-import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption
 import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
 import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
@@ -156,8 +155,6 @@ class CypherConfiguration private (val config: Config) {
 
   val planningSubtractionScansEnabled: Boolean =
     config.get(GraphDatabaseInternalSettings.planning_subtraction_scans_enabled)
-
-  val eagerAnalyzer: CypherEagerAnalyzerOption = CypherEagerAnalyzerOption.fromConfig(config)
 
   val varExpandRelationshipIdSetThreshold: Integer =
     config.get(GraphDatabaseInternalSettings.var_expand_relationship_id_set_threshold)

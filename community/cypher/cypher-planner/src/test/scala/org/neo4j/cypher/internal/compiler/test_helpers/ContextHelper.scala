@@ -35,7 +35,6 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.NO_TRACI
 import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.options.CypherDebugOptions
-import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
 import org.neo4j.cypher.internal.planner.spi.PlanContext
@@ -78,7 +77,6 @@ object ContextHelper extends MockitoSugar {
     executionModel: ExecutionModel = ExecutionModel.default,
     cancellationChecker: CancellationChecker = CancellationChecker.NeverCancelled,
     materializedEntitiesMode: Boolean = false,
-    eagerAnalyzer: CypherEagerAnalyzerOption = CypherEagerAnalyzerOption.default,
     statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption =
       CypherStatefulShortestPlanningModeOption.default,
     planVarExpandInto: CypherPlanVarExpandInto = CypherPlanVarExpandInto.default,
@@ -107,7 +105,6 @@ object ContextHelper extends MockitoSugar {
       executionModel,
       cancellationChecker,
       materializedEntitiesMode,
-      eagerAnalyzer,
       statefulShortestPlanningMode,
       planVarExpandInto,
       databaseReferenceRepository,

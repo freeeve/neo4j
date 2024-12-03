@@ -69,44 +69,6 @@ class OptionReaderTest extends CypherFunSuite {
     CypherDebugOption.cypherConfigBooleans should be(empty)
   }
 
-  ignore("Can read debug options from config") {
-    val options = CypherQueryOptions.fromValues(
-      config = CypherConfiguration.fromConfig(
-        Config.newBuilder()
-          .set(
-            GraphDatabaseInternalSettings.cypher_eager_analysis_implementation,
-            GraphDatabaseInternalSettings.EagerAnalysisImplementation.LP
-          )
-          .build()
-      ),
-      keyValues = Set()
-    )
-
-    options
-      .shouldEqual(CypherQueryOptions.defaultOptions.copy(
-        debugOptions = CypherDebugOptions(Set( /*CypherDebugOption.useLPEagerAnalyzer*/ ))
-      ))
-  }
-
-  ignore("Can read debug options from config and key-values") {
-    val options = CypherQueryOptions.fromValues(
-      config = CypherConfiguration.fromConfig(
-        Config.newBuilder()
-          .set(
-            GraphDatabaseInternalSettings.cypher_eager_analysis_implementation,
-            GraphDatabaseInternalSettings.EagerAnalysisImplementation.LP
-          )
-          .build()
-      ),
-      keyValues = Set("debug" -> "toString")
-    )
-
-    options
-      .shouldEqual(CypherQueryOptions.defaultOptions.copy(
-        debugOptions = CypherDebugOptions(Set( /*CypherDebugOption.useLPEagerAnalyzer,*/ CypherDebugOption.tostring))
-      ))
-  }
-
   test("Can read options from key-values") {
 
     val options = CypherQueryOptions.fromValues(
