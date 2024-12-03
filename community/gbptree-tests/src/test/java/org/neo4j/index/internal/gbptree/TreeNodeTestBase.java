@@ -636,13 +636,12 @@ public abstract class TreeNodeTestBase<KEY, VALUE> {
         TreeNodeUtil.setRightSibling(cursor, pointer, STABLE_GENERATION, generation);
 
         // WHEN
-        long readResult = TreeNodeUtil.rightSibling(cursor, STABLE_GENERATION, generation, generationTarget);
-        long readGeneration = generationTarget.generation;
+        PointerWithGeneration readResult = TreeNodeUtil.rightSibling(cursor, STABLE_GENERATION, generation);
 
         // THEN
-        assertEquals(pointer, pointer(readResult));
-        assertEquals(generation, readGeneration);
-        assertTrue(resultIsFromSlotA(readResult));
+        assertEquals(pointer, pointer(readResult.pointer()));
+        assertEquals(generation, readResult.generation());
+        assertTrue(resultIsFromSlotA(readResult.pointer()));
     }
 
     @Test
@@ -655,13 +654,12 @@ public abstract class TreeNodeTestBase<KEY, VALUE> {
         TreeNodeUtil.setRightSibling(cursor, pointer, UNSTABLE_GENERATION, generation);
 
         // WHEN
-        long readResult = TreeNodeUtil.rightSibling(cursor, UNSTABLE_GENERATION, generation, generationTarget);
-        long readGeneration = generationTarget.generation;
+        PointerWithGeneration readResult = TreeNodeUtil.rightSibling(cursor, UNSTABLE_GENERATION, generation);
 
         // THEN
-        assertEquals(pointer, pointer(readResult));
-        assertEquals(generation, readGeneration);
-        assertFalse(resultIsFromSlotA(readResult));
+        assertEquals(pointer, pointer(readResult.pointer()));
+        assertEquals(generation, readResult.generation());
+        assertFalse(resultIsFromSlotA(readResult.pointer()));
     }
 
     @Test
@@ -673,13 +671,12 @@ public abstract class TreeNodeTestBase<KEY, VALUE> {
         internal.setChildAt(cursor, pointer, childPos, STABLE_GENERATION, generation);
 
         // WHEN
-        long readResult = internal.childAt(cursor, childPos, STABLE_GENERATION, generation, generationTarget);
-        long readGeneration = generationTarget.generation;
+        var readResult = internal.childWithGenerationAt(cursor, childPos, STABLE_GENERATION, generation);
 
         // THEN
-        assertEquals(pointer, pointer(readResult));
-        assertEquals(generation, readGeneration);
-        assertTrue(resultIsFromSlotA(readResult));
+        assertEquals(pointer, pointer(readResult.pointer()));
+        assertEquals(generation, readResult.generation());
+        assertTrue(resultIsFromSlotA(readResult.pointer()));
     }
 
     @Test
@@ -691,13 +688,12 @@ public abstract class TreeNodeTestBase<KEY, VALUE> {
         internal.setChildAt(cursor, pointer, childPos, STABLE_GENERATION, generation);
 
         // WHEN
-        long readResult = internal.childAt(cursor, childPos, STABLE_GENERATION, generation, generationTarget);
-        long readGeneration = generationTarget.generation;
+        var readResult = internal.childWithGenerationAt(cursor, childPos, STABLE_GENERATION, generation);
 
         // THEN
-        assertEquals(pointer, pointer(readResult));
-        assertEquals(generation, readGeneration);
-        assertTrue(resultIsFromSlotA(readResult));
+        assertEquals(pointer, pointer(readResult.pointer()));
+        assertEquals(generation, readResult.generation());
+        assertTrue(resultIsFromSlotA(readResult.pointer()));
     }
 
     @Test
@@ -711,13 +707,12 @@ public abstract class TreeNodeTestBase<KEY, VALUE> {
         internal.setChildAt(cursor, pointer, childPos, UNSTABLE_GENERATION, generation);
 
         // WHEN
-        long readResult = internal.childAt(cursor, childPos, UNSTABLE_GENERATION, generation, generationTarget);
-        long readGeneration = generationTarget.generation;
+        var readResult = internal.childWithGenerationAt(cursor, childPos, UNSTABLE_GENERATION, generation);
 
         // THEN
-        assertEquals(pointer, pointer(readResult));
-        assertEquals(generation, readGeneration);
-        assertFalse(resultIsFromSlotA(readResult));
+        assertEquals(pointer, pointer(readResult.pointer()));
+        assertEquals(generation, readResult.generation());
+        assertFalse(resultIsFromSlotA(readResult.pointer()));
     }
 
     @Test
@@ -731,13 +726,12 @@ public abstract class TreeNodeTestBase<KEY, VALUE> {
         internal.setChildAt(cursor, pointer, childPos, UNSTABLE_GENERATION, generation);
 
         // WHEN
-        long readResult = internal.childAt(cursor, childPos, UNSTABLE_GENERATION, generation, generationTarget);
-        long readGeneration = generationTarget.generation;
+        var readResult = internal.childWithGenerationAt(cursor, childPos, UNSTABLE_GENERATION, generation);
 
         // THEN
-        assertEquals(pointer, pointer(readResult));
-        assertEquals(generation, readGeneration);
-        assertFalse(resultIsFromSlotA(readResult));
+        assertEquals(pointer, pointer(readResult.pointer()));
+        assertEquals(generation, readResult.generation());
+        assertFalse(resultIsFromSlotA(readResult.pointer()));
     }
 
     private void assertKeyEquals(KEY expectedKey, KEY actualKey) {
@@ -780,14 +774,17 @@ public abstract class TreeNodeTestBase<KEY, VALUE> {
     }
 
     private static long rightSibling(PageCursor cursor, long stableGeneration, long unstableGeneration) {
-        return pointer(TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration));
+        return pointer(TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer());
     }
 
     private static long leftSibling(PageCursor cursor, long stableGeneration, long unstableGeneration) {
-        return pointer(TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration));
+        return pointer(TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer());
     }
 
     private static long successor(PageCursor cursor, long stableGeneration, long unstableGeneration) {
-        return pointer(TreeNodeUtil.successor(cursor, stableGeneration, unstableGeneration));
+        return pointer(TreeNodeUtil.successor(cursor, stableGeneration, unstableGeneration)
+                .pointer());
     }
 }

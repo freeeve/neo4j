@@ -40,7 +40,6 @@ import static org.neo4j.index.internal.gbptree.DynamicSizeUtil.recordAliveBlocks
 import static org.neo4j.index.internal.gbptree.DynamicSizeUtil.setAllocOffset;
 import static org.neo4j.index.internal.gbptree.DynamicSizeUtil.setDeadSpace;
 import static org.neo4j.index.internal.gbptree.DynamicSizeUtil.validateInlineCap;
-import static org.neo4j.index.internal.gbptree.GBPTreeGenerationTarget.NO_GENERATION_TARGET;
 import static org.neo4j.index.internal.gbptree.GenerationSafePointerPair.read;
 import static org.neo4j.index.internal.gbptree.TreeNodeUtil.SIZE_PAGE_REFERENCE;
 import static org.neo4j.index.internal.gbptree.TreeNodeUtil.insertSlotsAt;
@@ -801,18 +800,21 @@ public final class InternalNodeDynamicSize<KEY> implements InternalNodeBehaviour
 
     @Override
     public long childAt(PageCursor cursor, int pos, long stableGeneration, long unstableGeneration) {
-        return childAt(cursor, pos, stableGeneration, unstableGeneration, NO_GENERATION_TARGET);
+        return childWithGenerationAt(cursor, pos, stableGeneration, unstableGeneration)
+                .pointer();
     }
 
     @Override
-    public long childAt(
-            PageCursor cursor,
-            int pos,
-            long stableGeneration,
-            long unstableGeneration,
-            GBPTreeGenerationTarget generationTarget) {
+    public PointerWithGeneration childWithGenerationAt(
+            PageCursor cursor, int pos, long stableGeneration, long unstableGeneration) {
         cursor.setOffset(childOffset(pos));
-        return read(cursor, stableGeneration, unstableGeneration, generationTarget);
+        return read(cursor, stableGeneration, unstableGeneration);
+    }
+
+    private PointerWithGeneration readChild(
+            PageCursor cursor, int pos, long stableGeneration, long unstableGeneration) {
+        cursor.setOffset(childOffset(pos));
+        return read(cursor, stableGeneration, unstableGeneration);
     }
 
     private boolean canInline(int entrySize) {

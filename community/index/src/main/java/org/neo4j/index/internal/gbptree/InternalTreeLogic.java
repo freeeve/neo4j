@@ -327,7 +327,8 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
             // Restrict the key range as the cursor moves down to the next level
             level.childPos = childPos;
             level.lowerIsOpenEnded = childPos == 0
-                    && !TreeNodeUtil.isNode(TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration));
+                    && !TreeNodeUtil.isNode(TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration)
+                            .pointer());
             if (!level.lowerIsOpenEnded) {
                 if (childPos == 0) {
                     layout.copyKey(parentLevel.lower, level.lower);
@@ -337,7 +338,8 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
                 }
             }
             level.upperIsOpenEnded = childPos >= keyCount
-                    && !TreeNodeUtil.isNode(TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration));
+                    && !TreeNodeUtil.isNode(TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration)
+                            .pointer());
             if (!level.upperIsOpenEnded) {
                 if (childPos == keyCount) {
                     layout.copyKey(parentLevel.upper, level.upper);
@@ -573,7 +575,8 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
             throws IOException {
         long current = cursor.getCurrentPageId();
         coordination.beforeSplitInternal(current);
-        long oldRight = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration);
+        long oldRight = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer();
         checkRightSiblingPointer(oldRight, true, cursor, stableGeneration, unstableGeneration);
         long newRight = idProvider.acquireNewId(stableGeneration, unstableGeneration, bind(cursor));
 
@@ -942,7 +945,8 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
         }
 
         long current = cursor.getCurrentPageId();
-        long oldRight = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration);
+        long oldRight = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer();
         checkRightSiblingPointer(oldRight, true, cursor, stableGeneration, unstableGeneration);
         long newRight = idProvider.acquireNewId(stableGeneration, unstableGeneration, bind(cursor));
 
@@ -1383,7 +1387,8 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
 
     private void updateRightmostChildInLeftSibling(
             PageCursor cursor, long childPointer, long stableGeneration, long unstableGeneration) throws IOException {
-        long leftSibling = TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration);
+        long leftSibling = TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer();
         // Left sibling is not allowed to be NO_NODE here because that means there is a child node with no parent
         checkLeftSiblingPointer(leftSibling, false, cursor, stableGeneration, unstableGeneration);
 
@@ -1396,7 +1401,8 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
 
     private void updateLeftmostChildInRightSibling(
             PageCursor cursor, long childPointer, long stableGeneration, long unstableGeneration) throws IOException {
-        long rightSibling = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration);
+        long rightSibling = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer();
         // Right sibling is not allowed to be NO_NODE here because that means there is a child node with no parent
         checkRightSiblingPointer(rightSibling, false, cursor, stableGeneration, unstableGeneration);
 
@@ -1483,9 +1489,11 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
             CursorContext cursorContext)
             throws IOException {
         coordination.beforeUnderflowInLeaf(cursor.getCurrentPageId());
-        long leftSibling = TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration);
+        long leftSibling = TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer();
         checkLeftSiblingPointer(leftSibling, true, cursor, stableGeneration, unstableGeneration);
-        long rightSibling = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration);
+        long rightSibling = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer();
         checkRightSiblingPointer(rightSibling, true, cursor, stableGeneration, unstableGeneration);
 
         if (TreeNodeUtil.isNode(leftSibling)) {
@@ -1557,9 +1565,11 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
     private static void connectLeftAndRightSibling(PageCursor cursor, long stableGeneration, long unstableGeneration)
             throws IOException {
         long currentId = cursor.getCurrentPageId();
-        long leftSibling = TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration);
+        long leftSibling = TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer();
         checkLeftSiblingPointer(leftSibling, true, cursor, stableGeneration, unstableGeneration);
-        long rightSibling = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration);
+        long rightSibling = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer();
         checkRightSiblingPointer(rightSibling, true, cursor, stableGeneration, unstableGeneration);
         if (TreeNodeUtil.isNode(leftSibling)) {
             TreeNodeUtil.goTo(cursor, "left sibling", leftSibling);
@@ -1788,9 +1798,11 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
         //              |                                     |                                      |
         //              v                                     v                                      v
         // (leftSiblingOfStableNode) -[rightSibling]-> (newUnstableNode) <-[leftSibling]- (rightSiblingOfStableNode)
-        long leftSibling = TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration);
+        long leftSibling = TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer();
         checkLeftSiblingPointer(leftSibling, true, cursor, stableGeneration, unstableGeneration);
-        long rightSibling = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration);
+        long rightSibling = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer();
         checkRightSiblingPointer(rightSibling, true, cursor, stableGeneration, unstableGeneration);
         if (TreeNodeUtil.isNode(leftSibling)) {
             TreeNodeUtil.goTo(cursor, "left sibling in split", leftSibling);

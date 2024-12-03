@@ -116,12 +116,11 @@ class GenerationSafePointerPairTest {
 
         // WHEN
         cursor.setOffset(GSPP_OFFSET);
-        GenerationKeeper generationKeeper = new GenerationKeeper();
-        long result = GenerationSafePointerPair.read(cursor, STABLE_GENERATION, UNSTABLE_GENERATION, generationKeeper);
+        var result = GenerationSafePointerPair.read(cursor, STABLE_GENERATION, UNSTABLE_GENERATION);
 
         // THEN
         expectedReadOutcome.verifyRead(
-                cursor, result, stateA, stateB, preStatePointerA, preStatePointerB, generationKeeper.generation);
+                cursor, result.pointer(), stateA, stateB, preStatePointerA, preStatePointerB, result.generation());
     }
 
     @ParameterizedTest
@@ -331,7 +330,7 @@ class GenerationSafePointerPairTest {
     interface Slot {
         /**
          * @param cursor {@link PageCursor} to read actual result from.
-         * @param result read-result from {@link GenerationSafePointerPair#read(PageCursor, long, long, GBPTreeGenerationTarget)}.
+         * @param result read-result from {@link #read(PageCursor, long, long)}.
          * @param stateA state of pointer A when read.
          * @param stateB state of pointer B when read.
          * @param preStatePointerA pointer A as it looked like in pre-state.

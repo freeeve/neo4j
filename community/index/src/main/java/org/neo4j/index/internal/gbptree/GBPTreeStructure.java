@@ -343,7 +343,8 @@ public class GBPTreeStructure<ROOT_KEY, DATA_KEY, DATA_VALUE> {
             visitTreeNode(cursor, visitor, cursorContext);
 
             do {
-                rightSibling = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration);
+                rightSibling = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration)
+                        .pointer();
             } while (cursor.shouldRetry());
 
             if (TreeNodeUtil.isNode(rightSibling)) {

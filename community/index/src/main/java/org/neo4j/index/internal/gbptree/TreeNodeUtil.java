@@ -25,7 +25,6 @@ import static org.neo4j.index.internal.gbptree.DynamicSizeUtil.extractOffload;
 import static org.neo4j.index.internal.gbptree.DynamicSizeUtil.extractTombstone;
 import static org.neo4j.index.internal.gbptree.DynamicSizeUtil.extractValueSize;
 import static org.neo4j.index.internal.gbptree.DynamicSizeUtil.readKeyValueSize;
-import static org.neo4j.index.internal.gbptree.GBPTreeGenerationTarget.NO_GENERATION_TARGET;
 import static org.neo4j.index.internal.gbptree.GenerationSafePointerPair.read;
 
 import java.io.IOException;
@@ -144,43 +143,20 @@ public final class TreeNodeUtil {
         return cursor.getInt(BYTE_POS_KEYCOUNT);
     }
 
-    public static long rightSibling(PageCursor cursor, long stableGeneration, long unstableGeneration) {
-        return rightSibling(cursor, stableGeneration, unstableGeneration, NO_GENERATION_TARGET);
-    }
-
-    static long rightSibling(
-            PageCursor cursor,
-            long stableGeneration,
-            long unstableGeneration,
-            GBPTreeGenerationTarget generationTarget) {
+    public static PointerWithGeneration rightSibling(
+            PageCursor cursor, long stableGeneration, long unstableGeneration) {
         cursor.setOffset(BYTE_POS_RIGHTSIBLING);
-        return read(cursor, stableGeneration, unstableGeneration, generationTarget);
+        return read(cursor, stableGeneration, unstableGeneration);
     }
 
-    static long leftSibling(PageCursor cursor, long stableGeneration, long unstableGeneration) {
-        return leftSibling(cursor, stableGeneration, unstableGeneration, NO_GENERATION_TARGET);
-    }
-
-    static long leftSibling(
-            PageCursor cursor,
-            long stableGeneration,
-            long unstableGeneration,
-            GBPTreeGenerationTarget generationTarget) {
+    static PointerWithGeneration leftSibling(PageCursor cursor, long stableGeneration, long unstableGeneration) {
         cursor.setOffset(BYTE_POS_LEFTSIBLING);
-        return read(cursor, stableGeneration, unstableGeneration, generationTarget);
+        return read(cursor, stableGeneration, unstableGeneration);
     }
 
-    static long successor(PageCursor cursor, long stableGeneration, long unstableGeneration) {
-        return successor(cursor, stableGeneration, unstableGeneration, NO_GENERATION_TARGET);
-    }
-
-    static long successor(
-            PageCursor cursor,
-            long stableGeneration,
-            long unstableGeneration,
-            GBPTreeGenerationTarget generationTarget) {
+    static PointerWithGeneration successor(PageCursor cursor, long stableGeneration, long unstableGeneration) {
         cursor.setOffset(BYTE_POS_SUCCESSOR);
-        return read(cursor, stableGeneration, unstableGeneration, generationTarget);
+        return read(cursor, stableGeneration, unstableGeneration);
     }
 
     static void setGeneration(PageCursor cursor, long generation) {

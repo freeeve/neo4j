@@ -1964,23 +1964,20 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
     private void assertSiblingOrderAndPointers(long... children) throws IOException {
         long currentPageId = readCursor.getCurrentPageId();
         RightmostInChain rightmost = new RightmostInChain(null, true);
-        GenerationKeeper generationTarget = new GenerationKeeper();
         ThrowingConsistencyCheckVisitor visitor = new ThrowingConsistencyCheckVisitor();
         for (long child : children) {
             goTo(readCursor, child);
-            long leftSibling =
-                    TreeNodeUtil.leftSibling(readCursor, stableGeneration, unstableGeneration, generationTarget);
-            long leftSiblingGeneration = generationTarget.generation;
-            long rightSibling =
-                    TreeNodeUtil.rightSibling(readCursor, stableGeneration, unstableGeneration, generationTarget);
-            long rightSiblingGeneration = generationTarget.generation;
+            PointerWithGeneration leftSibling =
+                    TreeNodeUtil.leftSibling(readCursor, stableGeneration, unstableGeneration);
+            PointerWithGeneration rightSibling =
+                    TreeNodeUtil.rightSibling(readCursor, stableGeneration, unstableGeneration);
             rightmost.assertNext(
                     readCursor,
                     TreeNodeUtil.generation(readCursor),
-                    pointer(leftSibling),
-                    leftSiblingGeneration,
-                    pointer(rightSibling),
-                    rightSiblingGeneration,
+                    pointer(leftSibling.pointer()),
+                    leftSibling.generation(),
+                    pointer(rightSibling.pointer()),
+                    rightSibling.generation(),
                     visitor);
         }
         rightmost.assertLast(visitor);
@@ -2119,15 +2116,18 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
     }
 
     private static long rightSibling(PageCursor cursor, long stableGeneration, long unstableGeneration) {
-        return pointer(TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration));
+        return pointer(TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer());
     }
 
     private static long leftSibling(PageCursor cursor, long stableGeneration, long unstableGeneration) {
-        return pointer(TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration));
+        return pointer(TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer());
     }
 
     private static long successor(PageCursor cursor, long stableGeneration, long unstableGeneration) {
-        return pointer(TreeNodeUtil.successor(cursor, stableGeneration, unstableGeneration));
+        return pointer(TreeNodeUtil.successor(cursor, stableGeneration, unstableGeneration)
+                .pointer());
     }
 
     private static long newestGeneration(PageCursor cursor, long stableGeneration, long unstableGeneration)
@@ -2136,7 +2136,8 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
         long successor = current;
         do {
             goTo(cursor, successor);
-            successor = pointer(TreeNodeUtil.successor(cursor, stableGeneration, unstableGeneration));
+            successor = pointer(TreeNodeUtil.successor(cursor, stableGeneration, unstableGeneration)
+                    .pointer());
         } while (successor != TreeNodeUtil.NO_NODE_FLAG);
         successor = cursor.getCurrentPageId();
         goTo(cursor, current);

@@ -47,8 +47,8 @@ import org.neo4j.io.pagecache.PageCursor;
  * </ol>
  */
 class GenerationSafePointer {
-    private static final int EMPTY_POINTER = 0;
-    static final int EMPTY_GENERATION = 0;
+    private static final long EMPTY_POINTER = 0L;
+    static final long EMPTY_GENERATION = 0L;
 
     static final long MIN_GENERATION = 1L;
     static final long FIRST_STABLE_GENERATION = MIN_GENERATION;

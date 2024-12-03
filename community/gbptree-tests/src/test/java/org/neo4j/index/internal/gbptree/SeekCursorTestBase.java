@@ -55,14 +55,14 @@ import org.neo4j.test.extension.RandomExtension;
 @ExtendWith(RandomExtension.class)
 abstract class SeekCursorTestBase<KEY, VALUE> {
     private static final int PAGE_SIZE = 256;
-    private static long stableGeneration = GenerationSafePointer.MIN_GENERATION;
-    private static long unstableGeneration = stableGeneration + 1;
-    private static final LongSupplier generationSupplier =
-            () -> Generation.generation(stableGeneration, unstableGeneration);
-    private static final RootCatchup failingRootCatchup = (id, context) -> {
+    private static final RootCatchup FAILING_ROOT_CATCHUP = (id, context) -> {
         throw new AssertionError("Should not happen");
     };
-    private static final Consumer<Throwable> exceptionDecorator = t -> {};
+    private static final Consumer<Throwable> EMPTY_EXCEPTION_DECORATOR = t -> {};
+
+    private long stableGeneration = GenerationSafePointer.MIN_GENERATION + 1;
+    private long unstableGeneration = stableGeneration + 1;
+    private final LongSupplier generationSupplier = () -> Generation.generation(stableGeneration, unstableGeneration);
 
     @Inject
     private RandomSupport random;
@@ -1161,10 +1161,16 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
 
         // WHEN
         try (SeekCursor<KEY, VALUE> cursor = new SeekCursor<>(
-                        this.cursor, layout, leaf, internal, generationSupplier, exceptionDecorator, NULL_CONTEXT)
+                        this.cursor,
+                        layout,
+                        leaf,
+                        internal,
+                        generationSupplier,
+                        EMPTY_EXCEPTION_DECORATOR,
+                        NULL_CONTEXT)
                 .initialize(
                         rootInitializer(unstableGeneration),
-                        failingRootCatchup,
+                        FAILING_ROOT_CATCHUP,
                         from,
                         to,
                         1,
@@ -1748,7 +1754,7 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
         // when
         //noinspection EmptyTryBlock
         try (SeekCursor<KEY, VALUE> ignored = new SeekCursor<>(
-                        cursor, layout, leaf, internal, generationSupplier, exceptionDecorator, NULL_CONTEXT)
+                        cursor, layout, leaf, internal, generationSupplier, EMPTY_EXCEPTION_DECORATOR, NULL_CONTEXT)
                 .initialize(
                         rootInitializer(generation - 1),
                         rootCatchup,
@@ -1806,7 +1812,7 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
         KEY to = key(2L);
         //noinspection EmptyTryBlock
         try (SeekCursor<KEY, VALUE> ignored = new SeekCursor<>(
-                        cursor, layout, leaf, internal, generationSupplier, exceptionDecorator, NULL_CONTEXT)
+                        cursor, layout, leaf, internal, generationSupplier, EMPTY_EXCEPTION_DECORATOR, NULL_CONTEXT)
                 .initialize(
                         rootInitializer(unstableGeneration),
                         rootCatchup,
@@ -1868,7 +1874,7 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
                         leaf,
                         internal,
                         firstOlderThenCurrentGenerationSupplier,
-                        exceptionDecorator,
+                        EMPTY_EXCEPTION_DECORATOR,
                         NULL_CONTEXT)
                 .initialize(
                         rootInitializer(unstableGeneration),
@@ -2003,7 +2009,9 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
 
             // THEN
             List<Long> expected = allKeysOnLevel(level, fromInclusive, toExclusive);
-            assertThat(readBySeeker).isEqualTo(expected);
+            assertThat(readBySeeker)
+                    .as("read at level %d from %d to %d", level, fromInclusive, toExclusive)
+                    .isEqualTo(expected);
         }
     }
 
@@ -2075,8 +2083,9 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
         return allKeysOnNode;
     }
 
-    private static boolean goToRightSibling(PageCursor cursor) throws IOException {
-        long rightSibling = pointer(TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration));
+    private boolean goToRightSibling(PageCursor cursor) throws IOException {
+        long rightSibling = pointer(TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer());
         boolean hasRightSibling = rightSibling != TreeNodeUtil.NO_NODE_FLAG;
         if (hasRightSibling) {
             goTo(cursor, rightSibling);
@@ -2142,7 +2151,8 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
         int prevKeyCount = midKeyCount + 1;
 
         PageCursor rightSiblingCursor = null;
-        long rightSibling = TreeNodeUtil.rightSibling(readCursor, stableGeneration, unstableGeneration);
+        long rightSibling = TreeNodeUtil.rightSibling(readCursor, stableGeneration, unstableGeneration)
+                .pointer();
         int rightKeyCount = 0;
         int prevRightKeyCount = 1;
         boolean monitorRight = TreeNodeUtil.isNode(rightSibling);
@@ -2165,7 +2175,7 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
         }
     }
 
-    private static void checkpoint() {
+    private void checkpoint() {
         stableGeneration = unstableGeneration;
         unstableGeneration++;
     }
@@ -2237,10 +2247,11 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
 
     private SeekCursor<KEY, VALUE> seekCursorOnLevel(int level, long fromInclusive, long toExclusive)
             throws IOException {
-        return new SeekCursor<>(cursor, layout, leaf, internal, generationSupplier, exceptionDecorator, NULL_CONTEXT)
+        return new SeekCursor<>(
+                        cursor, layout, leaf, internal, generationSupplier, EMPTY_EXCEPTION_DECORATOR, NULL_CONTEXT)
                 .initialize(
                         rootInitializer(unstableGeneration),
-                        failingRootCatchup,
+                        FAILING_ROOT_CATCHUP,
                         key(fromInclusive),
                         key(toExclusive),
                         random.nextInt(1, DEFAULT_MAX_READ_AHEAD),
@@ -2261,7 +2272,7 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
             long fromInclusive, long toExclusive, PageCursor pageCursor, long stableGeneration, long unstableGeneration)
             throws IOException {
         return seekCursor(
-                fromInclusive, toExclusive, pageCursor, stableGeneration, unstableGeneration, failingRootCatchup);
+                fromInclusive, toExclusive, pageCursor, stableGeneration, unstableGeneration, FAILING_ROOT_CATCHUP);
     }
 
     private SeekCursor<KEY, VALUE> seekCursor(
@@ -2275,7 +2286,7 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
         LongSupplier generationSupplier =
                 firstCustomThenCurrentGenerationSupplier(stableGeneration, unstableGeneration);
         return new SeekCursor<>(
-                        pageCursor, layout, leaf, internal, generationSupplier, exceptionDecorator, NULL_CONTEXT)
+                        pageCursor, layout, leaf, internal, generationSupplier, EMPTY_EXCEPTION_DECORATOR, NULL_CONTEXT)
                 .initialize(
                         rootInitializer(unstableGeneration),
                         rootCatchup,

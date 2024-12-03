@@ -131,14 +131,9 @@ class GenerationSafePointerPair {
      * @param cursor {@link PageCursor} to read from, placed at the beginning of the GSPP.
      * @param stableGeneration stable index generation.
      * @param unstableGeneration unstable index generation.
-     * @param generationTarget target to write the generation of the selected pointer.
      * @return most recent readable pointer, or failure. Check result using {@link #isSuccess(long)}.
      */
-    public static long read(
-            PageCursor cursor,
-            long stableGeneration,
-            long unstableGeneration,
-            GBPTreeGenerationTarget generationTarget) {
+    public static PointerWithGeneration read(PageCursor cursor, long stableGeneration, long unstableGeneration) {
         // Try A
         long generationA = readGeneration(cursor);
         long pointerA = readPointer(cursor);
@@ -160,37 +155,41 @@ class GenerationSafePointerPair {
 
         if (pointerStateA == UNSTABLE) {
             if (pointerStateB == STABLE || pointerStateB == EMPTY) {
-                return buildSuccessfulReadResult(FLAG_SLOT_A, generationA, pointerA, generationTarget);
+                return buildSuccessfulReadResult(FLAG_SLOT_A, generationA, pointerA);
             }
         } else if (pointerStateB == UNSTABLE) {
             if (pointerStateA == STABLE || pointerStateA == EMPTY) {
-                return buildSuccessfulReadResult(FLAG_SLOT_B, generationB, pointerB, generationTarget);
+                return buildSuccessfulReadResult(FLAG_SLOT_B, generationB, pointerB);
             }
         } else if (pointerStateA == STABLE && pointerStateB == STABLE) {
             // compare generation
             if (generationA > generationB) {
-                return buildSuccessfulReadResult(FLAG_SLOT_A, generationA, pointerA, generationTarget);
+                return buildSuccessfulReadResult(FLAG_SLOT_A, generationA, pointerA);
             } else if (generationB > generationA) {
-                return buildSuccessfulReadResult(FLAG_SLOT_B, generationB, pointerB, generationTarget);
+                return buildSuccessfulReadResult(FLAG_SLOT_B, generationB, pointerB);
             }
         } else if (pointerStateA == STABLE) {
-            return buildSuccessfulReadResult(FLAG_SLOT_A, generationA, pointerA, generationTarget);
+            return buildSuccessfulReadResult(FLAG_SLOT_A, generationA, pointerA);
         } else if (pointerStateB == STABLE) {
-            return buildSuccessfulReadResult(FLAG_SLOT_B, generationB, pointerB, generationTarget);
+            return buildSuccessfulReadResult(FLAG_SLOT_B, generationB, pointerB);
         }
 
-        generationTarget.accept(EMPTY_GENERATION);
-        return FLAG_FAIL
-                | FLAG_READ
-                | generationState(generationA, generationB)
-                | ((long) pointerStateA) << SHIFT_STATE_A
-                | ((long) pointerStateB) << SHIFT_STATE_B;
+        return buildFailedReadResult(generationA, generationB, pointerStateA, pointerStateB);
     }
 
-    private static long buildSuccessfulReadResult(
-            long slot, long generation, long pointer, GBPTreeGenerationTarget generationTarget) {
-        generationTarget.accept(generation);
-        return FLAG_SUCCESS | FLAG_READ | slot | pointer;
+    private static PointerWithGeneration buildSuccessfulReadResult(long slot, long generation, long pointer) {
+        return new PointerWithGeneration(FLAG_SUCCESS | FLAG_READ | slot | pointer, generation);
+    }
+
+    private static PointerWithGeneration buildFailedReadResult(
+            long generationA, long generationB, long pointerStateA, long pointerStateB) {
+        return new PointerWithGeneration(
+                FLAG_FAIL
+                        | FLAG_READ
+                        | generationState(generationA, generationB)
+                        | pointerStateA << SHIFT_STATE_A
+                        | pointerStateB << SHIFT_STATE_B,
+                EMPTY_GENERATION);
     }
 
     /**
@@ -326,7 +325,7 @@ class GenerationSafePointerPair {
      * Checks to see if a result from read/write was successful. If not more failure information can be extracted
      * using {@link #failureDescription(long, long, String, long, long, String, String, int)}.
      *
-     * @param result result from {@link #read(PageCursor, long, long, GBPTreeGenerationTarget)} or {@link #write(PageCursor, long, long, long)}.
+     * @param result result from {@link #read(PageCursor, long, long)} or {@link #write(PageCursor, long, long, long)}.
      * @return {@code true} if successful read/write, otherwise {@code false}.
      */
     static boolean isSuccess(long result) {
@@ -334,7 +333,7 @@ class GenerationSafePointerPair {
     }
 
     /**
-     * @param readResult whole read result from {@link #read(PageCursor, long, long, GBPTreeGenerationTarget)}, containing both
+     * @param readResult whole read result from {@link #read(PageCursor, long, long)}, containing both
      * pointer as well as header information about the pointer.
      * @return the pointer-part of {@code readResult}.
      */
@@ -345,7 +344,7 @@ class GenerationSafePointerPair {
     /**
      * NOTE! Use only with write cursor. For read cursor use {@link #failureDescription(long, long, String, long, long)}.
      *
-     * Calling {@link #read(PageCursor, long, long, GBPTreeGenerationTarget)} (potentially also {@link #write(PageCursor, long, long, long)})
+     * Calling {@link #read(PageCursor, long, long)} (potentially also {@link #write(PageCursor, long, long, long)})
      * can fail due to seeing an unexpected state of the two GSPs. Failing right there and then isn't an option
      * due to how the page cache works and that something read from a {@link PageCursor} must not be interpreted
      * until after passing a {@link PageCursor#shouldRetry()} returning {@code false}. This creates a need for
@@ -353,7 +352,7 @@ class GenerationSafePointerPair {
      * the caller which interprets the result fail in a proper place. That place can make use of this method
      * by getting a human-friendly description about the failure.
      *
-     * @param result result from {@link #read(PageCursor, long, long, GBPTreeGenerationTarget)} or
+     * @param result result from {@link #read(PageCursor, long, long)} or
      * {@link #write(PageCursor, long, long, long)}.
      * @param nodeId The id of the node from which result was read.
      * @param pointerType Describing the pointer that was read, such as CHILD, RIGHT_SIBLING, LEFT_SIBLING, SUCCESSOR
@@ -419,7 +418,7 @@ class GenerationSafePointerPair {
      * {@link #assertSuccess(long, long, String, long, long)} instead.
      * Asserts that a result is {@link #isSuccess(long) successful}, otherwise throws {@link IllegalStateException}.
      *
-     * @param result result returned from {@link #read(PageCursor, long, long, GBPTreeGenerationTarget)} or
+     * @param result result returned from {@link #read(PageCursor, long, long)} or
      * {@link #write(PageCursor, long, long, long)}
      * @param nodeId The id of the node from which result was read.
      * @param pointerType Describing the pointer that was read, such as CHILD, RIGHT_SIBLING, LEFT_SIBLING, SUCCESSOR

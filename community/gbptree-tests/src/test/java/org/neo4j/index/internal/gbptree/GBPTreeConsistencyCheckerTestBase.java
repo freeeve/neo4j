@@ -883,10 +883,12 @@ abstract class GBPTreeConsistencyCheckerTestBase<KEY, VALUE> {
                         internalNode.childAt(cursor, 1, treeState.stableGeneration(), treeState.unstableGeneration()));
                 TreeNodeUtil.setKeyCount(cursor, 0);
                 cursor.next(leafToRemove);
-                long leftSibling =
-                        TreeNodeUtil.leftSibling(cursor, treeState.stableGeneration(), treeState.unstableGeneration());
-                long rightSibling =
-                        TreeNodeUtil.rightSibling(cursor, treeState.stableGeneration(), treeState.unstableGeneration());
+                long leftSibling = TreeNodeUtil.leftSibling(
+                                cursor, treeState.stableGeneration(), treeState.unstableGeneration())
+                        .pointer();
+                long rightSibling = TreeNodeUtil.rightSibling(
+                                cursor, treeState.stableGeneration(), treeState.unstableGeneration())
+                        .pointer();
                 if (TreeNodeUtil.isNode(leftSibling)) {
                     cursor.next(GenerationSafePointerPair.pointer(leftSibling));
                     TreeNodeUtil.setRightSibling(

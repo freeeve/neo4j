@@ -52,6 +52,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+import org.assertj.core.api.Assertions;
 import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.junit.jupiter.api.AfterEach;
@@ -203,6 +204,10 @@ public abstract class GBPTreeConcurrencyITBase<KEY, VALUE> {
                 testCoordinator, readerReadySignal, readerStartSignal, endSignal, failHalt, readerError);
         for (int i = 0; i < readers; i++) {
             threadPool.submit(readerTask);
+            if (random.nextBoolean()) {
+                threadPool.submit(new TraversingDownReader(
+                        testCoordinator, readerReadySignal, readerStartSignal, endSignal, failHalt, readerError));
+            }
         }
 
         // and starting the checkpointer
@@ -306,6 +311,7 @@ public abstract class GBPTreeConcurrencyITBase<KEY, VALUE> {
             updateRecentlyInsertedData(readersShouldSee, updatesForNextIteration);
             updatesForNextIteration = generateUpdatesForNextIteration();
             updateWithSoonToBeRemovedData(readersShouldSee, updatesForNextIteration);
+
             currentReaderInstruction.set(newReaderInstruction(minRange, maxRange, readersShouldSee));
         }
 
@@ -553,6 +559,54 @@ public abstract class GBPTreeConcurrencyITBase<KEY, VALUE> {
                 // If we're using a reusable seeker then don't close it now (we'll reuse it for next seek),
                 // instead it will be closed when this thread is done
                 IOUtils.closeAll(useReusableSeeker ? null : cursor);
+            }
+        }
+    }
+
+    private class TraversingDownReader implements Runnable {
+        private final CountDownLatch readerReadySignal;
+        private final CountDownLatch readerStartSignal;
+        private final AtomicBoolean endSignal;
+        private final AtomicBoolean failHalt;
+        private final AtomicReference<Throwable> readerError;
+        private final TestCoordinator testCoordinator;
+
+        TraversingDownReader(
+                TestCoordinator testCoordinator,
+                CountDownLatch readerReadySignal,
+                CountDownLatch readerStartSignal,
+                AtomicBoolean endSignal,
+                AtomicBoolean failHalt,
+                AtomicReference<Throwable> readerError) {
+            this.readerReadySignal = readerReadySignal;
+            this.readerStartSignal = readerStartSignal;
+            this.endSignal = endSignal;
+            this.failHalt = failHalt;
+            this.readerError = readerError;
+            this.testCoordinator = testCoordinator;
+        }
+
+        @Override
+        public void run() {
+            try (Seeker<KEY, VALUE> reusableSeeker = index.allocateSeeker(NULL_CONTEXT)) {
+                readerReadySignal.countDown(); // Ready, set...
+                readerStartSignal.await(); // GO!
+
+                while (!endSignal.get() && !failHalt.get()) {
+                    doRead(reusableSeeker);
+                }
+            } catch (Throwable e) {
+                readerError.set(e);
+                failHalt.set(true);
+            }
+        }
+
+        private void doRead(Seeker<KEY, VALUE> reusableSeeker) throws IOException {
+            ReaderInstruction readerInstruction = testCoordinator.get();
+            long targetValue = random.nextLong(readerInstruction.start(), readerInstruction.end());
+            var seeker = index.seek(reusableSeeker, key(targetValue), key(targetValue));
+            if (seeker.next()) {
+                Assertions.assertThat(keySeed(seeker.key())).isEqualTo(valueSeed(seeker.value()));
             }
         }
     }

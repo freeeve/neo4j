@@ -20,7 +20,6 @@
 package org.neo4j.index.internal.gbptree;
 
 import static java.lang.String.format;
-import static org.neo4j.index.internal.gbptree.GBPTreeGenerationTarget.NO_GENERATION_TARGET;
 import static org.neo4j.index.internal.gbptree.GenerationSafePointerPair.read;
 import static org.neo4j.index.internal.gbptree.Layout.FIXED_SIZE_KEY;
 import static org.neo4j.index.internal.gbptree.TreeNodeUtil.BASE_HEADER_LENGTH;
@@ -324,18 +323,15 @@ final class InternalNodeFixedSize<KEY> implements InternalNodeBehaviour<KEY> {
 
     @Override
     public long childAt(PageCursor cursor, int pos, long stableGeneration, long unstableGeneration) {
-        return childAt(cursor, pos, stableGeneration, unstableGeneration, NO_GENERATION_TARGET);
+        return childWithGenerationAt(cursor, pos, stableGeneration, unstableGeneration)
+                .pointer();
     }
 
     @Override
-    public long childAt(
-            PageCursor cursor,
-            int pos,
-            long stableGeneration,
-            long unstableGeneration,
-            GBPTreeGenerationTarget generationTarget) {
+    public PointerWithGeneration childWithGenerationAt(
+            PageCursor cursor, int pos, long stableGeneration, long unstableGeneration) {
         cursor.setOffset(childOffset(pos));
-        return read(cursor, stableGeneration, unstableGeneration, generationTarget);
+        return read(cursor, stableGeneration, unstableGeneration);
     }
 
     @Override

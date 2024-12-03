@@ -102,7 +102,8 @@ class PointerChecking {
      * @param unstableGeneration Current unstable generation of tree.
      */
     static boolean assertNoSuccessor(PageCursor cursor, long stableGeneration, long unstableGeneration) {
-        long successor = TreeNodeUtil.successor(cursor, stableGeneration, unstableGeneration);
+        long successor = TreeNodeUtil.successor(cursor, stableGeneration, unstableGeneration)
+                .pointer();
         if (TreeNodeUtil.isNode(successor)) {
             throw new TreeInconsistencyException(WRITER_TRAVERSE_OLD_STATE_MESSAGE);
         }

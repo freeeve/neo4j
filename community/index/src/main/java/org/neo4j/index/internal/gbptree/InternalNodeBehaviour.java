@@ -100,10 +100,6 @@ public sealed interface InternalNodeBehaviour<KEY> extends SharedNodeBehaviour<K
 
     long childAt(PageCursor cursor, int pos, long stableGeneration, long unstableGeneration);
 
-    long childAt(
-            PageCursor cursor,
-            int pos,
-            long stableGeneration,
-            long unstableGeneration,
-            GBPTreeGenerationTarget generationTarget);
+    PointerWithGeneration childWithGenerationAt(
+            PageCursor cursor, int pos, long stableGeneration, long unstableGeneration);
 }

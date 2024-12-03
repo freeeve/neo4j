@@ -184,28 +184,17 @@ class GBPTreeConsistencyChecker<KEY> {
         byte nodeType;
         byte treeNodeType;
         int keyCount;
-        long successor;
-
-        long leftSiblingPointer;
-        long rightSiblingPointer;
-        long leftSiblingPointerGeneration;
-        long rightSiblingPointerGeneration;
+        PointerWithGeneration successor;
+        PointerWithGeneration leftSiblingPointer;
+        PointerWithGeneration rightSiblingPointer;
         long currentNodeGeneration;
-        var generationTarget = new GenerationKeeper();
 
         do {
             // for assertSiblings
-            leftSiblingPointer =
-                    TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration, generationTarget);
-            leftSiblingPointerGeneration = generationTarget.generation;
-            rightSiblingPointer =
-                    TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration, generationTarget);
-            rightSiblingPointerGeneration = generationTarget.generation;
-            leftSiblingPointer = pointer(leftSiblingPointer);
-            rightSiblingPointer = pointer(rightSiblingPointer);
+            leftSiblingPointer = TreeNodeUtil.leftSibling(cursor, stableGeneration, unstableGeneration);
+            rightSiblingPointer = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration);
             currentNodeGeneration = TreeNodeUtil.generation(cursor);
-
-            successor = TreeNodeUtil.successor(cursor, stableGeneration, unstableGeneration, generationTarget);
+            successor = TreeNodeUtil.successor(cursor, stableGeneration, unstableGeneration);
 
             keyCount = TreeNodeUtil.keyCount(cursor);
             nodeType = TreeNodeUtil.nodeType(cursor);
@@ -285,12 +274,12 @@ class GBPTreeConsistencyChecker<KEY> {
                 .assertNext(
                         cursor,
                         currentNodeGeneration,
-                        leftSiblingPointer,
-                        leftSiblingPointerGeneration,
-                        rightSiblingPointer,
-                        rightSiblingPointerGeneration,
+                        pointer(leftSiblingPointer.pointer()),
+                        leftSiblingPointer.generation(),
+                        pointer(rightSiblingPointer.pointer()),
+                        rightSiblingPointer.generation(),
                         visitor);
-        checkSuccessorPointerGeneration(cursor, successor, visitor);
+        checkSuccessorPointerGeneration(cursor, successor.pointer(), visitor);
 
         if (!isInternal || !reasonableKeyCount || !nodeMetaReport.isEmpty()) {
             if (isLeaf) {
@@ -312,7 +301,6 @@ class GBPTreeConsistencyChecker<KEY> {
                     level,
                     visitor,
                     cursorContext,
-                    generationTarget,
                     (pos, treeNodeId, generation, childRange) -> {
                         // Add the RightmostInChain in child order, i.e. when visiting and not when checking (which is
                         // done by another thread)
@@ -362,7 +350,6 @@ class GBPTreeConsistencyChecker<KEY> {
                     level,
                     visitor,
                     cursorContext,
-                    generationTarget,
                     (pos, treeNodeId, generation, childRange) -> {
                         goTo(cursor, "child at pos " + pos, treeNodeId);
                         checkSubtree(
@@ -453,7 +440,6 @@ class GBPTreeConsistencyChecker<KEY> {
             int level,
             GBPTreeConsistencyCheckVisitor visitor,
             CursorContext cursorContext,
-            GenerationKeeper generationTarget,
             ChildVisitor<KEY> childVisitor)
             throws IOException {
         long pageId = cursor.getCurrentPageId();
@@ -463,8 +449,6 @@ class GBPTreeConsistencyChecker<KEY> {
         int pos = 0;
         while (pos < keyCount) {
             KEY readKey = layout.newKey();
-            long child;
-            long childGeneration;
             assertNoCrashOrBrokenPointerInGSPP(
                     file,
                     cursor,
@@ -474,9 +458,9 @@ class GBPTreeConsistencyChecker<KEY> {
                     internalNode.childOffset(pos),
                     visitor,
                     reportDirty);
+            PointerWithGeneration child;
             do {
-                child = childAt(cursor, pos, generationTarget);
-                childGeneration = generationTarget.generation;
+                child = childAt(cursor, pos);
                 internalNode.keyAt(cursor, readKey, pos, cursorContext);
             } while (cursor.shouldRetry());
             checkAfterShouldRetry(cursor);
@@ -486,14 +470,12 @@ class GBPTreeConsistencyChecker<KEY> {
                 childRange = childRange.restrictLeft(prev);
             }
 
-            childVisitor.accept(pos, child, childGeneration, childRange);
+            childVisitor.accept(pos, child.pointer(), child.generation(), childRange);
             layout.copyKey(readKey, prev);
             pos++;
         }
 
         // Check last child
-        long child;
-        long childGeneration;
         assertNoCrashOrBrokenPointerInGSPP(
                 file,
                 cursor,
@@ -503,16 +485,16 @@ class GBPTreeConsistencyChecker<KEY> {
                 internalNode.childOffset(pos),
                 visitor,
                 reportDirty);
+        PointerWithGeneration child;
         do {
-            child = childAt(cursor, pos, generationTarget);
-            childGeneration = generationTarget.generation;
+            child = childAt(cursor, pos);
         } while (cursor.shouldRetry());
         checkAfterShouldRetry(cursor);
         var childRange = range.newSubRange(level, pageId);
         if (pos > 0) {
             childRange = childRange.restrictLeft(prev);
         }
-        childVisitor.accept(pos, child, childGeneration, childRange);
+        childVisitor.accept(pos, child.pointer(), child.generation(), childRange);
     }
 
     private static void checkAfterShouldRetry(PageCursor cursor) throws CursorException {
@@ -520,8 +502,8 @@ class GBPTreeConsistencyChecker<KEY> {
         cursor.checkAndClearCursorException();
     }
 
-    private long childAt(PageCursor cursor, int pos, GBPTreeGenerationTarget childGeneration) {
-        return internalNode.childAt(cursor, pos, stableGeneration, unstableGeneration, childGeneration);
+    private PointerWithGeneration childAt(PageCursor cursor, int pos) {
+        return internalNode.childWithGenerationAt(cursor, pos, stableGeneration, unstableGeneration);
     }
 
     private LongList assertKeyOrder(
