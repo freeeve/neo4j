@@ -154,10 +154,10 @@ public abstract class RandomSchemaBase implements Supplier<SchemaRule> {
         long ruleId = nextRuleIdForConstraint();
         int choice = rng.nextInt(12);
         return switch (choice) {
-            case 0 -> ConstraintDescriptorFactory.existsForSchema(nextRelationshipSchema(), false)
+            case 0 -> ConstraintDescriptorFactory.existsForSchema(nextRelationshipSchema(), rng.nextBoolean())
                     .withId(ruleId)
                     .withName(nextName());
-            case 1 -> ConstraintDescriptorFactory.existsForSchema(nextNodeSchema(), false)
+            case 1 -> ConstraintDescriptorFactory.existsForSchema(nextNodeSchema(), rng.nextBoolean())
                     .withId(ruleId)
                     .withName(nextName());
             case 2 -> ConstraintDescriptorFactory.uniqueForSchema(nextNodeSchema())
@@ -188,10 +188,12 @@ public abstract class RandomSchemaBase implements Supplier<SchemaRule> {
                     .withId(ruleId)
                     .withOwnedIndexId(existingIndexId())
                     .withName(nextName());
-            case 10 -> ConstraintDescriptorFactory.typeForSchema(nextRelationshipSchema(), randomAllowedTypes(), false)
+            case 10 -> ConstraintDescriptorFactory.typeForSchema(
+                            nextRelationshipSchema(), randomAllowedTypes(), rng.nextBoolean())
                     .withId(ruleId)
                     .withName(nextName());
-            case 11 -> ConstraintDescriptorFactory.typeForSchema(nextNodeSchema(), randomAllowedTypes(), false)
+            case 11 -> ConstraintDescriptorFactory.typeForSchema(
+                            nextNodeSchema(), randomAllowedTypes(), rng.nextBoolean())
                     .withId(ruleId)
                     .withName(nextName());
             case 12 -> ConstraintDescriptorFactory.relationshipEndpointLabelForRelType(
