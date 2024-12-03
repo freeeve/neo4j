@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.frontend
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionHelpers.equalInAllVersions
 import org.neo4j.cypher.internal.CypherVersionTestSupport
+import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.frontend.helpers.ErrorCollectingContext
 import org.neo4j.cypher.internal.frontend.helpers.NoPlannerName
@@ -49,9 +50,22 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement with CypherV
       "MATCH (a) WHERE ANY (x IN (a)--() WHERE 1=1) RETURN a"
     )
 
+    val expectedStatusDescription =
+      "error: syntax error or access rule violation - invalid use of pattern expression. " +
+        "A pattern expression can only be used to test the existence of a pattern. Use a pattern comprehension instead."
+
     queries.foreach { query =>
       withClue(s"Failing query: $query") {
-        runPipeline(query).map(_.msg) should contain(PatternExpressionInNonExistenceCheck.errorMessage)
+        val errors: Seq[SemanticErrorDef] = runPipeline(query)
+        errors.map(_.msg) should contain(SemanticError.invalidUseOfPatternExpressionMessage)
+        errors.map(_.gqlStatusObject).exists(e =>
+          e.gqlStatus() == "42001" &&
+            e.statusDescription() == "error: syntax error or access rule violation - invalid syntax" &&
+            e.cause().isPresent &&
+            e.cause().get().gqlStatus() == "42I34" &&
+            e.cause().get().statusDescription() == expectedStatusDescription &&
+            e.cause().get().cause().isEmpty
+        ) shouldBe true
       }
     }
   }
@@ -344,4 +358,5 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement with CypherV
 
     context.errors
   }
+
 }

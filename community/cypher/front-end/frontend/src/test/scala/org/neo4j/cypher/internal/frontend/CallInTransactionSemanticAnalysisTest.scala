@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
+import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlHelper.getGql22003
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42I25
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N71
@@ -58,9 +59,21 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |CALL { CREATE (x) } IN TRANSACTIONS
         |RETURN 3 AS result""".stripMargin
     run(query).hasErrors(
-      SemanticError("CALL { ... } IN TRANSACTIONS in a UNION is not supported", p(0, 1, 1)),
-      SemanticError("CALL { ... } IN TRANSACTIONS in a UNION is not supported", p(61, 4, 1)),
-      SemanticError("CALL { ... } IN TRANSACTIONS in a UNION is not supported", p(122, 7, 1))
+      SemanticError(
+        GqlHelper.getGql42001_42N47(0, 1, 1),
+        "CALL { ... } IN TRANSACTIONS in a UNION is not supported",
+        p(0, 1, 1)
+      ),
+      SemanticError(
+        GqlHelper.getGql42001_42N47(61, 4, 1),
+        "CALL { ... } IN TRANSACTIONS in a UNION is not supported",
+        p(61, 4, 1)
+      ),
+      SemanticError(
+        GqlHelper.getGql42001_42N47(122, 7, 1),
+        "CALL { ... } IN TRANSACTIONS in a UNION is not supported",
+        p(122, 7, 1)
+      )
     )
   }
 
@@ -70,7 +83,11 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |RETURN 1 AS result
         |UNION
         |RETURN 2 AS result""".stripMargin
-    run(query).hasError("CALL { ... } IN TRANSACTIONS in a UNION is not supported", p(0, 1, 1))
+    run(query).hasError(
+      GqlHelper.getGql42001_42N47(0, 1, 1),
+      "CALL { ... } IN TRANSACTIONS in a UNION is not supported",
+      p(0, 1, 1)
+    )
   }
 
   test("CALL { ... } IN TRANSACTIONS in second part of UNION") {
@@ -79,7 +96,11 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |UNION
         |CALL { CREATE (x) } IN TRANSACTIONS
         |RETURN 2 AS result""".stripMargin
-    run(query).hasError("CALL { ... } IN TRANSACTIONS in a UNION is not supported", p(25, 3, 1))
+    run(query).hasError(
+      GqlHelper.getGql42001_42N47(25, 3, 1),
+      "CALL { ... } IN TRANSACTIONS in a UNION is not supported",
+      p(25, 3, 1)
+    )
   }
 
   test("CALL { ... } IN TRANSACTIONS with a preceding write clause") {

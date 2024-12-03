@@ -30,6 +30,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite with SemanticAnalysi
   override def defaultQuery: String = s"MATCH $testName RETURN *"
 
   def unboundRepeatableElementsSemanticError(pos: InputPosition): SemanticError = SemanticError(
+    GqlHelper.getGql42001_42N53(pos.offset, pos.line, pos.column),
     "The pattern may yield an infinite number of rows under match mode REPEATABLE ELEMENTS, " +
       "perhaps use a path selector or add an upper bound to your quantified path patterns.",
     pos

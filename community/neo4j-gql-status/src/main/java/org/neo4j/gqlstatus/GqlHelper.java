@@ -465,6 +465,16 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql42001_42N32(String keyword, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N32)
+                        .atPosition(offset, line, column)
+                        .withParam(GqlParams.StringParam.keyword, keyword)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql42001_42N39(int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .atPosition(offset, line, column)
@@ -498,6 +508,24 @@ public class GqlHelper {
                 .withClassification(ErrorClassification.CLIENT_ERROR)
                 .atPosition(offset, line, column)
                 .withCause(getGql42N45(offset, line, column))
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql42001_42N47(int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N47)
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql42001_42N53(int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N53)
+                        .atPosition(offset, line, column)
+                        .build())
                 .build();
     }
 

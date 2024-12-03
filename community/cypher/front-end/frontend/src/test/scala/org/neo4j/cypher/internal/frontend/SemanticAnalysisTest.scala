@@ -106,6 +106,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("Should not allow parameter maps in node pattern in MATCH") {
     run("MATCH (n $foo) RETURN 1").hasError(
+      GqlHelper.getGql42001_42N32("MATCH", 9, 1, 10),
       "Parameter maps cannot be used in `MATCH` patterns (use a literal map instead, e.g. `{id: $foo.id}`)",
       p(9, 1, 10)
     )
@@ -113,6 +114,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("Should not allow parameter maps in node pattern in MERGE") {
     run("MERGE (n $foo) RETURN 1").hasError(
+      GqlHelper.getGql42001_42N32("MERGE", 9, 1, 10),
       "Parameter maps cannot be used in `MERGE` patterns (use a literal map instead, e.g. `{id: $foo.id}`)",
       p(9, 1, 10)
     )
@@ -120,6 +122,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("Should not allow parameter maps in relationship pattern in MATCH") {
     run("MATCH (n)-[r $foo]->() RETURN 1").hasError(
+      GqlHelper.getGql42001_42N32("MATCH", 13, 1, 14),
       "Parameter maps cannot be used in `MATCH` patterns (use a literal map instead, e.g. `{id: $foo.id}`)",
       p(13, 1, 14)
     )
@@ -127,6 +130,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("Should not allow parameter maps in relationship pattern in MERGE") {
     run("MERGE (n)-[r:R $foo]->() RETURN 1").hasError(
+      GqlHelper.getGql42001_42N32("MERGE", 15, 1, 16),
       "Parameter maps cannot be used in `MERGE` patterns (use a literal map instead, e.g. `{id: $foo.id}`)",
       p(15, 1, 16)
     )

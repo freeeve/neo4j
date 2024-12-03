@@ -824,7 +824,7 @@ sealed trait Union extends Query {
     SubqueryCall
       .findTransactionalSubquery(query)
       .foldSemanticCheck { nestedCallInTransactions =>
-        error("CALL { ... } IN TRANSACTIONS in a UNION is not supported", nestedCallInTransactions.position)
+        error(SemanticError.invalidUseOfUnionAndCIT(nestedCallInTransactions.position))
       }
 }
 

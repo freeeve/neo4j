@@ -122,13 +122,9 @@ object PatternExpressionInNonExistenceCheck extends ExpectedBooleanTypeCheck {
         errors => SkipChildren(errors :+ SemanticError(errorMessageForSizeFunction, p.position))
 
       case p: PatternExpression if !isExpectedTypeBoolean(baseState.semanticTable(), p) =>
-        errors => SkipChildren(errors :+ SemanticError(errorMessage, p.position))
+        errors => SkipChildren(errors :+ SemanticError.invalidUseOfPatternExpression(p.position))
     }
   }
-
-  val errorMessage: String = "A pattern expression should only be used in order to test the existence of a pattern. " +
-    "It should therefore only be used in contexts that evaluate to a boolean, e.g. inside the function exists() or in a WHERE-clause. " +
-    "No other uses are allowed, instead they should be replaced by a pattern comprehension."
 
   val errorMessageForSizeFunction: String =
     "A pattern expression should only be used in order to test the existence of a pattern. " +

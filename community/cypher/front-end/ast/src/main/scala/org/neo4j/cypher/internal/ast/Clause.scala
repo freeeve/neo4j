@@ -866,12 +866,7 @@ case class Match(
 
   private def checkRepeatableElements(state: SemanticState): SemanticCheckResult = {
     val errors = pattern.patternParts.collect {
-      case part if !part.isBounded =>
-        SemanticError(
-          "The pattern may yield an infinite number of rows under match mode REPEATABLE ELEMENTS, " +
-            "perhaps use a path selector or add an upper bound to your quantified path patterns.",
-          part.position
-        )
+      case part if !part.isBounded => SemanticError.unsafeUsageOfRepeatableElements(part.position)
     }
     semantics.SemanticCheckResult(state, errors)
   }
@@ -1300,7 +1295,7 @@ case class Delete(expressions: Seq[Expression], forced: Boolean)(val position: I
 
   private def warnAboutDeletingLabels =
     expressions.filter(e => e.isInstanceOf[LabelExpressionPredicate]) map {
-      e => SemanticError("DELETE doesn't support removing labels from a node. Try REMOVE.", e.position)
+      e => SemanticError.invalidDelete(e.position)
     }
 
   override def mapExpressions(f: Expression => Expression): UpdateClause = copy(expressions.map(f))(this.position)

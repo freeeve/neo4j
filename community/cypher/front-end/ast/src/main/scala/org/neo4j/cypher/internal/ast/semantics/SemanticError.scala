@@ -1013,6 +1013,55 @@ object SemanticError {
       position
     )
   }
+
+  def invalidUseOfParameterMap(keyword: String, param: String, position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42N32(keyword, position.offset, position.line, position.column),
+      s"Parameter maps cannot be used in `$keyword` patterns (use a literal map instead, e.g. `{id: $$$param.id}`)",
+      position
+    )
+  }
+
+  def invalidUseOfPatternExpression(position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I34)
+        .atPosition(position.offset, position.line, position.column)
+        .build())
+      .build()
+
+    SemanticError(gql, invalidUseOfPatternExpressionMessage, position)
+  }
+
+  val invalidUseOfPatternExpressionMessage: String =
+    "A pattern expression should only be used in order to test the existence of a pattern. " +
+      "It should therefore only be used in contexts that evaluate to a boolean, e.g. inside the function exists() or in a WHERE-clause. " +
+      "No other uses are allowed, instead they should be replaced by a pattern comprehension."
+
+  def invalidUseOfUnionAndCIT(position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N47(position.offset, position.line, position.column)
+    SemanticError(gql, "CALL { ... } IN TRANSACTIONS in a UNION is not supported", position)
+  }
+
+  def invalidDelete(position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I26)
+        .atPosition(position.offset, position.line, position.column)
+        .build())
+      .build()
+
+    SemanticError(gql, "DELETE doesn't support removing labels from a node. Try REMOVE.", position)
+  }
+
+  def unsafeUsageOfRepeatableElements(position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42N53(position.offset, position.line, position.column),
+      "The pattern may yield an infinite number of rows under match mode REPEATABLE ELEMENTS, " +
+        "perhaps use a path selector or add an upper bound to your quantified path patterns.",
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

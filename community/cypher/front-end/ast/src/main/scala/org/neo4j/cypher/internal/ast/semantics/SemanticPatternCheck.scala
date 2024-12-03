@@ -941,10 +941,7 @@ object checkNoParamMapsWhenMatching {
 
   def apply(properties: Option[Expression], ctx: SemanticContext): SemanticCheck = (properties, ctx) match {
     case (Some(e: Parameter), ctx) if ctx == Match || ctx == Merge =>
-      SemanticError(
-        s"Parameter maps cannot be used in `${ctx.name}` patterns (use a literal map instead, e.g. `{id: $$${e.name}.id}`)",
-        e.position
-      )
+      SemanticError.invalidUseOfParameterMap(ctx.name, e.name, e.position)
     case _ =>
       None
   }
