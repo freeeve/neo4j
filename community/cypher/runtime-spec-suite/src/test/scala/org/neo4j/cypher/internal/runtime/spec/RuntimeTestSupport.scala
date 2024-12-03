@@ -82,7 +82,13 @@ import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualValues
 
+import java.io.PrintStream
+import java.time.temporal.ChronoUnit
 import java.util.Collections
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.TimeUnit
+
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * This class contains various ugliness needed to perform physical compilation
@@ -271,6 +277,18 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
       VirtualValues.EMPTY_MAP,
       QueryExecutionConfiguration.DEFAULT_CONFIG
     )
+  }
+
+  def newTx(transactionType: KernelTransaction.Type = defaultTransactionType)
+    : (InternalTransaction, TransactionalContext) = {
+    val tx = cypherGraphDb.beginTransaction(transactionType, LoginContext.AUTH_DISABLED)
+    val txContext = contextFactory.newContext(
+      tx,
+      "<<queryText>>",
+      VirtualValues.EMPTY_MAP,
+      QueryExecutionConfiguration.DEFAULT_CONFIG
+    )
+    (tx, txContext)
   }
 
   def restartTx(transactionType: KernelTransaction.Type = defaultTransactionType): Unit = {
@@ -542,6 +560,34 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
     )
   }
 
+  def executeAndConsumeTransactionallyWithTimeOut(
+    logicalQuery: LogicalQuery,
+    runtime: CypherRuntime[CONTEXT],
+    parameters: Map[String, Any] = Map.empty,
+    profileAssertion: Option[QueryProfile => Unit] = None,
+    timeOutSeconds: Int,
+    prePopulateResults: Boolean = true
+  ): IndexedSeq[Array[AnyValue]] = {
+    val subscriber = newRecordingQuerySubscriber
+    runTransactionallyWithTimeOut(
+      logicalQuery,
+      runtime,
+      NoInput,
+      (_, result) => {
+        val recordingRuntimeResult = newRecordingRuntimeResult(result, subscriber)
+        val seq = recordingRuntimeResult.awaitAll()
+        profileAssertion.foreach(_(recordingRuntimeResult.runtimeResult.queryProfile()))
+        recordingRuntimeResult.runtimeResult.close()
+        seq
+      },
+      subscriber,
+      parameters,
+      profile = profileAssertion.isDefined,
+      timeOutSeconds,
+      prePopulateResults
+    )
+  }
+
   override def executeAndConsumeTransactionallyNonRecording(
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT],
@@ -742,6 +788,51 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
     prePopulateResults: Boolean
   ): RESULT = {
     val tx = cypherGraphDb.beginTransaction(Type.EXPLICIT, LoginContext.AUTH_DISABLED)
+    val txContext = contextFactory.newContext(
+      tx,
+      "<<queryText>>",
+      VirtualValues.EMPTY_MAP,
+      QueryExecutionConfiguration.DEFAULT_CONFIG
+    )
+    val queryContext = newQueryContext(txContext)
+    try {
+      val executionPlan = compileWithTx(logicalQuery, runtime, queryContext)._1
+      runWithTx(
+        executionPlan,
+        input,
+        resultMapper,
+        subscriber,
+        profile = profile,
+        parameters,
+        tx,
+        txContext,
+        prePopulateResults
+      )
+    } finally {
+      queryContext.resources.close()
+      txContext.close()
+      tx.close()
+    }
+  }
+
+  private def runTransactionallyWithTimeOut[RESULT](
+    logicalQuery: LogicalQuery,
+    runtime: CypherRuntime[CONTEXT],
+    input: InputDataStream,
+    resultMapper: (CONTEXT, RuntimeResult) => RESULT,
+    subscriber: QuerySubscriber,
+    parameters: Map[String, Any],
+    profile: Boolean,
+    timeOutSeconds: Int,
+    prePopulateResults: Boolean
+  ): RESULT = {
+    val tx = cypherGraphDb.beginTransaction(
+      Type.EXPLICIT,
+      LoginContext.AUTH_DISABLED,
+      ClientConnectionInfo.EMBEDDED_CONNECTION,
+      timeOutSeconds,
+      TimeUnit.SECONDS
+    )
     val txContext = contextFactory.newContext(
       tx,
       "<<queryText>>",

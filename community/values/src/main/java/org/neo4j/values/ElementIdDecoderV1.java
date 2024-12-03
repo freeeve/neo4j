@@ -43,6 +43,14 @@ public class ElementIdDecoderV1 implements ElementIdDecoder.VersionedElementIdDe
         return decodeDatabase(elementId);
     }
 
+    public long decodeElementId(String elementId) {
+        return decode(elementId).entityId;
+    }
+
+    public EntityType decodeElementType(String elementId) {
+        return decode(elementId).entityType;
+    }
+
     protected record ElementId(long entityId, EntityType entityType, UUID database) {}
 
     protected static ElementId decode(String id, EntityType expectedType) {

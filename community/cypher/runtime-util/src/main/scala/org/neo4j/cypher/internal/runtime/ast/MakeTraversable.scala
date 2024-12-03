@@ -36,7 +36,8 @@ object MakeTraversable {
     alwaysParens = false,
     alwaysBacktick = false,
     preferSingleQuotes = true,
-    sensitiveParamsAsParams = false
+    sensitiveParamsAsParams = false,
+    javaCompatible = false
   )
 
   private object EXTENSION extends ExpressionStringifier.Extension {

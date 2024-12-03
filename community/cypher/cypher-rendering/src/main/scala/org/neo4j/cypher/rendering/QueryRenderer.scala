@@ -75,7 +75,8 @@ object QueryRenderer {
       alwaysParens = !pretty,
       alwaysBacktick = !pretty,
       preferSingleQuotes = false,
-      sensitiveParamsAsParams = !pretty
+      sensitiveParamsAsParams = !pretty,
+      javaCompatible = false
     )
   }
 }

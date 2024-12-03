@@ -55,7 +55,8 @@ object TraversalEndpoint {
     alwaysParens = false,
     alwaysBacktick = false,
     preferSingleQuotes = true,
-    sensitiveParamsAsParams = false
+    sensitiveParamsAsParams = false,
+    javaCompatible = false
   )
 
   private object TraversalEndpointExpressionStringify extends ExpressionStringifier.Extension {

@@ -69,6 +69,7 @@ import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.HasLabelsOrTypes
 import org.neo4j.cypher.internal.expressions.HasTypes
 import org.neo4j.cypher.internal.expressions.In
+import org.neo4j.cypher.internal.expressions.IntegerLiteral
 import org.neo4j.cypher.internal.expressions.InvalidNotEquals
 import org.neo4j.cypher.internal.expressions.IsNotNull
 import org.neo4j.cypher.internal.expressions.IsNull
@@ -155,8 +156,19 @@ private class DefaultExpressionStringifier(
   alwaysParens: Boolean,
   alwaysBacktick: Boolean,
   preferSingleQuotes: Boolean,
-  sensitiveParamsAsParams: Boolean
+  sensitiveParamsAsParams: Boolean,
+  javaCompatible: Boolean
 ) extends ExpressionStringifier {
+
+  // There is an APOC dependency on this constructor in apoc.util.LogsUtil
+  // Any change to this constructor will break APOC.
+  def this(
+    extensionStringifier: ExpressionStringifier.Extension,
+    alwaysParens: Boolean,
+    alwaysBacktick: Boolean,
+    preferSingleQuotes: Boolean,
+    sensitiveParamsAsParams: Boolean
+  ) = this(extensionStringifier, alwaysParens, alwaysBacktick, preferSingleQuotes, sensitiveParamsAsParams, false)
 
   override val patterns: PatternStringifier = PatternStringifier(this)
 
@@ -196,7 +208,14 @@ private class DefaultExpressionStringifier(
         quote(txt)
 
       case l: Literal =>
-        l.asCanonicalStringVal
+        if (javaCompatible) {
+          l match {
+            case n: IntegerLiteral if n.value > Int.MaxValue => n.value.toString + "L"
+            case _                                           => l.asCanonicalStringVal
+          }
+        } else {
+          l.asCanonicalStringVal
+        }
 
       // Special case for SIMPLE CASE, when it is an equals, remove the LHS and =
       case e: Equals if isCaseExpression => inner(ast)(e.rhs)
@@ -682,13 +701,15 @@ object ExpressionStringifier {
     alwaysParens: Boolean,
     alwaysBacktick: Boolean,
     preferSingleQuotes: Boolean,
-    sensitiveParamsAsParams: Boolean
+    sensitiveParamsAsParams: Boolean,
+    javaCompatible: Boolean
   ): ExpressionStringifier = new DefaultExpressionStringifier(
     extensionStringifier,
     alwaysParens,
     alwaysBacktick,
     preferSingleQuotes,
-    sensitiveParamsAsParams
+    sensitiveParamsAsParams,
+    javaCompatible
   )
 
   def apply(
@@ -702,7 +723,8 @@ object ExpressionStringifier {
     alwaysParens,
     alwaysBacktick,
     preferSingleQuotes,
-    sensitiveParamsAsParams
+    sensitiveParamsAsParams,
+    false
   )
 
   /**

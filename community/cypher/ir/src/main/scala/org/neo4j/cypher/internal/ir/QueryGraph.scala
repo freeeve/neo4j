@@ -795,6 +795,7 @@ object QueryGraph {
     alwaysParens = false,
     alwaysBacktick = false,
     preferSingleQuotes = false,
-    sensitiveParamsAsParams = false
+    sensitiveParamsAsParams = false,
+    javaCompatible = false
   )
 }

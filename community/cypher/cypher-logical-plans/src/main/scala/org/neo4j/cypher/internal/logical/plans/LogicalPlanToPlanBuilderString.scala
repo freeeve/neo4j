@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.logical.plans
 import org.apache.commons.text.StringEscapeUtils
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier.Extension
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
@@ -84,7 +85,16 @@ import org.neo4j.graphdb.schema.IndexType
 import scala.collection.mutable
 
 object LogicalPlanToPlanBuilderString {
-  private val expressionStringifier = ExpressionStringifier(expressionStringifierExtension, preferSingleQuotes = true)
+
+  private val expressionStringifier =
+    ExpressionStringifier(
+      Extension.simple(expressionStringifierExtension),
+      alwaysParens = false,
+      alwaysBacktick = false,
+      preferSingleQuotes = true,
+      sensitiveParamsAsParams = false,
+      javaCompatible = true
+    )
 
   /**
    * Generates a string that plays nicely together with `AbstractLogicalPlanBuilder`.
