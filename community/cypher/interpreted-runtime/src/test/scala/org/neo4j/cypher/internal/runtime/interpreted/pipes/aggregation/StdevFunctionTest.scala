@@ -96,7 +96,7 @@ class StdevSampleTest extends CypherFunSuite with StdevTest {
     val exceptionCause = exception.cause().get()
     exceptionCause.gqlStatus() should be("22N01")
     exceptionCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value Char('a') to be of type INTEGER, FLOAT or NULL, but was of type org.neo4j.values.storable.CharValue."
+      "error: data exception - invalid type. Expected the value Char('a') to be of type INTEGER, FLOAT or NULL, but was of type Char."
     )
 
     exceptionCause.cause().isEmpty should be(true)
@@ -114,12 +114,12 @@ class StdevSampleTest extends CypherFunSuite with StdevTest {
     val exceptionCause = exception.cause().get()
     exceptionCause.gqlStatus() should be("22N01")
     exceptionCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value String(\"abc\") to be of type INTEGER, FLOAT or NULL, but was of type org.neo4j.values.storable.UTF8StringValue."
+      "error: data exception - invalid type. Expected the value String(\"abc\") to be of type INTEGER, FLOAT or NULL, but was of type String."
     )
     exception.cause().isEmpty should be(false)
   }
 
-  test("stdev cannot duration") {
+  test("stdev cannot handle duration values") {
     val values = List(DurationValue.duration(0, 0, 10, 0))
     val exception = intercept[CypherTypeException](getStdev(values))
     exception.gqlStatus() should be("22N38")
@@ -131,7 +131,7 @@ class StdevSampleTest extends CypherFunSuite with StdevTest {
     val exceptionCause = exception.cause().get()
     exceptionCause.gqlStatus() should be("22N01")
     exceptionCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value PT10S to be of type INTEGER, FLOAT or NULL, but was of type org.neo4j.values.storable.DurationValue."
+      "error: data exception - invalid type. Expected the value PT10S to be of type INTEGER, FLOAT or NULL, but was of type Duration."
     )
     exception.cause().isEmpty should be(false)
   }
@@ -187,7 +187,7 @@ class StdevPopulationTest extends CypherFunSuite with StdevTest {
     val exceptionCause = exception.cause().get()
     exceptionCause.gqlStatus() should be("22N01")
     exceptionCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value Char('a') to be of type INTEGER, FLOAT or NULL, but was of type org.neo4j.values.storable.CharValue."
+      "error: data exception - invalid type. Expected the value Char('a') to be of type INTEGER, FLOAT or NULL, but was of type Char."
     )
 
     exceptionCause.cause().isEmpty should be(true)
@@ -205,12 +205,12 @@ class StdevPopulationTest extends CypherFunSuite with StdevTest {
     val exceptionCause = exception.cause().get()
     exceptionCause.gqlStatus() should be("22N01")
     exceptionCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value String(\"abc\") to be of type INTEGER, FLOAT or NULL, but was of type org.neo4j.values.storable.UTF8StringValue."
+      "error: data exception - invalid type. Expected the value String(\"abc\") to be of type INTEGER, FLOAT or NULL, but was of type String."
     )
     exception.cause().isEmpty should be(false)
   }
 
-  test("stdevp cannot duration") {
+  test("stdevp cannot handle duration values") {
     val values = List(DurationValue.duration(0, 0, 10, 0))
     val exception = intercept[CypherTypeException](getStdev(values))
     exception.gqlStatus() should be("22N38")
@@ -222,7 +222,7 @@ class StdevPopulationTest extends CypherFunSuite with StdevTest {
     val exceptionCause = exception.cause().get()
     exceptionCause.gqlStatus() should be("22N01")
     exceptionCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value PT10S to be of type INTEGER, FLOAT or NULL, but was of type org.neo4j.values.storable.DurationValue."
+      "error: data exception - invalid type. Expected the value PT10S to be of type INTEGER, FLOAT or NULL, but was of type Duration."
     )
     exception.cause().isEmpty should be(false)
   }

@@ -108,7 +108,7 @@ public class GqlHelper {
             String fun, String component, String valueType, Number lower, Number upper, Object value) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N38)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
-                .withParam(GqlParams.StringParam.fun, fun)
+                .withParam(GqlParams.StringParam.value, fun)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N03)
                         .withClassification(ErrorClassification.CLIENT_ERROR)
                         .withParam(GqlParams.StringParam.component, component)
@@ -288,13 +288,24 @@ public class GqlHelper {
     public static ErrorGqlStatusObject getGql22N38_22N03(
             String fun, String component, String valueType, Number lower, Number upper, Number value) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N38)
-                .withParam(GqlParams.StringParam.fun, fun)
+                .withParam(GqlParams.StringParam.value, GqlParams.StringParam.fun.process(fun))
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N03)
                         .withParam(GqlParams.StringParam.component, component)
                         .withParam(GqlParams.StringParam.valueType, valueType)
                         .withParam(GqlParams.NumberParam.lower, lower)
                         .withParam(GqlParams.NumberParam.upper, upper)
                         .withParam(GqlParams.StringParam.value, String.valueOf(value))
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql22N38_22NB1(
+            String function, List<String> expectedTypeList, String actualType) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N38)
+                .withParam(GqlParams.StringParam.value, function)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB1)
+                        .withParam(GqlParams.ListParam.valueTypeList, expectedTypeList)
+                        .withParam(GqlParams.StringParam.input, actualType)
                         .build())
                 .build();
     }

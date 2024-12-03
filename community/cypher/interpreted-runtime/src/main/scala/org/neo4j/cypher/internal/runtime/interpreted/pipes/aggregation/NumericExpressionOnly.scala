@@ -36,7 +36,7 @@ trait NumericExpressionOnly extends AggregationFunction {
       case IsNoValue()         => onNoValue(state)
       case number: NumberValue => f(number)
       case _ =>
-        val objType = if (obj == null) "null" else obj.getClass.getName
+        val objType = if (obj == null) "null" else obj.getTypeName
         throw CypherTypeException.onlyNumericalValuesOrNullAllowed(s"$name($value)", String.valueOf(obj), objType)
     }
   }
