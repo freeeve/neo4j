@@ -26,54 +26,139 @@ import org.neo4j.cypher.internal.ast.ShowConstraintType
 import org.neo4j.cypher.internal.ast.ShowFunctionType
 import org.neo4j.cypher.internal.ast.ShowIndexType
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.util.attribution.IdGen
+import org.neo4j.cypher.internal.util.attribution.SameId
 
 case class ShowIndexes(
   indexType: ShowIndexType,
   defaultColumns: List[ShowColumn],
   yieldColumns: List[CommandResultItem],
-  yieldAll: Boolean
-)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen)
+  yieldAll: Boolean,
+  argumentIds: Set[LogicalVariable]
+)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): ShowIndexes =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): ShowIndexes =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+}
 
 case class ShowConstraints(
   constraintType: ShowConstraintType,
   defaultColumns: List[ShowColumn],
   yieldColumns: List[CommandResultItem],
-  yieldAll: Boolean
-)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen)
+  yieldAll: Boolean,
+  argumentIds: Set[LogicalVariable]
+)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): ShowConstraints =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): ShowConstraints =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+}
 
 case class ShowProcedures(
   executableBy: Option[ExecutableBy],
   defaultColumns: List[ShowColumn],
   yieldColumns: List[CommandResultItem],
-  yieldAll: Boolean
-)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen)
+  yieldAll: Boolean,
+  argumentIds: Set[LogicalVariable]
+)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): ShowProcedures =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): ShowProcedures =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+}
 
 case class ShowFunctions(
   functionType: ShowFunctionType,
   executableBy: Option[ExecutableBy],
   defaultColumns: List[ShowColumn],
   yieldColumns: List[CommandResultItem],
-  yieldAll: Boolean
-)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen)
+  yieldAll: Boolean,
+  argumentIds: Set[LogicalVariable]
+)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): ShowFunctions =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): ShowFunctions =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+}
 
 case class ShowTransactions(
   ids: Either[List[String], Expression],
   defaultColumns: List[ShowColumn],
   yieldColumns: List[CommandResultItem],
-  yieldAll: Boolean
-)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen)
+  yieldAll: Boolean,
+  argumentIds: Set[LogicalVariable]
+)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): ShowTransactions =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): ShowTransactions =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+
+  override def usedVariables: Set[LogicalVariable] = ids.map(_.dependencies).getOrElse(Set.empty)
+}
 
 case class TerminateTransactions(
   ids: Either[List[String], Expression],
   defaultColumns: List[ShowColumn],
   yieldColumns: List[CommandResultItem],
-  yieldAll: Boolean
-)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen)
+  yieldAll: Boolean,
+  argumentIds: Set[LogicalVariable]
+)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): TerminateTransactions =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): TerminateTransactions =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+
+  override def usedVariables: Set[LogicalVariable] = ids.map(_.dependencies).getOrElse(Set.empty)
+}
 
 case class ShowSettings(
   names: Either[List[String], Expression],
   defaultColumns: List[ShowColumn],
   yieldColumns: List[CommandResultItem],
-  yieldAll: Boolean
-)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen)
+  yieldAll: Boolean,
+  argumentIds: Set[LogicalVariable]
+)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): ShowSettings =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): ShowSettings =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+
+  override def usedVariables: Set[LogicalVariable] = names.map(_.dependencies).getOrElse(Set.empty)
+}

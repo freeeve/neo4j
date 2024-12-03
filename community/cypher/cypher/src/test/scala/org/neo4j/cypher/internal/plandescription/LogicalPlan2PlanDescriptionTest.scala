@@ -3380,32 +3380,32 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
   test("ShowIndexes") {
     assertGood(
-      attach(ShowIndexes(AllIndexes, List.empty, List.empty, yieldAll = true), 1.0),
+      attach(ShowIndexes(AllIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", NoChildren, Seq(details("allIndexes, allColumns")), Set.empty)
     )
 
     assertGood(
-      attach(ShowIndexes(RangeIndexes, List.empty, List.empty, yieldAll = false), 1.0),
+      attach(ShowIndexes(RangeIndexes, List.empty, List.empty, yieldAll = false, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", NoChildren, Seq(details("rangeIndexes, defaultColumns")), Set.empty)
     )
 
     assertGood(
-      attach(ShowIndexes(FulltextIndexes, List.empty, List.empty, yieldAll = true), 1.0),
+      attach(ShowIndexes(FulltextIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", NoChildren, Seq(details("fulltextIndexes, allColumns")), Set.empty)
     )
 
     assertGood(
-      attach(ShowIndexes(TextIndexes, List.empty, List.empty, yieldAll = true), 1.0),
+      attach(ShowIndexes(TextIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", NoChildren, Seq(details("textIndexes, allColumns")), Set.empty)
     )
 
     assertGood(
-      attach(ShowIndexes(PointIndexes, List.empty, List.empty, yieldAll = true), 1.0),
+      attach(ShowIndexes(PointIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", NoChildren, Seq(details("pointIndexes, allColumns")), Set.empty)
     )
 
     assertGood(
-      attach(ShowIndexes(VectorIndexes, List.empty, List.empty, yieldAll = true), 1.0),
+      attach(ShowIndexes(VectorIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
       planDescription(id, "ShowIndexes", NoChildren, Seq(details("vectorIndexes, allColumns")), Set.empty)
     )
 
@@ -3419,7 +3419,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
             CommandResultItem("yyy", varFor("zzz"))(pos),
             CommandResultItem("vvv", varFor("vvv"))(pos)
           ),
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4328,7 +4329,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           constraintType = AllConstraints,
           List.empty,
           List.empty,
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4341,7 +4343,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           constraintType = UniqueConstraints.cypher25,
           List.empty,
           List.empty,
-          yieldAll = true
+          yieldAll = true,
+          Set.empty
         ),
         1.0
       ),
@@ -4360,7 +4363,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           constraintType = NodeUniqueConstraints.cypher5,
           List.empty,
           List.empty,
-          yieldAll = true
+          yieldAll = true,
+          Set.empty
         ),
         1.0
       ),
@@ -4379,7 +4383,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           constraintType = RelUniqueConstraints.cypher25,
           List.empty,
           List.empty,
-          yieldAll = true
+          yieldAll = true,
+          Set.empty
         ),
         1.0
       ),
@@ -4398,7 +4403,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           constraintType = KeyConstraints,
           List.empty,
           List.empty,
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4411,7 +4417,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           constraintType = NodeKeyConstraints,
           List.empty,
           List.empty,
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4424,7 +4431,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           constraintType = RelKeyConstraints,
           List.empty,
           List.empty,
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4443,7 +4451,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           constraintType = PropExistsConstraints.cypher5,
           List.empty,
           List.empty,
-          yieldAll = true
+          yieldAll = true,
+          Set.empty
         ),
         1.0
       ),
@@ -4456,7 +4465,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           constraintType = NodePropExistsConstraints.cypher25,
           List.empty,
           List.empty,
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4475,7 +4485,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           constraintType = RelPropExistsConstraints.cypher5,
           List.empty,
           List.empty,
-          yieldAll = true
+          yieldAll = true,
+          Set.empty
         ),
         1.0
       ),
@@ -4494,7 +4505,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           constraintType = AllExistsConstraints,
           List.empty,
           List.empty,
-          yieldAll = true
+          yieldAll = true,
+          Set.empty
         ),
         1.0
       ),
@@ -4507,7 +4519,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           constraintType = NodeAllExistsConstraints,
           List.empty,
           List.empty,
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4526,7 +4539,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           constraintType = RelAllExistsConstraints,
           List.empty,
           List.empty,
-          yieldAll = true
+          yieldAll = true,
+          Set.empty
         ),
         1.0
       ),
@@ -4545,7 +4559,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           constraintType = PropTypeConstraints,
           List.empty,
           List.empty,
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4564,7 +4579,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           constraintType = NodePropTypeConstraints,
           List.empty,
           List.empty,
-          yieldAll = true
+          yieldAll = true,
+          Set.empty
         ),
         1.0
       ),
@@ -4587,7 +4603,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
             CommandResultItem("yyy", varFor("zzz"))(pos),
             CommandResultItem("vvv", varFor("vvv"))(pos)
           ),
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4603,7 +4620,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
   test("ShowProcedures") {
     assertGood(
-      attach(ShowProcedures(None, List.empty, List.empty, yieldAll = false), 1.0),
+      attach(ShowProcedures(None, List.empty, List.empty, yieldAll = false, Set.empty), 1.0),
       planDescription(
         id,
         "ShowProcedures",
@@ -4614,7 +4631,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     )
 
     assertGood(
-      attach(ShowProcedures(Some(CurrentUser), List.empty, List.empty, yieldAll = true), 1.0),
+      attach(ShowProcedures(Some(CurrentUser), List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
       planDescription(
         id,
         "ShowProcedures",
@@ -4634,7 +4651,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
             CommandResultItem("yyy", varFor("zzz"))(pos),
             CommandResultItem("vvv", varFor("vvv"))(pos)
           ),
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4650,7 +4668,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
   test("ShowFunctions") {
     assertGood(
-      attach(ShowFunctions(AllFunctions, None, List.empty, List.empty, yieldAll = false), 1.0),
+      attach(ShowFunctions(AllFunctions, None, List.empty, List.empty, yieldAll = false, Set.empty), 1.0),
       planDescription(
         id,
         "ShowFunctions",
@@ -4662,7 +4680,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
     assertGood(
       attach(
-        ShowFunctions(BuiltInFunctions, Some(CurrentUser), List.empty, List.empty, yieldAll = true),
+        ShowFunctions(BuiltInFunctions, Some(CurrentUser), List.empty, List.empty, yieldAll = true, Set.empty),
         1.0
       ),
       planDescription(
@@ -4685,7 +4703,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
             CommandResultItem("yyy", varFor("zzz"))(pos),
             CommandResultItem("vvv", varFor("vvv"))(pos)
           ),
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4702,7 +4721,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
   test("ShowSettings") {
     val defaultColumns = List("xxx", "yyy").map(s => ShowColumn(s)(pos))
     assertGood(
-      attach(ShowSettings(Left(List.empty[String]), defaultColumns, List.empty, yieldAll = true), 1.0),
+      attach(ShowSettings(Left(List.empty[String]), defaultColumns, List.empty, yieldAll = true, Set.empty), 1.0),
       planDescription(
         id,
         "ShowSettings",
@@ -4714,7 +4733,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
     assertGood(
       attach(
-        ShowSettings(Left(List("Foo", "Bar")), defaultColumns, List.empty, yieldAll = false),
+        ShowSettings(Left(List("Foo", "Bar")), defaultColumns, List.empty, yieldAll = false, Set.empty),
         1.0
       ),
       planDescription(
@@ -4736,7 +4755,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
             CommandResultItem("yyy", varFor("zzz"))(pos),
             CommandResultItem("vvv", varFor("vvv"))(pos)
           ),
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4754,7 +4774,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     val defaultColumns = List("xxx", "yyy").map(s => ShowColumn(s)(pos))
 
     assertGood(
-      attach(ShowTransactions(Left(List.empty), defaultColumns, List.empty, yieldAll = false), 1.0),
+      attach(ShowTransactions(Left(List.empty), defaultColumns, List.empty, yieldAll = false, Set.empty), 1.0),
       planDescription(
         id,
         "ShowTransactions",
@@ -4770,7 +4790,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Left(List("db1-transaction-123")),
           defaultColumns,
           List.empty,
-          yieldAll = true
+          yieldAll = true,
+          Set.empty
         ),
         1.0
       ),
@@ -4793,7 +4814,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
             CommandResultItem("yyy", varFor("zzz"))(pos),
             CommandResultItem("vvv", varFor("vvv"))(pos)
           ),
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4812,7 +4834,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Right(parameter("foo", CTAny)),
           defaultColumns,
           List.empty,
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4831,7 +4854,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Right(varFor("foo")),
           defaultColumns,
           List.empty,
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4850,7 +4874,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Right(Add(varFor("foo"), stringLiteral("123"))(pos)),
           defaultColumns,
           List.empty,
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4869,7 +4894,13 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
     assertGood(
       attach(
-        TerminateTransactions(Left(List("db1-transaction-123")), defaultColumns, List.empty, yieldAll = false),
+        TerminateTransactions(
+          Left(List("db1-transaction-123")),
+          defaultColumns,
+          List.empty,
+          yieldAll = false,
+          Set.empty
+        ),
         1.0
       ),
       planDescription(
@@ -4887,7 +4918,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Left(List("db1-transaction-123", "db2-transaction-456")),
           defaultColumns,
           List(CommandResultItem("xxx", varFor("xxx"))(pos), CommandResultItem("yyy", varFor("zzz"))(pos)),
-          yieldAll = false
+          yieldAll = false,
+          Set.empty
         ),
         1.0
       ),
@@ -4902,7 +4934,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
     assertGood(
       attach(
-        TerminateTransactions(Right(parameter("foo", CTAny)), defaultColumns, List.empty, yieldAll = true),
+        TerminateTransactions(Right(parameter("foo", CTAny)), defaultColumns, List.empty, yieldAll = true, Set.empty),
         1.0
       ),
       planDescription(
@@ -4916,7 +4948,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
     assertGood(
       attach(
-        TerminateTransactions(Right(number("123")), defaultColumns, List.empty, yieldAll = true),
+        TerminateTransactions(Right(number("123")), defaultColumns, List.empty, yieldAll = true, Set.empty),
         1.0
       ),
       planDescription(

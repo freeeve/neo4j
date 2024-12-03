@@ -30,7 +30,7 @@ case class CommandPipe(command: Command)(val id: Id = Id.INVALID_ID) extends Pip
     val baseContext = state.newRowWithArgument(rowFactory)
     command.rows(state, baseContext).map {
       commandRow =>
-        val row = state.newRowWithArgument(rowFactory)
+        val row = rowFactory.copyWith(baseContext)
         commandRow.foreach {
           case (key, value) => row.set(key, value)
         }

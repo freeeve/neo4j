@@ -2543,21 +2543,24 @@ case class LogicalPlanProducer(
           s.indexType,
           s.unfilteredColumns.columns,
           s.yieldItems,
-          s.yieldAll
+          s.yieldAll,
+          inner.availableSymbols
         )
       case s: ShowConstraintsClause =>
         ShowConstraints(
           s.constraintType,
           s.unfilteredColumns.columns,
           s.yieldItems,
-          s.yieldAll
+          s.yieldAll,
+          inner.availableSymbols
         )
       case s: ShowProceduresClause =>
         ShowProcedures(
           s.executable,
           s.unfilteredColumns.columns,
           s.yieldItems,
-          s.yieldAll
+          s.yieldAll,
+          inner.availableSymbols
         )
       case s: ShowFunctionsClause =>
         ShowFunctions(
@@ -2565,19 +2568,21 @@ case class LogicalPlanProducer(
           s.executable,
           s.unfilteredColumns.columns,
           s.yieldItems,
-          s.yieldAll
+          s.yieldAll,
+          inner.availableSymbols
         )
       case s: ShowTransactionsClause =>
         ShowTransactions(
           s.names,
           s.unfilteredColumns.columns,
           s.yieldItems,
-          s.yieldAll
+          s.yieldAll,
+          inner.availableSymbols
         )
       case s: TerminateTransactionsClause =>
-        TerminateTransactions(s.names, s.unfilteredColumns.columns, s.yieldItems, s.yieldAll)
+        TerminateTransactions(s.names, s.unfilteredColumns.columns, s.yieldItems, s.yieldAll, inner.availableSymbols)
       case s: ShowSettingsClause =>
-        ShowSettings(s.names, s.unfilteredColumns.columns, s.yieldItems, s.yieldAll)
+        ShowSettings(s.names, s.unfilteredColumns.columns, s.yieldItems, s.yieldAll, inner.availableSymbols)
     }
     val annotatedPlan = annotate(plan, solved, ProvidedOrder.empty, CachedProperties.empty, context)
 

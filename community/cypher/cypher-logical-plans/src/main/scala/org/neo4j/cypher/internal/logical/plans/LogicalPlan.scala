@@ -683,26 +683,24 @@ sealed abstract class AbstractSemiApply(left: LogicalPlan)(idGen: IdGen)
 /**
  * Not sealed sub-hierarchy of command plans.
  */
-abstract class CommandLogicalPlan(idGen: IdGen) extends LogicalLeafPlan(idGen = idGen) {
+abstract class CommandLogicalPlan(idGen: IdGen, argumentIds: Set[LogicalVariable])
+    extends LogicalLeafPlan(idGen = idGen) {
 
   def defaultColumns: List[ShowColumn]
 
   def yieldColumns: List[CommandResultItem]
 
+  // Empty for the ones that don't have any input variables
+  // Override in subclass for when there are input variables
   override def usedVariables: Set[LogicalVariable] = Set.empty
 
-  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): CommandLogicalPlan = this
+  override val localAvailableSymbols: Set[LogicalVariable] = {
+    val introducedVariables =
+      if (yieldColumns.nonEmpty) yieldColumns.map(_.aliasedVariable).toSet
+      else defaultColumns.map(_.variable).toSet
 
-  override def removeArgumentIds(): CommandLogicalPlan = this
-
-  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan = this
-
-  // Always the first leaf plan, so arguments is always empty
-  override def argumentIds: Set[LogicalVariable] = Set.empty
-
-  override def localAvailableSymbols: Set[LogicalVariable] =
-    if (yieldColumns.nonEmpty) yieldColumns.map(_.aliasedVariable).toSet
-    else defaultColumns.map(_.variable).toSet
+    argumentIds ++ introducedVariables
+  }
 
   final override val distinctness: Distinctness = NotDistinct
 }
