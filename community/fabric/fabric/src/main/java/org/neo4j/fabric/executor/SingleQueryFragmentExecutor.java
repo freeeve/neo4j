@@ -241,7 +241,7 @@ abstract class SingleQueryFragmentExecutor {
         return recordTracer.traceRecords(localStatementResult);
     }
 
-    private Map<String, AnyValue> argumentValues(Fragment fragment, Record argument) {
+    static Map<String, AnyValue> argumentValues(Fragment fragment, Record argument) {
         if (argument == null) {
             return Map.of();
         } else {
@@ -280,6 +280,11 @@ abstract class SingleQueryFragmentExecutor {
     }
 
     private TransactionMode getTransactionMode(QueryType queryType, String graph) {
+        return getTransactionMode(plan, accessMode, queryType, graph);
+    }
+
+    static TransactionMode getTransactionMode(
+            FabricPlan plan, AccessMode accessMode, QueryType queryType, String graph) {
         var executionType = plan.executionType();
         var queryMode = EffectiveQueryType.effectiveAccessMode(accessMode, executionType, queryType);
 

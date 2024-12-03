@@ -21,4 +21,7 @@ package org.neo4j.fabric.config;
 
 public class FabricConstants {
     public static final int BATCH_SIZE = 50;
+    public static final int BUFFER_SIZE = 1000;
+    public static final int BUFFER_LOW_WATERMARK = 300;
+    public static final int STREAM_CONCURRENCY = 10;
 }

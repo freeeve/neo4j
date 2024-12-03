@@ -57,7 +57,7 @@ public record PlanlessSummary(
 
         var mergedGqlStatusObjects = new HashSet<GqlStatusObject>();
         mergedGqlStatusObjects.addAll(summary1.getGqlStatusObjects().stream()
-                .filter(gso -> isStandardGqlStatusCode(gso.gqlStatus()))
+                .filter(gso -> !isStandardGqlStatusCode(gso.gqlStatus()))
                 .toList());
         mergedGqlStatusObjects.addAll(summary2.getGqlStatusObjects());
 

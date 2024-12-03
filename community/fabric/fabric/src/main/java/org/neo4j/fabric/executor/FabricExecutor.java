@@ -23,7 +23,7 @@ import static scala.jdk.javaapi.CollectionConverters.asJava;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.Executor;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -35,6 +35,8 @@ import org.neo4j.cypher.internal.evaluator.StaticEvaluation;
 import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats;
 import org.neo4j.exceptions.InvalidSemanticsException;
 import org.neo4j.fabric.config.FabricConfig;
+import org.neo4j.fabric.config.FabricConstants;
+import org.neo4j.fabric.eval.Catalog;
 import org.neo4j.fabric.eval.UseEvaluation;
 import org.neo4j.fabric.executor.QueryStatementLifecycles.StatementLifecycle;
 import org.neo4j.fabric.planning.FabricPlan;
@@ -49,6 +51,7 @@ import org.neo4j.fabric.stream.StatementResults;
 import org.neo4j.fabric.stream.summary.MergedSummary;
 import org.neo4j.fabric.stream.summary.PlanlessSummary;
 import org.neo4j.fabric.transaction.FabricTransaction;
+import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.graphdb.QueryStatistics;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
 import org.neo4j.kernel.impl.query.NotificationConfiguration;
@@ -57,6 +60,8 @@ import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.notifications.NotificationImplementation;
+import org.neo4j.scheduler.CallableExecutor;
+import org.neo4j.values.AnyValue;
 import org.neo4j.values.virtual.MapValue;
 
 public class FabricExecutor {
@@ -66,7 +71,7 @@ public class FabricExecutor {
     private final UseEvaluation useEvaluation;
     private final InternalLog log;
     private final QueryStatementLifecycles statementLifecycles;
-    private final Executor fabricWorkerExecutor;
+    private final CallableExecutor fabricWorkerExecutor;
     private final QueryRoutingMonitor queryRoutingMonitor;
     private final InternalSyntaxUsageStats internalSyntaxUsageStats;
 
@@ -76,7 +81,7 @@ public class FabricExecutor {
             UseEvaluation useEvaluation,
             InternalLogProvider internalLog,
             QueryStatementLifecycles statementLifecycles,
-            Executor fabricWorkerExecutor,
+            CallableExecutor fabricWorkerExecutor,
             Monitors monitors,
             InternalSyntaxUsageStats internalSyntaxUsageStats) {
         this.dataStreamConfig = config.getDataStream();
@@ -252,12 +257,35 @@ public class FabricExecutor {
             // For now, just return global value as seen by fabric
             var queryExecutionType = EffectiveQueryType.queryExecutionType(plan, accessMode);
             FragmentResult input = run(apply.input(), argument);
+
+            var remoteBatchExecutor = new RemoteBatchExecutor(
+                    fabricWorkerExecutor,
+                    record -> run(apply.inner(), record),
+                    FabricConstants.BUFFER_SIZE,
+                    FabricConstants.STREAM_CONCURRENCY);
             return new ApplyExecutor(
                     asJava(apply.outputColumns()),
                     input,
                     apply.inner().outputColumns().isEmpty(),
                     queryExecutionType,
-                    record -> run(apply.inner(), record));
+                    remoteBatchExecutor,
+                    record -> run(apply.inner(), record),
+                    record -> isRemoteFragment(apply.inner(), record));
+        }
+
+        private boolean isRemoteFragment(Fragment fragment, Record argument) {
+            if (fragment instanceof Fragment.Exec exec) {
+                Map<String, AnyValue> argumentValues = SingleQueryFragmentExecutor.argumentValues(fragment, argument);
+                Catalog.Graph graph = useEvaluator.evaluate(
+                        exec.use().graphSelection(), queryParams, argumentValues, ctx.getSessionDatabaseReference());
+                TransactionMode transactionMode = SingleQueryFragmentExecutor.getTransactionMode(
+                        plan, accessMode, exec.queryType(), graph.reference().toPrettyString());
+
+                var location = ctx.locationOf(graph, transactionMode.requiresWrite());
+                return location instanceof Location.Remote;
+            }
+
+            return false;
         }
 
         private FragmentResult runUnion(Fragment.Union union, Record argument) {
