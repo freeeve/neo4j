@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.test.util
 
+import org.antlr.v4.runtime.Vocabulary
 import org.neo4j.cypher.internal.ast.CallClause
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.Match
@@ -81,13 +82,22 @@ trait AstParsing extends Parsers.Implicit {
 }
 
 object AstParsing extends AstParsing {
-  sealed trait ParserInTest
+
+  sealed trait ParserInTest {
+    def vocabulary: Vocabulary
+  }
 
   object ParserInTest {
     val AllParsers: Seq[ParserInTest] = Seq(Cypher5, Cypher25)
   }
-  case object Cypher5 extends ParserInTest
-  case object Cypher25 extends ParserInTest
+
+  case object Cypher5 extends ParserInTest {
+    override def vocabulary: Vocabulary = Cypher5Parser.VOCABULARY
+  }
+
+  case object Cypher25 extends ParserInTest {
+    override def vocabulary: Vocabulary = Cypher25Parser.VOCABULARY
+  }
 
   case class ParseResults[T](cypher: String, result: Map[ParserInTest, ParseResult]) {
     def apply(parser: ParserInTest): ParseResult = result(parser)

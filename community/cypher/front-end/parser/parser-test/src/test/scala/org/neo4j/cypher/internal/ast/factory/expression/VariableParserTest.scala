@@ -19,9 +19,9 @@ package org.neo4j.cypher.internal.ast.factory.expression
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParserInTest
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.Variable
-import org.neo4j.cypher.internal.parser.v5.Cypher5Parser
 import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropertyChecks
 
 class VariableParserTest extends AstParsingTestBase
@@ -118,27 +118,27 @@ class VariableParserTest extends AstParsingTestBase
   }
 
   test("keywords can be variables") {
-    val vocab = Cypher5Parser.VOCABULARY
-    Range.inclusive(1, vocab.getMaxTokenType)
-      .flatMap { tokenType =>
-        Option(vocab.getSymbolicName(tokenType)) ++
-          Option(vocab.getDisplayName(tokenType)) ++
-          Option(vocab.getLiteralName(tokenType))
+    val names = for {
+      parser <- ParserInTest.AllParsers
+      vocab = parser.vocabulary
+      tokenType <- Range.inclusive(1, vocab.getMaxTokenType)
+      name <- Seq(vocab.getSymbolicName(tokenType), vocab.getDisplayName(tokenType), vocab.getLiteralName(tokenType))
+      if name != null
+      massagedName <- Seq(name, name.replace("_", ""))
+    } yield massagedName
+
+    names.distinct.foreach { name =>
+      val cypher = cleanName(name)
+      if (Character.isAlphabetic(cypher.charAt(0))) {
+        cypher should parseTo[Variable](varFor(cypher))
       }
-      .flatMap(n => Seq(n, n.replace("_", "")))
-      .distinct
-      .foreach { name =>
-        val cypher = cleanName(name)
-        if (Character.isAlphabetic(cypher.charAt(0))) {
-          cypher should parseTo[Variable](varFor(cypher))
-        }
-        if (cypher != "``") {
-          s"`$cypher`" should parseIn[Variable] {
-            case Cypher5 => _.toAst(varFor(cypher, isIsolated = true))
-            case _       => _.toAst(varFor(cypher, isIsolated = false))
-          }
+      if (cypher != "``") {
+        s"`$cypher`" should parseIn[Variable] {
+          case Cypher5 => _.toAst(varFor(cypher, isIsolated = true))
+          case _       => _.toAst(varFor(cypher, isIsolated = false))
         }
       }
+    }
   }
 
   private def cleanName(input: String): String = {
