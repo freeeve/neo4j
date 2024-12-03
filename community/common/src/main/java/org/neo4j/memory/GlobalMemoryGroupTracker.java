@@ -65,7 +65,14 @@ public class GlobalMemoryGroupTracker extends DelegatingMemoryPool implements Sc
 
     public ScopedMemoryPool newDatabasePool(String name, long limit, String limitSettingName) {
         DatabaseMemoryGroupTracker subTracker =
-                new DatabaseMemoryGroupTracker(this, name, limit, true, trackingEnabled, limitSettingName);
+                new DatabaseMemoryGroupTracker(this, name, limit, true, trackingEnabled, true, limitSettingName);
+        databasePools.add(subTracker);
+        return subTracker;
+    }
+
+    public ScopedMemoryPool newSystemDatabasePool(String name, long limit, String limitSettingName) {
+        DatabaseMemoryGroupTracker subTracker =
+                new DatabaseMemoryGroupTracker(this, name, limit, true, trackingEnabled, false, limitSettingName);
         databasePools.add(subTracker);
         return subTracker;
     }

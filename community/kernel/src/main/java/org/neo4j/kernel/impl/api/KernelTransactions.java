@@ -415,10 +415,17 @@ public class KernelTransactions extends LifecycleAdapter
 
     @Override
     public void init() throws Exception {
-        this.transactionMemoryPool = transactionsMemoryPool.newDatabasePool(
-                namedDatabaseId.name(),
-                config.get(memory_transaction_database_max_size),
-                memory_transaction_database_max_size.name());
+        if (namedDatabaseId.equals(NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID)) {
+            this.transactionMemoryPool = transactionsMemoryPool.newSystemDatabasePool(
+                    namedDatabaseId.name(),
+                    config.get(memory_transaction_database_max_size),
+                    memory_transaction_database_max_size.name());
+        } else {
+            this.transactionMemoryPool = transactionsMemoryPool.newDatabasePool(
+                    namedDatabaseId.name(),
+                    config.get(memory_transaction_database_max_size),
+                    memory_transaction_database_max_size.name());
+        }
         config.addListener(
                 memory_transaction_database_max_size, (before, after) -> transactionMemoryPool.setSize(after));
     }

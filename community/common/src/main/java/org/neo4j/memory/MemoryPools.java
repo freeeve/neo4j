@@ -74,7 +74,13 @@ public final class MemoryPools {
         public void reserveHeap(long bytes) {}
 
         @Override
+        public void reserveHeapNoThrow(long bytes) {}
+
+        @Override
         public void reserveNative(long bytes) {}
+
+        @Override
+        public void reserveNativeNoThrow(long bytes) {}
 
         @Override
         public void releaseHeap(long bytes) {}

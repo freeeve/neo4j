@@ -32,8 +32,18 @@ public class DelegatingMemoryPool implements MemoryPool {
     }
 
     @Override
+    public void reserveHeapNoThrow(long bytes) {
+        delegate.reserveHeapNoThrow(bytes);
+    }
+
+    @Override
     public void reserveNative(long bytes) {
         delegate.reserveNative(bytes);
+    }
+
+    @Override
+    public void reserveNativeNoThrow(long bytes) {
+        delegate.reserveNativeNoThrow(bytes);
     }
 
     @Override

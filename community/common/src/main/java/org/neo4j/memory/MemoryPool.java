@@ -34,17 +34,35 @@ public interface MemoryPool {
      * Grab a chunk of memory. This method might throw if there is no available memory.
      *
      * @param bytes number of bytes to reserve
-     * @throws MemoryLimitExceededException if the are not enough free memory to fulfill the reservation
+     * @throws MemoryLimitExceededException if there is not enough free memory to fulfill the reservation
      */
     void reserveHeap(long bytes);
+
+    /**
+     * Signal to others that a chunk of memory is being used by a critical process.
+     * However, for the caller this will not throw even if this request exceeds the limits.
+     * Other callers may then be unable to reserve further memory.
+     *
+     * @param bytes number of bytes to reserve
+     */
+    void reserveHeapNoThrow(long bytes);
 
     /**
      * Grab a chunk of native memory. This method might throw if there is no available memory.
      *
      * @param bytes number of bytes to reserve
-     * @throws MemoryLimitExceededException if the are not enough free memory to fulfill the reservation
+     * @throws MemoryLimitExceededException if there is not enough free memory to fulfill the reservation
      */
     void reserveNative(long bytes);
+
+    /**
+     * Signal to others that a chunk of memory is being used by a critical process.
+     * However, for the caller this will not throw even if this request exceeds the limits.
+     * Other callers may then be unable to reserve further memory.
+     *
+     * @param bytes number of bytes to reserve
+     */
+    void reserveNativeNoThrow(long bytes);
 
     /**
      * Give back previously reserved heap memory. This will never throw.

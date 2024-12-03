@@ -23,6 +23,7 @@ public class DatabaseMemoryGroupTracker extends DelegatingMemoryPool implements 
     private final GlobalMemoryGroupTracker parent;
     private final String name;
     private final MemoryTracker memoryTracker;
+    private final boolean globalLimit;
 
     DatabaseMemoryGroupTracker(
             GlobalMemoryGroupTracker parent,
@@ -30,10 +31,12 @@ public class DatabaseMemoryGroupTracker extends DelegatingMemoryPool implements 
             long limit,
             boolean strict,
             boolean trackingEnabled,
+            boolean globalLimit,
             String limitSettingName) {
         super(new MemoryPoolImpl(limit, strict, limitSettingName));
         this.parent = parent;
         this.name = name;
+        this.globalLimit = globalLimit;
         this.memoryTracker = trackingEnabled ? new MemoryPoolTracker(this) : EmptyMemoryTracker.INSTANCE;
     }
 
@@ -62,7 +65,11 @@ public class DatabaseMemoryGroupTracker extends DelegatingMemoryPool implements 
 
     @Override
     public void reserveHeap(long bytes) {
-        parent.reserveHeap(bytes);
+        if (globalLimit) {
+            parent.reserveHeap(bytes);
+        } else {
+            parent.reserveHeapNoThrow(bytes);
+        }
         try {
             super.reserveHeap(bytes);
         } catch (MemoryLimitExceededException e) {
@@ -79,7 +86,11 @@ public class DatabaseMemoryGroupTracker extends DelegatingMemoryPool implements 
 
     @Override
     public void reserveNative(long bytes) {
-        parent.reserveNative(bytes);
+        if (globalLimit) {
+            parent.reserveNative(bytes);
+        } else {
+            parent.reserveNativeNoThrow(bytes);
+        }
         try {
             super.reserveNative(bytes);
         } catch (MemoryLimitExceededException e) {

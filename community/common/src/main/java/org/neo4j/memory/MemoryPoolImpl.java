@@ -75,8 +75,18 @@ public class MemoryPoolImpl implements MemoryPool {
     }
 
     @Override
+    public void reserveHeapNoThrow(long bytes) {
+        usedHeapBytes.addAndGet(bytes);
+    }
+
+    @Override
     public void reserveNative(long bytes) {
         reserveMemory(bytes, usedNativeBytes, usedHeapBytes);
+    }
+
+    @Override
+    public void reserveNativeNoThrow(long bytes) {
+        usedNativeBytes.addAndGet(bytes);
     }
 
     private void reserveMemory(long bytes, AtomicLong poolCounter, AtomicLong complementPoolValue) {
