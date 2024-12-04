@@ -90,7 +90,7 @@ public class ReversedEnvelopedCommandBatchCursor implements CommandBatchCursor {
             // Or well, IncompleteEnvelopeReadException isn't really expected, but it is signaling that the last
             // entry is broken. Last broken entry is not considered a corrupted log, and is recoverable.
             // The logs will be truncated after forward recovery.
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             boolean first = entryStartPositions.isEmpty();
             monitor.transactionalLogRecordReadFailure(
                     first ? EMPTY_LONG_ARRAY : new long[] {entryStartPositions.getLast()}, first ? 0 : 1, logVersion);
@@ -125,8 +125,10 @@ public class ReversedEnvelopedCommandBatchCursor implements CommandBatchCursor {
         long next = offsets.next();
         currentChannel.setPositionUnsafe(next);
         try {
-            boolean success = commandBatchCursor.next();
-            assert success;
+            if (!commandBatchCursor.next()) {
+                // For a last broken entry it could have gotten the offset but then later found incomplete envelopes.
+                return false;
+            }
         } catch (IllegalStateException | IOException | UnsupportedLogVersionException e) {
             // Since the content is never read while sketching out the offsets any corruption can be found at this point
             // This means batches after the corruption can already have been returned, but that should be fine since we
