@@ -293,7 +293,8 @@ public final class CypherFunctions {
         }
 
         if (in instanceof NumberValue inNumber && precisionValue instanceof NumberValue) {
-            int precision = asIntExact(precisionValue, () -> "Invalid input for precision value in function 'round()'");
+            int precision = asIntExact(
+                    precisionValue, () -> "Invalid input for precision value in function 'round()'", "round");
             boolean explicitMode = ((BooleanValue) explicitModeValue).booleanValue();
             if (precision < 0) {
                 throw InvalidArgumentException.negRoundPrecision(precision);
@@ -399,20 +400,20 @@ public final class CypherFunctions {
     @CalledFromGeneratedCode
     public static ListValue range(AnyValue startValue, AnyValue endValue) {
         return VirtualValues.range(
-                asLong(startValue, () -> "Invalid input for start value in function 'range()'"),
-                asLong(endValue, () -> "Invalid input for end value in function 'range()'"),
+                asLong(startValue, () -> "Invalid input for start value in function 'range()'", "range"),
+                asLong(endValue, () -> "Invalid input for end value in function 'range()'", "range"),
                 1L);
     }
 
     public static ListValue range(AnyValue startValue, AnyValue endValue, AnyValue stepValue) {
-        long step = asLong(stepValue, () -> "Invalid input for step value in function 'range()'");
+        long step = asLong(stepValue, () -> "Invalid input for step value in function 'range()'", "range");
         if (step == 0L) {
             throw InvalidArgumentException.zeroStepRange();
         }
 
         return VirtualValues.range(
-                asLong(startValue, () -> "Invalid input for start value in function 'range()'"),
-                asLong(endValue, () -> "Invalid input for end value in function 'range()'"),
+                asLong(startValue, () -> "Invalid input for start value in function 'range()'", "range"),
+                asLong(endValue, () -> "Invalid input for end value in function 'range()'", "range"),
                 step);
     }
 
@@ -744,7 +745,7 @@ public final class CypherFunctions {
         if (in == NO_VALUE || endPos == NO_VALUE) {
             return NO_VALUE;
         } else if (in instanceof TextValue text) {
-            final long len = asLong(endPos, () -> "Invalid input for length value in function 'left()'");
+            final long len = asLong(endPos, () -> "Invalid input for length value in function 'left()'", "left");
             return text.substring(0, (int) Math.min(len, Integer.MAX_VALUE));
         } else {
             throw notAString("left", in);
@@ -897,7 +898,7 @@ public final class CypherFunctions {
         if (original == NO_VALUE || length == NO_VALUE) {
             return NO_VALUE;
         } else if (original instanceof TextValue asText) {
-            final long len = asLong(length, () -> "Invalid input for length value in function 'right()'");
+            final long len = asLong(length, () -> "Invalid input for length value in function 'right()'", "right");
             if (len < 0) {
                 throw new IndexOutOfBoundsException("negative length");
             }
@@ -998,7 +999,8 @@ public final class CypherFunctions {
             return NO_VALUE;
         } else if (original instanceof TextValue asText) {
 
-            return asText.substring(asIntExact(start, () -> "Invalid input for start value in function 'substring()'"));
+            return asText.substring(
+                    asIntExact(start, () -> "Invalid input for start value in function 'substring()'", "substring"));
         } else {
             throw notAString("substring", original);
         }
@@ -1010,8 +1012,8 @@ public final class CypherFunctions {
         } else if (original instanceof TextValue asText) {
 
             return asText.substring(
-                    asIntExact(start, () -> "Invalid input for start value in function 'substring()'"),
-                    asIntExact(length, () -> "Invalid input for length value in function 'substring()'"));
+                    asIntExact(start, () -> "Invalid input for start value in function 'substring()'", "substring"),
+                    asIntExact(length, () -> "Invalid input for length value in function 'substring()'", "substring"));
         } else {
             throw notAString("substring", original);
         }
@@ -2118,7 +2120,7 @@ public final class CypherFunctions {
         }
     }
 
-    private static long asLong(AnyValue value, Supplier<String> contextForErrorMessage) {
+    private static long asLong(AnyValue value, Supplier<String> contextForErrorMessage, String functionName) {
         if (value instanceof NumberValue) {
             return ((NumberValue) value).longValue();
         } else {
@@ -2128,20 +2130,30 @@ public final class CypherFunctions {
             } else {
                 errorMsg = contextForErrorMessage.get() + ": Expected a numeric value but got: " + value;
             }
-            if (value instanceof Value v)
-                throw CypherTypeException.expectedNumber(errorMsg, v.prettyPrint(), CypherTypeValueMapper.valueType(v));
-            else
-                throw CypherTypeException.expectedNumber(
-                        errorMsg, String.valueOf(value), CypherTypeValueMapper.valueType(value));
+            if (!functionName.isEmpty()) {
+                if (value instanceof Value v)
+                    throw CypherTypeException.functionArgumentMustBeNumber(
+                            errorMsg, functionName, v.prettyPrint(), CypherTypeValueMapper.valueType(v));
+                else
+                    throw CypherTypeException.functionArgumentMustBeNumber(
+                            errorMsg, functionName, String.valueOf(value), CypherTypeValueMapper.valueType(value));
+            } else {
+                if (value instanceof Value v)
+                    throw CypherTypeException.expectedNumber(
+                            errorMsg, v.prettyPrint(), CypherTypeValueMapper.valueType(v));
+                else
+                    throw CypherTypeException.expectedNumber(
+                            errorMsg, String.valueOf(value), CypherTypeValueMapper.valueType(value));
+            }
         }
     }
 
     public static int asIntExact(AnyValue value) {
-        return asIntExact(value, null);
+        return asIntExact(value, null, null);
     }
 
-    public static int asIntExact(AnyValue value, Supplier<String> contextForErrorMessage) {
-        final long longValue = asLong(value, contextForErrorMessage);
+    public static int asIntExact(AnyValue value, Supplier<String> contextForErrorMessage, String functionName) {
+        final long longValue = asLong(value, contextForErrorMessage, functionName);
         final int intValue = (int) longValue;
         if (intValue != longValue) {
             String errorMsg = format(

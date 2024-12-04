@@ -273,6 +273,18 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql22N38_22N01(
+            String functionName, String value, List<String> valueTypeList, String valueType) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N38)
+                .withParam(GqlParams.StringParam.fun, functionName)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
+                        .withParam(GqlParams.StringParam.value, value)
+                        .withParam(GqlParams.ListParam.valueTypeList, valueTypeList)
+                        .withParam(GqlParams.StringParam.valueType, valueType)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql22N38_22N03(
             String fun, String component, String valueType, Number lower, Number upper, Number value) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N38)
