@@ -156,7 +156,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             this.checksumView = buffer.duplicate().order(buffer.order());
 
             long startPosition = channel.position();
-            readAndValidateFileHeader(true);
+            readAndValidateFileHeader();
             if (startPosition < segmentBlockSize) {
                 startPosition = segmentBlockSize;
             }
@@ -793,10 +793,10 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         }
         channel = nextChannel;
 
-        readAndValidateFileHeader(false);
+        readAndValidateFileHeader();
     }
 
-    private void readAndValidateFileHeader(boolean overwriteChecksum) throws IOException {
+    private void readAndValidateFileHeader() throws IOException {
         // First segment contains a header and zeros
         int read = loadSegmentIntoBuffer(0);
         if (read != segmentBlockSize) {
@@ -809,11 +809,11 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             return;
         }
 
-        enforceChecksumChain = true;
-        if (overwriteChecksum) {
+        if (!enforceChecksumChain) {
             checkState(payloadType == null, "Can not override checksum in the middle of a payload");
             previousChecksum = logHeader.getPreviousLogFileChecksum();
         }
+        enforceChecksumChain = true;
 
         checkState(segmentBlockSize == logHeader.getSegmentBlockSize(), "Changing segmentBlockSize not supported");
         checkState(
