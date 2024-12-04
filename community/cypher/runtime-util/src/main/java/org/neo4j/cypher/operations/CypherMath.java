@@ -217,7 +217,7 @@ public final class CypherMath {
 
     private static boolean divideCheckForNull(AnyValue lhs, AnyValue rhs) {
         if (rhs instanceof IntegralValue && rhs.equals(ZERO_INT)) {
-            throw new ArithmeticException("/ by zero", null);
+            throw ArithmeticException.divisionByZero();
         } else {
             return lhs == NO_VALUE || rhs == NO_VALUE;
         }
