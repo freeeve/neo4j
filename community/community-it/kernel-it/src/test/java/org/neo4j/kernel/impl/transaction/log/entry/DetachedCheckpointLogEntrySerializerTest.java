@@ -91,12 +91,7 @@ class DetachedCheckpointLogEntrySerializerTest {
                     StorageEngineFactory.defaultStorageEngine().commandReaderFactory(), LatestVersions.BINARY_VERSIONS);
             try (var readChannel = new ReadAheadLogChannel(
                     new PhysicalLogVersionedStoreChannel(
-                            fs.read(path),
-                            -1 /* ignored */,
-                            LATEST_LOG_FORMAT,
-                            path,
-                            EMPTY_ACCESSOR,
-                            DatabaseTracer.NULL),
+                            fs.read(path), 0, LATEST_LOG_FORMAT, path, EMPTY_ACCESSOR, DatabaseTracer.NULL),
                     NO_MORE_CHANNELS,
                     INSTANCE)) {
                 var checkpointV50 = readCheckpoint(entryReader, readChannel);
@@ -212,12 +207,7 @@ class DetachedCheckpointLogEntrySerializerTest {
                     StorageEngineFactory.defaultStorageEngine().commandReaderFactory(), LatestVersions.BINARY_VERSIONS);
             try (var readChannel = new ReadAheadLogChannel(
                     new PhysicalLogVersionedStoreChannel(
-                            fs.read(path),
-                            -1 /* ignored */,
-                            LATEST_LOG_FORMAT,
-                            path,
-                            EMPTY_ACCESSOR,
-                            DatabaseTracer.NULL),
+                            fs.read(path), 0, LATEST_LOG_FORMAT, path, EMPTY_ACCESSOR, DatabaseTracer.NULL),
                     NO_MORE_CHANNELS,
                     INSTANCE)) {
                 if (kernelVersion.isAtLeast(VERSION_CHECKPOINT_NOT_COMPLETED_POSITION_INTRODUCED)) {

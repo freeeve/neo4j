@@ -68,7 +68,7 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
 
     @Override
     public LogEntry readLogEntry(ReadableLogPositionAwareChannel channel) throws IOException {
-        var entryStartPosition = channel.position();
+        var entryStartPosition = channel.getCurrentLogPosition();
         try {
             byte versionCode = channel.markAndGetVersion(positionMarker);
             if (versionCode == 0) {
@@ -102,7 +102,7 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
         }
     }
 
-    private LogEntry brokenLastEntry(ReadableLogPositionAwareChannel channel, long entryStartPosition)
+    private LogEntry brokenLastEntry(ReadableLogPositionAwareChannel channel, LogPosition entryStartPosition)
             throws IOException {
         brokenLastEntry = true;
         rewindToEntryStartPosition(channel, positionMarker, entryStartPosition);
@@ -178,10 +178,16 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
     }
 
     private void rewindToEntryStartPosition(
-            ReadableLogPositionAwareChannel channel, LogPositionMarker positionMarker, long position)
+            ReadableLogPositionAwareChannel channel, LogPositionMarker positionMarker, LogPosition position)
             throws IOException {
+        if (position.getLogVersion() != channel.getCurrentLogPosition().getLogVersion()) {
+            // Uh oh, we rolled over during reading of the entry and can't go back to the correct channel..
+            // This rewinding is best effort anyways (not done on ReadPastEndExceptions), so skipping the rewind here
+            return;
+        }
+
         // take current position
-        channel.position(position);
+        channel.position(position.getByteOffset());
         // refresh with reset position
         channel.getCurrentLogPosition(positionMarker);
     }
