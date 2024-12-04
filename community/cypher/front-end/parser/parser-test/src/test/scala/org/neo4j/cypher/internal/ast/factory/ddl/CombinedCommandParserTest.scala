@@ -586,10 +586,10 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     }
   }
 
-  private def assertAstDontComparePos(expectedClauses: ast.Clause*): Unit = {
+  private def assertAstDontComparePosVersionBased(expectedClauses: Boolean => Seq[ast.Clause]): Unit = {
     parsesIn[ast.Statements] {
-      case Cypher5 => _.toAst(ast.Statements(Seq(singleQuery(expectedClauses.map(updateForCypher5): _*))))
-      case _       => _.toAst(ast.Statements(Seq(singleQuery(expectedClauses: _*))))
+      case Cypher5 => _.toAst(ast.Statements(Seq(singleQuery(expectedClauses(true).map(updateForCypher5): _*))))
+      case _       => _.toAst(ast.Statements(Seq(singleQuery(expectedClauses(false): _*))))
     }
   }
 
@@ -603,10 +603,12 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       }
 
       test(s"USE db $firstCommand $secondCommand") {
-        assertAstDontComparePos(
-          use(List("db")),
-          firstClause(None, false, List.empty, None)(pos),
-          secondClause(None, false, List.empty, None)(pos)
+        assertAstDontComparePosVersionBased(cypherVersion5 =>
+          Seq(
+            use(List("db"), !cypherVersion5),
+            firstClause(None, false, List.empty, None)(pos),
+            secondClause(None, false, List.empty, None)(pos)
+          )
         )
       }
 
@@ -1385,9 +1387,9 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
   ) {
     // From astGenerator, it wasn't a parsing problem
     // but now I have already added the test to check that so it can stay :shrug:
-    def expected(variablesAreEscaped: Boolean, returnCypher5Types: Boolean) =
+    def expected(variablesAreEscaped: Boolean, returnCypher5Types: Boolean, resolveStrictly: Boolean) =
       singleQuery(
-        use(List("test")),
+        use(List("test"), resolveStrictly),
         ast.ShowTransactionsClause(
           Right(literalString("")),
           None,
@@ -1434,8 +1436,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         )
       )
     parsesIn[Statement] {
-      case Cypher5 => _.toAst(expected(variablesAreEscaped = true, returnCypher5Types = true))
-      case _       => _.toAst(expected(variablesAreEscaped = false, returnCypher5Types = false))
+      case Cypher5 => _.toAst(expected(variablesAreEscaped = true, returnCypher5Types = true, resolveStrictly = false))
+      case _       => _.toAst(expected(variablesAreEscaped = false, returnCypher5Types = false, resolveStrictly = true))
     }
   }
 

@@ -219,8 +219,10 @@ case class FabricPlanner(
 
 class UseHelper(catalog: Catalog, defaultContextName: String) {
 
-  def rootTargetsCompositeContext(fragment: Fragment): Boolean =
-    isComposite(CatalogName(defaultContextName)) || fragmentTargetsCompositeContext(fragment)
+  def rootTargetsCompositeContext(fragment: Fragment): Boolean = {
+    // always resolve root databases strictly
+    isComposite(CatalogName(true, defaultContextName)) || fragmentTargetsCompositeContext(fragment)
+  }
 
   def fragmentTargetsCompositeContext(fragment: Fragment): Boolean = {
     def check(frag: Fragment): Boolean = frag match {

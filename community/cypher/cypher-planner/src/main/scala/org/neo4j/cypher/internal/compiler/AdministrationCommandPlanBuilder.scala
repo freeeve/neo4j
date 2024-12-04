@@ -1425,7 +1425,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         Some(planSystemProcedureCall(resolved, Some(returns)))
 
       case SingleQuery(Seq(
-          UseGraph(GraphDirectReference(CatalogName(List(SYSTEM_DATABASE_NAME)))),
+          UseGraph(GraphDirectReference(CatalogName(List(SYSTEM_DATABASE_NAME), _))),
           resolved @ ResolvedCall(signature, _, _, _, _, _, _),
           returns @ Return(_, _, _, _, _, _, _, _)
         )) if signature.systemProcedure =>
@@ -1436,7 +1436,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
 
       case SingleQuery(
           Seq(
-            UseGraph(GraphDirectReference(CatalogName(List(SYSTEM_DATABASE_NAME)))),
+            UseGraph(GraphDirectReference(CatalogName(List(SYSTEM_DATABASE_NAME), _))),
             resolved @ ResolvedCall(signature, _, _, _, _, _, _)
           )
         ) if signature.systemProcedure =>

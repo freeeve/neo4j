@@ -182,7 +182,7 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx.ast =
       if (ctx.graphReference() != null) ctx.graphReference().ast
       else if (ctx.functionInvocation() != null) GraphFunctionReference(ctx.functionInvocation().ast())(pos(ctx))
-      else GraphDirectReference(CatalogName(ctx.symbolicAliasName().ast[ArraySeq[String]](): _*))(pos(ctx))
+      else GraphDirectReference(CatalogName(true, ctx.symbolicAliasName().ast[ArraySeq[String]](): _*))(pos(ctx))
   }
 
   final override def exitSymbolicAliasName(ctx: Cypher25Parser.SymbolicAliasNameContext): Unit = {

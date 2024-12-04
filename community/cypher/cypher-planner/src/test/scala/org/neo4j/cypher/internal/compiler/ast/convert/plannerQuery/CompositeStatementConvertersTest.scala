@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.CatalogName
 import org.neo4j.cypher.internal.ast.GraphDirectReference
@@ -61,6 +62,491 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
     SemanticFeature.UseAsMultipleGraphsSelector
   )
 
+  CypherVersion.values().foreach(version => {
+    val resolveStrictly = !(version == CypherVersion.Cypher5)
+
+    test(s"Cypher $version: simple top-level composite query") {
+      val query =
+        buildPlannerQuery(
+          version,
+          """USE db.products
+            |MATCH (product: Product)
+            |RETURN product""".stripMargin,
+          None,
+          None,
+          compareVersions = false
+        )
+      val expected =
+        SinglePlannerQuery
+          .empty
+          .withHorizon(RunQueryAtProjection(
+            graphReference = GraphDirectReference(CatalogName(List("db", "products"), resolveStrictly))(pos),
+            queryString = List(
+              "MATCH (`product`)",
+              "  WHERE (`product`):`Product`",
+              "RETURN `product` AS `product`"
+            ).mkString(NL),
+            parameters = Set.empty,
+            importsAsParameters = Map.empty,
+            columns = Set(varFor("product"))
+          ))
+
+      query shouldEqual expected
+    }
+
+    test(s"Cypher $version: top-level composite query containing multiple clauses including a complex RETURN clause") {
+      val query =
+        buildPlannerQuery(
+          version,
+          """USE db.products
+            |UNWIND [1,2,3] AS i
+            |MATCH (product: Product)
+            |RETURN DISTINCT product.code AS code ORDER BY code SKIP 5 LIMIT 10""".stripMargin,
+          None,
+          None,
+          compareVersions = false
+        )
+
+      val expected =
+        SinglePlannerQuery
+          .empty
+          .withHorizon(RunQueryAtProjection(
+            graphReference = GraphDirectReference(CatalogName(List("db", "products"), resolveStrictly))(pos),
+            queryString = List(
+              "UNWIND [1, 2, 3] AS `i`",
+              "MATCH (`product`)",
+              "  WHERE (`product`):`Product`",
+              "RETURN DISTINCT (`product`).`code` AS `code`",
+              "  ORDER BY `code` ASCENDING",
+              "  SKIP 5",
+              "  LIMIT 10"
+            ).mkString(NL),
+            parameters = Set.empty,
+            importsAsParameters = Map.empty,
+            columns = Set(varFor("code"))
+          ))
+
+      query shouldEqual expected
+    }
+
+    test(s"Cypher $version: composite union query") {
+      val query =
+        buildPlannerQuery(
+          version,
+          """USE db.products
+            |MATCH (product: Product)
+            |RETURN product
+            |UNION ALL
+            |UNWIND [1,2,3] AS i
+            |RETURN i AS product
+            |UNION ALL
+            |USE db.products_bis
+            |MATCH (product: Product {deleted: false})
+            |RETURN product""".stripMargin,
+          None,
+          None,
+          compareVersions = false
+        )
+
+      val expectedFirst =
+        SinglePlannerQuery
+          .empty
+          .withHorizon(RunQueryAtProjection(
+            graphReference = GraphDirectReference(CatalogName(List("db", "products"), resolveStrictly))(pos),
+            queryString = List(
+              "MATCH (`product`)",
+              "  WHERE (`product`):`Product`",
+              "RETURN `product` AS `product`"
+            ).mkString(NL),
+            parameters = Set.empty,
+            importsAsParameters = Map.empty,
+            columns = Set(varFor("product"))
+          ))
+
+      val expectedSecond =
+        SinglePlannerQuery
+          .empty
+          .withHorizon(UnwindProjection(varFor("i"), listOfInt(1, 2, 3)))
+          .withTail(
+            SinglePlannerQuery
+              .empty
+              .withQueryGraph(
+                QueryGraph
+                  .empty
+                  .addArgumentId(varFor("i"))
+              ).withHorizon(RegularQueryProjection(
+                projections = Map(varFor("product") -> varFor("i"))
+              ))
+          )
+
+      val expectedThird =
+        SinglePlannerQuery
+          .empty
+          .withHorizon(RunQueryAtProjection(
+            graphReference = GraphDirectReference(CatalogName(List("db", "products_bis"), resolveStrictly))(pos),
+            queryString = List(
+              "MATCH (`product`)",
+              "  WHERE (((`product`).`deleted`) IN ([false])) AND ((`product`):`Product`)",
+              "RETURN `product` AS `product`"
+            ).mkString(NL),
+            parameters = Set.empty,
+            importsAsParameters = Map.empty,
+            columns = Set(varFor("product"))
+          ))
+
+      query shouldEqual
+        UnionQuery(
+          lhs = UnionQuery(
+            lhs = expectedFirst,
+            rhs = expectedSecond,
+            distinct = false,
+            unionMappings = List(UnionMapping(varFor("product"), varFor("product"), varFor("product")))
+          ),
+          rhs = expectedThird,
+          distinct = false,
+          unionMappings = List(UnionMapping(varFor("product"), varFor("product"), varFor("product")))
+        )
+    }
+
+    test(s"Cypher $version: standard query containing a simple composite sub-query") {
+      val query =
+        buildPlannerQuery(
+          version,
+          """MATCH (product: Product)
+            |WITH product, product.id AS pId
+            |CALL {
+            |  WITH pId
+            |  USE db.customers
+            |  MATCH (customer)-[bought]->(product {id: pId})
+            |  RETURN customer
+            |}
+            |RETURN product, customer""".stripMargin,
+          None,
+          None,
+          compareVersions = false
+        )
+
+      query shouldEqual productQueryWithCustomerSubQuery(resolveStrictly)
+    }
+
+    test(s"Cypher $version: standard query containing a simple composite sub-query – import WITH after USE") {
+      val query =
+        buildPlannerQuery(
+          version,
+          """MATCH (product: Product)
+            |WITH product, product.id AS pId
+            |CALL {
+            |  USE db.customers
+            |  WITH pId // Note how the importing WITH clause is placed _after_ the USE clause
+            |  MATCH (customer)-[bought]->(product {id: pId})
+            |  RETURN customer
+            |}
+            |RETURN product, customer""".stripMargin,
+          None,
+          None,
+          compareVersions = false
+        )
+
+      query shouldEqual productQueryWithCustomerSubQuery(resolveStrictly)
+    }
+
+    test(
+      s"Cypher $version: query containing a simple composite sub-query and a union sub-query with composite constituents"
+    ) {
+      val query =
+        buildPlannerQuery(
+          version,
+          """UNWIND [1,2,3] AS i
+            |CALL {
+            |  WITH i
+            |  USE db.products
+            |  MATCH (product:Product {version: i})
+            |  RETURN product
+            |}
+            |WITH * ORDER BY product.name
+            |WITH product, product.id AS pId
+            |CALL {
+            |    WITH pId
+            |    USE db.customerAME
+            |    MATCH (customer)-[bought]->(product {id: pId})
+            |    RETURN customer
+            |  UNION
+            |    UNWIND [1,2,3] AS i
+            |    WITH {id: i} AS customer
+            |    RETURN customer
+            |  UNION
+            |    USE db.customerEU
+            |    WITH pId
+            |    MATCH (customer)-[bought]->(product {id: pId})
+            |    RETURN customer
+            |}
+            |RETURN product, customer""".stripMargin,
+          None,
+          None,
+          compareVersions = false
+        )
+
+      val expected =
+        SinglePlannerQuery
+          .empty
+          .withHorizon(UnwindProjection(varFor("i"), listOfInt(1, 2, 3)))
+          .withTail(
+            SinglePlannerQuery
+              .empty
+              .withQueryGraph(
+                QueryGraph
+                  .empty
+                  .addArgumentId(varFor("i"))
+              ).withInterestingOrder(
+                InterestingOrder.interested(InterestingOrderCandidate(List(
+                  ColumnOrder.Asc(prop("product", "name"), Map(varFor("product") -> varFor("product")))
+                )))
+              ).withHorizon(CallSubqueryHorizon(
+                callSubquery =
+                  SinglePlannerQuery
+                    .empty
+                    .withQueryGraph(
+                      QueryGraph
+                        .empty
+                        .addArgumentId(varFor("i"))
+                    ).withHorizon(RunQueryAtProjection(
+                      graphReference =
+                        GraphDirectReference(CatalogName(List("db", "products"), resolveStrictly))(pos),
+                      queryString = List(
+                        "WITH $`i` AS `i`",
+                        "MATCH (`product`)",
+                        "  WHERE (((`product`).`version`) IN ([`i`])) AND ((`product`):`Product`)",
+                        "RETURN `product` AS `product`"
+                      ).mkString(NL),
+                      parameters = Set.empty,
+                      importsAsParameters = Map(parameter("i", CTAny) -> varFor("i")),
+                      columns = Set(varFor("product"))
+                    )),
+                correlated = true,
+                yielding = true,
+                inTransactionsParameters = None,
+                optional = false,
+                importedVariables = Set.empty
+              )).withTail(
+                SinglePlannerQuery
+                  .empty
+                  .withQueryGraph(
+                    QueryGraph
+                      .empty
+                      .addArgumentIds(List(varFor("i"), varFor("product")))
+                  ).withInterestingOrder(
+                    InterestingOrder.required(RequiredOrderCandidate(List(
+                      ColumnOrder.Asc(prop("product", "name"), Map(varFor("product") -> varFor("product")))
+                    )))
+                  ).withHorizon(RegularQueryProjection(
+                    projections = Map(varFor("i") -> varFor("i"), varFor("product") -> varFor("product")),
+                    position = QueryProjection.Position.Intermediate
+                  )).withTail(
+                    SinglePlannerQuery
+                      .empty
+                      .withQueryGraph(
+                        QueryGraph
+                          .empty
+                          .addArgumentIds(List(varFor("i"), varFor("product")))
+                      ).withHorizon(RegularQueryProjection(
+                        projections =
+                          Map(varFor("product") -> varFor("product"), varFor("pId") -> prop("product", "id")),
+                        position = QueryProjection.Position.Intermediate
+                      )).withTail(
+                        SinglePlannerQuery
+                          .empty
+                          .withQueryGraph(
+                            QueryGraph
+                              .empty
+                              .addArgumentIds(List(varFor("product"), varFor("pId")))
+                          ).withHorizon(
+                            CallSubqueryHorizon(
+                              callSubquery = UnionQuery(
+                                lhs = UnionQuery(
+                                  lhs =
+                                    SinglePlannerQuery
+                                      .empty
+                                      .withQueryGraph(
+                                        QueryGraph
+                                          .empty
+                                          .addArgumentId(varFor("pId"))
+                                      ).withHorizon(RunQueryAtProjection(
+                                        graphReference =
+                                          GraphDirectReference(CatalogName(
+                                            List("db", "customerAME"),
+                                            resolveStrictly
+                                          ))(pos),
+                                        queryString = List(
+                                          "WITH $`pId` AS `pId`",
+                                          "MATCH (`customer`)-[`bought`]->(`product`)",
+                                          "  WHERE ((`product`).`id`) IN ([`pId`])",
+                                          "RETURN `customer` AS `customer`"
+                                        ).mkString(NL),
+                                        parameters = Set.empty,
+                                        importsAsParameters = Map(parameter("pId", CTAny) -> varFor("pId")),
+                                        columns = Set(varFor("customer"))
+                                      )),
+                                  rhs =
+                                    SinglePlannerQuery
+                                      .empty
+                                      .withHorizon(UnwindProjection(varFor("i"), listOfInt(1, 2, 3)))
+                                      .withTail(
+                                        SinglePlannerQuery
+                                          .empty
+                                          .withQueryGraph(
+                                            QueryGraph
+                                              .empty
+                                              .addArgumentId(varFor("i"))
+                                          ).withHorizon(RegularQueryProjection(
+                                            projections = Map(varFor("customer") -> mapOf("id" -> varFor("i"))),
+                                            position = QueryProjection.Position.Intermediate
+                                          )).withTail(
+                                            SinglePlannerQuery
+                                              .empty
+                                              .withQueryGraph(
+                                                QueryGraph
+                                                  .empty
+                                                  .addArgumentId(varFor("customer"))
+                                              ).withHorizon(RegularQueryProjection(
+                                                projections = Map(varFor("customer") -> varFor("customer")),
+                                                position = QueryProjection.Position.Intermediate
+                                              ))
+                                          )
+                                      ),
+                                  distinct = true,
+                                  unionMappings =
+                                    List(UnionMapping(varFor("customer"), varFor("customer"), varFor("customer")))
+                                ),
+                                rhs =
+                                  SinglePlannerQuery
+                                    .empty
+                                    .withQueryGraph(
+                                      QueryGraph
+                                        .empty
+                                        .addArgumentId(varFor("pId"))
+                                    ).withHorizon(RunQueryAtProjection(
+                                      graphReference = GraphDirectReference(CatalogName(
+                                        List("db", "customerEU"),
+                                        resolveStrictly
+                                      ))(pos),
+                                      queryString = List(
+                                        "WITH $`pId` AS `pId`",
+                                        "MATCH (`customer`)-[`bought`]->(`product`)",
+                                        "  WHERE ((`product`).`id`) IN ([`pId`])",
+                                        "RETURN `customer` AS `customer`"
+                                      ).mkString(NL),
+                                      parameters = Set.empty,
+                                      importsAsParameters = Map(parameter("pId", CTAny) -> varFor("pId")),
+                                      columns = Set(varFor("customer"))
+                                    )),
+                                distinct = true,
+                                unionMappings =
+                                  List(UnionMapping(varFor("customer"), varFor("customer"), varFor("customer")))
+                              ),
+                              correlated = true,
+                              yielding = true,
+                              inTransactionsParameters = None,
+                              optional = false,
+                              importedVariables = Set.empty
+                            )
+                          ).withTail(
+                            SinglePlannerQuery
+                              .empty
+                              .withQueryGraph(
+                                QueryGraph
+                                  .empty
+                                  .addArgumentIds(List(varFor("product"), varFor("pId"), varFor("customer")))
+                              ).withHorizon(RegularQueryProjection(
+                                projections =
+                                  Map(varFor("product") -> varFor("product"), varFor("customer") -> varFor("customer")),
+                                position = QueryProjection.Position.Final
+                              ))
+                          )
+                      )
+                  )
+              )
+          )
+
+      query shouldEqual expected
+    }
+
+    test(s"Cypher $version: query containing a simple composite sub-query using a query parameter") {
+      val query =
+        buildPlannerQuery(
+          version,
+          """UNWIND [1,2,3] AS i
+            |CALL {
+            |  WITH i
+            |  USE db.products
+            |  MATCH (product:Product {id: $pId, version: i})
+            |  RETURN product
+            |}
+            |RETURN product ORDER BY product.name
+            |""".stripMargin,
+          None,
+          None,
+          compareVersions = false
+        )
+
+      val expected =
+        SinglePlannerQuery
+          .empty
+          .withHorizon(UnwindProjection(varFor("i"), listOfInt(1, 2, 3)))
+          .withTail(
+            SinglePlannerQuery
+              .empty
+              .withQueryGraph(
+                QueryGraph
+                  .empty
+                  .addArgumentIds(List(varFor("i")))
+              ).withHorizon(CallSubqueryHorizon(
+                callSubquery = RegularSinglePlannerQuery(
+                  queryGraph =
+                    QueryGraph
+                      .empty
+                      .addArgumentId(varFor("i")),
+                  horizon =
+                    RunQueryAtProjection(
+                      graphReference =
+                        GraphDirectReference(CatalogName(List("db", "products"), resolveStrictly))(pos),
+                      queryString = List(
+                        "WITH $`i` AS `i`",
+                        "MATCH (`product`)",
+                        "  WHERE (((`product`).`id`) IN ([$`pId`])) AND (((`product`).`version`) IN ([`i`])) AND ((`product`):`Product`)",
+                        "RETURN `product` AS `product`"
+                      ).mkString(NL),
+                      parameters = Set(parameter("pId", CTAny)),
+                      importsAsParameters = Map(parameter("i", CTAny) -> varFor("i")),
+                      columns = Set(varFor("product"))
+                    )
+                ),
+                correlated = true,
+                yielding = true,
+                inTransactionsParameters = None,
+                optional = false,
+                importedVariables = Set.empty
+              )).withTail(
+                SinglePlannerQuery
+                  .empty
+                  .withQueryGraph(
+                    QueryGraph
+                      .empty
+                      .addArgumentIds(List(varFor("product"), varFor("i")))
+                  ).withInterestingOrder(
+                    InterestingOrder.required(RequiredOrderCandidate(List(
+                      ColumnOrder.Asc(prop("product", "name"), Map(varFor("product") -> varFor("product")))
+                    )))
+                  ).withHorizon(RegularQueryProjection(
+                    projections = Map(varFor("product") -> varFor("product")),
+                    position = QueryProjection.Position.Final
+                  ))
+              )
+          )
+
+      query shouldEqual expected
+    }
+  })
+
   test("standard single query") {
     val query =
       buildPlannerQuery(
@@ -69,32 +555,6 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
       )
 
     query shouldEqual StandardFixtures.topLevelQuery
-  }
-
-  test("simple top-level composite query") {
-    val query =
-      buildPlannerQuery(
-        """USE db.products
-          |MATCH (product: Product)
-          |RETURN product""".stripMargin
-      )
-
-    val expected =
-      SinglePlannerQuery
-        .empty
-        .withHorizon(RunQueryAtProjection(
-          graphReference = GraphDirectReference(CatalogName(List("db", "products")))(pos),
-          queryString = List(
-            "MATCH (`product`)",
-            "  WHERE (`product`):`Product`",
-            "RETURN `product` AS `product`"
-          ).mkString(NL),
-          parameters = Set.empty,
-          importsAsParameters = Map.empty,
-          columns = Set(varFor("product"))
-        ))
-
-    query shouldEqual expected
   }
 
   test("simple top-level composite query with parameters in graph reference and in query body") {
@@ -120,37 +580,6 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
           parameters = Set(parameter("pId", CTAny)), // We need to forward $pId to the component DB but not $graphName.
           importsAsParameters = Map.empty,
           columns = Set(varFor("product"))
-        ))
-
-    query shouldEqual expected
-  }
-
-  test("top-level composite query containing multiple clauses including a complex RETURN clause") {
-    val query =
-      buildPlannerQuery(
-        """USE db.products
-          |UNWIND [1,2,3] AS i
-          |MATCH (product: Product)
-          |RETURN DISTINCT product.code AS code ORDER BY code SKIP 5 LIMIT 10""".stripMargin
-      )
-
-    val expected =
-      SinglePlannerQuery
-        .empty
-        .withHorizon(RunQueryAtProjection(
-          graphReference = GraphDirectReference(CatalogName(List("db", "products")))(pos),
-          queryString = List(
-            "UNWIND [1, 2, 3] AS `i`",
-            "MATCH (`product`)",
-            "  WHERE (`product`):`Product`",
-            "RETURN DISTINCT (`product`).`code` AS `code`",
-            "  ORDER BY `code` ASCENDING",
-            "  SKIP 5",
-            "  LIMIT 10"
-          ).mkString(NL),
-          parameters = Set.empty,
-          importsAsParameters = Map.empty,
-          columns = Set(varFor("code"))
         ))
 
     query shouldEqual expected
@@ -204,81 +633,6 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
     query shouldEqual expected
   }
 
-  test("composite union query") {
-    val query =
-      buildPlannerQuery(
-        """USE db.products
-          |MATCH (product: Product)
-          |RETURN product
-          |UNION ALL
-          |UNWIND [1,2,3] AS i
-          |RETURN i AS product
-          |UNION ALL
-          |USE db.products_bis
-          |MATCH (product: Product {deleted: false})
-          |RETURN product""".stripMargin
-      )
-
-    val expectedFirst =
-      SinglePlannerQuery
-        .empty
-        .withHorizon(RunQueryAtProjection(
-          graphReference = GraphDirectReference(CatalogName(List("db", "products")))(pos),
-          queryString = List(
-            "MATCH (`product`)",
-            "  WHERE (`product`):`Product`",
-            "RETURN `product` AS `product`"
-          ).mkString(NL),
-          parameters = Set.empty,
-          importsAsParameters = Map.empty,
-          columns = Set(varFor("product"))
-        ))
-
-    val expectedSecond =
-      SinglePlannerQuery
-        .empty
-        .withHorizon(UnwindProjection(varFor("i"), listOfInt(1, 2, 3)))
-        .withTail(
-          SinglePlannerQuery
-            .empty
-            .withQueryGraph(
-              QueryGraph
-                .empty
-                .addArgumentId(varFor("i"))
-            ).withHorizon(RegularQueryProjection(
-              projections = Map(varFor("product") -> varFor("i"))
-            ))
-        )
-
-    val expectedThird =
-      SinglePlannerQuery
-        .empty
-        .withHorizon(RunQueryAtProjection(
-          graphReference = GraphDirectReference(CatalogName(List("db", "products_bis")))(pos),
-          queryString = List(
-            "MATCH (`product`)",
-            "  WHERE (((`product`).`deleted`) IN ([false])) AND ((`product`):`Product`)",
-            "RETURN `product` AS `product`"
-          ).mkString(NL),
-          parameters = Set.empty,
-          importsAsParameters = Map.empty,
-          columns = Set(varFor("product"))
-        ))
-
-    query shouldEqual
-      UnionQuery(
-        lhs = UnionQuery(
-          lhs = expectedFirst,
-          rhs = expectedSecond,
-          distinct = false,
-          unionMappings = List(UnionMapping(varFor("product"), varFor("product"), varFor("product")))
-        ),
-        rhs = expectedThird,
-        distinct = false,
-        unionMappings = List(UnionMapping(varFor("product"), varFor("product"), varFor("product")))
-      )
-  }
-
   test("standard query containing a standard sub-query") {
     val query =
       buildPlannerQuery(
@@ -295,318 +649,7 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
     query shouldEqual StandardFixtures.queryContainingSubQuery
   }
 
-  test("standard query containing a simple composite sub-query") {
-    val query =
-      buildPlannerQuery(
-        """MATCH (product: Product)
-          |WITH product, product.id AS pId
-          |CALL {
-          |  WITH pId
-          |  USE db.customers
-          |  MATCH (customer)-[bought]->(product {id: pId})
-          |  RETURN customer
-          |}
-          |RETURN product, customer""".stripMargin
-      )
-
-    query shouldEqual productQueryWithCustomerSubQuery
-  }
-
-  test("standard query containing a simple composite sub-query – import WITH after USE") {
-    val query =
-      buildPlannerQuery(
-        """MATCH (product: Product)
-          |WITH product, product.id AS pId
-          |CALL {
-          |  USE db.customers
-          |  WITH pId // Note how the importing WITH clause is placed _after_ the USE clause
-          |  MATCH (customer)-[bought]->(product {id: pId})
-          |  RETURN customer
-          |}
-          |RETURN product, customer""".stripMargin
-      )
-
-    query shouldEqual productQueryWithCustomerSubQuery
-  }
-
-  test("query containing a simple composite sub-query and a union sub-query with composite constituents") {
-    val query =
-      buildPlannerQuery(
-        """UNWIND [1,2,3] AS i
-          |CALL {
-          |  WITH i
-          |  USE db.products
-          |  MATCH (product:Product {version: i})
-          |  RETURN product
-          |}
-          |WITH * ORDER BY product.name
-          |WITH product, product.id AS pId
-          |CALL {
-          |    WITH pId
-          |    USE db.customerAME
-          |    MATCH (customer)-[bought]->(product {id: pId})
-          |    RETURN customer
-          |  UNION
-          |    UNWIND [1,2,3] AS i
-          |    WITH {id: i} AS customer
-          |    RETURN customer
-          |  UNION
-          |    USE db.customerEU
-          |    WITH pId
-          |    MATCH (customer)-[bought]->(product {id: pId})
-          |    RETURN customer
-          |}
-          |RETURN product, customer""".stripMargin
-      )
-
-    val expected =
-      SinglePlannerQuery
-        .empty
-        .withHorizon(UnwindProjection(varFor("i"), listOfInt(1, 2, 3)))
-        .withTail(
-          SinglePlannerQuery
-            .empty
-            .withQueryGraph(
-              QueryGraph
-                .empty
-                .addArgumentId(varFor("i"))
-            ).withInterestingOrder(
-              InterestingOrder.interested(InterestingOrderCandidate(List(
-                ColumnOrder.Asc(prop("product", "name"), Map(varFor("product") -> varFor("product")))
-              )))
-            ).withHorizon(CallSubqueryHorizon(
-              callSubquery =
-                SinglePlannerQuery
-                  .empty
-                  .withQueryGraph(
-                    QueryGraph
-                      .empty
-                      .addArgumentId(varFor("i"))
-                  ).withHorizon(RunQueryAtProjection(
-                    graphReference = GraphDirectReference(CatalogName(List("db", "products")))(pos),
-                    queryString = List(
-                      "WITH $`i` AS `i`",
-                      "MATCH (`product`)",
-                      "  WHERE (((`product`).`version`) IN ([`i`])) AND ((`product`):`Product`)",
-                      "RETURN `product` AS `product`"
-                    ).mkString(NL),
-                    parameters = Set.empty,
-                    importsAsParameters = Map(parameter("i", CTAny) -> varFor("i")),
-                    columns = Set(varFor("product"))
-                  )),
-              correlated = true,
-              yielding = true,
-              inTransactionsParameters = None,
-              optional = false,
-              importedVariables = Set.empty
-            )).withTail(
-              SinglePlannerQuery
-                .empty
-                .withQueryGraph(
-                  QueryGraph
-                    .empty
-                    .addArgumentIds(List(varFor("i"), varFor("product")))
-                ).withInterestingOrder(
-                  InterestingOrder.required(RequiredOrderCandidate(List(
-                    ColumnOrder.Asc(prop("product", "name"), Map(varFor("product") -> varFor("product")))
-                  )))
-                ).withHorizon(RegularQueryProjection(
-                  projections = Map(varFor("i") -> varFor("i"), varFor("product") -> varFor("product")),
-                  position = QueryProjection.Position.Intermediate
-                )).withTail(
-                  SinglePlannerQuery
-                    .empty
-                    .withQueryGraph(
-                      QueryGraph
-                        .empty
-                        .addArgumentIds(List(varFor("i"), varFor("product")))
-                    ).withHorizon(RegularQueryProjection(
-                      projections = Map(varFor("product") -> varFor("product"), varFor("pId") -> prop("product", "id")),
-                      position = QueryProjection.Position.Intermediate
-                    )).withTail(
-                      SinglePlannerQuery
-                        .empty
-                        .withQueryGraph(
-                          QueryGraph
-                            .empty
-                            .addArgumentIds(List(varFor("product"), varFor("pId")))
-                        ).withHorizon(
-                          CallSubqueryHorizon(
-                            callSubquery = UnionQuery(
-                              lhs = UnionQuery(
-                                lhs =
-                                  SinglePlannerQuery
-                                    .empty
-                                    .withQueryGraph(
-                                      QueryGraph
-                                        .empty
-                                        .addArgumentId(varFor("pId"))
-                                    ).withHorizon(RunQueryAtProjection(
-                                      graphReference =
-                                        GraphDirectReference(CatalogName(List("db", "customerAME")))(pos),
-                                      queryString = List(
-                                        "WITH $`pId` AS `pId`",
-                                        "MATCH (`customer`)-[`bought`]->(`product`)",
-                                        "  WHERE ((`product`).`id`) IN ([`pId`])",
-                                        "RETURN `customer` AS `customer`"
-                                      ).mkString(NL),
-                                      parameters = Set.empty,
-                                      importsAsParameters = Map(parameter("pId", CTAny) -> varFor("pId")),
-                                      columns = Set(varFor("customer"))
-                                    )),
-                                rhs =
-                                  SinglePlannerQuery
-                                    .empty
-                                    .withHorizon(UnwindProjection(varFor("i"), listOfInt(1, 2, 3)))
-                                    .withTail(
-                                      SinglePlannerQuery
-                                        .empty
-                                        .withQueryGraph(
-                                          QueryGraph
-                                            .empty
-                                            .addArgumentId(varFor("i"))
-                                        ).withHorizon(RegularQueryProjection(
-                                          projections = Map(varFor("customer") -> mapOf("id" -> varFor("i"))),
-                                          position = QueryProjection.Position.Intermediate
-                                        )).withTail(
-                                          SinglePlannerQuery
-                                            .empty
-                                            .withQueryGraph(
-                                              QueryGraph
-                                                .empty
-                                                .addArgumentId(varFor("customer"))
-                                            ).withHorizon(RegularQueryProjection(
-                                              projections = Map(varFor("customer") -> varFor("customer")),
-                                              position = QueryProjection.Position.Intermediate
-                                            ))
-                                        )
-                                    ),
-                                distinct = true,
-                                unionMappings =
-                                  List(UnionMapping(varFor("customer"), varFor("customer"), varFor("customer")))
-                              ),
-                              rhs =
-                                SinglePlannerQuery
-                                  .empty
-                                  .withQueryGraph(
-                                    QueryGraph
-                                      .empty
-                                      .addArgumentId(varFor("pId"))
-                                  ).withHorizon(RunQueryAtProjection(
-                                    graphReference = GraphDirectReference(CatalogName(List("db", "customerEU")))(pos),
-                                    queryString = List(
-                                      "WITH $`pId` AS `pId`",
-                                      "MATCH (`customer`)-[`bought`]->(`product`)",
-                                      "  WHERE ((`product`).`id`) IN ([`pId`])",
-                                      "RETURN `customer` AS `customer`"
-                                    ).mkString(NL),
-                                    parameters = Set.empty,
-                                    importsAsParameters = Map(parameter("pId", CTAny) -> varFor("pId")),
-                                    columns = Set(varFor("customer"))
-                                  )),
-                              distinct = true,
-                              unionMappings =
-                                List(UnionMapping(varFor("customer"), varFor("customer"), varFor("customer")))
-                            ),
-                            correlated = true,
-                            yielding = true,
-                            inTransactionsParameters = None,
-                            optional = false,
-                            importedVariables = Set.empty
-                          )
-                        ).withTail(
-                          SinglePlannerQuery
-                            .empty
-                            .withQueryGraph(
-                              QueryGraph
-                                .empty
-                                .addArgumentIds(List(varFor("product"), varFor("pId"), varFor("customer")))
-                            ).withHorizon(RegularQueryProjection(
-                              projections =
-                                Map(varFor("product") -> varFor("product"), varFor("customer") -> varFor("customer")),
-                              position = QueryProjection.Position.Final
-                            ))
-                        )
-                    )
-                )
-            )
-        )
-
-    query shouldEqual expected
-  }
-
-  test("query containing a simple composite sub-query using a query parameter") {
-    val query =
-      buildPlannerQuery(
-        """UNWIND [1,2,3] AS i
-          |CALL {
-          |  WITH i
-          |  USE db.products
-          |  MATCH (product:Product {id: $pId, version: i})
-          |  RETURN product
-          |}
-          |RETURN product ORDER BY product.name
-          |""".stripMargin
-      )
-
-    val expected =
-      SinglePlannerQuery
-        .empty
-        .withHorizon(UnwindProjection(varFor("i"), listOfInt(1, 2, 3)))
-        .withTail(
-          SinglePlannerQuery
-            .empty
-            .withQueryGraph(
-              QueryGraph
-                .empty
-                .addArgumentIds(List(varFor("i")))
-            ).withHorizon(CallSubqueryHorizon(
-              callSubquery = RegularSinglePlannerQuery(
-                queryGraph =
-                  QueryGraph
-                    .empty
-                    .addArgumentId(varFor("i")),
-                horizon =
-                  RunQueryAtProjection(
-                    graphReference = GraphDirectReference(CatalogName(List("db", "products")))(pos),
-                    queryString = List(
-                      "WITH $`i` AS `i`",
-                      "MATCH (`product`)",
-                      "  WHERE (((`product`).`id`) IN ([$`pId`])) AND (((`product`).`version`) IN ([`i`])) AND ((`product`):`Product`)",
-                      "RETURN `product` AS `product`"
-                    ).mkString(NL),
-                    parameters = Set(parameter("pId", CTAny)),
-                    importsAsParameters = Map(parameter("i", CTAny) -> varFor("i")),
-                    columns = Set(varFor("product"))
-                  )
-              ),
-              correlated = true,
-              yielding = true,
-              inTransactionsParameters = None,
-              optional = false,
-              importedVariables = Set.empty
-            )).withTail(
-              SinglePlannerQuery
-                .empty
-                .withQueryGraph(
-                  QueryGraph
-                    .empty
-                    .addArgumentIds(List(varFor("product"), varFor("i")))
-                ).withInterestingOrder(
-                  InterestingOrder.required(RequiredOrderCandidate(List(
-                    ColumnOrder.Asc(prop("product", "name"), Map(varFor("product") -> varFor("product")))
-                  )))
-                ).withHorizon(RegularQueryProjection(
-                  projections = Map(varFor("product") -> varFor("product")),
-                  position = QueryProjection.Position.Final
-                ))
-            )
-        )
-
-    query shouldEqual expected
-  }
-
-  private lazy val productQueryWithCustomerSubQuery =
+  private def productQueryWithCustomerSubQuery(resolveStrictly: Boolean) =
     SinglePlannerQuery
       .empty
       .withQueryGraph(
@@ -632,7 +675,8 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
                   .addArgumentId(varFor("pId")),
               horizon =
                 RunQueryAtProjection(
-                  graphReference = GraphDirectReference(CatalogName(List("db", "customers")))(pos),
+                  graphReference =
+                    GraphDirectReference(CatalogName(List("db", "customers"), resolveStrictly))(pos),
                   queryString = List(
                     "WITH $`pId` AS `pId`",
                     "MATCH (`customer`)-[`bought`]->(`product`)",
@@ -670,38 +714,49 @@ class StandardStatementConvertersTest extends CypherFunSuite with LogicalPlannin
     SemanticFeature.UseAsSingleGraphSelector
   )
 
-  test("USE in a top-level query, with 'USE as single graph selector'") {
-    val query =
-      buildPlannerQuery(
-        """USE db.products
-          |MATCH (product: Product)
-          |RETURN product""".stripMargin
-      )
+  CypherVersion.values().foreach(version => {
+    test(s"Cypher $version: USE in a top-level query, with 'USE as single graph selector'") {
+      val query =
+        buildPlannerQuery(
+          version,
+          """USE db.products
+            |MATCH (product: Product)
+            |RETURN product""".stripMargin,
+          None,
+          None,
+          compareVersions = false
+        )
 
-    query shouldEqual StandardFixtures.topLevelQuery
-  }
+      query shouldEqual StandardFixtures.topLevelQuery
+    }
 
-  test("USE in a sub-query, with 'USE as single graph selector'") {
-    val query =
-      buildPlannerQuery(
-        """MATCH (product: Product)
-          |WITH product, product.id AS pId
-          |CALL {
-          |  WITH pId
-          |  USE db.customers
-          |  MATCH (customer)-[bought]->(product {id: pId})
-          |  RETURN customer
-          |}
-          |RETURN product, customer""".stripMargin
-      )
+    test(s"Cypher $version: USE in a sub-query, with 'USE as single graph selector'") {
+      val query =
+        buildPlannerQuery(
+          version,
+          """MATCH (product: Product)
+            |WITH product, product.id AS pId
+            |CALL {
+            |  WITH pId
+            |  USE db.customers
+            |  MATCH (customer)-[bought]->(product {id: pId})
+            |  RETURN customer
+            |}
+            |RETURN product, customer""".stripMargin,
+          None,
+          None,
+          compareVersions = false
+        )
 
-    query shouldEqual StandardFixtures.queryContainingSubQuery
-  }
+      query shouldEqual StandardFixtures.queryContainingSubQuery
+    }
+  })
+
 }
 
 object StandardFixtures extends AstConstructionTestSupport {
 
-  val topLevelQuery: PlannerQuery =
+  def topLevelQuery: PlannerQuery =
     SinglePlannerQuery
       .empty
       .withQueryGraph(

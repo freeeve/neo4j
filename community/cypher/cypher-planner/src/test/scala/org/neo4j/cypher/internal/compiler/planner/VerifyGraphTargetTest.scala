@@ -20,240 +20,221 @@
 package org.neo4j.cypher.internal.compiler.planner
 
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito
 import org.mockito.Mockito.when
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.IsTyped
-import org.neo4j.cypher.internal.ast.Query
-import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
-import org.neo4j.cypher.internal.ast.SetIncludingPropertiesFromMapItem
+import org.neo4j.cypher.internal.ast._
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.UseAsMultipleGraphsSelector
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.UseAsSingleGraphSelector
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
-import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
-import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
 import org.neo4j.cypher.internal.parser.AstParserFactory
-import org.neo4j.cypher.internal.util.CancellationChecker
-import org.neo4j.cypher.internal.util.InternalNotificationLogger
-import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
-import org.neo4j.cypher.internal.util.Rewriter
-import org.neo4j.cypher.internal.util.bottomUp
+import org.neo4j.cypher.internal.util._
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.messages.MessageUtilProvider
 import org.neo4j.dbms.api.DatabaseNotFoundException
 import org.neo4j.exceptions.InvalidSemanticsException
-import org.neo4j.kernel.database.DatabaseReference
-import org.neo4j.kernel.database.DatabaseReferenceImpl
-import org.neo4j.kernel.database.DatabaseReferenceRepository
-import org.neo4j.kernel.database.NamedDatabaseId
-import org.neo4j.kernel.database.NormalizedDatabaseName
+import org.neo4j.kernel.database._
 
-import java.util
-import java.util.Optional
-
-import scala.jdk.CollectionConverters.SeqHasAsJava
-import scala.util.Success
-import scala.util.Try
+import java.util.UUID
 
 class VerifyGraphTargetTest extends CypherFunSuite {
 
-  val databaseReferenceRepository = mock[DatabaseReferenceRepository]
-  val sessionDb = mock[NamedDatabaseId]
+  val neo4j: DatabaseReferenceImpl.Internal = TestDatabaseReferenceRepository.internalDatabaseReference("neo4j")
+  val foo: DatabaseReferenceImpl.Internal = TestDatabaseReferenceRepository.internalDatabaseReference("foo")
 
-  override protected def beforeEach(): Unit = {
-    super.beforeEach()
-    Mockito.reset(databaseReferenceRepository)
-  }
+  val constituent: DatabaseReferenceImpl.Internal =
+    TestDatabaseReferenceRepository.internalDatabaseReferenceIn("shard0", "composite")
 
-  test("should accept statement without USE clause") {
-    mockReferenceRepository(graphReference(sessionDb))
-    verifyGraphTarget("RETURN 1")
-  }
+  val compositeRef: DatabaseReferenceImpl.Composite =
+    TestDatabaseReferenceRepository.compositeDatabaseReference("composite", java.util.Set.of(constituent))
+  val databaseReferenceRepository = new TestDatabaseReferenceRepository.Fixed(neo4j, foo, constituent, compositeRef)
+  val sessionDbName = "neo4j"
+  val sessionDb: NamedDatabaseId = DatabaseIdFactory.from(sessionDbName, UUID.randomUUID())
 
-  test("should accept USE targeting the session graph") {
-    val query =
-      """
-        |USE neo4j
-        |RETURN 1
-        |""".stripMargin
+  def beforeAll(): Unit = {}
 
-    mockReferenceRepository(graphReference(sessionDb))
-    verifyGraphTarget(query)
-  }
-
-  test("should accept USE with namespace targeting the session graph") {
-    val query =
-      """
-        |USE somewhere.neo4j
-        |RETURN 1
-        |""".stripMargin
-
-    mockReferenceRepository(graphReference(sessionDb))
-    verifyGraphTarget(query)
-  }
-
-  test("should not accept USE targeting a graph which is not the session one") {
-    val query =
-      """
-        |USE foo
-        |RETURN 1
-        |""".stripMargin
-
-    mockReferenceRepository(graphReference(mock[NamedDatabaseId]))
-    the[InvalidSemanticsException] thrownBy verifyGraphTarget(query) should have message "Query routing is not available in embedded sessions. Try running the query using a Neo4j driver or the HTTP API."
-  }
-
-  test("should not accept USE targeting a non-existent graph") {
-    val query =
-      """
-        |USE foo
-        |RETURN 1
-        |""".stripMargin
-
-    the[DatabaseNotFoundException] thrownBy verifyGraphTarget(query) should have message "Database foo not found"
-  }
-
-  test("should accept a combination of ambient and explicit graph selection targeting the session graph") {
-    val query =
-      """
-        |CALL {
-        |  USE neo4j
-        |  RETURN 1
-        |}
-        |RETURN 1
-        |""".stripMargin
-    mockReferenceRepository(graphReference(sessionDb))
-    verifyGraphTarget(query)
-  }
-
-  test("should not accept a combination of ambient and explicit graph selection targeting different graphs") {
-    val query =
-      """
-        |CALL {
-        |  USE foo
-        |  RETURN 1
-        |}
-        |RETURN 1
-        |""".stripMargin
-
-    mockReferenceRepository(graphReference(mock[NamedDatabaseId]))
-    the[InvalidSemanticsException] thrownBy verifyGraphTarget(
-      query
-    ) should have message MessageUtilProvider.createMultipleGraphReferencesError("foo")
-  }
-
-  test("should accept a combination of ambient and explicit graph selection in UNION targeting the session graph") {
-    val query =
-      """
-        |RETURN 1 AS x
-        |UNION
-        |USE neo4j
-        |RETURN 1 AS x
-        |""".stripMargin
-    mockReferenceRepository(graphReference(sessionDb))
-    verifyGraphTarget(query)
-  }
-
-  test("should not accept a combination of ambient and explicit graph selection in UNION targeting different graphs") {
-    val query =
-      """
-        |RETURN 1 AS x
-        |UNION
-        |USE foo
-        |RETURN 1 AS x
-        |""".stripMargin
-    mockReferenceRepository(graphReference(mock[NamedDatabaseId]))
-    the[InvalidSemanticsException] thrownBy verifyGraphTarget(
-      query
-    ) should have message MessageUtilProvider.createMultipleGraphReferencesError("foo")
-  }
-
-  test("should not accept constituent if allowCompositeQueries not set to true") {
+  test(s"should accept constituent if allowCompositeQueries set to true") {
     val query =
       """
         |USE composite.shard0
         |RETURN 1
         |""".stripMargin
 
-    mockReferenceRepository(compositeGraphReference(sessionDb, Seq(databaseReference("composite.shard0"))))
-    the[DatabaseNotFoundException] thrownBy verifyGraphTarget(
-      query
-    ) should have message "Database composite.shard0 not found"
+    verifyGraphTarget(query, CypherVersion.Cypher5, compositeRef.databaseId(), allowCompositeQueries = true)
   }
 
-  test("should accept constituent if allowCompositeQueries set to true") {
-    val query =
-      """
-        |USE composite.shard0
-        |RETURN 1
-        |""".stripMargin
+  CypherVersion.values().foreach(version => {
+    test(s"Cypher $version: should accept statement without USE clause") {
+      verifyGraphTarget("RETURN 1", version)
+    }
 
-    mockReferenceRepository(compositeGraphReference(sessionDb, Seq(databaseReference("composite.shard0"))))
-    verifyGraphTarget(query, true)
-  }
+    test(s"Cypher Cypher $version: should accept USE targeting the session graph") {
+      val query =
+        """
+          |USE neo4j
+          |RETURN 1
+          |""".stripMargin
 
-  test("should only accept existent constituent if allowCompositeQueries set to true") {
-    val query =
-      """
-        |USE composite.other
-        |RETURN 1
-        |""".stripMargin
+      verifyGraphTarget(query, version)
+    }
 
-    mockReferenceRepository(compositeGraphReference(sessionDb, Seq(databaseReference("composite.shard0"))))
-    the[DatabaseNotFoundException] thrownBy verifyGraphTarget(
-      query,
-      true
-    ) should have message "Database composite.other not found"
-  }
+    test(s"Cypher $version: should not accept USE targeting a graph which is not the session one") {
+      val query =
+        """
+          |USE foo
+          |RETURN 1
+          |""".stripMargin
 
-  test("should accept query if the target is a composite db and allowCompositeQueries set to true") {
-    val query =
-      """
-        |RETURN 1
-        |""".stripMargin
+      the[InvalidSemanticsException] thrownBy verifyGraphTarget(
+        query,
+        version
+      ) should have message "Query routing is not available in embedded sessions. Try running the query using a Neo4j driver or the HTTP API."
+    }
 
-    mockReferenceRepository(compositeGraphReference(sessionDb, Seq(databaseReference("composite"))))
-    verifyGraphTarget(query, allowCompositeQueries = true, targetsComposite = true)
-  }
+    test(s"Cypher $version: should not accept USE targeting a non-existent graph") {
+      val query =
+        """
+          |USE other
+          |RETURN 1
+          |""".stripMargin
 
-  private def mockReferenceRepository(reference: DatabaseReferenceImpl.Internal) = {
-    when(databaseReferenceRepository.getInternalByAlias(any[NormalizedDatabaseName])).thenReturn(Optional.of(reference))
-  }
+      the[DatabaseNotFoundException] thrownBy verifyGraphTarget(
+        query,
+        version
+      ) should have message "Database other not found"
+    }
 
-  private def mockReferenceRepository(reference: DatabaseReferenceImpl.Composite) = {
-    val compositeDatabases = new util.HashSet[DatabaseReferenceImpl.Composite]()
-    compositeDatabases.add(reference)
+    test(
+      s"Cypher $version: should accept a combination of ambient and explicit graph selection targeting the session graph"
+    ) {
+      val query =
+        """
+          |CALL {
+          |  USE neo4j
+          |  RETURN 1
+          |}
+          |RETURN 1
+          |""".stripMargin
+      verifyGraphTarget(query, version)
+    }
 
-    when(databaseReferenceRepository.getInternalByAlias(any[NormalizedDatabaseName])).thenReturn(Optional.empty())
-    when(databaseReferenceRepository.getCompositeDatabaseReferences()).thenReturn(compositeDatabases)
-  }
+    test(
+      s"Cypher $version: should not accept a combination of ambient and explicit graph selection targeting different graphs"
+    ) {
+      val query =
+        """
+          |CALL {
+          |  USE foo
+          |  RETURN 1
+          |}
+          |RETURN 1
+          |""".stripMargin
 
-  private def graphReference(databaseId: NamedDatabaseId): DatabaseReferenceImpl.Internal = {
-    val graphReference = mock[DatabaseReferenceImpl.Internal]
-    when(graphReference.databaseId()).thenReturn(databaseId)
-    graphReference
-  }
+      the[InvalidSemanticsException] thrownBy verifyGraphTarget(
+        query,
+        version
+      ) should have message MessageUtilProvider.createMultipleGraphReferencesError("foo")
+    }
 
-  private def compositeGraphReference(
-    databaseId: NamedDatabaseId,
-    constituents: Seq[DatabaseReference]
-  ): DatabaseReferenceImpl.Composite = {
-    val graphReference = mock[DatabaseReferenceImpl.Composite]
-    when(graphReference.databaseId()).thenReturn(databaseId)
-    when(graphReference.constituents()).thenReturn(constituents.asJava)
-    graphReference
-  }
+    test(
+      s"Cypher $version: should accept a combination of ambient and explicit graph selection in UNION targeting the session graph"
+    ) {
+      val query =
+        """
+          |RETURN 1 AS x
+          |UNION
+          |USE neo4j
+          |RETURN 1 AS x
+          |""".stripMargin
+      verifyGraphTarget(query, version)
+    }
+
+    test(
+      s"Cypher $version: should not accept a combination of ambient and explicit graph selection in UNION targeting different graphs"
+    ) {
+      val query =
+        """
+          |RETURN 1 AS x
+          |UNION
+          |USE foo
+          |RETURN 1 AS x
+          |""".stripMargin
+      the[InvalidSemanticsException] thrownBy verifyGraphTarget(
+        query,
+        version
+      ) should have message MessageUtilProvider.createMultipleGraphReferencesError("foo")
+    }
+
+    test(s"Cypher $version: should not accept constituent if allowCompositeQueries not set to true") {
+      val query =
+        """
+          |USE composite.shard0
+          |RETURN 1
+          |""".stripMargin
+
+      // missing reference in repository!
+      if (version == CypherVersion.Cypher5) {
+        the[DatabaseNotFoundException] thrownBy verifyGraphTarget(
+          query,
+          version,
+          compositeRef.databaseId()
+        ) should have message "Database composite.shard0 not found"
+      } else {
+        the[InvalidSemanticsException] thrownBy verifyGraphTarget(
+          query,
+          version,
+          compositeRef.databaseId()
+        ) should have message MessageUtilProvider.createMultipleGraphReferencesError("composite.shard0")
+      }
+    }
+
+    test(s"Cypher $version: should accept constituent if allowCompositeQueries set to true") {
+      val query =
+        """
+          |USE composite.shard0
+          |RETURN 1
+          |""".stripMargin
+
+      verifyGraphTarget(query, version, compositeRef.databaseId(), allowCompositeQueries = true)
+    }
+
+    test(s"Cypher $version: should only accept existent constituent if allowCompositeQueries set to true") {
+      val query =
+        """
+          |USE composite.other
+          |RETURN 1
+          |""".stripMargin
+
+      the[DatabaseNotFoundException] thrownBy verifyGraphTarget(
+        query,
+        version,
+        allowCompositeQueries = true
+      ) should have message "Database composite.other not found"
+    }
+
+    test(
+      s"Cypher $version: should accept query if the target is a composite db and allowCompositeQueries set to true"
+    ) {
+      val query =
+        """
+          |RETURN 1
+          |""".stripMargin
+
+      verifyGraphTarget(query, version, allowCompositeQueries = true, targetsComposite = true)
+    }
+  })
 
   private def verifyGraphTarget(
     query: String,
+    version: CypherVersion,
+    sessionDb: NamedDatabaseId = neo4j.databaseId(),
     allowCompositeQueries: Boolean = false,
     targetsComposite: Boolean = false
   ): Unit = {
-    val parsedQuery = parse(query)
+    val parsedQuery = parse(version, query)
     val state = mock[BaseState]
     when(state.statement()).thenReturn(parsedQuery)
     val semantics = mock[SemanticState]
@@ -280,57 +261,9 @@ class VerifyGraphTargetTest extends CypherFunSuite {
     VerifyGraphTarget.transform(state, plannerContext)
   }
 
-  private def databaseReference(fullName: String): DatabaseReference = {
-    val dbRef = mock[DatabaseReference]
-    when(dbRef.fullName()).thenReturn(new NormalizedDatabaseName(fullName))
-
-    dbRef
-  }
-
-  private def parse(query: String): Query = {
-    val defaultStatement = rewriteASTDifferences(parse(CypherVersion.Default, query))
-    CypherVersion.values().foreach { version =>
-      if (version != CypherVersion.Default) {
-        Try(rewriteASTDifferences(parse(version, query))) match {
-          case Success(otherStatement) if otherStatement == defaultStatement =>
-          case notEqual => throw new AssertionError(
-              s"""Unexpected result in $version
-                 |Default statement: $defaultStatement
-                 |$version statement: $notEqual
-                 |""".stripMargin
-            )
-        }
-      }
-    }
-    defaultStatement
-  }
-
   private def parse(version: CypherVersion, query: String): Query =
     AstParserFactory(version)(query, Neo4jCypherExceptionFactory(query, None), None).singleStatement() match {
       case q: Query => q
       case _        => fail(s"Must be a Query, it's not in $version")
     }
-
-  /**
-   * There are some AST changes done at the parser level for semantic analysis that won't affect the plan.
-   * This rewriter can be expanded to update those parts.
-   */
-  def rewriteASTDifferences(statement: Query): Query = {
-    statement.endoRewrite(bottomUp(Rewriter.lift {
-      case u: SetExactPropertiesFromMapItem     => u.copy(rhsMustBeMap = false)(u.position)
-      case u: SetIncludingPropertiesFromMapItem => u.copy(rhsMustBeMap = false)(u.position)
-      case v: Variable if v.isIsolated          =>
-        // An isolated variable e.g. "`a`", "(a)" is tracked in the AST by the Cypher5 parser.
-        // This is rewrite removes the tracking.
-        v.copy()(v.position, Variable.isIsolatedDefault)
-      case it: IsTyped if it.withDoubleColonOnly =>
-        // Type predicates with only a double column e.g. "x :: INT" are tracked in the AST by the Cypher5 parser.
-        // This is rewrite removes the difference.
-        it.copy()(it.position, IsTyped.withDoubleColonOnlyDefault)
-      case lep: LabelExpressionPredicate if lep.isParenthesized =>
-        // Label expression predicates that are parenthesized e.g. "(n:L)" are tracked in the AST by the Cypher5 parser.
-        // This is rewrite removes the difference.
-        lep.copy()(lep.position, LabelExpressionPredicate.isParenthesizedDefault)
-    }))
-  }
 }

@@ -72,7 +72,7 @@ class FabricStitcherTest
 
     "single fragment, with USE" in {
       stitching(
-        init(defaultUse).leaf(Seq(use("foo"), return_(literal(1).as("a"))), Seq("a"))
+        init(defaultUse).leaf(Seq(use("foo", resolveStrictly = true), return_(literal(1).as("a"))), Seq("a"))
       ).shouldEqual(
         init(defaultUse).exec(singleQuery(return_(literal(1).as("a"))), Seq("a"))
       )
@@ -181,15 +181,15 @@ class FabricStitcherTest
 
     "nested fragment directly after USE" in {
       stitching(
-        init(Declared(use("foo")))
-          .leaf(Seq(use("foo")), Seq())
+        init(Declared(use("foo", resolveStrictly = true)))
+          .leaf(Seq(use("foo", resolveStrictly = true)), Seq())
           .apply(u =>
             init(Inherited(u)(pos), Seq())
               .leaf(Seq(return_(literal(2).as("b"))), Seq("b"))
           )
           .leaf(Seq(return_(literal(3).as("c"))), Seq("c"))
       ).shouldEqual(
-        init(Declared(use("foo")))
+        init(Declared(use("foo", resolveStrictly = true)))
           .exec(
             singleQuery(
               scopeClauseSubqueryCall(false, Seq.empty, return_(literal(2).as("b"))),
@@ -292,15 +292,15 @@ class FabricStitcherTest
         init(defaultUse)
           .leaf(Seq(with_(literal(1).as("a"))), Seq("a"))
           .apply(_ =>
-            init(Declared(use("foo")), Seq("a"))
-              .leaf(Seq(use("foo"), return_(literal(2).as("b"))), Seq("b"))
+            init(Declared(use("foo", resolveStrictly = true)), Seq("a"))
+              .leaf(Seq(use("foo", resolveStrictly = true), return_(literal(2).as("b"))), Seq("b"))
           )
           .leaf(Seq(return_(literal(3).as("c"))), Seq("c"))
       ).shouldEqual(
         init(defaultUse)
           .exec(singleQuery(with_(literal(1).as("a")), return_(varFor("a").as("a"))), Seq("a"))
           .apply(_ =>
-            init(Declared(use("foo")), Seq("a"))
+            init(Declared(use("foo", resolveStrictly = true)), Seq("a"))
               .exec(singleQuery(return_(literal(2).as("b"))), Seq("b"))
           )
           .exec(singleQuery(input(varFor("a"), varFor("b")), return_(literal(3).as("c"))), Seq("c"))
@@ -321,15 +321,18 @@ class FabricStitcherTest
         init(defaultUse)
           .leaf(Seq(with_(literal(1).as("a"))), Seq("a"))
           .apply(_ =>
-            init(Declared(use("foo")), Seq("a"), Seq("a"))
-              .leaf(Seq(with_(varFor("a").as("a")), use("foo"), return_(literal(2).as("b"))), Seq("b"))
+            init(Declared(use("foo", resolveStrictly = true)), Seq("a"), Seq("a"))
+              .leaf(
+                Seq(with_(varFor("a").as("a")), use("foo", resolveStrictly = true), return_(literal(2).as("b"))),
+                Seq("b")
+              )
           )
           .leaf(Seq(return_(literal(3).as("c"))), Seq("c"))
       ).shouldEqual(
         init(defaultUse)
           .exec(singleQuery(with_(literal(1).as("a")), return_(varFor("a").as("a"))), Seq("a"))
           .apply(_ =>
-            init(Declared(use("foo")), Seq("a"), Seq("a"))
+            init(Declared(use("foo", resolveStrictly = true)), Seq("a"), Seq("a"))
               .exec(
                 singleQuery(
                   with_(parameter("@@a", ct.any).as("a")),
@@ -367,10 +370,10 @@ class FabricStitcherTest
           init(defaultUse)
             .apply(
               _ =>
-                init(Declared(use("foo")), Seq(), Seq())
+                init(Declared(use("foo", resolveStrictly = true)), Seq(), Seq())
                   .leaf(
                     Seq(
-                      use("foo"),
+                      use("foo", resolveStrictly = true),
                       return_(literal(1).as("a"))
                     ),
                     Seq("a")
@@ -382,7 +385,7 @@ class FabricStitcherTest
         val expected = init(defaultUse)
           .apply(
             _ =>
-              init(Declared(use("foo")), Seq(), Seq())
+              init(Declared(use("foo", resolveStrictly = true)), Seq(), Seq())
                 .exec(
                   singleQuery(
                     unwind(
@@ -434,11 +437,11 @@ class FabricStitcherTest
             .leaf(Seq(with_(literal(1).as("b"))), Seq("b"))
             .apply(
               _ =>
-                init(Declared(use("foo")), Seq("b"), Seq("b"))
+                init(Declared(use("foo", resolveStrictly = true)), Seq("b"), Seq("b"))
                   .leaf(
                     Seq(
                       with_(varFor("b").as("b")),
-                      use("foo"),
+                      use("foo", resolveStrictly = true),
                       return_(varFor("b").as("c"))
                     ),
                     Seq("c")
@@ -457,7 +460,7 @@ class FabricStitcherTest
           )
           .apply(
             _ =>
-              init(Declared(use("foo")), Seq("b"), Seq("b"))
+              init(Declared(use("foo", resolveStrictly = true)), Seq("b"), Seq("b"))
                 .exec(
                   singleQuery(
                     unwind(

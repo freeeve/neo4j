@@ -148,7 +148,7 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
       assertAstVersionBased(
         fromCypher5 =>
           singleQuery(
-            use(List("db")),
+            use(List("db"), !fromCypher5),
             ShowTransactionsClause(Left(List.empty), None, List.empty, yieldAll = false, None, fromCypher5)(pos)
           ),
         comparePosition = false
@@ -365,7 +365,7 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
     assertAstVersionBased(
       fromCypher5 =>
         singleQuery(
-          use(List("db")),
+          use(List("db"), !fromCypher5),
           ShowTransactionsClause(
             Left(List.empty),
             None,
@@ -392,7 +392,7 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
     assertAstVersionBased(
       fromCypher5 =>
         singleQuery(
-          use(List("db")),
+          use(List("db"), !fromCypher5),
           ShowTransactionsClause(
             Left(List.empty),
             None,
@@ -422,7 +422,7 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
     assertAstVersionBased(
       fromCypher5 =>
         singleQuery(
-          use(List("db")),
+          use(List("db"), !fromCypher5),
           ShowTransactionsClause(
             Left(List.empty),
             None,

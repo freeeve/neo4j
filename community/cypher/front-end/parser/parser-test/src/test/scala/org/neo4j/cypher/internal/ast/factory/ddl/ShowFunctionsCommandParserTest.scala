@@ -120,11 +120,12 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
       }
 
       test(s"USE db SHOW $typeString $funcKeyword") {
-        assertAst(
-          singleQuery(
-            use(List("db")),
-            ShowFunctionsClause(functionType, None, None, List.empty, yieldAll = false, None)(defaultPos)
-          ),
+        assertAstVersionBased(
+          cypher5 =>
+            singleQuery(
+              use(List("db"), !cypher5),
+              ShowFunctionsClause(functionType, None, None, List.empty, yieldAll = false, None)(defaultPos)
+            ),
           comparePosition = false
         )
       }
@@ -212,25 +213,28 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
   }
 
   test("USE db SHOW BUILT IN FUNCTIONS YIELD name, description AS pp WHERE pp < 50.0 RETURN name") {
-    assertAst(
-      singleQuery(
-        use(List("db")),
-        ShowFunctionsClause(
-          BuiltInFunctions,
-          None,
-          None,
-          List(
-            commandResultItem("name"),
-            commandResultItem("description", Some("pp"))
-          ),
-          yieldAll = false,
-          Some(withFromYield(
-            returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
-            where = Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
-          ))
-        )(defaultPos),
-        return_(variableReturnItem("name"))
-      ),
+    assertAstVersionBased(
+      cypher5 =>
+        singleQuery(
+          use(List("db"), !cypher5),
+          ShowFunctionsClause(
+            BuiltInFunctions,
+            None,
+            None,
+            List(
+              commandResultItem("name"),
+              commandResultItem("description", Some("pp"))
+            ),
+            yieldAll = false,
+            Some(
+              withFromYield(
+                returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
+                where = Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
+              )
+            )
+          )(defaultPos),
+          return_(variableReturnItem("name"))
+        ),
       comparePosition = false
     )
   }
@@ -238,28 +242,31 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
   test(
     "USE db SHOW FUNCTIONS EXECUTABLE YIELD name, description AS pp ORDER BY pp SKIP 2 LIMIT 5 WHERE pp < 50.0 RETURN name"
   ) {
-    assertAst(
-      singleQuery(
-        use(List("db")),
-        ShowFunctionsClause(
-          AllFunctions,
-          Some(CurrentUser),
-          None,
-          List(
-            commandResultItem("name"),
-            commandResultItem("description", Some("pp"))
-          ),
-          yieldAll = false,
-          Some(withFromYield(
-            returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
-            Some(orderBy(sortItem(varFor("pp")))),
-            Some(skip(2)),
-            Some(limit(5)),
-            Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
-          ))
-        )(defaultPos),
-        return_(variableReturnItem("name"))
-      ),
+    assertAstVersionBased(
+      cypher5 =>
+        singleQuery(
+          use(List("db"), !cypher5),
+          ShowFunctionsClause(
+            AllFunctions,
+            Some(CurrentUser),
+            None,
+            List(
+              commandResultItem("name"),
+              commandResultItem("description", Some("pp"))
+            ),
+            yieldAll = false,
+            Some(
+              withFromYield(
+                returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
+                Some(orderBy(sortItem(varFor("pp")))),
+                Some(skip(2)),
+                Some(limit(5)),
+                Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
+              )
+            )
+          )(defaultPos),
+          return_(variableReturnItem("name"))
+        ),
       comparePosition = false
     )
   }

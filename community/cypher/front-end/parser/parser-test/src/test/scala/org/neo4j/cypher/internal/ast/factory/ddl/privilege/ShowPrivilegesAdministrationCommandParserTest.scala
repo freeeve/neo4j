@@ -40,7 +40,14 @@ class ShowPrivilegesAdministrationCommandParserTest extends AdministrationAndSch
   }
 
   test("use system show supported privileges") {
-    parsesTo[Statements](ShowSupportedPrivilegeCommand(None)(pos).withGraph(Some(use(List("system")))))
+    def expected(resolveStrictly: Boolean) = {
+      ShowSupportedPrivilegeCommand(None)(pos).withGraph(Some(use(List("system"), resolveStrictly)))
+    }
+
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(expected(resolveStrictly = false))
+      case _       => _.toAst(expected(resolveStrictly = true))
+    }
   }
 
   test("show supported privileges YIELD *") {
@@ -89,8 +96,15 @@ class ShowPrivilegesAdministrationCommandParserTest extends AdministrationAndSch
   }
 
   test("use system show privileges") {
-    parsesTo[Statements](ShowPrivileges(ShowAllPrivileges()(pos), None)(pos)
-      .withGraph(Some(use(List("system")))))
+    def expected(resolveStrictly: Boolean) = {
+      ShowPrivileges(ShowAllPrivileges()(pos), None)(pos)
+        .withGraph(Some(use(List("system"), resolveStrictly)))
+    }
+
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(expected(resolveStrictly = false))
+      case _       => _.toAst(expected(resolveStrictly = true))
+    }
   }
 
   test("SHOW ALL PRIVILEGES") {

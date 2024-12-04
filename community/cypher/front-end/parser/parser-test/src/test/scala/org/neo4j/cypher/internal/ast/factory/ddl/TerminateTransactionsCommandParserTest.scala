@@ -124,17 +124,18 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
     }
 
     test(s"USE db TERMINATE $transactionKeyword 'db1-transaction-123'") {
-      assertAst(
-        singleQuery(
-          use(List("db")),
-          TerminateTransactionsClause(
-            Right(literalString("db1-transaction-123")),
-            List.empty,
-            yieldAll = false,
-            None,
-            None
-          )(pos)
-        ),
+      assertAstVersionBased(
+        cypher5 =>
+          singleQuery(
+            use(List("db"), !cypher5),
+            TerminateTransactionsClause(
+              Right(literalString("db1-transaction-123")),
+              List.empty,
+              yieldAll = false,
+              None,
+              None
+            )(pos)
+          ),
         comparePosition = false
       )
     }
@@ -264,24 +265,27 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
   test(
     "USE db TERMINATE TRANSACTIONS 'db1-transaction-123' YIELD transactionId, username AS pp ORDER BY pp SKIP 2 LIMIT 5 WHERE length(pp) < 5 RETURN transactionId"
   ) {
-    assertAst(
-      singleQuery(
-        use(List("db")),
-        TerminateTransactionsClause(
-          Right(literalString("db1-transaction-123")),
-          List(commandResultItem("transactionId"), commandResultItem("username", Some("pp"))),
-          yieldAll = false,
-          Some(withFromYield(
-            returnAllItems.withDefaultOrderOnColumns(List("transactionId", "pp")),
-            Some(orderBy(sortItem(varFor("pp")))),
-            Some(skip(2)),
-            Some(limit(5)),
-            Some(where(lessThan(function("length", varFor("pp")), literalInt(5L))))
-          )),
-          None
-        )(pos),
-        return_(variableReturnItem("transactionId"))
-      ),
+    assertAstVersionBased(
+      cypher5 =>
+        singleQuery(
+          use(List("db"), !cypher5),
+          TerminateTransactionsClause(
+            Right(literalString("db1-transaction-123")),
+            List(commandResultItem("transactionId"), commandResultItem("username", Some("pp"))),
+            yieldAll = false,
+            Some(
+              withFromYield(
+                returnAllItems.withDefaultOrderOnColumns(List("transactionId", "pp")),
+                Some(orderBy(sortItem(varFor("pp")))),
+                Some(skip(2)),
+                Some(limit(5)),
+                Some(where(lessThan(function("length", varFor("pp")), literalInt(5L))))
+              )
+            ),
+            None
+          )(pos),
+          return_(variableReturnItem("transactionId"))
+        ),
       comparePosition = false
     )
   }
@@ -289,24 +293,27 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
   test(
     "USE db TERMINATE TRANSACTIONS 'db1-transaction-123' YIELD transactionId, username AS pp ORDER BY pp OFFSET 2 LIMIT 5 WHERE length(pp) < 5 RETURN transactionId"
   ) {
-    assertAst(
-      singleQuery(
-        use(List("db")),
-        TerminateTransactionsClause(
-          Right(literalString("db1-transaction-123")),
-          List(commandResultItem("transactionId"), commandResultItem("username", Some("pp"))),
-          yieldAll = false,
-          Some(withFromYield(
-            returnAllItems.withDefaultOrderOnColumns(List("transactionId", "pp")),
-            Some(orderBy(sortItem(varFor("pp")))),
-            Some(skip(2)),
-            Some(limit(5)),
-            Some(where(lessThan(function("length", varFor("pp")), literalInt(5L))))
-          )),
-          None
-        )(pos),
-        return_(variableReturnItem("transactionId"))
-      ),
+    assertAstVersionBased(
+      cypher5 =>
+        singleQuery(
+          use(List("db"), !cypher5),
+          TerminateTransactionsClause(
+            Right(literalString("db1-transaction-123")),
+            List(commandResultItem("transactionId"), commandResultItem("username", Some("pp"))),
+            yieldAll = false,
+            Some(
+              withFromYield(
+                returnAllItems.withDefaultOrderOnColumns(List("transactionId", "pp")),
+                Some(orderBy(sortItem(varFor("pp")))),
+                Some(skip(2)),
+                Some(limit(5)),
+                Some(where(lessThan(function("length", varFor("pp")), literalInt(5L))))
+              )
+            ),
+            None
+          )(pos),
+          return_(variableReturnItem("transactionId"))
+        ),
       comparePosition = false
     )
   }

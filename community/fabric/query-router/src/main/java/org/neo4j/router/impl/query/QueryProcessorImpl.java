@@ -69,8 +69,8 @@ import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.OptionConverters;
 
 public class QueryProcessorImpl implements QueryProcessor {
-
-    public static final CatalogName SYSTEM_DATABASE_CATALOG_NAME = CatalogName.of(SYSTEM_DATABASE_NAME);
+    // the system database resolves to the same database in both strict and non-strict mode
+    public static final CatalogName SYSTEM_DATABASE_CATALOG_NAME = CatalogName.of(SYSTEM_DATABASE_NAME, true);
     private final ProcessedQueryInfoCache cache;
     private final PreParser preParser;
     private final CypherParsing parsing;

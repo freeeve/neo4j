@@ -27,16 +27,16 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 
 object CatalogName {
 
-  def apply(head: String, tail: List[String]): CatalogName = {
-    CatalogName(head :: tail)
+  def apply(head: String, tail: List[String], resolveStrictly: Boolean): CatalogName = {
+    CatalogName(head :: tail, resolveStrictly)
   }
 
-  def apply(parts: String*): CatalogName = {
-    CatalogName(parts.head, parts.tail.toList)
+  def apply(resolveStrictly: Boolean, parts: String*): CatalogName = {
+    CatalogName(parts.head, parts.tail.toList, resolveStrictly)
   }
 
   /** Java helper */
-  def of(part: String): CatalogName = CatalogName(part)
+  def of(part: String, resolveStrictly: Boolean): CatalogName = CatalogName(resolveStrictly, part)
 
   val separatorChar: Char = '.'
   val separatorString: String = separatorChar.toString
@@ -45,7 +45,7 @@ object CatalogName {
   def quote(str: String): String = quoteChar ++ str.replace("`", "``") ++ quoteChar
 }
 
-case class CatalogName(parts: List[String]) {
+case class CatalogName(parts: List[String], resolveStrictly: Boolean) {
 
   /**
    * @return the catalog name used in catalog lookups
@@ -66,7 +66,9 @@ case class CatalogName(parts: List[String]) {
   override def equals(obj: Any): Boolean = {
     obj match {
       case name: CatalogName =>
-        name.qualifiedNameString.toLowerCase.equals(this.qualifiedNameString.toLowerCase)
+        name.qualifiedNameString.toLowerCase.equals(
+          this.qualifiedNameString.toLowerCase
+        ) && name.resolveStrictly == this.resolveStrictly
       case _ =>
         false
     }

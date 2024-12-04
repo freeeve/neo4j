@@ -21,8 +21,10 @@ import org.neo4j.cypher.internal.ast.DefaultDatabaseScope
 import org.neo4j.cypher.internal.ast.HomeDatabaseScope
 import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.SingleNamedDatabaseScope
+import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.YieldOrWhere
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 
 class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -70,7 +72,15 @@ class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
     }
 
     test(s"USE system SHOW $dbType") {
-      parsesTo[Statements](command(None)(pos).withGraph(Some(use(List("system")))))
+      def expected(resolveStrictly: Boolean) = {
+        command(None)(pos)
+          .withGraph(Some(use(List("system"), resolveStrictly)))
+      }
+
+      parsesIn[Statement] {
+        case Cypher5 => _.toAst(expected(resolveStrictly = false))
+        case _       => _.toAst(expected(resolveStrictly = true))
+      }
     }
 
     test(s"SHOW $dbType WHERE access = 'GRANTED'") {

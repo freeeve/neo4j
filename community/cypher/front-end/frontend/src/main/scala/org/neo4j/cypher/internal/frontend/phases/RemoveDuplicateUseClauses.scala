@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.CatalogName
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.GraphDirectReference
@@ -40,6 +41,7 @@ case object RemoveDuplicateUseClauses extends StatementRewriter with StepSequenc
     new UseClauseRewriter(
       if (context.sessionDatabase != null) context.sessionDatabase.isComposite else false,
       if (context.sessionDatabase != null) context.sessionDatabase.fullName().name() else null,
+      if (context.cypherVersion == CypherVersion.Cypher5) false else true,
       context.cancellationChecker
     )
 
@@ -51,18 +53,20 @@ case object RemoveDuplicateUseClauses extends StatementRewriter with StepSequenc
 
   /**
    * Rewriter that keeps track of the working graph and removes use clauses with the same target
+   * This rewriter is currently not needed and can be removed for the new stack once we move the equality check to runtime
    * @param sessionDatabaseName the database a user is connected to
    */
   private class UseClauseRewriter(
     targetsComposite: Boolean,
     sessionDatabaseName: String,
+    resolveStrictly: Boolean,
     cancellationChecker: CancellationChecker
   ) extends Rewriter {
 
     override def apply(that: AnyRef): AnyRef = {
       if (targetsComposite) {
         val workGraph = Option.when(sessionDatabaseName != null)(
-          GraphDirectReference(CatalogName(sessionDatabaseName))(InputPosition.NONE)
+          GraphDirectReference(CatalogName(resolveStrictly, sessionDatabaseName))(InputPosition.NONE)
         )
         recursiveUseClauseRewriter(that, workGraph)
       } else {

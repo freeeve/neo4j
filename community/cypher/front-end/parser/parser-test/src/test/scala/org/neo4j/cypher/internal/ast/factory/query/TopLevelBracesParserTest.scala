@@ -155,7 +155,10 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
       case Cypher5 => _.withAnyFailure
       case _ => _.toAst(
           Statements(Seq(
-            TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(1), "x"))), Some(use(List("graph"))))(pos)
+            TopLevelBraces(
+              singleQuery(return_(aliasedReturnItem(literal(1), "x"))),
+              Some(use(List("graph"), resolveStrictly = true))
+            )(pos)
           ))
         )
     }
@@ -169,9 +172,9 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
             TopLevelBraces(
               TopLevelBraces(
                 singleQuery(return_(aliasedReturnItem(literal(1), "x"))),
-                Some(use(List("innerGraph")))
+                Some(use(List("innerGraph"), resolveStrictly = true))
               )(pos),
-              Some(use(List("graph")))
+              Some(use(List("graph"), resolveStrictly = true))
             )(pos)
           ))
         )
@@ -187,11 +190,11 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
               TopLevelBraces(
                 TopLevelBraces(
                   singleQuery(return_(aliasedReturnItem(literal(1), "x"))),
-                  Some(use(List("innerInnerGraph")))
+                  Some(use(List("innerInnerGraph"), resolveStrictly = true))
                 )(pos),
-                Some(use(List("innerGraph")))
+                Some(use(List("innerGraph"), resolveStrictly = true))
               )(pos),
-              Some(use(List("graph")))
+              Some(use(List("graph"), resolveStrictly = true))
             )(pos)
           ))
         )
@@ -207,11 +210,11 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
               TopLevelBraces(
                 TopLevelBraces(
                   singleQuery(return_(aliasedReturnItem(literal(1), "x"))),
-                  Some(use(List("innerGraph")))
+                  Some(use(List("innerGraph"), resolveStrictly = true))
                 )(pos),
                 None
               )(pos),
-              Some(use(List("graph")))
+              Some(use(List("graph"), resolveStrictly = true))
             )(pos)
           ))
         )
@@ -228,13 +231,13 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
                 TopLevelBraces(
                   TopLevelBraces(
                     singleQuery(return_(aliasedReturnItem(literal(1), "x"))),
-                    Some(use(List("innerInnerInnerGraph")))
+                    Some(use(List("innerInnerInnerGraph"), resolveStrictly = true))
                   )(pos),
-                  Some(use(List("innerInnerGraph")))
+                  Some(use(List("innerInnerGraph"), resolveStrictly = true))
                 )(pos),
-                Some(use(List("innerGraph")))
+                Some(use(List("innerGraph"), resolveStrictly = true))
               )(pos),
-              Some(use(List("graph")))
+              Some(use(List("graph"), resolveStrictly = true))
             )(pos)
           ))
         )
@@ -253,11 +256,11 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
                     singleQuery(return_(aliasedReturnItem(literal(1), "x"))),
                     None
                   )(pos),
-                  Some(use(List("innerGraph")))
+                  Some(use(List("innerGraph"), resolveStrictly = true))
                 )(pos),
                 None
               )(pos),
-              Some(use(List("graph")))
+              Some(use(List("graph"), resolveStrictly = true))
             )(pos)
           ))
         )
@@ -274,13 +277,13 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
                 TopLevelBraces(
                   TopLevelBraces(
                     singleQuery(return_(aliasedReturnItem(literal(1), "x"))),
-                    Some(use(List("innerGraph")))
+                    Some(use(List("innerGraph"), resolveStrictly = true))
                   )(pos),
                   None
                 )(pos),
                 None
               )(pos),
-              Some(use(List("graph")))
+              Some(use(List("graph"), resolveStrictly = true))
             )(pos)
           ))
         )
@@ -306,8 +309,14 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
       case Cypher5 => _.withAnyFailure
       case _ => _.toAst(Statements(Seq(
           union(
-            TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(1), "x"))), Some(use(List("graphLeft"))))(pos),
-            TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(2), "x"))), Some(use(List("graphRight"))))(
+            TopLevelBraces(
+              singleQuery(return_(aliasedReturnItem(literal(1), "x"))),
+              Some(use(List("graphLeft"), resolveStrictly = true))
+            )(pos),
+            TopLevelBraces(
+              singleQuery(return_(aliasedReturnItem(literal(2), "x"))),
+              Some(use(List("graphRight"), resolveStrictly = true))
+            )(
               pos
             )
           )
@@ -326,16 +335,19 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
               union(
                 TopLevelBraces(
                   singleQuery(return_(aliasedReturnItem(literal(1), "x"))),
-                  Some(use(List("graphLeft")))
+                  Some(use(List("graphLeft"), resolveStrictly = true))
                 )(pos),
                 TopLevelBraces(
                   singleQuery(return_(aliasedReturnItem(literal(2), "x"))),
-                  Some(use(List("graphRight")))
+                  Some(use(List("graphRight"), resolveStrictly = true))
                 )(pos)
               ).all,
               None
             )(pos),
-            TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(2), "x"))), Some(use(List("graphRight"))))(
+            TopLevelBraces(
+              singleQuery(return_(aliasedReturnItem(literal(2), "x"))),
+              Some(use(List("graphRight"), resolveStrictly = true))
+            )(
               pos
             )
           )
@@ -384,22 +396,28 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
                   union(
                     TopLevelBraces(
                       singleQuery(return_(aliasedReturnItem(literal(1), "x"))),
-                      Some(use(List("graphLeft")))
+                      Some(use(List("graphLeft"), resolveStrictly = true))
                     )(pos),
                     TopLevelBraces(
                       singleQuery(return_(aliasedReturnItem(literal(2), "x"))),
-                      Some(use(List("graphRight")))
+                      Some(use(List("graphRight"), resolveStrictly = true))
                     )(pos)
                   ),
                   None
                 )(pos),
-                TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(2), "x"))), Some(use(List("graphRight"))))(
+                TopLevelBraces(
+                  singleQuery(return_(aliasedReturnItem(literal(2), "x"))),
+                  Some(use(List("graphRight"), resolveStrictly = true))
+                )(
                   pos
                 )
               ).all,
               None
             )(pos),
-            TopLevelBraces(singleQuery(return_(aliasedReturnItem(literal(2), "x"))), Some(use(List("graphRight"))))(
+            TopLevelBraces(
+              singleQuery(return_(aliasedReturnItem(literal(2), "x"))),
+              Some(use(List("graphRight"), resolveStrictly = true))
+            )(
               pos
             )
           )
@@ -425,7 +443,7 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
                 Seq(varFor("x")),
                 TopLevelBraces(
                   singleQuery(return_(aliasedReturnItem(add(literal(1), varFor("x")), "y"))),
-                  Some(use(List("graph")))
+                  Some(use(List("graph"), resolveStrictly = true))
                 )(pos)
               ),
               return_(returnItem(varFor("y"), "y"))
@@ -449,7 +467,7 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
                   TopLevelBraces(
                     TopLevelBraces(
                       singleQuery(return_(aliasedReturnItem(add(literal(1), varFor("x")), "y"))),
-                      Some(use(List("graph")))
+                      Some(use(List("graph"), resolveStrictly = true))
                     )(pos),
                     None
                   )(pos),
@@ -487,7 +505,7 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
                     TopLevelBraces(
                       TopLevelBraces(
                         singleQuery(return_(aliasedReturnItem(add(literal(1), varFor("x")), "y"))),
-                        Some(use(List("graph")))
+                        Some(use(List("graph"), resolveStrictly = true))
                       )(pos),
                       None
                     )(pos),
@@ -528,7 +546,7 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
                 ExistsExpression(
                   TopLevelBraces(
                     union(lhs, rhs),
-                    Some(use(List("graph")))
+                    Some(use(List("graph"), resolveStrictly = true))
                   )(pos)
                 )(InputPosition(16, 2, 7), None, None)
               ))
@@ -563,7 +581,7 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
                 CollectExpression(
                   TopLevelBraces(
                     union(lhs, rhs),
-                    Some(use(List("graph")))
+                    Some(use(List("graph"), resolveStrictly = true))
                   )(pos)
                 )(InputPosition(16, 2, 7), None, None),
                 listOfInt(1, 2, 3)
@@ -599,7 +617,7 @@ class TopLevelBracesParserTest extends AstParsingTestBase {
                 CountExpression(
                   TopLevelBraces(
                     union(lhs, rhs),
-                    Some(use(List("graph")))
+                    Some(use(List("graph"), resolveStrictly = true))
                   )(pos)
                 )(InputPosition(16, 2, 7), None, None),
                 literal(3)

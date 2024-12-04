@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.ast.NoOptions
 import org.neo4j.cypher.internal.ast.NoWait
 import org.neo4j.cypher.internal.ast.OptionsMap
 import org.neo4j.cypher.internal.ast.OptionsParam
+import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.TimeoutAfter
 import org.neo4j.cypher.internal.ast.Topology
@@ -43,9 +44,14 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
 
   test("USE system CREATE DATABASE foo") {
     // can parse USE clause, but is not included in AST
-    parsesTo[Statements] {
+    def expected(resolveStrictly: Boolean) = {
       CreateDatabase(literalFoo, IfExistsThrowError, NoOptions, NoWait, None)(pos)
-        .withGraph(Some(use(List("system"))))
+        .withGraph(Some(use(List("system"), resolveStrictly)))
+    }
+
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(expected(resolveStrictly = false))
+      case _       => _.toAst(expected(resolveStrictly = true))
     }
   }
 

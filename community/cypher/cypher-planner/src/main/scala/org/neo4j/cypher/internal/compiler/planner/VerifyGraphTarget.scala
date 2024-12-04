@@ -41,9 +41,7 @@ import org.neo4j.cypher.messages.MessageUtilProvider
 import org.neo4j.dbms.api.DatabaseNotFoundException
 import org.neo4j.dbms.api.DatabaseNotFoundExceptionCreator
 import org.neo4j.exceptions.InvalidSemanticsException
-import org.neo4j.kernel.database.DatabaseReferenceRepository
-import org.neo4j.kernel.database.NamedDatabaseId
-import org.neo4j.kernel.database.NormalizedDatabaseName
+import org.neo4j.kernel.database._
 import org.neo4j.values.ElementIdDecoder
 import org.neo4j.values.storable.StringValue
 import org.neo4j.values.virtual.MapValue
@@ -96,6 +94,77 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
     semanticFeatures: Seq[SemanticFeature]
   ): VisitorPhase[PlannerContext, BaseState] = this
 
+  private def resolveStrictly(
+    databaseReferenceRepository: DatabaseReferenceRepository,
+    graphNameWithContext: GraphNameWithContext,
+    databaseId: NamedDatabaseId,
+    allowCompositeQueries: Boolean
+  ): Unit = {
+    val catalogName = graphNameWithContext.graphName
+    val normalizedDatabaseName = new NormalizedDatabaseName(catalogName.qualifiedNameString)
+
+    toScala(databaseReferenceRepository.getByAlias(
+      NormalizedCatalogEntry.fromList(catalogName.names())
+    )) match {
+      case None =>
+        throw new DatabaseNotFoundException(
+          s"Database ${catalogName.qualifiedNameString} not found"
+        )
+      case Some(databaseReference)
+        if !allowCompositeQueries && databaseReference.namespace().isPresent =>
+        throw InvalidSemanticsException.accessingMultipleGraphsOnlySupportedOnCompositeDatabases(
+          MessageUtilProvider.createMultipleGraphReferencesError(normalizedDatabaseName.name)
+        )
+      case Some(databaseReference) if allowCompositeQueries && databaseReference.namespace().isPresent =>
+      // accessing constituent is allowed
+      case Some(databaseReference: DatabaseReferenceImpl.Internal)
+        if !databaseReference.databaseId().equals(databaseId) =>
+        unsupportedQueryRouting(graphNameWithContext)
+      case _ =>
+    }
+  }
+
+  private def resolveNonStrictly(
+    databaseReferenceRepository: DatabaseReferenceRepository,
+    graphNameWithContext: GraphNameWithContext,
+    databaseId: NamedDatabaseId,
+    allowCompositeQueries: Boolean,
+    notificationLogger: InternalNotificationLogger
+  ): Unit = {
+    val catalogName = graphNameWithContext.graphName
+    val normalizedDatabaseName = new NormalizedDatabaseName(catalogName.qualifiedNameString)
+
+    if (!allowCompositeQueries && catalogName.names().size() > 1) {
+      notificationLogger.log(DeprecatedDatabaseNameNotification(catalogName.qualifiedNameString, Option.empty))
+    }
+    toScala(databaseReferenceRepository.getInternalByAlias(normalizedDatabaseName)) match {
+      case None
+        if !allowCompositeQueries || !isConstituent(
+          databaseReferenceRepository,
+          normalizedDatabaseName
+        ) =>
+        throw new DatabaseNotFoundException(
+          s"Database ${catalogName.qualifiedNameString} not found"
+        )
+      case Some(databaseReference: DatabaseReferenceImpl.Internal)
+        if !databaseReference.databaseId().equals(databaseId) =>
+        unsupportedQueryRouting(graphNameWithContext)
+      case _ =>
+    }
+  }
+
+  private def unsupportedQueryRouting(graphNameWithContext: GraphNameWithContext): Unit = {
+    if (graphNameWithContext.combinedWithAmbientGraph) {
+      throw InvalidSemanticsException.accessingMultipleGraphsOnlySupportedOnCompositeDatabases(
+        MessageUtilProvider.createMultipleGraphReferencesError(graphNameWithContext.graphName.qualifiedNameString)
+      )
+    } else {
+      throw new InvalidSemanticsException(
+        "Query routing is not available in embedded sessions. Try running the query using a Neo4j driver or the HTTP API."
+      )
+    }
+  }
+
   private def verifyGraphTarget(
     databaseReferenceRepository: DatabaseReferenceRepository,
     statement: Statement,
@@ -107,37 +176,16 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
     evaluateGraphSelection(statement, databaseReferenceRepository, params) match {
       case Some(graphNameWithContext) =>
         // add deprecation for aliases that need to be quoted if it's not a composite. This needs to be updated when we pass here for composite databases
-        if (!allowCompositeQueries && graphNameWithContext.graphName.names().size() > 1) {
-          notificationLogger.log(DeprecatedDatabaseNameNotification(
-            graphNameWithContext.graphName.qualifiedNameString,
-            Option.empty
-          ))
-        }
-        val normalizedDatabaseName = new NormalizedDatabaseName(graphNameWithContext.graphName.qualifiedNameString)
-        toScala(
-          databaseReferenceRepository.getInternalByAlias(
-            normalizedDatabaseName
+        if (graphNameWithContext.graphName.resolveStrictly) {
+          resolveStrictly(databaseReferenceRepository, graphNameWithContext, databaseId, allowCompositeQueries)
+        } else {
+          resolveNonStrictly(
+            databaseReferenceRepository,
+            graphNameWithContext,
+            databaseId,
+            allowCompositeQueries,
+            notificationLogger
           )
-        ) match {
-          case None if !allowCompositeQueries || !isConstituent(databaseReferenceRepository, normalizedDatabaseName) =>
-            throw new DatabaseNotFoundException(
-              s"Database ${graphNameWithContext.graphName.qualifiedNameString} not found"
-            )
-          case Some(databaseReference) if !databaseReference.databaseId().equals(databaseId) =>
-            graphNameWithContext match {
-              // If an explicit graph selection is combined with ambient one and both target different graphs,
-              // it makes the query effectively a composite one.
-              case GraphNameWithContext(graphName, true) =>
-                throw InvalidSemanticsException.accessingMultipleGraphsOnlySupportedOnCompositeDatabases(
-                  MessageUtilProvider.createMultipleGraphReferencesError(graphName.qualifiedNameString)
-                )
-              // If we are here it means that the query came from the Core API, because Query router would send
-              // the query to the correct database if it came from Bolt or HTTP API
-              case GraphNameWithContext(_, false) => throw new InvalidSemanticsException(
-                  "Query routing is not available in embedded sessions. Try running the query using a Neo4j driver or the HTTP API."
-                )
-            }
-          case _ =>
         }
       case _ =>
     }
@@ -193,7 +241,8 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
             databaseReferenceRepository.getByUuid(databaseId).orElseThrow(() =>
               DatabaseNotFoundExceptionCreator.byElementIdFunction(elementIdValue.stringValue())
             )
-              .name()
+              .name(),
+            resolveStrictly = true
           ),
           !graphSelection.leading
         )

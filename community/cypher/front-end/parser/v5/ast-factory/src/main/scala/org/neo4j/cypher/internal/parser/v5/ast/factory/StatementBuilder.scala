@@ -178,7 +178,7 @@ trait StatementBuilder extends Cypher5ParserListener {
     ctx.ast =
       if (ctx.graphReference() != null) ctx.graphReference().ast
       else if (ctx.functionInvocation() != null) GraphFunctionReference(ctx.functionInvocation().ast())(pos(ctx))
-      else GraphDirectReference(CatalogName(ctx.symbolicAliasName().ast[ArraySeq[String]](): _*))(pos(ctx))
+      else GraphDirectReference(CatalogName(false, ctx.symbolicAliasName().ast[ArraySeq[String]](): _*))(pos(ctx))
   }
 
   final override def exitSymbolicAliasName(ctx: Cypher5Parser.SymbolicAliasNameContext): Unit = {

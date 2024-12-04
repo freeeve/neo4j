@@ -54,7 +54,8 @@ public class MapCachingDatabaseReferenceRepository implements DatabaseReferenceR
                 return null;
             }
 
-            databaseRefsByName.putIfAbsent(databaseRef.fullName(), databaseRef);
+            // do not update databaseRefsByName, as this may have a different result that is preferred if the name is
+            // ambiguous
             databaseRefsByUUID.putIfAbsent(databaseRef.id(), databaseRef);
             return databaseRef;
         }));

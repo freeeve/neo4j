@@ -19,6 +19,7 @@
  */
 package org.neo4j.fabric.planning
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsParameters
 import org.neo4j.cypher.internal.ast.UnresolvedCall
@@ -44,6 +45,8 @@ class FabricFragmenterTest
     with ProcedureSignatureResolverTestSupport
     with FragmentTestUtils
     with AstConstructionTestSupport {
+
+  val resolveStrictly: Boolean = !(CypherVersion.Default == CypherVersion.Cypher5)
 
   "USE handling: " - {
 
@@ -83,7 +86,7 @@ class FabricFragmenterTest
         .inner
         .as[Fragment.Leaf]
         .use
-        .shouldEqual(Declared(use("g")))
+        .shouldEqual(Declared(use("g", resolveStrictly)))
       frag
         .as[Fragment.Leaf]
         .input
@@ -124,7 +127,7 @@ class FabricFragmenterTest
         .inner
         .as[Fragment.Leaf]
         .use
-        .shouldEqual(Declared(use("x")))
+        .shouldEqual(Declared(use("x", resolveStrictly)))
       frag
         .as[Fragment.Leaf]
         .input
@@ -136,7 +139,7 @@ class FabricFragmenterTest
         .inner
         .as[Fragment.Leaf]
         .use
-        .shouldEqual(Inherited(Declared(use("x")))(pos))
+        .shouldEqual(Inherited(Declared(use("x", resolveStrictly)))(pos))
     }
 
     "declared with imported variable with a nested subquery" in {
@@ -170,7 +173,7 @@ class FabricFragmenterTest
         .inner
         .as[Fragment.Leaf]
         .use
-        .shouldEqual(Declared(use("x")))
+        .shouldEqual(Declared(use("x", resolveStrictly)))
       frag
         .as[Fragment.Leaf]
         .input
@@ -182,7 +185,7 @@ class FabricFragmenterTest
         .inner
         .as[Fragment.Leaf]
         .use
-        .shouldEqual(Inherited(Declared(use("x")))(pos))
+        .shouldEqual(Inherited(Declared(use("x", resolveStrictly)))(pos))
     }
 
     "inherited from default in subquery" in {
@@ -229,7 +232,7 @@ class FabricFragmenterTest
           |""".stripMargin
       )
 
-      frag.as[Fragment.Leaf].use.shouldEqual(Declared(use("g")))
+      frag.as[Fragment.Leaf].use.shouldEqual(Declared(use("g", resolveStrictly)))
       frag
         .as[Fragment.Leaf]
         .input
@@ -239,7 +242,7 @@ class FabricFragmenterTest
         .use
         .shouldEqual(
           Inherited(
-            Declared(use("g"))
+            Declared(use("g", resolveStrictly))
           )(pos)
         )
       frag
@@ -249,7 +252,7 @@ class FabricFragmenterTest
         .input
         .as[Fragment.Leaf]
         .use
-        .shouldEqual(Declared(use("g")))
+        .shouldEqual(Declared(use("g", resolveStrictly)))
     }
 
     "disallow USE at start of non-initial fragment" in {
@@ -391,8 +394,8 @@ class FabricFragmenterTest
           |RETURN a
           |""".stripMargin
       ).shouldEqual(
-        init(Declared(use("bar")))
-          .leaf(Seq(use("bar"), withLit(1, "a"), returnVars("a")), Seq("a"))
+        init(Declared(use("bar", resolveStrictly)))
+          .leaf(Seq(use("bar", resolveStrictly), withLit(1, "a"), returnVars("a")), Seq("a"))
       )
     }
 
@@ -409,8 +412,8 @@ class FabricFragmenterTest
         init(defaultUse)
           .leaf(Seq(withLit(1, "a")), Seq("a"))
           .apply(_ =>
-            init(Declared(use("g")), Seq("a"), Seq())
-              .leaf(Seq(use("g"), returnLit(2 -> "b")), Seq("b"))
+            init(Declared(use("g", resolveStrictly)), Seq("a"), Seq())
+              .leaf(Seq(use("g", resolveStrictly), returnLit(2 -> "b")), Seq("b"))
           )
           .leaf(Seq(returnVars("a", "b")), Seq("a", "b"))
       )
@@ -460,8 +463,8 @@ class FabricFragmenterTest
             init(Inherited(u)(pos), Seq("x"))
               .leaf(Seq(withLit(2, "y")), Seq("y"))
               .apply(_ =>
-                init(Declared(use("foo")), Seq("y"))
-                  .leaf(Seq(use("foo"), returnLit(3 -> "z")), Seq("z"))
+                init(Declared(use("foo", resolveStrictly)), Seq("y"))
+                  .leaf(Seq(use("foo", resolveStrictly), returnLit(3 -> "z")), Seq("z"))
               )
               .apply(u =>
                 init(Inherited(u)(pos), Seq("y", "z"), Seq("y"))
@@ -482,8 +485,8 @@ class FabricFragmenterTest
           |RETURN a
           |""".stripMargin
       ).shouldEqual(
-        init(Declared(use("foo")))
-          .leaf(Seq(use("foo")), Seq())
+        init(Declared(use("foo", resolveStrictly)))
+          .leaf(Seq(use("foo", resolveStrictly)), Seq())
           .apply(use =>
             init(Inherited(use)(pos))
               .leaf(Seq(returnLit(1 -> "a")), Seq("a"))
@@ -502,8 +505,14 @@ class FabricFragmenterTest
           |""".stripMargin
       ).shouldEqual(
         init(defaultUse).union(
-          init(Declared(use("foo"))).leaf(Seq(use("foo"), returnLit(1 -> "y")), Seq("y")),
-          init(Declared(use("bar"))).leaf(Seq(use("bar"), returnLit(2 -> "y")), Seq("y"))
+          init(Declared(use("foo", resolveStrictly))).leaf(
+            Seq(use("foo", resolveStrictly), returnLit(1 -> "y")),
+            Seq("y")
+          ),
+          init(Declared(use("bar", resolveStrictly))).leaf(
+            Seq(use("bar", resolveStrictly), returnLit(2 -> "y")),
+            Seq("y")
+          )
         )
       )
     }
@@ -525,8 +534,8 @@ class FabricFragmenterTest
           .leaf(Seq(withLit(1, "x")), Seq("x"))
           .apply(u =>
             init(Inherited(defaultUse)(pos), Seq("x")).union(
-              init(Declared(use("foo")), Seq("x"))
-                .leaf(Seq(use("foo"), returnLit(1 -> "y")), Seq("y")),
+              init(Declared(use("foo", resolveStrictly)), Seq("x"))
+                .leaf(Seq(use("foo", resolveStrictly), returnLit(1 -> "y")), Seq("y")),
               init(Inherited(u)(pos), Seq("x"), Seq("x"))
                 .leaf(Seq(withVar("x"), returnLit(2 -> "y")), Seq("y"))
             )
@@ -549,10 +558,10 @@ class FabricFragmenterTest
         init(defaultUse)
           .leaf(Seq(withLit(1, "x")), Seq("x"))
           .apply(_ =>
-            init(Declared(use("g")), Seq("x"))
+            init(Declared(use("g", resolveStrictly)), Seq("x"))
               .leaf(
                 Seq(
-                  use("g"),
+                  use("g", resolveStrictly),
                   call(Seq("some"), "procedure", yields = Some(Seq(varFor("z"), varFor("y")))),
                   returnVars("z", "y")
                 ),
@@ -681,10 +690,10 @@ class FabricFragmenterTest
         init(defaultUse)
           .apply(
             _ =>
-              init(Declared(use("x")))
+              init(Declared(use("x", resolveStrictly)))
                 .leaf(
                   Seq(
-                    use("x"),
+                    use("x", resolveStrictly),
                     match_(NodePattern(Some(varFor("n")), None, None, None)(pos)),
                     returnVars("n")
                   ),

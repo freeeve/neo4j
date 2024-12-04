@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.ast.factory.ddl
 
 import org.neo4j.cypher.internal.ast
+import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.Parameter
@@ -127,7 +128,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       }
 
       test(s"USE neo4j CREATE INDEX FOR $pattern ON (n2.name)") {
-        parsesTo[ast.Statements](
+        def expected(resolveStrictly: Boolean) = {
           createIndex(
             List(prop("n2", "name")),
             None,
@@ -135,8 +136,13 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             ast.IfExistsThrowError,
             ast.NoOptions,
             true
-          ).withGraph(Some(use(List("neo4j"))))
-        )
+          ).withGraph(Some(use(List("neo4j"), resolveStrictly)))
+        }
+
+        parsesIn[Statement] {
+          case Cypher5 => _.toAst(expected(resolveStrictly = false))
+          case _       => _.toAst(expected(resolveStrictly = true))
+        }
       }
 
       test(s"CREATE INDEX FOR $pattern ON (n2.name, n3.age)") {
@@ -428,7 +434,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       }
 
       test(s"USE neo4j CREATE RANGE INDEX FOR $pattern ON (n2.name)") {
-        parsesTo[ast.Statements](
+        def expected(resolveStrictly: Boolean) = {
           createIndex(
             List(prop("n2", "name")),
             None,
@@ -436,8 +442,13 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             ast.IfExistsThrowError,
             ast.NoOptions,
             false
-          ).withGraph(Some(use(List("neo4j"))))
-        )
+          ).withGraph(Some(use(List("neo4j"), resolveStrictly)))
+        }
+
+        parsesIn[Statement] {
+          case Cypher5 => _.toAst(expected(resolveStrictly = false))
+          case _       => _.toAst(expected(resolveStrictly = true))
+        }
       }
 
       test(s"CREATE RANGE INDEX FOR $pattern ON (n2.name, n3.age)") {
@@ -819,10 +830,15 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       }
 
       test(s"USE neo4j CREATE LOOKUP INDEX FOR $pattern ON EACH $function") {
-        parsesTo[ast.Statements](
+        def expected(resolveStrictly: Boolean) = {
           createIndex(None, posN2(testName), ast.IfExistsThrowError, ast.NoOptions)
-            .withGraph(Some(use(List("neo4j"))))
-        )
+            .withGraph(Some(use(List("neo4j"), resolveStrictly)))
+        }
+
+        parsesIn[Statement] {
+          case Cypher5 => _.toAst(expected(resolveStrictly = false))
+          case _       => _.toAst(expected(resolveStrictly = true))
+        }
       }
 
       test(s"CREATE LOOKUP INDEX my_index FOR $pattern ON EACH $function") {
@@ -930,7 +946,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       }
 
       test(s"USE neo4j CREATE FULLTEXT INDEX FOR $pattern ON EACH [n2.name]") {
-        parsesTo[ast.Statements](
+        def expected(resolveStrictly: Boolean) = {
           fulltextIndex(
             isNodeIndex,
             List(prop("n2", "name")),
@@ -939,8 +955,13 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
-          ).withGraph(Some(use(List("neo4j"))))
-        )
+          ).withGraph(Some(use(List("neo4j"), resolveStrictly)))
+        }
+
+        parsesIn[Statement] {
+          case Cypher5 => _.toAst(expected(resolveStrictly = false))
+          case _       => _.toAst(expected(resolveStrictly = true))
+        }
       }
 
       test(s"CREATE FULLTEXT INDEX FOR $pattern ON EACH [n2.name, n3.age]") {
@@ -1235,11 +1256,16 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       }
 
       test(s"USE neo4j CREATE TEXT INDEX FOR $pattern ON (n2.name)") {
-        parsesTo[ast.Statements](
+        def expected(resolveStrictly: Boolean) = {
           createIndex(List(prop("n2", "name")), None, posN2(testName), ast.IfExistsThrowError, ast.NoOptions).withGraph(
-            Some(use(List("neo4j")))
+            Some(use(List("neo4j"), resolveStrictly))
           )
-        )
+        }
+
+        parsesIn[Statement] {
+          case Cypher5 => _.toAst(expected(resolveStrictly = false))
+          case _       => _.toAst(expected(resolveStrictly = true))
+        }
       }
 
       test(s"CREATE TEXT INDEX FOR $pattern ON (n2.name, n3.age)") {
@@ -1505,11 +1531,16 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       }
 
       test(s"USE neo4j CREATE POINT INDEX FOR $pattern ON (n2.name)") {
-        parsesTo[ast.Statements](
+        def expected(resolveStrictly: Boolean) = {
           createIndex(List(prop("n2", "name")), None, posN2(testName), ast.IfExistsThrowError, ast.NoOptions).withGraph(
-            Some(use(List("neo4j")))
+            Some(use(List("neo4j"), resolveStrictly))
           )
-        )
+        }
+
+        parsesIn[Statement] {
+          case Cypher5 => _.toAst(expected(resolveStrictly = false))
+          case _       => _.toAst(expected(resolveStrictly = true))
+        }
       }
 
       test(s"CREATE POINT INDEX FOR $pattern ON (n2.name, n3.age)") {
@@ -1774,11 +1805,16 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       }
 
       test(s"USE neo4j CREATE VECTOR INDEX FOR $pattern ON (n2.name)") {
-        parsesTo[ast.Statements](
+        def expected(resolveStrictly: Boolean) = {
           createIndex(List(prop("n2", "name")), None, posN2(testName), ast.IfExistsThrowError, ast.NoOptions).withGraph(
-            Some(use(List("neo4j")))
+            Some(use(List("neo4j"), resolveStrictly))
           )
-        )
+        }
+
+        parsesIn[Statement] {
+          case Cypher5 => _.toAst(expected(resolveStrictly = false))
+          case _       => _.toAst(expected(resolveStrictly = true))
+        }
       }
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON (n2.name, n3.age)") {

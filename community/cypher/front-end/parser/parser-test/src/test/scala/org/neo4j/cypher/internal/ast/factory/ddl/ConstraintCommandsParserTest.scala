@@ -264,7 +264,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           ast.IfExistsThrowError,
           ast.NoOptions,
           fromCypher5,
-          Some(use(List("neo4j")))
+          Some(use(List("neo4j"), !fromCypher5))
         )(pos)
       )
     }
@@ -281,7 +281,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           ast.IfExistsInvalidSyntax,
           ast.NoOptions,
           fromCypher5,
-          Some(use(List("neo4j")))
+          Some(use(List("neo4j"), !fromCypher5))
         )(pos)
       )
     }

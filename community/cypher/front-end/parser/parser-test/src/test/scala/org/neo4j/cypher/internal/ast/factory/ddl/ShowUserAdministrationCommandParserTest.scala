@@ -18,7 +18,9 @@ package org.neo4j.cypher.internal.ast.factory.ddl
 
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
 import org.neo4j.cypher.internal.ast.ShowUsers
+import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 
 class ShowUserAdministrationCommandParserTest extends UserAdministrationCommandParserTestBase {
 
@@ -33,7 +35,14 @@ class ShowUserAdministrationCommandParserTest extends UserAdministrationCommandP
   }
 
   test("USE system SHOW USERS") {
-    parsesTo[Statements](ShowUsers(None, withAuth = false)(pos).withGraph(Some(use(List("system")))))
+    def expected(resolveStrictly: Boolean) = {
+      ShowUsers(None, withAuth = false)(pos).withGraph(Some(use(List("system"), resolveStrictly)))
+    }
+
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(expected(resolveStrictly = false))
+      case _       => _.toAst(expected(resolveStrictly = true))
+    }
   }
 
   test("SHOW USERS WHERE user = 'GRANTED'") {

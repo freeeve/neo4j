@@ -75,12 +75,14 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
     }
 
     test(s"USE db SHOW $procKeyword") {
-      assertAst(SingleQuery(
-        List(
-          use(List("db")),
-          ShowProceduresClause(None, None, List.empty, yieldAll = false, None)((1, 8, 7))
-        )
-      )((1, 8, 7)))
+      assertAstVersionBased(cypher5 =>
+        SingleQuery(
+          List(
+            use(List("db"), !cypher5),
+            ShowProceduresClause(None, None, List.empty, yieldAll = false, None)((1, 8, 7))
+          )
+        )((1, 8, 7))
+      )
     }
 
   }
@@ -150,24 +152,27 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
   }
 
   test("USE db SHOW PROCEDURES YIELD name, description AS pp WHERE pp < 50.0 RETURN name") {
-    assertAst(
-      singleQuery(
-        use(List.apply("db")),
-        ShowProceduresClause(
-          None,
-          None,
-          List(
-            commandResultItem("name"),
-            commandResultItem("description", Some("pp"))
-          ),
-          yieldAll = false,
-          Some(withFromYield(
-            returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
-            where = Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
-          ))
-        )(pos),
-        return_(variableReturnItem("name"))
-      ),
+    assertAstVersionBased(
+      cypher5 =>
+        singleQuery(
+          use(List.apply("db"), !cypher5),
+          ShowProceduresClause(
+            None,
+            None,
+            List(
+              commandResultItem("name"),
+              commandResultItem("description", Some("pp"))
+            ),
+            yieldAll = false,
+            Some(
+              withFromYield(
+                returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
+                where = Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
+              )
+            )
+          )(pos),
+          return_(variableReturnItem("name"))
+        ),
       comparePosition = false
     )
   }
@@ -175,27 +180,30 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
   test(
     "USE db SHOW PROCEDURES EXECUTABLE YIELD name, description AS pp ORDER BY pp SKIP 2 LIMIT 5 WHERE pp < 50.0 RETURN name"
   ) {
-    assertAst(
-      singleQuery(
-        use(List("db")),
-        ShowProceduresClause(
-          Some(CurrentUser),
-          None,
-          List(
-            commandResultItem("name"),
-            commandResultItem("description", Some("pp"))
-          ),
-          yieldAll = false,
-          Some(withFromYield(
-            returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
-            Some(orderBy(sortItem(varFor("pp")))),
-            Some(skip(2)),
-            Some(limit(5)),
-            Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
-          ))
-        )(pos),
-        return_(variableReturnItem("name"))
-      ),
+    assertAstVersionBased(
+      cypher5 =>
+        singleQuery(
+          use(List("db"), !cypher5),
+          ShowProceduresClause(
+            Some(CurrentUser),
+            None,
+            List(
+              commandResultItem("name"),
+              commandResultItem("description", Some("pp"))
+            ),
+            yieldAll = false,
+            Some(
+              withFromYield(
+                returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
+                Some(orderBy(sortItem(varFor("pp")))),
+                Some(skip(2)),
+                Some(limit(5)),
+                Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
+              )
+            )
+          )(pos),
+          return_(variableReturnItem("name"))
+        ),
       comparePosition = false
     )
   }
@@ -203,27 +211,30 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
   test(
     "USE db SHOW PROCEDURES EXECUTABLE YIELD name, description AS pp ORDER BY pp OFFSET 2 LIMIT 5 WHERE pp < 50.0 RETURN name"
   ) {
-    assertAst(
-      singleQuery(
-        use(List("db")),
-        ShowProceduresClause(
-          Some(CurrentUser),
-          None,
-          List(
-            commandResultItem("name"),
-            commandResultItem("description", Some("pp"))
-          ),
-          yieldAll = false,
-          Some(withFromYield(
-            returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
-            Some(orderBy(sortItem(varFor("pp")))),
-            Some(skip(2)),
-            Some(limit(5)),
-            Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
-          ))
-        )(pos),
-        return_(variableReturnItem("name"))
-      ),
+    assertAstVersionBased(
+      cypher5 =>
+        singleQuery(
+          use(List("db"), !cypher5),
+          ShowProceduresClause(
+            Some(CurrentUser),
+            None,
+            List(
+              commandResultItem("name"),
+              commandResultItem("description", Some("pp"))
+            ),
+            yieldAll = false,
+            Some(
+              withFromYield(
+                returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
+                Some(orderBy(sortItem(varFor("pp")))),
+                Some(skip(2)),
+                Some(limit(5)),
+                Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
+              )
+            )
+          )(pos),
+          return_(variableReturnItem("name"))
+        ),
       comparePosition = false
     )
   }

@@ -136,10 +136,10 @@ trait FragmentTestUtils {
 
   private object AstUtils extends AstConstructionTestSupport
 
-  def use(name: String): UseGraph = AstUtils.use(List(name))
+  def use(name: String, resolveStrictly: Boolean): UseGraph = AstUtils.use(List(name), resolveStrictly)
 
   val defaultGraphName: String = "default"
-  val defaultGraph: UseGraph = use(defaultGraphName)
+  val defaultGraph: UseGraph = use(defaultGraphName, resolveStrictly = true)
   val defaultUse: Use.Inherited = Use.Inherited(Use.Default(defaultGraph))(InputPosition.NONE)
 
   val defaultRef = new DatabaseReferenceImpl.Internal(

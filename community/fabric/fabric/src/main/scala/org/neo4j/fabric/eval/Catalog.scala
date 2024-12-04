@@ -125,8 +125,8 @@ object Catalog {
 
   def catalogName(graph: Graph): CatalogName =
     graph.namespace match {
-      case Some(ns) => CatalogName(ns.name(), graph.name.name())
-      case None     => CatalogName(graph.name.name())
+      case Some(ns) => CatalogName(true, ns.name(), graph.name.name())
+      case None     => CatalogName(true, graph.name.name())
     }
 
   private val graphByNameView: Catalog = {
@@ -184,10 +184,10 @@ object Catalog {
     new NormalizedGraphName(graphName).name()
 
   private def normalize(name: CatalogName): CatalogName =
-    CatalogName(name.parts.map(normalize))
+    CatalogName(name.parts.map(normalize), true)
 
   private def normalizedName(parts: String*): CatalogName =
-    normalize(CatalogName(parts: _*))
+    normalize(CatalogName(true, parts: _*))
 }
 
 case class Catalog(
@@ -197,7 +197,7 @@ case class Catalog(
 
   def resolveGraph(name: CatalogName): Catalog.Graph =
     resolveGraphOption(name)
-      .getOrElse(Errors.entityNotFound("Graph", show(name)))
+      .getOrElse(Errors.entityNotFound("Graph", name.qualifiedNameString))
 
   def resolveGraphOption(name: CatalogName): Option[Catalog.Graph] =
     graphs.get(normalize(name))
@@ -235,7 +235,7 @@ case class Catalog(
 
   def graphNamesIn(namespace: String, securityContext: SecurityContext, queryLanguage: QueryLanguage): Array[String] = {
     graphs.collect {
-      case (cn @ CatalogName(List(`namespace`, _)), graph: Catalog.Graph)
+      case (cn @ CatalogName(List(`namespace`, _), true), graph: Catalog.Graph)
         if canAccessDatabase(graph, securityContext) =>
         if (queryLanguage == QueryLanguage.CYPHER_25) {
           cn.toCatalogEntry.stringRepresentation()
@@ -247,7 +247,7 @@ case class Catalog(
 
   def resolveNamespacedGraph(namespace: String, database: UUID, securityContext: SecurityContext): Array[String] = {
     graphs.collect {
-      case (cn @ CatalogName(List(`namespace`, _)), graph: Catalog.Graph)
+      case (cn @ CatalogName(List(`namespace`, _), true), graph: Catalog.Graph)
         if canAccessDatabase(graph, securityContext) && graph.uuid.equals(database) =>
         cn.qualifiedNameString
     }.toArray

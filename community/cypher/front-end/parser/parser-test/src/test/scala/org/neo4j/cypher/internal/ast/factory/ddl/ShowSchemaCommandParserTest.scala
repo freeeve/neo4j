@@ -155,11 +155,12 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
     }
 
     test(s"USE db SHOW $indexKeyword") {
-      assertAst(
-        singleQuery(
-          use(List("db")),
-          ShowIndexesClause(AllIndexes, None, List.empty, yieldAll = false, None)(pos)
-        ),
+      assertAstVersionBased(
+        cypher5 =>
+          singleQuery(
+            use(List("db"), !cypher5),
+            ShowIndexesClause(AllIndexes, None, List.empty, yieldAll = false, None)(pos)
+          ),
         comparePosition = false
       )
     }
@@ -250,21 +251,24 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
   }
 
   test("USE db SHOW FULLTEXT INDEXES YIELD name, populationPercent AS pp WHERE pp < 50.0 RETURN name") {
-    assertAst(
-      singleQuery(
-        use(List("db")),
-        ShowIndexesClause(
-          FulltextIndexes,
-          None,
-          List(commandResultItem("name"), commandResultItem("populationPercent", Some("pp"))),
-          yieldAll = false,
-          Some(withFromYield(
-            returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
-            where = Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
-          ))
-        )(pos),
-        return_(variableReturnItem("name"))
-      ),
+    assertAstVersionBased(
+      cypher5 =>
+        singleQuery(
+          use(List("db"), !cypher5),
+          ShowIndexesClause(
+            FulltextIndexes,
+            None,
+            List(commandResultItem("name"), commandResultItem("populationPercent", Some("pp"))),
+            yieldAll = false,
+            Some(
+              withFromYield(
+                returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
+                where = Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
+              )
+            )
+          )(pos),
+          return_(variableReturnItem("name"))
+        ),
       comparePosition = false
     )
   }
@@ -272,24 +276,27 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
   test(
     "USE db SHOW VECTOR INDEXES YIELD name, populationPercent AS pp ORDER BY pp SKIP 2 LIMIT 5 WHERE pp < 50.0 RETURN name"
   ) {
-    assertAst(
-      singleQuery(
-        use(List("db")),
-        ShowIndexesClause(
-          VectorIndexes,
-          None,
-          List(commandResultItem("name"), commandResultItem("populationPercent", Some("pp"))),
-          yieldAll = false,
-          Some(withFromYield(
-            returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
-            Some(orderBy(sortItem(varFor("pp")))),
-            Some(skip(2)),
-            Some(limit(5)),
-            Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
-          ))
-        )(pos),
-        return_(variableReturnItem("name"))
-      ),
+    assertAstVersionBased(
+      cypher5 =>
+        singleQuery(
+          use(List("db"), !cypher5),
+          ShowIndexesClause(
+            VectorIndexes,
+            None,
+            List(commandResultItem("name"), commandResultItem("populationPercent", Some("pp"))),
+            yieldAll = false,
+            Some(
+              withFromYield(
+                returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
+                Some(orderBy(sortItem(varFor("pp")))),
+                Some(skip(2)),
+                Some(limit(5)),
+                Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
+              )
+            )
+          )(pos),
+          return_(variableReturnItem("name"))
+        ),
       comparePosition = false
     )
   }
@@ -297,24 +304,27 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
   test(
     "USE db SHOW VECTOR INDEXES YIELD name, populationPercent AS pp ORDER BY pp OFFSET 2 LIMIT 5 WHERE pp < 50.0 RETURN name"
   ) {
-    assertAst(
-      singleQuery(
-        use(List("db")),
-        ShowIndexesClause(
-          VectorIndexes,
-          None,
-          List(commandResultItem("name"), commandResultItem("populationPercent", Some("pp"))),
-          yieldAll = false,
-          Some(withFromYield(
-            returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
-            Some(orderBy(sortItem(varFor("pp")))),
-            Some(skip(2)),
-            Some(limit(5)),
-            Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
-          ))
-        )(pos),
-        return_(variableReturnItem("name"))
-      ),
+    assertAstVersionBased(
+      cypher5 =>
+        singleQuery(
+          use(List("db"), !cypher5),
+          ShowIndexesClause(
+            VectorIndexes,
+            None,
+            List(commandResultItem("name"), commandResultItem("populationPercent", Some("pp"))),
+            yieldAll = false,
+            Some(
+              withFromYield(
+                returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
+                Some(orderBy(sortItem(varFor("pp")))),
+                Some(skip(2)),
+                Some(limit(5)),
+                Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
+              )
+            )
+          )(pos),
+          return_(variableReturnItem("name"))
+        ),
       comparePosition = false
     )
   }
@@ -849,7 +859,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
             assertAstVersionBased(
               fromCypher5 =>
                 singleQuery(
-                  use(List("db")),
+                  use(List("db"), !fromCypher5),
                   ShowConstraintsClause(
                     if (fromCypher5) cypher5ConstraintType else constraintType,
                     None,
@@ -891,7 +901,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
                   s"Invalid input '$errorKeyword': expected 'EXIST', 'EXISTENCE' or 'TYPE' (line"
                 )
               case _ => _.toAst(statementToStatements(singleQuery(
-                  use(List("db")),
+                  use(List("db"), resolveStrictly = true),
                   ShowConstraintsClause(
                     constraintType,
                     None,
@@ -978,7 +988,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
     assertAstVersionBased(
       fromCypher5 =>
         singleQuery(
-          use(List("db")),
+          use(List("db"), !fromCypher5),
           ShowConstraintsClause(
             NodeKeyConstraints,
             None,
@@ -1005,7 +1015,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
     assertAstVersionBased(
       fromCypher5 =>
         singleQuery(
-          use(List("db")),
+          use(List("db"), !fromCypher5),
           ShowConstraintsClause(
             AllConstraints,
             None,

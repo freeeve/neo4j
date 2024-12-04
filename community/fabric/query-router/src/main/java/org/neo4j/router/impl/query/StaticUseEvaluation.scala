@@ -64,7 +64,7 @@ class StaticUseEvaluation {
 
         databaseIdRepository.getById(DatabaseIdFactory.from(uuid)).toScala
           .orElse(throw DatabaseNotFoundExceptionCreator.byElementIdFunction(elementId))
-          .map(name => CatalogInfo(CatalogName.of(name.name()), canBeCached = false))
+          .map(name => CatalogInfo(CatalogName.of(name.name(), resolveStrictly = true), canBeCached = false))
       case _                       => None
     }
 

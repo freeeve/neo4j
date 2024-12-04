@@ -71,15 +71,17 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
 
       test(s"USE system ALTER DATABASE foo SET ACCESS $accessKeyword") {
         // can parse USE clause, but is not included in AST
-        assertAst(AlterDatabase(
-          literalFoo,
-          ifExists = false,
-          Some(accessType),
-          None,
-          NoOptions,
-          Set.empty,
-          NoWait
-        )((1, 12, 11)).withGraph(Some(use(List("system")))))
+        assertAstVersionBased(cypherVersion5 =>
+          AlterDatabase(
+            literalFoo,
+            ifExists = false,
+            Some(accessType),
+            None,
+            NoOptions,
+            Set.empty,
+            NoWait
+          )((1, 12, 11)).withGraph(Some(use(List("system"), !cypherVersion5)))
+        )
       }
 
       test(s"ALTER DATABASE foo IF EXISTS SET ACCESS $accessKeyword") {

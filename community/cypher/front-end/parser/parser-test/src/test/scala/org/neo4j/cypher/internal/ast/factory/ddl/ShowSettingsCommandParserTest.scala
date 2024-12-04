@@ -86,12 +86,14 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
     }
 
     test(s"USE db SHOW $settingKeyword") {
-      assertAst(SingleQuery(
-        List(
-          use(List("db")),
-          ShowSettingsClause(Left(List.empty[String]), None, List.empty, yieldAll = false, None)((1, 8, 7))
-        )
-      )((1, 8, 7)))
+      assertAstVersionBased(cypher5 =>
+        SingleQuery(
+          List(
+            use(List("db"), !cypher5),
+            ShowSettingsClause(Left(List.empty[String]), None, List.empty, yieldAll = false, None)((1, 8, 7))
+          )
+        )((1, 8, 7))
+      )
     }
 
   }
@@ -286,21 +288,24 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
   }
 
   test("USE db SHOW SETTINGS YIELD name, description AS pp WHERE pp < 50.0 RETURN name") {
-    assertAst(
-      singleQuery(
-        use(List("db")),
-        ShowSettingsClause(
-          Left(List.empty[String]),
-          None,
-          List(commandResultItem("name"), commandResultItem("description", Some("pp"))),
-          yieldAll = false,
-          Some(withFromYield(
-            returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
-            where = Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
-          ))
-        )(pos),
-        return_(variableReturnItem("name"))
-      ),
+    assertAstVersionBased(
+      cypher5 =>
+        singleQuery(
+          use(List("db"), !cypher5),
+          ShowSettingsClause(
+            Left(List.empty[String]),
+            None,
+            List(commandResultItem("name"), commandResultItem("description", Some("pp"))),
+            yieldAll = false,
+            Some(
+              withFromYield(
+                returnAllItems.withDefaultOrderOnColumns(List("name", "pp")),
+                where = Some(where(lessThan(varFor("pp"), literalFloat(50.0))))
+              )
+            )
+          )(pos),
+          return_(variableReturnItem("name"))
+        ),
       comparePosition = false
     )
   }

@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.mockito.Mockito.when
 import org.neo4j.configuration.GraphDatabaseInternalSettings
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -67,7 +68,7 @@ class CompositeQueryPlanningIntegrationTest extends CypherFunSuite with LogicalP
         |MATCH (product: Product)
         |RETURN product""".stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(CypherVersion.Default, query)
 
     plan shouldEqual planner
       .planBuilder()
@@ -91,9 +92,9 @@ class CompositeQueryPlanningIntegrationTest extends CypherFunSuite with LogicalP
         |MATCH (product: Product)
         |RETURN DISTINCT product.code + '#' + product.version AS code ORDER BY code SKIP 2 LIMIT 20""".stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(CypherVersion.Default, query)
 
-    plan shouldEqual planner
+    val expectedResult = planner
       .planBuilder()
       .produceResults("code")
       .runQueryAt(
@@ -110,6 +111,8 @@ class CompositeQueryPlanningIntegrationTest extends CypherFunSuite with LogicalP
       )
       .argument()
       .build()
+
+    plan shouldEqual expectedResult
   }
 
   test("should plan a simple composite query with a DELETE clause") {
@@ -118,7 +121,7 @@ class CompositeQueryPlanningIntegrationTest extends CypherFunSuite with LogicalP
         |MATCH (product: Product)
         |DELETE product""".stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(CypherVersion.Default, query)
 
     plan shouldEqual planner
       .planBuilder()
@@ -145,7 +148,7 @@ class CompositeQueryPlanningIntegrationTest extends CypherFunSuite with LogicalP
         |MATCH (product: Product {deleted: false})
         |RETURN product""".stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(CypherVersion.Default, query)
 
     plan shouldEqual planner
       .planBuilder()
@@ -197,9 +200,7 @@ class CompositeQueryPlanningIntegrationTest extends CypherFunSuite with LogicalP
         |RETURN product, customer
         |""".stripMargin
 
-    val plan = planner.plan(query)
-
-    plan shouldEqual planner
+    planner.plan(CypherVersion.Default, query) shouldEqual planner
       .planBuilder()
       .produceResults("product", "customer")
       .apply()
@@ -256,7 +257,7 @@ class CompositeQueryPlanningIntegrationTest extends CypherFunSuite with LogicalP
         |RETURN product, customer
         |""".stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(CypherVersion.Default, query)
 
     plan shouldEqual planner
       .planBuilder()
@@ -326,7 +327,7 @@ class CompositeQueryPlanningIntegrationTest extends CypherFunSuite with LogicalP
         |RETURN product, customer
         |""".stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(CypherVersion.Default, query)
 
     plan shouldEqual planner
       .planBuilder()
@@ -417,7 +418,7 @@ class CompositeQueryPlanningIntegrationTest extends CypherFunSuite with LogicalP
         |RETURN product, customer
         |""".stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(CypherVersion.Default, query)
 
     plan shouldEqual planner
       .planBuilder()
@@ -493,7 +494,7 @@ class CompositeQueryPlanningIntegrationTest extends CypherFunSuite with LogicalP
         |RETURN product
         |""".stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(CypherVersion.Default, query)
 
     plan shouldEqual planner
       .planBuilder()
@@ -529,7 +530,7 @@ class CompositeQueryPlanningIntegrationTest extends CypherFunSuite with LogicalP
         |RETURN prop
         |""".stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(CypherVersion.Default, query)
 
     plan shouldEqual planner
       .planBuilder()
@@ -561,7 +562,7 @@ class CompositeQueryPlanningIntegrationTest extends CypherFunSuite with LogicalP
         |RETURN product ORDER BY product.name
         |""".stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(CypherVersion.Default, query)
 
     plan shouldEqual planner
       .planBuilder()

@@ -1376,16 +1376,6 @@ class FabricPlannerTest
 
     "stitches multi-graph queries when graph is the same" in {
 
-      forAll(singlePlusDefaultGraphQueries(graphName = sessionGraphName)) { query =>
-        planAndStitch(sessionGraphName, query)
-          .should(beFullyStitched)
-      }
-
-      forAll(defaultPlusSingleGraphQueries(graphName = sessionGraphName)) { query =>
-        planAndStitch(sessionGraphName, query)
-          .should(beFullyStitched)
-      }
-
       forAll(doubleGraphQueries(graphName1 = "foo", graphName2 = "foo")) { query =>
         planAndStitch(sessionGraphName, query)
           .should(beFullyStitched)

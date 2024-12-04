@@ -133,7 +133,7 @@ class FabricFragmenter(
     }
 
   private def makeDefaultUse(graphName: String, pos: InputPosition) =
-    Use.Inherited(Use.Default(UseGraph(GraphDirectReference(CatalogName(graphName))(pos))(pos)))(pos)
+    Use.Inherited(Use.Default(UseGraph(GraphDirectReference(CatalogName(true, graphName))(pos))(pos)))(pos)
 
   private def produced(clauses: Seq[ast.Clause]): Seq[String] =
     produced(clauses.last)

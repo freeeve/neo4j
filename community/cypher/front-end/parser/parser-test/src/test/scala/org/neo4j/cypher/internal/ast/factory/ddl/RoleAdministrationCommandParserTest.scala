@@ -27,8 +27,10 @@ import org.neo4j.cypher.internal.ast.IfExistsThrowError
 import org.neo4j.cypher.internal.ast.RenameRole
 import org.neo4j.cypher.internal.ast.RevokeRolesFromUsers
 import org.neo4j.cypher.internal.ast.ShowRoles
+import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.util.InputPosition
 
 class RoleAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
@@ -67,14 +69,26 @@ class RoleAdministrationCommandParserTest extends AdministrationAndSchemaCommand
   })
 
   test("USE neo4j SHOW ROLES") {
-    parsesTo[Statements] {
-      ShowRoles(withUsers = false, showAll = true, None)(pos).withGraph(Some(use(List("neo4j"))))
+    def expected(resolveStrictly: Boolean) = {
+      ShowRoles(withUsers = false, showAll = true, None)(pos)
+        .withGraph(Some(use(List("neo4j"), resolveStrictly)))
+    }
+
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(expected(resolveStrictly = false))
+      case _       => _.toAst(expected(resolveStrictly = true))
     }
   }
 
   test("USE GRAPH SYSTEM SHOW ROLES") {
-    parsesTo[Statements] {
-      ShowRoles(withUsers = false, showAll = true, None)(pos).withGraph(Some(use(List("SYSTEM"))))
+    def expected(resolveStrictly: Boolean) = {
+      ShowRoles(withUsers = false, showAll = true, None)(pos)
+        .withGraph(Some(use(List("SYSTEM"), resolveStrictly)))
+    }
+
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(expected(resolveStrictly = false))
+      case _       => _.toAst(expected(resolveStrictly = true))
     }
   }
 

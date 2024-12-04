@@ -20,11 +20,11 @@ import org.neo4j.cypher.internal.ast.CatalogName
 import org.neo4j.cypher.internal.ast.GraphDirectReference
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
-import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
 
-class UseParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport {
+class UseParserTest extends AstParsingTestBase {
 
   test("USING PERIODIC COMMIT USE db LOAD CSV FROM 'url' AS line RETURN line") {
     failsParsing[Statements]
@@ -51,54 +51,78 @@ class UseParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport 
   }
 
   test("CALL { USE neo4j RETURN 1 AS y } RETURN y") {
-    parsesTo[Statements] {
+    def expected(resolveStrictly: Boolean) = {
       singleQuery(
         importingWithSubqueryCall(
-          use(List("neo4j")),
+          use(List("neo4j"), resolveStrictly),
           returnLit(1 -> "y")
         ),
         return_(variableReturnItem("y"))
       )
     }
+
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(expected(resolveStrictly = false))
+      case _       => _.toAst(expected(resolveStrictly = true))
+    }
   }
 
   test("WITH 1 AS x CALL { WITH x USE neo4j RETURN x AS y } RETURN x, y") {
-    parsesTo[Statements] {
+    def expected(resolveStrictly: Boolean) = {
       singleQuery(
         with_(literal(1) as "x"),
         importingWithSubqueryCall(
           with_(variableReturnItem("x")),
-          use(List("neo4j")),
+          use(List("neo4j"), resolveStrictly),
           return_(varFor("x") as "y")
         ),
         return_(variableReturnItem("x"), variableReturnItem("y"))
       )
     }
+
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(expected(resolveStrictly = false))
+      case _       => _.toAst(expected(resolveStrictly = true))
+    }
   }
 
   test("USE foo UNION ALL RETURN 1") {
-    parsesTo[Statement] {
-      union(
-        singleQuery(use(List("foo"))),
-        singleQuery(return_(returnItem(literal(1), "1")))
-      ).all
+    parsesIn[Statement] {
+      case Cypher25 => _.toAst(union(
+          singleQuery(use(List("foo"), resolveStrictly = true)),
+          singleQuery(return_(returnItem(literal(1), "1")))
+        ).all)
+      case _ => _.toAst(union(
+          singleQuery(use(List("foo"), resolveStrictly = false)),
+          singleQuery(return_(returnItem(literal(1), "1")))
+        ).all)
     }
   }
 
   test("USE GRAPH neo4j RETURN 1") {
-    parsesTo[Statements] {
+    def expected(resolveStrictly: Boolean) = {
       singleQuery(
-        use(List("neo4j")),
+        use(List("neo4j"), resolveStrictly),
         return_(returnItem(literal(1), "1"))
       )
+    }
+
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(expected(resolveStrictly = false))
+      case _       => _.toAst(expected(resolveStrictly = true))
     }
   }
 
   // Should be able to have database name "graph" (only works in Antlr).
   test("USE GRAPH RETURN 1") {
-    parsesIn[Statements](_ =>
-      _.toAst(Statements(Seq(singleQuery(use(List("GRAPH")), return_(returnItem(literal(1), "1"))))))
-    )
+    def expected(resolveStrictly: Boolean) = {
+      singleQuery(use(List("GRAPH"), resolveStrictly), return_(returnItem(literal(1), "1")))
+    }
+
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(expected(resolveStrictly = false))
+      case _       => _.toAst(expected(resolveStrictly = true))
+    }
   }
 
   test(
@@ -110,20 +134,26 @@ class UseParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport 
       |MATCH (product)
       |RETURN product""".stripMargin
   ) {
-    val lhs = singleQuery(
-      use(graphReference = GraphDirectReference(CatalogName("db", "products"))(pos)),
-      match_(Seq(nodePat(Some("product"))), None),
-      return_(returnItem(varFor("product"), "product"))
-    )
-    val rhs = singleQuery(
-      use(graphReference = GraphDirectReference(CatalogName("db", "products_bis"))(pos)),
-      match_(Seq(nodePat(Some("product"))), None),
-      return_(returnItem(varFor("product"), "product"))
-    )
+
+    def lhs(resolveStriclty: Boolean) = {
+      singleQuery(
+        use(graphReference = GraphDirectReference(CatalogName(resolveStriclty, "db", "products"))(pos)),
+        match_(Seq(nodePat(Some("product"))), None),
+        return_(returnItem(varFor("product"), "product"))
+      )
+    }
+
+    def rhs(resolveStriclty: Boolean) = {
+      singleQuery(
+        use(graphReference = GraphDirectReference(CatalogName(resolveStriclty, "db", "products_bis"))(pos)),
+        match_(Seq(nodePat(Some("product"))), None),
+        return_(returnItem(varFor("product"), "product"))
+      )
+    }
     parsesIn[Statements] {
-      case Cypher5 => _.toAst(Statements(Seq(union(lhs, rhs, differentReturnOrderAllowed = true))))
+      case Cypher5 => _.toAst(Statements(Seq(union(lhs(false), rhs(false), differentReturnOrderAllowed = true))))
       case _ => _.toAst(
-          Statements(Seq(union(lhs, rhs)))
+          Statements(Seq(union(lhs(true), rhs(true))))
         )
     }
   }

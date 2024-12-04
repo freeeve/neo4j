@@ -42,7 +42,20 @@ public class DefaultDatabaseReferenceResolver implements DatabaseReferenceResolv
     }
 
     @Override
-    public QueryTarget resolve(DatabaseReference sessionDatabase, CatalogName catalogName) { // boolean: resolveStrictly
+    public QueryTarget resolve(DatabaseReference sessionDatabase, CatalogName catalogName) {
+        if (!catalogName.resolveStrictly()) {
+            return resolveNonStrictly(sessionDatabase, catalogName);
+        } else {
+            if (catalogName.names().size() > 2) {
+                throw databaseNotFound(catalogName).get();
+            } else {
+                return queryTarget(NormalizedCatalogEntry.fromList(catalogName.names()), catalogName, false)
+                        .orElseThrow(databaseNotFound(catalogName));
+            }
+        }
+    }
+
+    private QueryTarget resolveNonStrictly(DatabaseReference sessionDatabase, CatalogName catalogName) {
         var containsQuotedNameParts = !catalogName.names().stream()
                 .filter(name -> name.contains("."))
                 .toList()

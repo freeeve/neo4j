@@ -16,13 +16,11 @@
  */
 package org.neo4j.cypher.internal.ast.factory.query
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast
-import org.neo4j.cypher.internal.ast.CatalogName
-import org.neo4j.cypher.internal.ast.Clause
-import org.neo4j.cypher.internal.ast.GraphDirectReference
-import org.neo4j.cypher.internal.ast.GraphFunctionReference
 import org.neo4j.cypher.internal.ast.GraphReference
-import org.neo4j.cypher.internal.ast.GraphSelection
+import org.neo4j.cypher.internal.ast._
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
 import org.neo4j.cypher.internal.expressions
@@ -35,69 +33,97 @@ class MultipleGraphClausesParsingTest extends AstParsingTestBase with LegacyAstP
     "USE GRAPH" -> use
   )
 
-  val graphSelection: Seq[(String, GraphReference)] = Seq(
+  val graphSelection: Seq[(String, CypherVersion => GraphReference)] = Seq(
     "foo.bar" ->
-      GraphDirectReference(CatalogName(List.apply("foo", "bar")))(pos),
+      (cypherVersion =>
+        GraphDirectReference(CatalogName(List.apply("foo", "bar"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
+      ),
     "(foo.bar)" ->
-      GraphDirectReference(CatalogName(List.apply("foo", "bar")))(pos),
+      (cypherVersion =>
+        GraphDirectReference(CatalogName(List.apply("foo", "bar"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
+      ),
     "((foo.bar))" ->
-      GraphDirectReference(CatalogName(List.apply("foo", "bar")))(pos),
+      (cypherVersion =>
+        GraphDirectReference(CatalogName(List.apply("foo", "bar"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
+      ),
     "foo()" ->
-      GraphFunctionReference(function(true, "foo")())(pos),
+      (_ => GraphFunctionReference(function(true, "foo")())(pos)),
     "foo   (    )" ->
-      GraphFunctionReference(function(true, "foo")())(pos),
+      (_ => GraphFunctionReference(function(true, "foo")())(pos)),
     "graph.foo" ->
-      GraphDirectReference(CatalogName(List("graph", "foo")))(pos),
+      (cypherVersion =>
+        GraphDirectReference(CatalogName(List("graph", "foo"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
+      ),
     "graph.foo()" ->
-      GraphFunctionReference(function(true, "graph", "foo")())(pos),
+      (_ => GraphFunctionReference(function(true, "graph", "foo")())(pos)),
     "foo.bar(baz(grok))" ->
-      GraphFunctionReference(function(true, "foo", "bar")(function(false, "baz")(varFor("grok"))))(pos),
+      (_ => GraphFunctionReference(function(true, "foo", "bar")(function(false, "baz")(varFor("grok"))))(pos)),
     "foo. bar   (baz  (grok   )  )" ->
-      GraphFunctionReference(function(true, "foo", "bar")(function(false, "baz")(varFor("grok"))))(pos),
+      (_ => GraphFunctionReference(function(true, "foo", "bar")(function(false, "baz")(varFor("grok"))))(pos)),
     "foo.bar(baz(grok), another.name)" ->
-      GraphFunctionReference(function(true, "foo", "bar")(
-        function(false, "baz")(varFor("grok")),
-        prop(varFor("another"), "name")
-      ))(
-        pos
+      (_ =>
+        GraphFunctionReference(function(true, "foo", "bar")(
+          function(false, "baz")(varFor("grok")),
+          prop(varFor("another"), "name")
+        ))(
+          pos
+        )
       ),
     "foo.bar(1, $par)" ->
-      GraphFunctionReference(
-        function(true, "foo", "bar")(
-          literalInt(1),
-          parameter("par", symbols.CTAny)
-        )
-      )(pos),
+      (_ =>
+        GraphFunctionReference(
+          function(true, "foo", "bar")(
+            literalInt(1),
+            parameter("par", symbols.CTAny)
+          )
+        )(pos)
+      ),
     "`graph`" ->
-      GraphDirectReference(CatalogName(List("graph")))(pos),
+      (cypherVersion =>
+        GraphDirectReference(CatalogName(List("graph"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
+      ),
     "graph1" ->
-      GraphDirectReference(CatalogName(List("graph1")))(pos),
+      (cypherVersion =>
+        GraphDirectReference(CatalogName(List("graph1"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
+      ),
     "`foo.bar.baz.baz`" ->
-      GraphDirectReference(CatalogName(List("foo.bar.baz.baz")))(pos),
+      (cypherVersion =>
+        GraphDirectReference(CatalogName(List("foo.bar.baz.baz"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
+      ),
     "`foo.bar`.baz" ->
-      GraphDirectReference(CatalogName(List("foo.bar", "baz")))(pos),
+      (cypherVersion =>
+        GraphDirectReference(CatalogName(List("foo.bar", "baz"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
+      ),
     "foo.`bar.baz`" ->
-      GraphDirectReference(CatalogName(List("foo", "bar.baz")))(pos),
+      (cypherVersion =>
+        GraphDirectReference(CatalogName(List("foo", "bar.baz"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
+      ),
     "`foo.bar`.`baz.baz`" ->
-      GraphDirectReference(CatalogName(List("foo.bar", "baz.baz")))(pos)
+      (cypherVersion =>
+        GraphDirectReference(CatalogName(List("foo.bar", "baz.baz"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
+      )
   )
 
-  val fullGraphSelections: Seq[(String, ast.GraphSelection)] = Seq(
-    "USE GRAPH graph()" -> use(function(true, "graph")()),
-    // Interpreted as GRAPH keyword, followed by parenthesized expression
-    "USE graph(x)" -> use(List.apply("x"))
-  )
+  val fullGraphSelections: Seq[(String, CypherVersion => GraphSelection)] =
+    Seq(
+      "USE GRAPH graph()" -> (_ => use(function(true, "graph")())),
+      // Interpreted as GRAPH keyword, followed by parenthesized expression
+      "USE graph(x)" -> (cypherVersion => use(List.apply("x"), cypherVersion.equals(CypherVersion.Cypher25)))
+    )
 
-  val combinations: Seq[(String, GraphSelection)] = for {
+  val combinations: Seq[(String, CypherVersion => GraphSelection)] = for {
     (keyword, clause) <- keywords
     (input, expectedGraphReference) <- graphSelection
-  } yield s"$keyword $input" -> clause(expectedGraphReference)
+  } yield s"$keyword $input" -> ((version: CypherVersion) => clause(expectedGraphReference(version)))
 
   for {
-    (input, expected) <- combinations ++ fullGraphSelections
+    (input: String, expected: (CypherVersion => GraphSelection)) <- combinations ++ fullGraphSelections
   } {
     test(input) {
-      parsesTo[Clause](expected)
+      parsesIn[Clause] {
+        case Cypher5 => _.toAst(expected(CypherVersion.Cypher5))
+        case _       => _.toAst(expected(CypherVersion.Cypher25))
+      }
     }
   }
 

@@ -1219,8 +1219,8 @@ trait AstConstructionTestSupport {
       true
     )(pos)
 
-  def use(names: List[String]): UseGraph = {
-    UseGraph(GraphDirectReference(CatalogName(names))(pos))(pos)
+  def use(names: List[String], resolveStrictly: Boolean): UseGraph = {
+    UseGraph(GraphDirectReference(CatalogName(names, resolveStrictly))(pos))(pos)
   }
 
   def use(function: FunctionInvocation): UseGraph = {

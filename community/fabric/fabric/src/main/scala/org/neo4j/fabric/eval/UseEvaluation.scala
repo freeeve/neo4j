@@ -79,7 +79,7 @@ object UseEvaluation {
             .map(expr => evaluator.evaluate(expr, parameters, ctx))
           val functionName: List[String] =
             f.functionInvocation.functionName.namespace.parts :+ f.functionInvocation.functionName.name
-          catalog.resolveView(CatalogName(functionName), argValues, sessionDb: DatabaseReference)
+          catalog.resolveView(CatalogName(functionName, true), argValues, sessionDb: DatabaseReference)
       }
     }
 
@@ -96,7 +96,7 @@ object UseEvaluation {
     }
 
     def resolveGraph(compositeName: NormalizedDatabaseName): Catalog.Graph =
-      catalog.resolveGraph(CatalogName(compositeName.name()))
+      catalog.resolveGraph(CatalogName(true, compositeName.name()))
 
     def isConstituentOrSelf(graph: Catalog.Graph, composite: Catalog.Graph): Boolean =
       (graph, composite) match {

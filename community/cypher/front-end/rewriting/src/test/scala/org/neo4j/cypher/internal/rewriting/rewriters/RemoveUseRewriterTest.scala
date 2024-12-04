@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.rewriting.RewriteTest
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -24,58 +25,64 @@ class RemoveUseRewriterTest extends CypherFunSuite with RewriteTest {
 
   override val rewriterUnderTest: Rewriter = RemoveUseRewriter.instance
 
-  test("USE x RETURN 1") {
-    assertRewriteWithFeatures("USE x RETURN 1", "RETURN 1")
-  }
+  CypherVersion.values().foreach(version => {
+    test(s"Cypher $version: USE x RETURN 1") {
+      assertRewriteWithFeatures(version, "USE x RETURN 1", "RETURN 1")
+    }
 
-  test("USE GRAPH(x) RETURN 1 as y") {
-    assertRewriteWithFeatures(
-      """USE GRAPH(x)
-        |RETURN 1 as y
-      """.stripMargin,
-      "RETURN 1 as y"
-    )
-  }
+    test(s"Cypher $version:USE GRAPH(x) RETURN 1 as y") {
+      assertRewriteWithFeatures(
+        version,
+        """USE GRAPH(x)
+          |RETURN 1 as y
+        """.stripMargin,
+        "RETURN 1 as y"
+      )
+    }
 
-  test("WITH i USE GRAPH(foo) RETURN i as a") {
-    assertRewriteWithFeatures(
-      """WITH i USE GRAPH(foo)
-        |RETURN i AS a
-      """.stripMargin,
-      "WITH i RETURN i AS a"
-    )
-  }
+    test(s"Cypher $version:WITH i USE GRAPH(foo) RETURN i as a") {
+      assertRewriteWithFeatures(
+        version,
+        """WITH i USE GRAPH(foo)
+          |RETURN i AS a
+        """.stripMargin,
+        "WITH i RETURN i AS a"
+      )
+    }
 
-  test("USE foo UNWIND") {
-    assertRewriteWithFeatures(
-      """USE foo
-        |UNWIND [1, 2, 3] AS i
-        |CALL {
-        |  WITH i
-        |  USE foo
-        |  RETURN i AS a
-        |}
-        |RETURN a
-      """.stripMargin,
-      """UNWIND [1, 2, 3] AS i
-        |CALL {
-        |  WITH i
-        |  RETURN i AS a
-        |}
-        |RETURN a""".stripMargin
-    )
-  }
+    test(s"Cypher $version:USE foo UNWIND") {
+      assertRewriteWithFeatures(
+        version,
+        """USE foo
+          |UNWIND [1, 2, 3] AS i
+          |CALL {
+          |  WITH i
+          |  USE foo
+          |  RETURN i AS a
+          |}
+          |RETURN a
+        """.stripMargin,
+        """UNWIND [1, 2, 3] AS i
+          |CALL {
+          |  WITH i
+          |  RETURN i AS a
+          |}
+          |RETURN a""".stripMargin
+      )
+    }
 
-  test("USE foo UNION") {
-    assertRewriteWithFeatures(
-      """USE foo
-        |RETURN 1
-        |UNION
-        |USE foo
-        |RETURN 1""".stripMargin,
-      """RETURN 1
-        |UNION
-        |RETURN 1""".stripMargin
-    )
-  }
+    test(s"Cypher $version:USE foo UNION") {
+      assertRewriteWithFeatures(
+        version,
+        """USE foo
+          |RETURN 1
+          |UNION
+          |USE foo
+          |RETURN 1""".stripMargin,
+        """RETURN 1
+          |UNION
+          |RETURN 1""".stripMargin
+      )
+    }
+  })
 }

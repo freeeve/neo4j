@@ -539,13 +539,14 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
     query: String,
     procLookup: Option[QualifiedName => ProcedureSignature] = None,
     fcnLookup: Option[QualifiedName => Option[UserFunctionSignature]] = None
-  ): PlannerQuery = buildPlannerQuery(randomVersion(), query, procLookup, fcnLookup)
+  ): PlannerQuery = buildPlannerQuery(randomVersion(), query, procLookup, fcnLookup, true)
 
   def buildPlannerQuery(
     version: CypherVersion,
     query: String,
     procLookup: Option[QualifiedName => ProcedureSignature],
-    fcnLookup: Option[QualifiedName => Option[UserFunctionSignature]]
+    fcnLookup: Option[QualifiedName => Option[UserFunctionSignature]],
+    compareVersions: Boolean
   ): PlannerQuery = {
     val signature = ProcedureSignature(
       QualifiedName(Seq.empty, "foo"),
@@ -556,7 +557,11 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
       id = 42
     )
     val exceptionFactory = Neo4jCypherExceptionFactory(query, Some(pos))
-    parse(query, exceptionFactory) // Dirty hack to try to make sure cypher versions have coverage
+    if (compareVersions) {
+      parse(query, exceptionFactory) // Dirty hack to try to make sure cypher versions have coverage
+    } else {
+      parse(version, query, exceptionFactory)
+    }
     val procs: QualifiedName => ProcedureSignature = procLookup.getOrElse(_ => signature)
     val funcs: QualifiedName => Option[UserFunctionSignature] = fcnLookup.getOrElse(_ => None)
     val planContext = new TestSignatureResolvingPlanContext(procs, funcs)
