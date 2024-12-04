@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log.entry;
 
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.impl.transaction.log.enveloped.InvalidLogEnvelopeReadException;
 
 /**
  * A header that describes a subsection of a transaction that will fit within some logical segment of a log file.
@@ -128,8 +129,12 @@ public record LogEnvelopeHeader(
             return this == FULL || this == END;
         }
 
-        public static EnvelopeType of(byte type) {
-            return VALUES[type];
+        public static EnvelopeType of(byte type) throws InvalidLogEnvelopeReadException {
+            try {
+                return VALUES[type];
+            } catch (ArrayIndexOutOfBoundsException e) {
+                throw new InvalidLogEnvelopeReadException("Invalid envelope type: " + type);
+            }
         }
     }
 }
