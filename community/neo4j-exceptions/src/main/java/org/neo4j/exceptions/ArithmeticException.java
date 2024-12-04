@@ -20,6 +20,9 @@
 package org.neo4j.exceptions;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class ArithmeticException extends Neo4jException {
@@ -37,6 +40,16 @@ public class ArithmeticException extends Neo4jException {
 
     public ArithmeticException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
+    }
+
+    public static ArithmeticException longOverflow(String value, String operation) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+                .withParam(GqlParams.StringParam.value, value)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N28)
+                        .withParam(GqlParams.StringParam.operation, operation)
+                        .build())
+                .build();
+        return new ArithmeticException(gql, "long overflow");
     }
 
     @Override

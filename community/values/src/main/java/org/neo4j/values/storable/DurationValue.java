@@ -912,7 +912,7 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
      */
     private static long safeDoubleToLong(double d) {
         if (d > Long.MAX_VALUE || d < Long.MIN_VALUE) {
-            throw new org.neo4j.exceptions.ArithmeticException("long overflow");
+            throw org.neo4j.exceptions.ArithmeticException.longOverflow(String.valueOf(d), "Double to Long");
         }
         return (long) d;
     }

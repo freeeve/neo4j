@@ -27,9 +27,12 @@ import static java.time.temporal.ChronoUnit.NANOS;
 import static java.time.temporal.ChronoUnit.SECONDS;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.internal.helpers.collection.Pair.pair;
 import static org.neo4j.values.storable.DateTimeValue.datetime;
 import static org.neo4j.values.storable.DateValue.date;
@@ -589,6 +592,25 @@ class DurationValueTest {
         assertEqual(DurationValue.approximate(293 * 12, 0, 0, 0), DurationValue.duration(293 * 12, 0, 0, 0));
         assertEqual(DurationValue.approximate(0, 106752, 0, 0), DurationValue.duration(0, 106752, 0, 0));
         assertEqual(DurationValue.approximate(0, 0, 9223372037L, 0), DurationValue.duration(0, 0, 9223372037L, 0));
+    }
+
+    @Test
+    public void testGqlInfoForDoubleToLongOverflowError() {
+        var exception = catchThrowableOfType(
+                org.neo4j.exceptions.ArithmeticException.class, () -> DurationValue.approximate(1e30, 0, 0, 0));
+        assertEquals("long overflow", exception.getMessage());
+        assertEquals("22003", exception.gqlStatus());
+        assertEquals(
+                "error: data exception - numeric value out of range. The numeric value 1.0E30 is outside the required range.",
+                exception.statusDescription());
+        assertFalse(exception.cause().isEmpty());
+
+        var exceptionCause = exception.cause().get();
+        assertEquals("22N28", exceptionCause.gqlStatus());
+        assertEquals(
+                "error: data exception - overflow error. The result of the operation 'Double to Long' has caused an overflow.",
+                exceptionCause.statusDescription());
+        assertTrue(exceptionCause.cause().isEmpty());
     }
 
     @Test
