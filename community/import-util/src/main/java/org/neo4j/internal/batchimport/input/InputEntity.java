@@ -64,6 +64,7 @@ public class InputEntity implements InputEntityVisitor {
     public boolean hasIntPropertyKeyIds;
     public final List<Property> properties = FastList.newList();
     public final List<String> removedProperties = new ArrayList<>();
+    public final MutableIntList intRemovedProperties = IntLists.mutable.empty();
     public ByteBuffer encodedProperties;
     public boolean propertiesOffloaded;
 
@@ -134,6 +135,13 @@ public class InputEntity implements InputEntityVisitor {
     public boolean removedProperties(String[] keys) {
         checkClear();
         Collections.addAll(removedProperties, keys);
+        return delegate.removedProperties(keys);
+    }
+
+    @Override
+    public boolean removedProperties(int[] keys) {
+        checkClear();
+        intRemovedProperties.addAll(keys);
         return delegate.removedProperties(keys);
     }
 
@@ -346,6 +354,7 @@ public class InputEntity implements InputEntityVisitor {
         hasIntPropertyKeyIds = false;
         properties.clear();
         removedProperties.clear();
+        intRemovedProperties.clear();
         encodedProperties = null;
         propertiesOffloaded = false;
         hasLongId = false;
@@ -396,6 +405,9 @@ public class InputEntity implements InputEntityVisitor {
         }
         if (!removedProperties.isEmpty()) {
             visitor.removedProperties(removedProperties.toArray(new String[0]));
+        }
+        if (!intRemovedProperties.isEmpty()) {
+            visitor.removedProperties(intRemovedProperties.toArray());
         }
 
         // id

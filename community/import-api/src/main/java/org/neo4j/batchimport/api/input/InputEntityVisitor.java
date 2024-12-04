@@ -69,6 +69,10 @@ public interface InputEntityVisitor extends Closeable {
         return true;
     }
 
+    default boolean removedProperties(int[] keys) {
+        return true;
+    }
+
     // For nodes
     default boolean id(long id) {
         return true;
@@ -161,6 +165,11 @@ public interface InputEntityVisitor extends Closeable {
 
         @Override
         public boolean removedProperties(String[] keys) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean removedProperties(int[] keys) {
             throw new UnsupportedOperationException();
         }
 
