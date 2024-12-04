@@ -23,7 +23,6 @@ import static org.neo4j.collection.PrimitiveArrays.contains;
 
 import java.util.Iterator;
 import org.neo4j.function.ThrowingConsumer;
-import org.neo4j.internal.schema.FulltextSchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptorSupplier;
 import org.neo4j.storageengine.api.txstate.TransactionStateBehaviour;
@@ -63,7 +62,7 @@ public class SchemaMatcher {
         while (schemaSuppliers.hasNext()) {
             SUPPLIER schemaSupplier = schemaSuppliers.next();
             SchemaDescriptor schema = schemaSupplier.schema();
-            if (stateBehaviour.useIndexCommands() && schema.isSchemaDescriptorType(FulltextSchemaDescriptor.class)) {
+            if (stateBehaviour.useIndexCommands() && schema.isFulltextSchemaDescriptor()) {
                 if (contains(schema.getPropertyIds(), specialPropertyId) || specialPropertyId < 0) {
                     callback.accept(schemaSupplier);
                 }

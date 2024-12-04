@@ -515,7 +515,7 @@ public class SchemaImpl implements Schema {
         // constraint type introduced to mimic the public ConstraintType, but that would be a duplicate of it
         // essentially. Checking instanceof here is OK-ish since the objects it checks here are part of the
         // internal storage engine API.
-        if (constraint.schema().isSchemaDescriptorType(LabelSchemaDescriptor.class)) {
+        if (constraint.schema().isLabelSchemaDescriptor()) {
             SchemaDescriptor schemaDescriptor = constraint.schema();
             int[] entityTokenIds = schemaDescriptor.getEntityTokenIds();
             Label[] labels = new Label[entityTokenIds.length];
@@ -539,9 +539,8 @@ public class SchemaImpl implements Schema {
                 return new NodeKeyConstraintDefinition(
                         actions, constraint, new IndexDefinitionImpl(actions, null, labels, propertyKeys, true));
             }
-        } else if (constraint.schema().isSchemaDescriptorType(RelationTypeSchemaDescriptor.class)) {
-            RelationTypeSchemaDescriptor descriptor =
-                    constraint.schema().asSchemaDescriptorType(RelationTypeSchemaDescriptor.class);
+        } else if (constraint.schema().isRelationshipTypeSchemaDescriptor()) {
+            RelationTypeSchemaDescriptor descriptor = constraint.schema().asRelationshipTypeSchemaDescriptor();
             RelationshipType relationshipType = withName(tokenRead.relationshipTypeGetName(descriptor.getRelTypeId()));
             if (constraint.isRelationshipPropertyExistenceConstraint()) {
                 return new RelationshipPropertyExistenceConstraintDefinition(

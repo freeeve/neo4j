@@ -31,20 +31,69 @@ import org.neo4j.lock.ResourceType;
  * <p>
  * The instance is acquired via the {@link SchemaDescriptors#noSchema()} method.
  */
-final class NoSchemaDescriptor implements SchemaDescriptor {
-    private static final String CAST_ERROR_FMT = "NO_SCHEMA cannot be cast to a %s.";
+class NoSchemaDescriptor implements SchemaDescriptor {
     static final SchemaDescriptor NO_SCHEMA = new NoSchemaDescriptor();
 
     private NoSchemaDescriptor() {}
 
     @Override
-    public <T extends SchemaDescriptor> boolean isSchemaDescriptorType(Class<T> type) {
+    public boolean isLabelSchemaDescriptor() {
         return false;
     }
 
     @Override
-    public <T extends SchemaDescriptor> T asSchemaDescriptorType(Class<T> type) {
-        throw new IllegalStateException(CAST_ERROR_FMT.formatted(type.getSimpleName()));
+    public LabelSchemaDescriptor asLabelSchemaDescriptor() {
+        throw new IllegalStateException("NO_SCHEMA cannot be cast to a LabelSchemaDescriptor.");
+    }
+
+    @Override
+    public boolean isRelationshipTypeSchemaDescriptor() {
+        return false;
+    }
+
+    @Override
+    public RelationTypeSchemaDescriptor asRelationshipTypeSchemaDescriptor() {
+        throw new IllegalStateException("NO_SCHEMA cannot be cast to a RelationTypeSchemaDescriptor.");
+    }
+
+    @Override
+    public boolean isFulltextSchemaDescriptor() {
+        return false;
+    }
+
+    @Override
+    public FulltextSchemaDescriptor asFulltextSchemaDescriptor() {
+        throw new IllegalStateException("NO_SCHEMA cannot be cast to a FulltextSchemaDescriptor.");
+    }
+
+    @Override
+    public boolean isAnyTokenSchemaDescriptor() {
+        return false;
+    }
+
+    @Override
+    public AnyTokenSchemaDescriptor asAnyTokenSchemaDescriptor() {
+        throw new IllegalStateException("NO_SCHEMA cannot be cast to a AnyTokenSchemaDescriptor.");
+    }
+
+    @Override
+    public boolean isRelationshipEndpointLabelDescriptor() {
+        return false;
+    }
+
+    @Override
+    public RelationshipEndpointLabelSchemaDescriptor asRelationshipEndpointLabelDescriptor() {
+        throw new IllegalStateException("NO_SCHEMA cannot be cast to a RelationshipEndpointLabelSchemaDescriptor.");
+    }
+
+    @Override
+    public boolean isNodeLabelExistenceSchemaDescriptor() {
+        return false;
+    }
+
+    @Override
+    public NodeLabelExistenceSchemaDescriptor asNodeLabelExistenceSchemaDescriptor() {
+        throw new IllegalStateException("NO_SCHEMA cannot be cast to a NodeLabelExistenceSchemaDescriptor.");
     }
 
     @Override

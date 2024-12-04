@@ -28,16 +28,76 @@ import org.neo4j.lock.ResourceType;
  */
 public interface SchemaDescriptor {
     /**
-     * Test if this schema descriptor is a {@code T}.
-     * @return {@code true} if calling {@link #asSchemaDescriptorType(Class)} will not throw an exception.
+     * Test if this schema descriptor is a {@link LabelSchemaDescriptor}.
+     * @return {@code true} if calling {@link #asLabelSchemaDescriptor()} will not throw an exception.
      */
-    <T extends SchemaDescriptor> boolean isSchemaDescriptorType(Class<T> type);
+    boolean isLabelSchemaDescriptor();
 
     /**
-     * If this schema descriptor matches the structure required by {@code T}, then return this descriptor as that type.
+     * If this schema descriptor matches the structure required by {@link LabelSchemaDescriptor}, then return this descriptor as that type.
      * Otherwise, throw an {@link IllegalStateException}.
      */
-    <T extends SchemaDescriptor> T asSchemaDescriptorType(Class<T> type);
+    LabelSchemaDescriptor asLabelSchemaDescriptor();
+
+    /**
+     * Test if this schema descriptor is a {@link RelationTypeSchemaDescriptor}.
+     * @return {@code true} if calling {@link #asRelationshipTypeSchemaDescriptor()} will not throw an exception.
+     */
+    boolean isRelationshipTypeSchemaDescriptor();
+
+    /**
+     * If this schema descriptor matches the structure required by {@link RelationTypeSchemaDescriptor}, then return this descriptor as that type.
+     * Otherwise, throw an {@link IllegalStateException}.
+     */
+    RelationTypeSchemaDescriptor asRelationshipTypeSchemaDescriptor();
+
+    /**
+     * Test if this schema descriptor is a {@link FulltextSchemaDescriptor}.
+     * @return {@code true} if calling {@link #asFulltextSchemaDescriptor()} will not throw an exception.
+     */
+    boolean isFulltextSchemaDescriptor();
+
+    /**
+     * If this schema descriptor matches the structure required by {@link FulltextSchemaDescriptor}, then return this descriptor as that type.
+     * Otherwise, throw an {@link IllegalStateException}.
+     */
+    FulltextSchemaDescriptor asFulltextSchemaDescriptor();
+
+    /**
+     * Test if this schema descriptor is a {@link AnyTokenSchemaDescriptor}.
+     * @return {@code true} if calling {@link #asAnyTokenSchemaDescriptor()} will not throw an exception.
+     */
+    boolean isAnyTokenSchemaDescriptor();
+
+    /**
+     * If this schema descriptor matches the structure required by {@link AnyTokenSchemaDescriptor}, then return this descriptor as that type.
+     * Otherwise, throw an {@link IllegalStateException}.
+     */
+    AnyTokenSchemaDescriptor asAnyTokenSchemaDescriptor();
+
+    /**
+     * Test if this schema descriptor is a {@link RelationshipEndpointLabelSchemaDescriptor}
+     * @return {@code true} if calling {@link #asRelationshipEndpointLabelDescriptor()} ()} will not throw an exception
+     */
+    boolean isRelationshipEndpointLabelDescriptor();
+
+    /**
+     * If this schema descriptor matches the structure required by {@link RelationshipEndpointLabelSchemaDescriptor}, then return this descriptor as that type.
+     * Otherwise, throw an {@link IllegalStateException}.
+     */
+    RelationshipEndpointLabelSchemaDescriptor asRelationshipEndpointLabelDescriptor();
+
+    /**
+     * Test if this schema descriptor is a {@link NodeLabelExistenceSchemaDescriptor}
+     * @return {@code true} if calling {@link #asNodeLabelExistenceSchemaDescriptor()} will not throw an exception
+     */
+    boolean isNodeLabelExistenceSchemaDescriptor();
+
+    /**
+     * If this schema descriptor matches the structure required by {@link NodeLabelExistenceSchemaDescriptor}, then return this descriptor as that type.
+     * Otherwise, throw an {@link IllegalStateException}.
+     */
+    NodeLabelExistenceSchemaDescriptor asNodeLabelExistenceSchemaDescriptor();
 
     /**
      * Returns true if any of the given entity token ids are part of this schema unit.

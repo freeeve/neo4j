@@ -35,8 +35,6 @@ import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.IndexQuery;
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
 import org.neo4j.internal.schema.IndexType;
-import org.neo4j.internal.schema.LabelSchemaDescriptor;
-import org.neo4j.internal.schema.RelationTypeSchemaDescriptor;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.kernel.api.index.IndexAccessor;
@@ -189,8 +187,8 @@ public class RangeIndexProvider extends NativeIndexProvider<RangeKey, RangeLayou
                     + " indexes: " + prototype);
         }
 
-        if (!(prototype.schema().isSchemaDescriptorType(LabelSchemaDescriptor.class)
-                || prototype.schema().isSchemaDescriptorType(RelationTypeSchemaDescriptor.class))) {
+        if (!(prototype.schema().isLabelSchemaDescriptor()
+                || prototype.schema().isRelationshipTypeSchemaDescriptor())) {
             throw new IllegalArgumentException("The " + prototype.schema()
                     + " index schema is not a range index schema, which it is required to be for the '"
                     + getProviderDescriptor().name() + "' index provider to be able to create an index.");

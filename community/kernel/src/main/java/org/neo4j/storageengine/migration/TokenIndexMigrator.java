@@ -29,7 +29,6 @@ import org.neo4j.batchimport.api.IndexImporterFactory;
 import org.neo4j.common.EntityType;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.helpers.progress.ProgressListener;
-import org.neo4j.internal.schema.AnyTokenSchemaDescriptor;
 import org.neo4j.internal.schema.SchemaRule;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -141,7 +140,7 @@ public class TokenIndexMigrator extends AbstractStoreMigrationParticipant {
                 r -> r,
                 contextFactory,
                 memoryTracker)) {
-            if (!schemaRule.schema().isSchemaDescriptorType(AnyTokenSchemaDescriptor.class)) {
+            if (!schemaRule.schema().isAnyTokenSchemaDescriptor()) {
                 continue;
             }
 
@@ -178,8 +177,7 @@ public class TokenIndexMigrator extends AbstractStoreMigrationParticipant {
                 r -> r,
                 contextFactory,
                 memoryTracker)) {
-            if (schemaRule.schema().isSchemaDescriptorType(AnyTokenSchemaDescriptor.class)
-                    && tokenIndexFilter.test(schemaRule)) {
+            if (schemaRule.schema().isAnyTokenSchemaDescriptor() && tokenIndexFilter.test(schemaRule)) {
                 Path indexFile = storeFileProvider.apply(schemaRule);
                 try {
                     fileSystem.deleteFile(indexFile);

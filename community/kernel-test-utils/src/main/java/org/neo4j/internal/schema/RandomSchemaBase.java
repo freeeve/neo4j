@@ -121,14 +121,14 @@ public abstract class RandomSchemaBase implements Supplier<SchemaRule> {
                     default -> throw new RuntimeException("Bad index choice: " + choice);
                 };
 
-        boolean isUnique = rng.nextBoolean() && !schema.isSchemaDescriptorType(FulltextSchemaDescriptor.class);
+        boolean isUnique = rng.nextBoolean() && !schema.isFulltextSchemaDescriptor();
         IndexPrototype prototype = isUnique ? IndexPrototype.uniqueForSchema(schema) : IndexPrototype.forSchema(schema);
 
         IndexProviderDescriptor providerDescriptor = new IndexProviderDescriptor(nextName(), nextName());
         prototype = prototype.withIndexProvider(providerDescriptor);
 
         prototype = prototype.withName(nextName());
-        if (schema.isSchemaDescriptorType(FulltextSchemaDescriptor.class)) {
+        if (schema.isFulltextSchemaDescriptor()) {
             prototype = prototype.withIndexType(IndexType.FULLTEXT);
         }
 

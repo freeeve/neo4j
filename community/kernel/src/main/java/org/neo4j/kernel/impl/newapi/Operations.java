@@ -98,10 +98,8 @@ import org.neo4j.internal.kernel.api.exceptions.schema.SchemaKernelException;
 import org.neo4j.internal.kernel.api.helpers.RelationshipSelections;
 import org.neo4j.internal.kernel.api.security.AccessMode.Static;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
-import org.neo4j.internal.schema.AnyTokenSchemaDescriptor;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.internal.schema.EndpointType;
-import org.neo4j.internal.schema.FulltextSchemaDescriptor;
 import org.neo4j.internal.schema.GraphTypeDependence;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
@@ -2141,11 +2139,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 kernelRead.nodeLabelScan(
                         session, cursor, unconstrained(), new TokenPredicate(schema.getLabelId()), ktx.cursorContext());
                 constraintSemantics.validateNodeKeyConstraint(
-                        cursor,
-                        nodeCursor,
-                        propertyCursor,
-                        schema.asSchemaDescriptorType(LabelSchemaDescriptor.class),
-                        token);
+                        cursor, nodeCursor, propertyCursor, schema.asLabelSchemaDescriptor(), token);
             }
         } else {
             try (var cursor = cursors.allocateFullAccessNodeCursor(ktx.cursorContext(), memoryTracker)) {
@@ -2153,7 +2147,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 constraintSemantics.validateNodeKeyConstraint(
                         new FilteringNodeCursorWrapper(cursor, CursorPredicates.hasLabel(schema.getLabelId())),
                         propertyCursor,
-                        schema.asSchemaDescriptorType(LabelSchemaDescriptor.class),
+                        schema.asLabelSchemaDescriptor(),
                         token);
             }
         }
@@ -2172,11 +2166,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         new TokenPredicate(schema.getRelTypeId()),
                         ktx.cursorContext());
                 constraintSemantics.validateRelKeyConstraint(
-                        cursor,
-                        relationshipCursor,
-                        propertyCursor,
-                        schema.asSchemaDescriptorType(RelationTypeSchemaDescriptor.class),
-                        token);
+                        cursor, relationshipCursor, propertyCursor, schema.asRelationshipTypeSchemaDescriptor(), token);
             }
         } else {
             try (var cursor = cursors.allocateFullAccessRelationshipScanCursor(ktx.cursorContext(), memoryTracker)) {
@@ -2185,7 +2175,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         new FilteringRelationshipScanCursorWrapper(
                                 cursor, CursorPredicates.hasType(schema.getRelTypeId())),
                         propertyCursor,
-                        schema.asSchemaDescriptorType(RelationTypeSchemaDescriptor.class),
+                        schema.asRelationshipTypeSchemaDescriptor(),
                         token);
             }
         }
@@ -2243,7 +2233,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     private void enforceNodePropertyTypeConstraint(TypeConstraintDescriptor descriptor) throws KernelException {
         enforceNodePropertyConstraint(
-                descriptor.schema().asSchemaDescriptorType(LabelSchemaDescriptor.class),
+                descriptor.schema().asLabelSchemaDescriptor(),
                 (allNodes, nodeCursor, propertyCursor, tokenNameLookup) ->
                         constraintSemantics.validateNodePropertyTypeConstraint(
                                 allNodes, nodeCursor, propertyCursor, descriptor, tokenNameLookup),
@@ -2311,7 +2301,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     private void enforceRelationshipPropertyTypeConstraint(TypeConstraintDescriptor descriptor) throws KernelException {
         enforceRelationshipPropertyConstraint(
-                descriptor.schema().asSchemaDescriptorType(RelationTypeSchemaDescriptor.class),
+                descriptor.schema().asRelationshipTypeSchemaDescriptor(),
                 (relationships, propertyCursor, tokenNameLookup) ->
                         constraintSemantics.validateRelationshipPropertyTypeConstraint(
                                 relationships, propertyCursor, descriptor, tokenNameLookup),
@@ -2335,7 +2325,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         TypeConstraintDescriptor descriptor = constraint.asPropertyTypeConstraint();
 
-        if (descriptor.schema().isSchemaDescriptorType(RelationTypeSchemaDescriptor.class)) {
+        if (descriptor.schema().isRelationshipTypeSchemaDescriptor()) {
             enforceRelationshipPropertyTypeConstraint(descriptor);
         } else {
             enforceNodePropertyTypeConstraint(descriptor);
@@ -2715,13 +2705,13 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 throw new CreateConstraintFailureException(
                         constraint, "Cannot create backing constraint index with index type " + indexType + ".");
             }
-            if (prototype.schema().isSchemaDescriptorType(FulltextSchemaDescriptor.class)) {
+            if (prototype.schema().isFulltextSchemaDescriptor()) {
                 throw new CreateConstraintFailureException(
                         constraint,
                         "Cannot create backing constraint index using a full-text schema: "
                                 + prototype.schema().userDescription(token));
             }
-            if (prototype.schema().isSchemaDescriptorType(AnyTokenSchemaDescriptor.class)) {
+            if (prototype.schema().isAnyTokenSchemaDescriptor()) {
                 throw new CreateConstraintFailureException(
                         constraint,
                         "Cannot create backing constraint index using an any token schema: "

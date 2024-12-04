@@ -382,11 +382,11 @@ public class SchemaRuleMapifier {
                     graphTypeDependence == GraphTypeDependence.DEPENDENT);
 
             case RELATIONSHIP_ENDPOINT_LABEL -> ConstraintDescriptorFactory.relationshipEndpointLabelForSchema(
-                    schema.asSchemaDescriptorType(RelationshipEndpointLabelSchemaDescriptor.class),
+                    schema.asRelationshipEndpointLabelDescriptor(),
                     (int) getLong(PROP_SCHEMA_ENDPOINT_LABEL_ID, props),
                     getEndpointType(props));
             case NODE_LABEL_EXISTENCE -> ConstraintDescriptorFactory.nodeLabelExistenceForSchema(
-                    schema.asSchemaDescriptorType(NodeLabelExistenceSchemaDescriptor.class),
+                    schema.asNodeLabelExistenceSchemaDescriptor(),
                     (int) getLong(PROP_SCHEMA_NODE_LABEL_EXISTENCE_REQUIRED_LABEL_ID, props));
         };
     }

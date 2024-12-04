@@ -39,12 +39,9 @@ import org.neo4j.exceptions.UnderlyingStorageException;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.schema.ConstraintDescriptor;
-import org.neo4j.internal.schema.FulltextSchemaDescriptor;
 import org.neo4j.internal.schema.GraphTypeDependence;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
-import org.neo4j.internal.schema.NodeLabelExistenceSchemaDescriptor;
-import org.neo4j.internal.schema.RelationshipEndpointLabelSchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.SchemaRule;
@@ -204,8 +201,7 @@ public class SchemaMigrator {
                                         var relationshipEndpointLabelSchemaDescriptor =
                                                 constraintDescriptor.asRelationshipEndpointLabelConstraint();
                                         yield ConstraintDescriptorFactory.relationshipEndpointLabelForSchema(
-                                                schema.asSchemaDescriptorType(
-                                                        RelationshipEndpointLabelSchemaDescriptor.class),
+                                                schema.asRelationshipEndpointLabelDescriptor(),
                                                 relationshipEndpointLabelSchemaDescriptor.endpointLabelId(),
                                                 relationshipEndpointLabelSchemaDescriptor.endpointType());
                                     }
@@ -213,7 +209,7 @@ public class SchemaMigrator {
                                         var nodeLabelExistenceSchemaDescriptor =
                                                 constraintDescriptor.asNodeLabelExistenceConstraint();
                                         yield ConstraintDescriptorFactory.nodeLabelExistenceForSchema(
-                                                schema.asSchemaDescriptorType(NodeLabelExistenceSchemaDescriptor.class),
+                                                schema.asNodeLabelExistenceSchemaDescriptor(),
                                                 nodeLabelExistenceSchemaDescriptor.requiredLabelId());
                                     }
                                 };
@@ -422,7 +418,7 @@ public class SchemaMigrator {
         boolean forNodes = EntityType.NODE.equals(schema.entityType());
 
         // Fulltext is special and can have multiple entityTokens
-        if (schema.isSchemaDescriptorType(FulltextSchemaDescriptor.class)) {
+        if (schema.isFulltextSchemaDescriptor()) {
             int[] entityTokenIds = schema.getEntityTokenIds();
             int[] newEntityTokenIds = new int[entityTokenIds.length];
             for (int i = 0; i < entityTokenIds.length; i++) {

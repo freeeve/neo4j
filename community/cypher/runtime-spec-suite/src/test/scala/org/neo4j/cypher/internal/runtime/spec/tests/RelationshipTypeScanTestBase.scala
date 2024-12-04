@@ -29,7 +29,6 @@ import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RecordingRuntimeResult
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.graphdb.RelationshipType
-import org.neo4j.internal.schema.AnyTokenSchemaDescriptor
 import org.neo4j.internal.schema.IndexType
 import org.neo4j.kernel.impl.coreapi.schema.IndexDefinitionImpl
 
@@ -392,9 +391,7 @@ abstract class RelationshipTypeScanTestBase[CONTEXT <: RuntimeContext](
           {
             val index = id.asInstanceOf[IndexDefinitionImpl].getIndexReference
             if (
-              index.schema.isSchemaDescriptorType(
-                classOf[AnyTokenSchemaDescriptor]
-              ) && (index.schema.entityType eq EntityType.RELATIONSHIP) && (index.getIndexType eq IndexType.LOOKUP)
+              index.schema.isAnyTokenSchemaDescriptor && (index.schema.entityType eq EntityType.RELATIONSHIP) && (index.getIndexType eq IndexType.LOOKUP)
             ) {
               return index.getCapability.supportsOrdering()
             }

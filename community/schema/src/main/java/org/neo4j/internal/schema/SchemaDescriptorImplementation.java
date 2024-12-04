@@ -34,7 +34,6 @@ import org.neo4j.common.EntityType;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.lock.ResourceType;
 import org.neo4j.token.api.TokenConstants;
-import org.neo4j.util.Preconditions;
 
 public final class SchemaDescriptorImplementation
         implements SchemaDescriptor,
@@ -174,28 +173,81 @@ public final class SchemaDescriptorImplementation
     }
 
     @Override
-    public <T extends SchemaDescriptor> boolean isSchemaDescriptorType(Class<T> type) {
-        Preconditions.requireNonNull(type, "type argument cannot be null.");
-        // TODO: make use of switch with pattern matching of JDK 21 when we do
-        //       not support 17 anymore.
-        return switch (type.getSimpleName()) {
-            case "SchemaDescriptor" -> true;
-            case "LabelSchemaDescriptor" -> schemaArchetype == SchemaArchetype.LABEL_PROPERTY;
-            case "RelationTypeSchemaDescriptor" -> schemaArchetype == SchemaArchetype.RELATIONSHIP_PROPERTY;
-            case "FulltextSchemaDescriptor" -> schemaArchetype == SchemaArchetype.MULTI_TOKEN;
-            case "AnyTokenSchemaDescriptor" -> schemaArchetype == SchemaArchetype.ANY_TOKEN;
-            case "RelationshipEndpointLabelSchemaDescriptor" -> schemaArchetype == SchemaArchetype.SINGLE_RELATIONSHIP;
-            case "NodeLabelExistenceSchemaDescriptor" -> schemaArchetype == SchemaArchetype.SINGLE_LABEL;
-            default -> false;
-        };
+    public boolean isLabelSchemaDescriptor() {
+        return schemaArchetype == SchemaArchetype.LABEL_PROPERTY;
     }
 
     @Override
-    public <T extends SchemaDescriptor> T asSchemaDescriptorType(Class<T> type) {
-        if (isSchemaDescriptorType(type)) {
-            return (T) this;
+    public LabelSchemaDescriptor asLabelSchemaDescriptor() {
+        if (schemaArchetype != SchemaArchetype.LABEL_PROPERTY) {
+            throw cannotCastException("LabelSchemaDescriptor");
         }
-        throw cannotCastException(type.getSimpleName());
+        return this;
+    }
+
+    @Override
+    public boolean isRelationshipTypeSchemaDescriptor() {
+        return schemaArchetype == SchemaArchetype.RELATIONSHIP_PROPERTY;
+    }
+
+    @Override
+    public RelationTypeSchemaDescriptor asRelationshipTypeSchemaDescriptor() {
+        if (schemaArchetype != SchemaArchetype.RELATIONSHIP_PROPERTY) {
+            throw cannotCastException("RelationTypeSchemaDescriptor");
+        }
+        return this;
+    }
+
+    @Override
+    public boolean isFulltextSchemaDescriptor() {
+        return schemaArchetype == SchemaArchetype.MULTI_TOKEN;
+    }
+
+    @Override
+    public FulltextSchemaDescriptor asFulltextSchemaDescriptor() {
+        if (schemaArchetype != SchemaArchetype.MULTI_TOKEN) {
+            throw cannotCastException("FulltextSchemaDescriptor");
+        }
+        return this;
+    }
+
+    @Override
+    public boolean isAnyTokenSchemaDescriptor() {
+        return schemaArchetype == SchemaArchetype.ANY_TOKEN;
+    }
+
+    @Override
+    public AnyTokenSchemaDescriptor asAnyTokenSchemaDescriptor() {
+        if (schemaArchetype != SchemaArchetype.ANY_TOKEN) {
+            throw cannotCastException("AnyTokenSchemaDescriptor");
+        }
+        return this;
+    }
+
+    @Override
+    public boolean isRelationshipEndpointLabelDescriptor() {
+        return schemaArchetype == SchemaArchetype.SINGLE_RELATIONSHIP;
+    }
+
+    @Override
+    public RelationshipEndpointLabelSchemaDescriptor asRelationshipEndpointLabelDescriptor() {
+        if (schemaArchetype != SchemaArchetype.SINGLE_RELATIONSHIP) {
+            throw cannotCastException("RelationshipEndpointLabelSchemaDescriptor");
+        }
+        return this;
+    }
+
+    @Override
+    public boolean isNodeLabelExistenceSchemaDescriptor() {
+        return schemaArchetype == SchemaArchetype.SINGLE_LABEL;
+    }
+
+    @Override
+    public NodeLabelExistenceSchemaDescriptor asNodeLabelExistenceSchemaDescriptor() {
+        if (schemaArchetype != SchemaArchetype.SINGLE_LABEL) {
+            throw cannotCastException("NodeLabelExistenceSchemaDescriptor");
+        }
+        return this;
     }
 
     private IllegalStateException cannotCastException(String descriptorType) {
@@ -246,7 +298,7 @@ public final class SchemaDescriptorImplementation
     @Override
     public long[] lockingKeys() {
         // for AnyToken schema which doesn't have specific token ids lock on max long
-        if (schemaArchetype == SchemaArchetype.ANY_TOKEN) {
+        if (isAnyTokenSchemaDescriptor()) {
             return TOKEN_INDEX_LOCKING_IDS;
         }
 

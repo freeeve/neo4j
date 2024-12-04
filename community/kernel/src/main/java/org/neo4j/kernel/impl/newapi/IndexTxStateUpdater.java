@@ -38,7 +38,6 @@ import org.neo4j.internal.kernel.api.EntityCursor;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
-import org.neo4j.internal.schema.FulltextSchemaDescriptor;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
@@ -102,7 +101,7 @@ public class IndexTxStateUpdater {
                 MemoryTracker memoryTracker = txStateHolder.txState().memoryTracker();
                 if (stateBehaviour.useIndexCommands()
                         && changeType == LabelChangeType.REMOVED_LABEL
-                        && index.schema().isSchemaDescriptorType(FulltextSchemaDescriptor.class)
+                        && index.schema().isFulltextSchemaDescriptor()
                         && isFullTextStillCovered(node, removedLabelId, index)) {
                     continue;
                 }

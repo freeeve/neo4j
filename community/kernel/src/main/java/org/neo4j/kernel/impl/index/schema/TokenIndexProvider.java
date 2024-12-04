@@ -32,7 +32,6 @@ import org.neo4j.index.internal.gbptree.MetadataMismatchException;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
-import org.neo4j.internal.schema.AnyTokenSchemaDescriptor;
 import org.neo4j.internal.schema.IndexCapability;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
@@ -196,7 +195,7 @@ public class TokenIndexProvider extends IndexProvider {
             throw new IllegalArgumentException("The '" + getProviderDescriptor().name()
                     + "' index provider does not support " + indexType + " indexes: " + prototype);
         }
-        if (!prototype.schema().isSchemaDescriptorType(AnyTokenSchemaDescriptor.class)) {
+        if (!prototype.schema().isAnyTokenSchemaDescriptor()) {
             throw new IllegalArgumentException("The " + prototype.schema()
                     + " index schema is not an any-token index schema, which it is required to be for the '"
                     + getProviderDescriptor().name() + "' index provider to be able to create an index.");
