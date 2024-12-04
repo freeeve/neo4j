@@ -36,7 +36,6 @@ import static java.util.Objects.requireNonNull;
 import static org.neo4j.function.Predicates.alwaysTrue;
 import static org.neo4j.util.Preconditions.checkArgument;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -441,20 +440,36 @@ public final class FileUtils {
     }
 
     /**
-     * Wrap the {@link StoreFileChannel} for the provider path as an {@link OutputStream}
-     * @param path the path to write to
-     * @param storeChannelProvider factory for creating the store channel
-     * @param options the options to use when creating the channel
-     * @return the output stream
-     * @throws IOException if unable to open the channel
+     * @see #toBufferedStream(Path, Function, Set, int, boolean) .
      */
     public static OutputStream toBufferedStream(
             Path path, Function<FileChannel, StoreFileChannel> storeChannelProvider, Set<OpenOption> options)
             throws IOException {
+        return toBufferedStream(
+                path, storeChannelProvider, options, FileSystemAbstraction.DEFAULT_OUTPUT_STREAM_BUFFER_SIZE, true);
+    }
+
+    /**
+     * Wrap the {@link StoreFileChannel} for the provider path as an {@link OutputStream}
+     * @param path the path to write to
+     * @param storeChannelProvider factory for creating the store channel
+     * @param options the options to use when creating the channel
+     * @param bufferSize size of the buffer for the {@link OutputStream}.
+     * @param autoFlush whether to flush buffer after each write call.
+     * @return the output stream
+     * @throws IOException if unable to open the channel
+     */
+    public static OutputStream toBufferedStream(
+            Path path,
+            Function<FileChannel, StoreFileChannel> storeChannelProvider,
+            Set<OpenOption> options,
+            int bufferSize,
+            boolean autoFlush)
+            throws IOException {
         FileChannel channel = FileChannel.open(path, options);
         StoreFileChannel fileChannel = storeChannelProvider.apply(channel);
         fileChannel.tryMakeUninterruptible();
-        return new BufferedOutputStream(new NativeByteBufferOutputStream(fileChannel));
+        return new NativeByteBufferOutputStream(fileChannel, bufferSize, autoFlush);
     }
 
     private static Path resolve(Path source, Path other) {

@@ -59,8 +59,9 @@ public class SelectiveFileSystemAbstraction implements FileSystemAbstraction {
     }
 
     @Override
-    public OutputStream openAsOutputStream(Path fileName, boolean append) throws IOException {
-        return chooseFileSystem(fileName).openAsOutputStream(fileName, append);
+    public OutputStream openAsOutputStream(Path fileName, boolean append, int bufferSize, boolean autoFlush)
+            throws IOException {
+        return chooseFileSystem(fileName).openAsOutputStream(fileName, append, bufferSize, autoFlush);
     }
 
     @Override

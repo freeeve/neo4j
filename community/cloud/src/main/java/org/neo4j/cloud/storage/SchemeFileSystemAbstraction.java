@@ -61,7 +61,6 @@ import org.neo4j.memory.MemoryTracker;
  * {@link StoragePath} objects.
  */
 public class SchemeFileSystemAbstraction implements FileSystemAbstraction, StorageSchemeResolver {
-
     private final MutableMap<String, StorageSystemProvider> schemesToProvider = Maps.mutable.empty();
 
     private final FileSystemAbstraction fs;
@@ -173,14 +172,15 @@ public class SchemeFileSystemAbstraction implements FileSystemAbstraction, Stora
     }
 
     @Override
-    public OutputStream openAsOutputStream(Path fileName, boolean append) throws IOException {
+    public OutputStream openAsOutputStream(Path fileName, boolean append, int bufferSize, boolean autoFlush)
+            throws IOException {
         if (fileName instanceof StoragePath path) {
             final var options = append ? APPEND_OPTIONS : WRITE_OPTIONS;
             //noinspection resource
             return provider(path).newOutputStream(fileName, options.toArray(OpenOption[]::new));
         }
 
-        return fs.openAsOutputStream(fileName, append);
+        return fs.openAsOutputStream(fileName, append, bufferSize, autoFlush);
     }
 
     @Override

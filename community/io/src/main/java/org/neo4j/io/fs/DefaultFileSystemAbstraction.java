@@ -73,8 +73,10 @@ public class DefaultFileSystemAbstraction implements FileSystemAbstraction {
     }
 
     @Override
-    public OutputStream openAsOutputStream(Path fileName, boolean append) throws IOException {
-        return toBufferedStream(fileName, this::getStoreFileChannel, append ? APPEND_OPTIONS : WRITE_OPTIONS);
+    public OutputStream openAsOutputStream(Path fileName, boolean append, int bufferSize, boolean autoFlush)
+            throws IOException {
+        return toBufferedStream(
+                fileName, this::getStoreFileChannel, append ? APPEND_OPTIONS : WRITE_OPTIONS, bufferSize, autoFlush);
     }
 
     @Override
@@ -252,21 +254,25 @@ public class DefaultFileSystemAbstraction implements FileSystemAbstraction {
 
     @VisibleForTesting
     static class NativeByteBufferOutputStream extends OutputStream {
-
-        private final StoreFileChannel fileChannel;
+        private final StoreChannel fileChannel;
         private final ByteBuffer buffer;
         private final NativeScopedBuffer scopedBuffer;
+        private final boolean autoFlush;
 
-        public NativeByteBufferOutputStream(StoreFileChannel fileChannel) {
+        public NativeByteBufferOutputStream(StoreChannel fileChannel, int bufferSize, boolean autoFlush) {
             this.fileChannel = fileChannel;
             this.scopedBuffer =
-                    new NativeScopedBuffer((int) kibiBytes(8), ByteOrder.LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE);
+                    new NativeScopedBuffer(bufferSize, ByteOrder.LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE);
+            this.autoFlush = autoFlush;
             this.buffer = scopedBuffer.getBuffer();
         }
 
         @Override
         public void write(int b) throws IOException {
             throw new UnsupportedOperationException("All stream operations should be buffer based.");
+            if (autoFlush) {
+                flushBuffer();
+            }
         }
 
         @Override
@@ -279,6 +285,9 @@ public class DefaultFileSystemAbstraction implements FileSystemAbstraction {
                 buffer.flip();
                 fileChannel.writeAll(buffer);
             }
+            if (autoFlush) {
+                flushBuffer();
+            }
         }
 
         @Override
@@ -290,7 +299,6 @@ public class DefaultFileSystemAbstraction implements FileSystemAbstraction {
     }
 
     private static class NativeByteBufferInputStream extends InputStream {
-
         private final StoreFileChannel fileChannel;
         private final ByteBuffer buffer;
         private final NativeScopedBuffer scopedBuffer;

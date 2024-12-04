@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.internal.helpers.Numbers.isPowerOfTwo;
 import static org.neo4j.io.fs.DefaultFileSystemAbstraction.UNABLE_TO_CREATE_DIRECTORY_FORMAT;
+import static org.neo4j.io.fs.FileSystemAbstraction.DEFAULT_OUTPUT_STREAM_BUFFER_SIZE;
 import static org.neo4j.io.fs.FileSystemAbstraction.INVALID_FILE_DESCRIPTOR;
 
 import java.io.BufferedOutputStream;
@@ -151,10 +152,10 @@ public class DefaultFileSystemAbstractionTest extends FileSystemAbstractionTest 
         int size = current().nextInt((int) ByteUnit.mebiBytes(20));
 
         byte[] sourceData = random.nextBytes(size);
+        int baseBufferSize = DEFAULT_OUTPUT_STREAM_BUFFER_SIZE;
         try (var channel = new DefaultFileSystemAbstraction.NativeByteBufferOutputStream(
-                        (StoreFileChannel) fsa.write(testFile));
-                var buffered =
-                        new BufferedOutputStream(channel, (int) (ByteUnit.kibiBytes(8) + random.nextInt(10, 455)))) {
+                        fsa.write(testFile), baseBufferSize, false);
+                var buffered = new BufferedOutputStream(channel, baseBufferSize + random.nextInt(10, 455))) {
             for (byte aByte : sourceData) {
                 buffered.write(aByte);
             }

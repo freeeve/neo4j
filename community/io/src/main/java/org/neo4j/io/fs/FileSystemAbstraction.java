@@ -19,6 +19,8 @@
  */
 package org.neo4j.io.fs;
 
+import static org.neo4j.io.ByteUnit.kibiBytes;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,6 +49,8 @@ public interface FileSystemAbstraction extends Closeable {
      * for that given file cannot be determined or retrieved.
      */
     int INVALID_FILE_DESCRIPTOR = -1;
+
+    int DEFAULT_OUTPUT_STREAM_BUFFER_SIZE = (int) kibiBytes(8);
 
     CopyOption[] EMPTY_COPY_OPTIONS = new CopyOption[0];
 
@@ -82,6 +86,13 @@ public interface FileSystemAbstraction extends Closeable {
     StoreChannel open(Path fileName, Set<OpenOption> options) throws IOException;
 
     /**
+     * @see #openAsOutputStream(Path, boolean, int, boolean)
+     */
+    default OutputStream openAsOutputStream(Path fileName, boolean append) throws IOException {
+        return openAsOutputStream(fileName, append, DEFAULT_OUTPUT_STREAM_BUFFER_SIZE, true);
+    }
+
+    /**
      * Opens a file denoted by the {@code fileName} and returns an {@link OutputStream} to write binary data to it.
      * The semantics of how this file is opened is the equivalence of:
      * <ul>
@@ -93,10 +104,13 @@ public interface FileSystemAbstraction extends Closeable {
      * @param fileName the path to the file to open.
      * @param append if {@code false} truncates the file to zero length, otherwise if {@code true} sets the position at the end of the
      * existing file so that written data gets appended at the end of the file.
+     * @param bufferSize size of the buffer to use for this stream.
+     * @param autoFlush whether to flush buffer after each write call.
      * @return an {@link OutputStream} capable of writing binary data to the file denoted by {@code fileName}.
      * @throws IOException on I/O error opening/creating the file.
      */
-    OutputStream openAsOutputStream(Path fileName, boolean append) throws IOException;
+    OutputStream openAsOutputStream(Path fileName, boolean append, int bufferSize, boolean autoFlush)
+            throws IOException;
 
     /**
      * Opens a file denoted by the {@code fileName} and returns an {@link InputStream} to read from it.

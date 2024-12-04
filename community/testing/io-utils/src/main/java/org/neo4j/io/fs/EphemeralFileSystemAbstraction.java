@@ -165,8 +165,9 @@ public class EphemeralFileSystemAbstraction implements FileSystemAbstraction {
     }
 
     @Override
-    public OutputStream openAsOutputStream(Path fileName, boolean append) throws IOException {
-        return new ChannelOutputStream(write(fileName), append, INSTANCE);
+    public OutputStream openAsOutputStream(Path fileName, boolean append, int bufferSize, boolean autoFlush)
+            throws IOException {
+        return new ChannelOutputStream(write(fileName), append, INSTANCE, bufferSize);
     }
 
     @Override

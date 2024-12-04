@@ -20,7 +20,6 @@
 package org.neo4j.test.impl;
 
 import static java.lang.Math.toIntExact;
-import static org.neo4j.io.ByteUnit.KibiByte;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -36,9 +35,9 @@ public class ChannelOutputStream extends OutputStream {
     private final ScopedBuffer scopedBuffer;
     private final ByteBuffer buffer;
 
-    public ChannelOutputStream(StoreChannel channel, boolean append, MemoryTracker memoryTracker) throws IOException {
-        this.scopedBuffer =
-                new HeapScopedBuffer(toIntExact(KibiByte.toBytes(8)), ByteOrder.LITTLE_ENDIAN, memoryTracker);
+    public ChannelOutputStream(StoreChannel channel, boolean append, MemoryTracker memoryTracker, int bufferSize)
+            throws IOException {
+        this.scopedBuffer = new HeapScopedBuffer(toIntExact(bufferSize), ByteOrder.LITTLE_ENDIAN, memoryTracker);
         this.buffer = scopedBuffer.getBuffer();
         this.channel = channel;
         if (append) {

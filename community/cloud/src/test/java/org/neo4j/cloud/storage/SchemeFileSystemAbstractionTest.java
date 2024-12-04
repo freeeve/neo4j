@@ -22,6 +22,8 @@ package org.neo4j.cloud.storage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -222,7 +224,8 @@ class SchemeFileSystemAbstractionTest {
     void openAsOutputStream(boolean append) throws IOException {
         final var options = (append ? APPEND_OPTIONS : WRITE_OPTIONS).toArray(OpenOption[]::new);
 
-        when(fs.openAsOutputStream(eq(FS_PATH), eq(append))).thenReturn(mock(OutputStream.class));
+        when(fs.openAsOutputStream(eq(FS_PATH), eq(append), anyInt(), anyBoolean()))
+                .thenReturn(mock(OutputStream.class));
         when(systemProvider.newOutputStream(eq(schemePath), eq(options))).thenReturn(mock(OutputStream.class));
 
         assertThat(schemeFs.openAsOutputStream(FS_PATH, append)).isNotNull();
