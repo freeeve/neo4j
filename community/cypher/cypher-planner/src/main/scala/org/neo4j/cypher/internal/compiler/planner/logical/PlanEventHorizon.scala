@@ -411,8 +411,6 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         SortPlanner.ensureSortedPlanWithSolved(runQueryAt, interestingOrderConfig, context, updateSolvedOrdering)
     }
 
-    // We need to check if reads introduced in the horizon conflicts with future writes
-    val eagerAnalyzer = EagerAnalyzer(context)
-    eagerAnalyzer.horizonEagerize(projectedPlan, query)
+    projectedPlan
   }
 }

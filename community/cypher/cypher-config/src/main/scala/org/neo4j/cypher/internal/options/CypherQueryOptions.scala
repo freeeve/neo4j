@@ -47,6 +47,7 @@ case class CypherQueryOptions(
   connectComponentsPlanner: CypherConnectComponentsPlannerOption,
   debugOptions: CypherDebugOptions,
   parallelRuntimeSupportOption: CypherParallelRuntimeSupportOption,
+  eagerAnalyzer: CypherEagerAnalyzerOption,
   inferSchemaParts: CypherInferSchemaPartsOption,
   statefulShortestPlanningModeOption: CypherStatefulShortestPlanningModeOption,
   planVarExpandInto: CypherPlanVarExpandInto
@@ -526,6 +527,33 @@ case object CypherConnectComponentsPlannerOption extends CypherOptionCompanion[C
   implicit val logicalPlanCacheKey: OptionLogicalPlanCacheKey[CypherConnectComponentsPlannerOption] =
     OptionLogicalPlanCacheKey.create(_.logicalPlanCacheKey)
   implicit val reader: OptionReader[CypherConnectComponentsPlannerOption] = singleOptionReader()
+}
+
+sealed abstract class CypherEagerAnalyzerOption(name: String) extends CypherKeyValueOption(name) {
+  override def companion: CypherEagerAnalyzerOption.type = CypherEagerAnalyzerOption
+  override def relevantForLogicalPlanCacheKey: Boolean = true
+}
+
+case object CypherEagerAnalyzerOption extends CypherOptionCompanion[CypherEagerAnalyzerOption](
+      name = "eagerAnalyzer",
+      setting = Some(GraphDatabaseInternalSettings.cypher_eager_analysis_implementation),
+      cypherConfigField = None
+    ) {
+
+  case object lp extends CypherEagerAnalyzerOption("lp")
+  case object ir extends CypherEagerAnalyzerOption("ir")
+
+  override def default: CypherEagerAnalyzerOption = lp
+
+  def values: Set[CypherEagerAnalyzerOption] = Set(lp, ir)
+
+  implicit val hasDefault: OptionDefault[CypherEagerAnalyzerOption] = OptionDefault.create(default)
+  implicit val renderer: OptionRenderer[CypherEagerAnalyzerOption] = OptionRenderer.create(_.render)
+  implicit val cacheKey: OptionCacheKey[CypherEagerAnalyzerOption] = OptionCacheKey.create(_.cacheKey)
+
+  implicit val logicalPlanCacheKey: OptionLogicalPlanCacheKey[CypherEagerAnalyzerOption] =
+    OptionLogicalPlanCacheKey.create(_.logicalPlanCacheKey)
+  implicit val reader: OptionReader[CypherEagerAnalyzerOption] = singleOptionReader()
 }
 
 sealed abstract class CypherStatefulShortestPlanningModeOption(name: String) extends CypherKeyValueOption(name) {

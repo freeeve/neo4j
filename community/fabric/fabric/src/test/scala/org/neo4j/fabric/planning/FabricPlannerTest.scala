@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.expressions.SensitiveStringLiteral
 import org.neo4j.cypher.internal.options.CypherConnectComponentsPlannerOption
 import org.neo4j.cypher.internal.options.CypherDebugOption
 import org.neo4j.cypher.internal.options.CypherDebugOptions
+import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption
 import org.neo4j.cypher.internal.options.CypherExecutionMode
 import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
@@ -1007,6 +1008,7 @@ class FabricPlannerTest
           connectComponentsPlanner = CypherConnectComponentsPlannerOption.greedy,
           debugOptions = CypherDebugOptions(Set(CypherDebugOption.tostring)),
           parallelRuntimeSupportOption = CypherParallelRuntimeSupportOption.all,
+          eagerAnalyzer = CypherEagerAnalyzerOption.lp,
           inferSchemaParts = CypherInferSchemaPartsOption.default,
           statefulShortestPlanningModeOption = CypherStatefulShortestPlanningModeOption.default,
           planVarExpandInto = CypherPlanVarExpandInto.default
