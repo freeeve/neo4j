@@ -95,6 +95,31 @@ class SetParserTest extends AstParsingTestBase {
     )
   }
 
+  // use label name reserved keywords
+  for {
+    labelNameReserved <- Seq(
+      "NOT",
+      "NULL",
+      "TYPED",
+      "NORMALIZED",
+      "NFC",
+      "NFD",
+      "NFKC",
+      "NFKD"
+    )
+  } yield {
+    test(s"SET n:$labelNameReserved, n IS $labelNameReserved") {
+      parsesTo[Clause](
+        set_(
+          Seq(
+            setLabelItem("n", Seq(labelNameReserved)),
+            setLabelItem("n", Seq(labelNameReserved), containsIs = true)
+          )
+        )
+      )
+    }
+  }
+
   // Dynamic Labels
 
   test("SET n:$(A)") {

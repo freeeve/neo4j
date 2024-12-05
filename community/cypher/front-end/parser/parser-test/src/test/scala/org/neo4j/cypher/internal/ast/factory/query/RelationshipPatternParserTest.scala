@@ -21,8 +21,13 @@ import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.NFCNormalForm
+import org.neo4j.cypher.internal.expressions.NFDNormalForm
+import org.neo4j.cypher.internal.expressions.NFKCNormalForm
+import org.neo4j.cypher.internal.expressions.NFKDNormalForm
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.RelationshipChain
@@ -33,6 +38,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.util.symbols.CTAny
+import org.neo4j.cypher.internal.util.symbols.CTInteger
 
 class RelationshipPatternParserTest extends PatternParserTestBase {
   private val pathLength = Seq(("", None), ("*1..5", Some(Some(range(Some(1), Some(5))))))
@@ -677,11 +683,22 @@ class RelationshipPatternParserTest extends PatternParserTestBase {
     )
   }
 
-  // Relationship types NOT, NULL and TYPED are not allowed together with IS keyword unless escaped
+  // Relationship types NOT, NULL, TYPED, NORMALIZED, NFC, NFD, NFKC and NFKD are allowed unescaped together with IS keyword from Cypher 25 onwards
   for {
-    label <- Seq("NOT", "NULL", "TYPED")
+    (phrasesAfterIS, astPrototype) <- Seq(
+      ("NOT NULL", (lhs: Expression) => isNotNull(lhs)),
+      ("NULL", (lhs: Expression) => isNull(lhs)),
+      ("TYPED INT", (lhs: Expression) => isTyped(lhs, CTInteger)),
+      ("NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFCNormalForm)),
+      ("NFC NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFCNormalForm)),
+      ("NFD NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFDNormalForm)),
+      ("NFKC NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFKCNormalForm)),
+      ("NFKD NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFKDNormalForm))
+    )
+    spacePosition <- Seq(phrasesAfterIS.indexOf(' '))
+    keywordAfterIS <- Seq(if (spacePosition > 0) phrasesAfterIS.take(phrasesAfterIS.indexOf(' ')) else phrasesAfterIS)
   } yield {
-    test(s"MATCH ()-[r:$label]->()") {
+    test(s"MATCH ()-[r:$keywordAfterIS]->()") {
       parsesTo[Statements](
         singleQuery(
           match_(
@@ -689,7 +706,7 @@ class RelationshipPatternParserTest extends PatternParserTestBase {
               nodePat(),
               relPat(
                 Some("r"),
-                Some(labelRelTypeLeaf(label))
+                Some(labelRelTypeLeaf(keywordAfterIS))
               ),
               nodePat()
             )
@@ -698,7 +715,7 @@ class RelationshipPatternParserTest extends PatternParserTestBase {
       )
     }
 
-    test(s"MATCH ()-[r:`$label`]->()") {
+    test(s"MATCH ()-[r:`$keywordAfterIS`]->()") {
       parsesTo[Statements](
         singleQuery(
           match_(
@@ -706,7 +723,7 @@ class RelationshipPatternParserTest extends PatternParserTestBase {
               nodePat(),
               relPat(
                 Some("r"),
-                Some(labelRelTypeLeaf(label))
+                Some(labelRelTypeLeaf(keywordAfterIS))
               ),
               nodePat()
             )
@@ -715,11 +732,28 @@ class RelationshipPatternParserTest extends PatternParserTestBase {
       )
     }
 
-    test(s"MATCH ()-[r IS $label]->()") {
-      failsParsing[Statements]
+    test(s"MATCH ()-[r IS $keywordAfterIS]->()") {
+      parsesIn[Statements] {
+        case Cypher5 => _.withAnyFailure
+        // ≥ Cypher25
+        case _ => _.toAst(
+            Statements(Seq(singleQuery(
+              match_(
+                relationshipChain(
+                  nodePat(),
+                  relPat(
+                    Some("r"),
+                    Some(labelRelTypeLeaf(keywordAfterIS, containsIs = true))
+                  ),
+                  nodePat()
+                )
+              )
+            )))
+          )
+      }
     }
 
-    test(s"MATCH ()-[r IS `$label`]->()") {
+    test(s"MATCH ()-[r IS `$keywordAfterIS`]->()") {
       parsesTo[Statements](
         singleQuery(
           match_(
@@ -727,13 +761,35 @@ class RelationshipPatternParserTest extends PatternParserTestBase {
               nodePat(),
               relPat(
                 Some("r"),
-                Some(labelRelTypeLeaf(label, containsIs = true))
+                Some(labelRelTypeLeaf(keywordAfterIS, containsIs = true))
               ),
               nodePat()
             )
           )
         )
       )
+    }
+
+    test(s"MATCH ()-[r IS $keywordAfterIS WHERE r.p IS $phrasesAfterIS]->()") {
+      parsesIn[Statements] {
+        case Cypher5 => _.withAnyFailure
+        // ≥ Cypher25
+        case _ => _.toAst(
+            Statements(Seq(singleQuery(
+              match_(
+                relationshipChain(
+                  nodePat(),
+                  relPat(
+                    name = Some("r"),
+                    labelExpression = Some(labelRelTypeLeaf(keywordAfterIS, containsIs = true)),
+                    predicates = Some(astPrototype(prop("r", "p")))
+                  ),
+                  nodePat()
+                )
+              )
+            )))
+          )
+      }
     }
   }
 

@@ -92,11 +92,19 @@ class SubqueryCallParserTest extends AstParsingTestBase {
   }
 
   test("CALL (a, *) { CREATE (n:N) }") {
-    failsParsing[Statements].withMessage(
-      """Invalid input '*': expected an identifier (line 1, column 10 (offset: 9))
-        |"CALL (a, *) { CREATE (n:N) }"
-        |          ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessage(
+          """Invalid input '*': expected an identifier (line 1, column 10 (offset: 9))
+            |"CALL (a, *) { CREATE (n:N) }"
+            |          ^""".stripMargin
+        )
+      // ≥ Cypher25
+      case _ => _.withMessage(
+          """Invalid input '*': expected a variable name (line 1, column 10 (offset: 9))
+            |"CALL (a, *) { CREATE (n:N) }"
+            |          ^""".stripMargin
+        )
+    }
   }
 
   test("CALL (a) { CREATE (n:N) }") {
@@ -220,11 +228,19 @@ class SubqueryCallParserTest extends AstParsingTestBase {
   }
 
   test("OPTIONAL CALL (a, *) { CREATE (n:N) }") {
-    failsParsing[Statements].withMessage(
-      """Invalid input '*': expected an identifier (line 1, column 19 (offset: 18))
-        |"OPTIONAL CALL (a, *) { CREATE (n:N) }"
-        |                   ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessage(
+          """Invalid input '*': expected an identifier (line 1, column 19 (offset: 18))
+            |"OPTIONAL CALL (a, *) { CREATE (n:N) }"
+            |                   ^""".stripMargin
+        )
+      // ≥ Cypher25
+      case _ => _.withMessage(
+          """Invalid input '*': expected a variable name (line 1, column 19 (offset: 18))
+            |"OPTIONAL CALL (a, *) { CREATE (n:N) }"
+            |                   ^""".stripMargin
+        )
+    }
   }
 
   test("OPTIONAL CALL (a) { CREATE (n:N) }") {

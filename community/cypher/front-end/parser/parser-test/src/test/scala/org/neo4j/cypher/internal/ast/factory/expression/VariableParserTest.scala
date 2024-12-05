@@ -17,7 +17,6 @@
 package org.neo4j.cypher.internal.ast.factory.expression
 
 import org.neo4j.cypher.internal.ast.Statements
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParserInTest
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
@@ -87,11 +86,18 @@ class VariableParserTest extends AstParsingTestBase
   }
 
   test("variables are now allowed start with number") {
-    "1bcd" should notParse[Variable].withSyntaxError(
-      """Invalid input '1bcd': expected an identifier (line 1, column 1 (offset: 0))
-        |"1bcd"
-        | ^""".stripMargin
-    )
+    "1bcd" should notParse[Variable].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '1bcd': expected an identifier (line 1, column 1 (offset: 0))
+            |"1bcd"
+            | ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '1bcd': expected a variable name (line 1, column 1 (offset: 0))
+            |"1bcd"
+            | ^""".stripMargin
+        )
+    }
   }
 
   test("variables are not allowed to start with currency symbols") {
@@ -102,14 +108,12 @@ class VariableParserTest extends AstParsingTestBase
                |"${curr}var"
                | ^""".stripMargin
           )
-        case Cypher25 if curr == "$" || curr == "¢" || curr == "£" =>
+        case _ =>
+          val invalid =
+            if (curr == "$" || curr == "¢" || curr == "£") curr
+            else s"${curr}var"
           _.withSyntaxError(
-            s"""Invalid input '$curr': expected an identifier (line 1, column 1 (offset: 0))
-               |"${curr}var"
-               | ^""".stripMargin
-          )
-        case _ => _.withSyntaxError(
-            s"""Invalid input '${curr}var': expected an identifier (line 1, column 1 (offset: 0))
+            s"""Invalid input '$invalid': expected a variable name (line 1, column 1 (offset: 0))
                |"${curr}var"
                | ^""".stripMargin
           )

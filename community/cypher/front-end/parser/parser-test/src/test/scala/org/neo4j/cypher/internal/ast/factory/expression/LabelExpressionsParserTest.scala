@@ -30,6 +30,10 @@ import org.neo4j.cypher.internal.expressions.ExtractScope
 import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
 import org.neo4j.cypher.internal.expressions.ListComprehension
 import org.neo4j.cypher.internal.expressions.ListLiteral
+import org.neo4j.cypher.internal.expressions.NFCNormalForm
+import org.neo4j.cypher.internal.expressions.NFDNormalForm
+import org.neo4j.cypher.internal.expressions.NFKCNormalForm
+import org.neo4j.cypher.internal.expressions.NFKDNormalForm
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
@@ -42,6 +46,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Disjunctions
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
 import org.neo4j.cypher.internal.util.symbols.CTAny
+import org.neo4j.cypher.internal.util.symbols.CTInteger
 
 /**
  * Label expression in Node patterns
@@ -1011,6 +1016,59 @@ class ExpressionLabelExpressionsParserTest extends AstParsingTestBase {
         )),
         Some(varFor("x"))
       )
+    }
+  }
+}
+
+class ExpressionLabelNameReservationParserTest extends AstParsingTestBase {
+
+  for {
+    (phrasesAfterIS, astPrototype) <- Seq(
+      ("NOT NULL", (lhs: Expression) => isNotNull(lhs)),
+      ("NULL", (lhs: Expression) => isNull(lhs)),
+      ("TYPED INT", (lhs: Expression) => isTyped(lhs, CTInteger)),
+      ("NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFCNormalForm)),
+      ("NFC NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFCNormalForm)),
+      ("NFD NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFDNormalForm)),
+      ("NFKC NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFKCNormalForm)),
+      ("NFKD NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFKDNormalForm))
+    )
+    spacePosition <- Seq(phrasesAfterIS.indexOf(' '))
+    keywordAfterIS <- Seq(if (spacePosition > 0) phrasesAfterIS.take(phrasesAfterIS.indexOf(' ')) else phrasesAfterIS)
+  } yield {
+    test(s"n:$keywordAfterIS") {
+      parsesTo[Expression] {
+        labelExpressionPredicate(
+          varFor("n"),
+          labelOrRelTypeLeaf(keywordAfterIS)
+        )
+      }
+    }
+
+    test(s"n IS $phrasesAfterIS") {
+      parsesTo[Expression] {
+        astPrototype(
+          varFor("n")
+        )
+      }
+    }
+  }
+
+  test("RETURN NOT IS AND OR XOR IS NOT AS NULL") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withAnyFailure
+      // ≥ Cypher25
+      case _ => _.toAst(
+          Statements(Seq(singleQuery(
+            return_(aliasedReturnItem(
+              or(
+                labelExpressionPredicate(varFor("NOT"), labelOrRelTypeLeaf("AND", containsIs = true)),
+                labelExpressionPredicate(varFor("XOR"), labelOrRelTypeLeaf("NOT", containsIs = true))
+              ),
+              "NULL"
+            ))
+          )))
+        )
     }
   }
 }

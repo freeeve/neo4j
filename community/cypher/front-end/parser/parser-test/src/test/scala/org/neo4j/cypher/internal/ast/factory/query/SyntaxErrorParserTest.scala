@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.query.SyntaxErrorParserTest.clauseExpected
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParserInTest
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.util.InputPosition
 
@@ -27,44 +28,54 @@ import org.neo4j.cypher.internal.util.InputPosition
 class SyntaxErrorParserTest extends AstParsingTestBase {
 
   private def invalid(input: String, expected: String, offset: Int): Unit = {
-    invalid(input, expected, expected, offset)
+    invalid(_ => (input, expected, offset))
   }
 
-  private def invalid(input: String, expected5: String, expected6: String, offset: Int): Unit = {
-    val pos = InputPosition(offset, 1, offset + 1)
-    val expectedMessageCypher5 =
-      s"""Invalid input '$input': expected $expected5 ($pos)
-         |"$testName"
-         | ${" ".repeat(pos.offset)}^""".stripMargin
-    val expectedMessageCypher25 =
-      s"""Invalid input '$input': expected $expected6 ($pos)
-         |"$testName"
-         | ${" ".repeat(pos.offset)}^""".stripMargin
-    failsParsing[Statements].in {
-      case Cypher5 => _.withSyntaxError(expectedMessageCypher5)
-      case _       => _.withSyntaxError(expectedMessageCypher25)
-    }
+  private def invalid(expected: ParserInTest => (String, String, Int)): Unit = {
+    failsParsing[Statements].in(pit => {
+      val (input, expectedTokens, offset) = expected(pit)
+      val pos = InputPosition(offset, 1, offset + 1)
+      _.withSyntaxError(
+        s"""Invalid input '$input': expected $expectedTokens ($pos)
+           |"$testName"
+           | ${" " * pos.offset}^""".stripMargin
+      )
+    })
   }
 
   test("merge") { invalid("", "a graph pattern", 5) }
   test("match") { invalid("", "a graph pattern, 'DIFFERENT' or 'REPEATABLE'", 5) }
 
   test("for each") {
-    invalid(
-      "for",
-      "'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'USING PERIODIC COMMIT', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE' or 'WITH'",
-      "'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WITH' or '{'",
-      0
-    )
+    invalid({
+      case Cypher5 => (
+          "for",
+          "'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'USING PERIODIC COMMIT', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE' or 'WITH'",
+          0
+        )
+      // ≥ Cypher25
+      case _ => (
+          "for",
+          "'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WITH' or '{'",
+          0
+        )
+    })
   }
 
   test("create") {
-    invalid(
-      "",
-      "a graph pattern, 'ALIAS', 'CONSTRAINT', 'DATABASE', 'COMPOSITE DATABASE', 'IMMUTABLE', 'INDEX', 'BTREE INDEX', 'FULLTEXT INDEX', 'LOOKUP INDEX', 'POINT INDEX', 'RANGE INDEX', 'TEXT INDEX', 'VECTOR INDEX', 'OR REPLACE', 'ROLE' or 'USER'",
-      "a graph pattern, 'ALIAS', 'CONSTRAINT', 'DATABASE', 'COMPOSITE DATABASE', 'IMMUTABLE', 'INDEX', 'FULLTEXT INDEX', 'LOOKUP INDEX', 'POINT INDEX', 'RANGE INDEX', 'TEXT INDEX', 'VECTOR INDEX', 'OR REPLACE', 'ROLE' or 'USER'",
-      6
-    )
+    invalid({
+      case Cypher5 => (
+          "",
+          "a graph pattern, 'ALIAS', 'CONSTRAINT', 'DATABASE', 'COMPOSITE DATABASE', 'IMMUTABLE', 'INDEX', 'BTREE INDEX', 'FULLTEXT INDEX', 'LOOKUP INDEX', 'POINT INDEX', 'RANGE INDEX', 'TEXT INDEX', 'VECTOR INDEX', 'OR REPLACE', 'ROLE' or 'USER'",
+          6
+        )
+      // ≥ Cypher25
+      case _ => (
+          "",
+          "a graph pattern, 'ALIAS', 'CONSTRAINT', 'DATABASE', 'COMPOSITE DATABASE', 'IMMUTABLE', 'INDEX', 'FULLTEXT INDEX', 'LOOKUP INDEX', 'POINT INDEX', 'RANGE INDEX', 'TEXT INDEX', 'VECTOR INDEX', 'OR REPLACE', 'ROLE' or 'USER'",
+          6
+        )
+    })
   }
   test("return") { invalid("", "an expression, '*' or 'DISTINCT'", 6) }
   test("insert") { invalid("", "'('", 6) }
@@ -75,13 +86,21 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
   test("unwind") { invalid("", "an expression", 6) }
   test("call") { invalid("", "an identifier, '(' or '{'", 4) }
   test("load csv") { invalid("", "'FROM' or 'WITH HEADERS'", 8) }
+
   test("match (a)-[r]>(b) return *") { invalid(">", "'-'", 13) }
   test("match (a)-[:]->(b) return *") { invalid("]", "a node label/relationship type name, '$', '%' or '('", 12) }
 
   test("match (a)-[->() return *") {
     invalid("-", "a parameter, a variable name, '*', ':', 'IS', 'WHERE', ']' or '{'", 11)
   }
-  test("match (a)-(b) return *") { invalid("(", "'-'", 10) }
+
+  test("match (a)-(b) return *") {
+    invalid({
+      case Cypher5 => ("(", "'-'", 10)
+      // ≥ Cypher25
+      case _ => ("(", "'-' or '['", 10)
+    })
+  }
 
   test("match (1bcd) return *") {
     invalid("1bcd", "a graph pattern, a parameter, a variable name, ')', ':', 'IS', 'WHERE' or '{'", 7)
@@ -89,24 +108,50 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
   test("match (`a`b`) return *") { invalid("b", "a graph pattern, a parameter, ')', ':', 'IS', 'WHERE' or '{'", 10) }
 
   test("atch (n) return *") {
-    invalid("atch", clauseExpected(CypherVersion.Cypher5), clauseExpected(CypherVersion.Cypher25), 0)
+    invalid({
+      case Cypher5 => ("atch", clauseExpected(CypherVersion.Cypher5), 0)
+      // ≥ Cypher25
+      case _ => ("atch", clauseExpected(CypherVersion.Cypher25), 0)
+    })
   }
   test("match (n:*) return *") { invalid("*", "a node label/relationship type name, '$', '%' or '('", 9) }
   test("match (n:Label|) return *") { invalid("|", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 14) }
-  test("match (n:Label:) return *") { invalid(":", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 14) }
-  test("match (n:Label:1Label) return *") { invalid(":", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 14) }
+
+  test("match (n:Label:) return *") {
+    invalid({
+      case Cypher5 => (":", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 14)
+      // ≥ Cypher25
+      case _ => (")", "a node label/relationship type name, '$', '%' or '('", 15)
+    })
+  }
+
+  test("match (n:Label:1Label) return *") {
+    invalid({
+      case Cypher5 => (":", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 14)
+      // ≥ Cypher25
+      case _ => ("1Label", "a node label/relationship type name, '$', '%' or '('", 15)
+    })
+  }
   test("match (n:1Label) return *") { invalid("1Label", "a node label/relationship type name, '$', '%' or '('", 9) }
   test("match (n:`1Labe`l`) return *") { invalid("l", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 16) }
   test("match (n {p}) return *") { invalid("}", "':'", 11) }
   test("match (n {p:}) return *") { invalid("}", "an expression", 12) }
   test("match (n {p:{}) return *") { invalid(")", "an expression, ',' or '}'", 14) }
+
   test("create (a)-[r]>(b) return *") { invalid(">", "'-'", 14) }
   test("create (a)-[:]->(b) return *") { invalid("]", "a node label/relationship type name, '$', '%' or '('", 13) }
 
   test("create (a)-[->() return *") {
     invalid("-", "a parameter, a variable name, '*', ':', 'IS', 'WHERE', ']' or '{'", 12)
   }
-  test("create (a)-(b) return *") { invalid("(", "'-'", 11) }
+
+  test("create (a)-(b) return *") {
+    invalid({
+      case Cypher5 => ("(", "'-'", 11)
+      // ≥ Cypher25
+      case _ => ("(", "'-' or '['", 11)
+    })
+  }
 
   test("create (1bcd) return *") {
     invalid("1bcd", "a graph pattern, a parameter, a variable name, ')', ':', 'IS', 'WHERE' or '{'", 8)
@@ -114,23 +159,49 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
   test("create (`a`b`) return *") { invalid("b", "a graph pattern, a parameter, ')', ':', 'IS', 'WHERE' or '{'", 11) }
 
   test("reate (n) return *") {
-    invalid("reate", clauseExpected(CypherVersion.Cypher5), clauseExpected(CypherVersion.Cypher25), 0)
+    invalid({
+      case Cypher5 => ("reate", clauseExpected(CypherVersion.Cypher5), 0)
+      // ≥ Cypher25
+      case _ => ("reate", clauseExpected(CypherVersion.Cypher25), 0)
+    })
   }
   test("create (n:*) return *") { invalid("*", "a node label/relationship type name, '$', '%' or '('", 10) }
   test("create (n:Label|) return *") { invalid("|", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 15) }
-  test("create (n:Label:) return *") { invalid(":", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 15) }
-  test("create (n:Label:1Label) return *") { invalid(":", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 15) }
+
+  test("create (n:Label:) return *") {
+    invalid({
+      case Cypher5 => (":", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 15)
+      // ≥ Cypher25
+      case _ => (")", "a node label/relationship type name, '$', '%' or '('", 16)
+    })
+  }
+
+  test("create (n:Label:1Label) return *") {
+    invalid({
+      case Cypher5 => (":", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 15)
+      // ≥ Cypher25
+      case _ => ("1Label", "a node label/relationship type name, '$', '%' or '('", 16)
+    })
+  }
   test("create (n:1Label) return *") { invalid("1Label", "a node label/relationship type name, '$', '%' or '('", 10) }
   test("create (n:`1Labe`l`) return *") { invalid("l", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 17) }
   test("create (n {p:{}) return *") { invalid(")", "an expression, ',' or '}'", 15) }
   test("create (n {p:}) return *") { invalid("}", "an expression", 13) }
+
   test("merge (a)-[r]>(b) return *") { invalid(">", "'-'", 13) }
   test("merge (a)-[:]->(b) return *") { invalid("]", "a node label/relationship type name, '$', '%' or '('", 12) }
 
   test("merge (a)-[->() return *") {
     invalid("-", "a parameter, a variable name, '*', ':', 'IS', 'WHERE', ']' or '{'", 11)
   }
-  test("merge (a)-(b) return *") { invalid("(", "'-'", 10) }
+
+  test("merge (a)-(b) return *") {
+    invalid({
+      case Cypher5 => ("(", "'-'", 10)
+      // ≥ Cypher25
+      case _ => ("(", "'-' or '['", 10)
+    })
+  }
 
   test("merge (1bcd) return *") {
     invalid("1bcd", "a graph pattern, a parameter, a variable name, ')', ':', 'IS', 'WHERE' or '{'", 7)
@@ -138,12 +209,30 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
   test("merge (`a`b`) return *") { invalid("b", "a graph pattern, a parameter, ')', ':', 'IS', 'WHERE' or '{'", 10) }
 
   test("erge (n) return *") {
-    invalid("erge", clauseExpected(CypherVersion.Cypher5), clauseExpected(CypherVersion.Cypher25), 0)
+    invalid({
+      case Cypher5 => ("erge", clauseExpected(CypherVersion.Cypher5), 0)
+      // ≥ Cypher25
+      case _ => ("erge", clauseExpected(CypherVersion.Cypher25), 0)
+    })
   }
   test("merge (n:*) return *") { invalid("*", "a node label/relationship type name, '$', '%' or '('", 9) }
   test("merge (n:Label|) return *") { invalid("|", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 14) }
-  test("merge (n:Label:) return *") { invalid(":", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 14) }
-  test("merge (n:Label:1Label) return *") { invalid(":", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 14) }
+
+  test("merge (n:Label:) return *") {
+    invalid({
+      case Cypher5 => (":", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 14)
+      // ≥ Cypher25
+      case _ => (")", "a node label/relationship type name, '$', '%' or '('", 15)
+    })
+  }
+
+  test("merge (n:Label:1Label) return *") {
+    invalid({
+      case Cypher5 => (":", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 14)
+      // ≥ Cypher25
+      case _ => ("1Label", "a node label/relationship type name, '$', '%' or '('", 15)
+    })
+  }
   test("merge (n:1Label) return *") { invalid("1Label", "a node label/relationship type name, '$', '%' or '('", 9) }
   test("merge (n:`1Labe`l`) return *") { invalid("l", "a parameter, '&', ')', ':', 'WHERE', '{' or '|'", 16) }
   test("merge (n {p}) return *") { invalid("}", "':'", 11) }
@@ -170,7 +259,15 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
     )
   }
   test("return {") { invalid("", "an identifier or '}'", 8) }
-  test("eturn 1") { invalid("eturn", clauseExpected(CypherVersion.Cypher5), clauseExpected(CypherVersion.Cypher25), 0) }
+
+  test("eturn 1") {
+    invalid({
+      case Cypher5 => ("eturn", clauseExpected(CypherVersion.Cypher5), 0)
+      // ≥ Cypher25
+      case _ => ("eturn", clauseExpected(CypherVersion.Cypher25), 0)
+    })
+  }
+
   test("return 1 skip") { invalid("", "an expression", 13) }
   test("return 1 skip *") { invalid("*", "an expression", 14) }
   test("return 1 limit") { invalid("", "an expression", 14) }
@@ -179,21 +276,48 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
   test("return 1 order by *") { invalid("*", "an expression", 18) }
   test("return 1 order by x,") { invalid("", "an expression", 20) }
   test("return 1 order by x,*") { invalid("*", "an expression", 20) }
-  test("call hej() yield x as 1y") { invalid("1y", "an identifier", 22) }
-  test("call hej() yield 1x as y") { invalid("1x", "an identifier or '*'", 17) }
+
+  test("call hej() yield x as 1y") {
+    invalid({
+      case Cypher5 => ("1y", "an identifier", 22)
+      // ≥ Cypher25
+      case _ => ("1y", "a variable name", 22)
+    })
+  }
+
+  test("call hej() yield 1x as y") {
+    invalid({
+      case Cypher5 => ("1x", "an identifier or '*'", 17)
+      // ≥ Cypher25
+      case _ => ("1x", "a variable name or '*'", 17)
+    })
+  }
   test("call 1hej()") { invalid("1hej", "an identifier, '(' or '{'", 5) }
   test("show procedures yield") { invalid("", "a variable name or '*'", 21) }
 
   test("create database 1a") {
-    invalid(
-      "1a",
-      "a database name, a graph pattern or a parameter",
-      "a graph pattern, a parameter or an identifier",
-      16
-    )
+    invalid({
+      case Cypher5 => ("1a", "a database name, a graph pattern or a parameter", 16)
+      // ≥ Cypher25
+      case _ => ("1a", "a graph pattern, a parameter or an identifier", 16)
+    })
   }
-  test("with 1 as 1p return *") { invalid("1p", "an identifier", 10) }
-  test("with 1 as 1bcd return *") { invalid("1bcd", "an identifier", 10) }
+
+  test("with 1 as 1p return *") {
+    invalid({
+      case Cypher5 => ("1p", "an identifier", 10)
+      // ≥ Cypher25
+      case _ => ("1p", "a variable name", 10)
+    })
+  }
+
+  test("with 1 as 1bcd return *") {
+    invalid({
+      case Cypher5 => ("1bcd", "an identifier", 10)
+      // ≥ Cypher25
+      case _ => ("1bcd", "a variable name", 10)
+    })
+  }
 
   test("revoke") {
     invalid(

@@ -18,11 +18,18 @@ package org.neo4j.cypher.internal.ast.factory.query
 
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
+import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.NFCNormalForm
+import org.neo4j.cypher.internal.expressions.NFDNormalForm
+import org.neo4j.cypher.internal.expressions.NFKCNormalForm
+import org.neo4j.cypher.internal.expressions.NFKDNormalForm
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.util.symbols.CTAny
+import org.neo4j.cypher.internal.util.symbols.CTInteger
 
 class CreateMatchMergeParserTest extends AstParsingTestBase {
 
@@ -661,4 +668,131 @@ class CreateMatchMergeParserTest extends AstParsingTestBase {
     )
   }
 
+  // Labels NOT, NULL, TYPED, NORMALIZED, NFC, NFD, NFKC and NFKD are allowed unescaped together with IS keyword from Cypher 25 onwards
+  for {
+    (phrasesAfterIS, astPrototype) <- Seq(
+      ("NOT NULL", (lhs: Expression) => isNotNull(lhs)),
+      ("NULL", (lhs: Expression) => isNull(lhs)),
+      ("TYPED INT", (lhs: Expression) => isTyped(lhs, CTInteger)),
+      ("NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFCNormalForm)),
+      ("NFC NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFCNormalForm)),
+      ("NFD NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFDNormalForm)),
+      ("NFKC NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFKCNormalForm)),
+      ("NFKD NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFKDNormalForm))
+    )
+    spacePosition <- Seq(phrasesAfterIS.indexOf(' '))
+    keywordAfterIS <- Seq(if (spacePosition > 0) phrasesAfterIS.take(phrasesAfterIS.indexOf(' ')) else phrasesAfterIS)
+  } yield {
+    test(s"CREATE (n:$keywordAfterIS)") {
+      parsesTo[Statements](
+        singleQuery(
+          create(
+            nodePat(
+              Some("n"),
+              Some(labelLeaf(keywordAfterIS))
+            )
+          )
+        )
+      )
+    }
+
+    test(s"MERGE (n:$keywordAfterIS)") {
+      parsesTo[Statements](
+        singleQuery(
+          merge(
+            nodePat(
+              Some("n"),
+              Some(labelLeaf(keywordAfterIS))
+            )
+          )
+        )
+      )
+    }
+
+    test(s"CREATE (n:`$keywordAfterIS`)") {
+      parsesTo[Statements](
+        singleQuery(
+          create(
+            nodePat(
+              Some("n"),
+              Some(labelLeaf(keywordAfterIS))
+            )
+          )
+        )
+      )
+    }
+
+    test(s"MERGE (n:`$keywordAfterIS`)") {
+      parsesTo[Statements](
+        singleQuery(
+          merge(
+            nodePat(
+              Some("n"),
+              Some(labelLeaf(keywordAfterIS))
+            )
+          )
+        )
+      )
+    }
+
+    test(s"CREATE (n IS $keywordAfterIS)") {
+      parsesIn[Statements] {
+        case Cypher5 => _.withAnyFailure
+        // ≥ Cypher25
+        case _ => _.toAst(
+            Statements(Seq(singleQuery(
+              create(
+                nodePat(
+                  Some("n"),
+                  Some(labelLeaf(keywordAfterIS, containsIs = true))
+                )
+              )
+            )))
+          )
+      }
+    }
+
+    test(s"MERGE (n IS $keywordAfterIS)") {
+      parsesIn[Statements] {
+        case Cypher5 => _.withAnyFailure
+        // ≥ Cypher25
+        case _ => _.toAst(
+            Statements(Seq(singleQuery(
+              merge(
+                nodePat(
+                  Some("n"),
+                  Some(labelLeaf(keywordAfterIS, containsIs = true))
+                )
+              )
+            )))
+          )
+      }
+    }
+
+    test(s"CREATE (n IS `$keywordAfterIS`)") {
+      parsesTo[Statements](
+        singleQuery(
+          create(
+            nodePat(
+              Some("n"),
+              Some(labelLeaf(keywordAfterIS, containsIs = true))
+            )
+          )
+        )
+      )
+    }
+
+    test(s"MERGE (n IS `$keywordAfterIS`)") {
+      parsesTo[Statements](
+        singleQuery(
+          merge(
+            nodePat(
+              Some("n"),
+              Some(labelLeaf(keywordAfterIS, containsIs = true))
+            )
+          )
+        )
+      )
+    }
+  }
 }

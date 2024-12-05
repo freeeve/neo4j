@@ -360,27 +360,32 @@ trait ExpressionBuilder extends Cypher25ParserListener {
       case 1 => ctxChild(ctx, 0).ast
       case _ =>
         val lhs = ctxChild(ctx, 0).ast[Expression]()
-        ctxChild(ctx, 1) match {
-          case strCtx: Cypher25Parser.StringAndListComparisonContext =>
-            stringAndListComparisonExpression(lhs, strCtx)
-          case nullCtx: Cypher25Parser.NullComparisonContext =>
-            nullComparisonExpression(lhs, nullCtx)
-          case typeCtx: Cypher25Parser.TypeComparisonContext =>
-            typeComparisonExpression(lhs, typeCtx)
-          case nfCtx: Cypher25Parser.NormalFormComparisonContext =>
-            normalFormComparisonExpression(lhs, nfCtx.normalForm(), nfCtx.NOT() != null, pos(nfCtx))
-          case _ => throw new IllegalStateException(s"Unexpected parse result $ctx")
-        }
+        advancedPredicate(lhs, ctxChild(ctx, 1))
     }
   }
 
-  private def stringAndListComparisonExpression(lhs: Expression, ctx: AstRuleCtx): Expression = {
-    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
-      ctx.isInstanceOf[Cypher25Parser.StringAndListComparisonContext] ||
-        ctx.isInstanceOf[Cypher25Parser.WhenStringOrListContext]
-    )
-    val token = child[TerminalNode](ctx, 0).getSymbol
-    val rhs = lastChild[AstRuleCtx](ctx).ast[Expression]()
+  private def advancedPredicate(lhs: Expression, advancedPart2Ctx: AstRuleCtx): Expression = {
+    advancedPart2Ctx match {
+      case labelCtx: Cypher25Parser.LabelComparisonContext =>
+        labelComparisonExpression(lhs, labelCtx)
+      case strCtx: Cypher25Parser.StringAndListComparisonContext =>
+        stringAndListComparisonExpression(lhs, strCtx)
+      case nullCtx: Cypher25Parser.NullComparisonContext =>
+        nullComparisonExpression(lhs, nullCtx)
+      case typeCtx: Cypher25Parser.TypeComparisonContext =>
+        typeComparisonExpression(lhs, typeCtx)
+      case nfCtx: Cypher25Parser.NormalFormComparisonContext =>
+        normalFormComparisonExpression(lhs, nfCtx.normalForm(), nfCtx.NOT() != null, pos(nfCtx))
+      case _ => throw new IllegalStateException(s"Unexpected parse result $advancedPart2Ctx")
+    }
+  }
+
+  private def stringAndListComparisonExpression(
+    lhs: Expression,
+    strCtx: Cypher25Parser.StringAndListComparisonContext
+  ): Expression = {
+    val token = child[TerminalNode](strCtx, 0).getSymbol
+    val rhs = lastChild[AstRuleCtx](strCtx).ast[Expression]()
     token.getType match {
       case Cypher25Parser.REGEQ    => RegexMatch(lhs, rhs)(pos(token))
       case Cypher25Parser.STARTS   => StartsWith(lhs, rhs)(pos(token))
@@ -390,27 +395,29 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     }
   }
 
-  private def nullComparisonExpression(lhs: Expression, ctx: AstRuleCtx): Expression = {
-    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
-      ctx.isInstanceOf[Cypher25Parser.NullComparisonContext] ||
-        ctx.isInstanceOf[Cypher25Parser.WhenNullContext]
+  private def labelComparisonExpression(
+    lhs: Expression,
+    labelCtx: Cypher25Parser.LabelComparisonContext
+  ): Expression = {
+    LabelExpressionPredicate(lhs, ctxChild(labelCtx, 0).ast())(
+      lhs.position,
+      isParenthesized = LabelExpressionPredicate.isParenthesizedDefault
     )
-    if (nodeChildType(ctx, 1) != Cypher25Parser.NOT) IsNull(lhs)(pos(ctx))
-    else IsNotNull(lhs)(pos(ctx))
   }
 
-  private def typeComparisonExpression(lhs: Expression, ctx: AstRuleCtx): Expression = {
-    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
-      ctx.isInstanceOf[Cypher25Parser.TypeComparisonContext] ||
-        ctx.isInstanceOf[Cypher25Parser.WhenTypeContext]
-    )
-    val cypherType = lastChild[AstRuleCtx](ctx).ast[CypherType]()
-    val not = child[ParseTree](ctx, 1) match {
+  private def nullComparisonExpression(lhs: Expression, nullCtx: Cypher25Parser.NullComparisonContext): Expression = {
+    if (nodeChildType(nullCtx, 1) != Cypher25Parser.NOT) IsNull(lhs)(pos(nullCtx))
+    else IsNotNull(lhs)(pos(nullCtx))
+  }
+
+  private def typeComparisonExpression(lhs: Expression, typeCtx: Cypher25Parser.TypeComparisonContext): Expression = {
+    val cypherType = lastChild[AstRuleCtx](typeCtx).ast[CypherType]()
+    val not = child[ParseTree](typeCtx, 1) match {
       case n: TerminalNode => n.getSymbol.getType == Cypher25Parser.NOT
       case _               => false
     }
-    if (not) IsNotTyped(lhs, cypherType)(pos(ctx))
-    else IsTyped(lhs, cypherType)(pos(ctx), withDoubleColonOnly = false)
+    if (not) IsNotTyped(lhs, cypherType)(pos(typeCtx))
+    else IsTyped(lhs, cypherType)(pos(typeCtx), withDoubleColonOnly = typeCtx.children.size() == 2)
   }
 
   private def normalFormComparisonExpression(
@@ -491,10 +498,6 @@ trait ExpressionBuilder extends Cypher25ParserListener {
       case propCtx: Cypher25Parser.PropertyPostfixContext => Property(lhs, ctxChild(propCtx, 0).ast())(p)
       case indexCtx: Cypher25Parser.IndexPostfixContext =>
         ContainerIndex(lhs, ctxChild(indexCtx, 1).ast())(pos(ctxChild(indexCtx, 1)))
-      case labelCtx: Cypher25Parser.LabelPostfixContext => LabelExpressionPredicate(lhs, ctxChild(labelCtx, 0).ast())(
-          p,
-          isParenthesized = LabelExpressionPredicate.isParenthesizedDefault
-        )
       case rangeCtx: Cypher25Parser.RangePostfixContext =>
         ListSlice(lhs, astOpt(rangeCtx.fromExp), astOpt(rangeCtx.toExp))(pos(rhs))
       case _ => throw new IllegalStateException(s"Unexpected rhs $rhs")
@@ -585,16 +588,10 @@ trait ExpressionBuilder extends Cypher25ParserListener {
           val newWhen = whenCtx match {
             case _: Cypher25Parser.WhenEqualsContext =>
               Equals(lhs, astChild(whenCtx, 0))(pos(nodeChild(ctx, i - 1)))
-            case _: Cypher25Parser.WhenComparatorContext =>
-              binaryPredicate(lhs, nodeChild(whenCtx, 0), ctxChild(whenCtx, 1))
-            case _: Cypher25Parser.WhenStringOrListContext =>
-              stringAndListComparisonExpression(lhs, whenCtx)
-            case _: Cypher25Parser.WhenNullContext =>
-              nullComparisonExpression(lhs, whenCtx)
-            case _: Cypher25Parser.WhenTypeContext =>
-              typeComparisonExpression(lhs, whenCtx)
-            case formCtx: Cypher25Parser.WhenFormContext =>
-              normalFormComparisonExpression(lhs, formCtx.normalForm(), formCtx.NOT() != null, pos(formCtx))
+            case _: Cypher25Parser.WhenSimpleComparisonContext =>
+              binaryPredicate(lhs, child(whenCtx, 0), child(whenCtx, 1))
+            case _: Cypher25Parser.WhenAdvancedComparisonContext =>
+              advancedPredicate(lhs, child(whenCtx, 0))
             case _ => throw new IllegalStateException(s"Unexpected context $whenCtx")
           }
           buffer.addOne(newWhen -> thenExp)
@@ -688,7 +685,11 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   final override def exitParenthesizedExpression(
     ctx: Cypher25Parser.ParenthesizedExpressionContext
   ): Unit = {
-    ctx.ast = ctxChild(ctx, 1).ast
+    ctx.ast = ctxChild(ctx, 1).ast match {
+      case lep: LabelExpressionPredicate => lep.copy()(lep.position, isParenthesized = true)
+      case v: Variable if !v.isIsolated  => v.copy()(v.position, isIsolated = true)
+      case x                             => x
+    }
   }
 
   final override def exitMapProjection(
@@ -842,7 +843,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   final override def exitVariable(
     ctx: Cypher25Parser.VariableContext
   ): Unit = {
-    ctx.ast = Variable(name = ctx.symbolicNameString().ast())(pos(ctx), Variable.isIsolatedDefault)
+    ctx.ast = ctxChild(ctx, 0).ast
   }
 
   final override def exitType(ctx: Cypher25Parser.TypeContext): Unit = {
@@ -968,6 +969,24 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   final override def exitMap(ctx: Cypher25Parser.MapContext): Unit =
     ctx.ast = MapExpression(astPairs(ctx.propertyKeyName(), ctx.expression()))(pos(ctx))
 
+  final override def exitSymbolicVariableNameString(
+    ctx: Cypher25Parser.SymbolicVariableNameStringContext
+  ): Unit = {
+    ctx.ast = ctxChild(ctx, 0).ast
+  }
+
+  final override def exitEscapedSymbolicVariableNameString(
+    ctx: Cypher25Parser.EscapedSymbolicVariableNameStringContext
+  ): Unit = {
+    ctx.ast = Variable(name = astChild[String](ctx, 0))(pos(ctx), isIsolated = true)
+  }
+
+  final override def exitUnescapedSymbolicVariableNameString(
+    ctx: Cypher25Parser.UnescapedSymbolicVariableNameStringContext
+  ): Unit = {
+    ctx.ast = Variable(name = astChild[String](ctx, 0))(pos(ctx), isIsolated = false)
+  }
+
   final override def exitSymbolicNameString(
     ctx: Cypher25Parser.SymbolicNameStringContext
   ): Unit = {
@@ -982,24 +1001,10 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   protected def notificationLogger: Option[InternalNotificationLogger]
 
   final override def exitUnescapedSymbolicNameString(ctx: Cypher25Parser.UnescapedSymbolicNameStringContext): Unit = {
-    ctx.ast = ctx.getText
-  }
-
-  final override def exitSymbolicLabelNameString(
-    ctx: Cypher25Parser.SymbolicLabelNameStringContext
-  ): Unit = {
     ctx.ast = ctxChild(ctx, 0).ast
   }
 
-  final override def exitUnescapedLabelSymbolicNameString(
-    ctx: Cypher25Parser.UnescapedLabelSymbolicNameStringContext
-  ): Unit = {
-    ctx.ast = ctxChild(ctx, 0).ast
-  }
-
-  final override def exitUnescapedLabelSymbolicNameString_(
-    ctx: Cypher25Parser.UnescapedLabelSymbolicNameString_Context
-  ): Unit = {
+  final override def exitUnescapedSymbolicNameString_(ctx: Cypher25Parser.UnescapedSymbolicNameString_Context): Unit = {
     ctx.ast = ctx.getText
   }
 

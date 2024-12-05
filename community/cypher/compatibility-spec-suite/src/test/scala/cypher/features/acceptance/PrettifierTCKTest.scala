@@ -28,8 +28,8 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
 import org.neo4j.cypher.internal.parser.AstParserFactory
-import org.neo4j.cypher.internal.rewriting.rewriters
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
@@ -45,9 +45,7 @@ import scala.util.Try
 class PrettifierTCKTest extends PrettifierTCKTestBase {
 
   override protected def parseStatements(query: String): Statement =
-    removeSyntaxTracking(
-      AstParserFactory(CypherVersion.Cypher5)(query, Neo4jCypherExceptionFactory(query, None), None).singleStatement()
-    )
+    AstParserFactory(CypherVersion.Cypher5)(query, Neo4jCypherExceptionFactory(query, None), None).singleStatement()
 
   @Test
   def allVersionsHaveCoverage(): Unit = {
@@ -55,14 +53,8 @@ class PrettifierTCKTest extends PrettifierTCKTestBase {
     assertEquals(Set(CypherVersion.Cypher5, CypherVersion.Cypher25), CypherVersion.values().toSet)
   }
 
-  /**
-   * The Cypher5 parser tracks a number of syntax characteristics
-   * that causes "query" and "prettified" to have different ASTs.
-   * This is rewrite removes the tracking.
-   */
-  private def removeSyntaxTracking(statement: Statement): Statement = {
-    statement.endoRewrite(rewriters.removeSyntaxTracking.instance)
-  }
+  override def denylist(): Seq[DenylistEntry] =
+    super.denylist() ++ new Cypher5PrettifierTCKTest().denylist()
 }
 
 class Cypher25PrettifierTCKTest extends PrettifierTCKTestBase {
@@ -76,6 +68,33 @@ class Cypher25PrettifierTCKTest extends PrettifierTCKTestBase {
     """Feature "LiteralAcceptance": Scenario "Fail on an deprecated octal number syntax with underscore"""",
     """Feature "LiteralAcceptance": Scenario "Fail on an octal number with underscore in prefix""""
   ).map(DenylistEntry.apply)
+}
+
+class Cypher5PrettifierTCKTest extends PrettifierTCKTestBase {
+
+  override protected def parseStatements(query: String): Statement =
+    AstParserFactory(CypherVersion.Cypher5)(query, Neo4jCypherExceptionFactory(query, None), None).singleStatement()
+
+  override def denylist(): Seq[DenylistEntry] = super.denylist() ++
+    // Not in Cypher 5
+    Seq(
+      "Keywords allowed as labels in patterns in CREATE and INSERT",
+      "Keywords allowed as labels in patterns in MATCH",
+      "Keywords allowed as labels in patterns in MERGE"
+    ).flatMap(scenario =>
+      Seq("NOT", "NULL", "TYPED", "NORMALIZED", "NFKD", "NFKC", "NFD", "NFC").map(example =>
+        s"""Feature "KeywordPriority": Scenario "$scenario": Example "$example"""".stripMargin
+      )
+    ).map(DenylistEntry.apply) ++
+    Seq(
+      """Feature "KeywordPriority": Scenario "WHERE keyword has priority in node patterns in INSERT": Example "2"""",
+      """Feature "KeywordPriority": Scenario "WHERE keyword has priority in node patterns in INSERT": Example "3"""",
+      """Feature "KeywordPriority": Scenario "WHERE keyword has priority in relationship patterns in INSERT"""",
+      """Feature "KeywordPriority": Scenario "Keywords in IS predicates allowed as labels in node patterns in MATCH"""",
+      """Feature "KeywordPriority": Scenario "Keywords in IS predicates allowed as labels in relationship patterns in MATCH"""",
+      """Feature "CaseExpression": Scenario "Simple case with all comparison operators"""",
+      """Feature "CaseExpression": Scenario "Simple case with label expression predicate with IS keyword""""
+    ).map(DenylistEntry.apply)
 }
 
 trait PrettifierTCKTestBase extends FeatureTest with FeatureQueryTest with Matchers {
@@ -123,7 +142,7 @@ trait PrettifierTCKTestBase extends FeatureTest with FeatureQueryTest with Match
     // DIFFERENT NODES is not yet implemented
     """Feature "GpmSyntaxMixingAcceptance": Scenario "DIFFERENT NODES with var-length relationship - OK"""",
     """Feature "GpmSyntaxMixingAcceptance": Scenario "Explicit match mode DIFFERENT NODES with shortestPath - syntax error""""
-  ).map(DenylistEntry(_))
+  ).map(DenylistEntry.apply)
 
   override def runQuery(scenario: Scenario, query: String): Option[Executable] = {
     val executable: Executable = () => roundTripCheck(query)
@@ -147,7 +166,8 @@ trait PrettifierTCKTestBase extends FeatureTest with FeatureQueryTest with Match
 
   protected def parseStatements(query: String): Statement
 
-  private def parse(query: String): Statement = canonicalizeUnaliasedReturnItem(parseStatements(query))
+  private def parse(query: String): Statement =
+    removeSyntaxTracking(canonicalizeUnaliasedReturnItem(parseStatements(query)))
 
   override def releaseResources(): Unit = {}
 
@@ -159,6 +179,17 @@ trait PrettifierTCKTestBase extends FeatureTest with FeatureQueryTest with Match
   private def canonicalizeUnaliasedReturnItem(statement: Statement): Statement = {
     statement.endoRewrite(bottomUp(Rewriter.lift {
       case x: UnaliasedReturnItem => x.copy(inputText = "")(x.position)
+    }))
+  }
+
+  /**
+   * The parser tracks a number of syntax characteristics
+   * that causes "query" and "prettified" to have different ASTs.
+   * This is rewrite removes the tracking.
+   */
+  private def removeSyntaxTracking(statement: Statement): Statement = {
+    statement.endoRewrite(bottomUp(Rewriter.lift {
+      case lel: Leaf if lel.containsIs => lel.copy(containsIs = false)
     }))
   }
 }

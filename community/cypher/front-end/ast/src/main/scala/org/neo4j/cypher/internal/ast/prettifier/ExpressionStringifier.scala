@@ -313,6 +313,12 @@ private class DefaultExpressionStringifier(
       case IsNotNormalized(_, normalForm) =>
         s"IS NOT ${normalForm.description} NORMALIZED"
 
+      case lep: LabelExpressionPredicate if !isCaseExpression =>
+        s"${inner(ast)(lep.entity)}:${stringifyLabelExpression(lep.labelExpression)}"
+
+      case lep: LabelExpressionPredicate =>
+        s":${stringifyLabelExpression(lep.labelExpression)}"
+
       case ContainerIndex(exp, idx) =>
         s"${inner(ast)(exp)}[${inner(ast)(idx)}]"
 
@@ -389,9 +395,6 @@ private class DefaultExpressionStringifier(
       case HasAnyDynamicLabelsOrTypes(arg, labelsOrTypes) =>
         val t = labelsOrTypes.map(t => s"$$any(${apply(t)})").mkString(":", "|", "")
         s"${inner(ast)(arg)}$t"
-
-      case lep: LabelExpressionPredicate =>
-        s"${inner(ast)(lep.entity)}:${stringifyLabelExpression(lep.labelExpression)}"
 
       case AllIterablePredicate(scope, e) =>
         s"all${prettyScope(scope, e)}"
@@ -617,11 +620,11 @@ private class DefaultExpressionStringifier(
       _: IsTyped |
       _: IsNotTyped |
       _: IsNormalized |
-      _: IsNotNormalized =>
+      _: IsNotNormalized |
+      _: HasLabels =>
       Precedence(3)
 
     case _: Property |
-      _: HasLabels |
       _: ContainerIndex |
       _: ListSlice =>
       Precedence(2)

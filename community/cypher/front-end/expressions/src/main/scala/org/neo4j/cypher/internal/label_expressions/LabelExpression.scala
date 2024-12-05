@@ -203,7 +203,12 @@ object LabelExpression {
 
   object Disjunctions {
 
-    def flat(lhs: LabelExpression, rhs: LabelExpression, position: InputPosition, containsIs: Boolean): Disjunctions = {
+    def flat(
+      lhs: LabelExpression,
+      rhs: LabelExpression,
+      position: InputPosition,
+      containsIs: Boolean = false
+    ): Disjunctions = {
       Disjunctions(Vector(lhs, rhs), containsIs)(position).unnestDisjunctions
     }
   }
@@ -231,7 +236,12 @@ object LabelExpression {
 
   object Conjunctions {
 
-    def flat(lhs: LabelExpression, rhs: LabelExpression, position: InputPosition, containsIs: Boolean): Conjunctions = {
+    def flat(
+      lhs: LabelExpression,
+      rhs: LabelExpression,
+      position: InputPosition,
+      containsIs: Boolean = false
+    ): Conjunctions = {
       Conjunctions(Vector(lhs, rhs), containsIs)(position).unnestConjunctions
     }
   }

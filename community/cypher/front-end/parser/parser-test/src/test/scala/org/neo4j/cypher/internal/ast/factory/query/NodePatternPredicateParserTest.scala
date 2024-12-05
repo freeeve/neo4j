@@ -17,11 +17,13 @@
 package org.neo4j.cypher.internal.ast.factory.query
 
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
-import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
+import org.neo4j.cypher.internal.expressions.LiteralEntry
+import org.neo4j.cypher.internal.expressions.MapProjection
 import org.neo4j.cypher.internal.expressions.NodePattern
 
-class NodePatternPredicateParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport {
+class NodePatternPredicateParserTest extends AstParsingTestBase {
 
   for {
     (maybeLabelExpression, maybeLabelExpressionAst) <-
@@ -54,7 +56,7 @@ class NodePatternPredicateParserTest extends AstParsingTestBase with LegacyAstPa
 
   test("MATCH (n WHERE n.prop > 123)") {
     val expected = nodePat(
-      Some("n"),
+      name = Some("n"),
       predicates = Some(greaterThan(prop("n", "prop"), literalInt(123)))
     )
 
@@ -90,16 +92,67 @@ class NodePatternPredicateParserTest extends AstParsingTestBase with LegacyAstPa
    * 2. a node named WHERE with a property map
    * As the second case is not just syntactically but also semantically correct, the parser has been programmed to prefer it.
    */
+  test("MATCH (WHERE {})") {
+    parsesIn[Statements] {
+      case Cypher5 => _.containing[NodePattern](
+          nodePat(
+            name = Some("WHERE"),
+            properties = Some(mapOf()),
+            predicates = None
+          )
+        )
+      // ≥ Cypher25
+      case _ => _.containing[NodePattern](
+          nodePat(
+            name = None,
+            properties = None,
+            predicates = Some(mapOf())
+          )
+        )
+    }
+  }
+
   test("MATCH (WHERE {prop: 123})") {
-    parses[Statements].containing[NodePattern](
-      nodePat(Some("WHERE"), properties = Some(mapOf("prop" -> literal(123))))
-    )
+    parsesIn[Statements] {
+      case Cypher5 => _.containing[NodePattern](
+          nodePat(
+            name = Some("WHERE"),
+            properties = Some(mapOf(("prop", literalInt(123)))),
+            predicates = None
+          )
+        )
+      // ≥ Cypher25
+      case _ => _.containing[NodePattern](
+          nodePat(
+            name = None,
+            properties = None,
+            predicates = Some(mapOf(("prop", literalInt(123))))
+          )
+        )
+    }
   }
 
   test("MATCH (WHERE WHERE {prop: 123})") {
-    parses[Statements].containing[NodePattern](
-      nodePat(Some("WHERE"), predicates = Some(mapOf("prop" -> literal(123))))
-    )
+    parsesIn[Statements] {
+      case Cypher5 => _.containing[NodePattern](
+          nodePat(
+            Some("WHERE"),
+            properties = None,
+            predicates = Some(mapOf("prop" -> literal(123)))
+          )
+        )
+      // ≥ Cypher25
+      case _ => _.containing[NodePattern](
+          nodePat(
+            None,
+            properties = None,
+            predicates = Some(MapProjection(
+              varFor("WHERE"),
+              Seq(LiteralEntry(propName("prop"), literal(123))(pos))
+            )(pos))
+          )
+        )
+    }
   }
 
   test("MATCH (WHERE {prop: 123} WHERE {prop: 123})") {

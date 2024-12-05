@@ -605,3 +605,28 @@ Feature: LabelExpressionAcceptance
       | result     |
       | ['A', 'B'] |
     And no side effects
+
+  Scenario Outline: Label expression on unparenthesized plus operator fails
+    Given an empty graph
+    And having executed:
+      """
+      CREATE (:A:X), (:B), (:C)
+      """
+
+    When executing query:
+      """
+      MATCH (a:A), (b:B), (c:C)
+      WITH <list> AS list
+      MATCH (n:X)
+      RETURN list + n:A
+      """
+    Then a SyntaxError should be raised at compile time: *
+    And no side effects
+
+    Examples:
+      | list              |
+      | []                |
+      | [a]               |
+      | [b, c]            |
+      | [a, b, c]         |
+      | [[a, c], true][0] |

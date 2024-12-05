@@ -17,7 +17,10 @@
 package org.neo4j.cypher.internal.ast.factory.query
 
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
+import org.neo4j.cypher.internal.expressions.LiteralEntry
+import org.neo4j.cypher.internal.expressions.MapProjection
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 
 class RelationshipPatternPredicateParserTest extends AstParsingTestBase {
@@ -64,15 +67,66 @@ class RelationshipPatternPredicateParserTest extends AstParsingTestBase {
    * 2. a relationship named WHERE with a property map
    * As the second case is not just syntactically but also semantically correct, the parser has been programmed to prefer it.
    */
+  test("MATCH ()-[WHERE {}]->()") {
+    parsesIn[Statements] {
+      case Cypher5 => _.containing[RelationshipPattern] {
+          relPat(
+            Some("WHERE"),
+            properties = Some(mapOf()),
+            predicates = None
+          )
+        }
+      // ≥ Cypher25
+      case _ => _.containing[RelationshipPattern] {
+          relPat(
+            None,
+            properties = None,
+            predicates = Some(mapOf())
+          )
+        }
+    }
+  }
+
   test("MATCH ()-[WHERE {prop: 123}]->()") {
-    parses[Statements].containing[RelationshipPattern] {
-      relPat(Some("WHERE"), properties = Some(mapOf("prop" -> literal(123))))
+    parsesIn[Statements] {
+      case Cypher5 => _.containing[RelationshipPattern] {
+          relPat(
+            Some("WHERE"),
+            properties = Some(mapOf("prop" -> literal(123))),
+            predicates = None
+          )
+        }
+      // ≥ Cypher25
+      case _ => _.containing[RelationshipPattern] {
+          relPat(
+            None,
+            properties = None,
+            predicates = Some(mapOf("prop" -> literal(123)))
+          )
+        }
     }
   }
 
   test("MATCH ()-[WHERE WHERE {prop: 123}]->()") {
-    parses[Statements].containing[RelationshipPattern] {
-      relPat(Some("WHERE"), predicates = Some(mapOf("prop" -> literal(123))))
+    parsesIn[Statements] {
+      case Cypher5 => _.containing[RelationshipPattern] {
+          relPat(
+            Some("WHERE"),
+            properties = None,
+            predicates = Some(mapOf("prop" -> literal(123)))
+          )
+        }
+      // ≥ Cypher25
+      case _ => _.containing[RelationshipPattern] {
+          relPat(
+            None,
+            properties = None,
+            predicates = Some(MapProjection(
+              varFor("WHERE"),
+              Seq(LiteralEntry(propName("prop"), literal(123))(pos))
+            )(pos))
+          )
+        }
     }
   }
 

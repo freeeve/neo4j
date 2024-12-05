@@ -17,13 +17,13 @@
 package org.neo4j.cypher.internal.ast.factory.query
 
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
-import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
 
 /**
  * This test class was created due to a bug in Javacc code generation and does not cover general pattern comprehensions
  */
-class PatternComprehensionParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport {
+class PatternComprehensionParserTest extends AstParsingTestBase { //
   private val variable = Seq("", "x")
   private val labelExpressions = Seq("", ":A", "IS A")
   private val properties = Seq("", "{prop:1}")
@@ -45,12 +45,13 @@ class PatternComprehensionParserTest extends AstParsingTestBase with LegacyAstPa
               patternComprehension(
                 relationshipChain(
                   nodePat(
-                    if (maybeVariable.equals("")) None else Some(maybeVariable),
-                    if (maybeLabelExpr.equals("")) None
-                    else if (maybeLabelExpr.equals(":A")) Some(labelLeaf("A"))
-                    else Some(labelLeaf("A", containsIs = true)),
-                    if (maybeProperties.equals("")) None else Some(mapOf(("prop", literalInt(1)))),
-                    if (maybeWhere.equals("")) None else Some(eq(prop("x", "prop"), literalInt(1)))
+                    name = if (maybeVariable.equals("")) None else Some(maybeVariable),
+                    labelExpression =
+                      if (maybeLabelExpr.equals("")) None
+                      else if (maybeLabelExpr.equals(":A")) Some(labelLeaf("A"))
+                      else Some(labelLeaf("A", containsIs = true)),
+                    properties = if (maybeProperties.equals("")) None else Some(mapOf(("prop", literalInt(1)))),
+                    predicates = if (maybeWhere.equals("")) None else Some(equals(prop("x", "prop"), literalInt(1)))
                   ),
                   relPat(),
                   nodePat()
@@ -77,13 +78,14 @@ class PatternComprehensionParserTest extends AstParsingTestBase with LegacyAstPa
                   relationshipChain(
                     nodePat(),
                     relPat(
-                      if (maybeVariable.equals("")) None else Some(maybeVariable),
-                      if (maybeLabelExpr.equals("")) None
-                      else if (maybeLabelExpr.equals(":A")) Some(labelRelTypeLeaf("A"))
-                      else Some(labelRelTypeLeaf("A", containsIs = true)),
-                      if (maybePathLength.equals("")) None else Some(Some(range(Some(1), Some(5)))),
-                      if (maybeProperties.equals("")) None else Some(mapOf(("prop", literalInt(1)))),
-                      if (maybeWhere.equals("")) None else Some(eq(prop("x", "prop"), literalInt(1)))
+                      name = if (maybeVariable.equals("")) None else Some(maybeVariable),
+                      labelExpression =
+                        if (maybeLabelExpr.equals("")) None
+                        else if (maybeLabelExpr.equals(":A")) Some(labelRelTypeLeaf("A"))
+                        else Some(labelRelTypeLeaf("A", containsIs = true)),
+                      length = if (maybePathLength.equals("")) None else Some(Some(range(Some(1), Some(5)))),
+                      properties = if (maybeProperties.equals("")) None else Some(mapOf(("prop", literalInt(1)))),
+                      predicates = if (maybeWhere.equals("")) None else Some(equals(prop("x", "prop"), literalInt(1)))
                     ),
                     nodePat()
                   ),
@@ -95,6 +97,102 @@ class PatternComprehensionParserTest extends AstParsingTestBase with LegacyAstPa
           )
         )
       }
+    }
+  }
+
+  test(s"RETURN [(WHERE {prop: 123})-->() | WHERE.prop]") {
+    parsesIn[Statements] {
+      case Cypher5 => _.toAst(
+          Statements(Seq(singleQuery(
+            return_(
+              returnItem(
+                patternComprehension(
+                  relationshipChain(
+                    nodePat(
+                      name = Some("WHERE"),
+                      properties = Some(mapOf("prop" -> literal(123))),
+                      predicates = None
+                    ),
+                    relPat(),
+                    nodePat()
+                  ),
+                  prop("WHERE", "prop")
+                ),
+                s"[(WHERE {prop: 123})-->() | WHERE.prop]"
+              )
+            )
+          )))
+        )
+      // ≥ Cypher25
+      case _ => _.toAst(
+          Statements(Seq(singleQuery(
+            return_(
+              returnItem(
+                patternComprehension(
+                  relationshipChain(
+                    nodePat(
+                      name = None,
+                      properties = None,
+                      predicates = Some(mapOf("prop" -> literal(123)))
+                    ),
+                    relPat(),
+                    nodePat()
+                  ),
+                  prop("WHERE", "prop")
+                ),
+                s"[(WHERE {prop: 123})-->() | WHERE.prop]"
+              )
+            )
+          )))
+        )
+    }
+  }
+
+  test(s"RETURN [()-[WHERE {prop: 123}]->() | WHERE.prop]") {
+    parsesIn[Statements] {
+      case Cypher5 => _.toAst(
+          Statements(Seq(singleQuery(
+            return_(
+              returnItem(
+                patternComprehension(
+                  relationshipChain(
+                    nodePat(),
+                    relPat(
+                      name = Some("WHERE"),
+                      properties = Some(mapOf("prop" -> literal(123))),
+                      predicates = None
+                    ),
+                    nodePat()
+                  ),
+                  prop("WHERE", "prop")
+                ),
+                s"[()-[WHERE {prop: 123}]->() | WHERE.prop]"
+              )
+            )
+          )))
+        )
+      // ≥ Cypher25
+      case _ => _.toAst(
+          Statements(Seq(singleQuery(
+            return_(
+              returnItem(
+                patternComprehension(
+                  relationshipChain(
+                    nodePat(),
+                    relPat(
+                      name = None,
+                      properties = None,
+                      predicates = Some(mapOf("prop" -> literal(123)))
+                    ),
+                    nodePat()
+                  ),
+                  prop("WHERE", "prop")
+                ),
+                s"[()-[WHERE {prop: 123}]->() | WHERE.prop]"
+              )
+            )
+          )))
+        )
     }
   }
 }

@@ -463,11 +463,11 @@ trait StatementBuilder extends Cypher25ParserListener {
   final override def exitProcedureResultItem(
     ctx: Cypher25Parser.ProcedureResultItemContext
   ): Unit = {
-    val str = ctx.symbolicNameString().ast[String]()
-    ctx.ast = if (ctx.variable() == null)
+    val str = ctx.yieldItemName.ast[Variable]().name
+    ctx.ast = if (ctx.yieldItemAlias == null)
       ProcedureResultItem(Variable(str)(pos(ctx), Variable.isIsolatedDefault))(pos(ctx))
     else {
-      val v = ctx.variable().ast[Variable]()
+      val v = ctx.yieldItemAlias.ast[Variable]()
       ProcedureResultItem(ProcedureOutput(str)(v.position), v)(pos(ctx))
     }
   }

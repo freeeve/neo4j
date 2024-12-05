@@ -132,20 +132,12 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
                     (Cypher25Parser.LabelExpressionContext) ctx);
             case Cypher25Parser.RULE_labelExpression4 -> exitLabelExpression4(
                     (Cypher25Parser.LabelExpression4Context) ctx);
-            case Cypher25Parser.RULE_labelExpression4Is -> exitLabelExpression4Is(
-                    (Cypher25Parser.LabelExpression4IsContext) ctx);
             case Cypher25Parser.RULE_labelExpression3 -> exitLabelExpression3(
                     (Cypher25Parser.LabelExpression3Context) ctx);
-            case Cypher25Parser.RULE_labelExpression3Is -> exitLabelExpression3Is(
-                    (Cypher25Parser.LabelExpression3IsContext) ctx);
             case Cypher25Parser.RULE_labelExpression2 -> exitLabelExpression2(
                     (Cypher25Parser.LabelExpression2Context) ctx);
-            case Cypher25Parser.RULE_labelExpression2Is -> exitLabelExpression2Is(
-                    (Cypher25Parser.LabelExpression2IsContext) ctx);
             case Cypher25Parser.RULE_labelExpression1 -> exitLabelExpression1(
                     (Cypher25Parser.LabelExpression1Context) ctx);
-            case Cypher25Parser.RULE_labelExpression1Is -> exitLabelExpression1Is(
-                    (Cypher25Parser.LabelExpression1IsContext) ctx);
             case Cypher25Parser.RULE_insertNodeLabelExpression -> exitInsertNodeLabelExpression(
                     (Cypher25Parser.InsertNodeLabelExpressionContext) ctx);
             case Cypher25Parser.RULE_insertRelationshipLabelExpression -> exitInsertRelationshipLabelExpression(
@@ -490,18 +482,20 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
                     (Cypher25Parser.UIntOrIntParameterContext) ctx);
             case Cypher25Parser.RULE_mapOrParameter -> exitMapOrParameter((Cypher25Parser.MapOrParameterContext) ctx);
             case Cypher25Parser.RULE_map -> exitMap((Cypher25Parser.MapContext) ctx);
+            case Cypher25Parser.RULE_symbolicVariableNameString -> exitSymbolicVariableNameString(
+                    (Cypher25Parser.SymbolicVariableNameStringContext) ctx);
+            case Cypher25Parser.RULE_escapedSymbolicVariableNameString -> exitEscapedSymbolicVariableNameString(
+                    (Cypher25Parser.EscapedSymbolicVariableNameStringContext) ctx);
+            case Cypher25Parser.RULE_unescapedSymbolicVariableNameString -> exitUnescapedSymbolicVariableNameString(
+                    (Cypher25Parser.UnescapedSymbolicVariableNameStringContext) ctx);
             case Cypher25Parser.RULE_symbolicNameString -> exitSymbolicNameString(
                     (Cypher25Parser.SymbolicNameStringContext) ctx);
             case Cypher25Parser.RULE_escapedSymbolicNameString -> exitEscapedSymbolicNameString(
                     (Cypher25Parser.EscapedSymbolicNameStringContext) ctx);
             case Cypher25Parser.RULE_unescapedSymbolicNameString -> exitUnescapedSymbolicNameString(
                     (Cypher25Parser.UnescapedSymbolicNameStringContext) ctx);
-            case Cypher25Parser.RULE_symbolicLabelNameString -> exitSymbolicLabelNameString(
-                    (Cypher25Parser.SymbolicLabelNameStringContext) ctx);
-            case Cypher25Parser.RULE_unescapedLabelSymbolicNameString -> exitUnescapedLabelSymbolicNameString(
-                    (Cypher25Parser.UnescapedLabelSymbolicNameStringContext) ctx);
-            case Cypher25Parser.RULE_unescapedLabelSymbolicNameString_ -> exitUnescapedLabelSymbolicNameString_(
-                    (Cypher25Parser.UnescapedLabelSymbolicNameString_Context) ctx);
+            case Cypher25Parser.RULE_unescapedSymbolicNameString_ -> exitUnescapedSymbolicNameString_(
+                    (Cypher25Parser.UnescapedSymbolicNameString_Context) ctx);
             case Cypher25Parser.RULE_endOfFile -> exitEndOfFile((Cypher25Parser.EndOfFileContext) ctx);
             default -> throw new IllegalStateException("Unknown rule index " + ctx.getRuleIndex());
         }

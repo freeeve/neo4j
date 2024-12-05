@@ -85,6 +85,31 @@ class RemoveParserTest extends AstParsingTestBase {
     )
   }
 
+  // use label name reserved keywords
+  for {
+    labelNameReserved <- Seq(
+      "NOT",
+      "NULL",
+      "TYPED",
+      "NORMALIZED",
+      "NFC",
+      "NFD",
+      "NFKC",
+      "NFKD"
+    )
+  } yield {
+    test(s"REMOVE n:$labelNameReserved, n IS $labelNameReserved") {
+      parsesTo[Clause](
+        remove(
+          Seq(
+            removeLabelItem("n", Seq(labelNameReserved)),
+            removeLabelItem("n", Seq(labelNameReserved), containsIs = true)
+          )
+        )
+      )
+    }
+  }
+
   // Invalid mix of colon conjunction and IS, this will be disallowed in semantic checking
 
   test("REMOVE n IS A:B") {

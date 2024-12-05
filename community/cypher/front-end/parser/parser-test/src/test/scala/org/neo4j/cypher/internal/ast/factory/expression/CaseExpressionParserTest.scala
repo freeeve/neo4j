@@ -247,14 +247,26 @@ class CaseExpressionParserTest extends AstParsingTestBase {
       | ELSE 4
       |END""".stripMargin
   ) {
-    parsesTo[Expression] {
-      CaseExpression(
-        Some(prop("n", "eyes")),
-        List(
-          equals(prop("n", "eyes"), containerIndex(varFor("in"), literalInt(0))) -> literalInt(1)
-        ),
-        Some(literalInt(4))
-      )(pos)
+    parsesIn[Expression] {
+      case Cypher5 => _.toAst(
+          CaseExpression(
+            Some(prop("n", "eyes")),
+            List(
+              equals(prop("n", "eyes"), containerIndex(varFor("in"), literalInt(0))) -> literalInt(1)
+            ),
+            Some(literalInt(4))
+          )(pos)
+        )
+      // ≥ Cypher25
+      case _ => _.toAst(
+          CaseExpression(
+            Some(prop("n", "eyes")),
+            List(
+              in(prop("n", "eyes"), listOfInt(0)) -> literalInt(1)
+            ),
+            Some(literalInt(4))
+          )(pos)
+        )
     }
   }
 
@@ -264,37 +276,26 @@ class CaseExpressionParserTest extends AstParsingTestBase {
       |  ELSE 'else'
       |END""".stripMargin
   ) {
-    parsesTo[Expression] {
-      CaseExpression(
-        Some(literalInt(2)),
-        List(
-          equals(literalInt(2), add(varFor("contains"), literalInt(1))) -> literalString("contains")
-        ),
-        Some(literalString("else"))
-      )(pos)
-    }
-  }
-
-  test(
-    """CASE 1
-      |  WHEN is::INT THEN 'is int'
-      |  ELSE 'else'
-      |END""".stripMargin
-  ) {
-    def expected(withDoubleColonOnly: Boolean) =
-      CaseExpression(
-        Some(literalInt(1)),
-        List(
-          equals(
-            literalInt(1),
-            isTyped(varFor("is"), IntegerType(isNullable = true)(pos), withDoubleColonOnly)
-          ) -> literalString("is int")
-        ),
-        Some(literalString("else"))
-      )(pos)
     parsesIn[Expression] {
-      case Cypher5 => _.toAst(expected(withDoubleColonOnly = true))
-      case _       => _.toAst(expected(withDoubleColonOnly = false))
+      case Cypher5 => _.toAst(
+          CaseExpression(
+            Some(literalInt(2)),
+            List(
+              equals(literalInt(2), add(varFor("contains"), literalInt(1))) -> literalString("contains")
+            ),
+            Some(literalString("else"))
+          )(pos)
+        )
+      // ≥ Cypher25
+      case _ => _.toAst(
+          CaseExpression(
+            Some(literalInt(2)),
+            List(
+              contains(literalInt(2), unaryAdd(literalInt(1))) -> literalString("contains")
+            ),
+            Some(literalString("else"))
+          )(pos)
+        )
     }
   }
 
@@ -303,23 +304,35 @@ class CaseExpressionParserTest extends AstParsingTestBase {
     """CASE 1
       |  WHEN IS TYPED INT THEN 1
       |  WHEN IS NOT TYPED INT THEN 2
-      |  WHEN :: INT THEN 3
+      |  WHEN IS :: INT THEN 3
+      |  WHEN :: INT THEN 4
       |  ELSE 'else'
       |END""".stripMargin
   ) {
-    def expected(withDoubleColonOnly: Boolean) =
+    def expected(keywordPriority: Boolean) =
       CaseExpression(
         Some(literalInt(1)),
         List(
           isTyped(literalInt(1), IntegerType(isNullable = true)(pos)) -> literalInt(1),
           isNotTyped(literalInt(1), IntegerType(isNullable = true)(pos)) -> literalInt(2),
-          isTyped(literalInt(1), IntegerType(isNullable = true)(pos), withDoubleColonOnly) -> literalInt(3)
+          (if (keywordPriority)
+             isTyped(
+               literalInt(1),
+               IntegerType(isNullable = true)(pos),
+               withDoubleColonOnly = false
+             )
+           else
+             equals(
+               literalInt(1),
+               isTyped(varFor("IS"), IntegerType(isNullable = true)(pos), withDoubleColonOnly = true)
+             )) -> literalInt(3),
+          isTyped(literalInt(1), IntegerType(isNullable = true)(pos), withDoubleColonOnly = true) -> literalInt(4)
         ),
         Some(literalString("else"))
       )(pos)
     parsesIn[Expression] {
-      case Cypher5 => _.toAst(expected(withDoubleColonOnly = true))
-      case _       => _.toAst(expected(withDoubleColonOnly = false))
+      case Cypher5 => _.toAst(expected(keywordPriority = false))
+      case _       => _.toAst(expected(keywordPriority = true))
     }
   }
 

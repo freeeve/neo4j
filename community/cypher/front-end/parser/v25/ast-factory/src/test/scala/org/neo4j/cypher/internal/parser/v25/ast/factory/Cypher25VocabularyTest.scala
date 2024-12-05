@@ -390,12 +390,13 @@ class Cypher25VocabularyTest extends CypherFunSuite {
     Cypher25Parser.RULE_numberLiteral -> "a number",
     Cypher25Parser.RULE_parameter -> "a parameter",
     Cypher25Parser.RULE_variable -> "a variable name",
+    Cypher25Parser.RULE_symbolicVariableNameString -> "a variable name",
+    Cypher25Parser.RULE_unescapedSymbolicVariableNameString -> "a variable name",
+    Cypher25Parser.RULE_escapedSymbolicNameString -> "a variable name",
     Cypher25Parser.RULE_symbolicAliasName -> "a database name",
     Cypher25Parser.RULE_stringLiteral -> "a string",
     Cypher25Parser.RULE_symbolicNameString -> "an identifier",
-    Cypher25Parser.RULE_symbolicLabelNameString -> "an identifier",
     Cypher25Parser.RULE_escapedSymbolicNameString -> "an identifier",
-    Cypher25Parser.RULE_unescapedSymbolicNameString -> "an identifier",
-    Cypher25Parser.RULE_unescapedLabelSymbolicNameString -> "an identifier"
+    Cypher25Parser.RULE_unescapedSymbolicNameString -> "an identifier"
   )
 }

@@ -131,6 +131,37 @@ Feature: CaseExpression
       |(:B2)| 42                   |
     And no side effects
 
+  Scenario: Returning a CASE expression with label predicates with IS keyword
+    Given an empty graph
+    And having executed:
+      """
+      CREATE (a1:A1), (b1:B1), (a2:A2), (b2:B2)
+      CREATE (a1)-[:T1]->(b1),
+             (a1)-[:T2]->(b1),
+             (a2)-[:T1]->(b2),
+             (a2)-[:T2]->(b2)
+      """
+    When executing query:
+      """
+      MATCH (n)
+      WITH n, CASE
+          WHEN n IS A1 THEN [p=(n)-->(:B1) | p]
+          WHEN n IS A2 THEN [p=(n)-->(:B2) | p]
+          ELSE 42
+          END AS p
+      WITH n, p UNWIND p as path
+      RETURN n, path
+      """
+    Then the result should be, in any order:
+      | n   | path                 |
+      |(:A1)| <(:A1)-[:T2]->(:B1)> |
+      |(:A1)| <(:A1)-[:T1]->(:B1)> |
+      |(:A2)| <(:A2)-[:T2]->(:B2)> |
+      |(:A2)| <(:A2)-[:T1]->(:B2)> |
+      |(:B1)| 42                   |
+      |(:B2)| 42                   |
+    And no side effects
+
   Scenario: Using a CASE expression in a WITH, positive case
     Given an empty graph
     And having executed:
@@ -559,7 +590,8 @@ Feature: CaseExpression
             ({name : "Cat"}),
             ({name : "Dave"}),
             ({name : "Erik"}),
-            ({name : "Fred"})
+            ({name : "Fred"}),
+            ({name : "Gabi"})
       """
     When executing query:
       """
@@ -572,22 +604,52 @@ Feature: CaseExpression
           WHEN IS TYPED BOOLEAN THEN 4
           WHEN IS NOT TYPED STRING THEN 5
           WHEN :: POINT THEN 6
-          WHEN STARTS WITH "A" THEN 7
-          WHEN ENDS WITH "k" THEN 8
-          WHEN =~ 'C.*t' THEN 9
-          WHEN IS NOT NULL THEN 10
-          WHEN IS NORMALIZED THEN 11
-          ELSE 13
+          WHEN IS :: NODE THEN 7
+          WHEN STARTS WITH "A" THEN 8
+          WHEN ENDS WITH "k" THEN 9
+          WHEN =~ 'C.*t' THEN 10
+          WHEN IN ["A", "Dave", "C"] THEN 11
+          WHEN CONTAINS "red" THEN 12
+          WHEN IS NOT NULL THEN 13
+          WHEN IS NORMALIZED THEN 14
+          ELSE 15
       END AS res
       """
     Then the result should be, in any order:
       | res |
-      | 7   |
       | 8   |
+      | 13  |
+      | 10  |
+      | 11  |
       | 9   |
-      | 10  |
-      | 10  |
-      | 10  |
+      | 12  |
+      | 13  |
+    And no side effects
+
+  Scenario: Simple case with label expression predicate with IS keyword
+    Given an empty graph
+    And having executed:
+      """
+      CREATE (a1:A1:W), (b1:B1:X), (a2:A2:Y), (b2:B2:Z), (c:C)
+      """
+    When executing query:
+      """
+      MATCH (c:C)
+      WITH c AS IS
+      MATCH (n:!C)
+      WITH IS, labels(n) AS IN, CASE n
+          WHEN IS A1 THEN "W"
+          WHEN IS A2 THEN "Y"
+          WHEN IS B1 THEN "X"
+          WHEN IS B2 THEN "Z"
+          ELSE ""
+          END AS l
+      WITH l IN IN AS correct
+      RETURN DISTINCT correct AS result
+      """
+    Then the result should be, in any order:
+      | result |
+      | true   |
     And no side effects
 
   Scenario: Simple case with aggregations

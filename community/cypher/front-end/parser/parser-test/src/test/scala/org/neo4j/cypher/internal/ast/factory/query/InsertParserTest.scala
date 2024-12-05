@@ -16,8 +16,11 @@
  */
 package org.neo4j.cypher.internal.ast.factory.query
 
+import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParserInTest
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.NodePattern
@@ -368,6 +371,48 @@ class InsertParserTest extends AstParsingTestBase {
     }
   }
 
+  // use label name reserved keywords
+  for {
+    labelNameReserved <- Seq(
+      "NOT",
+      "NULL",
+      "TYPED",
+      "NORMALIZED",
+      "NFC",
+      "NFD",
+      "NFKC",
+      "NFKD"
+    )
+  } yield {
+    test(
+      s"INSERT (n:$labelNameReserved)-[r IS $labelNameReserved]->()-[s:$labelNameReserved]->(m IS $labelNameReserved)"
+    ) {
+      parsesTo[Clause](
+        insert(
+          relationshipChain(
+            nodePat(
+              Some("n"),
+              Some(labelLeaf(labelNameReserved))
+            ),
+            relPat(
+              Some("r"),
+              Some(labelRelTypeLeaf(labelNameReserved, containsIs = true))
+            ),
+            nodePat(),
+            relPat(
+              Some("s"),
+              Some(labelRelTypeLeaf(labelNameReserved))
+            ),
+            nodePat(
+              Some("m"),
+              Some(labelLeaf(labelNameReserved, containsIs = true))
+            )
+          )
+        )
+      )
+    }
+  }
+
   // More advanced patterns
 
   test("INSERT ()-[:R]->(IS B)-[:S {prop:'s'}]->({prop: 42})<-[r IS T]-(n:A)") {
@@ -508,12 +553,25 @@ class InsertParserTest extends AstParsingTestBase {
     )
   }
 
+  def expectedAfterLeftParen(version: ParserInTest): String = version match {
+    case Cypher5 => "a variable name, ')', ':', 'IS' or '{'"
+    case _       => "a variable name, ')', ':', 'IS', 'WHERE' or '{'"
+  }
+
+  def expectedAfterLeftBracket(version: ParserInTest): String = version match {
+    case Cypher5 => "a variable name, ':' or 'IS'"
+    case _       => "a variable name, ':', 'IS' or 'WHERE'"
+  }
+
   test("INSERT ()-[]>()") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input ']': expected a variable name, ':' or 'IS' (line 1, column 12 (offset: 11))
-        |"INSERT ()-[]>()"
-        |            ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      version =>
+        _.withSyntaxError(
+          s"""Invalid input ']': expected ${expectedAfterLeftBracket(version)} (line 1, column 12 (offset: 11))
+             |"INSERT ()-[]>()"
+             |            ^""".stripMargin
+        )
+    }
   }
 
   test("INSERT ()-]->()") {
@@ -525,19 +583,25 @@ class InsertParserTest extends AstParsingTestBase {
   }
 
   test("INSERT ()-[->()") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '-': expected a variable name, ':' or 'IS' (line 1, column 12 (offset: 11))
-        |"INSERT ()-[->()"
-        |            ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      version =>
+        _.withSyntaxError(
+          s"""Invalid input '-': expected ${expectedAfterLeftBracket(version)} (line 1, column 12 (offset: 11))
+             |"INSERT ()-[->()"
+             |            ^""".stripMargin
+        )
+    }
   }
 
   test("INSERT ()-[{prop:42} :R]->()") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '{': expected a variable name, ':' or 'IS' (line 1, column 12 (offset: 11))
-        |"INSERT ()-[{prop:42} :R]->()"
-        |            ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      version =>
+        _.withSyntaxError(
+          s"""Invalid input '{': expected ${expectedAfterLeftBracket(version)} (line 1, column 12 (offset: 11))
+             |"INSERT ()-[{prop:42} :R]->()"
+             |            ^""".stripMargin
+        )
+    }
   }
 
   test("INSERT ()-[:R r]->()") {
@@ -652,11 +716,25 @@ class InsertParserTest extends AstParsingTestBase {
   }
 
   test("INSERT (WHERE true)") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'true': expected ')', ':', 'IS' or '{' (line 1, column 15 (offset: 14))
-        |"INSERT (WHERE true)"
-        |               ^""".stripMargin
-    )
+    parsesIn[Statement] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'true': expected ')', ':', 'IS' or '{' (line 1, column 15 (offset: 14))
+            |"INSERT (WHERE true)"
+            |               ^""".stripMargin
+        )
+      case _ => _.toAst(
+          singleQuery(
+            insert(
+              pattern = nodePat(
+                name = None,
+                labelExpression = None,
+                properties = None,
+                predicates = Some(trueLiteral)
+              )
+            )
+          )
+        )
+    }
   }
 
   test("INSERT (n WHERE n.prop = 1)") {
@@ -772,11 +850,14 @@ class InsertParserTest extends AstParsingTestBase {
   }
 
   test("INSERT ()-[]->()") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input ']': expected a variable name, ':' or 'IS' (line 1, column 12 (offset: 11))
-        |"INSERT ()-[]->()"
-        |            ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      version =>
+        _.withSyntaxError(
+          s"""Invalid input ']': expected ${expectedAfterLeftBracket(version)} (line 1, column 12 (offset: 11))
+             |"INSERT ()-[]->()"
+             |            ^""".stripMargin
+        )
+    }
   }
 
   test("INSERT ()-[r]->()") {
@@ -788,27 +869,51 @@ class InsertParserTest extends AstParsingTestBase {
   }
 
   test("INSERT ()-[{prop: 2}]->()") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '{': expected a variable name, ':' or 'IS' (line 1, column 12 (offset: 11))
-        |"INSERT ()-[{prop: 2}]->()"
-        |            ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      version =>
+        _.withSyntaxError(
+          s"""Invalid input '{': expected ${expectedAfterLeftBracket(version)} (line 1, column 12 (offset: 11))
+             |"INSERT ()-[{prop: 2}]->()"
+             |            ^""".stripMargin
+        )
+    }
   }
 
   test("INSERT ()-[*1..3]->()") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '*': expected a variable name, ':' or 'IS' (line 1, column 12 (offset: 11))
-        |"INSERT ()-[*1..3]->()"
-        |            ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      version =>
+        _.withSyntaxError(
+          s"""Invalid input '*': expected ${expectedAfterLeftBracket(version)} (line 1, column 12 (offset: 11))
+             |"INSERT ()-[*1..3]->()"
+             |            ^""".stripMargin
+        )
+    }
   }
 
   test("INSERT ()-[WHERE true]->()") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'true': expected ':' or 'IS' (line 1, column 18 (offset: 17))
-        |"INSERT ()-[WHERE true]->()"
-        |                  ^""".stripMargin
-    )
+    parsesIn[Statement] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'true': expected ':' or 'IS' (line 1, column 18 (offset: 17))
+            |"INSERT ()-[WHERE true]->()"
+            |                  ^""".stripMargin
+        )
+      case _ => _.toAst(
+          singleQuery(
+            insert(
+              relationshipChain(
+                nodePat(),
+                relPat(
+                  name = None,
+                  labelExpression = None,
+                  properties = None,
+                  predicates = Some(trueLiteral)
+                ),
+                nodePat()
+              )
+            )
+          )
+        )
+    }
   }
 
   test("INSERT ()<-[r {prop: 2}]-()") {
@@ -836,27 +941,36 @@ class InsertParserTest extends AstParsingTestBase {
   }
 
   test("INSERT ()<-[*1..3 {prop:2} ]-()") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '*': expected a variable name, ':' or 'IS' (line 1, column 13 (offset: 12))
-        |"INSERT ()<-[*1..3 {prop:2} ]-()"
-        |             ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      version =>
+        _.withSyntaxError(
+          s"""Invalid input '*': expected ${expectedAfterLeftBracket(version)} (line 1, column 13 (offset: 12))
+             |"INSERT ()<-[*1..3 {prop:2} ]-()"
+             |             ^""".stripMargin
+        )
+    }
   }
 
   test("INSERT ()<-[{prop:2} WHERE true]-()") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '{': expected a variable name, ':' or 'IS' (line 1, column 13 (offset: 12))
-        |"INSERT ()<-[{prop:2} WHERE true]-()"
-        |             ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      version =>
+        _.withSyntaxError(
+          s"""Invalid input '{': expected ${expectedAfterLeftBracket(version)} (line 1, column 13 (offset: 12))
+             |"INSERT ()<-[{prop:2} WHERE true]-()"
+             |             ^""".stripMargin
+        )
+    }
   }
 
   test("INSERT ()<-[*1..3 WHERE true]-()") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '*': expected a variable name, ':' or 'IS' (line 1, column 13 (offset: 12))
-        |"INSERT ()<-[*1..3 WHERE true]-()"
-        |             ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      version =>
+        _.withSyntaxError(
+          s"""Invalid input '*': expected ${expectedAfterLeftBracket(version)} (line 1, column 13 (offset: 12))
+             |"INSERT ()<-[*1..3 WHERE true]-()"
+             |             ^""".stripMargin
+        )
+    }
   }
 
   test("INSERT ()-[r *1..3 {prop:2}]->()") {
@@ -1004,19 +1118,25 @@ class InsertParserTest extends AstParsingTestBase {
   }
 
   test("INSERT ((n)-[r]->(m))*") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '(': expected a variable name, ')', ':', 'IS' or '{' (line 1, column 9 (offset: 8))
-        |"INSERT ((n)-[r]->(m))*"
-        |         ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      version =>
+        _.withSyntaxError(
+          s"""Invalid input '(': expected ${expectedAfterLeftParen(version)} (line 1, column 9 (offset: 8))
+             |"INSERT ((n)-[r]->(m))*"
+             |         ^""".stripMargin
+        )
+    }
   }
 
   test("INSERT ((a)-->(b) WHERE a.prop > b.prop)") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '(': expected a variable name, ')', ':', 'IS' or '{' (line 1, column 9 (offset: 8))
-        |"INSERT ((a)-->(b) WHERE a.prop > b.prop)"
-        |         ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      version =>
+        _.withSyntaxError(
+          s"""Invalid input '(': expected ${expectedAfterLeftParen(version)} (line 1, column 9 (offset: 8))
+             |"INSERT ((a)-->(b) WHERE a.prop > b.prop)"
+             |         ^""".stripMargin
+        )
+    }
   }
 
   // The following cases will parse and be semantically correct for CREATE.

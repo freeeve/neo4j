@@ -199,7 +199,7 @@ procedureArgument
    ;
 
 procedureResultItem
-   : symbolicNameString (AS variable)?
+   : yieldItemName = variable (AS yieldItemAlias = variable)?
    ;
 
 loadCSVClause
@@ -298,11 +298,13 @@ pathPatternNonEmpty
    ;
 
 nodePattern
-   : LPAREN variable? labelExpression? properties? (WHERE expression)? RPAREN
+   : LPAREN WHERE expression RPAREN //prioritize the WHERE keyword
+   | LPAREN variable? labelExpression? properties? (WHERE expression)? RPAREN
    ;
 
 insertNodePattern
-   : LPAREN variable? insertNodeLabelExpression? map? RPAREN
+   : LPAREN WHERE expression RPAREN //prioritize the WHERE keyword
+   | LPAREN variable? insertNodeLabelExpression? map? RPAREN
    ;
 
 parenthesizedPath
@@ -320,7 +322,7 @@ nodeLabelsIs
 dynamicExpression
    : DOLLAR LPAREN expression RPAREN
    ;
-   
+
 dynamicAnyAllExpression
    : DOLLAR (ALL | ANY)? LPAREN expression RPAREN
    ;
@@ -347,11 +349,17 @@ properties
    ;
 
 relationshipPattern
-   : leftArrow? arrowLine (LBRACKET variable? labelExpression? pathLength? properties? (WHERE expression)? RBRACKET)? arrowLine rightArrow?
+   : leftArrow? arrowLine
+     ( LBRACKET WHERE expression RBRACKET //prioritize the WHERE keyword
+     | LBRACKET variable? labelExpression? pathLength? properties? (WHERE expression)? RBRACKET
+     )? arrowLine rightArrow?
    ;
 
 insertRelationshipPattern
-   : leftArrow? arrowLine LBRACKET variable? insertRelationshipLabelExpression map? RBRACKET arrowLine rightArrow?
+   : leftArrow? arrowLine
+     ( LBRACKET WHERE expression RBRACKET //prioritize the WHERE keyword
+     | LBRACKET variable? insertRelationshipLabelExpression map? RBRACKET
+     ) arrowLine rightArrow?
    ;
 
 leftArrow
@@ -374,32 +382,19 @@ pathLength
    ;
 
 labelExpression
-   : COLON labelExpression4
-   | IS labelExpression4Is
+   : (COLON | IS) labelExpression4
    ;
 
 labelExpression4
    : labelExpression3 (BAR COLON? labelExpression3)*
    ;
 
-labelExpression4Is
-   : labelExpression3Is (BAR COLON? labelExpression3Is)*
-   ;
-
 labelExpression3
    : labelExpression2 ((AMPERSAND | COLON) labelExpression2)*
    ;
 
-labelExpression3Is
-   : labelExpression2Is ((AMPERSAND | COLON) labelExpression2Is)*
-   ;
-
 labelExpression2
    : EXCLAMATION_MARK* labelExpression1
-   ;
-
-labelExpression2Is
-   : EXCLAMATION_MARK* labelExpression1Is
    ;
 
 labelExpression1
@@ -407,13 +402,6 @@ labelExpression1
    | PERCENT                        #AnyLabel
    | dynamicAnyAllExpression        #DynamicLabel
    | symbolicNameString             #LabelName
-   ;
-
-labelExpression1Is
-   : LPAREN labelExpression4Is RPAREN #ParenthesizedLabelExpressionIs
-   | PERCENT                          #AnyLabelIs
-   | dynamicAnyAllExpression          #DynamicLabelIs
-   | symbolicLabelNameString          #LabelNameIs
    ;
 
 insertNodeLabelExpression
@@ -469,6 +457,7 @@ comparisonExpression6
    | IS NOT? NULL                                     # NullComparison
    | (IS NOT? (TYPED | COLONCOLON) | COLONCOLON) type # TypeComparison
    | IS NOT? normalForm? NORMALIZED                   # NormalFormComparison
+   | labelExpression                                  # LabelComparison
    ;
 
 normalForm
@@ -501,7 +490,6 @@ expression2
 
 postFix
    : property                                                           # PropertyPostfix
-   | labelExpression                                                    # LabelPostfix
    | LBRACKET expression RBRACKET                                       # IndexPostfix
    | LBRACKET fromExp = expression? DOTDOT toExp = expression? RBRACKET # RangePostfix
    ;
@@ -576,20 +564,16 @@ extendedCaseAlternative
 
 // Making changes here? Consider looking at comparisonExpression6 and expression8 too.
 extendedWhen
-   : (REGEQ | STARTS WITH | ENDS WITH) expression6 # WhenStringOrList
-   | IS NOT? NULL                                  # WhenNull
-   | (IS NOT? TYPED | COLONCOLON) type             # WhenType
-   | IS NOT? normalForm? NORMALIZED                # WhenForm
-   | (
-      EQ
-      | NEQ
-      | INVALID_NEQ
-      | LE
-      | GE
-      | LT
-      | GT
-   ) expression7                                   # WhenComparator
-   | expression                                    # WhenEquals
+   : (
+     EQ
+     | INVALID_NEQ
+     | NEQ
+     | LE
+     | GE
+     | LT
+     | GT ) expression7    # WhenSimpleComparison
+   | comparisonExpression6 # WhenAdvancedComparison
+   | expression            # WhenEquals
    ;
 
 // Observe that this is not possible to write as:
@@ -710,7 +694,7 @@ namespace
    ;
 
 variable
-   : symbolicNameString
+   : symbolicVariableNameString
    ;
 
 // Returns non-list of propertyKeyNames
@@ -1738,6 +1722,19 @@ map
    : LCURLY (propertyKeyName COLON expression (COMMA propertyKeyName COLON expression)*)? RCURLY
    ;
 
+symbolicVariableNameString
+   : escapedSymbolicVariableNameString
+   | unescapedSymbolicVariableNameString
+   ;
+
+escapedSymbolicVariableNameString
+   : escapedSymbolicNameString
+   ;
+
+unescapedSymbolicVariableNameString
+   : unescapedSymbolicNameString
+   ;
+
 symbolicNameString
    : escapedSymbolicNameString
    | unescapedSymbolicNameString
@@ -1747,30 +1744,13 @@ escapedSymbolicNameString
    : ESCAPED_SYMBOLIC_NAME
    ;
 
-unescapedSymbolicNameString
-   : unescapedLabelSymbolicNameString
-   | NOT
-   | NULL
-   | TYPED
-   | NORMALIZED
-   | NFC
-   | NFD
-   | NFKC
-   | NFKD
-   ;
-
-symbolicLabelNameString
-   : escapedSymbolicNameString
-   | unescapedLabelSymbolicNameString
-   ;
-
 // Do not remove this, it is needed for composing the grammar
 // with other ones (e.g. language support ones)
-unescapedLabelSymbolicNameString
-   : unescapedLabelSymbolicNameString_
+unescapedSymbolicNameString
+   : unescapedSymbolicNameString_
    ;
 
-unescapedLabelSymbolicNameString_
+unescapedSymbolicNameString_
    : IDENTIFIER
    | ACCESS
    | ACTIVE
@@ -1903,13 +1883,20 @@ unescapedLabelSymbolicNameString_
    | NAMES
    | NAN
    | NEW
+   | NFC
+   | NFD
+   | NFKC
+   | NFKD
    | NODE
    | NODETACH
    | NODES
    | NONE
    | NORMALIZE
+   | NORMALIZED
+   | NOT
    | NOTHING
    | NOWAIT
+   | NULL
    | OF
    | OFFSET
    | ON
@@ -1999,6 +1986,7 @@ unescapedLabelSymbolicNameString_
    | TRIM
    | TRUE
    | TYPE
+   | TYPED
    | TYPES
    | UNION
    | UNIQUE

@@ -56,7 +56,9 @@ case class ScenarioDenylistEntry(
   def isDenylisted(scenario: Scenario): Boolean = {
     scenarioName == scenario.name &&
     featureName.forall(_ == scenario.featureName) &&
-    exampleNumberOrName.forall(_ == scenario.exampleIndex.map(_.toString).getOrElse(""))
+    exampleNumberOrName.forall(numberOrName =>
+      scenario.exampleIndex.exists(_.toString == numberOrName) || scenario.exampleName.contains(numberOrName)
+    )
   }
 
   override def toString: String = {

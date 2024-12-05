@@ -31,9 +31,9 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParseSuccess
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
-import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
 import org.neo4j.cypher.internal.ast.test.util.Parses
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.expressions.AnyIterablePredicate
@@ -67,7 +67,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.exceptions.SyntaxException
 
-class MiscParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport {
+class MiscParserTest extends AstParsingTestBase {
 
   test("RETURN 1 AS x //l33t comment") {
     parsesTo[Statement] {
@@ -162,7 +162,12 @@ class MiscParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport
       )
 
     for (keyword <- keywords) {
-      parsing[Statement](s"WITH $$$keyword AS x RETURN x AS $keyword")
+      s"WITH $$$keyword AS x RETURN x AS $keyword" should parseTo[Statement](
+        singleQuery(
+          with_(aliasedReturnItem(parameter(keyword, CTAny), "x")),
+          return_(aliasedReturnItem(varFor("x"), keyword))
+        )
+      )
     }
   }
 
@@ -453,10 +458,18 @@ class MiscParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport
 
   test("MATCH (a)->(b) RETURN *") {
     failsParsing[Statements].in {
-      case _ => (a: Parses[Statements]) =>
+      case Cypher5 => (a: Parses[Statements]) =>
           a.throws[SyntaxException]
             .withMessage(
               """Invalid input '>': expected '-' (line 1, column 11 (offset: 10))
+                |"MATCH (a)->(b) RETURN *"
+                |           ^""".stripMargin
+            )
+      // ≥ Cypher25
+      case _ => (a: Parses[Statements]) =>
+          a.throws[SyntaxException]
+            .withMessage(
+              """Invalid input '>': expected '-' or '[' (line 1, column 11 (offset: 10))
                 |"MATCH (a)->(b) RETURN *"
                 |           ^""".stripMargin
             )
@@ -492,11 +505,19 @@ class MiscParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport
 
   test("correct positions in errors with unicode escapes and comments") {
     val query = "/* \\u003A\\u0029 */  MATCH /* */ (a)/* */->/* */(b)/* */RETURN *"
-    query should notParse[Statements].withSyntaxError(
-      s"""Invalid input '>': expected '-' (line 1, column 42 (offset: 41))
-         |"$query"
-         |                                          ^""".stripMargin
-    )
+    query should parseIn[Statements] {
+      case Cypher5 => _.withMessage(
+          s"""Invalid input '>': expected '-' (line 1, column 42 (offset: 41))
+             |"$query"
+             |                                          ^""".stripMargin
+        )
+      // ≥ Cypher25
+      case _ => _.withMessage(
+          s"""Invalid input '>': expected '-' or '[' (line 1, column 42 (offset: 41))
+             |"$query"
+             |                                          ^""".stripMargin
+        )
+    }
   }
 
   test("MATCH (n) WHERE n.prop = 'ab + 1") {

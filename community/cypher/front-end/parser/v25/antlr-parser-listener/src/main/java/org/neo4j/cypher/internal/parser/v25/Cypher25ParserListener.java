@@ -179,19 +179,11 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitLabelExpression4(Cypher25Parser.LabelExpression4Context ctx);
 
-    void exitLabelExpression4Is(Cypher25Parser.LabelExpression4IsContext ctx);
-
     void exitLabelExpression3(Cypher25Parser.LabelExpression3Context ctx);
-
-    void exitLabelExpression3Is(Cypher25Parser.LabelExpression3IsContext ctx);
 
     void exitLabelExpression2(Cypher25Parser.LabelExpression2Context ctx);
 
-    void exitLabelExpression2Is(Cypher25Parser.LabelExpression2IsContext ctx);
-
     void exitLabelExpression1(Cypher25Parser.LabelExpression1Context ctx);
-
-    void exitLabelExpression1Is(Cypher25Parser.LabelExpression1IsContext ctx);
 
     void exitInsertNodeLabelExpression(Cypher25Parser.InsertNodeLabelExpressionContext ctx);
 
@@ -669,17 +661,19 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitMap(Cypher25Parser.MapContext ctx);
 
+    void exitSymbolicVariableNameString(Cypher25Parser.SymbolicVariableNameStringContext ctx);
+
+    void exitEscapedSymbolicVariableNameString(Cypher25Parser.EscapedSymbolicVariableNameStringContext ctx);
+
+    void exitUnescapedSymbolicVariableNameString(Cypher25Parser.UnescapedSymbolicVariableNameStringContext ctx);
+
     void exitSymbolicNameString(Cypher25Parser.SymbolicNameStringContext ctx);
 
     void exitEscapedSymbolicNameString(Cypher25Parser.EscapedSymbolicNameStringContext ctx);
 
     void exitUnescapedSymbolicNameString(Cypher25Parser.UnescapedSymbolicNameStringContext ctx);
 
-    void exitSymbolicLabelNameString(Cypher25Parser.SymbolicLabelNameStringContext ctx);
-
-    void exitUnescapedLabelSymbolicNameString(Cypher25Parser.UnescapedLabelSymbolicNameStringContext ctx);
-
-    void exitUnescapedLabelSymbolicNameString_(Cypher25Parser.UnescapedLabelSymbolicNameString_Context ctx);
+    void exitUnescapedSymbolicNameString_(Cypher25Parser.UnescapedSymbolicNameString_Context ctx);
 
     void exitEndOfFile(Cypher25Parser.EndOfFileContext ctx);
 }

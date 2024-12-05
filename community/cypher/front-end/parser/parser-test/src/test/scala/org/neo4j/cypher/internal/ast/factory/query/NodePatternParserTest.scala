@@ -20,8 +20,15 @@ import org.neo4j.cypher.internal.ast.CollectExpression
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
+import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.NFCNormalForm
+import org.neo4j.cypher.internal.expressions.NFDNormalForm
+import org.neo4j.cypher.internal.expressions.NFKCNormalForm
+import org.neo4j.cypher.internal.expressions.NFKDNormalForm
 import org.neo4j.cypher.internal.util.symbols.CTAny
+import org.neo4j.cypher.internal.util.symbols.CTInteger
 
 class NodePatternParserTest extends PatternParserTestBase {
 
@@ -432,7 +439,21 @@ class NodePatternParserTest extends PatternParserTestBase {
   }
 
   test(s"MATCH (n) WHERE n IS NOT AND n IS NOT NULL") {
-    failsParsing[Statements]
+    parsesIn[Statements] {
+      case Cypher5 => _.withAnyFailure
+      // ≥ Cypher25
+      case _ => _.toAst(
+          Statements(Seq(singleQuery(
+            match_(
+              nodePat(Some("n")),
+              where = Some(where(and(
+                labelExpressionPredicate(varFor("n"), labelOrRelTypeLeaf("NOT", containsIs = true)),
+                isNotNull(varFor("n"))
+              )))
+            )
+          )))
+        )
+    }
   }
 
   test(s"MATCH (n) WHERE n IS NULL AND n.prop IS NOT NULL") {
@@ -490,51 +511,112 @@ class NodePatternParserTest extends PatternParserTestBase {
     failsParsing[Statements]
   }
 
-  // Labels NOT, NULL and TYPED are not allowed together with IS keyword unless escaped
+  // Labels NOT, NULL, TYPED, NORMALIZED, NFC, NFD, NFKC and NFKD are allowed unescaped together with IS keyword from Cypher 25 onwards
   for {
-    label <- Seq("NOT", "NULL", "TYPED")
+
+    (phrasesAfterIS, astPrototype) <- Seq(
+      ("NOT NULL", (lhs: Expression) => isNotNull(lhs)),
+      ("NULL", (lhs: Expression) => isNull(lhs)),
+      ("TYPED INT", (lhs: Expression) => isTyped(lhs, CTInteger)),
+      ("NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFCNormalForm)),
+      ("NFC NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFCNormalForm)),
+      ("NFD NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFDNormalForm)),
+      ("NFKC NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFKCNormalForm)),
+      ("NFKD NORMALIZED", (lhs: Expression) => isNormalized(lhs, NFKDNormalForm))
+    )
+    spacePosition <- Seq(phrasesAfterIS.indexOf(' '))
+    keywordAfterIS <- Seq(if (spacePosition > 0) phrasesAfterIS.take(phrasesAfterIS.indexOf(' ')) else phrasesAfterIS)
   } yield {
-    test(s"MATCH (n:$label)") {
+    test(s"MATCH (n:$keywordAfterIS)") {
       parsesTo[Statements](
         singleQuery(
           match_(
             nodePat(
               Some("n"),
-              Some(labelLeaf(label))
+              Some(labelLeaf(keywordAfterIS))
             )
           )
         )
       )
     }
 
-    test(s"MATCH (n:`$label`)") {
+    test(s"MATCH (n:`$keywordAfterIS`)") {
       parsesTo[Statements](
         singleQuery(
           match_(
             nodePat(
               Some("n"),
-              Some(labelLeaf(label))
+              Some(labelLeaf(keywordAfterIS))
             )
           )
         )
       )
     }
 
-    test(s"MATCH (n IS $label)") {
-      failsParsing[Statements]
+    test(s"MATCH (n IS $keywordAfterIS)") {
+      parsesIn[Statements] {
+        case Cypher5 => _.withAnyFailure
+        // ≥ Cypher25
+        case _ => _.toAst(
+            Statements(Seq(singleQuery(
+              match_(
+                nodePat(
+                  Some("n"),
+                  Some(labelLeaf(keywordAfterIS, containsIs = true))
+                )
+              )
+            )))
+          )
+      }
     }
 
-    test(s"MATCH (n IS `$label`)") {
+    test(s"MATCH (n IS `$keywordAfterIS`)") {
       parsesTo[Statements](
         singleQuery(
           match_(
             nodePat(
               Some("n"),
-              Some(labelLeaf(label, containsIs = true))
+              Some(labelLeaf(keywordAfterIS, containsIs = true))
             )
           )
         )
       )
+    }
+
+    test(s"MATCH (n IS $keywordAfterIS WHERE n.p IS $phrasesAfterIS)") {
+      parsesIn[Statements] {
+        case Cypher5 => _.withAnyFailure
+        // ≥ Cypher25
+        case _ => _.toAst(
+            Statements(Seq(singleQuery(
+              match_(
+                nodePat(
+                  name = Some("n"),
+                  labelExpression = Some(labelLeaf(keywordAfterIS, containsIs = true)),
+                  predicates = Some(astPrototype(prop("n", "p")))
+                )
+              )
+            )))
+          )
+      }
+    }
+
+    test(s"MATCH (n IS $keywordAfterIS WHERE n IS FOO)") {
+      parsesIn[Statements] {
+        case Cypher5 => _.withAnyFailure
+        // ≥ Cypher25
+        case _ => _.toAst(
+            Statements(Seq(singleQuery(
+              match_(
+                nodePat(
+                  name = Some("n"),
+                  labelExpression = Some(labelLeaf(keywordAfterIS, containsIs = true)),
+                  predicates = Some(labelExpressionPredicate(varFor("n"), labelOrRelTypeLeaf("FOO", containsIs = true)))
+                )
+              )
+            )))
+          )
+      }
     }
   }
 

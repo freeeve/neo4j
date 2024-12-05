@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonConjunct
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonDisjunction
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Conjunctions
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Disjunctions
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Negation
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Wildcard
@@ -46,13 +47,9 @@ import org.neo4j.cypher.internal.parser.ast.util.Util.pos
 import org.neo4j.cypher.internal.parser.ast.util.Util.semanticDirection
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.AnyLabelContext
-import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.AnyLabelIsContext
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.DynamicLabelContext
-import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.DynamicLabelIsContext
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.LabelNameContext
-import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.LabelNameIsContext
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.ParenthesizedLabelExpressionContext
-import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.ParenthesizedLabelExpressionIsContext
 import org.neo4j.cypher.internal.parser.v25.Cypher25ParserListener
 
 import scala.collection.immutable.ArraySeq
@@ -125,7 +122,23 @@ trait LabelExpressionBuilder extends Cypher25ParserListener {
   }
 
   final override def exitLabelExpression(ctx: Cypher25Parser.LabelExpressionContext): Unit = {
-    ctx.ast = ctxChild(ctx, 1).ast
+    def setContainsIs(labelExpression: LabelExpression): LabelExpression = labelExpression match {
+      case sl: Leaf           => sl.copy(containsIs = true)
+      case dl: DynamicLeaf    => dl.copy(containsIs = true)
+      case wc: Wildcard       => wc.copy(containsIs = true)(labelExpression.position)
+      case Negation(child, _) => Negation(setContainsIs(child), containsIs = true)(labelExpression.position)
+      case Conjunctions(children, _) =>
+        Conjunctions(children.map(setContainsIs), containsIs = true)(labelExpression.position)
+      case ColonConjunction(lhs, rhs, _) =>
+        ColonConjunction(setContainsIs(lhs), setContainsIs(rhs), containsIs = true)(labelExpression.position)
+      case Disjunctions(children, _) =>
+        Disjunctions(children.map(setContainsIs), containsIs = true)(labelExpression.position)
+      case ColonDisjunction(lhs, rhs, _) =>
+        ColonDisjunction(setContainsIs(lhs), setContainsIs(rhs), containsIs = true)(labelExpression.position)
+    }
+    val containsIs = ctx.IS() != null
+    val labelExpression = ctxChild(ctx, 1).ast[LabelExpression]
+    ctx.ast = if (containsIs) setContainsIs(labelExpression) else labelExpression
   }
 
   final override def exitLabelExpression4(ctx: Cypher25Parser.LabelExpression4Context): Unit = {
@@ -142,32 +155,7 @@ trait LabelExpressionBuilder extends Cypher25ParserListener {
             result = ColonDisjunction(result, rhs)(pos(nodeChild(ctx, i - 2)))
             colon = false
           } else {
-            result = Disjunctions.flat(result, rhs, pos(nodeChild(ctx, i - 1)), containsIs = false)
-          }
-        case _ =>
-      }
-      i += 1
-    }
-    ctx.ast = result
-  }
-
-  final override def exitLabelExpression4Is(
-    ctx: Cypher25Parser.LabelExpression4IsContext
-  ): Unit = {
-    val children = ctx.children; val size = children.size()
-    var result = children.get(0).asInstanceOf[AstRuleCtx].ast[LabelExpression]()
-    var colon = false
-    var i = 1
-    while (i < size) {
-      children.get(i) match {
-        case node: TerminalNode if node.getSymbol.getType == Cypher25Parser.COLON => colon = true
-        case lblCtx: Cypher25Parser.LabelExpression3IsContext =>
-          val rhs = lblCtx.ast[LabelExpression]()
-          if (colon) {
-            result = ColonDisjunction(result, rhs, containsIs = true)(pos(nodeChild(ctx, i - 2)))
-            colon = false
-          } else {
-            result = Disjunctions.flat(result, rhs, pos(nodeChild(ctx, i - 1)), containsIs = true)
+            result = Disjunctions.flat(result, rhs, pos(nodeChild(ctx, i - 1)))
           }
         case _ =>
       }
@@ -191,33 +179,7 @@ trait LabelExpressionBuilder extends Cypher25ParserListener {
             result = ColonConjunction(result, rhs)(pos(nodeChild(ctx, i - 1)))
             colon = false
           } else {
-            result = Conjunctions.flat(result, rhs, pos(nodeChild(ctx, i - 1)), containsIs = false)
-          }
-        case _ =>
-      }
-      i += 1
-    }
-    ctx.ast = result
-  }
-
-  final override def exitLabelExpression3Is(
-    ctx: Cypher25Parser.LabelExpression3IsContext
-  ): Unit = {
-    val children = ctx.children; val size = children.size()
-    // Left most LE2
-    var result = children.get(0).asInstanceOf[AstRuleCtx].ast[LabelExpression]()
-    var colon = false
-    var i = 1
-    while (i < size) {
-      children.get(i) match {
-        case node: TerminalNode if node.getSymbol.getType == Cypher25Parser.COLON => colon = true
-        case lblCtx: Cypher25Parser.LabelExpression2IsContext =>
-          val rhs = lblCtx.ast[LabelExpression]()
-          if (colon) {
-            result = ColonConjunction(result, rhs, containsIs = true)(pos(nodeChild(ctx, i - 1)))
-            colon = false
-          } else {
-            result = Conjunctions.flat(result, rhs, pos(nodeChild(ctx, i - 1)), containsIs = true)
+            result = Conjunctions.flat(result, rhs, pos(nodeChild(ctx, i - 1)))
           }
         case _ =>
       }
@@ -237,17 +199,16 @@ trait LabelExpressionBuilder extends Cypher25ParserListener {
     }
   }
 
-  final override def exitLabelExpression2Is(
-    ctx: Cypher25Parser.LabelExpression2IsContext
-  ): Unit = {
-    ctx.ast = ctx.children.size match {
-      case 1 => ctxChild(ctx, 0).ast
-      case 2 => Negation(astChild(ctx, 1), containsIs = true)(pos(ctx))
-      case _ => ctx.EXCLAMATION_MARK().asScala.foldRight(lastChild[AstRuleCtx](ctx).ast[LabelExpression]()) {
-          case (exclamation, acc) =>
-            Negation(acc, containsIs = true)(pos(exclamation.getSymbol))
-        }
+  def getIsLabel(ctx: RuleContext): Int = {
+    var parent = ctx.parent
+    var isLabel = 0
+    while (isLabel == 0) {
+      if (parent == null || parent.getRuleIndex == Cypher25Parser.RULE_comparisonExpression6) isLabel = 3
+      else if (parent.getRuleIndex == Cypher25Parser.RULE_nodePattern) isLabel = 1
+      else if (parent.getRuleIndex == Cypher25Parser.RULE_relationshipPattern) isLabel = 2
+      else parent = parent.getParent
     }
+    isLabel
   }
 
   final override def exitLabelExpression1(ctx: Cypher25Parser.LabelExpression1Context): Unit = {
@@ -257,8 +218,7 @@ trait LabelExpressionBuilder extends Cypher25ParserListener {
       case ctx: AnyLabelContext =>
         Wildcard()(pos(ctx))
       case ctx: LabelNameContext =>
-        val isLabel = getIsLabel(ctx)
-        isLabel match {
+        getIsLabel(ctx) match {
           case 1 =>
             LabelExpression.Leaf(
               LabelName(ctx.symbolicNameString().ast())(pos(ctx))
@@ -273,8 +233,7 @@ trait LabelExpressionBuilder extends Cypher25ParserListener {
             )
         }
       case ctx: DynamicLabelContext =>
-        val isLabel = getIsLabel(ctx)
-        isLabel match {
+        getIsLabel(ctx) match {
           case 1 =>
             LabelExpression.DynamicLeaf(
               ctx.dynamicAnyAllExpression().ast[DynamicLabelOrRelTypeExpression]().asDynamicLabelExpression
@@ -293,89 +252,12 @@ trait LabelExpressionBuilder extends Cypher25ParserListener {
     }
   }
 
-  def getIsLabel(ctx: RuleContext): Int = {
-    var parent = ctx.parent
-    var isLabel = 0
-    while (isLabel == 0) {
-      if (parent == null || parent.getRuleIndex == Cypher25Parser.RULE_postFix) isLabel = 3
-      else if (parent.getRuleIndex == Cypher25Parser.RULE_nodePattern) isLabel = 1
-      else if (parent.getRuleIndex == Cypher25Parser.RULE_relationshipPattern) isLabel = 2
-      else parent = parent.getParent
-    }
-    isLabel
-  }
-
-  final override def exitLabelExpression1Is(
-    ctx: Cypher25Parser.LabelExpression1IsContext
-  ): Unit = {
-    ctx.ast = ctx match {
-      case ctx: ParenthesizedLabelExpressionIsContext =>
-        ctx.labelExpression4Is().ast
-      case ctx: AnyLabelIsContext =>
-        Wildcard(containsIs = true)(pos(ctx))
-      case ctx: LabelNameIsContext =>
-        var parent = ctx.parent
-        var isLabel = 0
-        while (isLabel == 0) {
-          if (parent == null || parent.getRuleIndex == Cypher25Parser.RULE_postFix) isLabel = 3
-          else if (parent.getRuleIndex == Cypher25Parser.RULE_nodePattern) isLabel = 1
-          else if (parent.getRuleIndex == Cypher25Parser.RULE_relationshipPattern) isLabel = 2
-          else parent = parent.getParent
-        }
-        isLabel match {
-          case 1 =>
-            LabelExpression.Leaf(
-              LabelName(ctx.symbolicLabelNameString().ast())(pos(ctx)),
-              containsIs = true
-            )
-          case 2 =>
-            LabelExpression.Leaf(
-              RelTypeName(ctx.symbolicLabelNameString().ast())(pos(ctx)),
-              containsIs = true
-            )
-          case 3 =>
-            LabelExpression.Leaf(
-              LabelOrRelTypeName(ctx.symbolicLabelNameString().ast())(pos(ctx)),
-              containsIs = true
-            )
-        }
-      case ctx: DynamicLabelIsContext =>
-        var parent = ctx.parent
-        var isLabel = 0
-        while (isLabel == 0) {
-          if (parent == null || parent.getRuleIndex == Cypher25Parser.RULE_postFix) isLabel = 3
-          else if (parent.getRuleIndex == Cypher25Parser.RULE_nodePattern) isLabel = 1
-          else if (parent.getRuleIndex == Cypher25Parser.RULE_relationshipPattern) isLabel = 2
-          else parent = parent.getParent
-        }
-        isLabel match {
-          case 1 =>
-            LabelExpression.DynamicLeaf(
-              ctx.dynamicAnyAllExpression().ast[DynamicLabelOrRelTypeExpression]().asDynamicLabelExpression,
-              containsIs = true
-            )
-          case 2 =>
-            LabelExpression.DynamicLeaf(
-              ctx.dynamicAnyAllExpression().ast[DynamicLabelOrRelTypeExpression]().asDynamicRelTypeExpression,
-              containsIs = true
-            )
-          case 3 =>
-            LabelExpression.DynamicLeaf(
-              ctx.dynamicAnyAllExpression().ast(),
-              containsIs = true
-            )
-        }
-      case _ =>
-        throw new IllegalStateException("Parsed an unknown LabelExpression1Is type")
-    }
-  }
-
   final override def exitInsertNodePattern(ctx: Cypher25Parser.InsertNodePatternContext): Unit = {
     ctx.ast = NodePattern(
       variable = astOpt(ctx.variable()),
       labelExpression = astOpt(ctx.insertNodeLabelExpression()),
       properties = astOpt(ctx.map()),
-      None
+      predicate = astOpt(ctx.expression())
     )(pos(ctx))
   }
 
@@ -417,7 +299,7 @@ trait LabelExpressionBuilder extends Cypher25ParserListener {
       labelExpression = astOpt(ctx.insertRelationshipLabelExpression()),
       length = None,
       properties = astOpt(ctx.map),
-      None,
+      predicate = astOpt(ctx.expression()),
       direction = semanticDirection(hasRightArrow = ctx.rightArrow() != null, hasLeftArrow = ctx.leftArrow() != null)
     )(pos(ctx))
   }
