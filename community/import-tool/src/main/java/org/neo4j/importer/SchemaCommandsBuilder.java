@@ -274,57 +274,37 @@ class SchemaCommandsBuilder {
     }
 
     private static String schemaKey(IndexCommand.Create indexCommand) {
-        // oh for switch-enums
-        if (indexCommand instanceof NodeLookup) {
-            return NODE_LOOKUP_KEY;
-        } else if (indexCommand instanceof RelationshipLookup) {
-            return REL_LOOKUP_KEY;
-        } else if (indexCommand instanceof NodeRange command) {
-            return schemaKey(EntityType.NODE, command.label(), command.properties());
-        } else if (indexCommand instanceof RelationshipRange command) {
-            return schemaKey(EntityType.RELATIONSHIP, command.type(), command.properties());
-        } else if (indexCommand instanceof NodeText command) {
-            return schemaKey(EntityType.NODE, command.label(), command.property());
-        } else if (indexCommand instanceof RelationshipText command) {
-            return schemaKey(EntityType.RELATIONSHIP, command.type(), command.property());
-        } else if (indexCommand instanceof NodePoint command) {
-            return schemaKey(EntityType.NODE, command.label(), command.property());
-        } else if (indexCommand instanceof RelationshipPoint command) {
-            return schemaKey(EntityType.RELATIONSHIP, command.type(), command.property());
-        } else if (indexCommand instanceof NodeFulltext command) {
-            return schemaKey(EntityType.NODE, command.labels(), command.properties());
-        } else if (indexCommand instanceof RelationshipFulltext command) {
-            return schemaKey(EntityType.RELATIONSHIP, command.types(), command.properties());
-        } else if (indexCommand instanceof NodeVector command) {
-            return schemaKey(EntityType.NODE, command.label(), command.property());
-        } else if (indexCommand instanceof RelationshipVector command) {
-            return schemaKey(EntityType.RELATIONSHIP, command.type(), command.property());
-        } else {
-            throw new IllegalStateException("Unknown index operation: " + indexCommand);
-        }
+        return switch (indexCommand) {
+            case NodeLookup ignored -> NODE_LOOKUP_KEY;
+            case RelationshipLookup ignored -> REL_LOOKUP_KEY;
+            case NodeRange command -> schemaKey(EntityType.NODE, command.label(), command.properties());
+            case RelationshipRange command -> schemaKey(EntityType.RELATIONSHIP, command.type(), command.properties());
+            case NodeText command -> schemaKey(EntityType.NODE, command.label(), command.property());
+            case RelationshipText command -> schemaKey(EntityType.RELATIONSHIP, command.type(), command.property());
+            case NodePoint command -> schemaKey(EntityType.NODE, command.label(), command.property());
+            case RelationshipPoint command -> schemaKey(EntityType.RELATIONSHIP, command.type(), command.property());
+            case NodeFulltext command -> schemaKey(EntityType.NODE, command.labels(), command.properties());
+            case RelationshipFulltext command -> schemaKey(
+                    EntityType.RELATIONSHIP, command.types(), command.properties());
+            case NodeVector command -> schemaKey(EntityType.NODE, command.label(), command.property());
+            case RelationshipVector command -> schemaKey(EntityType.RELATIONSHIP, command.type(), command.property());
+        };
     }
 
     private static String schemaKey(ConstraintCommand.Create constraint) {
-        // oh for switch-enums
-        if (constraint instanceof NodeUniqueness command) {
-            return schemaKey(EntityType.NODE, command.label(), command.properties());
-        } else if (constraint instanceof RelationshipUniqueness command) {
-            return schemaKey(EntityType.RELATIONSHIP, command.type(), command.properties());
-        } else if (constraint instanceof NodeKey command) {
-            return schemaKey(EntityType.NODE, command.label(), command.properties());
-        } else if (constraint instanceof RelationshipKey command) {
-            return schemaKey(EntityType.RELATIONSHIP, command.type(), command.properties());
-        } else if (constraint instanceof NodeExistence command) {
-            return schemaKey(EntityType.NODE, command.label(), command.property());
-        } else if (constraint instanceof RelationshipExistence command) {
-            return schemaKey(EntityType.RELATIONSHIP, command.type(), command.property());
-        } else if (constraint instanceof NodePropertyType command) {
-            return schemaKey(EntityType.NODE, command.label(), command.property());
-        } else if (constraint instanceof RelationshipPropertyType command) {
-            return schemaKey(EntityType.RELATIONSHIP, command.type(), command.property());
-        } else {
-            throw new IllegalStateException("Unknown constraint operation: " + constraint);
-        }
+        return switch (constraint) {
+            case NodeUniqueness command -> schemaKey(EntityType.NODE, command.label(), command.properties());
+            case RelationshipUniqueness command -> schemaKey(
+                    EntityType.RELATIONSHIP, command.type(), command.properties());
+            case NodeKey command -> schemaKey(EntityType.NODE, command.label(), command.properties());
+            case RelationshipKey command -> schemaKey(EntityType.RELATIONSHIP, command.type(), command.properties());
+            case NodeExistence command -> schemaKey(EntityType.NODE, command.label(), command.property());
+            case RelationshipExistence command -> schemaKey(
+                    EntityType.RELATIONSHIP, command.type(), command.property());
+            case NodePropertyType command -> schemaKey(EntityType.NODE, command.label(), command.property());
+            case RelationshipPropertyType command -> schemaKey(
+                    EntityType.RELATIONSHIP, command.type(), command.property());
+        };
     }
 
     private static String schemaKey(EntityType entityType, List<String> entities, List<String> properties) {
