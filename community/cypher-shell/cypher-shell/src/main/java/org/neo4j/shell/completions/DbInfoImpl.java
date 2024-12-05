@@ -21,6 +21,7 @@ package org.neo4j.shell.completions;
 
 import static org.neo4j.shell.util.Versions.version;
 
+import java.util.HashMap;
 import java.util.Optional;
 import org.neo4j.driver.Value;
 import org.neo4j.shell.parameter.ParameterService;
@@ -40,8 +41,13 @@ public class DbInfoImpl extends DbInfo {
             this.propertyKeys = records.get(2).get("result").asList(Value::asString);
         });
         var fetchProcedures = new QueryPoller.PollingQuery(QueryPoller.fetchProcedures, records -> {
-            this.procedures =
-                    records.stream().map(r -> r.get("name").asString()).toList();
+            this.procedures = new HashMap<>();
+            for (var record : records) {
+                var procedureName = record.get("name").asString();
+                var returnDescription = record.get("returnDescription")
+                        .asList(x -> new ReturnDescription(x.get("name").asString()));
+                this.procedures.put(procedureName, new Neo4jProcedure(returnDescription));
+            }
         });
         var fetchFunctions = new QueryPoller.PollingQuery(QueryPoller.fetchFunctions, records -> {
             this.functions = records.stream().map(r -> r.get("name").asString()).toList();

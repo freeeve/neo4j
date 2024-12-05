@@ -26,6 +26,13 @@ import java.util.Optional;
 import org.neo4j.shell.parameter.ParameterService;
 
 public abstract class DbInfo implements AutoCloseable {
+
+    public record Neo4jProcedure(List<ReturnDescription> returnDescription) {}
+    ;
+
+    public record ReturnDescription(String name) {}
+    ;
+
     ParameterService parameterService;
 
     public volatile List<String> labels = List.of();
@@ -42,7 +49,7 @@ public abstract class DbInfo implements AutoCloseable {
 
     public volatile List<String> propertyKeys = List.of();
 
-    public volatile List<String> procedures = List.of();
+    public volatile Map<String, Neo4jProcedure> procedures = new HashMap<>();
 
     public volatile List<String> functions = List.of();
 
@@ -66,7 +73,7 @@ public abstract class DbInfo implements AutoCloseable {
         aliasNames = List.of();
         roleNames = List.of();
         propertyKeys = List.of();
-        procedures = List.of();
+        procedures = new HashMap<>();
         functions = List.of();
         versionCompatibleWithCompletions = Optional.empty();
     }

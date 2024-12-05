@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.neo4j.shell.cli.AccessMode;
+import org.neo4j.shell.completions.DbInfo;
 import org.neo4j.shell.completions.DbInfoImpl;
 import org.neo4j.shell.parameter.ParameterService;
 import org.neo4j.shell.state.BoltStateHandler;
@@ -82,7 +83,10 @@ class DbInfoIntegrationTest extends TestHarness {
             assertThat(dbInfo.labels).contains("A", "B", "C");
             assertThat(dbInfo.propertyKeys).contains("name");
             assertThat(dbInfo.functions).contains("abs");
-            assertThat(dbInfo.procedures).contains("dbms.info");
+            assertThat(dbInfo.procedures).containsKey("dbms.info");
+            assertThat(dbInfo.procedures.get("dbms.info").returnDescription().stream()
+                            .map(DbInfo.ReturnDescription::name))
+                    .contains("name", "id", "creationDate");
             assertThat(dbInfo.aliasNames).contains("nacho");
             assertThat(dbInfo.roleNames).contains("PUBLIC");
             assertThat(dbInfo.databaseNames).contains("neo4j");
@@ -108,7 +112,7 @@ class DbInfoIntegrationTest extends TestHarness {
                     return dbInfo.labels.contains("A")
                             || dbInfo.propertyKeys.contains("name")
                             || dbInfo.functions.contains("abs")
-                            || dbInfo.procedures.contains("dbms.info")
+                            || dbInfo.procedures.containsKey("dbms.info")
                             || dbInfo.aliasNames.contains("nacho")
                             || dbInfo.roleNames.contains("PUBLIC")
                             || dbInfo.databaseNames.contains("neo4j")
@@ -140,7 +144,7 @@ class DbInfoIntegrationTest extends TestHarness {
                     return db.labels.contains("A")
                             || db.propertyKeys.contains("name")
                             || db.functions.contains("abs")
-                            || db.procedures.contains("dbms.info")
+                            || db.procedures.containsKey("dbms.info")
                             || db.aliasNames.contains("nacho")
                             || db.roleNames.contains("PUBLIC")
                             || db.databaseNames.contains("neo4j")

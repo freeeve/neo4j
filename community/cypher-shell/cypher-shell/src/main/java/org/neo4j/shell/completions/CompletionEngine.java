@@ -19,6 +19,8 @@
  */
 package org.neo4j.shell.completions;
 
+import static java.util.stream.Collectors.toCollection;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -37,6 +39,7 @@ import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.neo4j.cypher.internal.ast.factory.neo4j.completion.CodeCompletionCore;
+import org.neo4j.cypher.internal.parser.AstRuleCtx;
 import org.neo4j.cypher.internal.parser.v5.Cypher5Lexer;
 import org.neo4j.cypher.internal.parser.v5.Cypher5Parser;
 
@@ -75,7 +78,6 @@ public class CompletionEngine {
         public void exitEveryRule(ParserRuleContext ctx) {
             if (ctx.getRuleIndex() == Cypher5Parser.RULE_variable) {
                 var c = (Cypher5Parser.VariableContext) ctx;
-                var variable = c.symbolicVariableNameString().getText();
                 // To avoid suggesting the variable that is currently being typed
                 // For example RETURN a| <- we don't want to suggest "a" as a variable
                 // We check if the variable is in the end of the statement
@@ -85,8 +87,17 @@ public class CompletionEngine {
 
                 var definesVariable = c.getParent() != null
                         && rulesDefiningOrUsingVariables.contains(c.getParent().getRuleIndex());
-
-                if (variable != null && !nextTokenIsEOF && definesVariable) {
+                if (c.symbolicVariableNameString() != null
+                        && c.symbolicVariableNameString().getText() != null
+                        && !nextTokenIsEOF
+                        && definesVariable) {
+                    var variable = c.symbolicVariableNameString().getText();
+                    this.variables.add(variable);
+                }
+            } else if (ctx.getRuleIndex() == Cypher5Parser.RULE_procedureResultItem) {
+                var c = (Cypher5Parser.ProcedureResultItemContext) ctx;
+                if (c.symbolicNameString() != null && c.symbolicNameString().getText() != null) {
+                    var variable = c.symbolicNameString().getText();
                     this.variables.add(variable);
                 }
             }
@@ -171,7 +182,8 @@ public class CompletionEngine {
                 Cypher5Parser.RULE_leftArrow,
                 // this rule is used for usernames and roles.
                 Cypher5Parser.RULE_commandNameExpression,
-                Cypher5Parser.RULE_symbolicNameString);
+                Cypher5Parser.RULE_symbolicNameString,
+                Cypher5Parser.RULE_procedureResultItem);
         Set<Integer> ignoredTokens = new HashSet<>();
 
         for (int i = Cypher5Lexer.EOF; i <= vocabulary.getMaxTokenType(); ++i) {
@@ -229,6 +241,40 @@ public class CompletionEngine {
         return current;
     }
 
+    private Optional<ParserRuleContext> getParent(ParserRuleContext ctx, ParserRuleContextFunction condition) {
+        var parentCtx = ctx;
+        while (!condition.test(parentCtx) && parentCtx != null) {
+            parentCtx = parentCtx.getParent();
+        }
+        return Optional.ofNullable(parentCtx);
+    }
+
+    interface ParserRuleContextFunction {
+        boolean test(ParserRuleContext ctx);
+    }
+
+    private String getMethodName(Cypher5Parser.ProcedureNameContext nameCtx) {
+        var namespaces = nameCtx.namespace().symbolicNameString();
+        var methodName = nameCtx.symbolicNameString();
+        var nameChunks = new ArrayList<>(namespaces);
+        nameChunks.add(methodName);
+        var normalizedName = nameChunks.stream().map(this::getNamespaceString).collect(Collectors.joining("."));
+
+        return normalizedName;
+    }
+
+    private String getNamespaceString(Cypher5Parser.SymbolicNameStringContext nameCtx) {
+        var text = nameCtx.getText();
+        var isEscaped = nameCtx.escapedSymbolicNameString() != null;
+        var hasDot = text.contains(".");
+
+        if (isEscaped && !hasDot) {
+            return text.substring(1, text.length() - 1);
+        }
+
+        return text;
+    }
+
     private List<Suggestion> getRuleCompletions(
             CodeCompletionCore.CandidatesCollection candidates,
             List<String> collectedVariables,
@@ -240,7 +286,18 @@ public class CompletionEngine {
                     var candidateRule = entry.getValue();
                     var startTokenIndex = candidateRule.startTokenIndex();
                     var ruleList = candidateRule.ruleList();
-                    if (ruleNumber == Cypher5Parser.RULE_functionName) {
+                    if (ruleNumber == Cypher5Parser.RULE_procedureResultItem) {
+                        var callClause = getParent(stopNode, (x) -> x instanceof Cypher5Parser.CallClauseContext);
+                        if (callClause.isPresent()) {
+                            var call = (Cypher5Parser.CallClauseContext) callClause.get();
+                            var procName = getMethodName(call.procedureName());
+                            var existingItemNames = call.procedureResultItem().stream()
+                                    .map(AstRuleCtx::getText)
+                                    .collect(toCollection(HashSet::new));
+                            return procedureReturnCompletions(procName)
+                                    .filter(a -> !existingItemNames.contains(a.value()));
+                        }
+                    } else if (ruleNumber == Cypher5Parser.RULE_functionName) {
                         return functionNameCompletions(startTokenIndex, tokens);
                     } else if (ruleNumber == Cypher5Parser.RULE_procedureName) {
                         return procedureNameCompletions(startTokenIndex, tokens);
@@ -477,7 +534,17 @@ public class CompletionEngine {
     }
 
     private Stream<Suggestion> procedureNameCompletions(int ruleStartTokenIndex, List<Token> tokens) {
-        return namespacedCompletion(ruleStartTokenIndex, tokens, dbInfo.procedures, SuggestionType.PROCEDURE);
+        return namespacedCompletion(
+                ruleStartTokenIndex, tokens, dbInfo.procedures.keySet().stream().toList(), SuggestionType.PROCEDURE);
+    }
+
+    private Stream<Suggestion> procedureReturnCompletions(String procedureName) {
+        var procedure = dbInfo.procedures.get(procedureName);
+        if (procedure != null) {
+            var procedureReturns = procedure.returnDescription().stream().map(DbInfo.ReturnDescription::name);
+            return procedureReturns.map(Suggestion::identifier);
+        }
+        return Stream.of();
     }
 
     private Stream<Suggestion> getNamespaceSuggestions(Stream<String> namespaces, SuggestionType suggestionType) {

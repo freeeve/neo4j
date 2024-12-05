@@ -107,9 +107,12 @@ public class CypherShellBoot {
 
     private static List<String> extraJvmArguments() {
         return List.of(
-                "--add-opens", "java.base/java.net=ALL-UNNAMED",
-                "--add-opens", "java.base/java.lang=ALL-UNNAMED",
-                "--add-opens", "java.base/java.nio=ALL-UNNAMED");
+                "--add-opens",
+                "java.base/java.net=ALL-UNNAMED",
+                "--add-opens",
+                "java.base/java.lang=ALL-UNNAMED",
+                "--add-opens",
+                "java.base/java.nio=ALL-UNNAMED");
     }
 }
 

@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -37,6 +38,7 @@ import org.neo4j.shell.StubDbInfo;
 import org.neo4j.shell.TransactionHandler;
 import org.neo4j.shell.commands.CommandHelper;
 import org.neo4j.shell.completions.CompletionEngine;
+import org.neo4j.shell.completions.DbInfo;
 import org.neo4j.shell.completions.SuggestionType;
 import org.neo4j.shell.parameter.ParameterService;
 import org.neo4j.shell.parameter.ParameterService.Parameter;
@@ -91,10 +93,6 @@ class JlineCompleterTest {
         return new Completion(completion, completion, SuggestionType.PROCEDURE.name, "namespace");
     }
 
-    Completion procedureNamespace(String completion, String display) {
-        return new Completion(completion, display, SuggestionType.PROCEDURE.name, "namespace");
-    }
-
     Completion procedureCompletion(String completion, String display) {
         return new Completion(completion, display, SuggestionType.PROCEDURE.name, "procedure");
     }
@@ -109,10 +107,6 @@ class JlineCompleterTest {
 
     Completion functionNamespace(String completion) {
         return new Completion(completion, completion, SuggestionType.FUNCTION.name, "namespace");
-    }
-
-    Completion functionCompletion(String completion, String display) {
-        return new Completion(completion, display, SuggestionType.FUNCTION.name, "function");
     }
 
     Completion functionCompletion(String completion) {
@@ -131,12 +125,12 @@ class JlineCompleterTest {
         return new Completion(completion, display, SuggestionType.PROPERTY.name, null);
     }
 
-    Completion property(String completion) {
-        return new Completion(completion, completion, SuggestionType.PROPERTY.name, null);
-    }
-
     Completion value(String completion) {
         return new Completion(completion, completion, SuggestionType.VALUE.name, null);
+    }
+
+    void addDummyProcedure(Map<String, DbInfo.Neo4jProcedure> m, String name) {
+        m.put(name, new DbInfo.Neo4jProcedure(List.of()));
     }
 
     public StubDbInfo dbInfoStub() {
@@ -144,9 +138,18 @@ class JlineCompleterTest {
         parameters.setParameters(List.of(new Parameter("otherIntParam", Values.value(2L))));
         parameters.setParameters(List.of(new Parameter("mapParam", Values.value(Map.of("a", 1)))));
         parameters.setParameters(List.of(new Parameter("stringParam", Values.value("some name"))));
-
         dbInfo = new StubDbInfo(parameters, true);
-        dbInfo.procedures = List.of("foo.bar", "dbms.info", "somethingElse", "foo.info", "db.info");
+        String[] dummyProcedures = {"foo.bar", "dbms.info", "somethingElse", "foo.info", "db.info"};
+        dbInfo.procedures = new HashMap<>();
+        for (String dummyProcedure : dummyProcedures) {
+            addDummyProcedure(dbInfo.procedures, dummyProcedure);
+        }
+        dbInfo.procedures.put(
+                "dbms.components",
+                new DbInfo.Neo4jProcedure(List.of(
+                        new DbInfo.ReturnDescription("name"),
+                        new DbInfo.ReturnDescription("versions"),
+                        new DbInfo.ReturnDescription("edition"))));
         dbInfo.functions = List.of("a.b", "xx.yy.fna", "xx.yy.fnb");
         dbInfo.labels = List.of("Actor", "Airport", "Dog", "Gym", "Window", "Wedding");
         dbInfo.relationshipTypes = List.of("ACTED_IN", "DIRECTED", "FOLLOWS", "PRODUCED", "REVIEWED");
@@ -237,6 +240,25 @@ class JlineCompleterTest {
     }
 
     @Test
+    void completesProcedureReturnNames() {
+        assertThat(complete("CALL dbms.components() YIELD "))
+                .containsExactlyInAnyOrder(identifier("name"), identifier("versions"), identifier("edition"));
+
+        assertThat(complete("CALL dbms.components() YIELD e"))
+                .contains(identifier("name"), identifier("versions"), identifier("edition"));
+
+        assertThat(complete("CALL dbms.components() YIELD name, "))
+                .contains(identifier("versions"), identifier("edition"))
+                .doesNotContain(identifier("name"));
+        assertThat(complete("CALL `dbms.components`() YIELD name, "))
+                .doesNotContain(identifier("name"), identifier("versions"), identifier("edition"));
+        assertThat(complete("CALL dbms   .    components      () YIELD  "))
+                .contains(identifier("versions"), identifier("edition"), identifier("name"));
+        assertThat(complete("CALL `dbms`   .    `components`  () YIELD  "))
+                .contains(identifier("versions"), identifier("edition"), identifier("name"));
+    }
+
+    @Test
     void completesProcedureNames() {
         assertThat(complete("CALL "))
                 .containsExactlyInAnyOrder(
@@ -247,14 +269,16 @@ class JlineCompleterTest {
                         procedureCompletion("dbms.info"),
                         procedureCompletion("foo.info"),
                         procedureCompletion("somethingElse"),
-                        procedureCompletion("db.info"));
+                        procedureCompletion("db.info"),
+                        procedureCompletion("dbms.components"));
 
         assertThat(complete("CALL db"))
                 .contains(
                         procedureNamespace("dbms"),
                         procedureNamespace("db"),
                         procedureCompletion("dbms.info"),
-                        procedureCompletion("db.info"));
+                        procedureCompletion("db.info"),
+                        procedureCompletion("dbms.components"));
 
         assertThat(complete("CALL db.")).contains(procedureCompletion("db.info", "info"));
     }

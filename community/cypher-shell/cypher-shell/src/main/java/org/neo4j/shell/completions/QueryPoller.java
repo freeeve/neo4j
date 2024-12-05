@@ -47,7 +47,7 @@ public class QueryPoller implements AutoCloseable {
                     + "CALL db.propertyKeys() YIELD propertyKey\n"
                     + String.format("RETURN COLLECT(propertyKey)[..%s] AS result", ITEM_LIMIT);
 
-    public static String fetchProcedures = "SHOW PROCEDURES YIELD name";
+    public static String fetchProcedures = "SHOW PROCEDURES YIELD name, returnDescription";
     public static String fetchFunctions = "SHOW FUNCTIONS YIELD name";
     public static String fetchDatabases = "SHOW DATABASES YIELD name, aliases;";
     public static String fetchRoles = "SHOW ROLES YIELD role;";
