@@ -4583,7 +4583,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "CDC is disabled for this database",
-            ErrorClassification.DATABASE_ERROR),
+            ErrorClassification.CLIENT_ERROR),
     STATUS_51N69(
             new GqlStatus("51N69"),
             """
