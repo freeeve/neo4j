@@ -83,21 +83,6 @@ class CypherQueryCachesTest extends CypherFunSuite with GraphDatabaseTestSupport
     stats.executableQueryCacheEntries().shouldEqual(2)
   }
 
-  test("eagerAnalyzer is honoured by all caches") {
-    val stats = eengine.queryCaches.statistics()
-
-    val q = "MATCH (a) RETURN a"
-    execute(q)
-    execute("CYPHER eagerAnalyzer=lp " + q)
-    execute("CYPHER eagerAnalyzer=ir " + q)
-
-    stats.preParserCacheEntries().shouldEqual(3)
-    stats.astCacheEntries().shouldEqual(2)
-    stats.logicalPlanCacheEntries().shouldEqual(2)
-    stats.executionPlanCacheEntries().shouldEqual(2)
-    stats.executableQueryCacheEntries().shouldEqual(2)
-  }
-
   test("connectComponentsPlanner is honoured by all caches") {
     val stats = eengine.queryCaches.statistics()
 

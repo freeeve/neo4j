@@ -82,8 +82,6 @@ case class QgWithLeafInfo(
    */
   val queryGraph: QueryGraph = solvedQg.removePredicates(stablySolvedPredicates)
 
-  def hasUnstableLeaves: Boolean = unstableLeaves.nonEmpty
-
   lazy val unstablePatternNodes: Set[LogicalVariable] =
     queryGraph.allPatternNodesRead -- stableIdentifier.map(_.variable).filterNot(unstableLeaves.contains)
 
@@ -174,8 +172,4 @@ case class QgWithLeafInfo(
       _.folder.findAllByClass[PropertyKeyName]
     }.toSet
   }
-
-  def allPossibleLabelsOnNode(node: LogicalVariable): Set[LabelName] =
-    solvedQg.allPossibleLabelsOnNode(node)
-
 }

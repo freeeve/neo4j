@@ -1191,7 +1191,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .filter("NOT start:Label", "start.prop = 5")
         .apply()
         .|.allNodeScan("start", "z")
-        .eager(        ListSet(
+        .eager(ListSet(
           ReadDeleteConflict("start").withConflict(Conflict(Id(7), Id(4))),
           ReadDeleteConflict("end").withConflict(Conflict(Id(7), Id(1))),
           ReadDeleteConflict("a").withConflict(Conflict(Id(7), Id(1))),
