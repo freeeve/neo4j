@@ -42,7 +42,7 @@ abstract class LatchTestBase {
         t2.close();
     }
 
-    Future<Void> beginAndAwaitLatchAcquisition(Runnable lockFunction) throws TimeoutException {
+    Future<Void> beginAndAwaitLatchAcquisition(Runnable lockFunction, String method) throws TimeoutException {
         // Let t2 do a lock acquisition which is expected to block
         Future<Void> readAcquisition = t2.executeDontWait(() -> {
             lockFunction.run();
@@ -51,7 +51,7 @@ abstract class LatchTestBase {
 
         // Make sure it's blocking
         for (int consecutiveHits = 0; consecutiveHits < 10; consecutiveHits++) {
-            if (!t2.waitUntil(alwaysTrue()).isAt(LongSpinLatch.class, "spinTransform")) {
+            if (!t2.waitUntil(alwaysTrue()).isAt(LongSpinLatch.class, method)) {
                 consecutiveHits = 0;
             }
         }

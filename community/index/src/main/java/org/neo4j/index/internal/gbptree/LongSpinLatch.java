@@ -19,19 +19,15 @@
  */
 package org.neo4j.index.internal.gbptree;
 
-import static java.lang.Math.toIntExact;
 import static java.lang.String.format;
-import static java.lang.System.nanoTime;
 import static java.lang.invoke.MethodHandles.lookup;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.locks.LockSupport.parkNanos;
 import static org.neo4j.internal.helpers.VarHandleUtils.getVarHandle;
 
 import java.lang.invoke.VarHandle;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.LongConsumer;
-import java.util.function.LongPredicate;
-import org.eclipse.collections.api.block.function.primitive.LongToLongFunction;
 
 /**
  * Latch which acquires and releases read/write locks using compare-and-swap on a {@code long} field.
@@ -42,36 +38,19 @@ import org.eclipse.collections.api.block.function.primitive.LongToLongFunction;
  * This functionality allows these latches to be used in e.g. a {@link ConcurrentHashMap}.
  */
 class LongSpinLatch {
-    private static final long MAX_SPIN_NANOS = MICROSECONDS.toNanos(500);
-    private static final long PARK_NANOS = MICROSECONDS.toNanos(100);
-    private static final long TEST_FAILED = -1;
-    private static final long DEAD = -2;
+    private static final int SPIN_THRESHOLD = Runtime.getRuntime().availableProcessors() < 2 ? 1 : 1000;
+    private static final int SHORT_PARK_THRESHOLD = 100_000;
+    private static final int LONG_PARK_COUNTER = SHORT_PARK_THRESHOLD + 1;
+    private static final int SHORT_PARK_TIME = 10;
+    private static final long LONG_PARK_TIME = MILLISECONDS.toNanos(1);
 
     private static final long WRITE_LOCK_MASK = 0x8000;
     private static final long READ_LOCK_MASK = 0x7FFF;
     private static final long LOCK_MASK = WRITE_LOCK_MASK | READ_LOCK_MASK;
     private static final long REF_COUNT_MASK = 0x7FFF0000;
-    private static final int REF_COUNT_SHIFT = 16;
+    private static final long REF_COUNT_UNIT = 0x00010000;
+
     private static final long DEAD_MASK = 0x80000000L;
-
-    private static final LongPredicate ALWAYS_TRUE = bits -> true;
-    private static final LongPredicate NO_WRITE_LOCK = bits -> (bits & WRITE_LOCK_MASK) == 0;
-    private static final LongPredicate NO_WRITE_ONLY_ONE_READ_LOCK = bits -> (bits & LOCK_MASK) == 1;
-    private static final LongPredicate NO_READ_LOCK = bits -> (bits & READ_LOCK_MASK) == 0;
-
-    private static final LongToLongFunction ACQUIRE_READ_LOCK = bits -> {
-        assert (bits & READ_LOCK_MASK) < READ_LOCK_MASK : "Too many readers";
-        return bits + 1;
-    };
-    private static final LongToLongFunction RELEASE_READ_LOCK = bits -> {
-        assert (bits & READ_LOCK_MASK) > 0 : "No readers";
-        return bits - 1;
-    };
-    private static final LongToLongFunction ACQUIRE_WRITE_LOCK = bits -> bits | WRITE_LOCK_MASK;
-    private static final LongToLongFunction ACQUIRE_WRITE_LOCK_CLEAR_READ_LOCKS =
-            bits -> (bits & ~LOCK_MASK) | WRITE_LOCK_MASK;
-    private static final LongToLongFunction RELEASE_WRITE_LOCK = bits -> bits & ~WRITE_LOCK_MASK;
-    private static final LongToLongFunction NO_TRANSFORM = bits -> bits;
 
     private final long initialTreeNodeId;
     private final LongConsumer removeAction;
@@ -99,38 +78,53 @@ class LongSpinLatch {
         this.removeAction = removeAction;
     }
 
+    /**
+     * Notify you are taking a reference to the latch. If this fails, you are not allowed to use the latch.
+     *
+     * @return {@code true} if you managed to successfully increase the counter, {@code false} otherwise.
+     */
     boolean ref() {
-        var result = spinTransform(
-                ALWAYS_TRUE,
-                bits -> {
-                    var refCount = (bits & REF_COUNT_MASK) >>> REF_COUNT_SHIFT;
-                    refCount++;
-                    assert ((refCount << REF_COUNT_SHIFT) & REF_COUNT_MASK) == (refCount << REF_COUNT_SHIFT) : refCount;
-                    return (bits & ~REF_COUNT_MASK) | (refCount << REF_COUNT_SHIFT);
-                },
-                false,
-                true);
-        return result != DEAD;
+        long prevBits;
+        while (true) {
+            prevBits = getAcquireBits();
+            if (!isAlive(prevBits) || (prevBits & REF_COUNT_MASK) == REF_COUNT_MASK) {
+                return false;
+            }
+
+            if (LOCK_BITS.weakCompareAndSetRelease(this, prevBits, prevBits + REF_COUNT_UNIT)) {
+                return true;
+            }
+        }
     }
 
+    /**
+     * Notify that you are done using this latch.
+     */
     void deref() {
-        var result = spinTransform(
-                ALWAYS_TRUE,
-                bits -> {
-                    var refCount = (bits & REF_COUNT_MASK) >>> REF_COUNT_SHIFT;
-                    refCount--;
-                    assert refCount >= 0;
-                    if (refCount == 0) {
-                        assert (bits & LOCK_MASK) == 0;
-                        bits |= DEAD_MASK;
-                    }
-                    return (bits & ~REF_COUNT_MASK) | (refCount << REF_COUNT_SHIFT);
-                },
-                false,
-                false);
-        boolean lastRef = (result & DEAD_MASK) != 0;
+        long bits;
+        long prevBits;
+        while (true) {
+            prevBits = getAcquireBits();
+            assertAlive(prevBits);
+            bits = prevBits - REF_COUNT_UNIT;
+            if ((bits & REF_COUNT_MASK) == 0) {
+                // We are possibly the last owner, try to mark as dead
+                bits |= DEAD_MASK;
+            }
+            if (LOCK_BITS.weakCompareAndSetRelease(this, prevBits, bits)) {
+                break;
+            }
+            Thread.onSpinWait();
+        }
+
+        // Check if we mark the latch as dead
+        boolean lastRef = isAlive(prevBits) && !isAlive(bits);
         if (lastRef) {
             removeAction.accept(initialTreeNodeId);
+        }
+
+        if ((prevBits & REF_COUNT_MASK) == 0) {
+            throw new IllegalStateException("Called 'deref()' on a latch without a matching 'ref()'");
         }
     }
 
@@ -138,18 +132,42 @@ class LongSpinLatch {
      * Blocking call.
      * @return the read lock count this resulted in, > 0 if successful, otherwise 0 meaning that an acquisition on a dead lock was attempted.
      */
-    int acquireRead() {
-        long transformed = spinTransform(NO_WRITE_LOCK, ACQUIRE_READ_LOCK, false, false);
-        return toIntExact(transformed & READ_LOCK_MASK);
+    long acquireRead() {
+        long parkTime = 0;
+        long prevBits;
+        while (true) {
+            prevBits = getAcquireBits();
+
+            assertAlive(prevBits);
+            if ((prevBits & READ_LOCK_MASK) == READ_LOCK_MASK) {
+                throw new IllegalStateException("Too many readers");
+            }
+
+            if (hasWriter(prevBits)) {
+                // A writer is holding the lock, let someone else proceed
+                parkTime = exponentialPark(parkTime);
+                continue;
+            }
+
+            if (LOCK_BITS.weakCompareAndSetRelease(this, prevBits, prevBits + 1)) {
+                return (prevBits & READ_LOCK_MASK) + 1;
+            }
+            // Raced with another thread, retry
+            Thread.onSpinWait();
+        }
     }
 
     /**
      * Non-blocking call.
      * @return the read lock count this resulted in. 0 means this was the last read lock held.
      */
-    int releaseRead() {
-        long transformed = spinTransform(ALWAYS_TRUE, RELEASE_READ_LOCK, false, false);
-        return toIntExact(transformed & READ_LOCK_MASK);
+    long releaseRead() {
+        long prevBits = (long) LOCK_BITS.getAndAdd(this, -1L);
+        assertAlive(prevBits);
+        if (!hasReaders(prevBits)) {
+            throw new IllegalStateException("Called 'releaseRead()' on a latch without a reader");
+        }
+        return (prevBits & READ_LOCK_MASK) - 1;
     }
 
     /**
@@ -158,93 +176,111 @@ class LongSpinLatch {
      * @return whether or not the lock was upgraded. Returns {@code false} for scenarios which would result in deadlock.
      */
     boolean tryUpgradeToWrite() {
-        return spinTransform(NO_WRITE_ONLY_ONE_READ_LOCK, ACQUIRE_WRITE_LOCK_CLEAR_READ_LOCKS, true, false)
-                != TEST_FAILED;
+        long bits = getAcquireBits();
+        assertAlive(bits);
+        if ((bits & LOCK_MASK) == 1) {
+            // We are the only reader, try to upgrade by clearing read lock and taking write lock
+            return LOCK_BITS.compareAndSet(this, bits, (bits & ~LOCK_MASK) | WRITE_LOCK_MASK);
+        }
+        return false;
     }
 
     /**
      * Blocking call.
-     * @return true if write lock was acquired, otherwise false which means that acquisition was attempted on a dead lock.
+     * Acquire a write latch.
      */
-    boolean acquireWrite() {
-        boolean writeAcquired = false;
-        boolean success = false;
-        try {
-            spinTransform(NO_WRITE_LOCK, ACQUIRE_WRITE_LOCK, false, false);
-            writeAcquired = true;
-            spinTransform(NO_READ_LOCK, NO_TRANSFORM, false, false);
-            success = true;
-        } finally {
-            if (!success && writeAcquired) {
-                spinTransform(ALWAYS_TRUE, RELEASE_WRITE_LOCK, false, true);
+    void acquireWrite() {
+        long parkTime = 0;
+        long prevBits;
+        while (true) {
+            prevBits = (long) LOCK_BITS.getAndBitwiseOr(this, WRITE_LOCK_MASK);
+            assertAlive(prevBits);
+            if (!hasWriter(prevBits)) {
+                break; // Lock was free and we grabbed it, continue
             }
+            // Someone else is holding the write lock
+            parkTime = exponentialPark(parkTime);
         }
-        return true;
+
+        // Wait for all readers to leave
+        parkTime = 0;
+        while (hasReaders(prevBits)) {
+            parkTime = exponentialPark(parkTime);
+            prevBits = getAcquireBits();
+        }
     }
 
     /**
      * Tries to acquire write latch.
      */
     boolean tryAcquireWrite() {
-        return spinTransform(NO_WRITE_LOCK, ACQUIRE_WRITE_LOCK, true, false) != TEST_FAILED;
+        long prevBits = getAcquireBits();
+        assertAlive(prevBits);
+        if (!hasReaders(prevBits) && !hasWriter(prevBits)) {
+            return LOCK_BITS.compareAndSet(this, prevBits, prevBits | WRITE_LOCK_MASK);
+        }
+        return false;
     }
 
     /**
      * Non-blocking call. Releases the write lock on this latch.
      */
     void releaseWrite() {
-        spinTransform(ALWAYS_TRUE, RELEASE_WRITE_LOCK, false, false);
+        long prevBits = (long) LOCK_BITS.getAndBitwiseAndRelease(this, ~WRITE_LOCK_MASK);
+
+        assertAlive(prevBits);
+        if (!hasWriter(prevBits)) {
+            throw new IllegalStateException("Expected latch to be write locked. Got " + prevBits);
+        }
+    }
+
+    private static boolean isAlive(long bits) {
+        return (bits & DEAD_MASK) == 0;
+    }
+
+    private static void assertAlive(long bits) {
+        if (!isAlive(bits)) {
+            throw new IllegalStateException("Latch is dead");
+        }
+    }
+
+    private static boolean hasReaders(long bits) {
+        return (bits & READ_LOCK_MASK) != 0;
+    }
+
+    private static boolean hasWriter(long bits) {
+        return (bits & WRITE_LOCK_MASK) != 0;
     }
 
     long treeNodeId() {
         return initialTreeNodeId;
     }
 
-    private long spinTransform(
-            LongPredicate tester, LongToLongFunction transformer, boolean breakOnTestFail, boolean allowOnDead) {
-        long bits;
-        long transformedBits;
-        long timedWaitStartTime = 0;
-        while (true) {
-            bits = volatileGetBits();
-            if ((bits & DEAD_MASK) != 0) {
-                if (!allowOnDead) {
-                    throw new IllegalStateException("Tried to transform a dead latch");
-                } else {
-                    return DEAD;
-                }
-            }
-
-            if (!tester.test(bits)) {
-                if (breakOnTestFail) {
-                    return TEST_FAILED;
-                }
-                if (timedWaitStartTime == 0) {
-                    timedWaitStartTime = nanoTime() + MAX_SPIN_NANOS;
-                } else if (nanoTime() > timedWaitStartTime) {
-                    // We've spun a while, still the test returns false. Let's go into timed waiting.
-                    LockSupport.parkNanos(PARK_NANOS);
-                }
-                Thread.onSpinWait();
-            } else {
-                transformedBits = transformer.applyAsLong(bits);
-                if (LOCK_BITS.compareAndSet(this, bits, transformedBits)) {
-                    break;
-                }
-                // Continue spinning here since we're close to making the transformation,
-                // it's just that we're currently competing with others also trying to do this.
-            }
-        }
-        return transformedBits;
+    private long getAcquireBits() {
+        return (long) LOCK_BITS.getAcquire(this);
     }
 
     private long volatileGetBits() {
         return (long) LOCK_BITS.getVolatile(this);
     }
 
+    public static long exponentialPark(long idleCounter) {
+        if (idleCounter < SPIN_THRESHOLD) {
+            Thread.onSpinWait();
+        } else if (idleCounter < SHORT_PARK_THRESHOLD) {
+            parkNanos(SHORT_PARK_TIME);
+        } else {
+            parkNanos(LONG_PARK_TIME);
+            return LONG_PARK_COUNTER;
+        }
+        return idleCounter + 1;
+    }
+
     @Override
     public String toString() {
         long bits = volatileGetBits();
-        return format("Lock[%d,w:%b,r:%d]", initialTreeNodeId, (bits & WRITE_LOCK_MASK) != 0, bits & READ_LOCK_MASK);
+        return format(
+                "Lock[%d,w:%b,r:%d,refs:%d]",
+                initialTreeNodeId, (bits & WRITE_LOCK_MASK) != 0, bits & READ_LOCK_MASK, (bits & REF_COUNT_MASK) >> 16);
     }
 }

@@ -42,12 +42,12 @@ class LongSpinLatchTest extends LatchTestBase {
         // given
         LongSpinLatch latch = latch();
         latch.ref();
-        int countAfterAcquired = latch.acquireRead();
+        long countAfterAcquired = latch.acquireRead();
         assertThat(countAfterAcquired).isOne();
         assertThat(removeAction.count.get()).isZero();
 
         // when
-        int countAfterReleased = latch.releaseRead();
+        long countAfterReleased = latch.releaseRead();
         assertThat(countAfterReleased).isZero();
         assertThat(removeAction.count.get()).isZero();
 
@@ -63,13 +63,13 @@ class LongSpinLatchTest extends LatchTestBase {
         LongSpinLatch latch = latch();
         int times = 5;
         for (int i = 0; i < times; i++) {
-            int countAfterAcquired = latch.acquireRead();
+            long countAfterAcquired = latch.acquireRead();
             assertEquals(i + 1, countAfterAcquired);
         }
 
         // when/then
         for (int i = 5; i >= times; i--) {
-            int countAfterReleased = latch.releaseRead();
+            long countAfterReleased = latch.releaseRead();
             assertEquals(i - 1, countAfterReleased);
         }
     }
@@ -80,10 +80,10 @@ class LongSpinLatchTest extends LatchTestBase {
         LongSpinLatch latch = latch();
 
         // when
-        boolean acquired = latch.acquireWrite();
-        assertTrue(acquired);
+        latch.acquireWrite();
 
         // then good
+        assertFalse(latch.tryAcquireWrite());
         latch.releaseWrite();
     }
 
@@ -94,7 +94,7 @@ class LongSpinLatchTest extends LatchTestBase {
         latch.acquireWrite();
 
         // when
-        Future<Void> readAcquisition = beginAndAwaitLatchAcquisition(latch::acquireRead);
+        Future<Void> readAcquisition = beginAndAwaitLatchAcquisition(latch::acquireRead, "acquireRead");
         latch.releaseWrite();
 
         // then good
@@ -110,7 +110,7 @@ class LongSpinLatchTest extends LatchTestBase {
         latch.acquireWrite();
 
         // when
-        Future<Void> writeAcquisition = beginAndAwaitLatchAcquisition(latch::acquireWrite);
+        Future<Void> writeAcquisition = beginAndAwaitLatchAcquisition(latch::acquireWrite, "acquireWrite");
         latch.releaseWrite();
 
         // then good
@@ -128,7 +128,7 @@ class LongSpinLatchTest extends LatchTestBase {
         race.addContestants(
                 numThreads,
                 throwing(() -> {
-                    int result = latch.acquireRead();
+                    long result = latch.acquireRead();
                     assertThat(result).isGreaterThan(0);
                     countDownLatch.countDown();
                     countDownLatch.await();
