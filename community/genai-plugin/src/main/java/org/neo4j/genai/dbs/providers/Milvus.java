@@ -263,7 +263,6 @@ public final class Milvus implements VectorDatabaseProvider {
                                 additionalArguments.get("size"),
                                 "metricType",
                                 additionalArguments.get("similarity").toString().toUpperCase()));
-                System.out.println(body);
                 return httpRequestBuilder
                         .POST(HttpRequest.BodyPublishers.ofString(body))
                         .build();
@@ -271,7 +270,6 @@ public final class Milvus implements VectorDatabaseProvider {
                 throw new RuntimeException(e);
             }
         };
-        System.out.println(target);
         return new VectorDatabaseRequest<T>(target, commonRequestBuilder.andThen(requestCustomizer), in -> {
             Map<String, Object> result = null;
             try {

@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -54,7 +53,6 @@ final class PineconeIT extends IntegrationTestBase {
             .filter(Predicate.not(String::isBlank))
             .map(String::trim)
             .orElse(null);
-    static final int DEFAULT_SLEEP = 500;
     private final Pinecone pc = new Pinecone.Builder(PINECONE_API_KEY).build();
     private static final String PINECONE_HOST = Optional.ofNullable(System.getenv("PINECONE_HOST"))
             .filter(Predicate.not(String::isBlank))
@@ -175,18 +173,6 @@ final class PineconeIT extends IntegrationTestBase {
             return false;
         });
         doAssert.run();
-    }
-
-    void spinWait(Supplier<Boolean> stillWaiting) throws InterruptedException {
-        if (!stillWaiting.get()) {
-            return;
-        }
-
-        var maxRetry = 100;
-        var cnt = 0;
-        while (stillWaiting.get() && ++cnt < maxRetry) {
-            Thread.sleep(DEFAULT_SLEEP);
-        }
     }
 
     @Override

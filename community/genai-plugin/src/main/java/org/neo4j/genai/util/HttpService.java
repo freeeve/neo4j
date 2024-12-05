@@ -51,8 +51,6 @@ public final class HttpService {
 
     private static final String USER_AGENT = "Neo4j-GenAIProcedures/" + VectorEncoding.VERSION;
 
-    private final HttpClient httpClient =
-            HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
     private final ImmutableIntSet defaultAcceptableStatusCodes = IntSets.immutable.of(200);
 
     public static final Function<InputStream, Map<String, Object>> DEFAULT_RESPONSE_TO_MAP_TRANSFORMER =
@@ -164,7 +162,9 @@ public final class HttpService {
             IntSet acceptableStatusCodes,
             IntObjectMap<Supplier<GenAIProcedureException>> unacceptableStatusCodes,
             BiFunction<Integer, String, Optional<GenAIProcedureException>> providerSpecificStatusHandler) {
-        try {
+        try (var httpClient = HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .build()) {
             var request =
                     requestCustomizer.apply(HttpRequest.newBuilder().uri(target).header("User-Agent", USER_AGENT));
             var handler = new BodyAndErrorHandler<>(BodyHandlers.ofInputStream(), BodyHandlers.ofString());

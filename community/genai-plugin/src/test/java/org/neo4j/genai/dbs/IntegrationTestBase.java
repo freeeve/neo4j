@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.AfterEach;
@@ -52,6 +53,8 @@ import org.neo4j.test.extension.Inject;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DbmsExtension(configurationCallback = "configureNeo4j")
 abstract class IntegrationTestBase {
+
+    static final int DEFAULT_SLEEP = 500;
 
     protected static final List<String> FIELDS = List.of("city", "foo");
 
@@ -158,6 +161,17 @@ abstract class IntegrationTestBase {
         return id;
     }
 
+    static void spinWait(Supplier<Boolean> stillWaiting) throws InterruptedException {
+        if (!stillWaiting.get()) {
+            return;
+        }
+
+        var maxRetry = 100;
+        var cnt = 0;
+        while (stillWaiting.get() && ++cnt < maxRetry) {
+            Thread.sleep(DEFAULT_SLEEP);
+        }
+    }
     /**
      * Enriches the config map with additional specs per provider
      * @param provider

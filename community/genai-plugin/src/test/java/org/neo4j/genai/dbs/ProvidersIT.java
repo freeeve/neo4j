@@ -80,7 +80,7 @@ final class ProvidersIT extends IntegrationTestBase {
             .withEnv("CHROMA_SERVER_AUTHZ_PROVIDER", "chromadb.auth.simple_rbac_authz.SimpleRBACAuthorizationProvider");
 
     @Container
-    private static final MilvusContainer MILVUS_CONTAINER = new MilvusContainer("milvusdb/milvus:v2.3.22");
+    private static final MilvusContainer MILVUS_CONTAINER = new MilvusContainer("milvusdb/milvus:v2.4.17");
 
     static String WEAVIATE_BASE_URL;
     private static WeaviateClient WEAVIATE_CLIENT;
@@ -329,53 +329,85 @@ final class ProvidersIT extends IntegrationTestBase {
         MILVUS_BASE_URL = MILVUS_CONTAINER.getEndpoint();
 
         HttpClient client = HttpClient.newHttpClient();
+        spinWait(() -> {
+            try {
+                var createReadOnlyUser = HttpRequest.newBuilder(
+                                URI.create(MILVUS_BASE_URL + "/v2/vectordb/users/create"))
+                        .header("Authorization", "Bearer root:Milvus")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                """
+                    {"userName":"readOnly", "password": "%s"}"""
+                                        .formatted(READONLY_KEY)))
+                        .build();
 
-        var createReadOnlyUser = HttpRequest.newBuilder(URI.create(MILVUS_BASE_URL + "/v2/vectordb/users/create"))
-                .header("Authorization", "Bearer root:Milvus")
-                .POST(HttpRequest.BodyPublishers.ofString(
-                        """
-                    {"userName":"readOnly", "password": "%s"}""".formatted(READONLY_KEY)))
-                .build();
-
-        client.send(createReadOnlyUser, HttpResponse.BodyHandlers.discarding());
-        var grantPublicRoleRequest = HttpRequest.newBuilder(
-                        URI.create(MILVUS_BASE_URL + "/v2/vectordb/users/grant_role"))
-                .header("Authorization", "Bearer root:Milvus")
-                .POST(HttpRequest.BodyPublishers.ofString(
-                        """
+                client.send(createReadOnlyUser, HttpResponse.BodyHandlers.discarding());
+                var grantPublicRoleRequest = HttpRequest.newBuilder(
+                                URI.create(MILVUS_BASE_URL + "/v2/vectordb/users/grant_role"))
+                        .header("Authorization", "Bearer root:Milvus")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                """
                     {"userName": "readOnly", "roleName":"public"}"""))
-                .build();
-        client.send(grantPublicRoleRequest, HttpResponse.BodyHandlers.discarding());
-        var setAdminPasswordRequest = HttpRequest.newBuilder(
-                        URI.create(MILVUS_BASE_URL + "/v2/vectordb/users/update_password"))
-                .header("Authorization", "Bearer root:Milvus")
-                .POST(HttpRequest.BodyPublishers.ofString(
-                        """
+                        .build();
+                client.send(grantPublicRoleRequest, HttpResponse.BodyHandlers.discarding());
+                var setAdminPasswordRequest = HttpRequest.newBuilder(
+                                URI.create(MILVUS_BASE_URL + "/v2/vectordb/users/update_password"))
+                        .header("Authorization", "Bearer root:Milvus")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                """
                     {"userName": "root", "password":"Milvus", "newPassword":"%s"}"""
-                                .formatted(ADMIN_KEY)))
-                .build();
-        client.send(setAdminPasswordRequest, HttpResponse.BodyHandlers.discarding());
-        var createCollectionRequest = HttpRequest.newBuilder(
-                        URI.create(MILVUS_BASE_URL + "/v2/vectordb/collections/create"))
-                .header("Authorization", "Bearer root:" + ADMIN_KEY)
-                .POST(HttpRequest.BodyPublishers.ofString(
-                        """
+                                        .formatted(ADMIN_KEY)))
+                        .build();
+                client.send(setAdminPasswordRequest, HttpResponse.BodyHandlers.discarding());
+                var createCollectionRequest = HttpRequest.newBuilder(
+                                URI.create(MILVUS_BASE_URL + "/v2/vectordb/collections/create"))
+                        .header("Authorization", "Bearer root:" + ADMIN_KEY)
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                """
                     {"collectionName": "%s", "dimension":4, "metricType":"COSINE"}"""
-                                .formatted(COLLECTION_NAME)))
-                .build();
-        client.send(createCollectionRequest, HttpResponse.BodyHandlers.discarding());
-        var createVectorsRequest = HttpRequest.newBuilder(URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/upsert"))
-                .header("Authorization", "Bearer root:" + ADMIN_KEY)
-                .POST(HttpRequest.BodyPublishers.ofString(
-                        """
+                                        .formatted(COLLECTION_NAME)))
+                        .build();
+                client.send(createCollectionRequest, HttpResponse.BodyHandlers.discarding());
+                var createVectorsRequest = HttpRequest.newBuilder(
+                                URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/upsert"))
+                        .header("Authorization", "Bearer root:" + ADMIN_KEY)
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                """
                 {"data": [
                     {"id": "%s", "vector": [0.05, 0.61, 0.76, 0.74], "payload": {"city": "Berlin", "foo": "one"}},
                     {"id": "%s", "vector": [0.19, 0.81, 0.75, 0.11], "payload": {"city": "London", "foo": "two"}}
                     ],
                  "collectionName":"%s"}"""
-                                .formatted(LONG_ID_1, LONG_ID_2, COLLECTION_NAME)))
-                .build();
-        client.send(createVectorsRequest, HttpResponse.BodyHandlers.discarding());
+                                        .formatted(LONG_ID_1, LONG_ID_2, COLLECTION_NAME)))
+                        .build();
+                client.send(createVectorsRequest, HttpResponse.BodyHandlers.discarding());
+
+                // verify the existence of collection and vectors
+                var getCollectionRequest = HttpRequest.newBuilder(
+                                URI.create(MILVUS_BASE_URL + "/v2/vectordb/collections/describe"))
+                        .header("Authorization", "Bearer root:" + ADMIN_KEY)
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                """
+                    {"collectionName":"%s"}""".formatted(COLLECTION_NAME)))
+                        .build();
+                var getCollectionResponse = client.send(getCollectionRequest, HttpResponse.BodyHandlers.ofString());
+                assertThat(getCollectionResponse.body()).contains(COLLECTION_NAME);
+
+                var getPointRequest = HttpRequest.newBuilder(URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/get"))
+                        .header("Authorization", "Bearer root:" + ADMIN_KEY)
+                        .POST(HttpRequest.BodyPublishers.ofString(JsonUtils.getObjectMapper()
+                                .writeValueAsString(Map.of(
+                                        "id", List.of(LONG_ID_1, LONG_ID_2),
+                                        "collectionName", COLLECTION_NAME,
+                                        "outputFields", List.of("vector", "payload")))))
+                        .build();
+                var getPointResponse = client.send(getPointRequest, HttpResponse.BodyHandlers.ofString());
+                assertThat(getPointResponse.body()).contains("\"Berlin\"").contains("\"London\"");
+            } catch (Exception | AssertionError e) {
+                return true;
+            }
+            return false;
+        });
+        client.close();
     }
 
     Stream<Arguments> providers() {
@@ -414,6 +446,7 @@ final class ProvidersIT extends IntegrationTestBase {
 
             var response = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.discarding());
             assertThat(response.statusCode()).isEqualTo(200);
+            client.close();
         } else if ("chromadb".equals(provider)) {
             var client =
                     HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
@@ -424,18 +457,27 @@ final class ProvidersIT extends IntegrationTestBase {
                     .build();
             var response = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.discarding());
             assertThat(response.statusCode()).isEqualTo(200);
+            client.close();
         } else if ("milvus".equals(provider)) {
             var client = HttpClient.newHttpClient();
-            var verifyCollectionRequest = HttpRequest.newBuilder(
-                            URI.create(MILVUS_BASE_URL + "/v2/vectordb/collections/describe"))
-                    .header("Authorization", "Bearer root:" + ADMIN_KEY)
-                    .POST(HttpRequest.BodyPublishers.ofString(
-                            """
-                    {"collectionName":"%s"}""".formatted(COLLECTION_TO_BE_CREATED)))
-                    .build();
-            var response = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.ofString());
-            System.out.println(response.body());
-            assertThat(response.statusCode()).isEqualTo(200);
+            spinWait(() -> {
+                try {
+                    var verifyCollectionRequest = HttpRequest.newBuilder(
+                                    URI.create(MILVUS_BASE_URL + "/v2/vectordb/collections/describe"))
+                            .header("Authorization", "Bearer root:" + ADMIN_KEY)
+                            .POST(HttpRequest.BodyPublishers.ofString(
+                                    """
+                                {"collectionName":"%s"}"""
+                                            .formatted(COLLECTION_TO_BE_CREATED)))
+                            .build();
+                    var response = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.ofString());
+                    assertThat(response.statusCode()).isEqualTo(200);
+                } catch (Exception | AssertionError e) {
+                    return true;
+                }
+                return false;
+            });
+            client.close();
         } else {
             fail("no matching provider assert for %s".formatted(provider));
         }
@@ -460,6 +502,7 @@ final class ProvidersIT extends IntegrationTestBase {
                     .build();
             var response = client.send(createCollectionRequest, HttpResponse.BodyHandlers.discarding());
             assertThat(response.statusCode()).isEqualTo(404);
+            client.close();
         } else if ("chromadb".equals(provider)) {
             var client =
                     HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
@@ -470,18 +513,28 @@ final class ProvidersIT extends IntegrationTestBase {
                     .build();
             var response = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.discarding());
             assertThat(response.statusCode()).isEqualTo(400);
+            client.close();
         } else if ("milvus".equals(provider)) {
             var client = HttpClient.newHttpClient();
-            var verifyCollectionRequest = HttpRequest.newBuilder(
-                            URI.create(MILVUS_BASE_URL + "/v2/vectordb/collections/describe"))
-                    .header("Authorization", "Bearer " + ADMIN_KEY)
-                    .POST(HttpRequest.BodyPublishers.ofString(
-                            """
-                    {"collectionName": "%s"}""".formatted(COLLECTION_TO_BE_DELETED)))
-                    .build();
-            var response = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.ofString());
-            assertThat(response.statusCode()).isEqualTo(200);
-            assertThat(response.body()).contains("can't find collection");
+            spinWait(() -> {
+                try {
+                    var verifyCollectionRequest = HttpRequest.newBuilder(
+                                    URI.create(MILVUS_BASE_URL + "/v2/vectordb/collections/describe"))
+                            .header("Authorization", "Bearer " + ADMIN_KEY)
+                            .POST(HttpRequest.BodyPublishers.ofString(
+                                    """
+                                {"collectionName": "%s"}"""
+                                            .formatted(COLLECTION_TO_BE_DELETED)))
+                            .build();
+                    var response = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.ofString());
+                    assertThat(response.statusCode()).isEqualTo(200);
+                    assertThat(response.body()).contains("can't find collection");
+                } catch (Exception | AssertionError e) {
+                    return true;
+                }
+                return false;
+            });
+            client.close();
         } else {
             fail("no matching provider assert for %s".formatted(provider));
         }
@@ -523,6 +576,7 @@ final class ProvidersIT extends IntegrationTestBase {
                                     .formatted(ID_3, ID_4)))
                     .build();
             client.send(insertIntoCollectionRequest, HttpResponse.BodyHandlers.ofString());
+            client.close();
         } else if ("chromadb".equals(provider)) {
             HttpClient client =
                     HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
@@ -540,6 +594,7 @@ final class ProvidersIT extends IntegrationTestBase {
                                     .formatted(ID_3, ID_4)))
                     .build();
             client.send(createVectorsRequest, HttpResponse.BodyHandlers.discarding());
+            client.close();
         } else if ("milvus".equals(provider)) {
             HttpClient client = HttpClient.newHttpClient();
             var createVectorsRequest = HttpRequest.newBuilder(
@@ -555,6 +610,26 @@ final class ProvidersIT extends IntegrationTestBase {
                                     .formatted(LONG_ID_3, LONG_ID_4, COLLECTION_NAME)))
                     .build();
             client.send(createVectorsRequest, HttpResponse.BodyHandlers.discarding());
+
+            spinWait(() -> {
+                try {
+                    var getPointRequest = HttpRequest.newBuilder(
+                                    URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/get"))
+                            .header("Authorization", "Bearer root:" + ADMIN_KEY)
+                            .POST(HttpRequest.BodyPublishers.ofString(JsonUtils.getObjectMapper()
+                                    .writeValueAsString(Map.of(
+                                            "id", List.of(LONG_ID_4),
+                                            "collectionName", COLLECTION_NAME,
+                                            "outputFields", List.of("vector", "payload")))))
+                            .build();
+                    var getPointResponse = client.send(getPointRequest, HttpResponse.BodyHandlers.ofString());
+                    assertThat(getPointResponse.body()).contains("\"payload\":");
+                } catch (Exception | AssertionError e) {
+                    return true;
+                }
+                return false;
+            });
+            client.close();
         }
     }
 
@@ -587,6 +662,7 @@ final class ProvidersIT extends IntegrationTestBase {
             var responseBody = JsonUtils.getObjectMapper().readValue(response.body(), Map.class);
             var resultEntries = (List<?>) responseBody.get("result");
             assertThat(resultEntries).isEmpty();
+            client.close();
         } else if ("chromadb".equals(provider)) {
             var client =
                     HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
@@ -599,19 +675,27 @@ final class ProvidersIT extends IntegrationTestBase {
             var vectorResponse = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.ofString());
             assertThat(vectorResponse.body()).contains("\"ids\":[]"); // assert no ids in response means nothing found
             assertThat(vectorResponse.statusCode()).isEqualTo(200);
+            client.close();
         } else if ("milvus".equals(provider)) {
             var client = HttpClient.newHttpClient();
-            Thread.sleep(500); // wait for everything to settle
-            var verifyCollectionRequest = HttpRequest.newBuilder(
-                            URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/get"))
-                    .header("Authorization", "Bearer " + ADMIN_KEY)
-                    .POST(HttpRequest.BodyPublishers.ofString(JsonUtils.getObjectMapper()
-                            .writeValueAsString(
-                                    Map.of("id", List.of(LONG_ID_3, LONG_ID_4), "collectionName", COLLECTION_NAME))))
-                    .build();
-            var vectorResponse = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.ofString());
-            assertThat(vectorResponse.body()).contains("\"data\":[]"); // assert nothing found
-            assertThat(vectorResponse.statusCode()).isEqualTo(200);
+            spinWait(() -> {
+                try {
+                    var verifyCollectionRequest = HttpRequest.newBuilder(
+                                    URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/get"))
+                            .header("Authorization", "Bearer " + ADMIN_KEY)
+                            .POST(HttpRequest.BodyPublishers.ofString(JsonUtils.getObjectMapper()
+                                    .writeValueAsString(Map.of(
+                                            "id", List.of(LONG_ID_3, LONG_ID_4), "collectionName", COLLECTION_NAME))))
+                            .build();
+                    var vectorResponse = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.ofString());
+                    assertThat(vectorResponse.body()).contains("\"data\":[]"); // assert nothing found
+                    assertThat(vectorResponse.statusCode()).isEqualTo(200);
+                } catch (Exception | AssertionError e) {
+                    return true;
+                }
+                return false;
+            });
+            client.close();
         } else {
             fail("no matching provider assert for %s".formatted(provider));
         }
@@ -663,6 +747,7 @@ final class ProvidersIT extends IntegrationTestBase {
 
             var response = client.send(deleteVectorRequest, HttpResponse.BodyHandlers.discarding());
             assertThat(response.statusCode()).isEqualTo(200);
+            client.close();
         } else if ("chromadb".equals(provider)) {
             var client =
                     HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
@@ -683,36 +768,53 @@ final class ProvidersIT extends IntegrationTestBase {
             {"ids":["%s","%s"]}""".formatted(ID_5, ID_6)))
                     .build();
             client.send(deleteVectorRequest, HttpResponse.BodyHandlers.discarding());
+            client.close();
         } else if ("milvus".equals(provider)) {
-            Thread.sleep(500);
             // verify update
             var client = HttpClient.newHttpClient();
-            var getPointRequest = HttpRequest.newBuilder(URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/get"))
-                    .header("Authorization", "Bearer root:" + ADMIN_KEY)
-                    .POST(HttpRequest.BodyPublishers.ofString(JsonUtils.getObjectMapper()
-                            .writeValueAsString(Map.of(
-                                    "id", List.of(LONG_ID_5),
-                                    "collectionName", COLLECTION_NAME,
-                                    "outputFields", List.of("vector", "payload")))))
-                    .build();
-            var getPointResponse = client.send(getPointRequest, HttpResponse.BodyHandlers.ofString());
-            assertThat(getPointResponse.body())
-                    .contains("\"payload\":{\"bla\":\"blubb\"}")
-                    .contains("\"vector\":[0.2,0.2,0.2,0.2]");
+            spinWait(() -> {
+                try {
+                    var getPointRequest = HttpRequest.newBuilder(
+                                    URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/get"))
+                            .header("Authorization", "Bearer root:" + ADMIN_KEY)
+                            .POST(HttpRequest.BodyPublishers.ofString(JsonUtils.getObjectMapper()
+                                    .writeValueAsString(Map.of(
+                                            "id", List.of(LONG_ID_5),
+                                            "collectionName", COLLECTION_NAME,
+                                            "outputFields", List.of("vector", "payload")))))
+                            .build();
+                    var getPointResponse = client.send(getPointRequest, HttpResponse.BodyHandlers.ofString());
+                    assertThat(getPointResponse.body())
+                            .contains("\"payload\":{\"bla\":\"blubb\"}")
+                            .contains("\"vector\":[0.2,0.2,0.2,0.2]");
+                } catch (Exception | AssertionError e) {
+                    return true;
+                }
+                return false;
+            });
             // clean up new vector
-            var deleteVectorRequest = HttpRequest.newBuilder(
-                            URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/delete"))
-                    .header("Authorization", "Bearer root:" + ADMIN_KEY)
-                    .POST(HttpRequest.BodyPublishers.ofString(JsonUtils.getObjectMapper()
-                            .writeValueAsString(Map.of(
-                                    "collectionName",
-                                    COLLECTION_NAME,
-                                    "filter",
-                                    "id == %s || id == %s".formatted(LONG_ID_5, LONG_ID_6)))))
-                    .build();
+            spinWait(() -> {
+                try {
+                    var deleteVectorRequest = HttpRequest.newBuilder(
+                                    URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/delete"))
+                            .header("Authorization", "Bearer root:" + ADMIN_KEY)
+                            .POST(HttpRequest.BodyPublishers.ofString(JsonUtils.getObjectMapper()
+                                    .writeValueAsString(Map.of(
+                                            "collectionName",
+                                            COLLECTION_NAME,
+                                            "filter",
+                                            "id == %s || id == %s".formatted(LONG_ID_5, LONG_ID_6)))))
+                            .build();
 
-            var response = client.send(deleteVectorRequest, HttpResponse.BodyHandlers.discarding());
-            assertThat(response.statusCode()).isEqualTo(200);
+                    var response = client.send(deleteVectorRequest, HttpResponse.BodyHandlers.ofString());
+                    assertThat(response.statusCode()).isEqualTo(200);
+                    assertThat(response.body()).doesNotContain("\"payload\":"); // assert nothing found
+                } catch (Exception | AssertionError e) {
+                    return true;
+                }
+                return false;
+            });
+            client.close();
         } else {
             fail("no matching provider assert for %s".formatted(provider));
         }
@@ -763,6 +865,7 @@ final class ProvidersIT extends IntegrationTestBase {
 
             var response = client.send(deleteVectorRequest, HttpResponse.BodyHandlers.discarding());
             assertThat(response.statusCode()).isEqualTo(200);
+            client.close();
         } else if ("chromadb".equals(provider)) {
             var client =
                     HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
@@ -784,18 +887,26 @@ final class ProvidersIT extends IntegrationTestBase {
             {"ids":["%s","%s"]}""".formatted(ID_5, ID_6)))
                     .build();
             client.send(deleteVectorRequest, HttpResponse.BodyHandlers.discarding());
+            client.close();
         } else if ("milvus".equals(provider)) {
             var client = HttpClient.newHttpClient();
-            Thread.sleep(500); // wait for everything to settle
-            var verifyCollectionRequest = HttpRequest.newBuilder(
-                            URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/get"))
-                    .header("Authorization", "Bearer " + ADMIN_KEY)
-                    .POST(HttpRequest.BodyPublishers.ofString(JsonUtils.getObjectMapper()
-                            .writeValueAsString(Map.of("id", List.of(LONG_ID_6), "collectionName", COLLECTION_NAME))))
-                    .build();
-            var vectorResponse = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.ofString());
-            assertThat(vectorResponse.body()).contains("\"payload\":"); // assert nothing found
-            assertThat(vectorResponse.statusCode()).isEqualTo(200);
+            spinWait(() -> {
+                try {
+                    var verifyCollectionRequest = HttpRequest.newBuilder(
+                                    URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/get"))
+                            .header("Authorization", "Bearer " + ADMIN_KEY)
+                            .POST(HttpRequest.BodyPublishers.ofString(JsonUtils.getObjectMapper()
+                                    .writeValueAsString(
+                                            Map.of("id", List.of(LONG_ID_6), "collectionName", COLLECTION_NAME))))
+                            .build();
+                    var vectorResponse = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.ofString());
+                    assertThat(vectorResponse.body()).contains("\"payload\":"); // assert nothing found
+                    assertThat(vectorResponse.statusCode()).isEqualTo(200);
+                } catch (Exception | AssertionError e) {
+                    return true;
+                }
+                return false;
+            });
             // clean up new vector
             var body = JsonUtils.getObjectMapper()
                     .writeValueAsString(
@@ -806,6 +917,25 @@ final class ProvidersIT extends IntegrationTestBase {
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build();
             client.send(deleteVectorRequest, HttpResponse.BodyHandlers.discarding());
+            // wait for deletion to happen
+            spinWait(() -> {
+                try {
+                    var verifyCollectionRequest = HttpRequest.newBuilder(
+                                    URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/get"))
+                            .header("Authorization", "Bearer " + ADMIN_KEY)
+                            .POST(HttpRequest.BodyPublishers.ofString(JsonUtils.getObjectMapper()
+                                    .writeValueAsString(
+                                            Map.of("id", List.of(LONG_ID_6), "collectionName", COLLECTION_NAME))))
+                            .build();
+                    var vectorResponse = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.ofString());
+                    assertThat(vectorResponse.body()).doesNotContain("\"payload\":"); // assert nothing found
+                    assertThat(vectorResponse.statusCode()).isEqualTo(200);
+                } catch (Exception | AssertionError e) {
+                    return true;
+                }
+                return false;
+            });
+            client.close();
         } else {
             fail("no matching provider assert for %s".formatted(provider));
         }
