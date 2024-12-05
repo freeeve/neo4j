@@ -68,7 +68,6 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
 
     @Override
     public LogEntry readLogEntry(ReadableLogPositionAwareChannel channel) throws IOException {
-        var entryStartPosition = channel.getCurrentLogPosition();
         try {
             byte versionCode = channel.markAndGetVersion(positionMarker);
             if (versionCode == 0) {
@@ -78,7 +77,7 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
                 // and we report that we reach end of record stream from our point of view.
                 // Let's double-check that it isn't a corrupt byte by checking part of the tail first
                 checkSmallChunkOfTail(channel, channel.getCurrentLogPosition());
-                rewindToEntryStartPosition(channel, positionMarker, entryStartPosition);
+                channel.position(positionMarker.getByteOffset());
                 return null;
             }
             updateParserSet(channel, versionCode);
@@ -93,19 +92,17 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
             throw e;
         } catch (IncompleteEnvelopeReadException e) {
             // This exception signals that the tail is already checked and the last entry is broken.
-            return brokenLastEntry(channel, entryStartPosition);
+            return brokenLastEntry();
         } catch (IOException | RuntimeException e) {
             LogPosition currentLogPosition = channel.getCurrentLogPosition();
             // check if error was in the last command or is there anything else after that
             checkTail(channel, currentLogPosition, e);
-            return brokenLastEntry(channel, entryStartPosition);
+            return brokenLastEntry();
         }
     }
 
-    private LogEntry brokenLastEntry(ReadableLogPositionAwareChannel channel, LogPosition entryStartPosition)
-            throws IOException {
+    private LogEntry brokenLastEntry() throws IOException {
         brokenLastEntry = true;
-        rewindToEntryStartPosition(channel, positionMarker, entryStartPosition);
         return null;
     }
 
@@ -175,21 +172,6 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
                 lastTxChecksum = rollback.getChecksum();
             }
         }
-    }
-
-    private void rewindToEntryStartPosition(
-            ReadableLogPositionAwareChannel channel, LogPositionMarker positionMarker, LogPosition position)
-            throws IOException {
-        if (position.getLogVersion() != channel.getCurrentLogPosition().getLogVersion()) {
-            // Uh oh, we rolled over during reading of the entry and can't go back to the correct channel..
-            // This rewinding is best effort anyways (not done on ReadPastEndExceptions), so skipping the rewind here
-            return;
-        }
-
-        // take current position
-        channel.position(position.getByteOffset());
-        // refresh with reset position
-        channel.getCurrentLogPosition(positionMarker);
     }
 
     @Override
