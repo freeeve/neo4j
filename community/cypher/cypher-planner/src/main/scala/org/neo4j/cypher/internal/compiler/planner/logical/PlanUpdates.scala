@@ -35,7 +35,6 @@ import org.neo4j.cypher.internal.ir.MergeNodePattern
 import org.neo4j.cypher.internal.ir.MergeRelationshipPattern
 import org.neo4j.cypher.internal.ir.MutatingPattern
 import org.neo4j.cypher.internal.ir.QueryGraph
-import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.ir.RemoveLabelPattern
 import org.neo4j.cypher.internal.ir.SetDynamicPropertyPattern
 import org.neo4j.cypher.internal.ir.SetLabelPattern
@@ -65,12 +64,12 @@ import org.neo4j.exceptions.InternalException
  */
 case object PlanUpdates extends UpdatesPlanner {
 
-  private def computePlan(
-    plan: LogicalPlan,
+  override def plan(
     query: SinglePlannerQuery,
-    eagerAnalyzer: EagerAnalyzer,
+    plan: LogicalPlan,
+    firstPlannerQuery: Boolean,
     context: LogicalPlanningContext
-  ) = {
+  ): LogicalPlan = {
     val orderForPlanning = InterestingOrderConfig(query.interestingOrder)
 
     case class Acc(updatePlan: LogicalPlan, patternsToPlan: IndexedSeq[MutatingPattern])
@@ -80,52 +79,9 @@ case object PlanUpdates extends UpdatesPlanner {
         val nextUpdatePlan = planUpdate(updatePlan, nextPatternToPlan, orderForPlanning, context)
         val remainingPatternToPlan = pattersToPlan.tail
 
-        // This query is constructed such that the current write is placed on its own QueryGraph
-        // and all remaining writes are placed in the next query graph.
-        val queryToCheckForConflicts = RegularSinglePlannerQuery(
-          queryGraph = QueryGraph(
-            argumentIds = nextPatternToPlan.dependencies,
-            mutatingPatterns = IndexedSeq(nextPatternToPlan)
-          ),
-          tail = Some(RegularSinglePlannerQuery(
-            queryGraph = QueryGraph(
-              argumentIds = remainingPatternToPlan.flatMap(_.dependencies).toSet,
-              mutatingPatterns = remainingPatternToPlan
-            )
-          ))
-        )
-
-        val eagerizedNextUpdatePlan = eagerAnalyzer.writeReadEagerize(
-          eagerAnalyzer.tailReadWriteEagerizeRecursive(nextUpdatePlan, queryToCheckForConflicts),
-          queryToCheckForConflicts
-        )
-        Acc(eagerizedNextUpdatePlan, remainingPatternToPlan)
+        Acc(nextUpdatePlan, remainingPatternToPlan)
     }
     updatePlan
-  }
-
-  override def plan(
-    query: SinglePlannerQuery,
-    in: LogicalPlan,
-    firstPlannerQuery: Boolean,
-    context: LogicalPlanningContext
-  ): LogicalPlan = {
-    val eagerAnalyzer = EagerAnalyzer(context)
-    // Eagerness pass 1 -- does previously planned reads conflict with future writes?
-    val plan =
-      if (firstPlannerQuery)
-        eagerAnalyzer.headReadWriteEagerize(in, query)
-      else
-        // // NOTE: tailReadWriteEagerizeRecursive is done after updates, below
-        eagerAnalyzer.tailReadWriteEagerizeNonRecursive(in, query)
-
-    val updatePlan = computePlan(plan, query, eagerAnalyzer, context)
-
-    if (firstPlannerQuery)
-      eagerAnalyzer.writeReadEagerize(updatePlan, query)
-    else {
-      eagerAnalyzer.writeReadEagerize(eagerAnalyzer.tailReadWriteEagerizeRecursive(updatePlan, query), query)
-    }
   }
 
   private def planUpdate(
