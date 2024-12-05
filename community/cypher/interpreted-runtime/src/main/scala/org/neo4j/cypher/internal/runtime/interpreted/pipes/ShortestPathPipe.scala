@@ -132,8 +132,9 @@ case class ShortestPathPipe(
               case (IsNoValue(), _) | (_, IsNoValue()) => ClosingIterator.empty
 
               case value =>
-                throw new InternalException(
-                  s"Expected to find a node at '($sourceNodeName, $targetNodeName)' but found $value instead"
+                throw InternalException.expectedNodeFoundValueInstead(
+                  String.valueOf(value),
+                  s"($sourceNodeName, $targetNodeName)"
                 )
             }
           }

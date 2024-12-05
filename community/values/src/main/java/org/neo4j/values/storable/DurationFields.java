@@ -200,7 +200,7 @@ public enum DurationFields {
             case "nanoseconds":
                 return NANOSECONDS;
             default:
-                throw new UnsupportedTemporalUnitException("No such field: " + fieldName);
+                throw UnsupportedTemporalUnitException.noSuchField(fieldName, "DURATION");
         }
     }
 }

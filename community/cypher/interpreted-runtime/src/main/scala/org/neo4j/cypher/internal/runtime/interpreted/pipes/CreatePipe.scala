@@ -143,7 +143,7 @@ abstract class EntityCreatePipe(src: Pipe) extends BaseCreatePipe(src) {
       case IsNoValue() =>
         if (lenient) null
         else throw new InternalException(LenientCreateRelationship.errorMsg(relName, name))
-      case x => throw new InternalException(s"Expected to find a node at '$name' but found instead: $x")
+      case x => throw InternalException.expectedNodeFoundInsteadValue(String.valueOf(x), name)
     }
 }
 

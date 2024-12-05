@@ -33,7 +33,10 @@ object createParameterArray {
         val value = params.get(key)
         if ((value eq NO_VALUE) && !params.containsKey(key)) {
           parameterArray(offset) =
-            default.getOrElse(throw new ParameterNotFoundException("Expected a parameter named " + key))
+            default.getOrElse(throw ParameterNotFoundException.expectedParamNamed(
+              key,
+              params.keySet()
+            ))
         } else {
           parameterArray(offset) = value
         }

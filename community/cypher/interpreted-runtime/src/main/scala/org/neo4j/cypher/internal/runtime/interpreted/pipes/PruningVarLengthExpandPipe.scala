@@ -310,7 +310,7 @@ case class PruningVarLengthExpandPipe(
             case IsNoValue() => null
 
             case _ =>
-              error(s"Expected variable `$fromName` to be a node, got $fromValue")
+              throw InternalException.expectedNode(String.valueOf(fromValue), fromName)
           }
         } else {
           var maybeEndNode: VirtualNodeValue = null
@@ -371,7 +371,6 @@ case class PruningVarLengthExpandPipe(
       depth -= 1
     }
 
-    private def error(msg: String) = throw new InternalException(msg)
   }
 
   class FullyPruningIterator(

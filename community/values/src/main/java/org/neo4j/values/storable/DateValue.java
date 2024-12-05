@@ -150,7 +150,8 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
         } else if (unit == ChronoUnit.DAYS) {
             return value;
         } else {
-            throw new UnsupportedTemporalUnitException("Unit too small for truncation: " + unit);
+
+            throw UnsupportedTemporalUnitException.tooSmallUnitForTruncate(String.valueOf(unit), String.valueOf(value));
         }
     }
 
@@ -181,22 +182,22 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
 
     @Override
     LocalTime getLocalTimePart() {
-        throw new UnsupportedTemporalUnitException(String.format("Cannot get the time of: %s", this));
+        throw UnsupportedTemporalUnitException.cannotGetLocalTime(String.valueOf(this));
     }
 
     @Override
     OffsetTime getTimePart(Supplier<ZoneId> defaultZone) {
-        throw new UnsupportedTemporalUnitException(String.format("Cannot get the time of: %s", this));
+        throw UnsupportedTemporalUnitException.cannotGetZonedTime(String.valueOf(this));
     }
 
     @Override
     ZoneId getZoneId(Supplier<ZoneId> defaultZone) {
-        throw new UnsupportedTemporalUnitException(String.format("Cannot get the time zone of: %s", this));
+        throw UnsupportedTemporalUnitException.cannotGetTimezone(String.valueOf(this));
     }
 
     @Override
     ZoneOffset getZoneOffset() {
-        throw new UnsupportedTemporalUnitException(String.format("Cannot get the offset of: %s", this));
+        throw UnsupportedTemporalUnitException.cannotGetZoneOffset(String.valueOf(this));
     }
 
     @Override

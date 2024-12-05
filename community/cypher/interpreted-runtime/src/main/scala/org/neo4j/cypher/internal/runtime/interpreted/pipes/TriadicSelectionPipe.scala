@@ -53,7 +53,7 @@ case class TriadicSelectionPipe(
       override def getValue(row: CypherRow): Option[Long] = row.getByName(seen) match {
         case n: VirtualNodeValue => Some(n.id())
         case IsNoValue()         => None
-        case x                   => throw new CypherTypeException(s"Expected a node at `$seen` but got $x")
+        case x                   => throw CypherTypeException.expectedNodeAtRow(seen, String.valueOf(x))
       }
 
       override def setState(triadicSet: LongHashSet): Unit = triadicState = triadicSet

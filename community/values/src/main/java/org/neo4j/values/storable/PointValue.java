@@ -368,14 +368,10 @@ public class PointValue extends HashMemoizingScalarValue implements Point, Compa
                 crs = coordinates.length == 3 ? CoordinateReferenceSystem.WGS_84_3D : CoordinateReferenceSystem.WGS_84;
             }
             if (!crs.isGeographic()) {
-                throw new InvalidArgumentException(String.format(
-                        "Geographic points does not support coordinate reference system: %s."
-                                + "This is set either in the csv header or the actual data column",
-                        crs));
+                throw InvalidArgumentException.invalidCRSForGeographic(String.valueOf(crs));
             }
         } else {
             if (crs == null) {
-
                 throw InvalidArgumentException.invalidCoordinateNames();
             }
 
@@ -413,10 +409,11 @@ public class PointValue extends HashMemoizingScalarValue implements Point, Compa
     }
 
     DoubleValue getNthCoordinate(int n, String fieldName, boolean onlyGeographic) {
+
         if (onlyGeographic && !this.getCoordinateReferenceSystem().isGeographic()) {
-            throw new InvalidArgumentException("Field: " + fieldName + " is not available on cartesian point: " + this);
+            throw InvalidArgumentException.fieldNotAvailableOnPoint(fieldName, String.valueOf(this), true);
         } else if (n >= this.coordinate().length) {
-            throw new InvalidArgumentException("Field: " + fieldName + " is not available on point: " + this);
+            throw InvalidArgumentException.fieldNotAvailableOnPoint(fieldName, String.valueOf(this), false);
         } else {
             return Values.doubleValue(coordinate[n]);
         }

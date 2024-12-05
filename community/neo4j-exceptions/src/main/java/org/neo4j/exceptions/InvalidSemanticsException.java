@@ -93,6 +93,34 @@ public class InvalidSemanticsException extends Neo4jException {
         return new InvalidSemanticsException(gql, legacyMessage);
     }
 
+    public static InvalidSemanticsException cannotMergeNodeNullProperty(String key, String labelString) {
+        var gql = GqlHelper.getGql22G03_22N31();
+        return new InvalidSemanticsException(
+                gql,
+                String.format(
+                        "Cannot merge the following node because of null property value for '%s': (%s {%s: null})",
+                        key, labelString, key));
+    }
+
+    public static InvalidSemanticsException cannotMergeNodeNaNProperty(String key, String labelsString) {
+        var gql = GqlHelper.getGql22G03_22N31();
+        return new InvalidSemanticsException(
+                gql,
+                String.format(
+                        "Cannot merge the following node because of NaN property value for '%s': (%s {%s: NaN})",
+                        key, labelsString, key));
+    }
+
+    public static InvalidSemanticsException cannotMergeRelPropertyValue(
+            String value, String key, String startVarPart, String stringifiedRelType, String endVarPart) {
+        var gql = GqlHelper.getGql22G03_22N31();
+        return new InvalidSemanticsException(
+                gql,
+                String.format(
+                        "Cannot merge the following relationship because of %s property value for '%s': (%s)-[:%s {%s: %s}]->(%s)",
+                        value, key, startVarPart, stringifiedRelType, key, value, endVarPart));
+    }
+
     @Override
     public Status status() {
         return Status.Statement.SemanticError;

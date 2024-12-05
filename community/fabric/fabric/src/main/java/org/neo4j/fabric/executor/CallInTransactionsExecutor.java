@@ -163,7 +163,8 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
         }
 
         if (paramValue instanceof NoValue) {
-            throw new ParameterNotFoundException("Expected parameter(s): " + parameter.name());
+            throw ParameterNotFoundException.expectedParam(
+                    parameter.name(), queryParams().keySet());
         }
 
         // Parameter types are checked by semantic analysis, so this is here

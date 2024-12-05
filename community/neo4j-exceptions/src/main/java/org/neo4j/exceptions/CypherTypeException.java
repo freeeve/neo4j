@@ -373,6 +373,47 @@ public class CypherTypeException extends Neo4jException {
                 gql, String.format("Parameter provided for setting properties is not a Map, instead got %s", got));
     }
 
+    public static CypherTypeException propertyWithRelCollection(List<?> collection) {
+        var gql = GqlHelper.getGql22G03_22N39(String.valueOf(collection));
+        return new CypherTypeException(
+                gql, "Collections containing relationship values can not be stored in properties.");
+    }
+
+    public static CypherTypeException propertyWithNullInCollection(String serializedList) {
+        var gql = GqlHelper.getGql22G03_22N39(serializedList);
+        return new CypherTypeException(gql, "Collections containing null values can not be stored in properties.");
+    }
+
+    public static CypherTypeException propertyWithCollectionInCollection(String serializedList) {
+        var gql = GqlHelper.getGql22G03_22N39(serializedList);
+        return new CypherTypeException(gql, "Collections containing collections can not be stored in properties.");
+    }
+
+    public static CypherTypeException genericPropertyError(String value) {
+        var gql = GqlHelper.getGql22G03_22N39(value);
+        return new CypherTypeException(
+                gql,
+                "Neo4j only supports a subset of Cypher types for storage as singleton or array properties. "
+                        + "Please refer to section cypher/syntax/values of the manual for more details.");
+    }
+
+    public static CypherTypeException collectionDifferentCRSPoints(String collection) {
+        var gql = GqlHelper.getGql22G03_22N39(String.valueOf(collection));
+        return new CypherTypeException(
+                gql, "Collections containing point values with different CRS can not be stored in properties.");
+    }
+
+    public static CypherTypeException collectionDifferentDimPoints(String collection) {
+        var gql = GqlHelper.getGql22G03_22N39(String.valueOf(collection));
+        return new CypherTypeException(
+                gql, "Collections containing point values with different dimensions can not be stored in properties.");
+    }
+
+    public static CypherTypeException expectedNodeAtRow(String row, String got) {
+        var gql = GqlHelper.getGql22G03_22N27(row, got, List.of("NODE"));
+        return new CypherTypeException(gql, String.format("Expected a node at `%s` but got %s", row, got));
+    }
+
     @Override
     public Status status() {
         return Status.Statement.TypeError;

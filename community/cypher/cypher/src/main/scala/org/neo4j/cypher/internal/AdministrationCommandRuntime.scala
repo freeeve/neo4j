@@ -218,7 +218,7 @@ object AdministrationCommandRuntime {
       case s: StringValue =>
         UTF8.encode(s.stringValue()) // User parameters have String type
       case Values.NO_VALUE =>
-        throw new ParameterNotFoundException(s"Expected parameter(s): $passwordParameter")
+        throw ParameterNotFoundException.expectedParam(passwordParameter, params.keySet())
       case other =>
         val pp = new PrettyPrinter
         other.writeTo(pp)

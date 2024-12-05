@@ -1409,7 +1409,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlStatus("22N39"),
             """
                     Value { %s } cannot be stored in properties.""",
-            new GqlParams.GqlParam[] {GqlParams.NumberParam.value},
+            new GqlParams.GqlParam[] {GqlParams.StringParam.value},
             emptyMap(),
             Condition.DATA_EXCEPTION,
             "unsupported property value type",
@@ -1480,7 +1480,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N48(
             new GqlStatus("22N48"),
             """
-                    Cannot use the specified runtime { %s } due to { %s }. Use another runtime.""",
+                    Cannot use the specified runtime { %s } due to { %s } not being supported. Use another runtime.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.runtime, GqlParams.StringParam.cause},
             emptyMap(),
             Condition.DATA_EXCEPTION,

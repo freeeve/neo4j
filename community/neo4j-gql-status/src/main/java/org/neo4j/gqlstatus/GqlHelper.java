@@ -139,6 +139,27 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql22000_22N21(String crs) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
+                .withClassification(ErrorClassification.CLIENT_ERROR)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N21)
+                        .withClassification(ErrorClassification.CLIENT_ERROR)
+                        .withParam(GqlParams.StringParam.crs, crs)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql22000_22N48(String runtime, String cause) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
+                .withClassification(ErrorClassification.CLIENT_ERROR)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N48)
+                        .withClassification(ErrorClassification.CLIENT_ERROR)
+                        .withParam(GqlParams.StringParam.runtime, runtime)
+                        .withParam(GqlParams.StringParam.cause, cause)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql22G03_22N01(String value, List<String> valueTypeList, String valueType) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
@@ -170,6 +191,36 @@ public class GqlHelper {
                         .withParam(GqlParams.StringParam.context, context)
                         .withParam(GqlParams.ListParam.valueTypeList, validTypes)
                         .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql22G03_22N31() {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
+                .withClassification(ErrorClassification.CLIENT_ERROR)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N31)
+                        .withClassification(ErrorClassification.CLIENT_ERROR)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql22G03_22N39(String value) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
+                .withClassification(ErrorClassification.CLIENT_ERROR)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N39)
+                        .withClassification(ErrorClassification.CLIENT_ERROR)
+                        .withParam(GqlParams.StringParam.value, value)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql22G05_22N15(String component, String temporal) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G05)
+                .withClassification(ErrorClassification.CLIENT_ERROR)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N15)
+                        .withClassification(ErrorClassification.CLIENT_ERROR)
+                        .withParam(GqlParams.StringParam.component, component)
+                        .withParam(GqlParams.StringParam.temporal, temporal)
                         .build())
                 .build();
     }
@@ -212,6 +263,20 @@ public class GqlHelper {
                 .withParam(GqlParams.StringParam.context, context)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N84)
                         .withParam(GqlParams.NumberParam.upper, upper)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql22N38_22N03(
+            String fun, String component, String valueType, Number lower, Number upper, Number value) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N38)
+                .withParam(GqlParams.StringParam.fun, fun)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N03)
+                        .withParam(GqlParams.StringParam.component, component)
+                        .withParam(GqlParams.StringParam.valueType, valueType)
+                        .withParam(GqlParams.NumberParam.lower, lower)
+                        .withParam(GqlParams.NumberParam.upper, upper)
+                        .withParam(GqlParams.StringParam.value, String.valueOf(value))
                         .build())
                 .build();
     }
@@ -572,6 +637,17 @@ public class GqlHelper {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N09)
                         .withParam(GqlParams.StringParam.user, user)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql42002_42N81(String param, List<?> paramList) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+                .withClassification(ErrorClassification.CLIENT_ERROR)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N81)
+                        .withClassification(ErrorClassification.CLIENT_ERROR)
+                        .withParam(GqlParams.StringParam.param, param)
+                        .withParam(GqlParams.ListParam.paramList, paramList)
                         .build())
                 .build();
     }

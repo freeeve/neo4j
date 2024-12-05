@@ -402,6 +402,19 @@ public class InvalidArgumentException extends Neo4jException {
                         formattedServerType, constrainedServers, formattedAllocationType, desiredAllocations));
     }
 
+    public static InvalidArgumentException fieldNotAvailableOnPoint(
+            String fieldName, String point, Boolean isCartesian) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N58)
+                        .withParam(GqlParams.StringParam.component, fieldName)
+                        .withParam(GqlParams.StringParam.value, point)
+                        .build())
+                .build();
+        String cartesian = isCartesian ? "cartesian " : "";
+        return new InvalidArgumentException(
+                gql, String.format("Field: %s is not available on %spoint: %s", fieldName, cartesian, point));
+    }
+
     public static InvalidArgumentException notAValidCidrIp(
             String wrongIp,
             Boolean cypher5,
@@ -518,7 +531,7 @@ public class InvalidArgumentException extends Neo4jException {
     }
 
     public static InvalidArgumentException zeroStepRange() {
-        var gql = GqlHelper.getGql22N38_22N03("range", "step", "INTEGER", 1, Long.MAX_VALUE, String.valueOf(0));
+        var gql = GqlHelper.getGql22N38_22N03("range", "step", "INTEGER", 1, Long.MAX_VALUE, 0);
         return new InvalidArgumentException(gql, "Step argument to 'range()' cannot be zero");
     }
 
@@ -631,6 +644,16 @@ public class InvalidArgumentException extends Neo4jException {
     public static InvalidArgumentException needIntegerOrFloat(String gotPretty, String gotType) {
         var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of("INTEGER", "FLOAT"), gotType);
         return new InvalidArgumentException(gql, "Factor must be either integer of floating point number.");
+    }
+
+    public static InvalidArgumentException invalidCRSForGeographic(String crs) {
+        var gql = GqlHelper.getGql22000_22N21(crs);
+        return new InvalidArgumentException(
+                gql,
+                String.format(
+                        "Geographic points does not support coordinate reference system: %s."
+                                + "This is set either in the csv header or the actual data column",
+                        crs));
     }
 
     public static InvalidArgumentException inputContainsInvalidCharacters(
@@ -823,5 +846,14 @@ public class InvalidArgumentException extends Neo4jException {
             return new InvalidArgumentException(gql, operation + " " + e.getMessage());
         }
         return new InvalidArgumentException(gql, operation, e);
+    }
+
+    public static InvalidArgumentException entityShouldBeNodeOrRel(String entity, String resolvedEntity) {
+        var gql = GqlHelper.getGql22G03_22N27(entity, resolvedEntity, List.of("NODE", "RELATIONSHIP"));
+        return new InvalidArgumentException(
+                gql,
+                String.format(
+                        "The expression %s should have been a node or a relationship, but got %s",
+                        entity, resolvedEntity));
     }
 }

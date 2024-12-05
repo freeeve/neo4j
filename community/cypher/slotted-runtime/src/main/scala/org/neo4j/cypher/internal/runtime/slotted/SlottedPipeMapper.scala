@@ -937,7 +937,7 @@ class SlottedPipeMapper(
 
       // Currently used for testing only
       case _: MultiNodeIndexSeek =>
-        throw new CantCompileQueryException(s"Slotted runtime does not support $plan")
+        throw CantCompileQueryException.unsupportedInSlotted(String.valueOf(plan))
 
       case _ =>
         fallback.onLeaf(plan)

@@ -288,7 +288,7 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
 
     @Override
     ZoneOffset getZoneOffset() {
-        throw new UnsupportedTemporalUnitException(String.format("Cannot get the offset of: %s", this));
+        throw UnsupportedTemporalUnitException.cannotGetZoneOffset(String.valueOf(this));
     }
 
     @Override

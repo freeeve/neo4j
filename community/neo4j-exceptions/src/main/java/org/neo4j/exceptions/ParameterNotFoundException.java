@@ -19,7 +19,10 @@
  */
 package org.neo4j.exceptions;
 
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class ParameterNotFoundException extends Neo4jException {
@@ -29,6 +32,20 @@ public class ParameterNotFoundException extends Neo4jException {
 
     public ParameterNotFoundException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
+    }
+
+    public static ParameterNotFoundException expectedParam(String expectedParam, Iterable<String> gotParams) {
+        var gql = GqlHelper.getGql42002_42N81(
+                expectedParam,
+                StreamSupport.stream(gotParams.spliterator(), false).collect(Collectors.toList()));
+        return new ParameterNotFoundException(gql, String.format("Expected parameter(s): %s", expectedParam));
+    }
+
+    public static ParameterNotFoundException expectedParamNamed(String expectedParam, Iterable<String> gotParams) {
+        var gql = GqlHelper.getGql42002_42N81(
+                expectedParam,
+                StreamSupport.stream(gotParams.spliterator(), false).collect(Collectors.toList()));
+        return new ParameterNotFoundException(gql, String.format("Expected a parameter named %s", expectedParam));
     }
 
     @Override

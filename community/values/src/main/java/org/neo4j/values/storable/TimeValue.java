@@ -257,7 +257,7 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
 
     @Override
     LocalDate getDatePart() {
-        throw new UnsupportedTemporalUnitException(String.format("Cannot get the date of: %s", this));
+        throw UnsupportedTemporalUnitException.cannotGetDate(this.prettyPrint());
     }
 
     @Override

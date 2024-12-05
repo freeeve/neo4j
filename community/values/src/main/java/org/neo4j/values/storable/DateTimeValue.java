@@ -359,7 +359,7 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
                 if (datetime instanceof LocalDateTimeValue value) {
                     return new DateTimeValue(ZonedDateTime.of(value.temporal(), timezone()));
                 }
-                throw new UnsupportedTemporalUnitException("Cannot select datetime from: " + datetime);
+                throw UnsupportedTemporalUnitException.cannotSelectDatetime(String.valueOf(datetime));
             }
         };
     }

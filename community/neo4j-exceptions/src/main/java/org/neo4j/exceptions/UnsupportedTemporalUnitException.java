@@ -22,6 +22,7 @@ package org.neo4j.exceptions;
 import org.neo4j.gqlstatus.ErrorClassification;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
@@ -57,5 +58,54 @@ public class UnsupportedTemporalUnitException extends CypherTypeException {
                         .build())
                 .build();
         return new UnsupportedTemporalUnitException(gql, e.getMessage(), e);
+    }
+
+    public static UnsupportedTemporalUnitException cannotSelectDatetime(String dateTime) {
+        var gql = GqlHelper.getGql22G05_22N15("DATETIME", dateTime);
+        return new UnsupportedTemporalUnitException(gql, "Cannot select datetime from: " + dateTime);
+    }
+
+    public static UnsupportedTemporalUnitException tooSmallUnitForTruncate(String unit, String value) {
+        var gql = GqlHelper.getGql22G05_22N15(unit, value);
+        return new UnsupportedTemporalUnitException(gql, "Unit too small for truncation: " + unit);
+    }
+
+    public static UnsupportedTemporalUnitException cannotGetLocalTime(String value) {
+        var gql = GqlHelper.getGql22G05_22N15("LOCAL TIME", value);
+        return new UnsupportedTemporalUnitException(gql, String.format("Cannot get the time of: %s", value));
+    }
+
+    public static UnsupportedTemporalUnitException cannotGetZonedTime(String value) {
+        var gql = GqlHelper.getGql22G05_22N15("ZONED TIME", value);
+        return new UnsupportedTemporalUnitException(gql, String.format("Cannot get the time of: %s", value));
+    }
+
+    public static UnsupportedTemporalUnitException cannotGetTimezone(String value) {
+        var gql = GqlHelper.getGql22G05_22N15("ZONED TIME/ZONED DATETIME", value);
+        return new UnsupportedTemporalUnitException(gql, String.format("Cannot get the time zone of: %s", value));
+    }
+
+    public static UnsupportedTemporalUnitException cannotGetDate(String value) {
+        var gql = GqlHelper.getGql22G05_22N15(
+                "DATE",
+                value); // should this also have something like "DATE/LOCAL DATETIME/ZONED DATETIME" or are they treated
+        // separately?
+        return new UnsupportedTemporalUnitException(gql, String.format("Cannot get the date of: %s", value));
+    }
+
+    public static UnsupportedTemporalUnitException cannotTruncateWithTimeBasedUnit(String input, String type) {
+        var gql = GqlHelper.getGql22G05_22N15(type, input);
+        return new UnsupportedTemporalUnitException(
+                gql, String.format("Cannot truncate %s to %s with a time based unit.", input, type));
+    }
+
+    public static UnsupportedTemporalUnitException cannotGetZoneOffset(String input) {
+        var gql = GqlHelper.getGql22G05_22N15("ZONED TIME/ZONED DATETIME", input);
+        return new UnsupportedTemporalUnitException(gql, String.format("Cannot get the offset of: %s", input));
+    }
+
+    public static UnsupportedTemporalUnitException noSuchField(String fieldName, String fieldType) {
+        var gql = GqlHelper.getGql22G05_22N15(fieldType, fieldName);
+        return new UnsupportedTemporalUnitException(gql, String.format("No such field: %s", fieldName));
     }
 }

@@ -160,8 +160,7 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
 
         @Override
         public ArrayValue toStorableArray() {
-            throw new CypherTypeException(
-                    "Collections containing relationship values can not be stored in properties.");
+            throw CypherTypeException.propertyWithRelCollection(list);
         }
 
         @Override

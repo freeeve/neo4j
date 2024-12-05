@@ -89,16 +89,12 @@ object CreateNode {
 
   def handleNoValue(labels: Seq[String], key: String): Unit = {
     val labelsString = if (labels.nonEmpty) ":" + labels.mkString(":") else ""
-    throw new InvalidSemanticsException(
-      s"Cannot merge the following node because of null property value for '$key': ($labelsString {$key: null})"
-    )
+    throw InvalidSemanticsException.cannotMergeNodeNullProperty(key, labelsString)
   }
 
   def handleNaNValue(labels: Seq[String], key: String): Unit = {
     val labelsString = if (labels.nonEmpty) ":" + labels.mkString(":") else ""
-    throw new InvalidSemanticsException(
-      s"Cannot merge the following node because of NaN property value for '$key': ($labelsString {$key: NaN})"
-    )
+    throw InvalidSemanticsException.cannotMergeNodeNaNProperty(key, labelsString)
   }
 }
 
@@ -149,7 +145,7 @@ case class CreateRelationship(command: CreateRelationshipCommand, allowNullOrNaN
       case IsNoValue() =>
         if (lenient) null
         else throw new InternalException(LenientCreateRelationship.errorMsg(relName, name))
-      case x => throw new InternalException(s"Expected to find a node at '$name' but found instead: $x")
+      case x => throw InternalException.expectedNodeFoundInsteadValue(String.valueOf(x), name)
     }
 }
 
@@ -174,9 +170,13 @@ object CreateRelationship {
       } else {
         endVariableName
       }
-    s"($startVarPart)-[:$stringifiedRelType {$key: $value}]->($endVarPart)"
-    throw new InvalidSemanticsException(
-      s"Cannot merge the following relationship because of $value property value for '$key': ($startVarPart)-[:$stringifiedRelType {$key: $value}]->($endVarPart)"
+
+    throw InvalidSemanticsException.cannotMergeRelPropertyValue(
+      value,
+      key,
+      startVarPart,
+      stringifiedRelType,
+      endVarPart
     )
   }
 

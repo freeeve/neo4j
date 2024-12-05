@@ -66,6 +66,54 @@ public class CantCompileQueryException extends Neo4jException {
         return new CantCompileQueryException(gql, msg);
     }
 
+    public static CantCompileQueryException aggregatingInPipelined(String functionName) {
+        var msg = String.format(
+                "Pipelined does not yet support the Aggregating function `%s`, use another runtime.", functionName);
+        var gql = GqlHelper.getGql22000_22N48("pipelined", functionName);
+        return new CantCompileQueryException(gql, msg);
+    }
+
+    public static CantCompileQueryException mergeNotYetSupported() {
+        var msg = "This merge is not yet supported";
+        var gql = GqlHelper.getGql22000_22N48("pipelined", GqlParams.StringParam.cmd.process("MERGE"));
+        return new CantCompileQueryException(gql, msg);
+    }
+
+    public static CantCompileQueryException unsupportedPlanInRuntime(String planComponent, String runtime) {
+        var msg = String.format(
+                "%s does not yet support the plans including `%s`, use another runtime.", runtime, planComponent);
+        var gql = GqlHelper.getGql22000_22N48(runtime, planComponent);
+        return new CantCompileQueryException(gql, msg);
+    }
+
+    public static CantCompileQueryException unsupportedFallbackMiddlePlanInRuntime(
+            String planComponent, String runtime) {
+        var msg = String.format(
+                "%s does not yet support using `%s` as a fallback middle plan, use another runtime.",
+                runtime, planComponent);
+        var gql = GqlHelper.getGql22000_22N48(runtime, planComponent);
+        return new CantCompileQueryException(gql, msg);
+    }
+
+    public static CantCompileQueryException unsupportedMiddlePlanInRuntime(String planComponent, String runtime) {
+        var msg = String.format(
+                "%s does not yet support using `%s` as a middle plan, use another runtime.", runtime, planComponent);
+        var gql = GqlHelper.getGql22000_22N48(runtime, planComponent);
+        return new CantCompileQueryException(gql, msg);
+    }
+
+    public static CantCompileQueryException unsupportedInRuntime(String unsupported, String runtime) {
+        var msg = String.format("%s does not yet support %s, use another runtime.", runtime, unsupported);
+        var gql = GqlHelper.getGql22000_22N48(runtime, unsupported);
+        return new CantCompileQueryException(gql, msg);
+    }
+
+    public static CantCompileQueryException unsupportedInSlotted(String unsupported) {
+        var msg = String.format("Slotted runtime does not support %s", unsupported);
+        var gql = GqlHelper.getGql22000_22N48("slotted", unsupported);
+        return new CantCompileQueryException(gql, msg);
+    }
+
     @Override
     public Status status() {
         return Status.Statement.ExecutionFailed;

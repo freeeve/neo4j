@@ -119,12 +119,12 @@ case class BFSPruningVarLengthExpandPipe(
                 case toNode: VirtualNodeValue => expand(row, fromNode, toNode.id())
                 case IsNoValue()              => ClosingIterator.empty
                 case value =>
-                  throw new InternalException(s"Expected to find a node at '$toName' but found $value instead")
+                  throw InternalException.expectedNodeFoundValueInstead(String.valueOf(value), toName)
               }
           }
         case IsNoValue() => ClosingIterator.empty
         case value =>
-          throw new InternalException(s"Expected to find a node at '$fromName' but found $value instead")
+          throw InternalException.expectedNodeFoundValueInstead(String.valueOf(value), fromName)
       }
     }
   }

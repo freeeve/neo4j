@@ -492,7 +492,10 @@ abstract class ExecutionEngine(
       if (!(givenParams.containsKey(key) || extractedParams.containsKey(key))) {
         val missingKeys =
           queryParams.filter(key => !(givenParams.containsKey(key) || extractedParams.containsKey(key))).distinct
-        throw new ParameterNotFoundException("Expected parameter(s): " + missingKeys.mkString(", "))
+        throw ParameterNotFoundException.expectedParam(
+          missingKeys.mkString(", "),
+          givenParams.keySet()
+        )
       }
       i += 1
     }

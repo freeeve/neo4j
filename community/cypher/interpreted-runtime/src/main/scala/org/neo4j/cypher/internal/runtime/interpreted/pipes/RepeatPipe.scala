@@ -278,7 +278,7 @@ case class RepeatPipe(
           }
 
         case IsNoValue() => ClosingIterator.empty
-        case value       => throw new InternalException(s"Expected to find a node at '$start' but found $value instead")
+        case value       => throw InternalException.expectedNodeFoundValueInstead(String.valueOf(value), start)
       }
     }
   }

@@ -179,7 +179,7 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
 
     @Override
     LocalDate getDatePart() {
-        throw new UnsupportedTemporalUnitException(String.format("Cannot get the date of: %s", this));
+        throw UnsupportedTemporalUnitException.cannotGetDate(this.prettyPrint());
     }
 
     @Override
@@ -201,7 +201,7 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
 
     @Override
     ZoneOffset getZoneOffset() {
-        throw new UnsupportedTemporalUnitException(String.format("Cannot get the offset of: %s", this));
+        throw UnsupportedTemporalUnitException.cannotGetZoneOffset(String.valueOf(this));
     }
 
     @Override

@@ -19,8 +19,10 @@
  */
 package org.neo4j.exceptions;
 
+import java.util.List;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
@@ -67,6 +69,23 @@ public class InternalException extends Neo4jException {
              |and `%s` to allow
              |for a larger sub-plan table and longer planning time.""",
                         setting1, setting2));
+    }
+
+    public static InternalException expectedNode(String value, String name) {
+        var gql = GqlHelper.getGql22G03_22N27(value, name, List.of("NODE"));
+        return new InternalException(gql, String.format("Expected variable `%s` to be a node, got %s", name, value));
+    }
+
+    public static InternalException expectedNodeFoundInsteadValue(String value, String name) {
+        var gql = GqlHelper.getGql22G03_22N27(value, name, List.of("NODE"));
+        return new InternalException(
+                gql, String.format("Expected to find a node at '%s' but found instead: %s", name, value));
+    }
+
+    public static InternalException expectedNodeFoundValueInstead(String value, String name) {
+        var gql = GqlHelper.getGql22G03_22N27(value, name, List.of("NODE"));
+        return new InternalException(
+                gql, String.format("Expected to find a node at '%s' but found %s instead", name, value));
     }
 
     @Override

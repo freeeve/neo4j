@@ -24,6 +24,7 @@ import static java.lang.String.format;
 import java.util.Arrays;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
@@ -72,6 +73,7 @@ public class InvalidSpatialArgumentException extends InvalidArgumentException {
     }
 
     public static InvalidSpatialArgumentException invalidCoordinateSystem(String crs) {
-        return new InvalidSpatialArgumentException("Unknown coordinate reference system: " + crs);
+        var gql = GqlHelper.getGql22000_22N21(crs);
+        return new InvalidSpatialArgumentException(gql, "Unknown coordinate reference system: " + crs);
     }
 }

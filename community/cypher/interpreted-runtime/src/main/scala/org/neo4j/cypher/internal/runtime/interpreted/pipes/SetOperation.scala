@@ -322,8 +322,9 @@ case class SetPropertyOperation(entityExpr: Expression, propertyKey: LazyPropert
             state.query.relationshipWriteOps,
             (id: Long) => executionContext.invalidateCachedRelationshipProperties(id)
           )
-        case _ => throw new InvalidArgumentException(
-            s"The expression $entityExpr should have been a node or a relationship, but got $resolvedEntity"
+        case _ => throw InvalidArgumentException.entityShouldBeNodeOrRel(
+            String.valueOf(entityExpr),
+            String.valueOf(resolvedEntity)
           )
       }
 

@@ -285,7 +285,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
             return Values.intValue(getZoneOffset().getTotalSeconds());
         }
         if (field == null || field.field == null) {
-            throw new UnsupportedTemporalUnitException("No such field: " + fieldName);
+            throw UnsupportedTemporalUnitException.noSuchField(fieldName, "ZONED TIME/ZONED DATETIME");
         }
         return Values.intValue(get(field.field));
     }
@@ -1262,8 +1262,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
 
     static Pair<LocalDate, LocalTime> getTruncatedDateAndTime(TemporalUnit unit, TemporalValue input, String type) {
         if (unit.isTimeBased() && !(input instanceof DateTimeValue || input instanceof LocalDateTimeValue)) {
-            throw new UnsupportedTemporalUnitException(
-                    String.format("Cannot truncate %s to %s with a time based unit.", input, type));
+            throw UnsupportedTemporalUnitException.cannotTruncateWithTimeBasedUnit(String.valueOf(input), type);
         }
         LocalDate localDate = input.getDatePart();
         LocalTime localTime = input.hasTime() ? input.getLocalTimePart() : LocalTimeValue.DEFAULT_LOCAL_TIME;
