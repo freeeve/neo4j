@@ -570,9 +570,8 @@ case class CommunityExpressionConverter(
       case Floor    => commands.expressions.FloorFunction(self.toCommandExpression(id, invocation.arguments.head))
       case Haversin => commands.expressions.HaversinFunction(self.toCommandExpression(id, invocation.arguments.head))
       case Head =>
-        commands.expressions.ContainerIndex(
-          self.toCommandExpression(id, invocation.arguments.head),
-          commands.expressions.Literal(intValue(0))
+        commands.expressions.Head(
+          self.toCommandExpression(id, invocation.arguments.head)
         )
       case functions.Id => commands.expressions.IdFunction(self.toCommandExpression(id, invocation.arguments.head))
       case IsNaN        => commands.expressions.IsNaNFunction(self.toCommandExpression(id, invocation.arguments.head))
@@ -581,9 +580,8 @@ case class CommunityExpressionConverter(
       case Keys   => commands.expressions.KeysFunction(self.toCommandExpression(id, invocation.arguments.head))
       case Labels => commands.expressions.LabelsFunction(self.toCommandExpression(id, invocation.arguments.head))
       case Last =>
-        commands.expressions.ContainerIndex(
-          self.toCommandExpression(id, invocation.arguments.head),
-          commands.expressions.Literal(intValue(-1))
+        commands.expressions.Last(
+          self.toCommandExpression(id, invocation.arguments.head)
         )
       case Left =>
         commands.expressions.LeftFunction(
@@ -748,10 +746,8 @@ case class CommunityExpressionConverter(
         else
           command
       case Tail =>
-        commands.expressions.ListSlice(
-          self.toCommandExpression(id, invocation.arguments.head),
-          Some(commands.expressions.Literal(intValue(1))),
-          None
+        commands.expressions.Tail(
+          self.toCommandExpression(id, invocation.arguments.head)
         )
       case Tan       => commands.expressions.TanFunction(self.toCommandExpression(id, invocation.arguments.head))
       case ToBoolean => commands.expressions.ToBooleanFunction(self.toCommandExpression(id, invocation.arguments.head))
