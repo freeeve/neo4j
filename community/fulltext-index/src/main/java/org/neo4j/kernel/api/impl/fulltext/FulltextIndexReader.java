@@ -237,6 +237,9 @@ public class FulltextIndexReader implements ValueIndexReader {
             // The query rewrite does not really depend on any data in the index searcher (we don't produce such
             // queries), so it's fine
             // that we only rewrite the query once with the first searcher in our partition list.
+            if (searchers.isEmpty()) {
+                return ValuesIterator.EMPTY;
+            }
             query = searchers.get(0).getIndexSearcher().rewrite(query);
             boolean includeTransactionState =
                     context.getTransactionStateOrNull() != null && !isEventuallyConsistent(index);

@@ -21,6 +21,8 @@ package org.neo4j.internal.batchimport;
 
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.index_populator_block_size;
 import static org.neo4j.internal.batchimport.IncrementalBatchImportUtil.moveIndex;
+import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
+import static org.neo4j.internal.kernel.api.PropertyIndexQuery.allEntries;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 
 import java.io.Closeable;
@@ -48,13 +50,14 @@ import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.helpers.progress.ProgressListener;
+import org.neo4j.internal.kernel.api.QueryContext;
+import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.io.memory.UnsafeDirectByteBufferAllocator;
-import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexAccessor;
@@ -65,14 +68,16 @@ import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
+import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.UpdateMode;
+import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Value;
 
 /**
- * Logic for building indexes during import. The idea is to have an {@link org.neo4j.kernel.api.index.IndexPopulator index populator}
+ * Logic for building indexes during import. The idea is to have an {@link IndexPopulator index populator}
  * for each index that sees updates during import and let each thread (typically doing graph data updates and
  * generating index updates while doing so) add its share of updates to the index populators.
  */
@@ -178,8 +183,9 @@ public class ImportIndexBuilder implements Closeable {
     private IndexAccessor constructIndexAccessor(IndexDescriptor index) {
         var indexProvider = indexProviderMap.lookup(index.getIndexProvider());
         try {
+            var completedIndex = indexProvider.completeConfiguration(index, indexingBehaviour);
             return indexProvider.getOnlineAccessor(
-                    index,
+                    completedIndex,
                     new IndexSamplingConfig(Config.defaults()),
                     tokenNameLookup,
                     ElementIdMapper.PLACEHOLDER,
@@ -228,8 +234,7 @@ public class ImportIndexBuilder implements Closeable {
                         entityIdFromIndexIdConverter);
                 boolean successful = false;
                 try {
-                    populator.scanCompleted(
-                            PhaseTracker.nullInstance, workScheduler, conflictHandler, CursorContext.NULL_CONTEXT);
+                    populator.scanCompleted(PhaseTracker.nullInstance, workScheduler, conflictHandler, NULL_CONTEXT);
                     indexStatisticsStore.setSampleStats(population.getKey().getId(), populator.sample(NULL_CONTEXT));
                     successful = true;
                 } catch (IndexEntryConflictException e) {
@@ -258,7 +263,7 @@ public class ImportIndexBuilder implements Closeable {
             var conflictHandler = new RecordingIndexEntryConflictHandler(
                     collector, violatingEntities, descriptor, tokenNameLookup, entityIdFromIndexIdConverter);
             // For constraint indexes checking violations
-            if (descriptor.isUnique()) {
+            if (descriptor.isUnique() && !isEmpty(builder.accessor)) {
                 // Validate uniqueness, since it's a constraint index
                 try (var builtIncrementIndex = tempIndexes
                         .lookup(descriptor.getIndexProvider())
@@ -292,9 +297,8 @@ public class ImportIndexBuilder implements Closeable {
             for (var population : indexBuilders.entrySet()) {
                 var descriptor = population.getKey();
                 var builder = population.getValue();
-                if (!descriptor.isUnique() && filter == null && incrementalIndexing) {
-                    // For non-constraint indexes we can simply move the increment index into place
-                    // if there are no violations.
+                boolean targetIndexEmpty = isEmpty(builder.accessor);
+                if (targetIndexEmpty && filter == null) {
                     builder.close();
                     moveIndex(fileSystem, tempIndexes, indexProviderMap, descriptor);
                 } else {
@@ -325,6 +329,16 @@ public class ImportIndexBuilder implements Closeable {
             throw new RuntimeException(e);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    private boolean isEmpty(IndexAccessor accessor) {
+        try (var reader = accessor.newValueReader(IndexUsageTracking.NO_USAGE_TRACKING);
+                var client = new SimpleEntityValueClient()) {
+            reader.query(client, QueryContext.NULL_CONTEXT, NULL_CONTEXT, unconstrained(), allEntries());
+            return !client.next();
+        } catch (IndexNotApplicableKernelException e) {
+            throw new RuntimeException(e);
         }
     }
 
