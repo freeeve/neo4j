@@ -26,8 +26,9 @@ import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.SequencedSet;
 import org.github.jamm.Unmetered;
+import org.neo4j.collection.trackable.HeapTrackingOrderedAppendSet;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.Equality;
@@ -52,7 +53,8 @@ public final class SetListValue extends ListValue {
         @Unmetered
         private ValueRepresentation valueRepresentation;
 
-        private final LinkedHashSet<AnyValue> set = new LinkedHashSet<>();
+        private final HeapTrackingOrderedAppendSet<AnyValue> set =
+                HeapTrackingOrderedAppendSet.createOrderedSet(EmptyMemoryTracker.INSTANCE);
 
         private Builder() {
             estimatedHeapUsage = LINKED_SET_SHALLOW_SIZE;
@@ -89,7 +91,7 @@ public final class SetListValue extends ListValue {
          */
         private long unAllocatedHeapSize;
 
-        private final LinkedHashSet<AnyValue> set = new LinkedHashSet<>();
+        private final HeapTrackingOrderedAppendSet<AnyValue> set;
         // We wait to track memory (bytes) below this threshold (see `unAllocatedHeapSize`).
         private static final long HEAP_SIZE_ALLOCATION_THRESHOLD = 4096;
         private final MemoryTracker scopedMemoryTracker;
@@ -99,6 +101,7 @@ public final class SetListValue extends ListValue {
             // we use a scoped memory tracker
             scopedMemoryTracker = memoryTracker.getScopedMemoryTracker();
             scopedMemoryTracker.allocateHeap(SHALLOW_SIZE + SCOPED_MEMORY_TRACKER_SHALLOW_SIZE);
+            set = HeapTrackingOrderedAppendSet.createOrderedSet(scopedMemoryTracker);
             valueRepresentation = ValueRepresentation.ANYTHING;
         }
 
@@ -157,10 +160,10 @@ public final class SetListValue extends ListValue {
     @Unmetered
     private final ValueRepresentation itemRepresentation;
 
-    private final SequencedSet<AnyValue> set;
+    private final HeapTrackingOrderedAppendSet<AnyValue> set;
     private final long payload;
 
-    SetListValue(SequencedSet<AnyValue> set, long payload, ValueRepresentation itemRepresentation) {
+    SetListValue(HeapTrackingOrderedAppendSet<AnyValue> set, long payload, ValueRepresentation itemRepresentation) {
         this.itemRepresentation = itemRepresentation;
         this.set = set;
         this.payload = payload;
@@ -205,10 +208,10 @@ public final class SetListValue extends ListValue {
         return set.getFirst();
     }
 
-    @Override
-    public ListValue reverse() {
-        return new SetListValue(set.reversed(), payload, itemRepresentation);
-    }
+    //    @Override
+    //    public ListValue reverse() {
+    //        return new SetListValue(set.reversed(), payload, itemRepresentation);
+    //    }
 
     @Override
     public AnyValue last() {
