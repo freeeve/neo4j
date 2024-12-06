@@ -251,25 +251,7 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
         @Override
         public PhysicalLogChannel create(LogVersionedStoreChannel logChannel, LogHeader logHeader) throws IOException {
             if (logChannel.getLogFormatVersion().usesSegments()) {
-                int previousChecksum = logHeader.getPreviousLogFileChecksum();
-
-                // Apparently not at the start of the file - must update to the correct checksum
-                long position = logChannel.position();
-                if (position != logHeader.getStartPosition().getByteOffset()) {
-                    // Providing our own buffer since we don't want to close the read channel - which would close the
-                    // underlying channel.
-                    try (var buffer = new NativeScopedBuffer(
-                            logHeader.getSegmentBlockSize(), LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE)) {
-                        EnvelopeReadChannel envelopeReadChannel = new EnvelopeReadChannel(
-                                logChannel,
-                                logHeader.getSegmentBlockSize(),
-                                LogVersionBridge.NO_MORE_CHANNELS,
-                                true,
-                                buffer);
-                        previousChecksum = envelopeReadChannel.temporaryFindPreviousChecksumBeforePosition(position);
-                        logChannel.position(position);
-                    }
-                }
+                int previousChecksum = figureOutPreviousChecksumForEnvelopeChannel(logChannel, logHeader);
 
                 return new EnvelopeWriteChannel(
                         logChannel,
@@ -297,11 +279,13 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
         @Override
         public PhysicalLogChannel create(LogVersionedStoreChannel logChannel, LogHeader logHeader) throws IOException {
             if (logChannel.getLogFormatVersion().usesSegments()) {
+                int previousChecksum = figureOutPreviousChecksumForEnvelopeChannel(logChannel, logHeader);
+
                 return new EnvelopeWriteChannel(
                         logChannel,
                         new HeapScopedBuffer(logHeader.getSegmentBlockSize(), ByteOrder.LITTLE_ENDIAN, memoryTracker),
                         logHeader.getSegmentBlockSize(),
-                        logHeader.getPreviousLogFileChecksum(),
+                        previousChecksum,
                         EnvelopeWriteChannel
                                 .START_INDEX, // Not correct index from cluster perspective -  not needed yet.
                         DatabaseTracer.NULL,
@@ -311,5 +295,25 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
                         logChannel, new HeapScopedBuffer((int) kibiBytes(128), ByteOrder.LITTLE_ENDIAN, memoryTracker));
             }
         }
+    }
+
+    private static int figureOutPreviousChecksumForEnvelopeChannel(
+            LogVersionedStoreChannel logChannel, LogHeader logHeader) throws IOException {
+        int previousChecksum = logHeader.getPreviousLogFileChecksum();
+
+        // Apparently not at the start of the file - must update to the correct checksum
+        long position = logChannel.position();
+        if (position != logHeader.getStartPosition().getByteOffset()) {
+            // Providing our own buffer since we don't want to close the read channel - which would close the
+            // underlying channel.
+            try (var buffer = new NativeScopedBuffer(
+                    logHeader.getSegmentBlockSize(), LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE)) {
+                EnvelopeReadChannel envelopeReadChannel = new EnvelopeReadChannel(
+                        logChannel, logHeader.getSegmentBlockSize(), LogVersionBridge.NO_MORE_CHANNELS, true, buffer);
+                previousChecksum = envelopeReadChannel.temporaryFindPreviousChecksumBeforePosition(position);
+                logChannel.position(position);
+            }
+        }
+        return previousChecksum;
     }
 }
