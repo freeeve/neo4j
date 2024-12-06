@@ -348,7 +348,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     }
 
     @Override
-    public int nodeDetachDelete(long nodeId, DetachDeleteConsumer deletedRelationshipConsumer) {
+    public int nodeDetachDelete(long nodeId) {
         ktx.assertOpen();
         storageLocks.acquireNodeDeletionLock(ktx.txState(), ktx.lockTracer(), nodeId);
         NodeCursor nodeCursor = ktx.ambientNodeCursor();
@@ -358,17 +358,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             try (var rels = RelationshipSelections.allCursor(ktx.cursors(), nodeCursor, null, ktx.cursorContext())) {
                 while (rels.next()) {
                     long relationshipReference = rels.relationshipReference();
-                    int type = rels.type();
-                    long sourceNodeReference = rels.sourceNodeReference();
-                    long targetNodeReference = rels.targetNodeReference();
                     boolean deleted = relationshipDelete(relationshipReference);
                     if (additionLockVerification && !deleted) {
                         throw new RuntimeException(
                                 "Relationship chain modified even when node delete lock was held: " + rels);
-                    }
-                    if (deleted) {
-                        deletedRelationshipConsumer.accept(
-                                relationshipReference, type, sourceNodeReference, targetNodeReference);
                     }
                     deletedRelationships++;
                 }

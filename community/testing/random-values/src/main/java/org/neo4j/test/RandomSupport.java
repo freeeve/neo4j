@@ -30,6 +30,7 @@ import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.list.primitive.LongList;
+import org.eclipse.collections.api.set.primitive.LongSet;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -253,6 +254,10 @@ public class RandomSupport {
 
     public long among(LongList among) {
         return randoms.among(among);
+    }
+
+    public long among(LongSet among) {
+        return randoms.among(among.collect(i -> i));
     }
 
     public <T> T among(RichIterable<T> among) {

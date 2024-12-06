@@ -98,6 +98,7 @@ import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.AccessModeProvider;
 import org.neo4j.kernel.api.ExecutionContext;
+import org.neo4j.kernel.api.InnerTransactionHandler;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.ResourceMonitor;
 import org.neo4j.kernel.api.TerminationMark;
@@ -1603,7 +1604,11 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     }
 
     @Override
-    public InnerTransactionHandlerImpl getInnerTransactionHandler() {
+    public InnerTransactionHandler getInnerTransactionHandler() {
+        return innerTransactionHandler();
+    }
+
+    private InnerTransactionHandlerImpl innerTransactionHandler() {
         var handle = innerTransactionHandler;
         if (handle != null) {
             return this.innerTransactionHandler;
@@ -1612,7 +1617,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     }
 
     private void assertNoInnerTransactions() throws TransactionFailureException {
-        if (getInnerTransactionHandler().hasInnerTransaction()) {
+        if (innerTransactionHandler().hasInnerTransaction()) {
             throw TransactionFailureException.innerTransactionsStillOpen();
         }
     }
