@@ -118,13 +118,7 @@ object CypherQueryOptions {
             CypherVersion.supportedValues.map(_.name): _*
           )
         }
-        if (
-          config.defaultCypherVersion == internal.CypherVersion.Cypher25 && !options.cypherVersion.fromPreParserOption
-        ) {
-          options.copy(cypherVersion = CypherVersion.cypher25)
-        } else {
-          options
-        }
+        options
     }
   }
 
@@ -210,23 +204,24 @@ sealed abstract class CypherVersion(val version: String) extends CypherOption(ve
   def fromPreParserOption: Boolean
 }
 
-case object CypherVersion extends CypherOptionCompanion[CypherVersion](name = "cypher version") {
+case object CypherVersion extends CypherOptionCompanion[CypherVersion](
+      name = "cypher version",
+      setting = Some(GraphDatabaseInternalSettings.default_cypher_version),
+      cypherConfigField = Some(_.defaultCypherVersionFromConfig)
+    ) {
 
   case object default extends CypherVersion("") {
     override def actualVersion: internal.CypherVersion = internal.CypherVersion.Default
-
     override def fromPreParserOption: Boolean = false
   }
 
   case object cypher5 extends CypherVersion("5") {
     override def actualVersion: internal.CypherVersion = internal.CypherVersion.Cypher5
-
     override def fromPreParserOption: Boolean = true
   }
 
   case object cypher25 extends CypherVersion("25") {
     override def actualVersion: internal.CypherVersion = internal.CypherVersion.Cypher25
-
     override def fromPreParserOption: Boolean = true
   }
 

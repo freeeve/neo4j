@@ -23,6 +23,7 @@ import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.CypherParallelRuntimeSupport.DISABLED
 import org.neo4j.configuration.GraphDatabaseInternalSettings.cypher_parallel_runtime_support
+import org.neo4j.cypher.internal
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.InvalidCypherOption
@@ -201,6 +202,37 @@ class OptionReaderTest extends CypherFunSuite {
         Map(GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE),
         "cypher version" -> version.versionName
       ).cypherVersion.actualVersion shouldBe version
+    }
+  }
+
+  test("Cypher version can be read with experimental versions and default setting") {
+    for {
+      versionSetting <- GraphDatabaseInternalSettings.CypherVersion.values()
+      preparserOption <- CypherVersion.values
+    } {
+      withClue(s"setting=$versionSetting, preparserOption=${preparserOption.render}") {
+        options(
+          Map(
+            GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE,
+            GraphDatabaseInternalSettings.default_cypher_version -> versionSetting
+          ),
+          "cypher version" -> preparserOption.render
+        ).cypherVersion.actualVersion shouldBe preparserOption.actualVersion
+      }
+    }
+
+    for {
+      versionSetting <- GraphDatabaseInternalSettings.CypherVersion.values()
+    } {
+      val expected = versionSetting match {
+        case GraphDatabaseInternalSettings.CypherVersion.Default  => internal.CypherVersion.Cypher5
+        case GraphDatabaseInternalSettings.CypherVersion.Cypher5  => internal.CypherVersion.Cypher5
+        case GraphDatabaseInternalSettings.CypherVersion.Cypher25 => internal.CypherVersion.Cypher25
+      }
+      options(Map(
+        GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE,
+        GraphDatabaseInternalSettings.default_cypher_version -> versionSetting
+      )).cypherVersion.actualVersion shouldBe expected
     }
   }
 
