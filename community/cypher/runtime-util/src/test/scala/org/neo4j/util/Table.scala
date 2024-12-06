@@ -44,15 +44,17 @@ case class Table(header: Seq[String], rows: Seq[Seq[AnyValue]]) {
 
   override def toString: String = {
     val widths = (header +: rows).transpose.map(_.map(_.toString.length).max)
-    val sb = new scala.collection.mutable.StringBuilder("Table: \n")
+    val sb = new scala.collection.mutable.StringBuilder("Table (")
+    sb.append(rows.length).append(" rows):\n")
     def appendLine(line: Seq[Object]) = {
       sb.append(line.zip(widths).map { case (h, w) =>
         h.toString.padTo(w, ' ')
-      }.mkString(" | "))
+      }.mkString(" ┃ "))
         .append('\n')
     }
 
     appendLine(header)
+    sb.append(widths.map(x => "━".repeat(x)).mkString("━╋━")).append('\n')
     rows.foreach(appendLine)
 
     sb.toString()

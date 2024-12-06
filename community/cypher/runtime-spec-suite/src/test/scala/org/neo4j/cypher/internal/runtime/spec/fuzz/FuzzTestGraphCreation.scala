@@ -101,7 +101,7 @@ object FuzzTestGraphCreation {
        |  ${plan.toString.trim.lines().toScala(Seq).mkString("  ", "\n    ", "")}
        |  val rewrittenQuery = rewriteQuery(query)
        |
-       |  val baseRuntime = org.neo4j.cypher.internal.InterpretedRuntime // Change if neccessary
+       |  val baseRuntime = org.neo4j.cypher.internal.InterpretedRuntime // Change if necessary
        |  val expected = execute(rewrittenQuery, baseRuntime, params).awaitAll()
        |  execute(rewrittenQuery, runtime, params) should beColumns($columns)
        |    .withRows(inAnyOrder(expected, listInAnyOrder = true))

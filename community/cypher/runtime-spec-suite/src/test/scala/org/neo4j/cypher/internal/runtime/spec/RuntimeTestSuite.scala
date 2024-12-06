@@ -67,6 +67,7 @@ import org.neo4j.kernel.impl.query.RecordingQuerySubscriber
 import org.neo4j.kernel.internal.GraphDatabaseAPI
 import org.neo4j.logging.AssertableLogProvider
 import org.neo4j.logging.InternalLogProvider
+import org.neo4j.util.Table
 import org.neo4j.values.AnyValue
 import org.neo4j.values.AnyValues
 import org.neo4j.values.storable.DurationValue
@@ -602,6 +603,12 @@ case class RecordingRuntimeResult(
   def awaitAll(): IndexedSeq[Array[AnyValue]] = {
     resultConsumptionController.consume(runtimeResult)
     recordingQuerySubscriber.getOrThrow().asScala.toIndexedSeq
+  }
+
+  def table(): Table = {
+    val header = runtimeResult.fieldNames()
+    val res = awaitAll()
+    Table(header, res.map(_.toSeq))
   }
 }
 
