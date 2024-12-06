@@ -30,7 +30,7 @@ import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
-import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION_PROVIDER;
+import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -108,7 +108,7 @@ class ReversedSingleFileCommandBatchCursorTest {
         SimpleTransactionIdStore transactionIdStore = new SimpleTransactionIdStore();
         SimpleAppendIndexProvider appendIndexProvider = new SimpleAppendIndexProvider();
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        logFiles = LogFilesBuilder.builder(databaseLayout, fs, LATEST_KERNEL_VERSION_PROVIDER)
+        logFiles = LogFilesBuilder.builder(databaseLayout, fs, () -> LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES)
                 .withRotationThreshold(ByteUnit.mebiBytes(10))
                 .withLogVersionRepository(logVersionRepository)
                 .withTransactionIdStore(transactionIdStore)
@@ -290,7 +290,7 @@ class ReversedSingleFileCommandBatchCursorTest {
         TransactionLogWriter writer = new TransactionLogWriter(
                 channel,
                 new CorruptedLogEntryWriter<>(channel),
-                LATEST_KERNEL_VERSION_PROVIDER,
+                () -> LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES,
                 LogRotation.NO_ROTATION);
         long txId = ++this.txId;
         writer.append(
@@ -310,7 +310,7 @@ class ReversedSingleFileCommandBatchCursorTest {
             commands.add(new TestCommand());
         }
         return new CompleteCommandBatch(
-                commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, LatestVersions.LATEST_KERNEL_VERSION, ANONYMOUS);
+                commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES, ANONYMOUS);
     }
 
     private static class CorruptedLogEntryWriter<T extends WritableChannel> extends LogEntryWriter<T> {
