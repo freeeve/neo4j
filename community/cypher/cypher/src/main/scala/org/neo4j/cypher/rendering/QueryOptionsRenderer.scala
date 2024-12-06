@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.rendering
 
-import org.neo4j.cypher.internal.QueryOptions
+import org.neo4j.cypher.internal.preparser.QueryOptions
 
 object QueryOptionsRenderer {
   private val NL = System.lineSeparator()

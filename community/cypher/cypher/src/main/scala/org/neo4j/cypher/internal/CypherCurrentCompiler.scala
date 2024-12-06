@@ -42,6 +42,10 @@ import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttributes
 import org.neo4j.cypher.internal.planning.CypherPlanner
 import org.neo4j.cypher.internal.planning.ExceptionTranslatingQueryContext
 import org.neo4j.cypher.internal.planning.LogicalPlanResult
+import org.neo4j.cypher.internal.preparser.FullyParsedQuery
+import org.neo4j.cypher.internal.preparser.InputQuery
+import org.neo4j.cypher.internal.preparser.PreParsedQuery
+import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.result.ClosingExecutionResult
 import org.neo4j.cypher.internal.result.Error
 import org.neo4j.cypher.internal.result.ExplainExecutionResult

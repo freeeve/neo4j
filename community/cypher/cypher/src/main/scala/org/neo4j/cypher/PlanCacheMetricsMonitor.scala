@@ -19,10 +19,10 @@
  */
 package org.neo4j.cypher
 
-import org.neo4j.cypher.internal.InputQuery
 import org.neo4j.cypher.internal.QueryCache.CacheKey
 import org.neo4j.cypher.internal.cache.CacheTracer
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
+import org.neo4j.cypher.internal.preparser.InputQuery
 import org.neo4j.kernel.impl.query.CacheMetrics
 
 import java.util.concurrent.atomic.LongAdder

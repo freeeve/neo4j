@@ -25,8 +25,8 @@ import static org.neo4j.configuration.GraphDatabaseInternalSettings.multi_versio
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.cypher.internal.CompilerFactory;
-import org.neo4j.cypher.internal.FullyParsedQuery;
 import org.neo4j.cypher.internal.cache.CypherQueryCaches;
+import org.neo4j.cypher.internal.preparser.FullyParsedQuery;
 import org.neo4j.cypher.internal.runtime.InputDataStream;
 import org.neo4j.io.pagecache.context.VersionContext;
 import org.neo4j.kernel.GraphDatabaseQueryService;

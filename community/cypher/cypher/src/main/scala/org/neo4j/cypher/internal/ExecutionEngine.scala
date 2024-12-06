@@ -25,6 +25,9 @@ import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.expressions.FunctionTypeSignature
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.options.CypherReplanOption
+import org.neo4j.cypher.internal.preparser.FullyParsedQuery
+import org.neo4j.cypher.internal.preparser.InputQuery
+import org.neo4j.cypher.internal.preparser.PreParsedQuery
 import org.neo4j.cypher.internal.runtime.InputDataStream
 import org.neo4j.cypher.internal.runtime.NoInput
 import org.neo4j.cypher.internal.tracing.CompilationTracer

@@ -17,14 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher.internal
+package org.neo4j.cypher.internal.preparser
 
 import org.neo4j.cypher.internal.frontend.phases.BaseState
-import org.neo4j.cypher.internal.options.CypherExecutionMode
-import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
-import org.neo4j.cypher.internal.options.CypherQueryOptions
-import org.neo4j.cypher.internal.options.CypherReplanOption
-import org.neo4j.cypher.internal.options.CypherRuntimeOption
+import org.neo4j.cypher.internal.options._
 import org.neo4j.cypher.internal.util.DeprecatedRuntimeNotification
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InternalNotification

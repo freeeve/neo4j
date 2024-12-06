@@ -23,7 +23,7 @@ import static scala.jdk.javaapi.CollectionConverters.asJava;
 
 import java.util.Map;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
-import org.neo4j.cypher.internal.FullyParsedQuery;
+import org.neo4j.cypher.internal.preparser.FullyParsedQuery;
 import org.neo4j.fabric.eval.UseEvaluation;
 import org.neo4j.fabric.planning.FabricPlan;
 import org.neo4j.fabric.planning.FabricPlanner;

@@ -21,7 +21,7 @@ package org.neo4j.router.impl.query;
 
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.neo4j.cypher.internal.QueryOptions;
+import org.neo4j.cypher.internal.preparser.QueryOptions;
 import org.neo4j.cypher.internal.util.CancellationChecker;
 import org.neo4j.cypher.rendering.QueryOptionsRenderer;
 import org.neo4j.fabric.executor.Location;

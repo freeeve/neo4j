@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal
 
 import org.neo4j.common.EntityType
+import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.runtime.InputDataStream
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.graphdb.ExecutionPlanDescription

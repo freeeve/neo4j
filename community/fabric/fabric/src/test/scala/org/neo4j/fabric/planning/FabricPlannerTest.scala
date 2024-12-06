@@ -21,8 +21,6 @@ package org.neo4j.fabric.planning
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.CypherParallelRuntimeSupport
-import org.neo4j.cypher.internal.FullyParsedQuery
-import org.neo4j.cypher.internal.QueryOptions
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.CreateIndex
 import org.neo4j.cypher.internal.ast.CreateRole
@@ -52,6 +50,8 @@ import org.neo4j.cypher.internal.options.CypherRuntimeOption
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
 import org.neo4j.cypher.internal.options.CypherUpdateStrategy
 import org.neo4j.cypher.internal.options.CypherVersion
+import org.neo4j.cypher.internal.preparser.FullyParsedQuery
+import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.tracing.TimingCompilationTracer
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny

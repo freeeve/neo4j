@@ -32,7 +32,6 @@ import org.neo4j.cypher.internal.CompilerLibrary
 import org.neo4j.cypher.internal.CypherCurrentCompiler
 import org.neo4j.cypher.internal.LastCommittedTxIdProvider
 import org.neo4j.cypher.internal.MasterCompiler
-import org.neo4j.cypher.internal.PreParsedQuery
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
 import org.neo4j.cypher.internal.cache.LFUCache
@@ -45,6 +44,7 @@ import org.neo4j.cypher.internal.options.CypherPlannerOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
 import org.neo4j.cypher.internal.planner.spi.MinimumGraphStatistics.MIN_NODES_ALL
 import org.neo4j.cypher.internal.planner.spi.MinimumGraphStatistics.MIN_NODES_WITH_LABEL
+import org.neo4j.cypher.internal.preparser.PreParsedQuery
 import org.neo4j.cypher.internal.runtime.CypherRuntimeConfiguration
 import org.neo4j.cypher.internal.util.devNullLogger
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite

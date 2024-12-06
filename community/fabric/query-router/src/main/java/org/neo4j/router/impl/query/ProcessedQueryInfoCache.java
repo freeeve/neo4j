@@ -20,7 +20,6 @@
 package org.neo4j.router.impl.query;
 
 import java.util.Set;
-import org.neo4j.cypher.internal.PreParsedQuery;
 import org.neo4j.cypher.internal.cache.CacheSize;
 import org.neo4j.cypher.internal.cache.CacheTracer;
 import org.neo4j.cypher.internal.cache.CaffeineCacheFactory;
@@ -28,6 +27,7 @@ import org.neo4j.cypher.internal.cache.CypherQueryCaches;
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheKeyWithParameterType;
 import org.neo4j.cypher.internal.cache.LFUCache;
 import org.neo4j.cypher.internal.frontend.phases.BaseState;
+import org.neo4j.cypher.internal.preparser.PreParsedQuery;
 import org.neo4j.cypher.internal.util.InternalNotification;
 import org.neo4j.function.Observable;
 import org.neo4j.router.query.TargetService;

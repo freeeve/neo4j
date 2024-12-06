@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal
 
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
+import org.neo4j.cypher.internal.preparser.InputQuery
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.exceptions.Neo4jException
 import org.neo4j.kernel.database.DatabaseReference

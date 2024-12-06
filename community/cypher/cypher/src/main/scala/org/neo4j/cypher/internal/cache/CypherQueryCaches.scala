@@ -32,13 +32,10 @@ import org.neo4j.cypher.internal.DefaultPlanStalenessCaller
 import org.neo4j.cypher.internal.ExecutableQuery
 import org.neo4j.cypher.internal.ExecutingQueryTracer
 import org.neo4j.cypher.internal.ExecutionPlan
-import org.neo4j.cypher.internal.InputQuery
 import org.neo4j.cypher.internal.PlanStalenessCaller
-import org.neo4j.cypher.internal.PreParsedQuery
 import org.neo4j.cypher.internal.QueryCache
 import org.neo4j.cypher.internal.QueryCache.CacheKey
 import org.neo4j.cypher.internal.QueryCache.ParameterTypeMap
-import org.neo4j.cypher.internal.QueryOptions
 import org.neo4j.cypher.internal.ReusabilityState
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.AstCache
@@ -63,6 +60,9 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttributes
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributesCacheKey
+import org.neo4j.cypher.internal.preparser.InputQuery
+import org.neo4j.cypher.internal.preparser.PreParsedQuery
+import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.function.Observable
 import org.neo4j.kernel.api.query.ExecutingQuery

@@ -84,7 +84,7 @@ public class Cypher25AstLexerTest {
     void failureOnInvalidUnicodeEscape() {
         final var in = "\uD80C\uDC00\nᚠ\rhej\r\nhola\\uohno";
         final var lines = in.lines().toList();
-        final var expectedOffset = in.indexOf("\\uohno");
+        final var expectedOffset = in.indexOf("ohno");
         final var expectedLine = lines.size();
         final var expectedCol = lines.get(lines.size() - 1).indexOf("ohno") + 1;
 
@@ -93,6 +93,13 @@ public class Cypher25AstLexerTest {
                 .hasMessage("Invalid input 'ohno': expected four hexadecimal digits specifying a unicode character")
                 .extracting("offset", "column", "line")
                 .containsExactly(expectedOffset, expectedCol, expectedLine);
+    }
+
+    @Test
+    void offsetTableIncludesOffsetsForLastCharPlusOne() throws IOException {
+        final var in = "\\u0020";
+        assertThat(read(in).lexer.offsetTable()).containsExactly(0, 1, 1, 6, 1, 7);
+        assertReasonableOffsets(in, " ".codePoints().toArray());
     }
 
     // Tests copied from javacc CypherCharStreamTest

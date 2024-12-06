@@ -29,6 +29,7 @@
         <module>v25</module>
         <module>parser-test</module>
         <module>parser-factory</module>
+        <module>preparser</module>
     </modules>
 
 </project>

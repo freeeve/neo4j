@@ -21,6 +21,8 @@ package org.neo4j.cypher.internal
 
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
+import org.neo4j.cypher.internal.preparser.InputQuery
+import org.neo4j.cypher.internal.preparser.PreParsedQuery
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.kernel.database.DatabaseReference

@@ -22,8 +22,6 @@ package org.neo4j.cypher.internal.planning
 import org.neo4j.common
 import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.InterpretedRuntime
-import org.neo4j.cypher.internal.PreParsedQuery
-import org.neo4j.cypher.internal.QueryOptions
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
@@ -53,6 +51,8 @@ import org.neo4j.cypher.internal.planner.spi.InstrumentedGraphStatistics
 import org.neo4j.cypher.internal.planner.spi.MutableGraphStatisticsSnapshot
 import org.neo4j.cypher.internal.planner.spi.NodesAllCardinality
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
+import org.neo4j.cypher.internal.preparser.PreParsedQuery
+import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.RelTypeId

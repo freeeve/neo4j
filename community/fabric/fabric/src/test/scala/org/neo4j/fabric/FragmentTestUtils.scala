@@ -21,7 +21,6 @@ package org.neo4j.fabric
 
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseSettings
-import org.neo4j.cypher.internal.PreParsedQuery
 import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.Query
@@ -39,6 +38,7 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignatureResolver
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
+import org.neo4j.cypher.internal.preparser.PreParsedQuery
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InputPosition

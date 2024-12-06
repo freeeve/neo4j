@@ -17,24 +17,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher.internal
+package org.neo4j.cypher.internal.preparser
 
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.cypher.internal.CachingPreParser
 import org.neo4j.cypher.internal.cache.LFUCache
 import org.neo4j.cypher.internal.cache.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.config.CypherConfiguration
-import org.neo4j.cypher.internal.options.CypherConnectComponentsPlannerOption
-import org.neo4j.cypher.internal.options.CypherExecutionMode
-import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
-import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
-import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
-import org.neo4j.cypher.internal.options.CypherPlannerOption
-import org.neo4j.cypher.internal.options.CypherQueryOptions
-import org.neo4j.cypher.internal.options.CypherReplanOption
-import org.neo4j.cypher.internal.options.CypherRuntimeOption
-import org.neo4j.cypher.internal.options.CypherVersion
+import org.neo4j.cypher.internal.options.CypherRuntimeOption.slotted
+import org.neo4j.cypher.internal.options.CypherVersion.cypher5
+import org.neo4j.cypher.internal.options._
 import org.neo4j.cypher.internal.util.DeprecatedConnectComponentsPlannerPreParserOption
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.RecordingNotificationLogger
@@ -42,6 +36,7 @@ import org.neo4j.cypher.internal.util.devNullLogger
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.InvalidCypherOption
+import org.neo4j.exceptions.SyntaxException
 import org.neo4j.graphdb.config.Setting
 
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -55,7 +50,13 @@ class PreParserTest extends CypherFunSuite {
 
   private val preParser = preParserWith()
 
-  def preParse(queryText: String): PreParsedQuery = preParser.preParseQuery(queryText, devNullLogger)
+  private val preParserJavaCc =
+    preParserWith(GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE)
+
+  def preParse(queryText: String): PreParsedQuery = {
+    preParserJavaCc.preParseQuery(queryText, devNullLogger)
+    preParser.preParseQuery(queryText, devNullLogger)
+  }
 
   test("should not allow inconsistent runtime options") {
     intercept[InvalidArgumentException](preParse("CYPHER runtime=slotted runtime=interpreted RETURN 42"))
@@ -64,6 +65,53 @@ class PreParserTest extends CypherFunSuite {
   test("should not allow both EXPLAIN and PROFILE") {
     intercept[InvalidArgumentException](preParse("EXPLAIN PROFILE RETURN 42"))
     intercept[InvalidArgumentException](preParse("PROFILE EXPLAIN RETURN 42"))
+  }
+
+  test("should throw error on empty query") {
+    intercept[SyntaxException](preParse(""))
+    intercept[SyntaxException](preParse("     "))
+    intercept[SyntaxException](preParse("EXPLAIN\n\n\n\n\n"))
+    intercept[SyntaxException](preParse("EXPLAIN   "))
+    intercept[SyntaxException](preParse("PROFILE "))
+    intercept[SyntaxException](preParse("CYPHER 25"))
+  }
+
+  val queries = Seq(
+    "RETURN 1",
+    "RETURN 1 RETURN",
+    "RETURN 1 123RETURN",
+    "#???#?#?#??//// 1 123RETURN",
+    "RETURN 1 #RETURN",
+    "RET#URN # #RETURN",
+    "CYPHER RETURN 1",
+    "CYPHER RETURN 1 RETURN",
+    "CYPHER RETURN 1 123RETURN",
+    "CYPHER #???#?#?#??//// 1 123RETURN",
+    "CYPHER RETURN 1 #RETURN",
+    "CYPHER RET#URN # #RETURN"
+  )
+
+  queries.foreach(q =>
+    test(s"should preparse $q") {
+      preParse(q).options.queryOptions shouldBe
+        CypherQueryOptions.defaultOptions
+    }
+  )
+
+  test("should preparse with unicode") {
+    val res = preParse(
+      "CYPHER 5\\u0020runtime=slotted \tRETURN\\u0020\\u0020\\u0020 AS res "
+    )
+    res.options.queryOptions shouldBe CypherQueryOptions.defaultOptions.copy(cypher5, runtime = slotted)
+    res.statement shouldBe "RETURN\\u0020\\u0020\\u0020 AS res "
+  }
+
+  test("should preparse with unicode whitespace before query") {
+    val res = preParse(
+      "CYPHER 5\\u0020runtime=slotted \t\\u0020RETURN\\u0020\\u0020\\u0020 AS res "
+    )
+    res.options.queryOptions shouldBe CypherQueryOptions.defaultOptions.copy(cypher5, runtime = slotted)
+    res.statement shouldBe "RETURN\\u0020\\u0020\\u0020 AS res "
   }
 
   test("should allow CYPHER version") {
@@ -274,7 +322,9 @@ class PreParserTest extends CypherFunSuite {
   }
 
   test("should take defaults from config") {
-    preParserWith(GraphDatabaseSettings.cypher_planner -> GraphDatabaseSettings.CypherPlanner.COST)
+    preParserWith(
+      GraphDatabaseSettings.cypher_planner -> GraphDatabaseSettings.CypherPlanner.COST
+    )
       .preParseQuery("RETURN 1", devNullLogger).options.queryOptions.planner shouldEqual CypherPlannerOption.cost
 
     preParserWith(GraphDatabaseInternalSettings.cypher_runtime -> GraphDatabaseInternalSettings.CypherRuntime.PIPELINED)
@@ -298,6 +348,46 @@ class PreParserTest extends CypherFunSuite {
 
     preParserWith(
       GraphDatabaseInternalSettings.cypher_pipelined_interpreted_pipes_fallback -> GraphDatabaseInternalSettings.CypherPipelinedInterpretedPipesFallback.ALL
+    )
+      .preParseQuery(
+        "RETURN 1",
+        devNullLogger
+      ).options.queryOptions.interpretedPipesFallback shouldEqual CypherInterpretedPipesFallbackOption.allPossiblePlans
+
+    // JavaCc preparser
+    preParserWith(
+      GraphDatabaseSettings.cypher_planner -> GraphDatabaseSettings.CypherPlanner.COST,
+      GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE
+    )
+      .preParseQuery("RETURN 1", devNullLogger).options.queryOptions.planner shouldEqual CypherPlannerOption.cost
+
+    preParserWith(
+      GraphDatabaseInternalSettings.cypher_runtime -> GraphDatabaseInternalSettings.CypherRuntime.PIPELINED,
+      GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE
+    )
+      .preParseQuery("RETURN 1", devNullLogger).options.queryOptions.runtime shouldEqual CypherRuntimeOption.pipelined
+
+    preParserWith(
+      GraphDatabaseInternalSettings.cypher_expression_engine -> GraphDatabaseInternalSettings.CypherExpressionEngine.COMPILED,
+      GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE
+    )
+      .preParseQuery(
+        "RETURN 1",
+        devNullLogger
+      ).options.queryOptions.expressionEngine shouldEqual CypherExpressionEngineOption.compiled
+
+    preParserWith(
+      GraphDatabaseInternalSettings.cypher_operator_engine -> GraphDatabaseInternalSettings.CypherOperatorEngine.COMPILED,
+      GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE
+    )
+      .preParseQuery(
+        "RETURN 1",
+        devNullLogger
+      ).options.queryOptions.operatorEngine shouldEqual CypherOperatorEngineOption.compiled
+
+    preParserWith(
+      GraphDatabaseInternalSettings.cypher_pipelined_interpreted_pipes_fallback -> GraphDatabaseInternalSettings.CypherPipelinedInterpretedPipesFallback.ALL,
+      GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE
     )
       .preParseQuery(
         "RETURN 1",
@@ -370,5 +460,86 @@ class PreParserTest extends CypherFunSuite {
       shouldFail(s"CYPHER ${combo.optionA.asString} RETURN 1", combo.optionB.asSetting)
       shouldFail(s"RETURN 1", combo.optionA.asSetting, combo.optionB.asSetting)
     }
+  }
+
+  test("preparser should throw error on invalid query option") {
+    val query = "cypher röntime=chevacheville65 return 'wroom'"
+
+    the[InvalidCypherOption] thrownBy {
+      preParse(query)
+    } should have message "Unsupported options: röntime"
+  }
+
+  test("preparser should throw error on invalid query option with comments") {
+    val query = """
+                  |// hello
+                  |cypher /*Hello*/ ranÄäöäötime=/*comment*/chevac/**/hev/*hrrhrh*/ille65 return 'wroom'""".stripMargin
+
+    the[InvalidCypherOption] thrownBy {
+      preParse(query)
+    } should have message "Unsupported options: ranääöäötime"
+  }
+
+  test("preparser should throw error on invalid query option value with comments") {
+    val query = """
+                  |// hello
+                  |cypher /*Hello*/ runtime=/*comment*/chevac/**/hev/*hrrhrh*/ille65 return 'wroom'""".stripMargin
+
+    the[InvalidCypherOption] thrownBy {
+      preParse(query)
+    } should have message "chevac is not a valid option for runtime. Valid options are: interpreted, legacy, parallel, pipelined, slotted"
+  }
+
+  // Will fail in query parsing
+  test("version as key") {
+    preParse("cypher 5=slotted return 1").options.queryOptions shouldBe
+      CypherQueryOptions.defaultOptions.copy(cypherVersion = CypherVersion.cypher5)
+  }
+
+  test("invalid key in option") {
+    val query = "cypher röntime=slotted return 1"
+
+    the[InvalidCypherOption] thrownBy {
+      preParse(query)
+    } should have message "Unsupported options: röntime"
+  }
+
+  test("only unicode") {
+    // cypher 5 runtime=slotted return 1
+    val query =
+      "\u0063\u0079\u0070\u0068\u0065\u0072\u0020\u0035\u0020\u0072\u0075\u006E\u0074\u0069\u006D\u0065\u003D\u0073\u006C\u006F\u0074\u0074\u0065\u0064\u0020\u0072\u0065\u0074\u0075\u0072\u006E\u0020\u0031"
+    preParse(query).options.queryOptions shouldBe
+      CypherQueryOptions.defaultOptions.copy(
+        cypherVersion = CypherVersion.cypher5,
+        runtime = CypherRuntimeOption.slotted
+      )
+  }
+
+  test("only unicode error") {
+    // cypher 5 räntime=slotted return 1
+    val query =
+      "\u0063\u0079\u0070\u0068\u0065\u0072\u0020\u0035\u0020\u0072\u00C4\u006E\u0074\u0069\u006D\u0065\u003D\u0073\u006C\u006F\u0074\u0074\u0065\u0064\u0020\u0072\u0065\u0074\u0075\u0072\u006E\u0020\u0031"
+
+    the[InvalidCypherOption] thrownBy {
+      preParse(query)
+    } should have message "Unsupported options: räntime"
+  }
+
+  test("option with comment and linebreak") {
+    preParse("cypher 5 runtime=//hej\nslotted return 1").options.queryOptions shouldBe
+      CypherQueryOptions.defaultOptions.copy(
+        cypherVersion = CypherVersion.cypher5,
+        runtime = CypherRuntimeOption.slotted
+      )
+  }
+
+  test("preparser option with comments") {
+    preParse(
+      "/*hej*/cypher/*hej*/5/*hej*/runtime/*hej*/=/*hej*/slotted/*hej*/return/*hej*/1"
+    ).options.queryOptions shouldBe
+      CypherQueryOptions.defaultOptions.copy(
+        cypherVersion = CypherVersion.cypher5,
+        runtime = CypherRuntimeOption.slotted
+      )
   }
 }

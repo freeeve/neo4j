@@ -24,7 +24,6 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CachingPreParser
 import org.neo4j.cypher.internal.CypherQueryObfuscator
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.PreParsedQuery
 import org.neo4j.cypher.internal.cache.ExecutorBasedCaffeineCacheFactory
 import org.neo4j.cypher.internal.cache.LFUCache
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
@@ -42,6 +41,7 @@ import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOptio
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.PlanContext
+import org.neo4j.cypher.internal.preparser.PreParsedQuery
 import org.neo4j.cypher.internal.spi.procsHelpers.asCypherProcedureSignature
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker

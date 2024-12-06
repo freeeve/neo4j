@@ -19,9 +19,6 @@
  */
 package org.neo4j.fabric.planning
 
-import org.neo4j.cypher.internal.FullyParsedQuery
-import org.neo4j.cypher.internal.PreParsedQuery
-import org.neo4j.cypher.internal.QueryOptions
 import org.neo4j.cypher.internal.ast.CatalogName
 import org.neo4j.cypher.internal.cache.CacheSize
 import org.neo4j.cypher.internal.cache.CaffeineCacheFactory
@@ -33,6 +30,9 @@ import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
+import org.neo4j.cypher.internal.preparser.FullyParsedQuery
+import org.neo4j.cypher.internal.preparser.PreParsedQuery
+import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.RecordingNotificationLogger

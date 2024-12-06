@@ -27,7 +27,7 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.SettingChangeListener;
 import org.neo4j.cypher.internal.CypherDeprecationNotificationsProvider;
 import org.neo4j.cypher.internal.CypherQueryObfuscator;
-import org.neo4j.cypher.internal.PreParsedQuery;
+import org.neo4j.cypher.internal.preparser.PreParsedQuery;
 import org.neo4j.cypher.internal.util.InputPosition;
 import org.neo4j.cypher.internal.util.InternalNotification;
 import org.neo4j.cypher.internal.util.ObfuscationMetadata;

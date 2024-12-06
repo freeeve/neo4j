@@ -25,12 +25,9 @@ import org.neo4j.cypher.internal.CypherQueryObfuscator
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.FineToReuse
-import org.neo4j.cypher.internal.FullyParsedQuery
 import org.neo4j.cypher.internal.MaybeReusable
 import org.neo4j.cypher.internal.PlanFingerprint
 import org.neo4j.cypher.internal.PlanFingerprintReference
-import org.neo4j.cypher.internal.PreParsedQuery
-import org.neo4j.cypher.internal.QueryOptions
 import org.neo4j.cypher.internal.ReusabilityState
 import org.neo4j.cypher.internal.SchemaCommandRuntime
 import org.neo4j.cypher.internal.ast.Statement
@@ -88,6 +85,9 @@ import org.neo4j.cypher.internal.planner.spi.DPPlannerName
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planning.CypherPlanner.createQueryGraphSolver
+import org.neo4j.cypher.internal.preparser.FullyParsedQuery
+import org.neo4j.cypher.internal.preparser.PreParsedQuery
+import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionalContextWrapper
 import org.neo4j.cypher.internal.spi.ExceptionTranslatingPlanContext
 import org.neo4j.cypher.internal.spi.TransactionBoundPlanContext

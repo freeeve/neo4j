@@ -21,8 +21,6 @@ package org.neo4j.fabric.pipeline
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CachingPreParser
-import org.neo4j.cypher.internal.PreParsedQuery
-import org.neo4j.cypher.internal.QueryOptions
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleGraphs
@@ -45,6 +43,8 @@ import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolve
 import org.neo4j.cypher.internal.options.CypherExecutionMode
 import org.neo4j.cypher.internal.planner.spi.PlannerNameFor
 import org.neo4j.cypher.internal.planning.WrappedMonitors
+import org.neo4j.cypher.internal.preparser.PreParsedQuery
+import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.tracing.CompilationTracer
 import org.neo4j.cypher.internal.tracing.TimingCompilationTracer
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator

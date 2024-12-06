@@ -191,6 +191,9 @@ class CypherConfiguration private (val config: Config) {
   def defaultCypherVersionFromConfig: org.neo4j.cypher.internal.options.CypherVersion =
     org.neo4j.cypher.internal.options.CypherVersion.fromConfig(config)
 
+  val antlrPreparserEnabled: Boolean =
+    config.get(GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled)
+
   // dynamic configurations
   private var _obfuscateLiterals: Boolean = config.get(GraphDatabaseSettings.log_queries_obfuscate_literals)
   private var _renderPlanDescription: Boolean = config.get(GraphDatabaseSettings.cypher_render_plan_descriptions)

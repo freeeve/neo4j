@@ -125,11 +125,12 @@ public class UnicodeEscapeReplacementReader extends Reader {
         } catch (Exception e) {
             var pos = inputPositionAt(charPos + 2);
             var m = "Invalid input '%s': expected four hexadecimal digits specifying a unicode character";
-            throw new InvalidUnicodeLiteral(m.formatted(hexString), charPos, pos.line(), pos.column());
+            throw new InvalidUnicodeLiteral(m.formatted(hexString), pos.offset(), pos.line(), pos.column());
         }
     }
 
     public int[] offsetTable() {
+        if (offsetTable != null) offsetTable.updateOffsets(srcPos, ' ', ' ');
         return offsetTable != null ? offsetTable.offsets.toArray() : null;
     }
 

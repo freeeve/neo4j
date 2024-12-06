@@ -17,9 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher.internal
+package org.neo4j.cypher.internal.preparser
 
 import org.neo4j.configuration.Config
+import org.neo4j.cypher.internal.CachingPreParser
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.cache.LFUCache
 import org.neo4j.cypher.internal.cache.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases

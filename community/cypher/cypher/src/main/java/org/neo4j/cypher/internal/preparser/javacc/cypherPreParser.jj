@@ -40,8 +40,8 @@ PARSER_BEGIN(CypherPreParser)
  */
 package org.neo4j.cypher.internal.preparser.javacc;
 
-import org.neo4j.cypher.internal.PreParsedStatement;
-import org.neo4j.cypher.internal.PreParserOption;
+import org.neo4j.cypher.internal.preparser.PreParsedStatement;
+import org.neo4j.cypher.internal.preparser.PreParserOption;
 import org.neo4j.cypher.internal.parser.common.ast.factory.ASTExceptionFactory;
 import org.neo4j.cypher.internal.parser.common.InvalidUnicodeLiteral;
 import org.neo4j.cypher.internal.util.InputPosition;
@@ -1026,11 +1026,13 @@ PreParserResult parse() throws Exception:
         {
             if ( queryStart == null )
             {
-                 var gql = GqlHelper.getGql42001_42N45(token.endOffset + 1, token.endLine, token.endColumn + 1);
+                 var col = token.endOffset == token.endColumn ? token.endColumn + 1 : token.endColumn;
+                 var line = token.endOffset == token.endLine ? token.endLine + 1 : token.endLine;
+                 var gql = GqlHelper.getGql42001_42N45(token.endOffset, line, col);
                  throw exceptionFactory.syntaxException(gql, new IllegalStateException( PreParserResult.getEmptyQueryExceptionMsg() ),
-                    token.endOffset + 1, token.endLine, token.endColumn + 1);
+                    token.endOffset, line, col);
             }
-            return new PreParserResult( options, queryStart != null ? pos(queryStart) : InputPosition.apply(1, 0, 0) );
+            return new PreParserResult( options, queryStart != null ? pos(queryStart) : InputPosition.apply(0, 1, 1) );
         }
     }
     catch ( ParseException e )
@@ -1038,8 +1040,8 @@ PreParserResult parse() throws Exception:
         Token t = e.currentToken.next;
         if ( e.getMessage().contains( "Encountered \"<EOF>\"" ) )
         {
-            var gql = GqlHelper.getGql42001_42N45(t.endOffset + 1, t.endLine, t.endColumn + 1);
-            throw exceptionFactory.syntaxException(gql, e, t.endOffset + 1, t.endLine, t.endColumn + 1 );
+            var gql = GqlHelper.getGql42001_42N45(t.endOffset, t.endLine + 1, t.endColumn + 1);
+            throw exceptionFactory.syntaxException(gql, e, t.endOffset, t.endLine + 1, t.endColumn + 1 );
         }
         else
         {
