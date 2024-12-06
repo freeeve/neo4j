@@ -350,6 +350,10 @@ public enum NotificationCodeWithDescription {
             Status.Statement.FeatureDeprecationWarning,
             GqlStatusInfoCodes.STATUS_01N02,
             "`%s` is deprecated. Credentials are now supplied via the cloud provider mechanisms."),
+    DEPRECATED_EXISTING_DATA_OPTION(
+            Status.Statement.FeatureDeprecationWarning,
+            GqlStatusInfoCodes.STATUS_01N02,
+            "`%s` is deprecated. Use of existing data is implicit with seeding."),
     DEPRECATED_STORE_FORMAT(
             Status.Statement.FeatureDeprecationWarning,
             GqlStatusInfoCodes.STATUS_01N00,
@@ -807,6 +811,11 @@ public enum NotificationCodeWithDescription {
     public static NotificationImplementation deprecatedSeedingOption(String oldOption) {
         return DEPRECATED_SEEDING_OPTION.notificationWithParameters(
                 InputPosition.empty, new String[] {oldOption}, new String[] {oldOption});
+    }
+
+    public static NotificationImplementation deprecatedExistingDataOption() {
+        return DEPRECATED_EXISTING_DATA_OPTION.notificationWithParameters(
+                InputPosition.empty, new String[] {"existingData"}, new String[] {"existingData"});
     }
 
     public static NotificationImplementation deprecatedStoreFormat(String format) {

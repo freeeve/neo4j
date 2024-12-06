@@ -94,6 +94,7 @@ object InternalNotification {
     "DeprecatedOptionInOptionMap",
     "DeprecatedIndexProviderOption",
     "DeprecatedSeedingOption",
+    "DeprecatedExistingDataOption",
     "DeprecatedStoreFormat",
     "DeprecatedBooleanCoercion",
     "InsecureProtocol"
@@ -210,6 +211,7 @@ case object DeprecatedBooleanCoercion extends InternalNotification {
 
 case class DeprecatedOptionInOptionMap(oldOption: String, replacmentOption: String) extends InternalNotification
 case class DeprecatedSeedingOption(oldOption: String) extends InternalNotification
+case class DeprecatedExistingDataOption() extends InternalNotification
 case class DeprecatedStoreFormat(format: String) extends InternalNotification
 
 case object InsecureProtocol extends InternalNotification

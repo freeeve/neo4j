@@ -35,6 +35,7 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.cordonedSe
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedBooleanCoercion;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedConnectComponentsPlannerPreParserOption;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedDatabaseName;
+import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedExistingDataOption;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFormat;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFunctionWithReplacement;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFunctionWithoutReplacement;
@@ -1853,6 +1854,30 @@ class NotificationCodeWithDescriptionTest {
     }
 
     @Test
+    void shouldConstructNotificationsFor_DEPRECATED_EXISTING_DATA_OPTION() {
+        NotificationImplementation notification = deprecatedExistingDataOption();
+
+        verifyNotification(
+                notification,
+                "This feature is deprecated and will be removed in future versions.",
+                SeverityLevel.WARNING,
+                "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
+                "`existingData` is deprecated. Use of existing data is implicit with seeding.",
+                NotificationCategory.DEPRECATION,
+                NotificationClassification.DEPRECATION,
+                "01N02",
+                new DiagnosticRecord(
+                                warning,
+                                NotificationClassification.DEPRECATION,
+                                -1,
+                                -1,
+                                -1,
+                                Map.of("feat1", "existingData"))
+                        .asMap(),
+                "warn: feature deprecated without replacement. existingData is deprecated and will be removed without a replacement.");
+    }
+
+    @Test
     void shouldConstructNotificationsFor_DEPRECATED_STORE_FORMAT() {
         NotificationImplementation notification = deprecatedStoreFormat("oldFormat");
 
@@ -1985,8 +2010,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            -78, -71, -88, 114, 105, 70, 45, -23, 72, -107, -56, -88, -83, -101, -37, 3, -70, -10, 94, -58, -39, 69, 89,
-            -104, 37, -103, 28, 35, 6, -2, 91, -108
+            117, -67, -3, 103, 106, -3, -105, 53, 126, 58, -48, 51, -51, -47, -107, -24, -111, 64, -120, -58, -105, -8,
+            -23, -45, -45, -112, -66, -60, 96, -74, 67, -2
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {
