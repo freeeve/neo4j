@@ -39,6 +39,7 @@ public class HeapTrackingOrderedAppendSetTest {
         assertThat(appendSet.contains(1337)).isFalse();
         assertThatExceptionOfType(NoSuchElementException.class).isThrownBy(appendSet::getFirst);
         assertThatExceptionOfType(NoSuchElementException.class).isThrownBy(appendSet::getLast);
+        assertThatExceptionOfType(IndexOutOfBoundsException.class).isThrownBy(() -> appendSet.get(0));
         assertThat(appendSet.iterator()).isExhausted();
     }
 
@@ -50,6 +51,8 @@ public class HeapTrackingOrderedAppendSetTest {
         assertThat(appendSet.contains(1338)).isFalse();
         assertThat(appendSet.getFirst()).isEqualTo(1337);
         assertThat(appendSet.getLast()).isEqualTo(1337);
+        assertThat(appendSet.get(0)).isEqualTo(1337);
+        assertThatExceptionOfType(IndexOutOfBoundsException.class).isThrownBy(() -> appendSet.get(1));
         assertThat(Iterators.asList(appendSet.iterator())).isEqualTo(List.of(1337));
     }
 
@@ -88,13 +91,12 @@ public class HeapTrackingOrderedAppendSetTest {
         assertThat(set.getFirst()).isEqualTo(objects[0]);
         assertThat(set.getLast()).isEqualTo(objects[objects.length - 1]);
         var iterator = set.iterator();
-        for (T object : objects) {
+        for(int i = 0; i < objects.length; i++) {
+            var expected = objects[i];
             assertThat(iterator).hasNext();
-            assertThat(iterator.next()).isEqualTo(object);
-        }
-        assertThat(iterator).isExhausted();
-        for (T object : objects) {
-            assertThat(set.contains(object)).isTrue();
+            assertThat(iterator.next()).isEqualTo(expected);
+            assertThat(set.get(i)).isEqualTo(expected);
+            assertThat(set.contains(expected)).isTrue();
         }
     }
 

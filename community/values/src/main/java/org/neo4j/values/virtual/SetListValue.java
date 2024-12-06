@@ -26,6 +26,8 @@ import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.Objects;
+
 import org.github.jamm.Unmetered;
 import org.neo4j.collection.trackable.HeapTrackingOrderedAppendSet;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -186,13 +188,8 @@ public final class SetListValue extends ListValue {
 
     @Override
     public AnyValue value(long offset) {
-        long i = 0;
-        for (var e : this) {
-            if (i++ == offset) {
-                return e;
-            }
-        }
-        throw new IndexOutOfBoundsException();
+        Objects.checkIndex(offset, intSize());
+        return set.get((int) offset);
     }
 
     @Override

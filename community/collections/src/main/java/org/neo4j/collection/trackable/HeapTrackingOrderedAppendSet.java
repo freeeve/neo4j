@@ -110,6 +110,19 @@ public class HeapTrackingOrderedAppendSet<V> implements AutoCloseable {
         return (V) current.getLast();
     }
 
+    public V get(int index) {
+        var chunk = first;
+        while (chunk != null) {
+            if (index < chunk.cursor) {
+                return chunk.get(index);
+            }
+            index -= chunk.cursor;
+            chunk = chunk.next;
+        }
+
+        throw new IndexOutOfBoundsException();
+    }
+
     public Iterator<V> iterator() {
         return new ApendSetIterator(first);
     }
