@@ -23,6 +23,7 @@ import static java.lang.Math.ceilDiv;
 import static java.lang.Math.multiplyExact;
 import static java.lang.invoke.MethodHandles.lookup;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
+import static org.neo4j.internal.helpers.ArrayUtil.MAX_ARRAY_SIZE;
 import static org.neo4j.internal.helpers.VarHandleUtils.arrayElementVarHandle;
 import static org.neo4j.internal.helpers.VarHandleUtils.getVarHandle;
 import static org.neo4j.util.Preconditions.checkArgument;
@@ -31,7 +32,6 @@ import java.io.IOException;
 import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import org.neo4j.internal.helpers.ArrayUtil;
 import org.neo4j.internal.helpers.Numbers;
 import org.neo4j.io.IOUtils;
 import org.neo4j.memory.DefaultScopedMemoryTracker;
@@ -71,9 +71,11 @@ abstract class BaseDynamicArray implements NumberArray, MemoryStatsVisitor.Visit
         this.defaultValue = defaultValue;
         this.bufferFactory = bufferFactory;
         this.memoryTracker = new DefaultScopedMemoryTracker(memoryTracker);
+        int maxChunkSize = MAX_ARRAY_SIZE / elementSize;
 
         if (maxNumberOfElements == 0) {
             checkArgument(elementsPerChunk > 0, "Array with dynamic size should have a chunk size");
+            elementsPerChunk = Math.min(elementsPerChunk, maxChunkSize);
             totalSize = 0;
             lastBufferIndex = -1;
             bufferPower = Numbers.log2floor(elementsPerChunk);
@@ -83,7 +85,7 @@ abstract class BaseDynamicArray implements NumberArray, MemoryStatsVisitor.Visit
             buffers = new ByteBuffer[1];
         } else {
             checkArgument(elementsPerChunk == 0, "Array with fixed size should not have a chunk size");
-            bufferPower = Numbers.log2floor(ArrayUtil.MAX_ARRAY_SIZE / elementSize);
+            bufferPower = Numbers.log2floor(maxChunkSize);
             bufferMask = (1 << bufferPower) - 1;
             int elementsPerBuffer = 1 << bufferPower;
 

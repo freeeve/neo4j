@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.batchimport.cache;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.argumentSet;
@@ -31,6 +32,7 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -216,6 +218,13 @@ public class ByteArrayTest {
                 assertArrayEquals(into, data);
             });
         }
+    }
+
+    @Test
+    void capChunkSize() {
+        NumberArrayFactory factory = NumberArrayFactories.HEAP;
+        assertThatCode(() -> factory.newDynamicByteArray(Integer.MAX_VALUE, new byte[2], INSTANCE))
+                .doesNotThrowAnyException();
     }
 
     private NumberArrayFactory getArrayFactory(NumberArrayFactoryCreator creator) {
