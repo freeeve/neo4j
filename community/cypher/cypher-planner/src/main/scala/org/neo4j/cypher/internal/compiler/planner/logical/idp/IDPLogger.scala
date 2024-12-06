@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
+import org.apache.commons.lang3.StringUtils
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPLoggerToStringBuilder.INDENT
 import org.neo4j.cypher.internal.ir.NodeConnection
 import org.neo4j.cypher.internal.ir.PatternRelationship
@@ -125,7 +126,7 @@ object IDPLoggable {
   implicit object IDPLoggableQueryGraph extends IDPLoggable[QueryGraph] {
 
     override def summary(x: QueryGraph): String = {
-      x.toString.take(64) + " ..."
+      StringUtils.abbreviate(x.toString, "…", 128)
     }
   }
 }

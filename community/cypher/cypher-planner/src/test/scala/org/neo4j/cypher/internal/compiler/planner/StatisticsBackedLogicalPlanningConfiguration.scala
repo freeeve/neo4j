@@ -568,6 +568,10 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
     )
   }
 
+  def enableIdpLogging(enable: Boolean = true): StatisticsBackedLogicalPlanningConfigurationBuilder = {
+    enableDebugOption(CypherDebugOption.printIDPLog, enable)
+  }
+
   def enablePrintCostComparisons(enable: Boolean = true): StatisticsBackedLogicalPlanningConfigurationBuilder = {
     enableDebugOption(CypherDebugOption.printCostComparisons, enable)
   }
