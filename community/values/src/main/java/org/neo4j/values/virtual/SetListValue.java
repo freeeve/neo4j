@@ -27,9 +27,9 @@ import static org.neo4j.values.storable.Values.NO_VALUE;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Objects;
-
 import org.github.jamm.Unmetered;
 import org.neo4j.collection.trackable.HeapTrackingOrderedAppendSet;
+import org.neo4j.collection.trackable.OrderedAppendSet;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.values.AnyValue;
@@ -162,10 +162,10 @@ public final class SetListValue extends ListValue {
     @Unmetered
     private final ValueRepresentation itemRepresentation;
 
-    private final HeapTrackingOrderedAppendSet<AnyValue> set;
+    private final OrderedAppendSet<AnyValue> set;
     private final long payload;
 
-    SetListValue(HeapTrackingOrderedAppendSet<AnyValue> set, long payload, ValueRepresentation itemRepresentation) {
+    SetListValue(OrderedAppendSet<AnyValue> set, long payload, ValueRepresentation itemRepresentation) {
         this.itemRepresentation = itemRepresentation;
         this.set = set;
         this.payload = payload;
@@ -205,10 +205,10 @@ public final class SetListValue extends ListValue {
         return set.getFirst();
     }
 
-    //    @Override
-    //    public ListValue reverse() {
-    //        return new SetListValue(set.reversed(), payload, itemRepresentation);
-    //    }
+    @Override
+    public ListValue reverse() {
+        return new SetListValue(set.reversedOrderedAppendSet(), payload, itemRepresentation);
+    }
 
     @Override
     public AnyValue last() {

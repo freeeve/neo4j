@@ -38,7 +38,7 @@ import org.neo4j.memory.MemoryTracker;
  * @param <V> value type
  */
 @SuppressWarnings("ALL")
-public class HeapTrackingOrderedAppendSet<V> implements AutoCloseable {
+public class HeapTrackingOrderedAppendSet<V> extends OrderedAppendSet<V> implements AutoCloseable {
     private static final long SHALLOW_SIZE = shallowSizeOfInstance(HeapTrackingOrderedAppendSet.class);
     private static final int INITIAL_CHUNK_SIZE =
             32; // Must be even, preferably a power of 2 (32 matches the HeapTrackingUnifiedMap initial size)
@@ -64,10 +64,12 @@ public class HeapTrackingOrderedAppendSet<V> implements AutoCloseable {
         current = first;
     }
 
+    @Override
     public int size() {
         return set.size();
     }
 
+    @Override
     public boolean add(V value) {
         if (set.add(value)) {
             addToBuffer(value);
@@ -88,14 +90,17 @@ public class HeapTrackingOrderedAppendSet<V> implements AutoCloseable {
         return false;
     }
 
-    public boolean contains(V value) {
+    @Override
+    public boolean contains(Object value) {
         return set.contains(value);
     }
 
+    @Override
     public boolean isEmpty() {
         return set.isEmpty();
     }
 
+    @Override
     public V getFirst() {
         if (set.isEmpty()) {
             throw new NoSuchElementException();
@@ -103,6 +108,7 @@ public class HeapTrackingOrderedAppendSet<V> implements AutoCloseable {
         return first.getFirst();
     }
 
+    @Override
     public V getLast() {
         if (set.isEmpty()) {
             throw new NoSuchElementException();
@@ -110,6 +116,7 @@ public class HeapTrackingOrderedAppendSet<V> implements AutoCloseable {
         return (V) current.getLast();
     }
 
+    @Override
     public V get(int index) {
         var chunk = first;
         while (chunk != null) {
@@ -123,6 +130,7 @@ public class HeapTrackingOrderedAppendSet<V> implements AutoCloseable {
         throw new IndexOutOfBoundsException();
     }
 
+    @Override
     public Iterator<V> iterator() {
         return new ApendSetIterator(first);
     }
@@ -137,7 +145,7 @@ public class HeapTrackingOrderedAppendSet<V> implements AutoCloseable {
         return current == null;
     }
 
-    public void addToBuffer(V value) {
+    private void addToBuffer(V value) {
         if (!current.add(value)) {
             int newChunkSize = grow(current.elements.length);
             Chunk<V> newChunk = new Chunk<>(newChunkSize, scopedMemoryTracker);
@@ -145,6 +153,55 @@ public class HeapTrackingOrderedAppendSet<V> implements AutoCloseable {
             current = newChunk;
             current.add(value);
         }
+    }
+
+    @Override
+    public OrderedAppendSet<V> reversedOrderedAppendSet() {
+        class ReversedView extends OrderedAppendSet<V> {
+
+            @Override
+            public int size() {
+                return HeapTrackingOrderedAppendSet.this.size();
+            }
+
+            @Override
+            public boolean contains(Object value) {
+                return HeapTrackingOrderedAppendSet.this.contains(value);
+            }
+
+            @Override
+            public boolean isEmpty() {
+                return HeapTrackingOrderedAppendSet.this.isEmpty();
+            }
+
+            @Override
+            public V getFirst() {
+                return HeapTrackingOrderedAppendSet.this.getLast();
+            }
+
+            @Override
+            public V getLast() {
+                return HeapTrackingOrderedAppendSet.this.getFirst();
+            }
+
+            @Override
+            public V get(int index) {
+                return HeapTrackingOrderedAppendSet.this.get(size() - index - 1);
+            }
+
+            @Override
+            public Iterator<V> iterator() {
+                return new ApendSetReverseIterator<>(
+                        HeapTrackingOrderedAppendSet.this.first, HeapTrackingOrderedAppendSet.this.current);
+            }
+
+            @Override
+            public OrderedAppendSet<V> reversedOrderedAppendSet() {
+                return HeapTrackingOrderedAppendSet.this;
+            }
+        }
+
+        return new ReversedView();
     }
 
     private static class ApendSetIterator<V> implements Iterator<V> {
@@ -182,6 +239,61 @@ public class HeapTrackingOrderedAppendSet<V> implements AutoCloseable {
             }
 
             return (V) chunk.elements[index];
+        }
+    }
+
+    private static class ApendSetReverseIterator<V> implements Iterator<V> {
+        private final Chunk<V> firstChunk;
+        private Chunk<V> currentChunk;
+        private Chunk<V> nextChunk;
+        private int nextIndex;
+
+        ApendSetReverseIterator(Chunk<V> first, Chunk<V> last) {
+            firstChunk = first;
+            currentChunk = nextChunk = last;
+            nextIndex = currentChunk.cursor - 1;
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (nextChunk == null || nextIndex < 0) {
+                return false;
+            }
+            return true;
+        }
+
+        private Chunk<V> findNextChunk() {
+            var chunk = firstChunk;
+            var current = currentChunk;
+            while (chunk != current) {
+                var next = chunk.next;
+                if (next == current) {
+                    return chunk;
+                }
+                chunk = next;
+            }
+
+            return null;
+        }
+
+        @Override
+        public V next() {
+            if (nextChunk == null) {
+                throw new NoSuchElementException();
+            }
+
+            // Set current entry
+            int index = nextIndex;
+            currentChunk = nextChunk;
+
+            // Advance next entry
+            nextIndex -= 1;
+            if (nextIndex < 0) {
+                nextChunk = findNextChunk();
+                nextIndex = nextChunk == null ? -1 : nextChunk.cursor - 1;
+            }
+
+            return (V) currentChunk.elements[index];
         }
     }
 

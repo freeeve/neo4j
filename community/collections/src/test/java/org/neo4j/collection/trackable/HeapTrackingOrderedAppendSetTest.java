@@ -67,6 +67,31 @@ public class HeapTrackingOrderedAppendSetTest {
     }
 
     @Test
+    void shouldReverseSmallSet() {
+        HeapTrackingOrderedAppendSet<Integer> set = create(100, 9, 0, 7);
+        assertSetContains(set.reversedOrderedAppendSet(), 7, 0, 9, 100);
+        assertSetContains(set.reversedOrderedAppendSet().reversedOrderedAppendSet(), 100, 9, 0, 7);
+    }
+
+    @Test
+    void shouldReverseBigSet() {
+        HeapTrackingOrderedAppendSet<Integer> set = create();
+        Random random = new Random();
+        int size = random.nextInt(10000);
+        Integer[] values = new Integer[size];
+        Integer[] reversed = new Integer[size];
+        for (int i = 0; i < size; i++) {
+            int value = random.nextInt();
+            set.add(value);
+            values[i] = value;
+            reversed[size - i - 1] = value;
+        }
+
+        assertSetContains(set, values);
+        assertSetContains(set.reversedOrderedAppendSet(), reversed);
+    }
+
+    @Test
     void randomTest() {
         long seed = System.currentTimeMillis();
         Random random = new Random(seed);
@@ -82,16 +107,21 @@ public class HeapTrackingOrderedAppendSetTest {
         assertThat(Iterators.asList(appendSet.iterator()))
                 .as(String.format("LinkedHashSet and HeapTrackingOrderedAppendSet disagreed using seed=%d", seed))
                 .isEqualTo(Iterators.asList(linkedSet.iterator()));
+
+        assertThat(Iterators.asList(appendSet.reversed().iterator()))
+                .as(String.format(
+                        "reversing LinkedHashSet and HeapTrackingOrderedAppendSet disagreed using seed=%d", seed))
+                .isEqualTo(Iterators.asList(linkedSet.reversed().iterator()));
     }
 
     @SafeVarargs
-    private <T> void assertSetContains(HeapTrackingOrderedAppendSet<T> set, T... objects) {
+    private <T> void assertSetContains(OrderedAppendSet<T> set, T... objects) {
         assertThat(set.size()).isEqualTo(objects.length);
         assertThat(set.isEmpty()).isEqualTo(objects.length == 0);
         assertThat(set.getFirst()).isEqualTo(objects[0]);
         assertThat(set.getLast()).isEqualTo(objects[objects.length - 1]);
         var iterator = set.iterator();
-        for(int i = 0; i < objects.length; i++) {
+        for (int i = 0; i < objects.length; i++) {
             var expected = objects[i];
             assertThat(iterator).hasNext();
             assertThat(iterator.next()).isEqualTo(expected);
