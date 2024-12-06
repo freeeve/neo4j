@@ -117,14 +117,11 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
     @MethodSource("unsupportedPredicates")
     void readerShouldThrowOnUnsupportedQuery(PropertyIndexQuery predicate) {
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
-            var e = assertThrows(
-                    IndexNotApplicableKernelException.class,
-                    () -> reader.query(
-                            new SimpleEntityValueClient(),
-                            NULL_CONTEXT,
-                            CursorContext.NULL_CONTEXT,
-                            unorderedValues(),
-                            predicate));
+            var e = assertThrows(IndexNotApplicableKernelException.class, () -> {
+                try (var client = new SimpleEntityValueClient()) {
+                    reader.query(client, NULL_CONTEXT, CursorContext.NULL_CONTEXT, unorderedValues(), predicate);
+                }
+            });
             assertThat(e)
                     .hasMessageContaining(
                             "Tried to query index with illegal query. A %s predicate is not allowed", predicate.type());
@@ -143,15 +140,18 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
     @Test
     void readerShouldThrowOnUnsupportedCompositePredicates() {
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
-            var e = assertThrows(
-                    IndexNotApplicableKernelException.class,
-                    () -> reader.query(
-                            new SimpleEntityValueClient(),
+            var e = assertThrows(IndexNotApplicableKernelException.class, () -> {
+                try (var client = new SimpleEntityValueClient()) {
+                    reader.query(
+                            client,
                             NULL_CONTEXT,
                             CursorContext.NULL_CONTEXT,
                             unorderedValues(),
                             PropertyIndexQuery.exact(0, Values.stringValue("myValue")),
-                            PropertyIndexQuery.allEntries()));
+                            PropertyIndexQuery.allEntries());
+                }
+            });
+
             assertThat(e)
                     .hasMessageContaining(
                             "Tried to query index with illegal composite query. %s queries are not allowed in composite query. Query was:",
@@ -172,15 +172,17 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
     @Test
     void readerShouldThrowOnUnsupportedQueryPrecisionInCompositePredicates() {
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
-            var e = assertThrows(
-                    IndexNotApplicableKernelException.class,
-                    () -> reader.query(
-                            new SimpleEntityValueClient(),
+            var e = assertThrows(IndexNotApplicableKernelException.class, () -> {
+                try (var client = new SimpleEntityValueClient()) {
+                    reader.query(
+                            client,
                             NULL_CONTEXT,
                             CursorContext.NULL_CONTEXT,
                             unorderedValues(),
                             PropertyIndexQuery.exists(0),
-                            PropertyIndexQuery.exact(0, Values.stringValue("myValue"))));
+                            PropertyIndexQuery.exact(0, Values.stringValue("myValue")));
+                }
+            });
             assertThat(e)
                     .hasMessageContaining(
                             "Tried to query index with illegal composite query. Composite query must have decreasing precision. Query was:");
@@ -230,14 +232,19 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
         } else if (supportedOrder == IndexOrder.DESCENDING) {
             Arrays.sort(allValues, Values.COMPARATOR.reversed());
         }
-        SimpleEntityValueClient client = new SimpleEntityValueClient();
-        reader.query(
-                client, NULL_CONTEXT, CursorContext.NULL_CONTEXT, constrained(supportedOrder, true), supportedQuery);
-        int i = 0;
-        while (client.next()) {
-            assertEquals(allValues[i++], client.values[0], "values in order");
+        try (SimpleEntityValueClient client = new SimpleEntityValueClient()) {
+            reader.query(
+                    client,
+                    NULL_CONTEXT,
+                    CursorContext.NULL_CONTEXT,
+                    constrained(supportedOrder, true),
+                    supportedQuery);
+            int i = 0;
+            while (client.next()) {
+                assertEquals(allValues[i++], client.values[0], "values in order");
+            }
+            assertEquals(i, allValues.length, "found all values");
         }
-        assertEquals(i, allValues.length, "found all values");
     }
 
     private ValueType[] supportedTypesForGeometry() {

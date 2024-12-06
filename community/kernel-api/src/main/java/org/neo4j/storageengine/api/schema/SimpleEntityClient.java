@@ -21,7 +21,7 @@ package org.neo4j.storageengine.api.schema;
 
 import org.neo4j.kernel.api.index.IndexProgressor;
 
-public abstract class SimpleEntityClient {
+public abstract class SimpleEntityClient implements AutoCloseable {
     public long reference;
     private IndexProgressor progressor;
 
@@ -46,5 +46,10 @@ public abstract class SimpleEntityClient {
             progressor.close();
             progressor = null;
         }
+    }
+
+    @Override
+    public void close() {
+        closeProgressor();
     }
 }

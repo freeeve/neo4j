@@ -100,42 +100,45 @@ class DefaultTokenIndexReaderTest {
     void shouldFindMultipleEntitiesInEachRange() {
         // WHEN
         var reader = new DefaultTokenIndexReader(index, NO_USAGE_TRACKING, new DefaultTokenIndexIdLayout());
-        SimpleEntityTokenClient tokenClient = new SimpleEntityTokenClient();
-        reader.query(tokenClient, unconstrained(), new TokenPredicate(LABEL_ID), NULL_CONTEXT);
+        try (SimpleEntityTokenClient tokenClient = new SimpleEntityTokenClient()) {
+            reader.query(tokenClient, unconstrained(), new TokenPredicate(LABEL_ID), NULL_CONTEXT);
 
-        // THEN
-        assertThat(asArray(tokenClient)).contains(expected);
+            // THEN
+            assertThat(asArray(tokenClient)).contains(expected);
+        }
     }
 
     @Test
     void shouldFindMultipleWithProgressorAscending() {
         // WHEN
         var reader = new DefaultTokenIndexReader(index, NO_USAGE_TRACKING, new DefaultTokenIndexIdLayout());
-        SimpleEntityTokenClient tokenClient = new SimpleEntityTokenClient();
-        reader.query(
-                tokenClient,
-                IndexQueryConstraints.constrained(IndexOrder.ASCENDING, false),
-                new TokenPredicate(LABEL_ID),
-                NULL_CONTEXT);
+        try (SimpleEntityTokenClient tokenClient = new SimpleEntityTokenClient()) {
+            reader.query(
+                    tokenClient,
+                    IndexQueryConstraints.constrained(IndexOrder.ASCENDING, false),
+                    new TokenPredicate(LABEL_ID),
+                    NULL_CONTEXT);
 
-        // THEN
-        assertThat(asArray(tokenClient)).contains(expected);
+            // THEN
+            assertThat(asArray(tokenClient)).contains(expected);
+        }
     }
 
     @Test
     void shouldFindMultipleWithProgressorDescending() {
         // WHEN
         var reader = new DefaultTokenIndexReader(index, NO_USAGE_TRACKING, new DefaultTokenIndexIdLayout());
-        SimpleEntityTokenClient tokenClient = new SimpleEntityTokenClient();
-        reader.query(
-                tokenClient,
-                IndexQueryConstraints.constrained(IndexOrder.DESCENDING, false),
-                new TokenPredicate(LABEL_ID),
-                NULL_CONTEXT);
+        try (SimpleEntityTokenClient tokenClient = new SimpleEntityTokenClient()) {
+            reader.query(
+                    tokenClient,
+                    IndexQueryConstraints.constrained(IndexOrder.DESCENDING, false),
+                    new TokenPredicate(LABEL_ID),
+                    NULL_CONTEXT);
 
-        // THEN
-        ArrayUtils.reverse(expected);
-        assertThat(asArray(tokenClient)).contains(expected);
+            // THEN
+            ArrayUtils.reverse(expected);
+            assertThat(asArray(tokenClient)).contains(expected);
+        }
     }
 
     private static long[] asArray(SimpleEntityTokenClient valueClient) {

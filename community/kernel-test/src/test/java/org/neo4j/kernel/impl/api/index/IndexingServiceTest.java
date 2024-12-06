@@ -1696,9 +1696,10 @@ class IndexingServiceTest {
         var proxy = indexingService.getIndexProxy(index);
         clock.forward(1, SECONDS);
         var readerTimeMillis = clock.millis();
-        try (var reader = proxy.newValueReader()) {
+        try (var reader = proxy.newValueReader();
+                var client = new SimpleEntityValueClient(); ) {
             reader.query(
-                    new SimpleEntityValueClient(),
+                    client,
                     QueryContext.NULL_CONTEXT,
                     CursorContext.NULL_CONTEXT,
                     IndexQueryConstraints.unconstrained(),
@@ -1728,12 +1729,9 @@ class IndexingServiceTest {
         var proxy = indexingService.getIndexProxy(tokenIndex);
         clock.forward(1, SECONDS);
         var readerTimeMillis = clock.millis();
-        try (var reader = proxy.newTokenReader()) {
-            reader.query(
-                    new SimpleEntityTokenClient(),
-                    IndexQueryConstraints.unconstrained(),
-                    new TokenPredicate(0),
-                    NULL_CONTEXT);
+        try (var reader = proxy.newTokenReader();
+                var client = new SimpleEntityTokenClient(); ) {
+            reader.query(client, IndexQueryConstraints.unconstrained(), new TokenPredicate(0), NULL_CONTEXT);
         }
         indexingService.reportUsageStatistics();
         var statsCaptor = ArgumentCaptor.forClass(IndexUsageStats.class);

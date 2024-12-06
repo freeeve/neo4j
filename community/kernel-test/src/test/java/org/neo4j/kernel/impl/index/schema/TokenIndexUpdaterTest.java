@@ -103,18 +103,20 @@ class TokenIndexUpdaterTest {
         }
 
         // THEN
-        SimpleEntityTokenClient client = new SimpleEntityTokenClient();
-        TokenScanValueIndexProgressor progressor = TokenScanValueIndexProgressor.create(
-                tree.seek(new TokenScanKey(labelId, 0), new TokenScanKey(labelId, Long.MAX_VALUE), NULL_CONTEXT),
-                client,
-                IndexOrder.ASCENDING,
-                EntityRange.FULL,
-                idLayout,
-                labelId);
-        long expectedNodeId = 0;
-        while (progressor.next()) {
-            assertThat(client.reference).isEqualTo(expectedNodeId);
-            expectedNodeId++;
+        long expectedNodeId;
+        try (SimpleEntityTokenClient client = new SimpleEntityTokenClient()) {
+            TokenScanValueIndexProgressor progressor = TokenScanValueIndexProgressor.create(
+                    tree.seek(new TokenScanKey(labelId, 0), new TokenScanKey(labelId, Long.MAX_VALUE), NULL_CONTEXT),
+                    client,
+                    IndexOrder.ASCENDING,
+                    EntityRange.FULL,
+                    idLayout,
+                    labelId);
+            expectedNodeId = 0;
+            while (progressor.next()) {
+                assertThat(client.reference).isEqualTo(expectedNodeId);
+                expectedNodeId++;
+            }
         }
         assertThat(expectedNodeId).isEqualTo(NODE_COUNT);
     }
@@ -136,17 +138,19 @@ class TokenIndexUpdaterTest {
         // THEN
         for (int i = 0; i < LABEL_COUNT; i++) {
             long[] expectedNodeIds = nodesWithLabel(expected, i);
-            SimpleEntityTokenClient client = new SimpleEntityTokenClient();
-            TokenScanValueIndexProgressor progressor = TokenScanValueIndexProgressor.create(
-                    tree.seek(new TokenScanKey(i, 0), new TokenScanKey(i, Long.MAX_VALUE), NULL_CONTEXT),
-                    client,
-                    IndexOrder.ASCENDING,
-                    EntityRange.FULL,
-                    idLayout,
-                    i);
-            MutableLongList actualNodeIds = LongLists.mutable.empty();
-            while (progressor.next()) {
-                actualNodeIds.add(client.reference);
+            MutableLongList actualNodeIds;
+            try (SimpleEntityTokenClient client = new SimpleEntityTokenClient()) {
+                TokenScanValueIndexProgressor progressor = TokenScanValueIndexProgressor.create(
+                        tree.seek(new TokenScanKey(i, 0), new TokenScanKey(i, Long.MAX_VALUE), NULL_CONTEXT),
+                        client,
+                        IndexOrder.ASCENDING,
+                        EntityRange.FULL,
+                        idLayout,
+                        i);
+                actualNodeIds = LongLists.mutable.empty();
+                while (progressor.next()) {
+                    actualNodeIds.add(client.reference);
+                }
             }
             assertArrayEquals(expectedNodeIds, actualNodeIds.toArray(), "For label " + i);
         }

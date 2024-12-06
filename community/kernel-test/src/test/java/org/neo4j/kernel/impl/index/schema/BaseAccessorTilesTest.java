@@ -211,8 +211,8 @@ abstract class BaseAccessorTilesTest<KEY extends NativeIndexKey<KEY>> {
 
         processAll(updates);
 
-        try (var indexReader = accessor.newValueReader(NO_USAGE_TRACKING)) {
-            SimpleEntityValueClient client = new SimpleEntityValueClient();
+        try (var indexReader = accessor.newValueReader(NO_USAGE_TRACKING);
+                var client = new SimpleEntityValueClient()) {
 
             var boundingBox = PropertyIndexQuery.boundingBox(
                     descriptor.schema().getPropertyId(), Values.pointValue(WGS_84, searchStart), limitPoint);
@@ -256,8 +256,8 @@ abstract class BaseAccessorTilesTest<KEY extends NativeIndexKey<KEY>> {
     }
 
     void exactMatchOnAllValues(List<Value> values) throws IndexNotApplicableKernelException {
-        try (var indexReader = accessor.newValueReader(NO_USAGE_TRACKING)) {
-            SimpleEntityValueClient client = new SimpleEntityValueClient();
+        try (var indexReader = accessor.newValueReader(NO_USAGE_TRACKING);
+                var client = new SimpleEntityValueClient(); ) {
             for (Value value : values) {
                 PropertyIndexQuery.ExactPredicate exact =
                         PropertyIndexQuery.exact(descriptor.schema().getPropertyId(), value);

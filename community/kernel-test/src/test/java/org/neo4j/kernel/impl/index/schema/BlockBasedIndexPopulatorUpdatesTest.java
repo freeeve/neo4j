@@ -245,8 +245,8 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
 
     void assertHasEntry(BlockBasedIndexPopulator<KEY> populator, Value entry, int expectedId)
             throws IndexNotApplicableKernelException {
-        try (NativeIndexReader<KEY> reader = populator.newReader()) {
-            SimpleEntityValueClient valueClient = new SimpleEntityValueClient();
+        try (NativeIndexReader<KEY> reader = populator.newReader();
+                SimpleEntityValueClient valueClient = new SimpleEntityValueClient()) {
             PropertyIndexQuery.ExactPredicate exact =
                     PropertyIndexQuery.exact(INDEX_DESCRIPTOR.schema().getPropertyId(), entry);
             reader.query(valueClient, QueryContext.NULL_CONTEXT, CursorContext.NULL_CONTEXT, unconstrained(), exact);
@@ -267,8 +267,8 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
 
     private void assertMatch(BlockBasedIndexPopulator<KEY> populator, Value value, long id)
             throws IndexNotApplicableKernelException {
-        try (NativeIndexReader<KEY> reader = populator.newReader()) {
-            SimpleEntityValueClient cursor = new SimpleEntityValueClient();
+        try (NativeIndexReader<KEY> reader = populator.newReader();
+                SimpleEntityValueClient cursor = new SimpleEntityValueClient()) {
             reader.query(
                     cursor,
                     QueryContext.NULL_CONTEXT,

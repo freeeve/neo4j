@@ -880,8 +880,8 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
         Collections.shuffle(additions, random.random());
         updateAndCommit(additions);
 
-        SimpleEntityValueClient client = new SimpleEntityValueClient();
-        try (AutoCloseable ignored = query(client, order, range)) {
+        try (SimpleEntityValueClient client = new SimpleEntityValueClient();
+                AutoCloseable ignored = query(client, order, range)) {
             List<Long> seenIds = assertClientReturnValuesInOrder(client, order);
             assertThat(seenIds.size()).isEqualTo(expectedSize);
         }

@@ -309,21 +309,22 @@ public class IndexAccessorUsageStatsTest {
 
     private void tokenQuery(TokenIndexReader reader, FakeClock clock) {
         clock.forward(deltaMillis, MILLISECONDS);
-        reader.query(
-                new SimpleEntityTokenClient(),
-                IndexQueryConstraints.unconstrained(),
-                new TokenPredicate(1),
-                CursorContext.NULL_CONTEXT);
+        try (SimpleEntityTokenClient client = new SimpleEntityTokenClient()) {
+            reader.query(
+                    client, IndexQueryConstraints.unconstrained(), new TokenPredicate(1), CursorContext.NULL_CONTEXT);
+        }
     }
 
     private void tokenQueryWithRange(TokenIndexReader reader, FakeClock clock) {
         clock.forward(deltaMillis, MILLISECONDS);
-        reader.query(
-                new SimpleEntityTokenClient(),
-                IndexQueryConstraints.unconstrained(),
-                new TokenPredicate(1),
-                EntityRange.from(5),
-                CursorContext.NULL_CONTEXT);
+        try (SimpleEntityTokenClient client = new SimpleEntityTokenClient()) {
+            reader.query(
+                    client,
+                    IndexQueryConstraints.unconstrained(),
+                    new TokenPredicate(1),
+                    EntityRange.from(5),
+                    CursorContext.NULL_CONTEXT);
+        }
     }
 
     private void partitionedEntityTokenScan(TokenIndexReader reader, FakeClock clock) {
@@ -346,12 +347,14 @@ public class IndexAccessorUsageStatsTest {
     private void propertyQuery(ValueIndexReader reader, FakeClock clock, PropertyIndexQuery query)
             throws IndexNotApplicableKernelException {
         clock.forward(deltaMillis, MILLISECONDS);
-        reader.query(
-                new SimpleEntityValueClient(),
-                QueryContext.NULL_CONTEXT,
-                CursorContext.NULL_CONTEXT,
-                IndexQueryConstraints.unconstrained(),
-                query);
+        try (SimpleEntityValueClient client = new SimpleEntityValueClient()) {
+            reader.query(
+                    client,
+                    QueryContext.NULL_CONTEXT,
+                    CursorContext.NULL_CONTEXT,
+                    IndexQueryConstraints.unconstrained(),
+                    query);
+        }
     }
 
     private static void assertUsage(IndexUsageStats usageStats, long expectedLastUsedTime, long expectedQueryCount) {

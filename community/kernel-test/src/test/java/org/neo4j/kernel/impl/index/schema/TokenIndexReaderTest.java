@@ -99,11 +99,13 @@ class TokenIndexReaderTest {
         var contextFactory = new CursorContextFactory(cacheTracer, EMPTY_CONTEXT_SUPPLIER);
         var cursorContext = contextFactory.create("tracePageCache");
         var reader = new DefaultTokenIndexReader(tree, NO_USAGE_TRACKING, idLayout);
-        var tokenClient = new SimpleEntityTokenClient();
-        reader.query(tokenClient, unconstrained(), new TokenPredicate(labelId), cursorContext);
-        int actualNodes = 0;
-        while (tokenClient.next()) {
-            actualNodes++;
+        int actualNodes;
+        try (var tokenClient = new SimpleEntityTokenClient()) {
+            reader.query(tokenClient, unconstrained(), new TokenPredicate(labelId), cursorContext);
+            actualNodes = 0;
+            while (tokenClient.next()) {
+                actualNodes++;
+            }
         }
 
         // THEN the page cache access is traced
@@ -151,13 +153,15 @@ class TokenIndexReaderTest {
         int nextExpectedId = expected.nextSetBit(toIntExact(fromId));
 
         var reader = new DefaultTokenIndexReader(tree, NO_USAGE_TRACKING, idLayout);
-        var tokenClient = new SimpleEntityTokenClient();
-        reader.query(tokenClient, unconstrained(), new TokenPredicate(labelId), EntityRange.from(fromId), NULL_CONTEXT);
-        while (nextExpectedId != -1) {
-            assertTrue(tokenClient.next());
-            assertThat(toIntExact(tokenClient.reference)).isEqualTo(nextExpectedId);
-            nextExpectedId = expected.nextSetBit(nextExpectedId + 1);
+        try (var tokenClient = new SimpleEntityTokenClient()) {
+            reader.query(
+                    tokenClient, unconstrained(), new TokenPredicate(labelId), EntityRange.from(fromId), NULL_CONTEXT);
+            while (nextExpectedId != -1) {
+                assertTrue(tokenClient.next());
+                assertThat(toIntExact(tokenClient.reference)).isEqualTo(nextExpectedId);
+                nextExpectedId = expected.nextSetBit(nextExpectedId + 1);
+            }
+            assertFalse(tokenClient.next());
         }
-        assertFalse(tokenClient.next());
     }
 }

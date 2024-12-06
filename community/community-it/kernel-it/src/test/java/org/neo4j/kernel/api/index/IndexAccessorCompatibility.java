@@ -131,8 +131,8 @@ abstract class IndexAccessorCompatibility extends PropertyIndexProviderCompatibi
     }
 
     protected List<Long> queryNoSort(PropertyIndexQuery... predicates) throws Exception {
-        try (ValueIndexReader reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
-            SimpleEntityValueClient nodeValueClient = new SimpleEntityValueClient();
+        try (ValueIndexReader reader = accessor.newValueReader(NO_USAGE_TRACKING);
+                SimpleEntityValueClient nodeValueClient = new SimpleEntityValueClient()) {
             reader.query(
                     nodeValueClient,
                     QueryContext.NULL_CONTEXT,
@@ -163,8 +163,8 @@ abstract class IndexAccessorCompatibility extends PropertyIndexProviderCompatibi
         if (order == IndexOrder.NONE) {
             actualIds = query(predicates);
         } else {
-            SimpleEntityValueClient client = new SimpleEntityValueClient();
-            try (AutoCloseable ignore = query(client, order, predicates)) {
+            try (SimpleEntityValueClient client = new SimpleEntityValueClient();
+                    AutoCloseable ignore = query(client, order, predicates)) {
                 actualIds = assertClientReturnValuesInOrder(client, order);
             }
         }

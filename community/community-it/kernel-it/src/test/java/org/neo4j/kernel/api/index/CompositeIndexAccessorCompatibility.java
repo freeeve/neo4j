@@ -1031,8 +1031,8 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
                 add(1, descriptor, baseValue, o2),
                 add(1, descriptor, baseValue, o3)));
 
-        SimpleEntityValueClient client = new SimpleEntityValueClient();
-        try (AutoCloseable ignored = query(client, order, exact, range)) {
+        try (SimpleEntityValueClient client = new SimpleEntityValueClient();
+                AutoCloseable ignored = query(client, order, exact, range)) {
             List<Long> seenIds = assertClientReturnValuesInOrder(client, order);
             assertThat(seenIds.size()).isEqualTo(6);
         }
@@ -1140,8 +1140,8 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
                 of(new PropertyIndexQuery[] {firstContains, secondSuffix}, false),
                 of(new PropertyIndexQuery[] {firstContains, secondContains}, false));
 
-        SimpleEntityValueClient client = new SimpleEntityValueClient();
-        try (ValueIndexReader reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
+        try (SimpleEntityValueClient client = new SimpleEntityValueClient();
+                ValueIndexReader reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
             for (Pair<PropertyIndexQuery[], Boolean> pair : queries) {
                 PropertyIndexQuery[] theQuery = pair.first();
                 Boolean legal = pair.other();

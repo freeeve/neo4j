@@ -310,14 +310,19 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
         } else if (supportedOrder == IndexOrder.DESCENDING) {
             Arrays.sort(expectedValues, Values.COMPARATOR.reversed());
         }
-        SimpleEntityValueClient client = new SimpleEntityValueClient();
-        reader.query(
-                client, NULL_CONTEXT, CursorContext.NULL_CONTEXT, constrained(supportedOrder, true), supportedQuery);
-        int i = 0;
-        while (client.next()) {
-            assertEquals(expectedValues[i++], client.values[0], "values in order");
+        try (SimpleEntityValueClient client = new SimpleEntityValueClient()) {
+            reader.query(
+                    client,
+                    NULL_CONTEXT,
+                    CursorContext.NULL_CONTEXT,
+                    constrained(supportedOrder, true),
+                    supportedQuery);
+            int i = 0;
+            while (client.next()) {
+                assertEquals(expectedValues[i++], client.values[0], "values in order");
+            }
+            assertEquals(i, expectedValues.length, "found all values");
         }
-        assertEquals(i, expectedValues.length, "found all values");
     }
 
     protected static Value valueOf(ValueIndexEntryUpdate update) {

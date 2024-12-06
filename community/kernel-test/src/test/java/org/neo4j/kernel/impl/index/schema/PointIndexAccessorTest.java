@@ -132,12 +132,12 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
             var e = assertThrows(
                     IndexNotApplicableKernelException.class,
-                    () -> reader.query(
-                            new SimpleEntityValueClient(),
-                            NULL_CONTEXT,
-                            CursorContext.NULL_CONTEXT,
-                            unorderedValues(),
-                            predicate),
+                    () -> {
+                        try (SimpleEntityValueClient client = new SimpleEntityValueClient()) {
+                            reader.query(
+                                    client, NULL_CONTEXT, CursorContext.NULL_CONTEXT, unorderedValues(), predicate);
+                        }
+                    },
                     "%s is an unsupported query".formatted(predicate));
             assertThat(e)
                     .hasMessageContaining(
@@ -193,12 +193,16 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
             PropertyIndexQuery.ExactPredicate query = PropertyIndexQuery.exact(0, PointValue.MAX_VALUE);
             var e = assertThrows(
                     IndexNotApplicableKernelException.class,
-                    () -> reader.query(
-                            new SimpleEntityValueClient(),
-                            NULL_CONTEXT,
-                            CursorContext.NULL_CONTEXT,
-                            constrained(indexOrder, false),
-                            query),
+                    () -> {
+                        try (SimpleEntityValueClient client = new SimpleEntityValueClient()) {
+                            reader.query(
+                                    client,
+                                    NULL_CONTEXT,
+                                    CursorContext.NULL_CONTEXT,
+                                    constrained(indexOrder, false),
+                                    query);
+                        }
+                    },
                     "order is not supported with point index");
             assertThat(e)
                     .hasMessageContainingAll(
