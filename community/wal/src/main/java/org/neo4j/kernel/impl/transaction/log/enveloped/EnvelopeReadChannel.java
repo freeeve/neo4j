@@ -406,6 +406,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
                 }
 
                 final var chunkSize = min(payloadEndOffset - buffer.position(), length - bytesRead);
+                ensureDataExists(chunkSize);
                 buffer.get(bytes, bytesRead, chunkSize);
                 bytesRead += chunkSize;
             }
