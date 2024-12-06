@@ -28,15 +28,11 @@ import org.neo4j.cypher.internal.compiler.planner.logical.idp.CacheBackedQPPInne
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.CacheBackedQPPInnerPlanner.CacheKeyOuter
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQppPredicates.ExtractedPredicates
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
-import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.IsRepeatTrailUnique
+import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
-import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.NonEmptyList
 
 /**
  * Produces a logical plan for the inner pattern of a QPP, which is the equivalent of the RHS of the Trail operator.
@@ -173,7 +169,7 @@ case class IDPQPPInnerPlanner(context: LogicalPlanningContext) extends QPPInnerP
   ): LogicalPlan = {
     val argumentsIntroducedByExtractedPredicates = extractedPredicates.requiredSymbols
     val additionalArguments = argumentsIntroducedByExtractedPredicates + getQPPStartNode(qpp, fromLeft)
-    val additionalPredicates = extractedPredicates.predicates.map(_.extracted) ++ additionalTrailPredicates(qpp)
+    val additionalPredicates = extractedPredicates.predicates.map(_.extracted).flatMap(Ands.unwrap)
     val qg = qpp.asQueryGraph
       .addArgumentIds(additionalArguments)
       .addPredicates(additionalPredicates: _*)
@@ -237,11 +233,6 @@ case class IDPQPPInnerPlanner(context: LogicalPlanningContext) extends QPPInnerP
     if (fromLeft) qpp.leftBinding.inner
     else qpp.rightBinding.inner
   }
-
-  private def additionalTrailPredicates(qpp: QuantifiedPathPattern): NonEmptyList[Expression] =
-    qpp.patternRelationships.map(r =>
-      IsRepeatTrailUnique(r.variable.asInstanceOf[Variable])(InputPosition.NONE)
-    )
 
   override def updateQpp(
     qpp: QuantifiedPathPattern,

@@ -1368,7 +1368,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         relationshipVariableGroupings = Set(variableGrouping(v"r", v"r"))
       )
 
-      the[InternalException] thrownBy producer.planTrail(
+      the[InternalException] thrownBy producer.planRepeat(
         source = sourcePlan,
         pattern = quantifiedPathPattern,
         startBinding = quantifiedPathPattern.leftBinding,
@@ -1379,7 +1379,8 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         predicates = Nil,
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
-        reverseGroupVariableProjections = false
+        reverseGroupVariableProjections = false,
+        trail = true
       ) should have message "The provided inner plan doesn't conform with the quantified path pattern being planned"
     }
   }

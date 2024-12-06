@@ -218,6 +218,7 @@ import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
+import org.neo4j.cypher.internal.logical.plans.RepeatWalk
 import org.neo4j.cypher.internal.logical.plans.RightOuterHashJoin
 import org.neo4j.cypher.internal.logical.plans.RollUpApply
 import org.neo4j.cypher.internal.logical.plans.RunQueryAt
@@ -1266,7 +1267,7 @@ case class LogicalPlanProducer(
     newPlan
   }
 
-  def planTrail(
+  def planRepeat(
     source: LogicalPlan,
     pattern: QuantifiedPathPattern,
     startBinding: NodeBinding,
@@ -1277,9 +1278,10 @@ case class LogicalPlanProducer(
     predicates: Seq[Expression],
     previouslyBoundRelationships: Set[LogicalVariable],
     previouslyBoundRelationshipGroups: Set[LogicalVariable],
-    reverseGroupVariableProjections: Boolean
+    reverseGroupVariableProjections: Boolean,
+    trail: Boolean
   ): LogicalPlan = {
-    // Ensure that innerPlan does conform with the pattern contained inside of the quantified path pattern before we mark it as solved
+    // Ensure that innerPlan does conform with the pattern contained inside the quantified path pattern before we mark it as solved
     try {
       VerifyBestPlan(
         plan = innerPlan,
@@ -1300,7 +1302,7 @@ case class LogicalPlanProducer(
       .addPredicates(predicates: _*))
 
     val providedOrderRule = ProvidedOrder.Left
-    val trailPlan = annotate(
+    val repeatPlan = if (trail) {
       RepeatTrail(
         left = source,
         right = innerPlan,
@@ -1315,7 +1317,23 @@ case class LogicalPlanProducer(
         previouslyBoundRelationships = previouslyBoundRelationships,
         previouslyBoundRelationshipGroups = previouslyBoundRelationshipGroups,
         reverseGroupVariableProjections = reverseGroupVariableProjections
-      ),
+      )
+    } else {
+      RepeatWalk(
+        left = source,
+        right = innerPlan,
+        repetition = pattern.repetition,
+        start = startBinding.outer,
+        end = endBinding.outer,
+        innerStart = startBinding.inner,
+        innerEnd = endBinding.inner,
+        nodeVariableGroupings = pattern.nodeVariableGroupings,
+        relationshipVariableGroupings = pattern.relationshipVariableGroupings,
+        reverseGroupVariableProjections = reverseGroupVariableProjections
+      )
+    }
+    annotate(
+      repeatPlan,
       solved,
       providedOrderRule,
       cachedPropertiesPerPlan.get(innerPlan.id),
@@ -1330,7 +1348,7 @@ case class LogicalPlanProducer(
         ) =
           context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForSelections(
             solved.asSinglePlannerQuery.queryGraph,
-            trailPlan,
+            repeatPlan,
             context,
             Set(hiddenFilter)
           )
@@ -1346,7 +1364,7 @@ case class LogicalPlanProducer(
           case _ => planWithProperties
         }
 
-      case None => trailPlan
+      case None => repeatPlan
     }
   }
 

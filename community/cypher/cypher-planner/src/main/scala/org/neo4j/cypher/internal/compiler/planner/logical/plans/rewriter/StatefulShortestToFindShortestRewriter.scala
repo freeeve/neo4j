@@ -312,7 +312,8 @@ case class StatefulShortestToFindShortestRewriter(
     val extractedPredicates = extractQppPredicates(
       spp.selections.flatPredicates,
       qpp.variableGroupings,
-      statefulShortestPath.source.availableSymbols
+      statefulShortestPath.source.availableSymbols,
+      insideRepeat = false
     ).predicates
     val symbols =
       statefulShortestPath.source.availableSymbols + innerFrom + innerTo ++ qpp.relationshipVariableGroupings.headOption

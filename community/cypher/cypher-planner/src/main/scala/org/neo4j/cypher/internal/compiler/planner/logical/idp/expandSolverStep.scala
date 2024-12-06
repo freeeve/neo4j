@@ -319,7 +319,13 @@ object expandSolverStep {
     val fromLeft = startNode == quantifiedPathPattern.left
 
     // Get the QPP inner plan
-    val extractedPredicates = extractQppPredicates(predicates, quantifiedPathPattern.variableGroupings, availableVars)
+    val extractedPredicates =
+      extractQppPredicates(
+        predicates,
+        quantifiedPathPattern.variableGroupings,
+        availableVars,
+        insideRepeat = true
+      )
 
     val (updatedLabelInfo, updatedContext) = context.staticComponents.labelInferenceStrategy.inferLabels(
       context,
@@ -388,11 +394,14 @@ object expandSolverStep {
         SolvedUniquenessPredicate(noneOfPred, previouslyBoundRelationships = Some(singletonVariable))
     }
 
-    val solvedPredicates = uniquenessPredicates.map(_.solvedPredicate) ++ innerPlanPredicates
+    // Reason for `.distinct`: Unique is reported twice: once from uniquenessPredicates and once as solved from IsTrailUnique of innerPlanPredicates
+    val solvedPredicates = (uniquenessPredicates.map(_.solvedPredicate) ++ innerPlanPredicates).distinct
     val previouslyBoundRelationships = uniquenessPredicates.flatMap(_.previouslyBoundRelationships).toSet
     val previouslyBoundRelationshipGroups = uniquenessPredicates.flatMap(_.previouslyBoundRelationshipGroups).toSet
 
-    val plan = updatedContext.staticComponents.logicalPlanProducer.planTrail(
+    val trailSemantics = uniquenessPredicates.nonEmpty
+
+    val plan = updatedContext.staticComponents.logicalPlanProducer.planRepeat(
       source = sourcePlan,
       pattern = quantifiedPathPattern,
       startBinding = startBinding,
@@ -403,7 +412,8 @@ object expandSolverStep {
       predicates = solvedPredicates,
       previouslyBoundRelationships,
       previouslyBoundRelationshipGroups,
-      reverseGroupVariableProjections = !fromLeft
+      reverseGroupVariableProjections = !fromLeft,
+      trailSemantics
     )
 
     val bothEndpointsBoundInSourcePlan =
@@ -558,7 +568,8 @@ object expandSolverStep {
                   val extracted = extractQppPredicates(
                     rewrittenSppSelections.flatPredicates,
                     variableGrouping,
-                    availableSymbols
+                    availableSymbols,
+                    insideRepeat = false
                   )
                   val singletonVariables = variableGrouping.map(_.singleton)
                   val filteredPredicates = extracted.predicates

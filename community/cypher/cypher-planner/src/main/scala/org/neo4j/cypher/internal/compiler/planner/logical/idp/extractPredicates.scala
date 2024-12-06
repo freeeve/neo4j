@@ -19,15 +19,18 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.expandSolverStep.VariableList
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractPredicates.AllRelationships
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractPredicates.NoRelationships
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractPredicates.NodesFunctionArguments
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractPredicates.RelationshipsFunctionArguments
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
+import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FilterScope
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionName
+import org.neo4j.cypher.internal.expressions.IsRepeatTrailUnique
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MultiRelationshipPathStep
 import org.neo4j.cypher.internal.expressions.NilPathStep
@@ -43,6 +46,7 @@ import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.ir.ast.ForAllRepetitions
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 
 object extractPredicates {
@@ -418,13 +422,18 @@ object extractShortestPathPredicates {
  */
 object extractQppPredicates {
 
+  /**
+   * @param insideRepeat whether the pre-filter position is on the RHS of a Repeat.
+   *                     Thus, whether Unique may be extracted into an IsRepeatTrailUnique.
+   */
   def apply(
     predicates: Seq[Expression],
     availableLocalSymbols: Set[VariableGrouping],
-    availableNonLocalSymbols: Set[LogicalVariable]
+    availableNonLocalSymbols: Set[LogicalVariable],
+    insideRepeat: Boolean
   ): ExtractedPredicates = {
     val solvables = filterSolvablePredicates(predicates, availableLocalSymbols, availableNonLocalSymbols)
-    val extracted = getExtractablePredicates(solvables, availableLocalSymbols)
+    val extracted = getExtractablePredicates(solvables, availableLocalSymbols, insideRepeat)
     val requiredSymbols = getRequiredNonLocalSymbols(extracted, availableLocalSymbols)
     ExtractedPredicates(requiredSymbols, extracted)
   }
@@ -453,11 +462,13 @@ object extractQppPredicates {
    *
    * @param predicates            Potentially extractable predicates
    * @param availableLocalSymbols Local symbol mappings used for swapping variable references in extracted predicates
+   * @param insideRepeat          Whether the predicates will be used in the RHS of a Repeat
    * @return                      Extracted predicates
    */
   private def getExtractablePredicates(
     predicates: Seq[Expression],
-    availableLocalSymbols: Set[VariableGrouping]
+    availableLocalSymbols: Set[VariableGrouping],
+    insideRepeat: Boolean
   ): Seq[ExtractedPredicate] = {
     val availableLocalSymbolsMapping = availableLocalSymbols
       .map(g => g.group -> g.singleton)
@@ -475,6 +486,16 @@ object extractQppPredicates {
         // only extract if this predicate is actually on this QPP
         if availableLocalSymbolsMapping.contains(far.groupVariableAnchor) =>
         ExtractedPredicate(far, far.originalInnerPredicate)
+
+      case unique @ Unique(VariableList(variables))
+        if insideRepeat && variables.forall(availableLocalSymbolsMapping.contains) =>
+        val extractedPredicates: Set[Expression] = variables
+          .map(availableLocalSymbolsMapping)
+          .map(relVar =>
+            IsRepeatTrailUnique(relVar.asInstanceOf[Variable])(InputPosition.NONE)
+          )
+
+        ExtractedPredicate(unique, Ands.create(extractedPredicates))
     }
   }
 

@@ -68,7 +68,10 @@ trait NodeConnectionCardinalityModel
             extractQppPredicates(
               predicates.otherPredicates.map(_.expr).toSeq,
               quantifiedPathPattern.variableGroupings,
-              coveredIdsForPattern ++ boundNodesAndArguments.argumentIds
+              coveredIdsForPattern ++ boundNodesAndArguments.argumentIds,
+              // both Unique and IsRepeatTrailUnique are mapped to a selectivity of one in PatternRelationshipMultiplierCalculator,
+              // so this should not matter. But it would technically be false in the case of shortest path queries if that should be used with this
+              insideRepeat = false
             )
 
           quantifiedPathPattern.copy(selections =

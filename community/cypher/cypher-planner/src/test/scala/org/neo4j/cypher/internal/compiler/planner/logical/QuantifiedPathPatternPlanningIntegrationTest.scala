@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
@@ -50,6 +51,7 @@ import org.neo4j.cypher.internal.ir.EagernessReason.ReadDeleteConflict
 import org.neo4j.cypher.internal.ir.EagernessReason.TypeReadSetConflict
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.andsReorderable
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
@@ -121,6 +123,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     .setRelationshipCardinality("(:N)-[:R]->()", 10)
     .setRelationshipCardinality("()-[]->(:NNN)", 10)
     .setRelationshipCardinality("(:N)-[]->(:NNN)", 10)
+    .addSemanticFeature(MatchModes)
 
   protected def planner: StatisticsBackedLogicalPlanningConfiguration = plannerBase
     .build()
@@ -129,7 +132,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     .setDatabaseMode(DatabaseMode.SHARDED)
     .build()
 
-  test("should use correctly Namespaced variables") {
+  test("should use correctly namespaced variables") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(10)
       .setAllRelationshipsCardinality(10)
@@ -3406,6 +3409,81 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     val plan = planner.plan(query)
 
     plan.folder.findAllByClass[VarExpand].size shouldBe 1
+  }
+
+  test("Should plan simple bound quantifier under REPEATABLE ELEMENTS") {
+    val query =
+      """MATCH REPEATABLE ELEMENTS
+        |  (u:User)((n)-[]->(m)) {, 100}
+        |RETURN n, m""".stripMargin
+    val `(u)((n)-[]-(m)) {, 100}` = WalkParameters(
+      min = 0,
+      max = Limited(100),
+      start = "u",
+      end = "anon_0",
+      innerStart = "n",
+      innerEnd = "m",
+      groupNodes = Set(("n", "n"), ("m", "m")),
+      groupRelationships = Set.empty,
+      reverseGroupVariableProjections = false
+    )
+
+    planner.plan(query) should equal(
+      planner.planBuilder()
+        .produceResults("n", "m")
+        .repeatWalk(`(u)((n)-[]-(m)) {, 100}`)
+        .|.expand("(n)-[anon_1]->(m)")
+        .|.argument("n")
+        .nodeByLabelScan("u", "User")
+        .build()
+    )
+  }
+
+  test("Should plan bound quantifiers on 2 qpps with 2 relationships each under REPEATABLE ELEMENTS") {
+    val query =
+      """MATCH REPEATABLE ELEMENTS
+        |  (u:User)
+        |    ((n)-[]->(m)-[]->(o)) {, 100}
+        |  (p)
+        |    ((r)-[]->(s)-[]->(t)) {, 100}
+        |RETURN u, t""".stripMargin
+    val `(u)((n)-...-(o)) {, 100}(p)` = WalkParameters(
+      min = 0,
+      max = Limited(100),
+      start = "u",
+      end = "p",
+      innerStart = "n",
+      innerEnd = "o",
+      groupNodes = Set.empty,
+      groupRelationships = Set.empty,
+      reverseGroupVariableProjections = false
+    )
+    val `(p)((r)-...-(t)) {, 100}` = WalkParameters(
+      min = 0,
+      max = Limited(100),
+      start = "p",
+      end = "anon_0",
+      innerStart = "r",
+      innerEnd = "t",
+      groupNodes = Set(("t", "t")),
+      groupRelationships = Set.empty,
+      reverseGroupVariableProjections = false
+    )
+
+    planner.plan(query) should equal(
+      planner.planBuilder()
+        .produceResults("u", "t")
+        .repeatWalk(`(p)((r)-...-(t)) {, 100}`)
+        .|.expand("(s)-[anon_4]->(t)")
+        .|.expand("(r)-[anon_3]->(s)")
+        .|.argument("r")
+        .repeatWalk(`(u)((n)-...-(o)) {, 100}(p)`)
+        .|.expand("(m)-[anon_2]->(o)")
+        .|.expand("(n)-[anon_1]->(m)")
+        .|.argument("n")
+        .nodeByLabelScan("u", "User")
+        .build()
+    )
   }
 }
 

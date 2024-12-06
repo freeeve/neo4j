@@ -69,7 +69,8 @@ class extractQppPredicatesTest extends CypherFunSuite with AstConstructionTestSu
     extractQppPredicates(
       Seq(predicate_r_in_s),
       `(a) ((n)-[r]->(m))+ (b)`.variableGroupings,
-      Set(varFor("o"), varFor("s"), varFor("p"))
+      Set(varFor("o"), varFor("s"), varFor("p")),
+      insideRepeat = true
     ) should equal(
       ExtractedPredicates(
         Set(varFor("s")),
@@ -88,8 +89,64 @@ class extractQppPredicatesTest extends CypherFunSuite with AstConstructionTestSu
     extractQppPredicates(
       Seq(predicate_r_in_s),
       `(a) ((o)-[s]->(p))+ (b)`.variableGroupings,
-      Set(varFor("n"), varFor("r"), varFor("m"))
+      Set(varFor("n"), varFor("r"), varFor("m")),
+      insideRepeat = true
     ) should equal(
+      ExtractedPredicates(Set.empty, Seq.empty)
+    )
+  }
+
+  test("should extract IsRepeatTrailUnique from Unique") {
+    // GIVEN
+    val uniquePred = unique(v"r")
+    val repeatUniquePred = isRepeatTrailUnique("r_inner")
+
+    // WHEN
+    val extractedPredicates = extractQppPredicates(
+      Seq(uniquePred),
+      `(a) ((n)-[r]->(m))+ (b)`.variableGroupings,
+      Set(v"o", v"s", v"p"),
+      insideRepeat = true
+    )
+
+    // THEN
+    extractedPredicates should equal(
+      ExtractedPredicates(Set.empty, Seq(ExtractedPredicate(uniquePred, repeatUniquePred)))
+    )
+  }
+
+  test("should not extract IsRepeatTrailUnique from Unique if not inside Repeat") {
+    // GIVEN
+    val uniquePred = unique(v"r")
+
+    // WHEN
+    val extractedPredicates = extractQppPredicates(
+      Seq(uniquePred),
+      `(a) ((n)-[r]->(m))+ (b)`.variableGroupings,
+      Set(v"o", v"s", v"p"),
+      insideRepeat = false
+    )
+
+    // THEN
+    extractedPredicates should equal(
+      ExtractedPredicates(Set.empty, Seq.empty)
+    )
+  }
+
+  test("should not extract IsRepeatTrailUnique from Unique for other QPP") {
+    // GIVEN
+    val uniquePred = unique(v"s")
+
+    // WHEN
+    val extractedPredicates = extractQppPredicates(
+      Seq(uniquePred),
+      `(a) ((n)-[r]->(m))+ (b)`.variableGroupings,
+      Set(v"o", v"s", v"p"),
+      insideRepeat = true
+    )
+
+    // THEN
+    extractedPredicates should equal(
       ExtractedPredicates(Set.empty, Seq.empty)
     )
   }
