@@ -20,11 +20,12 @@
 package cypher.features.acceptance
 
 import cypher.features.BaseFeatureTest
-import cypher.features.BaseFeatureTestHolder
+import cypher.features.BaseFeatureTestHolder.acceptanceScenarios
 import cypher.features.Neo4jAdapter.defaultTestConfig
 import cypher.features.TestDatabaseProvider
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.test.TestDatabaseManagementServiceBuilder
 import org.opencypher.tools.tck.api.Scenario
@@ -37,8 +38,10 @@ abstract class BaseAcceptanceTest extends BaseFeatureTest {
   val featureToRun = ""
   val scenarioToRun = ""
 
-  override lazy val scenarios: Seq[Scenario] =
-    filterScenarios(BaseFeatureTestHolder.allAcceptanceScenarios, categoryToRun, featureToRun, scenarioToRun)
+  def cypherVersion: CypherVersion = CypherVersion.Default
+
+  override def scenarios: Seq[Scenario] =
+    filterScenarios(acceptanceScenarios(cypherVersion), categoryToRun, featureToRun, scenarioToRun)
 
   private val provider: TestDatabaseProvider =
     new TestDatabaseProvider(() => new TestDatabaseManagementServiceBuilder(), _ => {})

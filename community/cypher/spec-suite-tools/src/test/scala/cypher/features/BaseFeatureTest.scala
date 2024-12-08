@@ -19,11 +19,10 @@
  */
 package cypher.features
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.util.test_helpers.FeatureTest
 import org.opencypher.tools.tck.api.CypherTCK
 import org.opencypher.tools.tck.api.Scenario
-
-import java.net.URI
 
 abstract class BaseFeatureTest extends FeatureTest with ScenarioTestHelper {
 
@@ -33,13 +32,11 @@ abstract class BaseFeatureTest extends FeatureTest with ScenarioTestHelper {
     featureToRun: String,
     scenarioToRun: String
   ): Seq[Scenario] = {
-    allScenarios.filter(s =>
-      categoryToRun.isEmpty || s.categories.exists(c => c.contains(categoryToRun))
-    ).filter(s =>
-      featureToRun.isEmpty || s.featureName.contains(featureToRun)
-    ).filter(s =>
-      scenarioToRun.isEmpty || s.name.contains(scenarioToRun)
-    )
+    if (categoryToRun.isEmpty && featureToRun.isEmpty && scenarioToRun.isEmpty) allScenarios
+    else allScenarios
+      .filter(s => categoryToRun.isEmpty || s.categories.exists(c => c.contains(categoryToRun)))
+      .filter(s => featureToRun.isEmpty || s.featureName.contains(featureToRun))
+      .filter(s => scenarioToRun.isEmpty || s.name.contains(scenarioToRun))
   }
 }
 
@@ -47,10 +44,17 @@ object BaseFeatureTestHolder {
 
   lazy val allTckScenarios: Seq[Scenario] = CypherTCK.allTckScenarios
 
-  lazy val allAcceptanceScenarios: Seq[Scenario] = {
-    val resourcePath: String = "/acceptance/features"
-
-    val featuresURI: URI = getClass.getResource(resourcePath).toURI
-    CypherTCK.parseFeatures(featuresURI).flatMap(_.scenarios)
+  def acceptanceScenarios(version: CypherVersion): Seq[Scenario] = version match {
+    case CypherVersion.Cypher25 => cypher25AcceptanceScenarios
+    case CypherVersion.Cypher5  => cypher5AcceptanceScenarios
   }
+
+  private lazy val cypher5AcceptanceScenarios: Seq[Scenario] =
+    loadScenariosFromResources("/acceptance/features")
+
+  private lazy val cypher25AcceptanceScenarios: Seq[Scenario] =
+    cypher5AcceptanceScenarios ++ loadScenariosFromResources("/cypher25/acceptance/features")
+
+  private def loadScenariosFromResources(path: String): Seq[Scenario] =
+    CypherTCK.parseFeatures(getClass.getResource(path).toURI).flatMap(_.scenarios)
 }

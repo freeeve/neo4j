@@ -42,25 +42,9 @@ import org.scalatest.matchers.should.Matchers
 import scala.util.Success
 import scala.util.Try
 
-class PrettifierTCKTest extends PrettifierTCKTestBase {
-
-  override protected def parseStatements(query: String): Statement =
-    AstParserFactory(CypherVersion.Cypher5)(query, Neo4jCypherExceptionFactory(query, None), None).singleStatement()
-
-  @Test
-  def allVersionsHaveCoverage(): Unit = {
-    // If this starts to fail you need to add a new prettifier test for the new version and adapt this test.
-    assertEquals(Set(CypherVersion.Cypher5, CypherVersion.Cypher25), CypherVersion.values().toSet)
-  }
-
-  override def denylist(): Seq[DenylistEntry] =
-    super.denylist() ++ new Cypher5PrettifierTCKTest().denylist()
-}
-
 class Cypher25PrettifierTCKTest extends PrettifierTCKTestBase {
 
-  override protected def parseStatements(query: String): Statement =
-    AstParserFactory(CypherVersion.Cypher25)(query, Neo4jCypherExceptionFactory(query, None), None).singleStatement()
+  override def cypherVersion: CypherVersion = CypherVersion.Cypher25
 
   override def denylist(): Seq[DenylistEntry] = super.denylist() ++ Seq(
     // Parser changes for Cypher 25
@@ -68,12 +52,17 @@ class Cypher25PrettifierTCKTest extends PrettifierTCKTestBase {
     """Feature "LiteralAcceptance": Scenario "Fail on an deprecated octal number syntax with underscore"""",
     """Feature "LiteralAcceptance": Scenario "Fail on an octal number with underscore in prefix""""
   ).map(DenylistEntry.apply)
+
+  @Test
+  def allVersionsHaveCoverage(): Unit = {
+    // If this starts to fail you need to add a new prettifier test for the new version and adapt this test.
+    assertEquals(Set(CypherVersion.Cypher5, CypherVersion.Cypher25), CypherVersion.values().toSet)
+  }
 }
 
 class Cypher5PrettifierTCKTest extends PrettifierTCKTestBase {
 
-  override protected def parseStatements(query: String): Statement =
-    AstParserFactory(CypherVersion.Cypher5)(query, Neo4jCypherExceptionFactory(query, None), None).singleStatement()
+  override def cypherVersion: CypherVersion = CypherVersion.Cypher5
 
   override def denylist(): Seq[DenylistEntry] = super.denylist() ++
     // Not in Cypher 5
@@ -105,8 +94,10 @@ trait PrettifierTCKTestBase extends FeatureTest with FeatureQueryTest with Match
     sensitiveParamsAsParams = true
   ))
 
-  override val scenarios: Seq[Scenario] =
-    BaseFeatureTestHolder.allAcceptanceScenarios ++ BaseFeatureTestHolder.allTckScenarios
+  def cypherVersion: CypherVersion
+
+  override def scenarios: Seq[Scenario] =
+    BaseFeatureTestHolder.acceptanceScenarios(cypherVersion) ++ BaseFeatureTestHolder.allTckScenarios
 
   override def denylist(): Seq[DenylistEntry] = Seq(
     // Does not parse
@@ -164,7 +155,9 @@ trait PrettifierTCKTestBase extends FeatureTest with FeatureQueryTest with Match
     }
   }
 
-  protected def parseStatements(query: String): Statement
+  private def parseStatements(query: String): Statement = {
+    AstParserFactory(cypherVersion)(query, Neo4jCypherExceptionFactory(query, None), None).singleStatement()
+  }
 
   private def parse(query: String): Statement =
     removeSyntaxTracking(canonicalizeUnaliasedReturnItem(parseStatements(query)))

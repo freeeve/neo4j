@@ -82,13 +82,8 @@ import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualValues
 
-import java.io.PrintStream
-import java.time.temporal.ChronoUnit
 import java.util.Collections
-import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
-
-import scala.collection.mutable.ArrayBuffer
 
 /**
  * This class contains various ugliness needed to perform physical compilation
