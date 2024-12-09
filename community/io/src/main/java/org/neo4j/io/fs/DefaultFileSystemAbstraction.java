@@ -269,7 +269,10 @@ public class DefaultFileSystemAbstraction implements FileSystemAbstraction {
 
         @Override
         public void write(int b) throws IOException {
-            throw new UnsupportedOperationException("All stream operations should be buffer based.");
+            if (!buffer.hasRemaining()) {
+                flushBuffer();
+            }
+            buffer.put((byte) b);
             if (autoFlush) {
                 flushBuffer();
             }
@@ -279,11 +282,11 @@ public class DefaultFileSystemAbstraction implements FileSystemAbstraction {
         public void write(byte[] b, int off, int len) throws IOException {
             int length;
             for (int offset = off; offset < off + len; offset += length) {
-                length = Math.min(len - offset, buffer.capacity());
-                buffer.clear();
+                if (!buffer.hasRemaining()) {
+                    flushBuffer();
+                }
+                length = Math.min(len - offset, buffer.remaining());
                 buffer.put(b, offset, length);
-                buffer.flip();
-                fileChannel.writeAll(buffer);
             }
             if (autoFlush) {
                 flushBuffer();
@@ -292,9 +295,18 @@ public class DefaultFileSystemAbstraction implements FileSystemAbstraction {
 
         @Override
         public void close() throws IOException {
+            if (buffer.position() > 0) {
+                flushBuffer();
+            }
             fileChannel.close();
             scopedBuffer.close();
             super.close();
+        }
+
+        private void flushBuffer() throws IOException {
+            buffer.flip();
+            fileChannel.writeAll(buffer);
+            buffer.clear();
         }
     }
 

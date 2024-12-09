@@ -156,8 +156,16 @@ public class DefaultFileSystemAbstractionTest extends FileSystemAbstractionTest 
         try (var channel = new DefaultFileSystemAbstraction.NativeByteBufferOutputStream(
                         fsa.write(testFile), baseBufferSize, false);
                 var buffered = new BufferedOutputStream(channel, baseBufferSize + random.nextInt(10, 455))) {
-            for (byte aByte : sourceData) {
-                buffered.write(aByte);
+            for (int i = 0; i < sourceData.length; ) {
+                if (random.nextBoolean()) {
+                    buffered.write(sourceData[i]);
+                    i++;
+                } else {
+                    int remaining = size - i;
+                    int bytesToWrite = remaining == 1 ? 1 : random.nextInt(1, Math.min(remaining, 256));
+                    buffered.write(sourceData, i, bytesToWrite);
+                    i += bytesToWrite;
+                }
             }
         }
 
