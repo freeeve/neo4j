@@ -309,9 +309,10 @@ class SchemaRuleTest {
                 "Index( type='FULLTEXT', schema=(:`La:bel`:Label1 {`prop:erty`, prop1}), indexProvider='Undecided-0' )",
                 nodeFtsPrototype2);
         assertUserDescription(
-                "Constraint( type='UNIQUENESS', schema=(:`La:bel` {`prop:erty`, prop1}) )", uniqueLabelConstraint2);
+                "Constraint( type='NODE PROPERTY UNIQUENESS', schema=(:`La:bel` {`prop:erty`, prop1}) )",
+                uniqueLabelConstraint2);
         assertUserDescription(
-                "Constraint( type='RELATIONSHIP UNIQUENESS', schema=()-[:Type1 {prop2, prop3}]-() )",
+                "Constraint( type='RELATIONSHIP PROPERTY UNIQUENESS', schema=()-[:Type1 {prop2, prop3}]-() )",
                 uniqueRelTypeConstraint);
         assertUserDescription(
                 "Constraint( type='NODE PROPERTY TYPE', schema=(:Label1 {prop2, prop3}), propertyType=BOOLEAN | INTEGER )",
@@ -420,10 +421,10 @@ class SchemaRuleTest {
                 indexBelongingToConstraint);
 
         assertUserDescription(
-                "Constraint( id=1, name='uniqueLabelConstraintNamed', type='UNIQUENESS', schema=(:Label1 {prop2, prop3}), ownedIndex=1 )",
+                "Constraint( id=1, name='uniqueLabelConstraintNamed', type='NODE PROPERTY UNIQUENESS', schema=(:Label1 {prop2, prop3}), ownedIndex=1 )",
                 uniqueLabelConstraintNamed);
         assertUserDescription(
-                "Constraint( id=7, name='uniqueRelTypeConstraintNamed', type='RELATIONSHIP UNIQUENESS', schema=()-[:Type1 {prop2, prop3}]-(), ownedIndex=1 )",
+                "Constraint( id=7, name='uniqueRelTypeConstraintNamed', type='RELATIONSHIP PROPERTY UNIQUENESS', schema=()-[:Type1 {prop2, prop3}]-(), ownedIndex=1 )",
                 uniqueRelTypeConstraintNamed);
         assertUserDescription(
                 "Constraint( id=2, name='existsLabelConstraintNamed', type='NODE PROPERTY EXISTENCE', schema=(:Label1 {prop2, prop3}) )",
@@ -438,7 +439,7 @@ class SchemaRuleTest {
                 "Constraint( id=4, name='existsRelTypeConstraintNamed', type='RELATIONSHIP PROPERTY EXISTENCE', schema=()-[:Type1 {prop2, prop3}]-() )",
                 existsRelTypeConstraintNamed);
         assertUserDescription(
-                "Constraint( id=5, name='uniqueLabelConstraint2Named', type='UNIQUENESS', schema=(:`La:bel` {`prop:erty`, prop1}), ownedIndex=5 )",
+                "Constraint( id=5, name='uniqueLabelConstraint2Named', type='NODE PROPERTY UNIQUENESS', schema=(:`La:bel` {`prop:erty`, prop1}), ownedIndex=5 )",
                 uniqueLabelConstraint2Named);
         assertUserDescription(
                 "Constraint( id=10, name='namedNodeTypeConstraint', type='NODE PROPERTY TYPE', schema=(:Label1 {prop2, prop3}), propertyType=STRING )",

@@ -72,7 +72,7 @@ public enum ConstraintType {
 
         return switch (this) {
             case EXISTS -> name + " PROPERTY EXISTENCE";
-            case UNIQUE -> entityType == NODE ? "UNIQUENESS" : name + " UNIQUENESS";
+            case UNIQUE -> entityType == NODE ? "NODE PROPERTY UNIQUENESS" : "RELATIONSHIP PROPERTY UNIQUENESS";
             case UNIQUE_EXISTS -> name + " KEY";
             case PROPERTY_TYPE -> name + " PROPERTY TYPE";
             case RELATIONSHIP_ENDPOINT_LABEL -> "RELATIONSHIP " + endpointTypeCypherName + " LABEL";

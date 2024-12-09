@@ -117,6 +117,7 @@ class ConstraintDescriptorFactoryTest {
                         .withId(3)
                         .withName("Constraint 3")
                         .userDescription(SIMPLE_NAME_LOOKUP))
-                .isEqualTo("Constraint( id=3, name='Constraint 3', type='UNIQUENESS', schema=(:Label2 {property4}) )");
+                .isEqualTo(
+                        "Constraint( id=3, name='Constraint 3', type='NODE PROPERTY UNIQUENESS', schema=(:Label2 {property4}) )");
     }
 }

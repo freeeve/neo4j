@@ -279,7 +279,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
                 exception,
                 expectedCause,
                 "An equivalent constraint already exists, 'Constraint( ",
-                "name='name', type='UNIQUENESS', schema=(:MY_LABEL {my_property_key}), ownedIndex=");
+                "name='name', type='NODE PROPERTY UNIQUENESS', schema=(:MY_LABEL {my_property_key}), ownedIndex=");
     }
 
     @ParameterizedTest()
@@ -356,7 +356,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
                 exception,
                 expectedCause,
                 "Constraint already exists: Constraint( ",
-                "name='name', type='UNIQUENESS', schema=(:MY_LABEL {my_property_key}), ownedIndex=");
+                "name='name', type='NODE PROPERTY UNIQUENESS', schema=(:MY_LABEL {my_property_key}), ownedIndex=");
     }
 
     @ParameterizedTest()
@@ -937,7 +937,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
                 .hasMessageContainingAll(
                         "Unable to create Constraint",
                         "name='constraint_d3208c60'",
-                        "type='UNIQUENESS'",
+                        "type='NODE PROPERTY UNIQUENESS'",
                         "schema=(:MY_LABEL {my_property_key})",
                         "Note that only the first found violation is shown.");
     }

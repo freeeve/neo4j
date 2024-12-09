@@ -161,7 +161,7 @@ class ErrorMessagesTest extends ExecutionEngineWithoutRestartFunSuite {
     expectError(
       "CREATE CONSTRAINT my_constraint FOR (person:Person) REQUIRE person.name IS UNIQUE",
       String.format(
-        "Unable to create Constraint( name='my_constraint', type='UNIQUENESS', schema=(:Person {name}) ):%n" +
+        "Unable to create Constraint( name='my_constraint', type='NODE PROPERTY UNIQUENESS', schema=(:Person {name}) ):%n" +
           "Both Node(" + node1 + ") and Node(" + node2 + ") have the label `Person` and property `name` = 'A'"
       )
     )

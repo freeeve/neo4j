@@ -113,7 +113,7 @@ class SchemaProcedureIT extends KernelIntegrationTest {
                         node.properties().get("indexes"));
                 assertEquals(
                         VirtualValues.list(stringValue("Constraint( id=" + constraintId(constraintName)
-                                + ", name='constraint name', type='UNIQUENESS', schema=(:Person {age}), "
+                                + ", name='constraint name', type='NODE PROPERTY UNIQUENESS', schema=(:Person {age}), "
                                 + "ownedIndex="
                                 + indexId(constraintName) + " )")),
                         node.properties().get("constraints"));
