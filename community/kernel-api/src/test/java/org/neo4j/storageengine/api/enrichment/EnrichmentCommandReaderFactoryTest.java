@@ -166,7 +166,7 @@ public class EnrichmentCommandReaderFactoryTest {
                 ? KernelVersion.VERSION_CDC_USER_METADATA_INTRODUCED
                 : KernelVersion.VERSION_CDC_INTRODUCED;
         final var readerFactory = new EnrichmentCommandReaderFactory(
-                new TestCommandReaderFactory(), commandFactory, () -> EmptyMemoryTracker.INSTANCE);
+                new TestCommandReaderFactory(), commandFactory, EmptyMemoryTracker.INSTANCE);
         return readerFactory.get(kernelVersion);
     }
 

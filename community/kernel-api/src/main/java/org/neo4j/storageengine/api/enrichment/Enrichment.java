@@ -60,6 +60,7 @@ public abstract sealed class Enrichment {
 
         private final ByteBuffer userMetadataBuffer;
         private final MemoryTracker memoryTracker;
+        private boolean closed;
 
         private Read(
                 KernelVersion kernelVersion,
@@ -204,6 +205,9 @@ public abstract sealed class Enrichment {
          */
         @Override
         public void close() {
+            if (closed) {
+                return;
+            }
             memoryTracker.releaseHeap(entitiesBuffer.capacity());
             memoryTracker.releaseHeap(detailsBuffer.capacity());
             memoryTracker.releaseHeap(changesBuffer.capacity());
@@ -211,6 +215,7 @@ public abstract sealed class Enrichment {
             if (userMetadataBuffer != null) {
                 memoryTracker.releaseHeap(userMetadataBuffer.capacity());
             }
+            closed = true;
         }
     }
 

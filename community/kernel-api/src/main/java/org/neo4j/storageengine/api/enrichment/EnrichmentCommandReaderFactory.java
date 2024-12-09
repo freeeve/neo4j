@@ -20,7 +20,6 @@
 package org.neo4j.storageengine.api.enrichment;
 
 import java.io.IOException;
-import java.util.function.Supplier;
 import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.memory.MemoryTracker;
@@ -37,12 +36,12 @@ public class EnrichmentCommandReaderFactory implements CommandReaderFactory {
 
     private final CommandReaderFactory commandReaderFactory;
     private final EnrichmentCommandFactory enrichmentCommandFactory;
-    private final Supplier<MemoryTracker> memoryTracker;
+    private final MemoryTracker memoryTracker;
 
     public EnrichmentCommandReaderFactory(
             CommandReaderFactory commandReaderFactory,
             EnrichmentCommandFactory enrichmentCommandFactory,
-            Supplier<MemoryTracker> memoryTracker) {
+            MemoryTracker memoryTracker) {
         this.commandReaderFactory = commandReaderFactory;
         this.enrichmentCommandFactory = enrichmentCommandFactory;
         this.memoryTracker = memoryTracker;
@@ -57,7 +56,7 @@ public class EnrichmentCommandReaderFactory implements CommandReaderFactory {
                 public StorageCommand read(byte commandType, ReadableChannel channel) throws IOException {
                     if (EnrichmentCommand.COMMAND_CODE == commandType) {
                         final var kernelVersion = kernelVersion();
-                        final var enrichment = Enrichment.Read.deserialize(kernelVersion, channel, memoryTracker.get());
+                        final var enrichment = Enrichment.Read.deserialize(kernelVersion, channel, memoryTracker);
                         return enrichmentCommandFactory.create(kernelVersion, enrichment);
                     }
 

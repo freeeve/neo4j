@@ -43,9 +43,6 @@ import org.neo4j.values.SequenceValue;
 public abstract class Value extends AnyValue {
     private static final Pattern MAP_PATTERN = Pattern.compile("\\{(.*)}");
 
-    private static final Pattern KEY_VALUE_PATTERN =
-            Pattern.compile("(?:\\A|,)\\s*+(?<k>[a-z_A-Z]\\w*+)\\s*:\\s*(?<v>[^\\s,]+)");
-
     static final Pattern QUOTES_PATTERN = Pattern.compile("^[\"']|[\"']$");
 
     @Override
