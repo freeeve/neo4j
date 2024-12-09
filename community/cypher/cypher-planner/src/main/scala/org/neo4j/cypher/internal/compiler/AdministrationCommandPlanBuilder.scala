@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler
 
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.cypher.internal.ast.AddedInRewrite
+import org.neo4j.cypher.internal.ast.AddedInRewriteProcCall
 import org.neo4j.cypher.internal.ast.AllDatabasesScope
 import org.neo4j.cypher.internal.ast.AllGraphsScope
 import org.neo4j.cypher.internal.ast.AlterAliasAction
@@ -1492,7 +1493,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         if (unsupportedCommandClauses.nonEmpty) {
           throw InvalidSemanticsException.unsupportedRequestOnSystemDatabase(
             unsupportedCommandClauses.sorted.mkString(", "),
-            s"The following commands are not allowed on a system database: ${unsupportedCommandClauses.sorted.mkString(", ")}."
+            s"The following commands are not allowed on a system database: ${unsupportedCommandClauses.sorted.mkString(", ")}.",
+            false
           )
         }
 
@@ -1500,12 +1502,17 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           case _: UseGraph   => acc => SkipChildren(acc)
           case _: CallClause => acc => SkipChildren(acc)
           case _: Return     => acc => SkipChildren(acc)
-          case c: Clause     => acc => SkipChildren(acc :+ c.name)
+          case w: With if w.withType == AddedInRewriteProcCall =>
+            acc =>
+              val name = w.where.map(_ => "WHERE").getOrElse(w.name)
+              SkipChildren(acc :+ name)
+          case c: Clause => acc => SkipChildren(acc :+ c.name)
         }
         if (unsupportedClauses.nonEmpty) {
           throw InvalidSemanticsException.unsupportedRequestOnSystemDatabase(
             unsupportedClauses.sorted.mkString(", "),
-            s"The following unsupported clauses were used: ${unsupportedClauses.sorted.mkString(", ")}. \n" + systemDbProcedureRules
+            s"The following unsupported clauses were used: ${unsupportedClauses.sorted.mkString(", ")}. \n" + systemDbProcedureRules,
+            true
           )
         }
 
@@ -1515,7 +1522,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         if (callCount > 1) {
           throw InvalidSemanticsException.unsupportedRequestOnSystemDatabase(
             "More than one CALL clause",
-            s"The given query uses $callCount CALL clauses (${callCount - 1} too many). \n" + systemDbProcedureRules
+            s"The given query uses $callCount CALL clauses (${callCount - 1} too many). \n" + systemDbProcedureRules,
+            true
           )
         }
 
@@ -1540,7 +1548,8 @@ case object UnsupportedSystemCommand extends Phase[PlannerContext, BaseState, Lo
     throw InvalidSemanticsException.unsupportedRequestOnSystemDatabase(
       from.queryText,
       s"Not a recognised system command or procedure. " +
-        s"This Cypher command can only be executed in a user database: ${from.queryText}"
+        s"This Cypher command can only be executed in a user database: ${from.queryText}",
+      false
     )
   }
 }

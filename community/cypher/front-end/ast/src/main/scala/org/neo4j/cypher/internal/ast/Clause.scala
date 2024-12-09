@@ -1668,11 +1668,12 @@ sealed trait ProjectionClause extends HorizonClause {
   }
 }
 
-// used for SHOW/TERMINATE commands
+// used for SHOW/TERMINATE commands (and procedure calls against system)
 sealed trait WithType
 case object DefaultWith extends WithType
 case object ParsedAsYield extends WithType
 case object AddedInRewrite extends WithType
+case object AddedInRewriteProcCall extends WithType
 
 object With {
 

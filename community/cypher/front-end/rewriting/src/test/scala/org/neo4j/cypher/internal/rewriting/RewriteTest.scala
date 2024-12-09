@@ -42,6 +42,21 @@ trait RewriteTest extends AstRewritingTestSupport {
     )
   }
 
+  // additionalExpectedAstUpdates is for updating things that are changed in the rewriter but cannot be expressed in the query,
+  // for example the AddedInRewriteProcCall flag on WITH
+  protected def assertRewrite(
+    originalQuery: String,
+    expectedQuery: String,
+    additionalExpectedAstUpdates: Statement => Statement
+  ): Unit = {
+    val (expected, result) = getRewrite(originalQuery, expectedQuery)
+    val updatedExpected = additionalExpectedAstUpdates(expected)
+    assert(
+      result === updatedExpected,
+      s"\n$originalQuery\nshould be rewritten to:\n${prettifier.asString(updatedExpected)}\nbut was rewritten to:\n${prettifier.asString(result.asInstanceOf[Statement])}"
+    )
+  }
+
   protected def assertRewrite(version: CypherVersion, originalQuery: String, expectedQuery: String): Unit = {
     val (expected, result) = getRewrite(version, originalQuery, expectedQuery)
     assert(

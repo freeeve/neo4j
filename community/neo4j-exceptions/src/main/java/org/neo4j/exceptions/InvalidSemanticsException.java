@@ -70,11 +70,17 @@ public class InvalidSemanticsException extends Neo4jException {
     }
 
     public static InvalidSemanticsException unsupportedRequestOnSystemDatabase(
-            String invalidInput, String legacyMessage) {
+            String invalidInput, String legacyMessage, boolean addSystemProcedureCause) {
+        var systemProcCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA9)
+                .build();
+        var disallowedOnSystemCauseBase = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N17)
+                .withParam(GqlParams.StringParam.input, invalidInput);
+        var disallowedOnSystemCause = addSystemProcedureCause
+                ? disallowedOnSystemCauseBase.withCause(systemProcCause)
+                : disallowedOnSystemCauseBase;
+
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N17)
-                        .withParam(GqlParams.StringParam.input, invalidInput)
-                        .build())
+                .withCause(disallowedOnSystemCause.build())
                 .build();
         return new InvalidSemanticsException(gql, legacyMessage);
     }

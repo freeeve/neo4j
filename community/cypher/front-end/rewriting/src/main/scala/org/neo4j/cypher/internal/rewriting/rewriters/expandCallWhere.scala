@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters
 
+import org.neo4j.cypher.internal.ast.AddedInRewriteProcCall
 import org.neo4j.cypher.internal.ast.ProcedureResult
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.SingleQuery
@@ -45,7 +46,8 @@ case object expandCallWhere extends Step with DefaultPostCondition with Preparat
           val newResult = result.copy(where = None)(result.position)
           val newUnresolved = unresolved.copy(declaredResult = Some(newResult))(unresolved.position)
           val newItems = ReturnItems(includeExisting = true, Seq.empty)(where.position)
-          val newWith = With(distinct = false, newItems, None, None, None, optWhere)(where.position)
+          val newWith =
+            With(distinct = false, newItems, None, None, None, optWhere, AddedInRewriteProcCall)(where.position)
           Seq(newUnresolved, newWith)
 
         case clause =>

@@ -3785,6 +3785,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "invalid reference in command",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42NA9(
+            new GqlStatus("42NA9"),
+            """
+                    The system database supports a restricted set of Cypher clauses. The supported clause structure for procedure calls is: 'CALL', 'YIELD', 'RETURN'. 'YIELD' and 'RETURN' clauses are optional. The order of the clauses is fixed and each can only occur once.""",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "system database procedure rules",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42NFC(
             new GqlStatus("42NFC"),
             """
