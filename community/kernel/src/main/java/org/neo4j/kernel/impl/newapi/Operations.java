@@ -1870,7 +1870,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         if (indexWithSameSchemaAndType.getName().equals(name)
                 && indexWithSameSchemaAndType.isUnique() == prototype.isUnique()) {
-            throw new EquivalentSchemaRuleAlreadyExistsException(indexWithSameSchemaAndType, INDEX_CREATION, token);
+            throw EquivalentSchemaRuleAlreadyExistsException.cannotCreateIndex(indexWithSameSchemaAndType, token);
         }
 
         // Name conflict with other schema rule
@@ -1923,8 +1923,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         for (ConstraintDescriptor constraintWithSameSchema : constraintsWithSameSchema) {
             if (constraint.equals(constraintWithSameSchema)
                     && constraint.getName().equals(constraintWithSameSchema.getName())) {
-                throw new EquivalentSchemaRuleAlreadyExistsException(
-                        constraintWithSameSchema, CONSTRAINT_CREATION, token);
+                throw EquivalentSchemaRuleAlreadyExistsException.cannotCreateConstraint(
+                        constraintWithSameSchema, token);
             }
         }
     }

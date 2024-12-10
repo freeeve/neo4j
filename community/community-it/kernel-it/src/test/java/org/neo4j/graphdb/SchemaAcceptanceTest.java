@@ -233,6 +233,12 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
                 "type='RANGE'",
                 "schema=(:MY_LABEL {my_property_key})",
                 "indexProvider='range-1.0'");
+        var exceptionCause = (EquivalentSchemaRuleAlreadyExistsException) exception.getCause();
+        assertThat(exceptionCause.gqlStatus()).isEqualTo("22N70");
+        assertThat(exceptionCause.statusDescription())
+                .isEqualTo(
+                        "error: data exception - equivalent index already exists. An equivalent index already exists: 'name'");
+        assertThat(exceptionCause.gqlStatusObject().cause()).isNotPresent();
     }
 
     @ParameterizedTest
@@ -256,6 +262,12 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
                 "type='LOOKUP'",
                 "schema=(:<any-labels>)",
                 "indexProvider='token-lookup-1.0'");
+        var exceptionCause = (EquivalentSchemaRuleAlreadyExistsException) exception.getCause();
+        assertThat(exceptionCause.gqlStatus()).isEqualTo("22N70");
+        assertThat(exceptionCause.statusDescription())
+                .isEqualTo(
+                        "error: data exception - equivalent index already exists. An equivalent index already exists: 'name'");
+        assertThat(exceptionCause.gqlStatusObject().cause()).isNotPresent();
     }
 
     @ParameterizedTest()
@@ -280,6 +292,12 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
                 expectedCause,
                 "An equivalent constraint already exists, 'Constraint( ",
                 "name='name', type='NODE PROPERTY UNIQUENESS', schema=(:MY_LABEL {my_property_key}), ownedIndex=");
+        var exceptionCause = (EquivalentSchemaRuleAlreadyExistsException) exception.getCause();
+        assertThat(exceptionCause.gqlStatus()).isEqualTo("22N65");
+        assertThat(exceptionCause.statusDescription())
+                .isEqualTo(
+                        "error: data exception - equivalent constraint already exists. An equivalent constraint already exists: 'name'");
+        assertThat(exceptionCause.gqlStatusObject().cause()).isNotPresent();
     }
 
     @ParameterizedTest()

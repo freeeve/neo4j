@@ -21,6 +21,9 @@ package org.neo4j.kernel.api.exceptions.schema;
 
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.schema.SchemaKernelException;
 import org.neo4j.internal.schema.SchemaRule;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -29,30 +32,33 @@ public class EquivalentSchemaRuleAlreadyExistsException extends SchemaKernelExce
     private static final String EQUIVALENT_INDEX = "An equivalent index already exists, '%s'.";
     private static final String EQUIVALENT_CONSTRAINT = "An equivalent constraint already exists, '%s'.";
 
-    public EquivalentSchemaRuleAlreadyExistsException(
-            SchemaRule schemaRule, OperationContext context, TokenNameLookup tokenNameLookup) {
-        super(
-                Status.Schema.EquivalentSchemaRuleAlreadyExists,
-                constructUserMessage(context, tokenNameLookup, schemaRule));
+    private EquivalentSchemaRuleAlreadyExistsException(String message, ErrorGqlStatusObject gqlStatusObject) {
+        super(gqlStatusObject, Status.Schema.EquivalentSchemaRuleAlreadyExists, message);
     }
 
-    public EquivalentSchemaRuleAlreadyExistsException(
-            ErrorGqlStatusObject gqlStatusObject,
-            SchemaRule schemaRule,
-            OperationContext context,
-            TokenNameLookup tokenNameLookup) {
-        super(
-                gqlStatusObject,
-                Status.Schema.EquivalentSchemaRuleAlreadyExists,
-                constructUserMessage(context, tokenNameLookup, schemaRule));
+    // KNL-018
+    public static EquivalentSchemaRuleAlreadyExistsException cannotCreateConstraint(
+            SchemaRule schemaRule, TokenNameLookup tokenNameLookup) {
+        var name = schemaRule.getName();
+        var userDescription = schemaRule.userDescription(tokenNameLookup);
+
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N65)
+                .withParam(GqlParams.StringParam.constrDescrOrName, name)
+                .build();
+        var message = String.format(EQUIVALENT_CONSTRAINT, userDescription);
+        return new EquivalentSchemaRuleAlreadyExistsException(message, gql);
     }
 
-    private static String constructUserMessage(
-            OperationContext context, TokenNameLookup tokenNameLookup, SchemaRule schemaRule) {
-        return switch (context) {
-            case INDEX_CREATION -> String.format(EQUIVALENT_INDEX, schemaRule.userDescription(tokenNameLookup));
-            case CONSTRAINT_CREATION -> String.format(
-                    EQUIVALENT_CONSTRAINT, schemaRule.userDescription(tokenNameLookup));
-        };
+    // KNL-024
+    public static EquivalentSchemaRuleAlreadyExistsException cannotCreateIndex(
+            SchemaRule schemaRule, TokenNameLookup tokenNameLookup) {
+        var name = schemaRule.getName();
+        var userDescription = schemaRule.userDescription(tokenNameLookup);
+
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N70)
+                .withParam(GqlParams.StringParam.idxDescrOrName, name)
+                .build();
+        var message = String.format(EQUIVALENT_INDEX, userDescription);
+        return new EquivalentSchemaRuleAlreadyExistsException(message, gql);
     }
 }
