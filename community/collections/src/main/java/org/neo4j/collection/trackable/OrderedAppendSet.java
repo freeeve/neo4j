@@ -22,9 +22,28 @@ package org.neo4j.collection.trackable;
 import java.util.AbstractSet;
 import java.util.SequencedSet;
 
+/**
+ * An OrderedAppendSet is an alternative to a LinkedHashSet, as it preserves insertion order while still having constant
+ * time lookup.
+ * @param <V> – the type of elements in this set
+ */
 public abstract class OrderedAppendSet<V> extends AbstractSet<V> implements SequencedSet<V> {
+
+    /**
+     * OrderedAppendSet support random access, but BE AWARE that this is not a constant time operation.
+     * @param index the index of the element
+     * @return the element at the given index
+     */
     public abstract V get(int index);
 
+    /**
+     *  Returns a reverse-ordered view of this collection.
+     *  The encounter order of elements in the returned view is the inverse of the encounter
+     *  order of elements in this collection. The reverse ordering affects all order-sensitive
+     *  operations, including those on the view collections of the returned view. The view does not
+     *  support writing to the underlying set.
+     * @return a reverse-ordered view of this collection, as a {@code OrderedAppendSet}
+     */
     public abstract OrderedAppendSet<V> reversedOrderedAppendSet();
 
     @Override

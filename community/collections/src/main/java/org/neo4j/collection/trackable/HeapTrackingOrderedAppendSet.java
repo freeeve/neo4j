@@ -28,17 +28,18 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.Consumer;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.util.VisibleForTesting;
 
 /**
  * A heap tracking, ordered, append-only, set. It only tracks the internal structure, not the elements within.
- *
+ * <p>
  * Elements are also inserted in a single-linked list to allow traversal from first to last in the order of insertion.
- * If an already existing element is readded to the set its insertion order is NOT updated.
+ * If an already existing element is added to the set its insertion order is NOT updated.
  *
  * @param <V> value type
  */
-@SuppressWarnings("ALL")
-public class HeapTrackingOrderedAppendSet<V> extends OrderedAppendSet<V> implements AutoCloseable {
+@SuppressWarnings("NullableProblems")
+public final class HeapTrackingOrderedAppendSet<V> extends OrderedAppendSet<V> implements AutoCloseable {
     private static final long SHALLOW_SIZE = shallowSizeOfInstance(HeapTrackingOrderedAppendSet.class);
     private static final int INITIAL_CHUNK_SIZE =
             32; // Must be even, preferably a power of 2 (32 matches the HeapTrackingUnifiedMap initial size)
@@ -60,7 +61,7 @@ public class HeapTrackingOrderedAppendSet<V> extends OrderedAppendSet<V> impleme
     private HeapTrackingOrderedAppendSet(MemoryTracker scopedMemoryTracker) {
         this.scopedMemoryTracker = scopedMemoryTracker;
         this.set = newSet(scopedMemoryTracker);
-        first = new Chunk<V>(INITIAL_CHUNK_SIZE, scopedMemoryTracker);
+        first = new Chunk<>(INITIAL_CHUNK_SIZE, scopedMemoryTracker);
         current = first;
     }
 
@@ -79,10 +80,10 @@ public class HeapTrackingOrderedAppendSet<V> extends OrderedAppendSet<V> impleme
         return false;
     }
 
+    @VisibleForTesting
     public boolean addWithMemoryTracker(V value, Consumer<MemoryTracker> consumer) {
         if (set.add(value)) {
-            var tracker = scopedMemoryTracker;
-            consumer.accept(tracker);
+            consumer.accept(scopedMemoryTracker);
             addToBuffer(value);
             return true;
         }
@@ -113,7 +114,7 @@ public class HeapTrackingOrderedAppendSet<V> extends OrderedAppendSet<V> impleme
         if (set.isEmpty()) {
             throw new NoSuchElementException();
         }
-        return (V) current.getLast();
+        return current.getLast();
     }
 
     @Override
@@ -132,17 +133,13 @@ public class HeapTrackingOrderedAppendSet<V> extends OrderedAppendSet<V> impleme
 
     @Override
     public Iterator<V> iterator() {
-        return new ApendSetIterator(first);
+        return new ApendSetIterator<>(first);
     }
 
     @Override
     public void close() {
         current = null;
         scopedMemoryTracker.close();
-    }
-
-    public boolean isClosed() {
-        return current == null;
     }
 
     private void addToBuffer(V value) {
@@ -204,6 +201,7 @@ public class HeapTrackingOrderedAppendSet<V> extends OrderedAppendSet<V> impleme
         return new ReversedView();
     }
 
+    @SuppressWarnings("unchecked")
     private static class ApendSetIterator<V> implements Iterator<V> {
         private Chunk<V> chunk;
         private Chunk<V> nextChunk;
@@ -215,10 +213,7 @@ public class HeapTrackingOrderedAppendSet<V> extends OrderedAppendSet<V> impleme
 
         @Override
         public boolean hasNext() {
-            if (nextChunk == null || nextIndex >= nextChunk.cursor) {
-                return false;
-            }
-            return true;
+            return nextChunk != null && nextIndex < nextChunk.cursor;
         }
 
         @Override
@@ -242,6 +237,7 @@ public class HeapTrackingOrderedAppendSet<V> extends OrderedAppendSet<V> impleme
         }
     }
 
+    @SuppressWarnings("unchecked")
     private static class ApendSetReverseIterator<V> implements Iterator<V> {
         private final Chunk<V> firstChunk;
         private Chunk<V> currentChunk;
@@ -256,10 +252,7 @@ public class HeapTrackingOrderedAppendSet<V> extends OrderedAppendSet<V> impleme
 
         @Override
         public boolean hasNext() {
-            if (nextChunk == null || nextIndex < 0) {
-                return false;
-            }
-            return true;
+            return nextChunk != null && nextIndex >= 0;
         }
 
         private Chunk<V> findNextChunk() {
@@ -309,6 +302,7 @@ public class HeapTrackingOrderedAppendSet<V> extends OrderedAppendSet<V> impleme
         return newSize;
     }
 
+    @SuppressWarnings("unchecked")
     private static final class Chunk<V> {
         private static final long SHALLOW_SIZE = shallowSizeOfInstance(Chunk.class);
 
