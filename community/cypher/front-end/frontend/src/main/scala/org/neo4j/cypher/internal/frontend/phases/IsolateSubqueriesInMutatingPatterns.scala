@@ -181,11 +181,11 @@ case object IsolateSubqueriesInMutatingPatterns extends StatementRewriter
       // Using top-down we will rewrite the subquery call before the inner query
       case call: ImportingWithSubqueryCall =>
         val rewrittenQuery =
-          call.innerQuery.mapEachSingleQuery(ua => rewrite(ua.getSingleQuery, inSubqueryContext = true))
+          call.innerQuery.mapEachSingleQuery(ua => rewrite(ua.singleQuery, inSubqueryContext = true))
         call.copy(innerQuery = rewrittenQuery)(call.position)
       case call: ScopeClauseSubqueryCall =>
         val rewrittenQuery =
-          call.innerQuery.mapEachSingleQuery(ua => rewrite(ua.getSingleQuery, inSubqueryContext = true))
+          call.innerQuery.mapEachSingleQuery(ua => rewrite(ua.singleQuery, inSubqueryContext = true))
         call.copy(innerQuery = rewrittenQuery)(call.position)
       case sq: SingleQuery => rewrite(sq, inSubqueryContext = false)
     })

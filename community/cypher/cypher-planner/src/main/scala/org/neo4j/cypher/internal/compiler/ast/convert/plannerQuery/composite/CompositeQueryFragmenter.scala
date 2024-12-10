@@ -70,7 +70,7 @@ object CompositeQueryFragmenter {
             cancellationChecker,
             nameGenerator,
             existingParameterNames,
-            rhs.getSingleQuery,
+            rhs.singleQuery,
             scopeImports
           ),
           unionMappings = mappings
@@ -83,7 +83,7 @@ object CompositeQueryFragmenter {
             cancellationChecker,
             nameGenerator,
             existingParameterNames,
-            rhs.getSingleQuery,
+            rhs.singleQuery,
             scopeImports
           ),
           unionMappings = mappings

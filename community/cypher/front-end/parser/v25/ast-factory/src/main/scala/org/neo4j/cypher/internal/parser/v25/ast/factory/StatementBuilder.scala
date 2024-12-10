@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.OnCreate
 import org.neo4j.cypher.internal.ast.OnMatch
 import org.neo4j.cypher.internal.ast.OrderBy
+import org.neo4j.cypher.internal.ast.PartQuery
 import org.neo4j.cypher.internal.ast.ProcedureResult
 import org.neo4j.cypher.internal.ast.ProcedureResultItem
 import org.neo4j.cypher.internal.ast.Query
@@ -64,7 +65,6 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.UnionAll
-import org.neo4j.cypher.internal.ast.UnionArgument
 import org.neo4j.cypher.internal.ast.UnionDistinct
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.Unwind
@@ -137,14 +137,14 @@ trait StatementBuilder extends Cypher25ParserListener {
   }
 
   final override def exitRegularQuery(ctx: Cypher25Parser.RegularQueryContext): Unit = {
-    var result: Query = ctxChild(ctx, 0).ast[UnionArgument]()
+    var result: Query = ctxChild(ctx, 0).ast[PartQuery]()
     val size = ctx.children.size()
     if (size != 1) {
       var i = 1; var all = false; var p: InputPosition = null
       while (i < size) {
         ctx.children.get(i) match {
           case sqCtx: Cypher25Parser.SingleQueryContext =>
-            val rhs = sqCtx.ast[UnionArgument]()
+            val rhs = sqCtx.ast[PartQuery]()
             result = if (all) UnionAll(result, rhs)(p)
             else UnionDistinct(result, rhs)(p)
             all = false

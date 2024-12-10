@@ -297,7 +297,7 @@ object Deprecations {
             q match {
               case sq: SingleQuery => sq.partitionedClauses.importingWith.exists(w => w.returnItems.includeExisting)
               case un: Union =>
-                un.rhs.getSingleQuery.partitionedClauses.importingWith.exists(w => w.returnItems.includeExisting) ||
+                un.rhs.singleQuery.partitionedClauses.importingWith.exists(w => w.returnItems.includeExisting) ||
                 includesExisting(un.lhs)
               case tlb: TopLevelBraces => includesExisting(tlb.query)
             }

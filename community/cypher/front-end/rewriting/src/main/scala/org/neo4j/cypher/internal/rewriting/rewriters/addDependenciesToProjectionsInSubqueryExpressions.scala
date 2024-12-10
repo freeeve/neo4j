@@ -90,12 +90,12 @@ case object addDependenciesToProjectionsInSubqueryExpressions extends StepSequen
       case union @ UnionAll(lhs, rhs) =>
         union.copy(
           lhs = rewriteQuery(lhs, scopeDependencies, shouldSplitReturn),
-          rhs = rewriteSingleQuery(rhs.getSingleQuery, scopeDependencies, shouldSplitReturn)
+          rhs = rewriteSingleQuery(rhs.singleQuery, scopeDependencies, shouldSplitReturn)
         )(union.position)
       case union @ UnionDistinct(lhs, rhs) =>
         union.copy(
           lhs = rewriteQuery(lhs, scopeDependencies, shouldSplitReturn),
-          rhs = rewriteSingleQuery(rhs.getSingleQuery, scopeDependencies, shouldSplitReturn)
+          rhs = rewriteSingleQuery(rhs.singleQuery, scopeDependencies, shouldSplitReturn)
         )(union.position)
       case _: TopLevelBraces =>
         throw new IllegalStateException("Didn't expect TopLevelBraces, only SingleQuery, UnionAll, or UnionDistinct.")

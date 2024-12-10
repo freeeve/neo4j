@@ -133,11 +133,11 @@ case class normalizeWithAndReturnClauses(
     query match {
       case sq: SingleQuery => rewriteTopLevelSingleQuery(sq)
       case union @ UnionAll(lhs, rhs) =>
-        union.copy(lhs = rewriteTopLevelQuery(lhs), rhs = rewriteTopLevelSingleQuery(rhs.getSingleQuery))(
+        union.copy(lhs = rewriteTopLevelQuery(lhs), rhs = rewriteTopLevelSingleQuery(rhs.singleQuery))(
           union.position
         )
       case union @ UnionDistinct(lhs, rhs) =>
-        union.copy(lhs = rewriteTopLevelQuery(lhs), rhs = rewriteTopLevelSingleQuery(rhs.getSingleQuery))(
+        union.copy(lhs = rewriteTopLevelQuery(lhs), rhs = rewriteTopLevelSingleQuery(rhs.singleQuery))(
           union.position
         )
       case _: TopLevelBraces =>
