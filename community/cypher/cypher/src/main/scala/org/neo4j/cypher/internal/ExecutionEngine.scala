@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.expressions.FunctionTypeSignature
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.options.CypherReplanOption
+import org.neo4j.cypher.internal.planning.CompilationException
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery
 import org.neo4j.cypher.internal.preparser.InputQuery
 import org.neo4j.cypher.internal.preparser.PreParsedQuery
@@ -451,7 +452,7 @@ abstract class ExecutionEngine(
       compilerAuthorization.close()
     }
 
-    throw new IllegalStateException("Could not compile query due to insanely frequent schema changes")
+    throw CompilationException.tooFrequentSchemaChanges()
   }
 
   def clearQueryCaches(): Long =
