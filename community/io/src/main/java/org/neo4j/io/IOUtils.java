@@ -73,11 +73,9 @@ public final class IOUtils {
      * Close all the provided {@link AutoCloseable closeables}, chaining exceptions, if any, into a single {@link UncheckedIOException}.
      *
      * @param closeables to call close on.
-     * @param <T> the type of closeable.
      * @throws UncheckedIOException if any exception is thrown from any of the {@code closeables}.
      */
-    @SafeVarargs
-    public static <T extends AutoCloseable> void closeAllUnchecked(T... closeables) {
+    public static void closeAllUnchecked(AutoCloseable... closeables) {
         closeAllUnchecked(Arrays.asList(closeables));
     }
 
@@ -99,11 +97,9 @@ public final class IOUtils {
      * have suppressed exceptions. See {@link Exception#addSuppressed(Throwable)}
      *
      * @param closeables the closeables to close
-     * @param <T> the type of closeable
      * @throws IOException if an exception was thrown by one of the close methods.
      */
-    @SafeVarargs
-    public static <T extends AutoCloseable> void closeAll(T... closeables) throws IOException {
+    public static void closeAll(AutoCloseable... closeables) throws IOException {
         close(IOException::new, closeables);
     }
 
@@ -111,10 +107,8 @@ public final class IOUtils {
      * Closes given array of {@link AutoCloseable closeables} ignoring all exceptions.
      *
      * @param closeables the closeables to close
-     * @param <T> the type of closeable
      */
-    @SafeVarargs
-    public static <T extends AutoCloseable> void closeAllSilently(T... closeables) {
+    public static void closeAllSilently(AutoCloseable... closeables) {
         close((msg, cause) -> null, closeables);
     }
 
@@ -175,13 +169,11 @@ public final class IOUtils {
      * @param constructor The function used to construct the parent throwable that will have the first thrown exception attached as a cause, and any
      * remaining exceptions attached as suppressed exceptions. If this function returns {@code null}, then the exception is ignored.
      * @param closeables all the things to close, in order.
-     * @param <T> the type of things to close.
      * @param <E> the type of the parent exception.
      * @throws E when any {@link AutoCloseable#close()} throws exception
      */
-    @SafeVarargs
-    public static <T extends AutoCloseable, E extends Throwable> void close(
-            BiFunction<String, Throwable, E> constructor, T... closeables) throws E {
+    public static <E extends Throwable> void close(
+            BiFunction<String, Throwable, E> constructor, AutoCloseable... closeables) throws E {
         close(constructor, Arrays.asList(closeables));
     }
 
@@ -223,9 +215,7 @@ public final class IOUtils {
         private final BiFunction<String, Throwable, E> constructor;
         private final MutableList<AutoCloseable> autoCloseables;
 
-        @SafeVarargs
-        public <T extends AutoCloseable> AutoCloseables(
-                BiFunction<String, Throwable, E> constructor, T... autoCloseables) {
+        public AutoCloseables(BiFunction<String, Throwable, E> constructor, AutoCloseable... autoCloseables) {
             // saves extra copy than using this(constructor, Arrays::asList);
             this.autoCloseables = Lists.mutable.with(autoCloseables);
             this.constructor = constructor;
@@ -242,8 +232,7 @@ public final class IOUtils {
             return autoCloseable;
         }
 
-        @SafeVarargs
-        public final <T extends AutoCloseable> void addAll(T... autoCloseables) {
+        public final void addAll(AutoCloseable... autoCloseables) {
             addAll(Arrays.asList(autoCloseables));
         }
 
