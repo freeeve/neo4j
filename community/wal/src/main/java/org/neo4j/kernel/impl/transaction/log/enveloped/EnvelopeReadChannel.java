@@ -808,7 +808,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     private void readAndValidateFileHeader() throws IOException {
         // First segment contains a header and zeros
         int read = loadSegmentIntoBuffer(0);
-        if (read != segmentBlockSize) {
+        if (read < segmentBlockSize) {
             // Too small file to contain data, just return and let other methods return ReadPastEndException
             return;
         }
@@ -833,7 +833,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
                 previousChecksum == logHeader.getPreviousLogFileChecksum(),
                 "Checksum chain broken. " + previousChecksum + " " + logHeader.getPreviousLogFileChecksum());
 
-        enforceTerminalZeros();
+        enforceZeros(segmentBlockSize - buffer.position());
     }
 
     private int loadSegmentIntoBuffer(long newSegment) throws IOException {
