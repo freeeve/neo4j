@@ -177,8 +177,7 @@ public class GqlParams {
         pos(new NUM()), // A position (e.g., in a sequence)
         timeAmount(new NUM()), // Integral amount of some time unit
         upper(new NUM()), // Upper bound
-        value(new VAL()),
-        transactionId(new STRLIT());
+        value(new VAL());
 
         public final Processor processor;
 

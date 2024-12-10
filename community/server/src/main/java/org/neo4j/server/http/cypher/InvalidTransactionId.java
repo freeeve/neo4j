@@ -31,11 +31,9 @@ class InvalidTransactionId extends TransactionLifecycleException {
     }
 
     public static InvalidTransactionId transactionDoesNotExists(long transactionId) {
-        return new InvalidTransactionId(
-                // KNL-127
-                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N04)
-                        .withParam(GqlParams.NumberParam.transactionId, transactionId)
-                        .build());
+        return new InvalidTransactionId(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N04)
+                .withParam(GqlParams.StringParam.transactionId, String.valueOf(transactionId))
+                .build());
     }
 
     @Override

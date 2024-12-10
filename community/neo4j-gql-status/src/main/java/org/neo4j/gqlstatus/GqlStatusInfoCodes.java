@@ -2133,7 +2133,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlStatus("25N04"),
             """
                     Transaction { %s } does not exist.""",
-            new GqlParams.GqlParam[] {GqlParams.NumberParam.transactionId},
+            new GqlParams.GqlParam[] {GqlParams.StringParam.transactionId},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
             "specified transaction does not exist",
