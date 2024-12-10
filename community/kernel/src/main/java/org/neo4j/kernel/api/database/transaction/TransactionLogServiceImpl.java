@@ -207,9 +207,7 @@ public class TransactionLogServiceImpl implements TransactionLogService {
             throws IOException {
         return version != minimalVersion
                 ? logHeader.getPreviousLogFileChecksum()
-                : (logHeader.getLastAppendIndex() + 1 != startingAppendIndex
-                        ? logFilePrevChecksumMiddleOfFile(logHeader, startingAppendIndex)
-                        : logHeader.getPreviousLogFileChecksum());
+                : logFilePrevChecksumMiddleOfFile(logHeader, startingAppendIndex);
     }
 
     private int logFilePrevChecksumMiddleOfFile(LogHeader logHeader, long startingAppendIndex) throws IOException {
