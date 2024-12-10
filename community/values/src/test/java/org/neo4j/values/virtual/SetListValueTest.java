@@ -28,6 +28,7 @@ import static org.neo4j.values.storable.Values.longValue;
 import static org.neo4j.values.virtual.VirtualValues.list;
 
 import org.junit.jupiter.api.Test;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.values.AnyValue;
 
 class SetListValueTest {
@@ -145,7 +146,7 @@ class SetListValueTest {
     }
 
     private SetListValue setListOf(AnyValue... values) {
-        var builder = SetListValue.builder();
+        var builder = SetListValue.heapTrackingBuilder(EmptyMemoryTracker.INSTANCE);
         for (AnyValue value : values) {
             builder.add(value);
         }

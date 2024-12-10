@@ -25,12 +25,10 @@ import static org.neo4j.values.SequenceValue.IterationPreference.ITERATION;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.Objects;
 import org.github.jamm.Unmetered;
 import org.neo4j.collection.trackable.HeapTrackingOrderedAppendSet;
 import org.neo4j.collection.trackable.OrderedAppendSet;
-import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.Equality;
@@ -47,36 +45,6 @@ import org.neo4j.values.storable.Values;
  */
 public final class SetListValue extends ListValue {
     private static final long SET_LIST_VALUE_SHALLOW_SIZE = shallowSizeOfInstance(SetListValue.class);
-
-    public static final class Builder {
-        private static final long LINKED_SET_SHALLOW_SIZE = shallowSizeOfInstance(LinkedHashSet.class);
-        private long estimatedHeapUsage;
-
-        @Unmetered
-        private ValueRepresentation valueRepresentation;
-
-        private final HeapTrackingOrderedAppendSet<AnyValue> set =
-                HeapTrackingOrderedAppendSet.createOrderedSet(EmptyMemoryTracker.INSTANCE);
-
-        private Builder() {
-            estimatedHeapUsage = LINKED_SET_SHALLOW_SIZE;
-            valueRepresentation = ValueRepresentation.ANYTHING;
-        }
-
-        public void add(AnyValue value) {
-            // NOTE: that since we are only using this in COLLECT(DISTINCT ..) which will filter out NO_VALUE
-            //     If we lift this restriction we must also update set.contains and set.ternaryContains
-            assert value != NO_VALUE;
-            if (set.add(value)) {
-                estimatedHeapUsage += value.estimatedHeapUsage();
-                valueRepresentation = valueRepresentation.coerce(value.valueRepresentation());
-            }
-        }
-
-        public SetListValue build() {
-            return new SetListValue(set, estimatedHeapUsage, valueRepresentation);
-        }
-    }
 
     public static final class HeapTrackingBuilder implements AutoCloseable {
         private static final long SHALLOW_SIZE = shallowSizeOfInstance(HeapTrackingBuilder.class);
@@ -149,10 +117,6 @@ public final class SetListValue extends ListValue {
             // Note if the scopedMemoryTracker is an EmptyMemoryTracker then we might get a negative value here
             return Math.max(unAllocatedHeapSize + scopedMemoryTracker.estimatedHeapMemory() - SHALLOW_SIZE, 0L);
         }
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     public static HeapTrackingBuilder heapTrackingBuilder(MemoryTracker memoryTracker) {
