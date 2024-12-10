@@ -651,10 +651,8 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             nextEnvelopeType = EnvelopeType.of(buffer.get());
 
             if (nextEnvelopeType == EnvelopeType.START_OFFSET) {
-                // If we're on the first segment, we should have read and skipped the START_OFFSET envelope before
-                // coming here. So any START_OFFSET envelope we encounter is an error/malformed log file.
-                throw new InvalidLogEnvelopeReadException(
-                        EnvelopeType.START_OFFSET, currentSegment, buffer.position() - (Integer.BYTES + Byte.BYTES));
+                consumeStartOffsetEnvelopeIfValid();
+                continue;
             }
             if (nextEnvelopeType != EnvelopeType.ZERO) {
                 break;
@@ -725,6 +723,20 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         if (readChecksum != nextEnvelopeChecksum) {
             throwOnMismatchingChecksum(nextEnvelopeChecksum, readChecksum);
         }
+    }
+
+    private void consumeStartOffsetEnvelopeIfValid() throws IOException {
+        int alreadyRead = Integer.BYTES + Byte.BYTES;
+        if (currentSegment != 1 || (buffer.position() != alreadyRead)) {
+            // Any START_OFFSET envelope we encounter that is not first in the file is an error/malformed log
+            // file.
+            throw new InvalidLogEnvelopeReadException(
+                    EnvelopeType.START_OFFSET, currentSegment, buffer.position() - alreadyRead);
+        }
+        // START_OFFSET envelopes can be found in the beginning of any log file if the files have been
+        // put together by aggregating backups. Allow as first envelope in any file.
+        buffer.position(0);
+        consumeStartOffsetEnvelopeIfPresent();
     }
 
     private void throwOnMismatchingChecksum(int nextEnvelopeChecksum, int readChecksum) throws IOException {

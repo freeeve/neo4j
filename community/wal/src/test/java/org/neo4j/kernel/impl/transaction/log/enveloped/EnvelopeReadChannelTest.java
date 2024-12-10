@@ -810,6 +810,45 @@ class EnvelopeReadChannelTest {
     }
 
     @ParameterizedTest
+    @ValueSource(ints = {256, 512})
+    void shouldSkipStartOffsetEnvelopeInSecondFile(int bufferSize) throws Exception {
+        // GIVEN
+        int segmentSize = 256;
+        final var startOffsetLength = random.nextInt(1, 59);
+        int dataLength = 64;
+
+        final var path1 = file(0);
+        final var path2 = file(1);
+
+        final var endChecksum = new MutableInt();
+        byte[] bytes1 = bytes(random, dataLength);
+        byte[] bytes2 = bytes(random, dataLength);
+        writeSomeData(path1, buffer -> {
+            writeZeroSegment(buffer, segmentSize);
+            writeStartOffsetEnvelope(buffer, startOffsetLength, false);
+            endChecksum.setValue(
+                    writeHeaderAndPayload(buffer, EnvelopeType.FULL, BASE_TX_CHECKSUM, bytes1, START_INDEX));
+        });
+        writeSomeData(path2, buffer -> {
+            writeZeroSegment(buffer, segmentSize, endChecksum.intValue());
+            writeStartOffsetEnvelope(buffer, startOffsetLength, false);
+            writeHeaderAndPayload(buffer, EnvelopeType.FULL, endChecksum.intValue(), bytes2, START_INDEX);
+        });
+
+        final var logChannel = logChannel();
+        try (var buffer = new NativeScopedBuffer(bufferSize, LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE);
+                var channel = new EnvelopeReadChannel(
+                        logChannel, segmentSize, new TwoFileLogVersionBridge(path2), false, buffer)) {
+            // THEN
+            byte[] result = new byte[dataLength];
+            channel.get(result, dataLength);
+            assertThat(bytes1).isEqualTo(result);
+            channel.get(result, dataLength);
+            assertThat(bytes2).isEqualTo(result);
+        }
+    }
+
+    @ParameterizedTest
     @ValueSource(ints = {128, 256})
     void shouldSkipStartOffsetEnvelopeWhenOverridingChannelPosition(int segmentSize) throws Exception {
         // GIVEN
