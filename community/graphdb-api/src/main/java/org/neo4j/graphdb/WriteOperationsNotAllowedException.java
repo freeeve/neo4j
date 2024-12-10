@@ -34,17 +34,23 @@ public class WriteOperationsNotAllowedException extends GqlRuntimeException impl
             "No write operations are allowed directly on this database. Writes must pass through the leader. "
                     + "The role of this server is: %s";
 
-    @Deprecated
-    public WriteOperationsNotAllowedException(String message, Status statusCode) {
-        super(message);
-        this.statusCode = statusCode;
-    }
-
-    public WriteOperationsNotAllowedException(ErrorGqlStatusObject gqlStatusObject, String message, Status statusCode) {
+    private WriteOperationsNotAllowedException(
+            ErrorGqlStatusObject gqlStatusObject, String message, Status statusCode) {
         super(gqlStatusObject, message);
         this.statusCode = statusCode;
     }
 
+    // KNL-003
+    public static WriteOperationsNotAllowedException readOnlyDb() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N18)
+                .build();
+        return new WriteOperationsNotAllowedException(
+                gql,
+                "No write operations are allowed on this database. The database is in read-only mode on this Neo4j instance.",
+                Status.General.WriteOnReadOnlyAccessDatabase);
+    }
+
+    // CLU-001
     public static WriteOperationsNotAllowedException notALeader(String currentRole) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N07)
                 .build();
@@ -52,6 +58,7 @@ public class WriteOperationsNotAllowedException extends GqlRuntimeException impl
                 gql, format(NOT_LEADER_ERROR_MSG, currentRole), Status.Cluster.NotALeader);
     }
 
+    // CLU-006
     public static WriteOperationsNotAllowedException noWriteOperationAllowed() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N08)
                 .build();

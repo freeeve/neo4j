@@ -21,32 +21,31 @@ package org.neo4j.kernel.api.exceptions;
 
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 /**
  * This exception is thrown when committing an updating transaction in a database which is configured as read-only, through configuration or ALTER DATABASE.
  */
 public class WriteOnReadOnlyAccessDbException extends KernelException {
-    public WriteOnReadOnlyAccessDbException() {
-        super(Status.General.WriteOnReadOnlyAccessDatabase, "This Neo4j server is read-only for all databases");
+
+    private WriteOnReadOnlyAccessDbException(ErrorGqlStatusObject gqlStatusObject, String message) {
+        super(gqlStatusObject, Status.General.WriteOnReadOnlyAccessDatabase, message);
     }
 
-    public WriteOnReadOnlyAccessDbException(ErrorGqlStatusObject gqlStatusObject) {
-        super(
-                gqlStatusObject,
-                Status.General.WriteOnReadOnlyAccessDatabase,
+    // KNL-001
+    public static WriteOnReadOnlyAccessDbException databaseIsReadOnly() {
+        return new WriteOnReadOnlyAccessDbException(
+                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N18)
+                        .build(),
                 "This Neo4j server is read-only for all databases");
     }
 
-    public WriteOnReadOnlyAccessDbException(String databaseName) {
-        super(
-                Status.General.WriteOnReadOnlyAccessDatabase,
-                "The database " + databaseName + " is in read-only mode on this Neo4j server");
-    }
-
-    public WriteOnReadOnlyAccessDbException(ErrorGqlStatusObject gqlStatusObject, String databaseName) {
-        super(
-                gqlStatusObject,
-                Status.General.WriteOnReadOnlyAccessDatabase,
+    // KNL-002
+    public static WriteOnReadOnlyAccessDbException databaseIsReadOnly(String databaseName) {
+        return new WriteOnReadOnlyAccessDbException(
+                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N18)
+                        .build(),
                 "The database " + databaseName + " is in read-only mode on this Neo4j server");
     }
 }

@@ -767,6 +767,12 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
         // when / then
         var rte = assertThrows(RuntimeException.class, transaction::txState);
         assertThat(rte).hasCauseInstanceOf(WriteOnReadOnlyAccessDbException.class);
+        var cause = (WriteOnReadOnlyAccessDbException) rte.getCause();
+        assertThat(cause.gqlStatus()).isEqualTo("42N18");
+        assertThat(cause.statusDescription())
+                .isEqualTo(
+                        "error: syntax error or access rule violation - read-only database. The database is in read-only mode.");
+        assertThat(cause.getCause()).isNull();
     }
 
     @Test

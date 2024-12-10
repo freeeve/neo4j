@@ -20,7 +20,6 @@
 package org.neo4j.kernel.impl.factory;
 
 import org.neo4j.graphdb.WriteOperationsNotAllowedException;
-import org.neo4j.kernel.api.exceptions.Status;
 
 public class ReadOnly implements AccessCapability {
     public static final ReadOnly INSTANCE = new ReadOnly();
@@ -29,8 +28,6 @@ public class ReadOnly implements AccessCapability {
 
     @Override
     public void assertCanWrite() {
-        throw new WriteOperationsNotAllowedException(
-                "No write operations are allowed on this database. The database is in read-only mode on this Neo4j instance.",
-                Status.General.WriteOnReadOnlyAccessDatabase);
+        throw WriteOperationsNotAllowedException.readOnlyDb();
     }
 }

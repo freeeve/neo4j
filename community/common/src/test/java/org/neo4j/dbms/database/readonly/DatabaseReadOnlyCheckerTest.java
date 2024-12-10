@@ -43,7 +43,15 @@ class DatabaseReadOnlyCheckerTest {
     @Test
     void readOnlyCheckerThrowsExceptionOnCheck() {
         var e = assertThrows(Exception.class, () -> readOnly().check());
-        assertThat(e).hasRootCauseInstanceOf(WriteOnReadOnlyAccessDbException.class);
+        assertThat(e).hasCauseInstanceOf(WriteOnReadOnlyAccessDbException.class);
+        var cause = (WriteOnReadOnlyAccessDbException) e.getCause();
+        assertThat(cause.gqlStatus()).isEqualTo("42N18");
+        assertThat(cause.statusDescription())
+                .isEqualTo(
+                        "error: syntax error or access rule violation - read-only database. The database is in read-only mode.");
+        // Legacy message
+        assertThat(cause.getMessage()).isEqualTo("This Neo4j server is read-only for all databases");
+        assertThat(cause.getCause()).isNull();
     }
 
     @Test

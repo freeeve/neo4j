@@ -73,7 +73,7 @@ public interface DatabaseReadOnlyChecker {
         @Override
         public void check() {
             if (isReadOnly()) {
-                throw new RuntimeException(new WriteOnReadOnlyAccessDbException(namedDatabaseId.name()));
+                throw new RuntimeException(WriteOnReadOnlyAccessDbException.databaseIsReadOnly(namedDatabaseId.name()));
             }
         }
     }
@@ -104,7 +104,7 @@ public interface DatabaseReadOnlyChecker {
 
         @Override
         public void check() {
-            throw new RuntimeException(new WriteOnReadOnlyAccessDbException());
+            throw new RuntimeException(WriteOnReadOnlyAccessDbException.databaseIsReadOnly());
         }
     }
 }
