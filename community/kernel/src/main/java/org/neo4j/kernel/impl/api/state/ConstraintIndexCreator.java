@@ -238,7 +238,7 @@ public class ConstraintIndexCreator {
         if (descriptor != IndexDescriptor.NO_INDEX) {
             if (descriptor.isUnique()) {
                 // Looks like there is already a constraint like this.
-                throw new AlreadyConstrainedException(constraint, CONSTRAINT_CREATION, tokenLookup);
+                throw AlreadyConstrainedException.cannotCreateConstraint(constraint, tokenLookup);
             }
             // There's already an index for the schema of this constraint, which isn't of the type we're after.
             throw new AlreadyIndexedException(constraint.schema(), CONSTRAINT_CREATION, tokenLookup);

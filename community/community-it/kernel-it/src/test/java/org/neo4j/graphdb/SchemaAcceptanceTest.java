@@ -335,6 +335,18 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         String expectedMessage =
                 "There is a uniqueness constraint on (:MY_LABEL {my_property_key}), so an index is already created that matches this.";
         assertExpectedException(exception, expectedCause, expectedMessage);
+        var ace = (AlreadyConstrainedException) exception.getCause();
+        assertThat(ace.gqlStatus()).isEqualTo("22N74");
+        assertThat(ace.statusDescription())
+                .isEqualTo(
+                        "error: data exception - index conflicts with existing constraint. An index that belongs to the constraint `name` contains a conflicting index.");
+        assertThat(ace.gqlStatusObject().cause()).isPresent();
+        var cause = ace.gqlStatusObject().cause().get();
+        assertThat(cause.gqlStatus()).isEqualTo("22N70");
+        assertThat(cause.statusDescription())
+                .isEqualTo(
+                        "error: data exception - equivalent index already exists. An equivalent index already exists: 'name'");
+        assertThat(cause.gqlStatusObject().cause()).isNotPresent();
     }
 
     @ParameterizedTest()
@@ -357,6 +369,12 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
                 expectedCause,
                 "Constraint already exists: Constraint( ",
                 "name='name', type='NODE PROPERTY UNIQUENESS', schema=(:MY_LABEL {my_property_key}), ownedIndex=");
+        var ace = (AlreadyConstrainedException) exception.getCause();
+        assertThat(ace.gqlStatus()).isEqualTo("22N65");
+        assertThat(ace.statusDescription())
+                .isEqualTo(
+                        "error: data exception - equivalent constraint already exists. An equivalent constraint already exists: 'name'");
+        assertThat(ace.gqlStatusObject().cause()).isNotPresent();
     }
 
     @ParameterizedTest()

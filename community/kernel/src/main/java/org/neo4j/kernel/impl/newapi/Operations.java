@@ -1884,7 +1884,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             if (constraint.isIndexBackedConstraint()) {
                 // Index-backed constraints only blocks indexes of the same type.
                 if (constraint.asIndexBackedConstraint().indexType() == prototype.getIndexType()) {
-                    throw new AlreadyConstrainedException(constraint, INDEX_CREATION, token);
+                    throw AlreadyConstrainedException.cannotCreateIndex(constraint, token);
                 }
             }
         }
@@ -1964,7 +1964,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         for (ConstraintDescriptor maybeConflictingConstraints : potentialConflicts) {
             // Do equal check first because ConflictingConstraint is a relaxation of equals
             if (constraint.equals(maybeConflictingConstraints)) {
-                throw new AlreadyConstrainedException(maybeConflictingConstraints, CONSTRAINT_CREATION, token);
+                throw AlreadyConstrainedException.cannotCreateConstraint(maybeConflictingConstraints, token);
             }
 
             if (constraint.conflictsWith(maybeConflictingConstraints)) {
@@ -2701,7 +2701,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             throws KernelException {
         try {
             if (schemaRead.constraintExists(constraint)) {
-                throw new AlreadyConstrainedException(constraint, CONSTRAINT_CREATION, token);
+                throw AlreadyConstrainedException.cannotCreateConstraint(constraint, token);
             }
             IndexType indexType = prototype.getIndexType();
             if (indexType != IndexType.RANGE) {

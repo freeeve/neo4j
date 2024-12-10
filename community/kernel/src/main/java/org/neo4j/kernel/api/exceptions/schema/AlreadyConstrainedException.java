@@ -21,6 +21,9 @@ package org.neo4j.kernel.api.exceptions.schema;
 
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.schema.SchemaKernelException;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -32,45 +35,35 @@ public class AlreadyConstrainedException extends SchemaKernelException {
     private static final String INDEX_CONTEXT_FORMAT =
             "There is a uniqueness constraint on %s, so an index is " + "already created that matches this.";
 
-    private final ConstraintDescriptor constraint;
-    private final OperationContext context;
-
-    public AlreadyConstrainedException(
-            ConstraintDescriptor constraint, OperationContext context, TokenNameLookup tokenNameLookup) {
-        super(Status.Schema.ConstraintAlreadyExists, constructUserMessage(context, tokenNameLookup, constraint));
-        this.constraint = constraint;
-        this.context = context;
+    private AlreadyConstrainedException(String message, ErrorGqlStatusObject gqlStatusObject) {
+        super(gqlStatusObject, Status.Schema.ConstraintAlreadyExists, message);
     }
 
-    public AlreadyConstrainedException(
-            ErrorGqlStatusObject gqlStatusObject,
-            ConstraintDescriptor constraint,
-            OperationContext context,
-            TokenNameLookup tokenNameLookup) {
-        super(
-                gqlStatusObject,
-                Status.Schema.ConstraintAlreadyExists,
-                constructUserMessage(context, tokenNameLookup, constraint));
+    // KNL-014
+    public static AlreadyConstrainedException cannotCreateIndex(
+            ConstraintDescriptor constraint, TokenNameLookup tokenNameLookup) {
+        var constraintName = constraint.getName();
 
-        this.constraint = constraint;
-        this.context = context;
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N74)
+                .withParam(GqlParams.StringParam.constr, constraintName)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N70)
+                        .withParam(GqlParams.StringParam.idxDescrOrName, constraintName)
+                        .build())
+                .build();
+        var message = messageWithLabelAndPropertyName(tokenNameLookup, INDEX_CONTEXT_FORMAT, constraint.schema());
+        return new AlreadyConstrainedException(message, gql);
     }
 
-    private static String constructUserMessage(
-            OperationContext context, TokenNameLookup tokenNameLookup, ConstraintDescriptor constraint) {
-        return switch (context) {
-            case INDEX_CREATION -> messageWithLabelAndPropertyName(
-                    tokenNameLookup, INDEX_CONTEXT_FORMAT, constraint.schema());
-            case CONSTRAINT_CREATION -> ALREADY_CONSTRAINED_MESSAGE_PREFIX
-                    + constraint.userDescription(tokenNameLookup);
-        };
-    }
+    // KNL-015
+    public static AlreadyConstrainedException cannotCreateConstraint(
+            ConstraintDescriptor constraint, TokenNameLookup tokenNameLookup) {
+        var constraintName = constraint.getName();
+        var constraintUD = constraint.userDescription(tokenNameLookup);
 
-    @Override
-    public String getUserMessage(TokenNameLookup tokenNameLookup) {
-        if (constraint != null) {
-            return constructUserMessage(context, tokenNameLookup, constraint);
-        }
-        return "Already constrained.";
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N65)
+                .withParam(GqlParams.StringParam.constrDescrOrName, constraintName)
+                .build();
+        var message = ALREADY_CONSTRAINED_MESSAGE_PREFIX + constraintUD;
+        return new AlreadyConstrainedException(message, gql);
     }
 }
