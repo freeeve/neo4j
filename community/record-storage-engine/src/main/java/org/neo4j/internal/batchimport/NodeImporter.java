@@ -78,6 +78,8 @@ public class NodeImporter extends EntityImporter {
     private Object inputId;
     private Group group;
 
+    private boolean hasExternallyChosenIds;
+
     NodeImporter(
             BatchingNeoStores stores,
             IdMapper idMapper,
@@ -105,16 +107,22 @@ public class NodeImporter extends EntityImporter {
     public boolean id(long id) {
         nodeRecord.setId(id);
         highestId = max(highestId, id);
+        hasExternallyChosenIds = true;
         return true;
     }
 
     @Override
     public boolean id(Object id, Group group) {
-        return id(id, group, nodeIds);
+        return assignId(id, group, nodeIds);
     }
 
     @Override
     public boolean id(Object id, Group group, IdSequence idSequence) {
+        hasExternallyChosenIds = true;
+        return assignId(id, group, idSequence);
+    }
+
+    private boolean assignId(Object id, Group group, IdSequence idSequence) {
         inputId = id;
         this.group = group;
         long nodeId = idSequence.nextId(cursorContext);
@@ -230,6 +238,9 @@ public class NodeImporter extends EntityImporter {
         nodeUpdateCursor.close();
         idPropertyUpdateCursor.close();
         cursorContext.close();
+        if (hasExternallyChosenIds) {
+            monitor.noteExternallyChosenNodeIds();
+        }
     }
 
     @Override

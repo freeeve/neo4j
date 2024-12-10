@@ -78,6 +78,7 @@ public class DataImporter {
         private final LongAdder nodes = new LongAdder();
         private final LongAdder relationships = new LongAdder();
         private final LongAdder properties = new LongAdder();
+        private volatile boolean hasExternallyChosenNodeIds;
 
         public void nodesImported(long nodes) {
             this.nodes.add(nodes);
@@ -113,6 +114,14 @@ public class DataImporter {
 
         public long propertiesImported() {
             return this.properties.sum();
+        }
+
+        public void noteExternallyChosenNodeIds() {
+            hasExternallyChosenNodeIds = true;
+        }
+
+        public boolean hasExternallyChosenNodeIds() {
+            return hasExternallyChosenNodeIds;
         }
 
         @Override

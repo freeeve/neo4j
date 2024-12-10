@@ -264,6 +264,10 @@ public class ImportLogic implements Closeable {
                 schemaMonitors);
         neoStore.stopFlushingPageCache();
         updatePeakMemoryUsage();
+
+        if (storeUpdateMonitor.hasExternallyChosenNodeIds()) {
+            neoStore.needsRebuildNodeStoreIdFile();
+        }
     }
 
     /**

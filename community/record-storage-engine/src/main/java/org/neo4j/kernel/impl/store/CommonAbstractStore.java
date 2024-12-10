@@ -515,7 +515,7 @@ public abstract class CommonAbstractStore<RECORD extends AbstractBaseRecord, HEA
         idGenerator.start(freeIds(cursorContext), cursorContext);
     }
 
-    private FreeIds freeIds(CursorContext cursorContext) {
+    public FreeIds freeIds(CursorContext cursorContext) {
         return visitor -> {
             try (PageCursor cursor = pagedFile.io(0, PF_SHARED_READ_LOCK | PF_READ_AHEAD, cursorContext)) {
                 int numberOfReservedLowIds = getNumberOfReservedLowIds();

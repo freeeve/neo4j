@@ -25,6 +25,7 @@ import static org.eclipse.collections.impl.factory.Sets.immutable;
 import static org.neo4j.configuration.GraphDatabaseSettings.check_point_iops_limit;
 import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_memory;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
+import static org.neo4j.internal.id.IdSlotDistribution.SINGLE_IDS;
 import static org.neo4j.io.ByteUnit.gibiBytes;
 import static org.neo4j.io.IOUtils.closeAll;
 import static org.neo4j.io.IOUtils.uncheckedConsumer;
@@ -36,11 +37,13 @@ import static org.neo4j.kernel.impl.store.StoreType.RELATIONSHIP_GROUP;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_COMMIT_TIMESTAMP;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.function.Predicate;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.batchimport.api.AdditionalInitialIds;
@@ -59,10 +62,12 @@ import org.neo4j.internal.counts.GBPTreeRelationshipGroupDegreesStore;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
 import org.neo4j.internal.id.IdGenerator;
 import org.neo4j.internal.id.IdGeneratorFactory;
+import org.neo4j.internal.recordstorage.RecordIdType;
 import org.neo4j.internal.recordstorage.StoreTokens;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseFile;
 import org.neo4j.io.layout.DatabaseLayout;
+import org.neo4j.io.layout.recordstorage.RecordDatabaseFile;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.io.mem.MemoryAllocator;
 import org.neo4j.io.os.OsBeanUtil;
@@ -150,6 +155,7 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
     private boolean doubleRelationshipRecordUnits;
 
     private boolean successful;
+    private boolean needsRebuildNodeStoreIdFile;
 
     private BatchingNeoStores(
             FileSystemAbstraction fileSystem,
@@ -571,8 +577,10 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
             flushAndForce(cursorContext);
         }
 
-        // Close the neo store
-        closeAll(neoStores, temporaryNeoStores);
+        try (var nodeIdFileSwapper = rebuildNodeIdFileIfNeeded()) {
+            // Close the neo store
+            closeAll(neoStores, temporaryNeoStores);
+        }
         if (!externalPageCache) {
             pageCache.close();
         }
@@ -580,6 +588,36 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
         if (successful) {
             cleanup();
         }
+    }
+
+    private Closeable rebuildNodeIdFileIfNeeded() throws IOException {
+        return !needsRebuildNodeStoreIdFile ? () -> {} : rebuildNodeIdFile();
+    }
+
+    private Closeable rebuildNodeIdFile() throws IOException {
+        var idGeneratorFactory = new DefaultIdGeneratorFactory(
+                fileSystem, immediate(), pageCacheTracer, databaseLayout.getDatabaseName());
+        var idFile = databaseLayout.idFile(RecordDatabaseFile.NODE_STORE).get();
+        var rebuiltIdFile = idFile.resolveSibling("rebuilt-node.db.id");
+        try (var idGenerator = idGeneratorFactory.open(
+                        pageCache,
+                        rebuiltIdFile,
+                        RecordIdType.NODE,
+                        () -> neoStores.getNodeStore().getNumberOfReservedLowIds(),
+                        Long.MAX_VALUE,
+                        false,
+                        neo4jConfig,
+                        contextFactory,
+                        openOptions,
+                        SINGLE_IDS);
+                var cursorContext = contextFactory.create("Rebuild ID generator")) {
+            idGenerator.start(neoStores.getNodeStore().freeIds(cursorContext), cursorContext);
+            try (var flushEvent = pageCacheTracer.beginFileFlush()) {
+                idGenerator.checkpoint(flushEvent, cursorContext);
+            }
+        }
+
+        return () -> fileSystem.renameFile(rebuiltIdFile, idFile, StandardCopyOption.REPLACE_EXISTING);
     }
 
     public void markHighIds() {
@@ -680,5 +718,14 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
 
     public ImmutableSet<OpenOption> getOpenOptions() {
         return openOptions;
+    }
+
+    /**
+     * Makes a note that the node store .id file needs to be rebuilt in the end. This can be due to node import
+     * being run with externally chosen node IDs and the overhead of keeping track of the holes during import
+     * can be too large and can therefor be done afterwards.
+     */
+    public void needsRebuildNodeStoreIdFile() {
+        needsRebuildNodeStoreIdFile = true;
     }
 }
