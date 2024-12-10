@@ -25,6 +25,7 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.ErrorMessageHolder;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlRuntimeException;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
@@ -44,7 +45,7 @@ public class FabricException extends GqlRuntimeException implements Status.HasSt
         this.queryId = null;
     }
 
-    private FabricException(ErrorGqlStatusObject gqlStatusObject, Status statusCode, Throwable cause) {
+    public FabricException(ErrorGqlStatusObject gqlStatusObject, Status statusCode, Throwable cause) {
         super(gqlStatusObject, ErrorMessageHolder.getOldCauseMessage(cause), cause);
         this.statusCode = statusCode;
         this.queryId = null;
@@ -214,6 +215,15 @@ public class FabricException extends GqlRuntimeException implements Status.HasSt
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN03)
                 .build();
         return new FabricException(gql, statusCode, message);
+    }
+
+    public static FabricException databaseUnavailable(String databaseName) {
+        return new FabricException(
+                GqlHelper.getGql08N09(databaseName),
+                Status.General.DatabaseUnavailable,
+                String.format(
+                        "Unable to route to database '%s'. %s",
+                        databaseName, Status.General.DatabaseUnavailable.code().description()));
     }
 
     @Override

@@ -48,6 +48,12 @@ public class GqlHelper {
                 .build());
     }
 
+    public static ErrorGqlStatusObject getGql08N09(String databaseName) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N09)
+                .withParam(GqlParams.StringParam.db, databaseName)
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql08N11_22N01(String value, List<String> valueTypeList, String valueType) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N11)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)

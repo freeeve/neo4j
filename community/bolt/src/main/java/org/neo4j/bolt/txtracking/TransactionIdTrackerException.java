@@ -19,10 +19,12 @@
  */
 package org.neo4j.bolt.txtracking;
 
+import static org.neo4j.kernel.api.exceptions.Status.General.DatabaseUnavailable;
 import static org.neo4j.kernel.api.exceptions.Status.Transaction.BookmarkTimeout;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlRuntimeException;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
@@ -65,6 +67,14 @@ public class TransactionIdTrackerException extends GqlRuntimeException implement
                 BookmarkTimeout,
                 "Database '" + db.getNamedDatabaseId().name() + "' not up to the requested version: "
                         + oldestAcceptableTxId + ". " + "Latest database version is " + lastTransactionId,
+                cause);
+    }
+
+    public static TransactionIdTrackerException databaseUnavailable(String databaseName, Throwable cause) {
+        return new TransactionIdTrackerException(
+                GqlHelper.getGql08N09(databaseName),
+                DatabaseUnavailable,
+                String.format("Database '%s' unavailable", databaseName),
                 cause);
     }
 

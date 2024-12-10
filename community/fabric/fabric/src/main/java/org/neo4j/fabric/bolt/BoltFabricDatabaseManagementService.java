@@ -19,8 +19,6 @@
  */
 package org.neo4j.fabric.bolt;
 
-import static java.lang.String.format;
-
 import org.neo4j.bolt.dbapi.BoltGraphDatabaseManagementServiceSPI;
 import org.neo4j.bolt.dbapi.BoltGraphDatabaseServiceSPI;
 import org.neo4j.dbms.api.DatabaseNotFoundException;
@@ -60,7 +58,7 @@ public class BoltFabricDatabaseManagementService implements BoltGraphDatabaseMan
             return getDatabase(databaseName, memoryTracker);
         } catch (DatabaseShutdownException | UnavailableException e) {
             // The failure expected over bolt
-            throw new UnavailableException(format("Database '%s' is unavailable.", databaseName));
+            throw UnavailableException.databaseUnavailable(databaseName);
         }
     }
 

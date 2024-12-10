@@ -21,6 +21,7 @@ package org.neo4j.kernel.availability;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.GqlException;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class UnavailableException extends GqlException implements Status.HasStatus {
@@ -36,5 +37,10 @@ public class UnavailableException extends GqlException implements Status.HasStat
     @Override
     public Status status() {
         return Status.General.DatabaseUnavailable;
+    }
+
+    public static UnavailableException databaseUnavailable(String databaseName) {
+        return new UnavailableException(
+                GqlHelper.getGql08N09(databaseName), String.format("Database '%s' is unavailable.", databaseName));
     }
 }
