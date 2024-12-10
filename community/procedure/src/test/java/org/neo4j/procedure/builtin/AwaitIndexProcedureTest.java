@@ -164,7 +164,20 @@ class AwaitIndexProcedureTest {
 
         thread.join();
 
-        assertThat(exception.get()).isNotNull();
-        assertThat(exception.get().status()).isEqualTo(Status.Procedure.ProcedureTimedOut);
+        var theException = exception.get();
+        assertThat(theException).isNotNull();
+        assertThat(theException.status()).isEqualTo(Status.Procedure.ProcedureTimedOut);
+        assertThat(theException.getMessage()).matches("Index on '.*' did not come online within 0 SECONDS");
+        assertThat(theException.gqlStatus()).isEqualTo("52N02");
+        assertThat(theException.statusDescription())
+                .isEqualTo(
+                        "error: procedure exception - procedure execution client error. Execution of the procedure awaitIndexByName() failed due to a client error.");
+        assertThat(theException.cause()).isPresent();
+        var cause = theException.cause().get();
+        assertThat(cause.gqlStatus()).isEqualTo("52N01");
+        assertThat(cause.statusDescription())
+                .isEqualTo(
+                        "error: procedure exception - procedure execution timeout. Execution of the procedure awaitIndexByName() timed out after 0 seconds.");
+        assertThat(cause.cause()).isNotPresent();
     }
 }

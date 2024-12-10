@@ -80,12 +80,8 @@ public class IndexProcedures {
         try {
             Predicates.awaitEx(() -> isOnline(index, procedureName), timeout, timeoutUnits);
         } catch (TimeoutException e) {
-            throw new ProcedureException(
-                    Status.Procedure.ProcedureTimedOut,
-                    "Index on '%s' did not come online within %s %s",
-                    index.userDescription(ktx.tokenRead()),
-                    timeout,
-                    timeoutUnits);
+            throw ProcedureException.indexDidNotComeOnline(
+                    procedureName, index.userDescription(ktx.tokenRead()), timeout, timeoutUnits);
         }
     }
 

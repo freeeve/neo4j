@@ -139,7 +139,7 @@ public class GqlParams {
         sig(new VERBATIM()), // Procedure or function signature
         syntax(new IDENT()), // Freeform syntax or keyword
         temporal(new TEMPORAL()), // Temporal value
-        timeUnit(new IDENT()), // Common time unit name
+        timeUnit(new VERBATIM()), // Common time unit name
         token(new STRLIT()), // Token name
         tokenId(new STRLIT()), // Token id
         tokenType(new VERBATIM()), // Token type

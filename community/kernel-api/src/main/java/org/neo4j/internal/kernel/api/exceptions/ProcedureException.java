@@ -27,7 +27,9 @@ import static org.neo4j.kernel.api.exceptions.Status.Procedure.ProcedureCallFail
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import javax.management.ObjectName;
 import org.neo4j.configuration.connectors.ConnectorType;
 import org.neo4j.exceptions.KernelException;
@@ -69,6 +71,27 @@ public class ProcedureException extends KernelException {
     public ProcedureException(
             ErrorGqlStatusObject gqlStatusObject, Status statusCode, String message, Object... parameters) {
         super(gqlStatusObject, statusCode, message, parameters);
+    }
+
+    public static ProcedureException indexDidNotComeOnline(
+            String procedureName, String indexDescription, long timeout, TimeUnit timeoutUnits) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N02)
+                .withParam(GqlParams.StringParam.proc, procedureName)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N01)
+                        .withParam(GqlParams.StringParam.proc, procedureName)
+                        .withParam(GqlParams.NumberParam.timeAmount, timeout)
+                        .withParam(
+                                GqlParams.StringParam.timeUnit,
+                                timeoutUnits.toString().toLowerCase(Locale.ROOT))
+                        .build())
+                .build();
+        return new ProcedureException(
+                gql,
+                Status.Procedure.ProcedureTimedOut,
+                "Index on '%s' did not come online within %s %s",
+                indexDescription,
+                timeout,
+                timeoutUnits);
     }
 
     public static ProcedureException noSuchProcedure(QualifiedName name) {
