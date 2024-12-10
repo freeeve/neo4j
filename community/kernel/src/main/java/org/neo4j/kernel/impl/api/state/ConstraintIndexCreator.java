@@ -21,7 +21,6 @@ package org.neo4j.kernel.impl.api.state;
 
 import static java.lang.String.format;
 import static org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException.Phase.VERIFICATION;
-import static org.neo4j.internal.kernel.api.exceptions.schema.SchemaKernelException.OperationContext.CONSTRAINT_CREATION;
 import static org.neo4j.internal.kernel.api.security.SecurityContext.AUTH_DISABLED;
 import static org.neo4j.kernel.api.KernelTransaction.Type;
 
@@ -241,7 +240,7 @@ public class ConstraintIndexCreator {
                 throw AlreadyConstrainedException.cannotCreateConstraint(constraint, tokenLookup);
             }
             // There's already an index for the schema of this constraint, which isn't of the type we're after.
-            throw new AlreadyIndexedException(constraint.schema(), CONSTRAINT_CREATION, tokenLookup);
+            throw AlreadyIndexedException.cannotCreateConstraint(constraint.schema(), tokenLookup);
         }
         return createConstraintIndex(prototype);
     }

@@ -315,6 +315,12 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         Class<AlreadyIndexedException> expectedCause = AlreadyIndexedException.class;
         String expectedMessage = "There already exists an index (:MY_LABEL {my_property_key}).";
         assertExpectedException(exception, expectedCause, expectedMessage);
+        var exceptionCause = (AlreadyIndexedException) exception.getCause();
+        assertThat(exceptionCause.gqlStatus()).isEqualTo("22N70");
+        assertThat(exceptionCause.statusDescription())
+                .isEqualTo(
+                        "error: data exception - equivalent index already exists. An equivalent index already exists: '(:MY_LABEL {my_property_key})'");
+        assertThat(exceptionCause.gqlStatusObject().cause()).isNotPresent();
     }
 
     @ParameterizedTest()
@@ -333,6 +339,12 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         String expectedMessage =
                 "There already exists an index (:MY_LABEL {my_property_key}). A constraint cannot be created until the index has been dropped.";
         assertExpectedException(exception, expectedCause, expectedMessage);
+        var exceptionCause = (AlreadyIndexedException) exception.getCause();
+        assertThat(exceptionCause.gqlStatus()).isEqualTo("22N73");
+        assertThat(exceptionCause.statusDescription())
+                .isEqualTo(
+                        "error: data exception - constraint conflicts with existing index. Constraint conflicts with already existing index '(:MY_LABEL {my_property_key})'.");
+        assertThat(exceptionCause.gqlStatusObject().cause()).isNotPresent();
     }
 
     @ParameterizedTest()

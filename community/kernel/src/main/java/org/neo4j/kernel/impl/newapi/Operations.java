@@ -1891,7 +1891,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         // Already indexed
         if (indexWithSameSchemaAndType != IndexDescriptor.NO_INDEX) {
-            throw new AlreadyIndexedException(prototype.schema(), INDEX_CREATION, token);
+            throw AlreadyIndexedException.cannotCreateIndex(prototype.schema(), token);
         }
     }
 
@@ -1981,7 +1981,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     constraint.schema(), constraint.asIndexBackedConstraint().indexType());
             // An index of the same type on the schema blocks constraint creation.
             if (existingIndex != IndexDescriptor.NO_INDEX) {
-                throw new AlreadyIndexedException(existingIndex.schema(), CONSTRAINT_CREATION, token);
+                throw AlreadyIndexedException.cannotCreateConstraint(existingIndex.schema(), token);
             }
         }
     }

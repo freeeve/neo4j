@@ -1736,7 +1736,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlStatus("22N73"),
             """
                     Constraint conflicts with already existing index { %s }.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.idx},
+            new GqlParams.GqlParam[] {GqlParams.StringParam.idxDescrOrName},
             emptyMap(),
             Condition.DATA_EXCEPTION,
             "constraint conflicts with existing index",

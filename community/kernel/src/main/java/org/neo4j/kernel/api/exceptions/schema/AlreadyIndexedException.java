@@ -21,6 +21,9 @@ package org.neo4j.kernel.api.exceptions.schema;
 
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.schema.SchemaKernelException;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -31,45 +34,31 @@ public class AlreadyIndexedException extends SchemaKernelException {
     private static final String CONSTRAINT_CONTEXT_FORMAT =
             "There already exists an index %s. " + "A constraint cannot be created until the index has been dropped.";
 
-    private final SchemaDescriptor descriptor;
-    private final OperationContext context;
-
-    public AlreadyIndexedException(
-            SchemaDescriptor descriptor, OperationContext context, TokenNameLookup tokenNameLookup) {
-        super(Status.Schema.IndexAlreadyExists, constructUserMessage(context, tokenNameLookup, descriptor));
-
-        this.descriptor = descriptor;
-        this.context = context;
+    private AlreadyIndexedException(String message, ErrorGqlStatusObject gqlStatusObject) {
+        super(gqlStatusObject, Status.Schema.IndexAlreadyExists, message);
     }
 
-    public AlreadyIndexedException(
-            ErrorGqlStatusObject gqlStatusObject,
-            SchemaDescriptor descriptor,
-            OperationContext context,
-            TokenNameLookup tokenNameLookup) {
-        super(
-                gqlStatusObject,
-                Status.Schema.IndexAlreadyExists,
-                constructUserMessage(context, tokenNameLookup, descriptor));
+    // KNL-022
+    public static AlreadyIndexedException cannotCreateIndex(
+            SchemaDescriptor descriptor, TokenNameLookup tokenNameLookup) {
+        var userDescription = descriptor.userDescription(tokenNameLookup);
 
-        this.descriptor = descriptor;
-        this.context = context;
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N70)
+                .withParam(GqlParams.StringParam.idxDescrOrName, userDescription)
+                .build();
+        var message = messageWithLabelAndPropertyName(tokenNameLookup, INDEX_CONTEXT_FORMAT, descriptor);
+        return new AlreadyIndexedException(message, gql);
     }
 
-    private static String constructUserMessage(
-            OperationContext context, TokenNameLookup tokenNameLookup, SchemaDescriptor descriptor) {
-        return switch (context) {
-            case INDEX_CREATION -> messageWithLabelAndPropertyName(tokenNameLookup, INDEX_CONTEXT_FORMAT, descriptor);
-            case CONSTRAINT_CREATION -> messageWithLabelAndPropertyName(
-                    tokenNameLookup, CONSTRAINT_CONTEXT_FORMAT, descriptor);
-        };
-    }
+    // KNL-023
+    public static AlreadyIndexedException cannotCreateConstraint(
+            SchemaDescriptor descriptor, TokenNameLookup tokenNameLookup) {
+        var userDescription = descriptor.userDescription(tokenNameLookup);
 
-    @Override
-    public String getUserMessage(TokenNameLookup tokenNameLookup) {
-        if (descriptor != null) {
-            return constructUserMessage(context, tokenNameLookup, descriptor);
-        }
-        return "Already indexed.";
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N73)
+                .withParam(GqlParams.StringParam.idxDescrOrName, userDescription)
+                .build();
+        var message = messageWithLabelAndPropertyName(tokenNameLookup, CONSTRAINT_CONTEXT_FORMAT, descriptor);
+        return new AlreadyIndexedException(message, gql);
     }
 }
