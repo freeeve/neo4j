@@ -101,10 +101,7 @@ class VerifyGraphTargetTest extends CypherFunSuite {
           |RETURN 1
           |""".stripMargin
 
-      the[DatabaseNotFoundException] thrownBy verifyGraphTarget(
-        query,
-        version
-      ) should have message "Database other not found"
+      checkDatabaseNotFoundError(query, "other", version)
     }
 
     test(
@@ -177,11 +174,7 @@ class VerifyGraphTargetTest extends CypherFunSuite {
 
       // missing reference in repository!
       if (version == CypherVersion.Cypher5) {
-        the[DatabaseNotFoundException] thrownBy verifyGraphTarget(
-          query,
-          version,
-          compositeRef.databaseId()
-        ) should have message "Database composite.shard0 not found"
+        checkDatabaseNotFoundError(query, "composite.shard0", version)
       } else {
         the[InvalidSemanticsException] thrownBy verifyGraphTarget(
           query,
@@ -208,11 +201,7 @@ class VerifyGraphTargetTest extends CypherFunSuite {
           |RETURN 1
           |""".stripMargin
 
-      the[DatabaseNotFoundException] thrownBy verifyGraphTarget(
-        query,
-        version,
-        allowCompositeQueries = true
-      ) should have message "Database composite.other not found"
+      checkDatabaseNotFoundError(query, "composite.other", version)
     }
 
     test(
@@ -259,6 +248,20 @@ class VerifyGraphTargetTest extends CypherFunSuite {
     when(conf.queryRouterForCompositeQueriesEnabled).thenReturn(allowCompositeQueries)
 
     VerifyGraphTarget.transform(state, plannerContext)
+  }
+
+  private def checkDatabaseNotFoundError(query: String, dbName: String, version: CypherVersion): Unit = {
+    val e = the[DatabaseNotFoundException] thrownBy verifyGraphTarget(query, version)
+    e should have message s"Database $dbName not found"
+    e.gqlStatus() shouldBe "42002"
+    e.statusDescription() shouldBe "error: syntax error or access rule violation - invalid reference"
+
+    e.cause() should not be empty
+    val cause = e.cause().get()
+    cause.gqlStatus() shouldBe "42N00"
+    cause.statusDescription() shouldBe
+      s"error: syntax error or access rule violation - no such database. The database `$dbName` was not found. Verify that the spelling is correct."
+    cause.cause() shouldBe empty
   }
 
   private def parse(version: CypherVersion, query: String): Query =

@@ -22,7 +22,10 @@ package org.neo4j.dbms.api;
 import static java.lang.String.format;
 
 import java.util.List;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 /**
  * This helper class contains methods to create `DatabaseNotFoundException`. These would normally be on the exception
@@ -112,5 +115,32 @@ public class DatabaseNotFoundHelper {
         var gql = GqlHelper.getGql42002_42N00(name);
         return new DatabaseNotFoundException(
                 gql, format("Database '%s' does not exist': No database exists with that name or alias.", name));
+    }
+
+    public static DatabaseNotFoundException databaseNameNotFoundWithoutDot(String name) {
+        var gql = GqlHelper.getGql42002_42N00(name);
+        return new DatabaseNotFoundException(gql, format("Database %s not found", name));
+    }
+
+    public static DatabaseNotFoundException databaseNameNotFoundWithDot(String name) {
+        var gql = GqlHelper.getGql42002_42N00(name);
+        return new DatabaseNotFoundException(gql, format("Database %s not found.", name));
+    }
+
+    public static DatabaseNotFoundException graphNotFound(String name) {
+        var gql = GqlHelper.getGql42002_42N00(name);
+        return new DatabaseNotFoundException(gql, format("Graph not found: %s", name));
+    }
+
+    public static DatabaseNotFoundException byElementIdFunction(String elementId) {
+        var gqlStatus = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA7)
+                        .withParam(GqlParams.StringParam.db, "graph.byElementId(" + elementId + ")")
+                        .build())
+                .build();
+        return new DatabaseNotFoundException(
+                gqlStatus,
+                "No database is corresponding to `graph.byElementId(" + elementId
+                        + ")`. Verify that the elementId is correct.");
     }
 }

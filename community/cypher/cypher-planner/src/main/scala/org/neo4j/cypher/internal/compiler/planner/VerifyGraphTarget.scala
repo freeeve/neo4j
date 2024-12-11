@@ -38,8 +38,7 @@ import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.DefaultPostCondition
 import org.neo4j.cypher.messages.MessageUtilProvider
-import org.neo4j.dbms.api.DatabaseNotFoundException
-import org.neo4j.dbms.api.DatabaseNotFoundExceptionCreator
+import org.neo4j.dbms.api.DatabaseNotFoundHelper
 import org.neo4j.exceptions.InvalidSemanticsException
 import org.neo4j.kernel.database._
 import org.neo4j.values.ElementIdDecoder
@@ -107,9 +106,7 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
       NormalizedCatalogEntry.fromList(catalogName.names())
     )) match {
       case None =>
-        throw new DatabaseNotFoundException(
-          s"Database ${catalogName.qualifiedNameString} not found"
-        )
+        throw DatabaseNotFoundHelper.databaseNameNotFoundWithoutDot(catalogName.qualifiedNameString)
       case Some(databaseReference)
         if !allowCompositeQueries && databaseReference.namespace().isPresent =>
         throw InvalidSemanticsException.accessingMultipleGraphsOnlySupportedOnCompositeDatabases(
@@ -143,8 +140,8 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
           databaseReferenceRepository,
           normalizedDatabaseName
         ) =>
-        throw new DatabaseNotFoundException(
-          s"Database ${catalogName.qualifiedNameString} not found"
+        throw DatabaseNotFoundHelper.databaseNameNotFoundWithoutDot(
+          graphNameWithContext.graphName.qualifiedNameString
         )
       case Some(databaseReference: DatabaseReferenceImpl.Internal)
         if !databaseReference.databaseId().equals(databaseId) =>
@@ -239,7 +236,7 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
         GraphNameWithContext(
           CatalogName.of(
             databaseReferenceRepository.getByUuid(databaseId).orElseThrow(() =>
-              DatabaseNotFoundExceptionCreator.byElementIdFunction(elementIdValue.stringValue())
+              DatabaseNotFoundHelper.byElementIdFunction(elementIdValue.stringValue())
             )
               .name(),
             resolveStrictly = true

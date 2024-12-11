@@ -21,7 +21,7 @@ package org.neo4j.kernel.api.database;
 
 import static org.neo4j.io.fs.FileSystemUtils.size;
 
-import org.neo4j.dbms.api.DatabaseNotFoundException;
+import org.neo4j.dbms.api.DatabaseNotFoundHelper;
 import org.neo4j.dbms.database.DatabaseContext;
 import org.neo4j.dbms.database.DatabaseContextProvider;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -76,7 +76,7 @@ public class DatabaseSizeServiceImpl implements DatabaseSizeService {
     private AbstractDatabase getDatabase(NamedDatabaseId databaseId) {
         return databaseContextProvider
                 .getDatabaseContext(databaseId)
-                .orElseThrow(() -> new DatabaseNotFoundException("Database " + databaseId.name() + " not found."))
+                .orElseThrow(() -> DatabaseNotFoundHelper.databaseNameNotFoundWithDot(databaseId.name()))
                 .database();
     }
 

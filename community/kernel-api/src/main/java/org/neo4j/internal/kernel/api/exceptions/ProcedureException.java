@@ -838,4 +838,13 @@ public class ProcedureException extends KernelException {
                 .build();
         return new ProcedureException(gql, statusCode, legacyMessage);
     }
+
+    public static ProcedureException graphPropertiesNotFound(String graphName) {
+        var gql = GqlHelper.getGql42002_42N00(graphName);
+
+        return new ProcedureException(
+                gql,
+                Status.Procedure.ProcedureCallFailed,
+                "Graph properties not found for graph '%s'".formatted(graphName));
+    }
 }

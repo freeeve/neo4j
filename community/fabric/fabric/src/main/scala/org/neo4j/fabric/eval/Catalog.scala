@@ -21,6 +21,7 @@ package org.neo4j.fabric.eval
 
 import org.neo4j.configuration.helpers.NormalizedGraphName
 import org.neo4j.cypher.internal.ast.CatalogName
+import org.neo4j.exceptions.EntityNotFoundException
 import org.neo4j.fabric.eval.Catalog.normalize
 import org.neo4j.fabric.util.Errors
 import org.neo4j.fabric.util.Errors.show
@@ -165,7 +166,7 @@ object Catalog {
         SecurityContext.AUTH_DISABLED
       ) // TODO: fix!
       if (aliases.isEmpty) {
-        Errors.entityNotFound("Database corresponding to element id", elementIdText)
+        throw EntityNotFoundException.databaseWithElementIdNotFound(elementIdText)
       }
 
       catalog.resolveGraphByNameString(aliases.head)
@@ -197,7 +198,7 @@ case class Catalog(
 
   def resolveGraph(name: CatalogName): Catalog.Graph =
     resolveGraphOption(name)
-      .getOrElse(Errors.entityNotFound("Graph", name.qualifiedNameString))
+      .getOrElse(throw EntityNotFoundException.databaseNotFound("Graph", name.qualifiedNameString))
 
   def resolveGraphOption(name: CatalogName): Option[Catalog.Graph] =
     graphs.get(normalize(name))
@@ -205,11 +206,11 @@ case class Catalog(
   // TODO: Parse the argument with quoting rules instead, to allow more cases
   def resolveGraphByNameString(name: String): Catalog.Graph =
     resolveGraphOptionByNameString(name)
-      .getOrElse(Errors.entityNotFound("Graph", name))
+      .getOrElse(throw EntityNotFoundException.databaseNotFound("Graph", name))
 
   def resolveGraphByNameString(name: String, securityContext: SecurityContext): Catalog.Graph =
     resolveGraphOptionByNameString(name, securityContext)
-      .getOrElse(Errors.entityNotFound("Graph", name))
+      .getOrElse(throw EntityNotFoundException.databaseNotFound("Graph", name))
 
   private def resolveGraphOptionByNameString(name: String, securityContext: SecurityContext): Option[Catalog.Graph] = {
     val normalizedName = Catalog.normalize(name)
@@ -224,7 +225,10 @@ case class Catalog(
   }
 
   def resolveView(name: CatalogName, args: Seq[AnyValue], sessionDb: DatabaseReference): Catalog.Graph =
-    resolveViewOption(name, args, sessionDb).getOrElse(Errors.entityNotFound("View", show(name)))
+    resolveViewOption(name, args, sessionDb).getOrElse(throw EntityNotFoundException.databaseNotFound(
+      "View",
+      show(name)
+    ))
 
   private def resolveViewOption(
     name: CatalogName,

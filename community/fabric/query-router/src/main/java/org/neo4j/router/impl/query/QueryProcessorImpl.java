@@ -47,6 +47,7 @@ import org.neo4j.cypher.internal.util.RecordingNotificationLogger;
 import org.neo4j.cypher.rendering.QueryOptionsRenderer;
 import org.neo4j.cypher.rendering.QueryRenderer;
 import org.neo4j.dbms.api.DatabaseNotFoundException;
+import org.neo4j.dbms.api.DatabaseNotFoundHelper;
 import org.neo4j.dbms.database.DatabaseContext;
 import org.neo4j.dbms.database.DatabaseContextProvider;
 import org.neo4j.fabric.executor.Location;
@@ -326,6 +327,6 @@ public class QueryProcessorImpl implements QueryProcessor {
     }
 
     private static Supplier<DatabaseNotFoundException> databaseNotFound(String databaseNameRaw) {
-        return () -> new DatabaseNotFoundException("Database " + databaseNameRaw + " not found");
+        return () -> DatabaseNotFoundHelper.databaseNameNotFoundWithoutDot((databaseNameRaw));
     }
 }

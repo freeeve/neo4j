@@ -24,6 +24,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.dbms.api.DatabaseNotFoundException;
+import org.neo4j.dbms.api.DatabaseNotFoundHelper;
 import org.neo4j.dbms.database.DatabaseContextProvider;
 import org.neo4j.fabric.bookmark.LocalGraphTransactionIdTracker;
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
@@ -149,7 +150,7 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
     }
 
     protected static Supplier<DatabaseNotFoundException> databaseNotFound(String databaseNameRaw) {
-        return () -> new DatabaseNotFoundException("Database " + databaseNameRaw + " not found");
+        return () -> DatabaseNotFoundHelper.databaseNameNotFoundWithoutDot(databaseNameRaw);
     }
 
     private TransactionalContext.DatabaseMode dbMode(Location.Local location) {

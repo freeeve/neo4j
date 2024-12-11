@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.ast._
 import org.neo4j.cypher.internal.evaluator.SimpleInternalExpressionEvaluator
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.functions.GraphByElementId
-import org.neo4j.dbms.api.DatabaseNotFoundExceptionCreator
+import org.neo4j.dbms.api.DatabaseNotFoundHelper
 import org.neo4j.kernel.database.DatabaseIdFactory
 import org.neo4j.kernel.database.DatabaseIdRepository
 import org.neo4j.router.util.Errors
@@ -63,7 +63,7 @@ class StaticUseEvaluation {
          */
 
         databaseIdRepository.getById(DatabaseIdFactory.from(uuid)).toScala
-          .orElse(throw DatabaseNotFoundExceptionCreator.byElementIdFunction(elementId))
+          .orElse(throw DatabaseNotFoundHelper.byElementIdFunction(elementId))
           .map(name => CatalogInfo(CatalogName.of(name.name(), resolveStrictly = true), canBeCached = false))
       case _                       => None
     }

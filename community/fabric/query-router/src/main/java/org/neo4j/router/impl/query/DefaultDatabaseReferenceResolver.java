@@ -27,6 +27,7 @@ import java.util.function.Supplier;
 import org.neo4j.cypher.internal.ast.CatalogName;
 import org.neo4j.cypher.internal.util.DeprecatedDatabaseNameNotification;
 import org.neo4j.dbms.api.DatabaseNotFoundException;
+import org.neo4j.dbms.api.DatabaseNotFoundHelper;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.database.DatabaseReferenceRepository;
 import org.neo4j.kernel.database.NormalizedCatalogEntry;
@@ -148,10 +149,10 @@ public class DefaultDatabaseReferenceResolver implements DatabaseReferenceResolv
     }
 
     private static Supplier<DatabaseNotFoundException> databaseNotFound(NormalizedDatabaseName databaseNameRaw) {
-        return () -> new DatabaseNotFoundException("Graph not found: " + databaseNameRaw.name());
+        return () -> DatabaseNotFoundHelper.graphNotFound(databaseNameRaw.name());
     }
 
     private static Supplier<DatabaseNotFoundException> databaseNotFound(CatalogName databaseNameRaw) {
-        return () -> new DatabaseNotFoundException("Graph not found: " + databaseNameRaw.qualifiedNameString());
+        return () -> DatabaseNotFoundHelper.graphNotFound(databaseNameRaw.qualifiedNameString());
     }
 }

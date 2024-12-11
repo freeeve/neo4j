@@ -21,6 +21,7 @@ package org.neo4j.exceptions;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
@@ -32,6 +33,27 @@ public class EntityNotFoundException extends Neo4jException {
 
     private EntityNotFoundException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
+    }
+
+    public static EntityNotFoundException databaseNotFound(String kind, String dbName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N00)
+                        .withParam(GqlParams.StringParam.db, dbName)
+                        .build())
+                .build();
+
+        return new EntityNotFoundException(gql, String.format("%s not found: %s", kind, dbName));
+    }
+
+    public static EntityNotFoundException databaseWithElementIdNotFound(String elementId) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA7)
+                        .withParam(GqlParams.StringParam.db, elementId)
+                        .build())
+                .build();
+
+        return new EntityNotFoundException(
+                gql, String.format("Database corresponding to element id not found: %s", elementId));
     }
 
     public static EntityNotFoundException nodeUnexpectedlyDeleted(long nodeId) {

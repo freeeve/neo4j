@@ -78,9 +78,6 @@ object Errors {
 
   def semantic(message: String) = throw new InvalidSemanticsException(message)
 
-  def entityNotFound(kind: String, needle: String): Nothing =
-    throw new EntityNotFoundException(s"$kind not found: $needle")
-
   /** Attaches position and query info to exceptions, if it is missing */
   def errorContext[T](query: String, node: ASTNode)(block: => T): T =
     try block

@@ -24,6 +24,7 @@ import static java.lang.String.format;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.neo4j.dbms.api.DatabaseNotFoundException;
+import org.neo4j.dbms.api.DatabaseNotFoundHelper;
 import org.neo4j.dbms.database.DatabaseContext;
 import org.neo4j.dbms.database.DatabaseContextProvider;
 import org.neo4j.fabric.config.FabricConfig;
@@ -80,7 +81,7 @@ public class FabricDatabaseManager {
     }
 
     private static Supplier<DatabaseNotFoundException> databaseNotFound(String databaseNameRaw) {
-        return () -> new DatabaseNotFoundException("Database " + databaseNameRaw + " not found");
+        return () -> DatabaseNotFoundHelper.databaseNameNotFoundWithoutDot(databaseNameRaw);
     }
 
     public boolean isFabricDatabase(NamedDatabaseId databaseId) {
