@@ -74,6 +74,10 @@ import org.neo4j.cypher.internal.util.ServerAlreadyEnabled
 import org.neo4j.cypher.internal.util.SubqueryVariableShadowing
 import org.neo4j.cypher.internal.util.UnboundedShortestPathNotification
 import org.neo4j.cypher.internal.util.UnsatisfiableRelationshipTypeExpression
+import org.neo4j.cypher.internal.util.WaitServerCatchingUp
+import org.neo4j.cypher.internal.util.WaitServerCaughtUp
+import org.neo4j.cypher.internal.util.WaitServerFailed
+import org.neo4j.cypher.internal.util.WaitServerUnavailable
 import org.neo4j.exceptions.IndexHintException.IndexHintIndexType
 import org.neo4j.graphdb
 
@@ -485,6 +489,14 @@ object NotificationWrapping {
     case AggregationSkippedNull    => NotificationCodeWithDescription.aggregationSkippedNull()
     case DeprecatedBooleanCoercion => NotificationCodeWithDescription.deprecatedBooleanCoercion()
     case InsecureProtocol          => NotificationCodeWithDescription.insecureProtocol()
+
+    case WaitServerUnavailable(serverName) => NotificationCodeWithDescription.waitServerUnavailable(serverName)
+    case WaitServerCatchingUp(serverName, serverAddress) =>
+      NotificationCodeWithDescription.waitServerCatchingUp(serverName, serverAddress)
+    case WaitServerFailed(serverName, serverAddress, error) =>
+      NotificationCodeWithDescription.waitServerFailed(serverName, serverAddress, error)
+    case WaitServerCaughtUp(serverName, serverAddress) =>
+      NotificationCodeWithDescription.waitServerCaughtUp(serverName, serverAddress)
 
     case _ => throw new IllegalStateException("Missing mapping for notification detail.")
   }

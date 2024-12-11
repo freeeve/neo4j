@@ -39,116 +39,118 @@ public class GqlParams {
     }
 
     public enum StringParam implements GqlParam {
-        action(new VERBATIM()),
-        alias(new IDENT()),
+        // name(Processor       // Description[ | Example]
+        action(new VERBATIM()), // Freeform description of some "action"
+        alias(new IDENT()), // Alias name
         alias1(new IDENT()),
         alias2(new IDENT()),
-        alloc(new IDENT()),
-        allocType(new STRLIT()),
-        auth(new IDENT()),
-        boltMsgType(new STRLIT()),
-        boltServerState(new STRLIT()),
-        cause(new VERBATIM()),
-        cfgSetting(new VERBATIM()),
-        changeIdent(new IDENT()),
-        characterRange(new CHAR_RANGE()),
-        clause(new UPPER().withInner(new VERBATIM())),
-        cmd(new STRLIT()),
-        component(new STRLIT()),
-        constr(new IDENT()),
-        constrDescrOrName(new STRLIT()),
-        context(new VERBATIM()),
-        coordinates(new COORDINATES()),
-        crs(new VERBATIM()),
-        db(new IDENT()),
+        alloc(new IDENT()), // Allocator name
+        allocType(new STRLIT()), // Allocation type
+        auth(new IDENT()), // Auth provider name
+        boltMsgType(new STRLIT()), // Bolt message type
+        boltServerState(new STRLIT()), // Bolt server state
+        cause(new VERBATIM()), // Freeform cause
+        cfgSetting(new VERBATIM()), // Configuration setting key | https.enable
+        changeIdent(new IDENT()), // Change identifier
+        characterRange(new CHAR_RANGE()), // Character range or character | 'a'-'Z', '@'
+        clause(new UPPER().withInner(new VERBATIM())), // Clause
+        cmd(new STRLIT()), // Command | 'DROP DATABASE'
+        component(new STRLIT()), // Component name
+        constr(new IDENT()), // Constraint name
+        constrDescrOrName(new STRLIT()), // Constraint descriptor or name
+        context(new VERBATIM()), // Freeform description of some "context"
+        coordinates(new COORDINATES()), // Coordinates
+        crs(new VERBATIM()), // Coordinate reference system | WGS8
+        db(new IDENT()), // Database name | myDb
         db1(new IDENT()),
         db2(new IDENT()),
         db3(new IDENT()),
-        edition(new VERBATIM()),
-        entityId1(new STRLIT()),
+        edition(new VERBATIM()), // Freeform edition description
+        entityId1(new STRLIT()), // Result of elementId()
         entityId2(new STRLIT()),
-        entityType(new VERBATIM()),
-        expr(new STRLIT()),
-        exprType(new VERBATIM()),
-        feat(new VERBATIM()),
+        entityType(new VERBATIM()), // One of 'node', 'relationship'
+        expr(new STRLIT()), // Cypher expression | 1 + n.pro
+        exprType(new VERBATIM()), // Freeform expression type
+        feat(new VERBATIM()), // Freeform feature description | World dominatio
         feat1(new VERBATIM()),
         feat2(new VERBATIM()),
-        field(new IDENT()),
-        format(new STRLIT()),
-        fun(new CALLABLE_IDENT()),
-        graph(new IDENT()),
-        hint(new VERBATIM()),
-        ident(new IDENT()),
-        idx(new IDENT()),
-        idxDescr(new STRLIT()),
-        idxDescrOrName(new STRLIT()),
-        idxOrConstr(new IDENT()),
-        idxOrConstrPat(new STRLIT()),
-        idxType(new VERBATIM()),
-        input(new STRLIT()),
+        field(new IDENT()), // Field identifier
+        format(new STRLIT()), // Duration format
+        fun(new CALLABLE_IDENT()), // Function name
+        graph(new IDENT()), // Graph name | myGrap
+        hint(new VERBATIM()), // Freeform description of some "hint"
+        ident(new IDENT()), // Generic identifier
+        idx(new IDENT()), // Index name
+        idxDescr(new STRLIT()), // Index descriptor
+        idxDescrOrName(new STRLIT()), // Index descriptor or name
+        idxOrConstr(new IDENT()), // Index or constraint name
+        idxOrConstrPat(new STRLIT()), // Index or constraint pattern
+        idxType(new VERBATIM()), // Index type (e.g,, text, vector, ...)
+        input(new STRLIT()), // Piece of input
         input1(new STRLIT()),
         input2(new STRLIT()),
-        item(new VERBATIM()),
-        keyword(new STRLIT()),
-        label(new IDENT()),
-        labelExpr(new STRLIT()),
-        mapKey(new STRLIT()),
-        matchMode(new VERBATIM()),
-        msg(new VERBATIM()),
-        msgTitle(new VERBATIM()),
-        namespace(new IDENT()),
-        operation(new STRLIT()),
-        option(new STRLIT()),
+        item(new VERBATIM()), // Freeform description of some "item"
+        keyword(new STRLIT()), // Pattern keyword
+        label(new IDENT()), // Label name | Person
+        labelExpr(new STRLIT()), // Label expression | Person&Human
+        mapKey(new STRLIT()), // Map key
+        matchMode(new VERBATIM()), // A GPM match mode
+        msg(new VERBATIM()), // Freeform message | Howdy, Partner
+        msgTitle(new VERBATIM()), // Freeform message title
+        namespace(new IDENT()), // Namespace
+        operation(new STRLIT()), // Operation
+        option(new STRLIT()), // Option name
         option1(new STRLIT()),
         option2(new STRLIT()),
-        param(new PARAM()),
+        param(new PARAM()), // Parameter name | $para
         param1(new PARAM()),
         param2(new PARAM()),
-        pat(new STRLIT()),
-        port(new IDENT()),
-        pred(new STRLIT()),
-        preparserInput(new STRLIT()),
+        pat(new STRLIT()), // Pattern | '(:Person)'
+        port(new IDENT()), // Port name
+        pred(new STRLIT()), // Predicate | 'x < 3'
+        preparserInput(new STRLIT()), // Piece of preparser input
         preparserInput1(new STRLIT()),
         preparserInput2(new STRLIT()),
-        proc(new CALLABLE_IDENT()),
-        procClass(new IDENT()),
-        procExeMode(new STRLIT()),
-        procField(new IDENT()),
-        procFieldType(new STRLIT()),
-        procFun(new CALLABLE_IDENT()),
-        procMethod(new IDENT()),
-        procParam(new IDENT()),
-        procParamFmt(new VERBATIM()),
-        propKey(new IDENT()),
-        query(new STRLIT()),
-        relType(new IDENT()),
-        replacement(new STRLIT()),
-        role(new IDENT()),
-        routingPolicy(new STRLIT()),
-        runtime(new STRLIT()),
-        schemaDescr(new STRLIT()),
-        selector(new VERBATIM()),
-        selectorType(new STRLIT()),
+        proc(new CALLABLE_IDENT()), // Procedure name | launchRocket
+        procClass(new IDENT()), // Procedure implementation class name
+        procExeMode(new STRLIT()), // Procedure execution mode
+        procField(new IDENT()), // Procedure implementation class field name | someField
+        procFieldType(new STRLIT()), // Procedure implementation class field type
+        procFun(new CALLABLE_IDENT()), // Procedure or function name or id
+        procMethod(new IDENT()), // Procedure implementation class method name
+        procParam(new IDENT()), // Procedure parameter name
+        procParamFmt(new VERBATIM()), // Freeform procedure parameter format
+        propKey(new IDENT()), // Property key name | name
+        query(new STRLIT()), // Query string extract | MATCH (n) WHERE n.prop...
+        relType(new IDENT()), // Relationship type name | KNOWS
+        replacement(new STRLIT()), // Replacement
+        role(new IDENT()), // Role name
+        routingPolicy(new STRLIT()), // Routing policy
+        runtime(new STRLIT()), // Cypher runtime name
+        schemaDescr(new STRLIT()), // Schema descriptor
+        selector(new VERBATIM()), // A GPM path selector
+        selectorType(new STRLIT()), // Selector type
         selectorType1(new STRLIT()),
         selectorType2(new STRLIT()),
-        server(new STRLIT()),
-        serverType(new STRLIT()),
-        sig(new VERBATIM()),
-        syntax(new IDENT()),
-        temporal(new TEMPORAL()),
-        timeUnit(new IDENT()),
-        token(new STRLIT()),
-        tokenId(new STRLIT()),
-        tokenType(new VERBATIM()),
-        transactionId(new STRLIT()),
+        server(new STRLIT()), // Server | 'example.com
+        serverAddress(new STRLIT()), // Server address | localhost:1024
+        serverName(new STRLIT()), // Server name as set with RENAME SERVER or fallback to ServerId
+        serverType(new STRLIT()), // Server type
+        sig(new VERBATIM()), // Procedure or function signature
+        syntax(new IDENT()), // Freeform syntax or keyword
+        temporal(new TEMPORAL()), // Temporal value
+        timeUnit(new IDENT()), // Common time unit name
+        token(new STRLIT()), // Token name
+        tokenId(new STRLIT()), // Token id
+        tokenType(new VERBATIM()), // Token type
+        transactionId(new STRLIT()), // Transaction id
         transactionId1(new STRLIT()),
         transactionId2(new STRLIT()),
-        url(new VERBATIM()),
-        user(new IDENT()),
-        value(new VAL()),
+        url(new VERBATIM()), // URL
+        user(new IDENT()), // User name
+        value(new VAL()), // Value
         valueType(new VALTYPE()),
         variable(new IDENT());
-
         public final Processor processor;
 
         @Override
@@ -162,19 +164,19 @@ public class GqlParams {
     }
 
     public enum NumberParam implements GqlParam {
-        boltMsgLenLimit(new NUM()),
-        count(new NONNEG()),
+        boltMsgLenLimit(new NUM()), // Bolt message length limit
+        count(new NONNEG()), // Amount
         count1(new NONNEG()),
         count2(new NONNEG()),
-        countAllocs(new NUM()),
-        countSeeders(new NUM()),
-        dim1(new NONNEG()),
+        countAllocs(new NUM()), // Desired number of servers to use
+        countSeeders(new NUM()), // Number of seeding servers
+        dim1(new NONNEG()), // Freeform description of "index dimensionality"
         dim2(new NONNEG()),
         entityId(new STRLIT()),
-        lower(new NUM()),
-        pos(new NUM()),
-        timeAmount(new NUM()),
-        upper(new NUM()),
+        lower(new NUM()), // Lower bound
+        pos(new NUM()), // A position (e.g., in a sequence)
+        timeAmount(new NUM()), // Integral amount of some time unit
+        upper(new NUM()), // Upper bound
         value(new VAL());
 
         public final Processor processor;
@@ -190,21 +192,26 @@ public class GqlParams {
     }
 
     public enum ListParam implements GqlParam, HasJoinStyle {
-        characterRangeList(new NELIST().withInner(StringParam.characterRange.processor)),
+        characterRangeList(new NELIST()
+                .withInner(StringParam.characterRange.processor)), // Comma-separated list of character ranges
         hintList(new NELIST().withInner(StringParam.hint.processor)),
-        inputList(new NELIST().withInner(StringParam.input.processor)),
-        labelList(new NELIST().withInner(StringParam.label.processor)),
-        mapKeyList(new NELIST().withInner(StringParam.mapKey.processor)),
-        namespaceList(new NELIST().withInner(StringParam.namespace.processor)),
-        optionList(new NELIST().withInner(StringParam.option.processor)),
-        paramList(new NELIST().withInner(StringParam.param.processor)),
-        portList(new NELIST().withInner(StringParam.port.processor)),
-        predList(new NELIST().withInner(StringParam.pred.processor)),
-        propKeyList(new NELIST().withInner(StringParam.propKey.processor)),
-        serverList(new NELIST().withInner(StringParam.server.processor)),
+        inputList(new NELIST().withInner(StringParam.input.processor)), // Comma-separated list of "inputs"
+        labelList(new NELIST()
+                .withInner(StringParam.label.processor)), // Comma-separated list of label names | Person, Human
+        mapKeyList(new NELIST().withInner(StringParam.mapKey.processor)), // Comma-separated list of keys
+        namespaceList(new NELIST().withInner(StringParam.namespace.processor)), // Comma-separated list of namespaces
+        optionList(new NELIST().withInner(StringParam.option.processor)), // Comma-separated list of option names
+        paramList(new NELIST().withInner(StringParam.param.processor)), // Parameter list | $name, $age
+        portList(new NELIST().withInner(StringParam.port.processor)), // Comma-separated list of port names
+        predList(new NELIST()
+                .withInner(StringParam.pred.processor)), // Comma-separated list of predicates | 'x < 3', 'y > 4'
+        propKeyList(
+                new NELIST().withInner(StringParam.propKey.processor)), // Comma-separated list of property key names
+        serverList(new NELIST()
+                .withInner(StringParam.server.processor)), // Comma-separated list of servers | 'a.com', 'b.com'
         valueList(new NELIST().withInner(StringParam.value.processor)),
         valueTypeList(new NELIST().withInner(StringParam.valueType.processor)),
-        variableList(new NELIST().withInner(StringParam.variable.processor));
+        variableList(new NELIST().withInner(StringParam.variable.processor)); // Comma-separated list of values
 
         public final ListProcessor processor;
 

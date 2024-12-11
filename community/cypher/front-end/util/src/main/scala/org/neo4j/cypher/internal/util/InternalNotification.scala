@@ -97,7 +97,11 @@ object InternalNotification {
     "DeprecatedExistingDataOption",
     "DeprecatedStoreFormat",
     "DeprecatedBooleanCoercion",
-    "InsecureProtocol"
+    "InsecureProtocol",
+    "WaitServerUnavailable",
+    "WaitServerCatchingUp",
+    "WaitServerFailed",
+    "WaitServerCaughtUp"
   )
 
   def allNotificationsAsJavaIterable(): lang.Iterable[String] = allNotifications.asJava
@@ -221,3 +225,8 @@ case class RuntimeUnsatisfiableRelationshipTypeExpression(types: List[String]) e
   def this(types: java.util.List[String]) =
     this(types.asScala.toList)
 }
+
+case class WaitServerUnavailable(serverName: String) extends InternalNotification {}
+case class WaitServerCatchingUp(serverName: String, boltAddress: String) extends InternalNotification {}
+case class WaitServerFailed(serverName: String, boltAddress: String, message: String) extends InternalNotification {}
+case class WaitServerCaughtUp(serverName: String, boltAddress: String) extends InternalNotification {}

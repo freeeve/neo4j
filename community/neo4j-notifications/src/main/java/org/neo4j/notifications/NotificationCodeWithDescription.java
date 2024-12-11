@@ -357,7 +357,23 @@ public enum NotificationCodeWithDescription {
     DEPRECATED_STORE_FORMAT(
             Status.Statement.FeatureDeprecationWarning,
             GqlStatusInfoCodes.STATUS_01N00,
-            DeprecatedFormatWarning.getTargetFormatWarning("%s"));
+            DeprecatedFormatWarning.getTargetFormatWarning("%s")),
+
+    WAIT_SERVER_UNAVAILABLE(
+            Status.Cluster.ServerNotAvailable, GqlStatusInfoCodes.STATUS_01N82, "Server `%s` is not available."),
+
+    WAIT_SERVER_CATCHING_UP(
+            Status.Cluster.ServerCatchingUp,
+            GqlStatusInfoCodes.STATUS_01N81,
+            "Server `%s` at address `%s` is still catching up."),
+
+    WAIT_SERVER_FAILED(
+            Status.Cluster.ServerFailed, GqlStatusInfoCodes.STATUS_01N80, "Server `%s` at address `%s` failed: %s"),
+
+    WAIT_SERVER_CAUGHT_UP(
+            Status.Cluster.ServerCaughtUp,
+            GqlStatusInfoCodes.STATUS_03N85,
+            "Server `%s` at address `%s` has caught up.");
 
     private final Status status;
     private final GqlStatusInfoCodes gqlStatusInfo;
@@ -823,6 +839,28 @@ public enum NotificationCodeWithDescription {
                 InputPosition.empty,
                 new String[] {format},
                 new String[] {DeprecatedFormatWarning.getTargetFormatWarning(format)});
+    }
+
+    public static NotificationImplementation waitServerUnavailable(String serverName) {
+        return WAIT_SERVER_UNAVAILABLE.notificationWithParameters(
+                InputPosition.empty, new String[] {serverName}, new String[] {serverName});
+    }
+
+    public static NotificationImplementation waitServerCatchingUp(String serverName, String boltAddress) {
+        return WAIT_SERVER_CATCHING_UP.notificationWithParameters(
+                InputPosition.empty, new String[] {serverName, boltAddress}, new String[] {serverName, boltAddress});
+    }
+
+    public static NotificationImplementation waitServerFailed(String serverName, String boltAddress, String message) {
+        return WAIT_SERVER_FAILED.notificationWithParameters(
+                InputPosition.empty,
+                new String[] {serverName, boltAddress, message},
+                new String[] {serverName, boltAddress, message});
+    }
+
+    public static NotificationImplementation waitServerCaughtUp(String serverName, String boltAddress) {
+        return WAIT_SERVER_CAUGHT_UP.notificationWithParameters(
+                InputPosition.empty, new String[] {serverName, boltAddress}, new String[] {serverName, boltAddress});
     }
 
     private NotificationImplementation notification(InputPosition position) {

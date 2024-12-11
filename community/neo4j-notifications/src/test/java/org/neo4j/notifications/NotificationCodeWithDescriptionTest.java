@@ -89,6 +89,10 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.serverAlre
 import static org.neo4j.notifications.NotificationCodeWithDescription.subqueryVariableShadowing;
 import static org.neo4j.notifications.NotificationCodeWithDescription.unboundedShortestPath;
 import static org.neo4j.notifications.NotificationCodeWithDescription.unsatisfiableRelationshipTypeExpression;
+import static org.neo4j.notifications.NotificationCodeWithDescription.waitServerCatchingUp;
+import static org.neo4j.notifications.NotificationCodeWithDescription.waitServerCaughtUp;
+import static org.neo4j.notifications.NotificationCodeWithDescription.waitServerFailed;
+import static org.neo4j.notifications.NotificationCodeWithDescription.waitServerUnavailable;
 import static org.neo4j.notifications.NotificationDetail.repeatedRelationship;
 import static org.neo4j.notifications.NotificationDetail.unsatisfiableRelTypeExpression;
 
@@ -1903,6 +1907,105 @@ class NotificationCodeWithDescriptionTest {
                 "warn: feature deprecated. The targeted store format: oldFormat is deprecated. For details on deprecated store formats, see https://neo4j.com/docs/store-format-deprecations.");
     }
 
+    @Test
+    void shouldConstructNotificationsFor_WAIT_SERVER_UNAVAILABLE() {
+        NotificationImplementation notification = waitServerUnavailable("serverName");
+
+        verifyNotification(
+                notification,
+                "Server is not available.",
+                SeverityLevel.WARNING,
+                "Neo.ClientNotification.Cluster.ServerNotAvailable",
+                "Server `serverName` is not available.",
+                NotificationCategory.TOPOLOGY,
+                NotificationClassification.TOPOLOGY,
+                "01N82",
+                new DiagnosticRecord(
+                                warning,
+                                NotificationClassification.TOPOLOGY,
+                                -1,
+                                -1,
+                                -1,
+                                Map.of("item", "Server `serverName` is not available."))
+                        .asMap(),
+                "warn: server is not available. Server `'serverName'` is not available.");
+    }
+
+    @Test
+    void shouldConstructNotificationsFor_WAIT_SERVER_CATCHING_UP() {
+        NotificationImplementation notification = waitServerCatchingUp("serverName", "localhost:1234");
+
+        verifyNotification(
+                notification,
+                "Server is still catching up.",
+                SeverityLevel.WARNING,
+                "Neo.ClientNotification.Cluster.ServerCatchingUp",
+                "Server `serverName` at address `localhost:1234` is still catching up.",
+                NotificationCategory.TOPOLOGY,
+                NotificationClassification.TOPOLOGY,
+                "01N81",
+                new DiagnosticRecord(
+                                warning,
+                                NotificationClassification.TOPOLOGY,
+                                -1,
+                                -1,
+                                -1,
+                                Map.of("item", "Server `serverName` at address `'localhost:1234'` is catching up."))
+                        .asMap(),
+                "warn: server is catching up. Server `'serverName'` at address `'localhost:1234'` is still catching up.");
+    }
+
+    @Test
+    void shouldConstructNotificationsFor_WAIT_SERVER_FAILED() {
+        NotificationImplementation notification =
+                waitServerFailed("serverName", "localhost:1234", "Server failed because foo.");
+
+        verifyNotification(
+                notification,
+                "Server failed.",
+                SeverityLevel.WARNING,
+                "Neo.ClientNotification.Cluster.ServerFailed",
+                "Server `serverName` at address `localhost:1234` failed: Server failed because foo.",
+                NotificationCategory.TOPOLOGY,
+                NotificationClassification.TOPOLOGY,
+                "01N80",
+                new DiagnosticRecord(
+                                warning,
+                                NotificationClassification.TOPOLOGY,
+                                -1,
+                                -1,
+                                -1,
+                                Map.of(
+                                        "item",
+                                        "Server `serverName` at address `'localhost:1234'` failed: Server failed because foo."))
+                        .asMap(),
+                "warn: server failed. Server `'serverName'` at address `'localhost:1234'` failed: Server failed because foo.");
+    }
+
+    @Test
+    void shouldConstructNotificationsFor_WAIT_SERVER_CAUGHT_UP() {
+        NotificationImplementation notification = waitServerCaughtUp("serverName", "localhost:1234");
+
+        verifyNotification(
+                notification,
+                "Server has caught up.",
+                SeverityLevel.INFORMATION,
+                "Neo.ClientNotification.Cluster.ServerCaughtUp",
+                "Server `serverName` at address `localhost:1234` has caught up.",
+                NotificationCategory.TOPOLOGY,
+                NotificationClassification.TOPOLOGY,
+                "03N85",
+                new DiagnosticRecord(
+                                info,
+                                NotificationClassification.TOPOLOGY,
+                                -1,
+                                -1,
+                                -1,
+                                Map.of("item", "Server `serverName` at address `'localhost:1234'` has caught up."))
+                        .asMap(),
+                "info: server has caught up. Server `'serverName'` at address `'localhost:1234'` has caught up.");
+    }
+
     private void verifyNotification(
             NotificationImplementation notification,
             String title,
@@ -2010,8 +2113,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            117, -67, -3, 103, 106, -3, -105, 53, 126, 58, -48, 51, -51, -47, -107, -24, -111, 64, -120, -58, -105, -8,
-            -23, -45, -45, -112, -66, -60, 96, -74, 67, -2
+            -109, -13, -44, -122, 6, -94, 79, -2, -27, -9, 34, 19, -97, 87, -111, -4, 2, -115, 106, -39, 123, 86, -95,
+            93, 81, -21, 115, -38, -36, 8, -42, -16
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {

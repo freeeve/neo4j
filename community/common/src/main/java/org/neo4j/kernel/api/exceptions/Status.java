@@ -742,7 +742,21 @@ public interface Status {
                 ClientNotification,
                 "`ALTER DATABASE` has no effect.",
                 SeverityLevel.INFORMATION,
-                NotificationCategory.TOPOLOGY);
+                NotificationCategory.TOPOLOGY),
+
+        ServerCaughtUp(
+                ClientNotification, "Server has caught up.", SeverityLevel.INFORMATION, NotificationCategory.TOPOLOGY),
+
+        ServerFailed(ClientNotification, "Server failed.", SeverityLevel.WARNING, NotificationCategory.TOPOLOGY),
+
+        ServerCatchingUp(
+                ClientNotification,
+                "Server is still catching up.",
+                SeverityLevel.WARNING,
+                NotificationCategory.TOPOLOGY),
+
+        ServerNotAvailable(
+                ClientNotification, "Server is not available.", SeverityLevel.WARNING, NotificationCategory.TOPOLOGY);
 
         private final Code code;
 

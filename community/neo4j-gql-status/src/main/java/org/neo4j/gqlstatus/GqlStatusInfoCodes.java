@@ -355,6 +355,37 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.WARNING,
             "insecure URL protocol",
             NotificationClassification.SECURITY),
+
+    STATUS_01N80(
+            new GqlStatus("01N80"),
+            """
+                        Server `{ %s }` at address `{ %s }` failed: { %s }""",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.serverName, GqlParams.StringParam.serverAddress, GqlParams.StringParam.msg
+            },
+            emptyMap(),
+            Condition.WARNING,
+            "server failed",
+            NotificationClassification.TOPOLOGY),
+    STATUS_01N81(
+            new GqlStatus("01N81"),
+            """
+                        Server `{ %s }` at address `{ %s }` is still catching up.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.serverName, GqlParams.StringParam.serverAddress},
+            emptyMap(),
+            Condition.WARNING,
+            "server is catching up",
+            NotificationClassification.TOPOLOGY),
+    STATUS_01N82(
+            new GqlStatus("01N82"),
+            """
+                        Server `{ %s }` is not available.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.serverName},
+            emptyMap(),
+            Condition.WARNING,
+            "server is not available",
+            NotificationClassification.TOPOLOGY),
+
     STATUS_02000(
             new GqlStatus("02000"),
             """
@@ -417,6 +448,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             emptyMap(),
             Condition.INFORMATIONAL,
             "redundant optional subquery",
+            NotificationClassification.GENERIC),
+    STATUS_03N85(
+            new GqlStatus("03N85"),
+            "Server `{ %s }` at address `{ %s }` has caught up.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.serverName, GqlParams.StringParam.serverAddress},
+            emptyMap(),
+            Condition.INFORMATIONAL,
+            "server has caught up",
             NotificationClassification.GENERIC),
     STATUS_03N90(
             new GqlStatus("03N90"),
