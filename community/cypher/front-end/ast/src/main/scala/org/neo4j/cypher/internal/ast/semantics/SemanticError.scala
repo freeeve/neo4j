@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.ast.semantics
 
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
@@ -1059,6 +1060,18 @@ object SemanticError {
       GqlHelper.getGql42001_42N53(position.offset, position.line, position.column),
       "The pattern may yield an infinite number of rows under match mode REPEATABLE ELEMENTS, " +
         "perhaps use a path selector or add an upper bound to your quantified path patterns.",
+      position
+    )
+  }
+
+  def variableAlreadyDeclared(variableName: String, position: InputPosition): SemanticError = {
+    SemanticError(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
+          .withParam(GqlParams.StringParam.variable, variableName)
+          .build())
+        .build(),
+      s"Variable `${variableName}` already declared",
       position
     )
   }

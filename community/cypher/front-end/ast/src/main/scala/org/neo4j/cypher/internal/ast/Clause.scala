@@ -1445,8 +1445,8 @@ case class UnresolvedCall(
   def wrappedOptional(subqueryScope: ScopeLocation): SemanticCheck = {
     declaredResult.map(_.items.map(_.variable).toList).getOrElse(List.empty).foldSemanticCheck(result =>
       subqueryScope.localSymbol(result.name) match {
-        case Some(_) => error(
-            s"Variable `${result.name}` already declared",
+        case Some(_) => variableAlreadyDeclaredError(
+            result.name,
             result.position
           )
         case _ => success

@@ -357,7 +357,7 @@ case class SemanticState(
   ): Either[SemanticError, SemanticState] =
     currentScope.localSymbol(variable.name) match {
       case Some(_) if !overriding =>
-        Left(SemanticError(s"Variable `${variable.name}` already declared", variable.position))
+        Left(SemanticError.variableAlreadyDeclared(variable.name, variable.position))
       case _ =>
         val (definition, uses) = maybePreviousDeclaration match {
           case Some(previousDeclaration) =>

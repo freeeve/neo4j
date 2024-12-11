@@ -409,6 +409,9 @@ trait SemanticAnalysisTooling {
   def invalidPlacementOfUseClauseError(position: InputPosition): SemanticCheck =
     SemanticCheck.error(SemanticError.invalidPlacementOfUseClause(position))
 
+  def variableAlreadyDeclaredError(variableName: String, position: InputPosition): SemanticCheck =
+    SemanticCheck.error(SemanticError.variableAlreadyDeclared(variableName, position))
+
   def warn(notification: InternalNotification): SemanticCheck = SemanticCheck.warn(notification)
 
   def possibleTypes(expression: Expression): TypeGenerator =

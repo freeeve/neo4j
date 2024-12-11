@@ -16,6 +16,11 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory.SyntaxException
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
+import org.neo4j.gqlstatus.GqlParams
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.scalatest.LoneElement
 
 class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite with LoneElement {
@@ -74,8 +79,14 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
         |MATCH ANY (p = ()--+())
         |RETURN *""".stripMargin
 
-    run(q).hasErrorMessages(
-      """Variable `p` already declared""".stripMargin
+    run(q).hasError(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
+          .withParam(GqlParams.StringParam.variable, "p")
+          .build())
+        .build(),
+      """Variable `p` already declared""".stripMargin,
+      InputPosition(29, 3, 12)
     )
   }
 
