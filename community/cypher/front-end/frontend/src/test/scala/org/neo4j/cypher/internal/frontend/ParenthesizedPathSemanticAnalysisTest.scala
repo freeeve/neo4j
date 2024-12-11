@@ -17,7 +17,6 @@
 package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory.SyntaxException
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
@@ -81,7 +80,9 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
 
     run(q).hasError(
       ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(29, 3, 12)
         .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
+          .atPosition(29, 3, 12)
           .withParam(GqlParams.StringParam.variable, "p")
           .build())
         .build(),

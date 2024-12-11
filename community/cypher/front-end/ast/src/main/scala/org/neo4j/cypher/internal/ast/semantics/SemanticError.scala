@@ -18,7 +18,6 @@ package org.neo4j.cypher.internal.ast.semantics
 
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
@@ -1065,13 +1064,19 @@ object SemanticError {
   }
 
   def variableAlreadyDeclared(variableName: String, position: InputPosition): SemanticError = {
+    variableAlreadyDeclared(variableName, position, s"Variable `${variableName}` already declared")
+  }
+
+  def variableAlreadyDeclared(variableName: String, position: InputPosition, legacyMessage: String): SemanticError = {
     SemanticError(
       ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(position.offset, position.line, position.column)
         .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
+          .atPosition(position.offset, position.line, position.column)
           .withParam(GqlParams.StringParam.variable, variableName)
           .build())
         .build(),
-      s"Variable `${variableName}` already declared",
+      legacyMessage,
       position
     )
   }

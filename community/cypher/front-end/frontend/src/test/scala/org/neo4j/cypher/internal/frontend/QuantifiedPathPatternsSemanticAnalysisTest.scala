@@ -24,7 +24,10 @@ import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper
+import org.neo4j.gqlstatus.GqlParams
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 abstract class QuantifiedPathPatternsInDifferentClausesSemanticAnalysisTest(statement: UpdateStatement)
     extends CypherFunSuite
@@ -78,6 +81,31 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
       "The variable `p` occurs in multiple quantified path patterns and needs to be renamed.",
       "Assigning a path in a quantified path pattern is not yet supported.",
       "Variable `p` already declared"
+    ).hasErrors(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(6, 1, 7)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
+          .atPosition(6, 1, 7)
+          .withParam(GqlParams.StringParam.variable, "p")
+          .build())
+        .build(),
+      "The variable `p` occurs in multiple quantified path patterns and needs to be renamed.",
+      InputPosition(6, 1, 7),
+      null,
+      "Assigning a path in a quantified path pattern is not yet supported.",
+      InputPosition(7, 1, 8),
+      null,
+      "Assigning a path in a quantified path pattern is not yet supported.",
+      InputPosition(23, 1, 24),
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(22, 1, 23)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
+          .atPosition(22, 1, 23)
+          .withParam(GqlParams.StringParam.variable, "p")
+          .build())
+        .build(),
+      "Variable `p` already declared",
+      InputPosition(22, 1, 23)
     )
   }
 
@@ -326,6 +354,25 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
     run().hasErrorMessages(
       "The variable `r` occurs both inside and outside a quantified path pattern and needs to be renamed.",
       "Variable `r` already declared"
+    ).hasErrors(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(17, 1, 18)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
+          .atPosition(17, 1, 18)
+          .withParam(GqlParams.StringParam.variable, "r")
+          .build())
+        .build(),
+      "The variable `r` occurs both inside and outside a quantified path pattern and needs to be renamed.",
+      InputPosition(17, 1, 18),
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(17, 1, 18)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
+          .atPosition(17, 1, 18)
+          .withParam(GqlParams.StringParam.variable, "r")
+          .build())
+        .build(),
+      "Variable `r` already declared",
+      InputPosition(17, 1, 18)
     )
   }
 
@@ -349,6 +396,25 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
     run().hasErrorMessages(
       "The variable `a` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern.",
       "Variable `a` already declared"
+    ).hasErrors(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(31, 1, 32)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
+          .atPosition(31, 1, 32)
+          .withParam(GqlParams.StringParam.variable, "a")
+          .build())
+        .build(),
+      "The variable `a` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern.",
+      InputPosition(31, 1, 32),
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(31, 1, 32)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
+          .atPosition(31, 1, 32)
+          .withParam(GqlParams.StringParam.variable, "a")
+          .build())
+        .build(),
+      "Variable `a` already declared",
+      InputPosition(31, 1, 32)
     )
   }
 

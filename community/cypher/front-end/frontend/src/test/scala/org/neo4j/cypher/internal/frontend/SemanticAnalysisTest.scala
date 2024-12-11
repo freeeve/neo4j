@@ -31,12 +31,15 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.RepeatedRelationshipReference
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation.from
 import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlHelper.getGql22003
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N39
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N71
+import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlParams.StringParam.variable
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_42001
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_42I40
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_42N29
@@ -78,7 +81,17 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("Should not allow duplicate variable name in CREATE") {
     run("CREATE (n), (n) RETURN 1 as one")
-      .hasError("Variable `n` already declared", p(13, 1, 14))
+      .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(13, 1, 14)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
+            .atPosition(13, 1, 14)
+            .withParam(GqlParams.StringParam.variable, "n")
+            .build())
+          .build(),
+        "Variable `n` already declared",
+        p(13, 1, 14)
+      )
   }
 
   test("Should not allow Distinct in functions that aren't aggregate") {

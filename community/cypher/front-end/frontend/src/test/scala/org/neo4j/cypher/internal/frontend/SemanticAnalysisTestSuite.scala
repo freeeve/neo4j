@@ -179,6 +179,26 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
       p3: Pos
     ): Self = hasErrors(SemanticError(gql1, msg1, p1), SemanticError(gql2, msg2, p2), SemanticError(gql3, msg3, p3))
 
+    def hasErrors(
+      gql1: GqlError,
+      msg1: String,
+      p1: Pos,
+      gql2: GqlError,
+      msg2: String,
+      p2: Pos,
+      gql3: GqlError,
+      msg3: String,
+      p3: Pos,
+      gql4: GqlError,
+      msg4: String,
+      p4: Pos
+    ): Self = hasErrors(
+      SemanticError(gql1, msg1, p1),
+      SemanticError(gql2, msg2, p2),
+      SemanticError(gql3, msg3, p3),
+      SemanticError(gql4, msg4, p4)
+    )
+
     def hasError(msg: String, pos: Pos): Self = hasErrors(SemanticError(msg, pos))
     def hasError(gql: GqlError, msg: String, pos: Pos): Self = hasErrors(SemanticError(gql, msg, pos))
 

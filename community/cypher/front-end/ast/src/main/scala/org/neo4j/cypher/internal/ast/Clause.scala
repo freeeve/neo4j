@@ -773,18 +773,28 @@ case class Match(
         quantifiedPathsPerVariable.flatMap { case (variable, paths) =>
           List(
             Option.when(paths.size > 1) {
-              s"The variable `${variable.name}` occurs in multiple quantified path patterns and needs to be renamed."
+              SemanticError.variableAlreadyDeclared(
+                variable.name,
+                variable.position,
+                s"The variable `${variable.name}` occurs in multiple quantified path patterns and needs to be renamed."
+              )
             },
             Option.when(allVariablesInSimplePatterns.contains(variable)) {
-              s"The variable `${variable.name}` occurs both inside and outside a quantified path pattern and needs to be renamed."
+              SemanticError.variableAlreadyDeclared(
+                variable.name,
+                variable.position,
+                s"The variable `${variable.name}` occurs both inside and outside a quantified path pattern and needs to be renamed."
+              )
             },
             Option.when(state.symbol(variable.name).isDefined) {
               // Because one cannot refer to a variable defined in a subsequent clause, if the variable exists in the semantic state, then it must have been defined in a previous clause.
-              s"The variable `${variable.name}` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern."
+              SemanticError.variableAlreadyDeclared(
+                variable.name,
+                variable.position,
+                s"The variable `${variable.name}` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern."
+              )
             }
-          ).flatten.map { errorMessage =>
-            SemanticError(errorMessage, variable.position)
-          }
+          ).flatten
         }
 
       SemanticCheck.error(semanticErrors)
