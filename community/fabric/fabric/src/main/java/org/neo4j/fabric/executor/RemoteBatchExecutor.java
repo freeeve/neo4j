@@ -67,20 +67,26 @@ public class RemoteBatchExecutor {
         AtomicBoolean streamingAborted = new AtomicBoolean(false);
         BlockingQueue<RemoteStreamEvent> queue = new ArrayBlockingQueue<>(bufferSize);
 
-        List<Future<FragmentResult>> futures = batchInput.stream()
+        List<Future<FragmentResultWithInput>> futures = batchInput.stream()
                 .map(record -> executor.submit(() -> {
-                    FragmentResult fragmentResult = fragmentExecutor.apply(record);
-                    startStreaming(queue, streamingAborted, fragmentResult, record, unitInner);
-                    return fragmentResult;
+                    var fragmentResult = fragmentExecutor.apply(record);
+                    return new FragmentResultWithInput(fragmentResult, record);
                 }))
                 .toList();
 
-        List<FragmentResult> allResults = getAllResults(futures);
-        return new RemoteBatch(allResults, queue, streamingAborted);
+        List<FragmentResultWithInput> allResults = getAllResults(futures);
+        allResults.forEach(fragmentResultWithInput -> startStreaming(
+                queue,
+                streamingAborted,
+                fragmentResultWithInput.fragmentResult,
+                fragmentResultWithInput.inputRecord,
+                unitInner));
+        return new RemoteBatch(
+                allResults.stream().map(FragmentResultWithInput::fragmentResult).toList(), queue, streamingAborted);
     }
 
-    private List<FragmentResult> getAllResults(List<Future<FragmentResult>> futures) {
-        List<FragmentResult> results = new ArrayList<>();
+    private List<FragmentResultWithInput> getAllResults(List<Future<FragmentResultWithInput>> futures) {
+        List<FragmentResultWithInput> results = new ArrayList<>();
         List<RuntimeException> failures = new ArrayList<>();
         for (var future : futures) {
             try {
@@ -131,12 +137,7 @@ public class RemoteBatchExecutor {
         // means not 'transaction terminated' error if such exists.
         throw failures.stream()
                 .filter(e -> (e instanceof Status.HasStatus exceptionWithStatus
-                                && exceptionWithStatus.status() != Status.Transaction.Terminated)
-                        // Error with this message without any special status code comes from
-                        // the driver when a transaction has been terminated.
-                        && !e.getMessage()
-                                .equals("Cannot run more queries in this transaction, "
-                                        + "it has either experienced an fatal error or was explicitly terminated"))
+                        && exceptionWithStatus.status() != Status.Transaction.Terminated))
                 .findAny()
                 .orElseGet(failures::getFirst);
     }
@@ -312,4 +313,6 @@ public class RemoteBatchExecutor {
          */
         record Failure(RuntimeException e) implements RemoteStreamEvent {}
     }
+
+    private record FragmentResultWithInput(FragmentResult fragmentResult, Record inputRecord) {}
 }
