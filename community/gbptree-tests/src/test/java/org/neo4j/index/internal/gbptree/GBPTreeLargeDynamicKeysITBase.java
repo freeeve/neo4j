@@ -319,6 +319,6 @@ abstract class GBPTreeLargeDynamicKeysITBase {
     }
 
     private static int inValidRange(int min, int max, int value) {
-        return Math.min(max, Math.max(min, value));
+        return Math.clamp(value, min, max);
     }
 }

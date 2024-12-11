@@ -333,7 +333,9 @@ public abstract class SpaceFillingCurve {
         long[] normalizedCoord = new long[nbrDim];
 
         for (int dim = 0; dim < nbrDim; dim++) {
-            double value = clamp(coord[dim], range.getMin(dim), range.getMax(dim));
+            double min = range.getMin(dim);
+            double max = range.getMax(dim);
+            double value = Math.clamp(coord[dim], min, max);
             // Avoiding awkward rounding errors
             if (value - range.getMin(dim) == range.getMax(dim) - range.getMin(dim)) {
                 normalizedCoord[dim] = width - 1;
@@ -375,19 +377,10 @@ public abstract class SpaceFillingCurve {
             double coordinate = ((double) normalizedCoord[dim]) / scalingFactor[dim]
                     + range.getMin(dim)
                     + getTileWidth(dim, level) / 2.0;
-            coord[dim] = clamp(coordinate, range.getMin(dim), range.getMax(dim));
+            double min = range.getMin(dim);
+            coord[dim] = Math.clamp(coordinate, min, range.getMax(dim));
         }
         return coord;
-    }
-
-    private static double clamp(double val, double min, double max) {
-        if (val <= min) {
-            return min;
-        }
-        if (val >= max) {
-            return max;
-        }
-        return val;
     }
 
     /**

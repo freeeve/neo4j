@@ -176,7 +176,7 @@ public class ConfiguringPageCacheFactory {
                     // the per page overhead, 8192 / 72 ~= 114, plus leaving some extra room on the heap for the rest
                     // of the system. This means that we won't heuristically try to create a page cache that is too
                     // large to fit on the heap.
-                    return Math.min(max, Math.max(min, heuristic));
+                    return Math.clamp(heuristic, min, max);
                 }
             } catch (Exception ignore) {
             }
