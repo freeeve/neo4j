@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.administration
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.ast.Return
@@ -42,10 +43,15 @@ case class SystemProcedureCallPlanner(
 ) {
 
   def planSystemProcedureCall(
+    version: CypherVersion,
     call: ResolvedCall,
     returns: Option[Return],
     checkCredentialsExpired: Boolean
   ): ExecutionPlan = {
+    // Procedures can have different signatures and results between cypher versions,
+    // so it's important to use the same cypher version in the inner query as the outer.
+    val preparserOptionsString = version.description
+
     val queryString = returns match {
       case Some(rs @ Return(_, ReturnItems(_, items, _), _, _, _, _, _, _)) if items.nonEmpty =>
         QueryRenderer.render(Seq(call, rs))
@@ -66,7 +72,7 @@ case class SystemProcedureCallPlanner(
       "SystemProcedure",
       normalExecutionEngine,
       securityAuthorizationHandler,
-      queryString,
+      preparserOptionsString + " " + queryString,
       MapValue.EMPTY,
       checkCredentialsExpired = checkCredentialsExpired,
       parameterTransformer = ParameterTransformer().convert((_, params) => addParameterDefaults(params)),

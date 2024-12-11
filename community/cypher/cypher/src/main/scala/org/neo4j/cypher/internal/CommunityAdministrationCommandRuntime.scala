@@ -392,8 +392,9 @@ case class CommunityAdministrationCommandRuntime(
           .planEnsureNodeExists(command, entity, name, valueMapper, extraFilter, labelDescription, action, sourcePlan)
 
     // SUPPORT PROCEDURES (need to be cleared before here)
-    case SystemProcedureCall(_, call, returns, _, checkCredentialsExpired) => _ =>
+    case SystemProcedureCall(_, call, returns, _, checkCredentialsExpired) => context =>
         SystemProcedureCallPlanner(normalExecutionEngine, securityAuthorizationHandler).planSystemProcedureCall(
+          context.runtimeContext.cypherVersion,
           call,
           returns,
           checkCredentialsExpired
