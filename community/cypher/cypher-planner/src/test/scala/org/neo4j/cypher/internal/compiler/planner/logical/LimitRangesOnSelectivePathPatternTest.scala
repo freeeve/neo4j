@@ -40,6 +40,7 @@ import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.util.NonEmptyList
@@ -160,7 +161,7 @@ class LimitRangesOnSelectivePathPatternTest extends CypherFunSuite with LogicalP
         VarLengthLowerBound(v"r", 101L)(pos),
         VarLengthUpperBound(v"r", 1001L)(pos)
       )),
-      SelectivePathPattern.Selector.Shortest(1)
+      SelectivePathPattern.Selector.Shortest(CountInteger(1))
     )
     rewrittenSpp shouldEqual Set(spp)
   }
@@ -180,7 +181,7 @@ class LimitRangesOnSelectivePathPatternTest extends CypherFunSuite with LogicalP
         minRestrictionPredicate(v"r", "101"),
         VarLengthLowerBound(v"r", 101L)(pos)
       )),
-      SelectivePathPattern.Selector.Shortest(1)
+      SelectivePathPattern.Selector.Shortest(CountInteger(1))
     )
     rewrittenSpp shouldEqual Set(spp)
   }
@@ -201,7 +202,7 @@ class LimitRangesOnSelectivePathPatternTest extends CypherFunSuite with LogicalP
         VarLengthLowerBound(v"r", 1L)(pos),
         VarLengthUpperBound(v"r", 1001L)(pos)
       )),
-      SelectivePathPattern.Selector.Shortest(1)
+      SelectivePathPattern.Selector.Shortest(CountInteger(1))
     )
     rewrittenSpp shouldEqual Set(spp)
   }
@@ -217,7 +218,7 @@ class LimitRangesOnSelectivePathPatternTest extends CypherFunSuite with LogicalP
     val spp = SelectivePathPattern(
       pathPattern = NodeConnections(NonEmptyList.from(Seq(varLengthPattern))),
       Selections.from(Seq(Unique(v"r")(pos), VarLengthLowerBound(v"r", 1L)(pos), VarLengthUpperBound(v"r", 8L)(pos))),
-      SelectivePathPattern.Selector.Shortest(1)
+      SelectivePathPattern.Selector.Shortest(CountInteger(1))
     )
     rewrittenSpp shouldEqual Set(spp)
   }
@@ -327,7 +328,7 @@ class LimitRangesOnSelectivePathPatternTest extends CypherFunSuite with LogicalP
     SelectivePathPattern(
       pathPattern = NodeConnections(NonEmptyList.from(qpps)),
       Selections.from(relUniqPreds ++ predicates),
-      SelectivePathPattern.Selector.Shortest(1)
+      SelectivePathPattern.Selector.Shortest(CountInteger(1))
     )
   }
 
@@ -341,7 +342,7 @@ class LimitRangesOnSelectivePathPatternTest extends CypherFunSuite with LogicalP
     SelectivePathPattern(
       pathPattern = NodeConnections(NonEmptyList(qpp)),
       Selections.from(relUniqPreds ++ predicates),
-      SelectivePathPattern.Selector.Shortest(1)
+      SelectivePathPattern.Selector.Shortest(CountInteger(1))
     )
   }
 

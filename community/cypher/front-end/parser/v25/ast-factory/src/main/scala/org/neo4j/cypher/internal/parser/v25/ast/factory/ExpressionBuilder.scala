@@ -80,6 +80,7 @@ import org.neo4j.cypher.internal.expressions.NormalForm
 import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.NotEquals
 import org.neo4j.cypher.internal.expressions.Or
+import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.PathConcatenation
 import org.neo4j.cypher.internal.expressions.PathFactor
@@ -177,6 +178,16 @@ trait ExpressionBuilder extends Cypher25ParserListener {
 
   protected def exceptionFactory: CypherExceptionFactory
 
+  override def exitNonNegativeIntegerSpecification(ctx: Cypher25Parser.NonNegativeIntegerSpecificationContext): Unit = {
+    val integer = ctx.UNSIGNED_DECIMAL_INTEGER()
+    ctx.ast = if (integer != null) {
+      Left(UnsignedDecimalIntegerLiteral(ctx.getText)(pos(ctx)))
+    } else {
+      val count = ctx.parameter().ast[Parameter]()
+      Right(ExplicitParameter(count.name, CTInteger)(count.position))
+    }
+  }
+
   final override def exitQuantifier(ctx: Cypher25Parser.QuantifierContext): Unit = {
     val firstToken = nodeChild(ctx, 0).getSymbol
     ctx.ast = firstToken.getType match {
@@ -247,22 +258,24 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     }
   }
 
-  private def selectorCount(node: TerminalNode, p: InputPosition): UnsignedDecimalIntegerLiteral =
-    if (node == null) UnsignedDecimalIntegerLiteral("1")(p)
-    else UnsignedDecimalIntegerLiteral(node.getText)(pos(node))
+  private def selectorCount(
+    ctx: Cypher25Parser.NonNegativeIntegerSpecificationContext,
+    p: InputPosition
+  ): Either[UnsignedDecimalIntegerLiteral, Parameter] =
+    astOpt[Either[UnsignedDecimalIntegerLiteral, Parameter]](ctx, Left(UnsignedDecimalIntegerLiteral("1")(p)))
 
   final override def exitSelector(ctx: Cypher25Parser.SelectorContext): Unit = {
     val p = pos(ctx)
     ctx.ast = ctx match {
       case anyShortestCtx: Cypher25Parser.AnyShortestPathContext =>
-        PatternPart.AnyShortestPath(selectorCount(anyShortestCtx.UNSIGNED_DECIMAL_INTEGER(), p))(p)
+        PatternPart.AnyShortestPath(selectorCount(anyShortestCtx.nonNegativeIntegerSpecification(), p))(p)
       case allShortestCtx: Cypher25Parser.AllShortestPathContext =>
         PatternPart.AllShortestPaths()(pos(allShortestCtx))
       case anyCtx: Cypher25Parser.AnyPathContext =>
-        PatternPart.AnyPath(selectorCount(anyCtx.UNSIGNED_DECIMAL_INTEGER(), p))(p)
+        PatternPart.AnyPath(selectorCount(anyCtx.nonNegativeIntegerSpecification(), p))(p)
       case shortestGrpCtx: Cypher25Parser.ShortestGroupContext =>
-        PatternPart.ShortestGroups(selectorCount(shortestGrpCtx.UNSIGNED_DECIMAL_INTEGER(), p))(p)
-      case allPathCtx: Cypher25Parser.AllPathContext =>
+        PatternPart.ShortestGroups(selectorCount(shortestGrpCtx.nonNegativeIntegerSpecification(), p))(p)
+      case _: Cypher25Parser.AllPathContext =>
         PatternPart.AllPaths()(p)
       case _ => throw new IllegalStateException(s"Unexpected context $ctx")
     }

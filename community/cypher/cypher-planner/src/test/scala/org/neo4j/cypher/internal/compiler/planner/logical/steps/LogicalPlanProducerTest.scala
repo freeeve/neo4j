@@ -52,6 +52,7 @@ import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.RemoveLabelPattern
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.ir.SetLabelPattern
 import org.neo4j.cypher.internal.ir.SetNodePropertiesFromMapPattern
 import org.neo4j.cypher.internal.ir.SetNodePropertyPattern
@@ -1912,7 +1913,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         relationshipVariableGroupings = Set.empty,
         singletonNodeVariables = Set.empty,
         singletonRelationshipVariables = Set.empty,
-        selector = Shortest(3),
+        selector = Shortest(CountInteger(3)),
         solvedExpressionAsString = "",
         solvedSpp = SelectivePathPattern(
           pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(PatternRelationship(
@@ -1925,7 +1926,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
           selections = Selections.from(List(
             unique(v"r")
           )),
-          selector = SelectivePathPattern.Selector.Shortest(1)
+          selector = SelectivePathPattern.Selector.Shortest(CountInteger(1))
         ),
         solvedPredicates = Seq.empty,
         reverseGroupVariableProjections = false,

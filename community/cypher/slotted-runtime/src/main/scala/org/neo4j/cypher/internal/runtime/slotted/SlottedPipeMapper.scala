@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.ir.CreateNode
 import org.neo4j.cypher.internal.ir.CreatePattern
 import org.neo4j.cypher.internal.ir.CreateRelationship
 import org.neo4j.cypher.internal.ir.RemoveLabelPattern
+import org.neo4j.cypher.internal.ir.SelectivePathPattern
 import org.neo4j.cypher.internal.ir.SetDynamicPropertyPattern
 import org.neo4j.cypher.internal.ir.SetLabelPattern
 import org.neo4j.cypher.internal.ir.SetNodePropertiesFromMapPattern
@@ -196,6 +197,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.AggregationExpression
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.DeleteOperation
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Literal
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.SideEffect
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.Predicate
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.EagerAggregationPipe
@@ -330,6 +332,7 @@ import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.ShortestPathCommonEndNodesForbiddenException.shortestPathCommonEndNodes
 import org.neo4j.internal.kernel.api.helpers.traversal.SlotOrName
 import org.neo4j.kernel.api.StatementConstants
+import org.neo4j.values.storable.Values
 import org.neo4j.values.storable.Values.NO_VALUE
 
 import scala.annotation.nowarn
@@ -1363,6 +1366,13 @@ class SlottedPipeMapper(
           case ExpandAll  => None
         }
 
+        val kExpression: Expression = selector.k match {
+          case SelectivePathPattern.CountInteger(k) =>
+            Literal(Values.numberValue(k))
+          case SelectivePathPattern.CountParam(param) =>
+            expressionConverters.toCommandExpression(id, param)
+        }
+
         StatefulShortestPathSlottedPipe(
           source,
           slots(sourceNode).slot,
@@ -1371,6 +1381,7 @@ class SlottedPipeMapper(
           bounds,
           commandPreFilters,
           selector,
+          kExpression,
           groupMap.values.map(_.offset).toList,
           slots,
           reverseGroupVariableProjections,

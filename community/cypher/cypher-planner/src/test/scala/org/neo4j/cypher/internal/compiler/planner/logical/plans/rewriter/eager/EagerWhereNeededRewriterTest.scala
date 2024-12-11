@@ -48,6 +48,7 @@ import org.neo4j.cypher.internal.ir.EagernessReason.TypeReadSetConflict
 import org.neo4j.cypher.internal.ir.EagernessReason.UnknownPropertyReadSetConflict
 import org.neo4j.cypher.internal.ir.EagernessReason.UpdateStrategyEager
 import org.neo4j.cypher.internal.ir.EagernessReason.WriteAfterCallInTransactions
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createPattern
@@ -8145,7 +8146,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
         Set(("r_inner", "r"), ("s_inner", "s")),
         singletonNodeVariables = Set("v_inner" -> "v", "w_inner" -> "w"),
         singletonRelationshipVariables = Set.empty,
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         nfa,
         ExpandAll,
         false
@@ -8172,7 +8173,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
           Set(("r_inner", "r"), ("s_inner", "s")),
           singletonNodeVariables = Set("v_inner" -> "v", "w_inner" -> "w"),
           singletonRelationshipVariables = Set.empty,
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           nfa,
           ExpandAll,
           false
@@ -8200,7 +8201,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
         Set(),
         singletonNodeVariables = Set("b_inner" -> "b"),
         singletonRelationshipVariables = Set("r_inner" -> "r"),
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         nfa,
         ExpandAll,
         false
@@ -8224,7 +8225,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
           Set(),
           singletonNodeVariables = Set("b_inner" -> "b"),
           singletonRelationshipVariables = Set("r_inner" -> "r"),
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           nfa,
           ExpandAll,
           false
@@ -8259,7 +8260,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
         Set(("r_inner", "r"), ("s_inner", "s")),
         singletonNodeVariables = Set("v_inner" -> "v", "w_inner" -> "w"),
         singletonRelationshipVariables = Set.empty,
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         nfa,
         ExpandAll,
         false
@@ -8291,7 +8292,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
           Set(("r_inner", "r"), ("s_inner", "s")),
           singletonNodeVariables = Set("v_inner" -> "v", "w_inner" -> "w"),
           singletonRelationshipVariables = Set.empty,
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           nfa,
           ExpandAll,
           false
@@ -8326,7 +8327,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
         Set(("r_inner", "r"), ("s_inner", "s")),
         singletonNodeVariables = Set("v_inner" -> "v", "w_inner" -> "w"),
         singletonRelationshipVariables = Set.empty,
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         nfa,
         ExpandAll,
         false
@@ -8360,7 +8361,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
           Set(("r_inner", "r"), ("s_inner", "s")),
           singletonNodeVariables = Set("v_inner" -> "v", "w_inner" -> "w"),
           singletonRelationshipVariables = Set.empty,
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           nfa,
           ExpandAll,
           false
@@ -8395,7 +8396,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
         Set(("r_inner", "r"), ("s_inner", "s")),
         singletonNodeVariables = Set("v_inner" -> "v", "w_inner" -> "w"),
         singletonRelationshipVariables = Set.empty,
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         nfa,
         ExpandAll,
         false
@@ -8420,7 +8421,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
           Set(("r_inner", "r"), ("s_inner", "s")),
           singletonNodeVariables = Set("v_inner" -> "v", "w_inner" -> "w"),
           singletonRelationshipVariables = Set.empty,
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           nfa,
           ExpandAll,
           false
@@ -8456,7 +8457,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
         Set(("r_inner", "r"), ("s_inner", "s")),
         singletonNodeVariables = Set("v_inner" -> "v", "w_inner" -> "w"),
         singletonRelationshipVariables = Set.empty,
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         nfa,
         ExpandAll,
         false
@@ -8497,7 +8498,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
         Set(("r_inner", "r"), ("s_inner", "s")),
         singletonNodeVariables = Set("v_inner" -> "v", "w_inner" -> "w"),
         singletonRelationshipVariables = Set.empty,
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         nfa,
         ExpandAll,
         false

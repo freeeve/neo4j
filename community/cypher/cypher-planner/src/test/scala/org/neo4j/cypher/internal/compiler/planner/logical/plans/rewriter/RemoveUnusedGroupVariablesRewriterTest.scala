@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RemoveU
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RemoveUnusedGroupVariablesRewriterTest.preserves
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RemoveUnusedGroupVariablesRewriterTest.rewrites
 import org.neo4j.cypher.internal.ir.EagernessReason
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setNodeProperty
@@ -72,7 +73,7 @@ class RemoveUnusedGroupVariablesRewriterTest extends CypherFunSuite with Logical
           groupRelationships = params.groupRelationships,
           singletonNodeVariables = Set("b" -> "b"),
           singletonRelationshipVariables = Set.empty,
-          selector = StatefulShortestPath.Selector.Shortest(1),
+          selector = StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           `(a) ((n)-[r]-(m))+ (b)`.nfa,
           ExpandAll,
           false
@@ -116,7 +117,7 @@ class RemoveUnusedGroupVariablesRewriterTest extends CypherFunSuite with Logical
           groupRelationships = params.groupRelationships,
           singletonNodeVariables = Set("b" -> "b"),
           singletonRelationshipVariables = Set.empty,
-          selector = StatefulShortestPath.Selector.Shortest(1),
+          selector = StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           `(a) ((n)-[r]-(m))+ (b)`.nfa,
           ExpandAll,
           false
@@ -159,7 +160,7 @@ class RemoveUnusedGroupVariablesRewriterTest extends CypherFunSuite with Logical
           groupRelationships = params.groupRelationships,
           singletonNodeVariables = Set("b" -> "b"),
           singletonRelationshipVariables = Set.empty,
-          selector = StatefulShortestPath.Selector.Shortest(1),
+          selector = StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           `(a) ((n)-[r]-(m))+ (b)`.nfa,
           ExpandAll,
           false
@@ -365,7 +366,7 @@ class RemoveUnusedGroupVariablesRewriterTest extends CypherFunSuite with Logical
           groupRelationships = params.groupRelationships,
           singletonNodeVariables = Set("b" -> "b"),
           singletonRelationshipVariables = Set.empty,
-          selector = StatefulShortestPath.Selector.Shortest(1),
+          selector = StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           `(a) ((n)-[r]-(m))+ (b)`.nfa,
           ExpandAll,
           false

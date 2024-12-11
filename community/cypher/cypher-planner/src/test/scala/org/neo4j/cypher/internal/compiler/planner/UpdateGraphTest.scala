@@ -58,6 +58,7 @@ import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.ir.RemoveLabelPattern
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.ir.SetLabelPattern
 import org.neo4j.cypher.internal.ir.SetMutatingPattern
 import org.neo4j.cypher.internal.ir.SetNodePropertiesFromMapPattern
@@ -634,7 +635,7 @@ class UpdateGraphTest extends CypherFunSuite with AstConstructionTestSupport wit
         selections = Selections.from(List(
           unique(v"r")
         )),
-        selector = SelectivePathPattern.Selector.Shortest(1)
+        selector = SelectivePathPattern.Selector.Shortest(CountInteger(1))
       )
 
     val queryGraph =

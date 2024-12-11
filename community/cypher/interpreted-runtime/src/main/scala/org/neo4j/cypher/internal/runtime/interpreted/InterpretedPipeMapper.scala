@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.frontend.phases.QueryLanguage.toKernelScope
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.ir.CreatePattern
 import org.neo4j.cypher.internal.ir.RemoveLabelPattern
+import org.neo4j.cypher.internal.ir.SelectivePathPattern
 import org.neo4j.cypher.internal.ir.SetDynamicPropertyPattern
 import org.neo4j.cypher.internal.ir.SetLabelPattern
 import org.neo4j.cypher.internal.ir.SetNodePropertiesFromMapPattern
@@ -367,6 +368,7 @@ import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.kernel.api.helpers.traversal.SlotOrName
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.Values
 
 /**
  * Responsible for turning a logical plan with argument pipes into a new pipe.
@@ -1584,6 +1586,13 @@ case class InterpretedPipeMapper(
           case ExpandAll  => None
         }
 
+        val kExpression: Expression = selector.k match {
+          case SelectivePathPattern.CountInteger(k) =>
+            Literal(Values.numberValue(k))
+          case SelectivePathPattern.CountParam(param) =>
+            expressionConverters.toCommandExpression(id, param)
+        }
+
         StatefulShortestPathPipe(
           source,
           sourceNode.name,
@@ -1592,6 +1601,7 @@ case class InterpretedPipeMapper(
           bounds,
           commandPreFilters,
           selector,
+          kExpression,
           groupMap.values.toSet,
           reverseGroupVariableProjections,
           matchMode

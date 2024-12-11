@@ -41,6 +41,7 @@ import org.neo4j.cypher.internal.expressions.VarLengthBound
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
@@ -103,7 +104,7 @@ case class StatefulShortestToFindShortestRewriter(
       )
       // 2.0 start and end nodes are bound and 6.0 selection asks for shortest 1
       if source.availableSymbols.contains(targetNode) &&
-        selector.k == 1 && statefulShortest.nodeVariableGroupings.isEmpty =>
+        selector.k == CountInteger(1) && statefulShortest.nodeVariableGroupings.isEmpty =>
       exactlyOne(
         solveds.get(statefulShortest.id).asSinglePlannerQuery.last.queryGraph.selectivePathPatterns.toSeq.distinct
       )

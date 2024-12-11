@@ -277,12 +277,16 @@ patternElement
    ;
 
 selector
-   : ANY SHORTEST pathToken?                                  # AnyShortestPath
-   | ALL SHORTEST pathToken?                                  # AllShortestPath
-   | ANY UNSIGNED_DECIMAL_INTEGER? pathToken?                 # AnyPath
-   | ALL pathToken?                                           # AllPath
-   | SHORTEST UNSIGNED_DECIMAL_INTEGER? pathToken? groupToken # ShortestGroup
-   | SHORTEST UNSIGNED_DECIMAL_INTEGER pathToken?             # AnyShortestPath
+   : ANY SHORTEST pathToken?                                         # AnyShortestPath
+   | ALL SHORTEST pathToken?                                         # AllShortestPath
+   | ANY nonNegativeIntegerSpecification? pathToken?                 # AnyPath
+   | ALL pathToken?                                                  # AllPath
+   | SHORTEST nonNegativeIntegerSpecification? pathToken? groupToken # ShortestGroup
+   | SHORTEST nonNegativeIntegerSpecification pathToken?             # AnyShortestPath
+   ;
+   
+nonNegativeIntegerSpecification
+   : UNSIGNED_DECIMAL_INTEGER | parameter["INTEGER"]
    ;
 
 groupToken

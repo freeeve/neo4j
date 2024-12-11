@@ -66,6 +66,7 @@ import org.neo4j.cypher.internal.ir.RegularQueryProjection
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
@@ -2560,7 +2561,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(qpp)),
         selections = Selections.from(unique(v"r")),
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val queryGraph =
@@ -2597,7 +2598,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           varLengthLowerLimitPredicate("r", 1),
           varLengthUpperLimitPredicate("r", 5)
         )),
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val queryGraph =
@@ -2633,7 +2634,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           varLengthLowerLimitPredicate("r", 1),
           varLengthUpperLimitPredicate("r", 5)
         )),
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val queryGraph =
@@ -2669,7 +2670,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           varLengthLowerLimitPredicate("r", 1),
           varLengthUpperLimitPredicate("r", 5)
         )),
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val queryGraph =
@@ -2714,7 +2715,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           andedPropertyInequalities(lessThan(prop("start", "prop"), function("size", v"r"))),
           unique(v"r")
         )),
-        selector = SelectivePathPattern.Selector.Shortest(1)
+        selector = SelectivePathPattern.Selector.Shortest(CountInteger(1))
       )
 
     val queryGraph =

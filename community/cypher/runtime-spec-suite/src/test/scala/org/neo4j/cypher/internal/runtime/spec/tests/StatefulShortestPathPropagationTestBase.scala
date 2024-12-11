@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.LogicalQuery
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.expressions.SemanticDirection
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
@@ -1275,7 +1276,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
         "y",
         direction = SemanticDirection.BOTH,
         targetLabel = Some(targetLabel),
-        selector = StatefulShortestPath.Selector.Shortest(1)
+        selector = StatefulShortestPath.Selector.Shortest(CountInteger(1))
       )
       .nodeByLabelScan("x", "S")
       .build()
@@ -1384,7 +1385,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
       nonInlinablePrefilters: Option[String] = None,
       direction: SemanticDirection = SemanticDirection.OUTGOING,
       includeZeroLength: Boolean = false,
-      selector: StatefulShortestPath.Selector = StatefulShortestPath.Selector.Shortest(Int.MaxValue),
+      selector: StatefulShortestPath.Selector = StatefulShortestPath.Selector.Shortest(CountInteger(Int.MaxValue)),
       actualUpperLimit: Option[Int] = upperLimit
     ): LogicalQueryBuilder = {
       val targetLabelString = targetLabel.map(": " + _)

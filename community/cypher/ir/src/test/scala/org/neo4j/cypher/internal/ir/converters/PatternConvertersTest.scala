@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
@@ -298,7 +299,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
     val ir = SelectivePathPattern(
       pathPattern = longPathPattern,
       selections = Selections.empty,
-      selector = SelectivePathPattern.Selector.ShortestGroups(1)
+      selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
     )
 
     convertPatternParts(ast) shouldEqual List(ir)
@@ -318,7 +319,7 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
     val ir = SelectivePathPattern(
       pathPattern = longPathPattern,
       selections = Selections.from(predicate),
-      selector = SelectivePathPattern.Selector.ShortestGroups(1)
+      selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
     )
 
     convertPatternParts(ast) shouldEqual List(ir)
@@ -363,13 +364,13 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
         part = PathPatternPart(longElement),
         optionalWhereClause = Some(predicate)
       )(pos)),
-      selector = PatternPart.AnyPath(literalUnsignedInt(1))(pos)
+      selector = PatternPart.AnyPath(Left(literalUnsignedInt(1)))(pos)
     )
 
     val ir = SelectivePathPattern(
       pathPattern = longPathPattern,
       selections = Selections.from(predicate),
-      selector = SelectivePathPattern.Selector.Any(1)
+      selector = SelectivePathPattern.Selector.Any(CountInteger(1))
     )
 
     convertPatternParts(ast) shouldEqual List(ir)
@@ -383,13 +384,13 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
         part = PathPatternPart(longElement),
         optionalWhereClause = Some(predicate)
       )(pos)),
-      selector = PatternPart.AnyPath(literalUnsignedInt(2))(pos)
+      selector = PatternPart.AnyPath(Left(literalUnsignedInt(2)))(pos)
     )
 
     val ir = SelectivePathPattern(
       pathPattern = longPathPattern,
       selections = Selections.from(predicate),
-      selector = SelectivePathPattern.Selector.Any(2)
+      selector = SelectivePathPattern.Selector.Any(CountInteger(2))
     )
 
     convertPatternParts(ast) shouldEqual List(ir)
@@ -403,13 +404,13 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
         part = PathPatternPart(longElement),
         optionalWhereClause = Some(predicate)
       )(pos)),
-      selector = PatternPart.AnyShortestPath(literalUnsignedInt(1))(pos)
+      selector = PatternPart.AnyShortestPath(Left(literalUnsignedInt(1)))(pos)
     )
 
     val ir = SelectivePathPattern(
       pathPattern = longPathPattern,
       selections = Selections.from(predicate),
-      selector = SelectivePathPattern.Selector.Shortest(1)
+      selector = SelectivePathPattern.Selector.Shortest(CountInteger(1))
     )
 
     convertPatternParts(ast) shouldEqual List(ir)
@@ -423,13 +424,13 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
         part = PathPatternPart(longElement),
         optionalWhereClause = Some(predicate)
       )(pos)),
-      selector = PatternPart.AnyShortestPath(literalUnsignedInt(2))(pos)
+      selector = PatternPart.AnyShortestPath(Left(literalUnsignedInt(2)))(pos)
     )
 
     val ir = SelectivePathPattern(
       pathPattern = longPathPattern,
       selections = Selections.from(predicate),
-      selector = SelectivePathPattern.Selector.Shortest(2)
+      selector = SelectivePathPattern.Selector.Shortest(CountInteger(2))
     )
 
     convertPatternParts(ast) shouldEqual List(ir)
@@ -444,13 +445,13 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
         part = PathPatternPart(longElement),
         optionalWhereClause = Some(predicate)
       )(pos)),
-      selector = PatternPart.ShortestGroups(literalUnsignedInt(1))(pos)
+      selector = PatternPart.ShortestGroups(Left(literalUnsignedInt(1)))(pos)
     )
 
     val ir = SelectivePathPattern(
       pathPattern = longPathPattern,
       selections = Selections.from(predicate),
-      selector = SelectivePathPattern.Selector.ShortestGroups(1)
+      selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
     )
 
     convertPatternParts(ast) shouldEqual List(ir)
@@ -464,13 +465,13 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
         part = PathPatternPart(longElement),
         optionalWhereClause = Some(predicate)
       )(pos)),
-      selector = PatternPart.ShortestGroups(literalUnsignedInt(2))(pos)
+      selector = PatternPart.ShortestGroups(Left(literalUnsignedInt(2)))(pos)
     )
 
     val ir = SelectivePathPattern(
       pathPattern = longPathPattern,
       selections = Selections.from(predicate),
-      selector = SelectivePathPattern.Selector.ShortestGroups(2)
+      selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(2))
     )
 
     convertPatternParts(ast) shouldEqual List(ir)
@@ -545,13 +546,13 @@ class PatternConvertersTest extends CypherFunSuite with AstConstructionTestSuppo
         part = PathPatternPart(longElement),
         optionalWhereClause = Some(hasLabels("start", "Start"))
       )(pos)),
-      selector = PatternPart.AnyShortestPath(literalUnsignedInt(1))(pos)
+      selector = PatternPart.AnyShortestPath(Left(literalUnsignedInt(1)))(pos)
     )
 
     val ir2 = SelectivePathPattern(
       pathPattern = longPathPattern,
       selections = Selections.from(hasLabels("start", "Start")),
-      selector = SelectivePathPattern.Selector.Shortest(1)
+      selector = SelectivePathPattern.Selector.Shortest(CountInteger(1))
     )
 
     val part3 = shortestRelationship.withAllPathsSelector

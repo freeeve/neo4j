@@ -41,6 +41,7 @@ import org.neo4j.cypher.internal.ir.RegularQueryProjection
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.ir.SetNodePropertyPattern
 import org.neo4j.cypher.internal.ir.SetRelationshipPropertyPattern
 import org.neo4j.cypher.internal.ir.SimplePatternLength
@@ -340,7 +341,7 @@ class MutatingStatementConvertersTest extends CypherFunSuite with LogicalPlannin
           unique(v"r2"),
           disjoint(v"r", v"r2")
         )),
-        selector = SelectivePathPattern.Selector.Shortest(1)
+        selector = SelectivePathPattern.Selector.Shortest(CountInteger(1))
       )
 
     val queryGraph =

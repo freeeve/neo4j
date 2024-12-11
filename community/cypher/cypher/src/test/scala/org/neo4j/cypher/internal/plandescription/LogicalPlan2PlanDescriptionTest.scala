@@ -169,6 +169,7 @@ import org.neo4j.cypher.internal.ir.EagernessReason.Conflict
 import org.neo4j.cypher.internal.ir.NoHeaders
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.RemoveLabelPattern
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.ir.SetLabelPattern
 import org.neo4j.cypher.internal.ir.SetNodePropertiesPattern
 import org.neo4j.cypher.internal.ir.SetNodePropertyPattern
@@ -6312,7 +6313,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Set.empty,
           Set.empty,
           Set.empty,
-          Selector.Shortest(5),
+          Selector.Shortest(CountInteger(5)),
           solvedExpressionStr,
           false,
           LengthBounds.none,
@@ -6344,7 +6345,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Set.empty,
           Set.empty,
           Set.empty,
-          Selector.Shortest(5),
+          Selector.Shortest(CountInteger(5)),
           solvedExpressionStr,
           false,
           LengthBounds.none,
@@ -6411,7 +6412,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Set.empty,
           Set.empty,
           Set.empty,
-          Selector.Shortest(5),
+          Selector.Shortest(CountInteger(5)),
           solvedExpressionStr,
           false,
           LengthBounds.none,
@@ -6498,7 +6499,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Set.empty,
           Set.empty,
           Set.empty,
-          Selector.Shortest(5),
+          Selector.Shortest(CountInteger(5)),
           solvedExpressionStr,
           false,
           LengthBounds.none,

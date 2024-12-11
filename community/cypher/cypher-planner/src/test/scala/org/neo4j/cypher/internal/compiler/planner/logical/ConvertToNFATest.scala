@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
@@ -111,7 +112,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(`(start) ((a)-[r]->(b))+ (end)`)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -138,7 +139,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(`(start) ((a)-[r]->(b))+ (end)`)),
         selections = Selections.from(nonInlineablePredicate),
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -170,7 +171,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(`(start) ((a)-[r]->(b))+ (end)`)),
         selections = Selections.from(nonInlineablePredicate),
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -204,7 +205,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(qpp)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     an[InternalException] should be thrownBy {
@@ -224,7 +225,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(`(start) ((a)-[r]->(b))+ (end)`)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "end")
@@ -281,7 +282,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(qpp, rel)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "end")
@@ -311,7 +312,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
         pathPattern =
           ExhaustivePathPattern.NodeConnections(NonEmptyList(`(start) ((a)-[r]->(b))+ (end) [with predicates]`)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -370,7 +371,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
         selections = Selections.from(
           equals(prop("r2", "prop"), v"foo")
         ),
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -434,7 +435,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
         selections = Selections.from(
           CoerceToPredicate(parameter("param", CTBoolean))
         ),
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -473,7 +474,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(qpp)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -504,7 +505,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(qpp)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -537,7 +538,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(qpp)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -572,7 +573,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(qpp)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -605,7 +606,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(qpp)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -643,7 +644,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(qpp)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -679,7 +680,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(varRel)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -712,7 +713,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(varRel)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -746,7 +747,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(varRel)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -781,7 +782,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(varRel)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -817,7 +818,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(varRel)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -853,7 +854,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
       SelectivePathPattern(
         pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(varRel)),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")
@@ -900,7 +901,7 @@ class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
           relationshipPredicate,
           endNodePredicate
         )),
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     val expectedNfa = new TestNFABuilder(0, "start")

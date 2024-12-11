@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.util.NonEmptyList
@@ -80,7 +81,7 @@ class QueryGraphConnectedComponentsTest
     SelectivePathPattern(
       ExhaustivePathPattern.NodeConnections(NonEmptyList(qpp(from, to))),
       Selections.empty,
-      SelectivePathPattern.Selector.Any(1)
+      SelectivePathPattern.Selector.Any(CountInteger(1))
     )
 
   test("empty query graph returns no connected querygraphs") {
@@ -421,7 +422,7 @@ class QueryGraphConnectedComponentsTest
     val spps = Set(SelectivePathPattern(
       ExhaustivePathPattern.NodeConnections(NonEmptyList(qpp(A, B), qpp(B, C))),
       Selections.empty,
-      SelectivePathPattern.Selector.Any(1)
+      SelectivePathPattern.Selector.Any(CountInteger(1))
     ))
 
     val sppQG =
@@ -490,7 +491,7 @@ class QueryGraphConnectedComponentsTest
       selectivePathPatterns = Set(SelectivePathPattern(
         ExhaustivePathPattern.NodeConnections(NonEmptyList(qpp(A, B), qpp(B, C))),
         Selections.empty,
-        SelectivePathPattern.Selector.Any(1)
+        SelectivePathPattern.Selector.Any(CountInteger(1))
       )),
       selections = Selections.from(equals(B, X))
     )
@@ -505,7 +506,7 @@ class QueryGraphConnectedComponentsTest
       selectivePathPatterns = Set(SelectivePathPattern(
         ExhaustivePathPattern.NodeConnections(NonEmptyList(qpp(A, B), qpp(B, C))),
         Selections.empty,
-        SelectivePathPattern.Selector.Any(1)
+        SelectivePathPattern.Selector.Any(CountInteger(1))
       )),
       selections = Selections.from(isNotNull(B))
     )

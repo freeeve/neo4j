@@ -503,6 +503,8 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.ListType
+import org.neo4j.util
+import org.neo4j.util.UnicodeHelper
 import org.reflections.Reflections
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
@@ -562,7 +564,12 @@ object AstGenerator {
   // It is difficult to randomly generate a valid unicode string, so this rejects any string
   // that may contain a unicode looking sequence to avoid parser errors.
   def validString: Gen[String] =
-    nonEmptyListOf(char).map(_.mkString).suchThat(!_.matches("^.*\\\\[u,U].*$"))
+    nonEmptyListOf(char).map(_.mkString).suchThat(chars =>
+      !chars.matches("^.*\\\\[u,U].*$") && UnicodeHelper.isIdentifierStart(
+        chars.head,
+        util.CypherVersion.Cypher5
+      ) && chars.forall(UnicodeHelper.isIdentifierPart(_, util.CypherVersion.Cypher5))
+    )
 
   def acceptedChar(c: Char): Boolean = {
     val DEL_ERROR = '\ufdea'
@@ -1252,8 +1259,22 @@ class AstGenerator(
     lzy(_pathConcatenation(dynamicLabelsAllowed))
   )
 
+  private def literalIntOrParam: Gen[Either[UnsignedDecimalIntegerLiteral, Parameter]] = for {
+    int <- lzy(_unsignedDecIntLit)
+    param <- lzy(_parameter)
+    count <- oneOf(Left(int), Right(param))
+  } yield {
+    count
+  }
+
+  private def literalIntOnly: Gen[Either[UnsignedDecimalIntegerLiteral, Parameter]] = for {
+    int <- lzy(_unsignedDecIntLit)
+  } yield {
+    Left(int)
+  }
+
   def _selector: Gen[Selector] = for {
-    count <- _unsignedDecIntLit
+    count <- if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) literalIntOnly else literalIntOrParam
     selector <- oneOf(
       lzy(AnyPath(count)(pos)),
       lzy(AllPaths()(pos)),

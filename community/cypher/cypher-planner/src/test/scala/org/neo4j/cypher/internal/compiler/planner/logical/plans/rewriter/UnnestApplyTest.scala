@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.frontend.phases.ProcedureReadWriteAccess
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.UnionQuery
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
@@ -357,7 +358,7 @@ class UnnestApplyTest extends CypherFunSuite with LogicalPlanningAttributesTestS
         groupRelationships = Set(("r_i", "r_i")),
         singletonNodeVariables = Set("m" -> "m"),
         singletonRelationshipVariables = Set.empty,
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         nfa,
         ExpandAll,
         false
@@ -377,7 +378,7 @@ class UnnestApplyTest extends CypherFunSuite with LogicalPlanningAttributesTestS
           groupRelationships = Set(("r_i", "r_i")),
           singletonNodeVariables = Set("m" -> "m"),
           singletonRelationshipVariables = Set.empty,
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           nfa,
           ExpandAll,
           false

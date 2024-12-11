@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.helpers.WindowsSafeAnyRef
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.GetValue
@@ -153,7 +154,7 @@ class MultiRelationshipExpansionIntegrationTest extends CypherFunSuite with Logi
           Set(("  r@1", "  r@4")),
           Set(("  v@6", "v")),
           Set(),
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           expectedNfa,
           ExpandAll,
           false,
@@ -189,7 +190,7 @@ class MultiRelationshipExpansionIntegrationTest extends CypherFunSuite with Logi
         Set(("r", "r")),
         Set(("v", "v")),
         Set(),
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         nfa,
         ExpandAll,
         false,
@@ -226,7 +227,7 @@ class MultiRelationshipExpansionIntegrationTest extends CypherFunSuite with Logi
           Set(("r", "r")),
           Set(("v", "v")),
           Set(),
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           nfa,
           ExpandAll,
           false,
@@ -306,7 +307,7 @@ class MultiRelationshipExpansionIntegrationTest extends CypherFunSuite with Logi
           ("end", "end")
         ),
         Set(("anon_22", "anon_0"), ("anon_24", "anon_2"), ("anon_29", "anon_7"), ("anon_31", "anon_9")),
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         nfa,
         ExpandAll,
         false,
@@ -387,7 +388,7 @@ class MultiRelationshipExpansionIntegrationTest extends CypherFunSuite with Logi
         Set(("r4", "r4"), ("r6", "r6"), ("r7", "r7"), ("r5", "r5"), ("r8", "r8"), ("r3", "r3")),
         Set(("b1", "b1"), ("b11", "b11"), ("b2", "b2"), ("b8", "b8"), ("b12", "b12"), ("b5", "b5"), ("end", "end")),
         Set(("r1", "r1"), ("r2", "r2"), ("r9", "r9"), ("r10", "r10")),
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         nfa,
         ExpandAll,
         false,
@@ -438,7 +439,7 @@ class MultiRelationshipExpansionIntegrationTest extends CypherFunSuite with Logi
           Set(),
           Set(("  t@9", "  t@6")),
           Set(),
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           new TestNFABuilder(0, "  s@0")
             .addTransition(0, 1, "(`  s@0`) (`  a@1`)")
             .addMultiRelationshipTransitionWithExpression(
@@ -489,7 +490,7 @@ class MultiRelationshipExpansionIntegrationTest extends CypherFunSuite with Logi
         Set(),
         Set(("rightOuter", "rightOuter")),
         Set(),
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         new TestNFABuilder(0, "leftOuter")
           .addTransition(0, 1, "(leftOuter) (leftInner)")
           .addTransition(

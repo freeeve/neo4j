@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.ir
 
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.SemanticDirection
@@ -453,6 +454,27 @@ final case class SelectivePathPattern(
 
 object SelectivePathPattern {
 
+  sealed trait PathCount {
+
+    /**
+     * @return A Cypher representation of this count
+     */
+    def solvedString: String
+    def effectiveCardinality: Long
+  }
+
+  case class CountInteger(k: Long) extends PathCount {
+    override def solvedString: String = s"$k"
+    override def effectiveCardinality: Long = k
+  }
+
+  // Note this will always be a parameter, but when runtime rewrites, it fails if this
+  // is explicitly a Parameter
+  case class CountParam(k: Expression) extends PathCount {
+    override def solvedString: String = k.asCanonicalStringVal
+    override def effectiveCardinality: Long = 1
+  }
+
   /**
    * Defines the paths to find for each combination of start and end nodes.
    */
@@ -469,23 +491,23 @@ object SelectivePathPattern {
     /**
      * Finds up to k paths arbitrarily.
      */
-    case class Any(k: Long) extends Selector {
-      override def solvedString: String = s"ANY $k"
+    case class Any(k: PathCount) extends Selector {
+      override def solvedString: String = s"ANY ${k.solvedString}"
     }
 
     /**
      * Returns the shortest, second-shortest, etc. up to k paths.
      * If there are multiple paths of same length, picks arbitrarily.
      */
-    case class Shortest(k: Long) extends Selector {
-      override def solvedString: String = s"SHORTEST $k"
+    case class Shortest(k: PathCount) extends Selector {
+      override def solvedString: String = s"SHORTEST ${k.solvedString}"
     }
 
     /**
      * Finds all shortest paths, all second shortest paths, etc. up to all Kth shortest paths.
      */
-    case class ShortestGroups(k: Long) extends Selector {
-      override def solvedString: String = s"SHORTEST $k GROUPS"
+    case class ShortestGroups(k: PathCount) extends Selector {
+      override def solvedString: String = s"SHORTEST ${k.solvedString} GROUPS"
     }
   }
 }

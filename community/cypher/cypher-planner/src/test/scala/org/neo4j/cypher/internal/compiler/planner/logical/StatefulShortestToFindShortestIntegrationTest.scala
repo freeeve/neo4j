@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.expressions.PathExpression
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
@@ -434,7 +435,7 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
           Set(),
           Set(("x", "x")),
           Set(),
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           nfa,
           ExpandInto,
           false,
@@ -501,7 +502,7 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
         Set(("r", "r")),
         Set(),
         Set(),
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         nfa,
         ExpandInto,
         false,
@@ -813,7 +814,7 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
           Set(("r", "r")),
           Set(),
           Set(),
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           nfa,
           ExpandInto,
           false,
@@ -1002,7 +1003,7 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
           Set(("r", "r")),
           Set(),
           Set(),
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           new TestNFABuilder(0, "s")
             .addTransition(0, 1, "(s) (a)")
             .addTransition(0, 3, "(s) (t)")
@@ -1064,7 +1065,7 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
         Set(("r", "r")),
         Set(),
         Set(),
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         new TestNFABuilder(0, "a")
           .addTransition(0, 1, "(a) (anon_0)")
           .addTransition(1, 2, "(anon_0)-[r]->(anon_1)")

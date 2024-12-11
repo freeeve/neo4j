@@ -23,6 +23,7 @@ import org.neo4j.configuration.GraphDatabaseSettings.transaction_timeout
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.LogicalQuery
 import org.neo4j.cypher.internal.RuntimeContext
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
@@ -145,7 +146,7 @@ abstract class TransactionTerminationTestBase[CONTEXT <: RuntimeContext](
         Set("r_nfa" -> "r"),
         Set("e_nfa" -> "e"),
         Set.empty,
-        Selector.ShortestGroups(Int.MaxValue),
+        Selector.ShortestGroups(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         false

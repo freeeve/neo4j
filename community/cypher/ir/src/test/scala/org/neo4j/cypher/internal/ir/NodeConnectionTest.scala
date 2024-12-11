@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.ir
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.expressions.SemanticDirection
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound
@@ -122,7 +123,7 @@ class NodeConnectionTest extends CypherFunSuite with AstConstructionTestSupport 
           `(start) ((a)-[r]->(b)-[s]->(c))+ (end)`
         )),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     spp.pathVariables should equal(Seq(
@@ -146,7 +147,7 @@ class NodeConnectionTest extends CypherFunSuite with AstConstructionTestSupport 
           `(start)-[y]->(bar)`
         )),
         selections = Selections.empty,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
 
     spp.pathVariables should equal(Seq(
@@ -171,7 +172,7 @@ class NodeConnectionTest extends CypherFunSuite with AstConstructionTestSupport 
           `(start) ((a)-[r]->(b)-[s]->(c))+ (end)`
         )),
         selections = selections,
-        selector = SelectivePathPattern.Selector.ShortestGroups(1)
+        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
       )
     val `(a)-[r]->(b)` = PatternRelationship(
       v"r",

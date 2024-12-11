@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
@@ -159,7 +160,7 @@ class CompressAnonymousVariablesTest extends CypherFunSuite
         ),
         Set("t" -> "t"),
         Set(),
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         new TestNFABuilder(0, "s")
           .addTransition(0, 1, "(s) (`  UNNAMED21`)")
           .addTransition(1, 2, "(`  UNNAMED21`)-[`  UNNAMED11`:R]->(`  UNNAMED22`)")
@@ -201,7 +202,7 @@ class CompressAnonymousVariablesTest extends CypherFunSuite
           ),
           Set("t" -> "t"),
           Set(),
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           new TestNFABuilder(0, "s")
             .addTransition(0, 1, "(s) (`  UNNAMED11`)")
             .addTransition(1, 2, "(`  UNNAMED11`)-[`  UNNAMED1`:R]->(`  UNNAMED12`)")

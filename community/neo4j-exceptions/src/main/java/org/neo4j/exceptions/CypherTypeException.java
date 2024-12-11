@@ -157,6 +157,11 @@ public class CypherTypeException extends Neo4jException {
         return new CypherTypeException(gql, msg);
     }
 
+    public static CypherTypeException expectedInteger(String msg, String gotPretty, String gotCypherType) {
+        var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of("INTEGER"), gotCypherType);
+        return new CypherTypeException(gql, msg);
+    }
+
     public static CypherTypeException expectedNumericGotNull(String target) {
         var gql = GqlHelper.getGql22G03_22N01("NULL", List.of("INTEGER", "FLOAT"), "NULL");
         return new CypherTypeException(gql, String.format("Expected a numeric value for %s, but got null", target));

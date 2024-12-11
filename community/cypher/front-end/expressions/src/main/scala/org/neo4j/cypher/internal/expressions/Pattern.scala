@@ -202,14 +202,19 @@ object PatternPart {
   }
 
   sealed trait CountedSelector extends Selector {
-    val count: UnsignedDecimalIntegerLiteral
+    val count: Either[UnsignedDecimalIntegerLiteral, Parameter]
   }
 
   sealed trait SelectiveSelector extends Selector
 
-  case class AnyPath(count: UnsignedDecimalIntegerLiteral)(val position: InputPosition) extends SelectiveSelector
+  case class AnyPath(count: Either[UnsignedDecimalIntegerLiteral, Parameter])(val position: InputPosition)
+      extends SelectiveSelector
       with CountedSelector {
-    override def prettified: String = s"ANY ${count.value} PATHS"
+
+    override def prettified: String = count match {
+      case Left(n)  => s"ANY ${n.value} PATHS"
+      case Right(p) => s"ANY $$${p.name} PATHS"
+    }
 
     override def isBounded: Boolean = true
   }
@@ -219,10 +224,14 @@ object PatternPart {
     override def isBounded: Boolean = false
   }
 
-  case class AnyShortestPath(count: UnsignedDecimalIntegerLiteral)(val position: InputPosition)
+  case class AnyShortestPath(count: Either[UnsignedDecimalIntegerLiteral, Parameter])(val position: InputPosition)
       extends SelectiveSelector
       with CountedSelector {
-    override def prettified: String = s"SHORTEST ${count.value} PATHS"
+
+    override def prettified: String = count match {
+      case Left(n)  => s"SHORTEST ${n.value} PATHS"
+      case Right(p) => s"SHORTEST $$${p.name} PATHS"
+    }
     override def isBounded: Boolean = true
   }
 
@@ -231,9 +240,14 @@ object PatternPart {
     override def isBounded: Boolean = true
   }
 
-  case class ShortestGroups(count: UnsignedDecimalIntegerLiteral)(val position: InputPosition) extends SelectiveSelector
+  case class ShortestGroups(count: Either[UnsignedDecimalIntegerLiteral, Parameter])(val position: InputPosition)
+      extends SelectiveSelector
       with CountedSelector {
-    override def prettified: String = s"SHORTEST ${count.value} PATH GROUPS"
+
+    override def prettified: String = count match {
+      case Left(n)  => s"SHORTEST ${n.value} PATH GROUPS"
+      case Right(p) => s"SHORTEST $$${p.name} PATH GROUPS"
+    }
     override def isBounded: Boolean = true
   }
 }

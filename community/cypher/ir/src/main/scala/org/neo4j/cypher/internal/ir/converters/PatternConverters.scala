@@ -46,6 +46,8 @@ import org.neo4j.cypher.internal.ir.PathPattern
 import org.neo4j.cypher.internal.ir.PathPatterns
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountParam
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.Selector
 import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
@@ -77,14 +79,20 @@ class PatternConverters(anonymousVariableNameGenerator: AnonymousVariableNameGen
         selector match {
           case PatternPart.AllPaths() =>
             convertPatternElement(element)
-          case PatternPart.AnyPath(count) =>
-            convertShortestPathPatternElement(element, Selector.Any(count.value))
-          case PatternPart.AnyShortestPath(count) =>
-            convertShortestPathPatternElement(element, Selector.Shortest(count.value))
+          case PatternPart.AnyPath(Left(count)) =>
+            convertShortestPathPatternElement(element, Selector.Any(CountInteger(count.value)))
+          case PatternPart.AnyPath(Right(count)) =>
+            convertShortestPathPatternElement(element, Selector.Any(CountParam(count)))
+          case PatternPart.AnyShortestPath(Left(count)) =>
+            convertShortestPathPatternElement(element, Selector.Shortest(CountInteger(count.value)))
+          case PatternPart.AnyShortestPath(Right(count)) =>
+            convertShortestPathPatternElement(element, Selector.Shortest(CountParam(count)))
           case PatternPart.AllShortestPaths() =>
-            convertShortestPathPatternElement(element, Selector.ShortestGroups(1))
-          case PatternPart.ShortestGroups(count) =>
-            convertShortestPathPatternElement(element, Selector.ShortestGroups(count.value))
+            convertShortestPathPatternElement(element, Selector.ShortestGroups(CountInteger(1)))
+          case PatternPart.ShortestGroups(Left(count)) =>
+            convertShortestPathPatternElement(element, Selector.ShortestGroups(CountInteger(count.value)))
+          case PatternPart.ShortestGroups(Right(count)) =>
+            convertShortestPathPatternElement(element, Selector.ShortestGroups(CountParam(count)))
         }
       case part @ ShortestPathsPatternPart(element, single) =>
         element match {

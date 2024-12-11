@@ -258,13 +258,13 @@ trait ExpressionBuilder extends Cypher5ParserListener {
     val p = pos(ctx)
     ctx.ast = ctx match {
       case anyShortestCtx: Cypher5Parser.AnyShortestPathContext =>
-        PatternPart.AnyShortestPath(selectorCount(anyShortestCtx.UNSIGNED_DECIMAL_INTEGER(), p))(p)
+        PatternPart.AnyShortestPath(Left(selectorCount(anyShortestCtx.UNSIGNED_DECIMAL_INTEGER(), p)))(p)
       case allShortestCtx: Cypher5Parser.AllShortestPathContext =>
         PatternPart.AllShortestPaths()(pos(allShortestCtx))
       case anyCtx: Cypher5Parser.AnyPathContext =>
-        PatternPart.AnyPath(selectorCount(anyCtx.UNSIGNED_DECIMAL_INTEGER(), p))(p)
+        PatternPart.AnyPath(Left(selectorCount(anyCtx.UNSIGNED_DECIMAL_INTEGER(), p)))(p)
       case shortestGrpCtx: Cypher5Parser.ShortestGroupContext =>
-        PatternPart.ShortestGroups(selectorCount(shortestGrpCtx.UNSIGNED_DECIMAL_INTEGER(), p))(p)
+        PatternPart.ShortestGroups(Left(selectorCount(shortestGrpCtx.UNSIGNED_DECIMAL_INTEGER(), p)))(p)
       case allPathCtx: Cypher5Parser.AllPathContext =>
         PatternPart.AllPaths()(p)
       case _ => throw new IllegalStateException(s"Unexpected context $ctx")

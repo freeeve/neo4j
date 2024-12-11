@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.MatchMode
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
@@ -39,12 +40,12 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
     "ALL" -> allPathsSelector(),
     "ALL PATH" -> allPathsSelector(),
     "ALL PATHS" -> allPathsSelector(),
-    "ANY" -> anyPathSelector("1"),
-    "ANY PATH" -> anyPathSelector("1"),
-    "ANY PATHS" -> anyPathSelector("1"),
-    "ANY 2" -> anyPathSelector("2"),
-    "ANY 2 PATH" -> anyPathSelector("2"),
-    "ANY 2 PATHS" -> anyPathSelector("2"),
+    "ANY" -> anyPathSelector(1),
+    "ANY PATH" -> anyPathSelector(1),
+    "ANY PATHS" -> anyPathSelector(1),
+    "ANY 2" -> anyPathSelector(2),
+    "ANY 2 PATH" -> anyPathSelector(2),
+    "ANY 2 PATHS" -> anyPathSelector(2),
     "ANY SHORTEST" -> anyShortestPathSelector(1),
     "ANY SHORTEST PATH" -> anyShortestPathSelector(1),
     "ANY SHORTEST PATHS" -> anyShortestPathSelector(1),
@@ -54,16 +55,31 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
     "ALL SHORTEST" -> allShortestPathsSelector(),
     "ALL SHORTEST PATH" -> allShortestPathsSelector(),
     "ALL SHORTEST PATHS" -> allShortestPathsSelector(),
-    "SHORTEST 2 GROUP" -> shortestGroups("2"),
-    "SHORTEST 2 GROUPS" -> shortestGroups("2"),
-    "SHORTEST PATH GROUP" -> shortestGroups("1"),
-    "SHORTEST PATHS GROUP" -> shortestGroups("1"),
-    "SHORTEST PATH GROUPS" -> shortestGroups("1"),
-    "SHORTEST PATHS GROUPS" -> shortestGroups("1"),
-    "SHORTEST 2 PATH GROUP" -> shortestGroups("2"),
-    "SHORTEST 2 PATH GROUPS" -> shortestGroups("2"),
-    "SHORTEST 2 PATHS GROUP" -> shortestGroups("2"),
-    "SHORTEST 2 PATHS GROUPS" -> shortestGroups("2")
+    "SHORTEST 2 GROUP" -> shortestGroups(2),
+    "SHORTEST 2 GROUPS" -> shortestGroups(2),
+    "SHORTEST PATH GROUP" -> shortestGroups(1),
+    "SHORTEST PATHS GROUP" -> shortestGroups(1),
+    "SHORTEST PATH GROUPS" -> shortestGroups(1),
+    "SHORTEST PATHS GROUPS" -> shortestGroups(1),
+    "SHORTEST 2 PATH GROUP" -> shortestGroups(2),
+    "SHORTEST 2 PATH GROUPS" -> shortestGroups(2),
+    "SHORTEST 2 PATHS GROUP" -> shortestGroups(2),
+    "SHORTEST 2 PATHS GROUPS" -> shortestGroups(2)
+  )
+
+  private val selectorsCypher25 = Map(
+    "ANY $pathCount" -> anyPathSelector("pathCount"),
+    "ANY $pathCount PATH" -> anyPathSelector("pathCount"),
+    "ANY $pathCount PATHS" -> anyPathSelector("pathCount"),
+    "SHORTEST $pathCount" -> anyShortestPathSelector("pathCount"),
+    "SHORTEST $pathCount PATH" -> anyShortestPathSelector("pathCount"),
+    "SHORTEST $pathCount PATHS" -> anyShortestPathSelector("pathCount"),
+    "SHORTEST $groupCount GROUP" -> shortestGroups("groupCount"),
+    "SHORTEST $groupCount GROUPS" -> shortestGroups("groupCount"),
+    "SHORTEST $groupCount PATH GROUP" -> shortestGroups("groupCount"),
+    "SHORTEST $groupCount PATH GROUPS" -> shortestGroups("groupCount"),
+    "SHORTEST $groupCount PATHS GROUP" -> shortestGroups("groupCount"),
+    "SHORTEST $groupCount PATHS GROUPS" -> shortestGroups("groupCount")
   )
 
   test("MATCH $selector (a)-[r]->(b)") {
@@ -82,6 +98,30 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
             Seq(),
             None
           )(pos)
+        }
+      }
+    }
+  }
+
+  test("MATCH $selector (a)-[r1]->(b)") {
+    selectorsCypher25.foreach { case selector -> astNode =>
+      withClue(s"selector = $selector") {
+        s"MATCH $selector (a)-[r1]->(b)" should parseIn[Clause] {
+          case Cypher25 => _.toAst(
+              Match(
+                optional = false,
+                matchMode = MatchMode.default(pos),
+                Pattern.ForMatch(Seq(
+                  PatternPartWithSelector(
+                    astNode,
+                    PatternPart(relationshipChain(nodePat(Some("a")), relPat(Some("r1")), nodePat(Some("b"))))
+                  )
+                ))(pos),
+                Seq(),
+                None
+              )(pos)
+            )
+          case _ => _.withAnyFailure
         }
       }
     }
@@ -118,6 +158,40 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
     }
   }
 
+  test("MATCH path = $selector ((a)-[r1]->(b) WHERE a.prop = b.prop)") {
+    selectorsCypher25.foreach { case selector -> astNode =>
+      withClue(s"selector = $selector") {
+        s"MATCH path = $selector ((a)-[r1]->(b) WHERE a.prop = b.prop)" should parseIn[Clause] {
+          case Cypher25 => _.toAst(
+              Match(
+                optional = false,
+                matchMode = MatchMode.default(pos),
+                Pattern.ForMatch(Seq(PatternPartWithSelector(
+                  selector = astNode,
+                  part = NamedPatternPart(
+                    varFor("path"),
+                    PathPatternPart(
+                      parenthesizedPath(
+                        relationshipChain(
+                          nodePat(Some("a")),
+                          relPat(Some("r1")),
+                          nodePat(Some("b"))
+                        ),
+                        Some(equals(prop("a", "prop"), prop("b", "prop")))
+                      )
+                    )
+                  )(pos)
+                )))(pos),
+                List(),
+                None
+              )(pos)
+            )
+          case _ => _.withAnyFailure
+        }
+      }
+    }
+  }
+
   test("MATCH $selector ((a)-[r]->(b))+") {
     selectors.foreach { case selector -> astNode =>
       withClue(s"selector = $selector") {
@@ -145,6 +219,36 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
     }
   }
 
+  test("MATCH $selector ((a)-[r1]->(b))+") {
+    selectorsCypher25.foreach { case selector -> astNode =>
+      withClue(s"selector = $selector") {
+        s"MATCH $selector ((a)-[r1]->(b))+" should parseIn[Clause] {
+          case Cypher25 => _.toAst(
+              Match(
+                optional = false,
+                matchMode = MatchMode.default(pos),
+                Pattern.ForMatch(Seq(
+                  PatternPartWithSelector(
+                    selector = astNode,
+                    part = PathPatternPart(QuantifiedPath(
+                      PathPatternPart(
+                        relationshipChain(nodePat(Some("a")), relPat(Some("r1")), nodePat(Some("b")))
+                      ),
+                      PlusQuantifier()(pos),
+                      None
+                    )(pos))
+                  )
+                ))(pos),
+                Seq(),
+                None
+              )(pos)
+            )
+          case _ => _.withAnyFailure
+        }
+      }
+    }
+  }
+
   test("OPTIONAL MATCH $selector (a)-[r]->(b)") {
     selectors.foreach { case selector -> astNode =>
       withClue(s"selector = $selector") {
@@ -163,6 +267,32 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
             Seq(),
             None
           )(pos)
+        }
+      }
+    }
+  }
+
+  test("OPTIONAL MATCH $selector (a)-[r1]->(b)") {
+    selectorsCypher25.foreach { case selector -> astNode =>
+      withClue(s"selector = $selector") {
+        s"OPTIONAL MATCH $selector (a)-[r1]->(b)" should parseIn[Clause] {
+          case Cypher25 => _.toAst(
+              Match(
+                optional = true,
+                matchMode = MatchMode.default(pos),
+                Pattern.ForMatch(Seq(
+                  PatternPartWithSelector(
+                    selector = astNode,
+                    part = PathPatternPart(
+                      relationshipChain(nodePat(Some("a")), relPat(Some("r1")), nodePat(Some("b")))
+                    )
+                  )
+                ))(pos),
+                Seq(),
+                None
+              )(pos)
+            )
+          case _ => _.withAnyFailure
         }
       }
     }
@@ -202,6 +332,43 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
     }
   }
 
+  test("RETURN COUNT { MATCH $selector (a)-[r1]->(b) }") {
+    selectorsCypher25.foreach { case selector -> astNode =>
+      withClue(s"selector = $selector") {
+        s"RETURN COUNT { MATCH $selector (a)-[r1]->(b) }" should parseIn[Clause] {
+          case Cypher25 => _.toAst(
+              return_(
+                returnItem(
+                  CountExpression(
+                    singleQuery(
+                      Match(
+                        optional = false,
+                        matchMode = MatchMode.default(pos),
+                        Pattern.ForMatch(Seq(
+                          PatternPartWithSelector(
+                            selector = astNode,
+                            part = PathPatternPart(relationshipChain(
+                              nodePat(Some("a")),
+                              relPat(Some("r1")),
+                              nodePat(Some("b"))
+                            ))
+                          )
+                        ))(pos),
+                        Seq(),
+                        None
+                      )(pos)
+                    )
+                  )(pos, None, None),
+                  s"COUNT { MATCH $selector (a)-[r1]->(b) }"
+                )
+              )
+            )
+          case _ => _.withAnyFailure
+        }
+      }
+    }
+  }
+
   test("RETURN EXISTS { MATCH $selector (a)-[r]->(b) }") {
     selectors.foreach { case selector -> astNode =>
       withClue(s"selector = $selector") {
@@ -236,6 +403,43 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
     }
   }
 
+  test("RETURN EXISTS { MATCH $selector (a)-[r1]->(b) }") {
+    selectorsCypher25.foreach { case selector -> astNode =>
+      withClue(s"selector = $selector") {
+        s"RETURN EXISTS { MATCH $selector (a)-[r1]->(b) }" should parseIn[Clause] {
+          case Cypher25 => _.toAst(
+              return_(
+                returnItem(
+                  ExistsExpression(
+                    singleQuery(
+                      Match(
+                        optional = false,
+                        matchMode = MatchMode.default(pos),
+                        Pattern.ForMatch(Seq(
+                          PatternPartWithSelector(
+                            selector = astNode,
+                            part = PathPatternPart(relationshipChain(
+                              nodePat(Some("a")),
+                              relPat(Some("r1")),
+                              nodePat(Some("b"))
+                            ))
+                          )
+                        ))(pos),
+                        Seq(),
+                        None
+                      )(pos)
+                    )
+                  )(pos, None, None),
+                  s"EXISTS { MATCH $selector (a)-[r1]->(b) }"
+                )
+              )
+            )
+          case _ => _.withAnyFailure
+        }
+      }
+    }
+  }
+
   test("CALL { MATCH $selector (a)-[r]->(b) }") {
     selectors.foreach { case selector -> astNode =>
       withClue(s"selector = $selector") {
@@ -259,6 +463,37 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
             None,
             false
           )(pos)
+        }
+      }
+    }
+  }
+
+  test("CALL { MATCH $selector (a)-[r1]->(b) }") {
+    selectorsCypher25.foreach { case selector -> astNode =>
+      withClue(s"selector = $selector") {
+        s"CALL { MATCH $selector (a)-[r1]->(b) }" should parseIn[Clause] {
+          case Cypher25 => _.toAst(
+              ImportingWithSubqueryCall(
+                singleQuery(
+                  Match(
+                    optional = false,
+                    matchMode = MatchMode.default(pos),
+                    Pattern.ForMatch(Seq(
+                      PatternPartWithSelector(
+                        selector = astNode,
+                        part =
+                          PathPatternPart(relationshipChain(nodePat(Some("a")), relPat(Some("r1")), nodePat(Some("b"))))
+                      )
+                    ))(pos),
+                    Seq(),
+                    None
+                  )(pos)
+                ),
+                None,
+                false
+              )(pos)
+            )
+          case _ => _.withAnyFailure
         }
       }
     }

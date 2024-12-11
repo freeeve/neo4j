@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.S
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.QueryGraphSolverInput
 import org.neo4j.cypher.internal.compiler.planner.logical.limit.LimitSelectivityConfig
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
@@ -953,7 +954,7 @@ class CardinalityCostModelTest extends CypherFunSuite with AstConstructionTestSu
         groupRelationships = Set(("r", "r")),
         singletonNodeVariables = Set("v" -> "v"),
         singletonRelationshipVariables = Set(),
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         nfa,
         ExpandAll,
         reverseGroupVariableProjections = false

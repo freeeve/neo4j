@@ -261,7 +261,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
   }
 
   def check(selector: PatternPart.Selector): SemanticCheck = selector match {
-    case ShortestGroups(countOfGroups) if countOfGroups.value <= 0 =>
+    case ShortestGroups(Left(countOfGroups)) if countOfGroups.value <= 0 =>
       specifiedNumberOutOfRangeError(
         "group count",
         "INTEGER",
@@ -271,23 +271,29 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
         "The group count needs to be greater than 0.",
         countOfGroups.position
       )
-    case sel: CountedSelector if sel.count.value <= 0 =>
-      specifiedNumberOutOfRangeError(
-        "path count",
-        "INTEGER",
-        1,
-        Long.MaxValue,
-        String.valueOf(sel.count.value),
-        "The path count needs to be greater than 0.",
-        sel.count.position
-      )
+    case sel: CountedSelector => sel.count match {
+        case Left(count) if count.value <= 0 =>
+          specifiedNumberOutOfRangeError(
+            "path count",
+            "INTEGER",
+            1,
+            Long.MaxValue,
+            String.valueOf(count.value),
+            "The path count needs to be greater than 0.",
+            count.position
+          )
+        case _ => success
+      }
     case _ => success
   }
 
   private def checkSelectorCount(selector: PatternPart.Selector): SemanticCheck =
     selector match {
-      case sel: CountedSelector => SemanticExpressionCheck.simple(sel.count)
-      case _                    => success
+      case sel: CountedSelector => sel.count match {
+          case Left(count)       => SemanticExpressionCheck.simple(count)
+          case Right(countParam) => SemanticExpressionCheck.simple(countParam)
+        }
+      case _ => success
     }
 
   def check(ctx: SemanticContext, element: PatternElement): SemanticCheck =

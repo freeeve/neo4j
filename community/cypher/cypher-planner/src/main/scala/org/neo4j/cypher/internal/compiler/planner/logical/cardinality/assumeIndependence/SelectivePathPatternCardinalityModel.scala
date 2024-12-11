@@ -64,7 +64,7 @@ trait SelectivePathPatternCardinalityModel
           leftNodeCardinality = leftNodeCardinality,
           rightNodeCardinality = rightNodeCardinality,
           boundaryNodePredicates,
-          k = k
+          k = k.effectiveCardinality
         )
       case Selector.Shortest(k) =>
         // whether we want any paths or the shortest paths doesn't change the cardinality, it only dictates which paths are going to be returned
@@ -76,7 +76,7 @@ trait SelectivePathPatternCardinalityModel
           leftNodeCardinality = leftNodeCardinality,
           rightNodeCardinality = rightNodeCardinality,
           boundaryNodePredicates,
-          k = k
+          k = k.effectiveCardinality
         )
       case Selector.ShortestGroups(k) =>
         shortestGroupsPathPatternCardinality(
@@ -87,7 +87,7 @@ trait SelectivePathPatternCardinalityModel
           leftNodeCardinality = leftNodeCardinality,
           rightNodeCardinality = rightNodeCardinality,
           boundaryNodePredicates,
-          k = k
+          k = k.effectiveCardinality
         )
     }
   }

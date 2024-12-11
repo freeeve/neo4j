@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.HasHeaders
 import org.neo4j.cypher.internal.ir.NoHeaders
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
@@ -109,7 +110,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         Set.empty,
         Set("b_expr" -> "b"),
         Set("r_expr" -> "r"),
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         new TestNFABuilder(0, "a")
           .addTransition(0, 1, "(a)-[r_expr]->(b_expr)")
           .setFinalState(1)
@@ -134,7 +135,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         Set(("r2", "r2_group")),
         Set("b_expr" -> "b", "c_expr" -> "c", "d_expr" -> "d"),
         Set("r1_expr" -> "r1", "r3_expr" -> "r3"),
-        StatefulShortestPath.Selector.ShortestGroups(5),
+        StatefulShortestPath.Selector.ShortestGroups(CountInteger(5)),
         new TestNFABuilder(0, "a")
           .addTransition(0, 1, "(a)-[r1_expr WHERE r1_expr.prop > 5]->(b_expr:A&B WHERE b_expr.prop = 10)")
           .addTransition(1, 2, "(b_expr) (b_in WHERE b_in.prop = 10)")
@@ -165,7 +166,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         new TestNFABuilder(0, "s")
           .addTransition(0, 1, "(s) (n1_inner)")
           .addTransition(1, 2, "(n1_inner)-[r1_inner]->(n2_inner WHERE n2_inner.p = 1)-[r2_inner]->(n3_inner)")
@@ -191,7 +192,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         new TestNFABuilder(0, "s")
           .addTransition(0, 1, "(s) (n1_inner)")
           .addTransition(
@@ -228,7 +229,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         Set(("r2", "r2_group")),
         Set("b_expr" -> "b", "c_expr" -> "c", "d_expr" -> "d"),
         Set("r1_expr" -> "r1", "r3_expr" -> "r3"),
-        StatefulShortestPath.Selector.ShortestGroups(5),
+        StatefulShortestPath.Selector.ShortestGroups(CountInteger(5)),
         new TestNFABuilder(0, "a")
           .addTransition(0, 1, "(a)-[r1_expr WHERE r1_expr.prop > 5]->(b_expr:A&B WHERE b_expr.prop = 10)")
           .addTransition(1, 2, "(b_expr) (b_in WHERE b_in.prop = 10)")
@@ -259,7 +260,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         Set.empty,
         Set("b_expr" -> "b"),
         Set("r_expr" -> "r"),
-        StatefulShortestPath.Selector.Shortest(1),
+        StatefulShortestPath.Selector.Shortest(CountInteger(1)),
         new TestNFABuilder(0, "a")
           .addTransition(0, 1, "(a)-[r_expr]->(b_expr)")
           .setFinalState(1)
@@ -3083,6 +3084,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
             |import org.neo4j.cypher.internal.ir.HasHeaders
             |import org.neo4j.cypher.internal.ir.NoHeaders
             |import org.neo4j.cypher.internal.ir.EagernessReason
+            |import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
             |import org.neo4j.cypher.internal.util.attribution.Id
             |import org.neo4j.cypher.internal.util.InputPosition
             |import org.neo4j.cypher.internal.util.UpperBound.Limited

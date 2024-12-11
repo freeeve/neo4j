@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.runtime.spec.tests
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
@@ -100,7 +101,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set.empty,
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -141,7 +142,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set.empty,
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -185,7 +186,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -231,7 +232,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -289,7 +290,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -354,7 +355,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -403,7 +404,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -456,7 +457,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -511,7 +512,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -565,7 +566,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -647,7 +648,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           "t_inner" -> "t"
         ),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2", "r3_inner" -> "r3", "r4_inner" -> "r4"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -706,7 +707,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -765,7 +766,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -827,7 +828,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -889,7 +890,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -951,7 +952,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -1034,7 +1035,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           "t_inner" -> "t"
         ),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2", "r3_inner" -> "r3", "r4_inner" -> "r4"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -1107,7 +1108,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           "t_inner" -> "t"
         ),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2", "r3_inner" -> "r3", "r4_inner" -> "r4"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -1154,7 +1155,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -1214,7 +1215,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r1_inner" -> "r1"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -1265,7 +1266,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -1318,7 +1319,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -1369,7 +1370,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -1422,7 +1423,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -1474,7 +1475,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -1526,7 +1527,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -1570,7 +1571,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -1618,7 +1619,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -1664,7 +1665,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -1712,7 +1713,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -1758,7 +1759,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -1804,7 +1805,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -1852,7 +1853,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -1898,7 +1899,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -1944,7 +1945,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -1992,7 +1993,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -2039,7 +2040,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -2088,7 +2089,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -2137,7 +2138,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -2185,7 +2186,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -2238,7 +2239,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -2296,7 +2297,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -2352,7 +2353,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -2404,7 +2405,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -2457,7 +2458,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -2511,7 +2512,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -2565,7 +2566,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -2616,7 +2617,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -2667,7 +2668,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -2718,7 +2719,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -2770,7 +2771,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -2819,7 +2820,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -2869,7 +2870,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -2920,7 +2921,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -2972,7 +2973,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -3021,7 +3022,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3", "t_inner" -> "t"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -3072,7 +3073,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -3119,7 +3120,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -3167,7 +3168,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -3214,7 +3215,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -3263,7 +3264,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -3315,7 +3316,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set.empty,
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "n3_inner" -> "n3"),
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -3372,7 +3373,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -3432,7 +3433,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -3489,7 +3490,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -3546,7 +3547,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set.empty,
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -3605,7 +3606,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set.empty,
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -3671,7 +3672,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(k),
+        Selector.Shortest(CountInteger(k)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -3758,7 +3759,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(k),
+        Selector.Shortest(CountInteger(k)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -3845,7 +3846,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set.empty,
         Set.empty,
-        Selector.Shortest(k),
+        Selector.Shortest(CountInteger(k)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -3933,7 +3934,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set.empty,
         Set.empty,
-        Selector.Shortest(k),
+        Selector.Shortest(CountInteger(k)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -4017,7 +4018,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -4078,7 +4079,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -4155,7 +4156,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         ),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -4234,7 +4235,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         ),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -4313,7 +4314,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         ),
         Set.empty,
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -4394,7 +4395,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         ),
         Set.empty,
         Set.empty,
-        Selector.Shortest(Int.MaxValue),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -4450,7 +4451,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set(("r_inner", "r")),
         Set(("v_inner", "v")),
         Set(("  UNNAMED22", "  UNNAMED0")),
-        Selector.Shortest(1),
+        Selector.Shortest(CountInteger(1)),
         new TestNFABuilder(0, "u")
           .addTransition(0, 1, "(u) (a_inner)")
           .addTransition(1, 2, "(a_inner)-[r_inner]->(b_inner)")
@@ -4512,7 +4513,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set(("r_inner", "r")),
         Set(("v_inner", "v")),
         Set(("  UNNAMED22", "  UNNAMED0")),
-        Selector.Shortest(1),
+        Selector.Shortest(CountInteger(1)),
         new TestNFABuilder(0, "u")
           .addTransition(0, 1, "(u) (a_inner)")
           .addMultiRelationshipTransition(1, 2, "(a_inner)-[r_inner]->(b_inner)")
@@ -4624,7 +4625,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.ShortestGroups(k),
+        Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -4749,7 +4750,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.ShortestGroups(k),
+        Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -4875,7 +4876,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
         Set.empty,
         Set.empty,
-        Selector.ShortestGroups(k),
+        Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -5003,7 +5004,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
         Set.empty,
         Set.empty,
-        Selector.ShortestGroups(k),
+        Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -5088,7 +5089,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.ShortestGroups(Int.MaxValue),
+        Selector.ShortestGroups(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -5144,7 +5145,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.ShortestGroups(Int.MaxValue),
+        Selector.ShortestGroups(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -5201,7 +5202,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
         Set.empty,
         Set.empty,
-        Selector.ShortestGroups(Int.MaxValue),
+        Selector.ShortestGroups(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -5259,7 +5260,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
         Set.empty,
         Set.empty,
-        Selector.ShortestGroups(Int.MaxValue),
+        Selector.ShortestGroups(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -5362,7 +5363,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         ),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.ShortestGroups(k),
+        Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -5551,7 +5552,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         ),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.ShortestGroups(k),
+        Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -5733,7 +5734,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         ),
         Set.empty,
         Set.empty,
-        Selector.ShortestGroups(k),
+        Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -5915,7 +5916,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         ),
         Set.empty,
         Set.empty,
-        Selector.ShortestGroups(k),
+        Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -6059,7 +6060,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r1_inner" -> "r1"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.ShortestGroups(Int.MaxValue),
+        Selector.ShortestGroups(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         minLength = minLength,
@@ -6151,7 +6152,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r1_inner" -> "r1"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.ShortestGroups(Int.MaxValue),
+        Selector.ShortestGroups(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
         minLength = minLength,
@@ -6243,7 +6244,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r1_inner" -> "r1"),
         Set.empty,
         Set.empty,
-        Selector.ShortestGroups(Int.MaxValue),
+        Selector.ShortestGroups(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         minLength = minLength,
@@ -6336,7 +6337,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r1_inner" -> "r1"),
         Set.empty,
         Set.empty,
-        Selector.ShortestGroups(Int.MaxValue),
+        Selector.ShortestGroups(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
         minLength = minLength,
@@ -6432,7 +6433,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(2),
+        Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -6491,7 +6492,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(2),
+        Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -6563,7 +6564,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set.empty,
         Set.empty,
-        Selector.Shortest(2),
+        Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -6637,7 +6638,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set.empty,
         Set.empty,
-        Selector.Shortest(2),
+        Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -6691,7 +6692,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.ShortestGroups(2),
+        Selector.ShortestGroups(CountInteger(2)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -6818,7 +6819,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.ShortestGroups(2),
+        Selector.ShortestGroups(CountInteger(2)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -6945,7 +6946,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set.empty,
         Set.empty,
-        Selector.ShortestGroups(2),
+        Selector.ShortestGroups(CountInteger(2)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -7074,7 +7075,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set.empty,
         Set.empty,
-        Selector.ShortestGroups(2),
+        Selector.ShortestGroups(CountInteger(2)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -7233,7 +7234,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           "t_inner" -> "t"
         ),
         Set("r2_inner" -> "r2"),
-        Selector.ShortestGroups(3),
+        Selector.ShortestGroups(CountInteger(3)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -7323,7 +7324,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           "t_inner" -> "t"
         ),
         Set("r2_inner" -> "r2"),
-        Selector.ShortestGroups(3),
+        Selector.ShortestGroups(CountInteger(3)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -7442,7 +7443,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           "n4_inner" -> "n4"
         ),
         Set("r2_inner" -> "r2"),
-        Selector.ShortestGroups(3),
+        Selector.ShortestGroups(CountInteger(3)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -7563,7 +7564,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           "n4_inner" -> "n4"
         ),
         Set("r2_inner" -> "r2"),
-        Selector.ShortestGroups(3),
+        Selector.ShortestGroups(CountInteger(3)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -7670,7 +7671,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(2),
+        Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -7770,7 +7771,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(2),
+        Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -7869,7 +7870,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set.empty,
         Set.empty,
-        Selector.Shortest(2),
+        Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -7970,7 +7971,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set.empty,
         Set.empty,
-        Selector.Shortest(2),
+        Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -8050,7 +8051,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(3),
+        Selector.Shortest(CountInteger(3)),
         nfa,
         ExpandAll,
         minLength = minLength,
@@ -8142,7 +8143,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set("t_inner" -> "t"),
         Set.empty,
-        Selector.Shortest(3),
+        Selector.Shortest(CountInteger(3)),
         nfa,
         ExpandAll,
         minLength = minLength,
@@ -8258,7 +8259,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set.empty,
         Set.empty,
-        Selector.Shortest(3),
+        Selector.Shortest(CountInteger(3)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -8374,7 +8375,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set("r_inner" -> "r"),
         Set.empty,
         Set.empty,
-        Selector.Shortest(3),
+        Selector.Shortest(CountInteger(3)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -8616,7 +8617,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           "t_inner" -> "t"
         ),
         Set("r2_inner" -> "r2"),
-        Selector.Shortest(2),
+        Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -8855,7 +8856,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           "t_inner" -> "t"
         ),
         Set("r2_inner" -> "r2"),
-        Selector.Shortest(2),
+        Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode
@@ -9093,7 +9094,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           "v4_inner" -> "v4"
         ),
         Set("r2_inner" -> "r2"),
-        Selector.Shortest(2),
+        Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -9333,7 +9334,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           "v4_inner" -> "v4"
         ),
         Set("r2_inner" -> "r2"),
-        Selector.Shortest(2),
+        Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandInto,
         matchMode = traversalMatchMode
@@ -9401,7 +9402,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
         Set("r_inner" -> "r"),
-        Selector.ShortestGroups(1),
+        Selector.ShortestGroups(CountInteger(1)),
         nfa,
         ExpandAll,
         matchMode = traversalMatchMode

@@ -187,6 +187,7 @@ import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.SizeBucket
 import org.neo4j.cypher.internal.util.UnknownSize
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
+import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CypherType
 
 import java.nio.charset.StandardCharsets
@@ -875,17 +876,26 @@ trait AstConstructionTestSupport {
   def allPathsSelector(): PatternPart.AllPaths =
     PatternPart.AllPaths()(pos)
 
+  def anyPathSelector(count: Int): PatternPart.AnyPath =
+    PatternPart.AnyPath(Left(UnsignedDecimalIntegerLiteral(count.toString)(pos)))(pos)
+
   def anyPathSelector(count: String): PatternPart.AnyPath =
-    PatternPart.AnyPath(UnsignedDecimalIntegerLiteral(count)(pos))(pos)
+    PatternPart.AnyPath(Right(parameter(count, CTInteger)))(pos)
 
   def anyShortestPathSelector(count: Int): PatternPart.AnyShortestPath =
-    PatternPart.AnyShortestPath(UnsignedDecimalIntegerLiteral(count.toString)(pos))(pos)
+    PatternPart.AnyShortestPath(Left(UnsignedDecimalIntegerLiteral(count.toString)(pos)))(pos)
+
+  def anyShortestPathSelector(count: String): PatternPart.AnyShortestPath =
+    PatternPart.AnyShortestPath(Right(parameter(count, CTInteger)))(pos)
 
   def allShortestPathsSelector(): PatternPart.AllShortestPaths =
     PatternPart.AllShortestPaths()(pos)
 
+  def shortestGroups(count: Int): PatternPart.ShortestGroups =
+    PatternPart.ShortestGroups(Left(UnsignedDecimalIntegerLiteral(count.toString)(pos)))(pos)
+
   def shortestGroups(count: String): PatternPart.ShortestGroups =
-    PatternPart.ShortestGroups(UnsignedDecimalIntegerLiteral(count)(pos))(pos)
+    PatternPart.ShortestGroups(Right(parameter(count, CTInteger)))(pos)
 
   def relationshipChain(patternAtoms: PatternAtom*): RelationshipChain =
     patternAtoms.length match {

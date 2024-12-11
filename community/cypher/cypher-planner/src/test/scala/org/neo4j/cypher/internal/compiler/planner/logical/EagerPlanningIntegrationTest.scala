@@ -42,6 +42,7 @@ import org.neo4j.cypher.internal.ir.EagernessReason.Unknown
 import org.neo4j.cypher.internal.ir.EagernessReason.UnknownLabelReadRemoveConflict
 import org.neo4j.cypher.internal.ir.EagernessReason.UnknownLabelReadSetConflict
 import org.neo4j.cypher.internal.ir.HasHeaders
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.andsReorderable
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
@@ -730,7 +731,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
           Set.empty,
           parameters.singletonNodeVariables,
           parameters.singletonRelationshipVariables,
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           parameters.nfa,
           ExpandAll,
           false,
@@ -746,7 +747,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
       "SHORTEST 1 (start)-[r]->(end)",
       Set("end" -> "end"),
       Set("r" -> "r"),
-      StatefulShortestPath.Selector.Shortest(1),
+      StatefulShortestPath.Selector.Shortest(CountInteger(1)),
       new TestNFABuilder(0, "start")
         .addTransition(0, 1, "(start)-[r]->(end)")
         .setFinalState(1)
@@ -762,7 +763,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
       "SHORTEST 1 (start) ((`a`)-[`r`]->(`b`)){1, } (end)",
       Set("end" -> "end"),
       Set.empty,
-      StatefulShortestPath.Selector.Shortest(1),
+      StatefulShortestPath.Selector.Shortest(CountInteger(1)),
       new TestNFABuilder(0, "start")
         .addTransition(0, 1, "(start) (a WHERE a.prop = 5)")
         .addTransition(1, 2, "(a)-[r:R]->(b)")
@@ -781,7 +782,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
       "SHORTEST 1 (start) ((`anon_0`)-[`r`]->(`b`)){1, } (end)",
       Set("end" -> "end"),
       Set.empty,
-      StatefulShortestPath.Selector.Shortest(1),
+      StatefulShortestPath.Selector.Shortest(CountInteger(1)),
       new TestNFABuilder(0, "start")
         .addTransition(0, 1, "(start) (anon_0 WHERE anon_0.prop = 5)")
         .addTransition(1, 2, "(anon_0)-[r:R]->(b)")
@@ -800,7 +801,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
       "SHORTEST 1 (start)-[r]->(end)",
       Set("end" -> "end"),
       Set("r" -> "r"),
-      StatefulShortestPath.Selector.Shortest(1),
+      StatefulShortestPath.Selector.Shortest(CountInteger(1)),
       new TestNFABuilder(0, "start")
         .addTransition(0, 1, "(start)-[r:R]->(end)")
         .setFinalState(1)
@@ -882,7 +883,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
           Set.empty,
           Set("end" -> "end"),
           Set("r" -> "r"),
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           new TestNFABuilder(0, "start")
             .addTransition(0, 1, "(start)-[r]->(end)")
             .setFinalState(1)
@@ -926,7 +927,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
           Set.empty,
           Set("end" -> "end"),
           Set("r" -> "r"),
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           new TestNFABuilder(0, "start")
             .addTransition(0, 1, "(start)-[r]->(end)")
             .setFinalState(1)
@@ -1054,7 +1055,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
           Set.empty,
           Set("x" -> "x", "end" -> "end"),
           Set("s" -> "s"),
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           new TestNFABuilder(0, "start")
             .addTransition(0, 1, "(start)-[s]-(x WHERE x.prop = 5)")
             .addTransition(1, 2, "(x) (a WHERE a.prop = 5)")
@@ -1099,7 +1100,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
           Set.empty,
           Set("end" -> "end"),
           Set("r" -> "r"),
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           new TestNFABuilder(0, "start")
             .addTransition(0, 1, "(start)-[r:R]->(end)")
             .setFinalState(1)
@@ -1146,7 +1147,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
           Set.empty,
           Set("end" -> "end"),
           Set("r" -> "r"),
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           new TestNFABuilder(0, "start")
             .addTransition(0, 1, "(start)-[r:R]->(end)")
             .setFinalState(1)
@@ -1274,7 +1275,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
           Set.empty,
           Set("end" -> "end"),
           Set.empty,
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           new TestNFABuilder(0, "start")
             .addTransition(0, 1, "(start) (a WHERE NOT a:Label)")
             .addTransition(1, 2, "(a)-[r WHERE NOT r:R]->(b WHERE NOT b:Label)")
@@ -1336,7 +1337,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
           Set.empty,
           Set("end" -> "end"),
           Set.empty,
-          StatefulShortestPath.Selector.Shortest(1),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
           new TestNFABuilder(0, "start")
             .addTransition(0, 1, "(start) (a WHERE a.prop = 5 AND NOT a:Label)")
             .addTransition(1, 2, "(a)-[r:R]->(b WHERE NOT b:Label)")

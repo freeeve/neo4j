@@ -49,6 +49,7 @@ import org.neo4j.cypher.internal.ir.CreateNode
 import org.neo4j.cypher.internal.ir.CreateRelationship
 import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.PatternLength
+import org.neo4j.cypher.internal.ir.SelectivePathPattern.PathCount
 import org.neo4j.cypher.internal.ir.SetMutatingPattern
 import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.SimpleMutatingPattern
@@ -2346,7 +2347,7 @@ object StatefulShortestPath {
    * Defines the paths to find for each combination of start and end nodes.
    */
   sealed trait Selector {
-    def k: Long
+    def k: PathCount
     def isGroup: Boolean
   }
 
@@ -2356,7 +2357,7 @@ object StatefulShortestPath {
      * Returns the shortest, second-shortest, etc. up to k paths.
      * If there are multiple paths of same length, picks arbitrarily.
      */
-    case class Shortest(k: Long) extends Selector {
+    case class Shortest(k: PathCount) extends Selector {
       def isGroup: Boolean = false
     }
 
@@ -2364,7 +2365,7 @@ object StatefulShortestPath {
      * Finds all shortest paths, all second shortest paths, etc. up to all Kth shortest paths.
      * ALL SHORTEST is represented as SHORTEST 1 GROUPS.
      */
-    case class ShortestGroups(k: Long) extends Selector {
+    case class ShortestGroups(k: PathCount) extends Selector {
       def isGroup: Boolean = true
     }
   }

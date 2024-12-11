@@ -112,6 +112,21 @@ class PrettifierIT extends CypherFunSuite {
     "mAtch aNy SHORTeST pathS (a)-->(b)     rETuRN a" ->
       """MATCH SHORTEST 1 PATHS (a)-->(b)
         |RETURN a""".stripMargin,
+    FailsInCypher5(
+      "mAtch SHORTeST $p pathS (a)-->(b)     rETuRN a",
+      """MATCH SHORTEST $p PATHS (a)-->(b)
+        |RETURN a""".stripMargin
+    ),
+    FailsInCypher5(
+      "mAtch any $p pathS (a)-->(b)     rETuRN a",
+      """MATCH ANY $p PATHS (a)-->(b)
+        |RETURN a""".stripMargin
+    ),
+    FailsInCypher5(
+      "mAtch sHortest $p path group (a)-->(b)     rETuRN a",
+      """MATCH SHORTEST $p PATH GROUPS (a)-->(b)
+        |RETURN a""".stripMargin
+    ),
     "mAtch all SHORTeST path (a)-->(b)     rETuRN a" ->
       """MATCH ALL SHORTEST PATHS (a)-->(b)
         |RETURN a""".stripMargin,

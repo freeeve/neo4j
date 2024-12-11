@@ -31,10 +31,12 @@ import org.neo4j.cypher.internal.runtime.ClosingIterator.JavaAutoCloseableIterat
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.CommandNFA
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.Predicate
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.PipeWithSource
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.StatefulShortestPathPipe.getPathCount
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.StatefulShortestPathPipe.traversalMatchModeFactory
 import org.neo4j.cypher.internal.runtime.slotted.SlottedRow
 import org.neo4j.cypher.internal.util.attribution.Id
@@ -59,6 +61,7 @@ case class StatefulShortestPathSlottedPipe(
   bounds: LengthBounds,
   preFilters: Option[Predicate],
   selector: StatefulShortestPath.Selector,
+  kExpression: Expression,
   groupSlots: List[Int],
   slots: SlotConfiguration,
   reverseGroupVariableProjections: Boolean,
@@ -112,7 +115,7 @@ case class StatefulShortestPathSlottedPipe(
             pathPredicate,
             selector.isGroup,
             bounds.max.getOrElse(-1),
-            selector.k.toInt,
+            getPathCount(kExpression, inputRow, state),
             commandNFA.states.size,
             memoryTracker,
             hooks,
