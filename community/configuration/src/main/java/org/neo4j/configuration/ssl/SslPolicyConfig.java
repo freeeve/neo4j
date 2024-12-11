@@ -115,7 +115,7 @@ public class SslPolicyConfig implements GroupSetting {
         tls_versions = getBuilder("tls_versions", listOf(STRING), List.of("TLSv1.2", "TLSv1.3"))
                 .build();
         ciphers = getBuilder("ciphers", listOf(STRING), null).build();
-        verify_hostname = getBuilder("verify_hostname", BOOL, false).build();
+        verify_hostname = getBuilder("verify_hostname", BOOL, true).build();
         private_key = getBuilder("private_key", PATH, Path.of("private.key"))
                 .setDependency(base_directory)
                 .build();
