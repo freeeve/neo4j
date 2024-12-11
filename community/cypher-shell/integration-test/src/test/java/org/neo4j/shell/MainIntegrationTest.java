@@ -1461,24 +1461,24 @@ class MainIntegrationTest extends TestHarness {
                 .userInputLines(":sysinfo", ":exit")
                 .run()
                 .assertSuccessAndConnected()
-                .assertThatOutput(
-                        contains("\"neo4j\""),
-                        contains("\"system\""),
-                        contains("\"Property ID\""),
-                        contains("\"Relationship ID\""),
-                        contains("\"Relationship Type ID\""),
-                        contains("\"Total\""),
-                        contains("\"Database\""),
-                        contains("\"Hits\""),
-                        contains("\"Hit Ratio\""),
-                        contains("\"Usage Ratio\""),
-                        contains("\"Page Faults\""),
-                        contains("\"Last Tx Id\""),
-                        contains("\"Current Read\""),
-                        contains("\"Current Write\""),
-                        contains("\"Peak Transactions\""),
-                        contains("\"Committed Read\""),
-                        contains("\"Committed Write\""));
+                .outputSatisfies(o -> assertThat(o)
+                        .containsOnlyOnce("\"neo4j\"")
+                        .containsOnlyOnce("\"system\"")
+                        .containsOnlyOnce("\"Property ID\"")
+                        .containsOnlyOnce("\"Relationship ID\"")
+                        .containsOnlyOnce("\"Relationship Type ID\"")
+                        .containsOnlyOnce("\"Total\"")
+                        .containsOnlyOnce("\"Database\"")
+                        .containsOnlyOnce("\"Hits\"")
+                        .containsOnlyOnce("\"Hit Ratio\"")
+                        .containsOnlyOnce("\"Usage Ratio\"")
+                        .containsOnlyOnce("\"Page Faults\"")
+                        .containsOnlyOnce("\"Last Tx Id\"")
+                        .containsOnlyOnce("\"Current Read\"")
+                        .containsOnlyOnce("\"Current Write\"")
+                        .containsOnlyOnce("\"Peak Transactions\"")
+                        .containsOnlyOnce("\"Committed Read\"")
+                        .containsOnlyOnce("\"Committed Write\""));
     }
 
     @Test

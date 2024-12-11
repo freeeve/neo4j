@@ -157,7 +157,10 @@ public class SysInfo implements Command {
                             Metric.db("ids_in_use.relationship_type", "Relationship Type ID"))),
             new MetricGroup(
                     "Store Size",
-                    List.of(Metric.db("store.size.full", "Total"), Metric.db("store.size.database", "Database"))),
+                    List.of(
+                            Metric.db("store.size.total", "Total"), // 5.6.0 and earlier
+                            Metric.db("store.size.full", "Total"), // Later versions
+                            Metric.db("store.size.database", "Database"))),
             new MetricGroup(
                     "Page Cache",
                     List.of(

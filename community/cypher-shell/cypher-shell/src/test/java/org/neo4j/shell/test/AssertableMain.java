@@ -96,6 +96,11 @@ public class AssertableMain {
         return this;
     }
 
+    public final AssertableMain outputSatisfies(Consumer<String> consumer) {
+        consumer.accept(out.toString(UTF_8).replace("\r\n", "\n"));
+        return this;
+    }
+
     public AssertableMain assertSuccess(boolean isErrorOutputEmpty) {
         assertEquals(EXIT_SUCCESS, exitCode, failureSupplier("Unexpected exit code"));
         if (isErrorOutputEmpty) {
