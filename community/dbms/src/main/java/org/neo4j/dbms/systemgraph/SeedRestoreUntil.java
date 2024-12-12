@@ -93,4 +93,9 @@ public class SeedRestoreUntil {
         txId.ifPresent(
                 id -> checkArgument(id > 0, "Transaction id should be a positive number. Provided value: " + id));
     }
+
+    @Override
+    public String toString() {
+        return toOptionValue();
+    }
 }
