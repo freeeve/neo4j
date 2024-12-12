@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.spy;
+import static org.neo4j.configuration.GraphDatabaseSettings.logs_directory;
 import static org.neo4j.server.startup.Bootloader.EXIT_CODE_OK;
 import static org.neo4j.server.startup.ServerCommandIT.isCurrentlyRunningAsWindowsAdmin;
 
@@ -43,12 +44,15 @@ import org.junit.jupiter.api.condition.OS;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.cli.AbstractAdminCommand;
 import org.neo4j.cli.AdminTool;
+import org.neo4j.cli.CommandFailedException;
 import org.neo4j.cli.CommandProvider;
 import org.neo4j.cli.CommandType;
 import org.neo4j.cli.ExecutionContext;
 import org.neo4j.configuration.BootloaderSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.internal.helpers.ProcessUtils;
+import org.neo4j.io.fs.FileSystemUtils;
+import org.neo4j.memory.EmptyMemoryTracker;
 import picocli.CommandLine;
 import picocli.CommandLine.ExitCode;
 
@@ -148,6 +152,91 @@ class Neo4jAdminCommandTest {
                 // and it needs to accept '-XX:+UseG1GC' in order to print 'Using G1',
                 // so testing presence of 'Using G1' really verifies that both options are in use.
                 assertThat(out.toString()).containsSubsequence("Using G1");
+            }
+        }
+
+        @Test
+        @DisabledOnOs(OS.WINDOWS)
+        void shouldWriteExceptionToFile() throws Exception {
+            if (fork.run(
+                    () -> {
+                        execute("dbms", "test-command", "--throw");
+                        Path trace = fs.listFiles(config.get(logs_directory), p -> p.toString()
+                                .contains("neo4j-admin-exception-trace"))[0];
+                        assertThat(FileSystemUtils.readString(fs, trace, EmptyMemoryTracker.INSTANCE))
+                                .contains(CommandFailedException.class.getName());
+                    })) {
+                assertThat(err.toString()).containsSubsequence("Full exception details written to:");
+                // No exception in console
+                assertThat(err.toString()).doesNotContain(CommandFailedException.class.getName());
+                // but we do get the error message
+                assertThat(err.toString()).containsSubsequence(TestCommand.THROW_MSG);
+            }
+        }
+
+        @Test
+        @DisabledOnOs(OS.WINDOWS)
+        void shouldNotAffectVerboseWhenWritingExceptionToFile() throws Exception {
+            if (fork.run(
+                    () -> {
+                        execute("dbms", "test-command", "--verbose", "--throw");
+                        Path trace = fs.listFiles(config.get(logs_directory), p -> p.toString()
+                                .contains("neo4j-admin-exception-trace"))[0];
+                        assertThat(FileSystemUtils.readString(fs, trace, EmptyMemoryTracker.INSTANCE))
+                                .contains(CommandFailedException.class.getName());
+                    })) {
+                assertThat(err.toString()).containsSubsequence("Full exception details written to:");
+                // get the exception
+                assertThat(err.toString()).containsSubsequence(CommandFailedException.class.getName());
+                // and the expected error
+                assertThat(err.toString()).containsSubsequence(TestCommand.THROW_MSG);
+            }
+        }
+
+        @Test
+        @DisabledOnOs(OS.WINDOWS)
+        void shouldWriteNoTraceFileOnNormalRun() throws Exception {
+            if (fork.run(() -> {
+                fs.mkdirs(config.get(logs_directory)); // pre-create logs folder so we can enumerate files
+                execute("dbms", "test-command", "nothing to see");
+                Path[] traces = fs.listFiles(
+                        config.get(logs_directory), p -> p.toString().contains("neo4j-admin-exception-trace"));
+                assertThat(traces.length).isZero();
+            })) {
+                assertThat(out.toString()).contains(TestCommand.MSG);
+                assertThat(err.toString()).doesNotContain("Full exception details written to:");
+                assertThat(err.toString()).doesNotContain(CommandFailedException.class.getName());
+                assertThat(err.toString()).doesNotContain(TestCommand.THROW_MSG);
+            }
+        }
+
+        @Test
+        @DisabledOnOs(OS.WINDOWS)
+        void shouldNotAffectVerboseEvenIfTraceCannotBeWritten() throws Exception {
+            Path badLogsDir = home.resolve("not_a_folder");
+            Files.writeString(badLogsDir, "Dummy");
+            addConf(logs_directory, badLogsDir.toString());
+            if (fork.run(() -> execute("dbms", "test-command", "--verbose", "--throw"))) {
+                assertThat(out.toString()).doesNotContain("Full exception details written to:");
+                assertThat(err.toString()).containsSubsequence(CommandFailedException.class.getName());
+                assertThat(err.toString()).containsSubsequence(TestCommand.THROW_MSG);
+                assertThat(err.toString())
+                        .containsSubsequence("Suppressed: java.io.IOException: Unable to write directory path");
+            }
+        }
+
+        @Test
+        @DisabledOnOs(OS.WINDOWS)
+        void shouldBeNoConsoleExceptionEvenIfTraceCannotBeWritten() throws Exception {
+            Path badLogsDir = home.resolve("not_a_folder");
+            Files.writeString(badLogsDir, "Dummy");
+            addConf(logs_directory, badLogsDir.toString());
+            if (fork.run(() -> execute("dbms", "test-command", "--throw"))) {
+                assertThat(out.toString()).doesNotContain("Full exception details written to:");
+                // No exception in console
+                assertThat(err.toString()).doesNotContain(CommandFailedException.class.getName());
+                // but we do get the error message
+                assertThat(err.toString()).containsSubsequence(TestCommand.THROW_MSG);
             }
         }
 
@@ -330,9 +419,13 @@ class Neo4jAdminCommandTest {
     @CommandLine.Command(name = "test-command", description = "Command for testing purposes only")
     static class TestCommand extends AbstractAdminCommand {
         static final String MSG = "Test command executed";
+        static final String THROW_MSG = "Test command expected failure message";
 
         @CommandLine.Parameters(hidden = true)
         private List<String> allParameters = List.of();
+
+        @CommandLine.Option(names = "--throw")
+        private boolean shouldThrow;
 
         TestCommand(ExecutionContext ctx) {
             super(ctx);
@@ -340,6 +433,9 @@ class Neo4jAdminCommandTest {
 
         @Override
         protected void execute() {
+            if (shouldThrow) {
+                throw new CommandFailedException(THROW_MSG);
+            }
             ctx.out().println(MSG);
             for (String param : allParameters) {
                 ctx.out().println(param);

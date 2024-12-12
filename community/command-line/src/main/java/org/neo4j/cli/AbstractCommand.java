@@ -82,6 +82,11 @@ public abstract class AbstractCommand implements Callable<Integer> {
         return config;
     }
 
+    // Support hooking for extra info
+    protected void wrappedExecute() throws Exception {
+        execute();
+    }
+
     @Override
     public Integer call() throws Exception {
         if (verbose) {
@@ -89,7 +94,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
             printConfigInformation();
         }
         try {
-            execute();
+            wrappedExecute();
         } catch (CommandFailedException e) {
             if (verbose) {
                 e.printStackTrace(ctx.err());
