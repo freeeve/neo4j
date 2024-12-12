@@ -133,7 +133,7 @@ public final class HeapTrackingOrderedAppendSet<V> extends OrderedAppendSet<V> i
 
     @Override
     public Iterator<V> iterator() {
-        return new ApendSetIterator<>(first);
+        return new AppendSetIterator<>(first);
     }
 
     @Override
@@ -202,12 +202,12 @@ public final class HeapTrackingOrderedAppendSet<V> extends OrderedAppendSet<V> i
     }
 
     @SuppressWarnings("unchecked")
-    private static class ApendSetIterator<V> implements Iterator<V> {
+    private static class AppendSetIterator<V> implements Iterator<V> {
         private Chunk<V> chunk;
         private Chunk<V> nextChunk;
         private int nextIndex;
 
-        ApendSetIterator(Chunk<V> first) {
+        AppendSetIterator(Chunk<V> first) {
             chunk = nextChunk = first;
         }
 
