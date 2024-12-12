@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingIterator.ScalaSeqAsClosingIterator
+import org.neo4j.cypher.internal.runtime.ClosingLongIterator.emptyClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IsNoValue
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.DirectionConverter.toGraphDb
@@ -83,9 +84,14 @@ case class OptionalExpandIntoPipe(
                     types.types(query),
                     n.id()
                   )
-                  traceRelationshipSelectionCursor(query.resources, selectionCursor, traversalCursor)
-                  query.resources.trace(selectionCursor)
-                  val relationships = relationshipSelectionCursorIterator(selectionCursor, traversalCursor)
+                  val relationships = if (selectionCursor != null) {
+                    traceRelationshipSelectionCursor(query.resources, selectionCursor, traversalCursor)
+                    query.resources.trace(selectionCursor)
+                    relationshipSelectionCursorIterator(selectionCursor, traversalCursor)
+                  } else {
+                    traversalCursor.close()
+                    emptyClosingRelationshipIterator
+                  }
                   val filteredRows = ListBuffer.empty[CypherRow]
                   // This is exhausting relationships directly, thus we do not need to return
                   // a ClosingIterator in this flatMap.

@@ -23,7 +23,6 @@ import static org.neo4j.internal.kernel.api.helpers.RelationshipSelections.allCu
 import static org.neo4j.internal.kernel.api.helpers.RelationshipSelections.incomingCursor;
 import static org.neo4j.internal.kernel.api.helpers.RelationshipSelections.outgoingCursor;
 import static org.neo4j.kernel.api.StatementConstants.NO_SUCH_NODE;
-import static org.neo4j.kernel.impl.newapi.Cursors.emptyTraversalCursor;
 
 import java.util.function.LongPredicate;
 import java.util.function.Predicate;
@@ -204,9 +203,9 @@ public abstract class BFSPruningVarExpandCursor extends DefaultCloseListenable i
         this.nodeFilter = nodeFilter;
         this.relFilter = relFilter;
         this.soughtEndNode = soughtEndNode;
-        // start with empty cursor and will expand from the start node
+        // start with a null cursor and will expand from the start node
         // that is added at the top of the queue
-        this.selectionCursor = emptyTraversalCursor(read);
+        this.selectionCursor = null;
     }
 
     protected boolean done = false;
@@ -306,6 +305,10 @@ public abstract class BFSPruningVarExpandCursor extends DefaultCloseListenable i
                 return true;
             }
 
+            if (selectionCursor == null && !pollAndExpand()) {
+                return false;
+            }
+
             while (true) {
                 while (selectionCursor.next()) {
                     if (relFilter.test(selectionCursor)) {
@@ -322,11 +325,15 @@ public abstract class BFSPruningVarExpandCursor extends DefaultCloseListenable i
                     }
                 }
 
-                var next = queue.poll();
-                if (next == null || !expand(next)) {
+                if (!pollAndExpand()) {
                     return false;
                 }
             }
+        }
+
+        private boolean pollAndExpand() {
+            var next = queue.poll();
+            return next != null && expand(next);
         }
 
         @Override
@@ -499,7 +506,7 @@ public abstract class BFSPruningVarExpandCursor extends DefaultCloseListenable i
             }
             while (currentDepth <= maxDepth) {
                 clearLoopCount();
-                while (selectionCursor.next()) {
+                while (selectionCursor != null && selectionCursor.next()) {
                     if (relFilter.test(selectionCursor)) {
 
                         long origin = selectionCursor.originNodeReference();
@@ -711,7 +718,7 @@ public abstract class BFSPruningVarExpandCursor extends DefaultCloseListenable i
             }
 
             while (currentDepth <= maxDepth) {
-                while (selectionCursor.next()) {
+                while (selectionCursor != null && selectionCursor.next()) {
                     if (relFilter.test(selectionCursor)) {
                         long other = selectionCursor.otherNodeReference();
                         if (seen.add(other) && nodeFilter.test(other)) {

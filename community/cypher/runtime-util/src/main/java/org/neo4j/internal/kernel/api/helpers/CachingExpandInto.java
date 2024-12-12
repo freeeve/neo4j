@@ -44,7 +44,6 @@ import org.neo4j.internal.kernel.api.QueryContext;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.RelationshipTraversalCursor;
 import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.kernel.impl.newapi.Cursors;
 import org.neo4j.memory.DefaultScopedMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.memory.ScopedMemoryTracker;
@@ -62,7 +61,7 @@ import org.neo4j.storageengine.util.SingleDegree;
  * This is often a computationally heavy operation so that given direction and types an instance of this class can be reused
  * and previously found connections will be cached and can significantly speed up traversals.
  */
-@SuppressWarnings({"unused", "UnnecessaryLocalVariable"})
+@SuppressWarnings({"unused"})
 public class CachingExpandInto extends DefaultCloseListenable {
     static final long CACHING_EXPAND_INTO_SHALLOW_SIZE =
             shallowSizeOfInstance(CachingExpandInto.class) + SCOPED_MEMORY_TRACKER_SHALLOW_SIZE;
@@ -115,12 +114,12 @@ public class CachingExpandInto extends DefaultCloseListenable {
 
     /**
      * Creates a cursor for all connecting relationships given a first and a second node.
-     *
+     * <p>
      * NOTE: Ownership of traversalCursor is _not_ transferred, so the caller is responsible
      *       for closing it when applicable
-     *
+     * <p>
      * NOTE: In case nodeCursor supports fast relationships, the given traversalCursor could be returned.
-     *       Otherwise a specialized relationship selection cursor will be created and returned, and
+     *       Otherwise, a specialized relationship selection cursor will be created and returned, and
      *       in this case it is important that this specialized cursor does not get reused as a general
      *       relationship traversal cursor just because it implements the RelationshipTraversalCursor interface.
      *
@@ -129,7 +128,8 @@ public class CachingExpandInto extends DefaultCloseListenable {
      * @param firstNode The first node
      * @param types The relationship types to traverse
      * @param secondNode The second node
-     * @return The interconnecting relationships in the given direction with any of the given types.
+     * @return The interconnecting relationships in the given direction with any of the given types, or `null` if
+     *         nodes can't be found.
      */
     public RelationshipTraversalCursor connectingRelationships(
             NodeCursor nodeCursor,
@@ -161,7 +161,7 @@ public class CachingExpandInto extends DefaultCloseListenable {
         // later uses can use positionCursor which will avoid re-reading the same node.
         read.singleNode(firstNode, nodeCursor);
         if (!nodeCursor.next()) {
-            return Cursors.emptyTraversalCursor(read);
+            return null;
         }
         boolean firstNodeHasCheapDegrees = nodeCursor.supportsFastDegreeLookup();
         int firstDegree = degreeCache.getIfAbsentPut(firstNode, direction, () -> {
@@ -216,7 +216,7 @@ public class CachingExpandInto extends DefaultCloseListenable {
             nodeCursor.relationshipsTo(traversalCursor, selection(types, direction), secondNode);
             return traversalCursor;
         } else {
-            return Cursors.emptyTraversalCursor(read);
+            return null;
         }
     }
 

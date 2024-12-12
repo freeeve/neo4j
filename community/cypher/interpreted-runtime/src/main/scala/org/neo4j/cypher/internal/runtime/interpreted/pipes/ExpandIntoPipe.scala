@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
+import org.neo4j.cypher.internal.runtime.ClosingLongIterator.emptyClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IsNoValue
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
@@ -97,8 +98,15 @@ case class ExpandIntoPipe(
                     lazyTypes.types(query),
                     n.id()
                   )
-                  traceRelationshipSelectionCursor(query.resources, selectionCursor, traversalCursor)
-                  val relationships = relationshipSelectionCursorIterator(selectionCursor, traversalCursor)
+
+                  val relationships = if (selectionCursor != null) {
+                    traceRelationshipSelectionCursor(query.resources, selectionCursor, traversalCursor)
+                    relationshipSelectionCursorIterator(selectionCursor, traversalCursor)
+                  } else {
+                    traversalCursor.close()
+                    emptyClosingRelationshipIterator
+                  }
+
                   if (!relationships.hasNext) ClosingIterator.empty
                   else PrimitiveLongHelper.map(
                     relationships,

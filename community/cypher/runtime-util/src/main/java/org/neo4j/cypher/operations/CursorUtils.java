@@ -35,21 +35,15 @@ import org.eclipse.collections.impl.list.mutable.primitive.IntArrayList;
 import org.neo4j.cypher.internal.runtime.DbAccess;
 import org.neo4j.exceptions.CypherTypeException;
 import org.neo4j.exceptions.EntityNotFoundException;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.EntityCursor;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.RelationshipDataAccessor;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
-import org.neo4j.internal.kernel.api.RelationshipTraversalCursor;
 import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.kernel.api.exceptions.PropertyKeyIdNotFoundKernelException;
-import org.neo4j.internal.kernel.api.helpers.RelationshipSelections;
-import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.StatementConstants;
-import org.neo4j.kernel.impl.newapi.Cursors;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.util.CalledFromGeneratedCode;
 import org.neo4j.values.AnyValue;
@@ -406,25 +400,6 @@ public final class CursorUtils {
         }
 
         return relationshipCursor.type() == typeToLookFor;
-    }
-
-    public static RelationshipTraversalCursor nodeGetRelationships(
-            Read read,
-            CursorFactory cursors,
-            NodeCursor node,
-            long nodeId,
-            Direction direction,
-            int[] types,
-            CursorContext cursorContext) {
-        read.singleNode(nodeId, node);
-        if (!node.next()) {
-            return Cursors.emptyTraversalCursor(read);
-        }
-        return switch (direction) {
-            case OUTGOING -> RelationshipSelections.outgoingCursor(cursors, node, types, cursorContext);
-            case INCOMING -> RelationshipSelections.incomingCursor(cursors, node, types, cursorContext);
-            case BOTH -> RelationshipSelections.allCursor(cursors, node, types, cursorContext);
-        };
     }
 
     /**

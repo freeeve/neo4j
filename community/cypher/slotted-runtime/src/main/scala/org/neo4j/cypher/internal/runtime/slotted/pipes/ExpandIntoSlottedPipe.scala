@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.physicalplanning.Slot
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration
 import org.neo4j.cypher.internal.physicalplanning.SlotConfigurationUtils.makeGetPrimitiveNodeFromSlotFunctionFor
 import org.neo4j.cypher.internal.runtime.ClosingIterator
+import org.neo4j.cypher.internal.runtime.ClosingLongIterator.emptyClosingRelationshipIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.RelationshipCursorIterator
@@ -93,8 +94,14 @@ case class ExpandIntoSlottedPipe(
           try {
             val selectionCursor =
               expandInto.connectingRelationships(nodeCursor, traversalCursor, fromNode, lazyTypes.types(query), toNode)
-            traceRelationshipSelectionCursor(query.resources, selectionCursor, traversalCursor)
-            val relationships = new RelationshipCursorIterator(selectionCursor, traversalCursor)
+            val relationships = if (selectionCursor != null) {
+              traceRelationshipSelectionCursor(query.resources, selectionCursor, traversalCursor)
+              new RelationshipCursorIterator(selectionCursor, traversalCursor)
+
+            } else {
+              traversalCursor.close()
+              emptyClosingRelationshipIterator
+            }
             PrimitiveLongHelper.map(
               relationships,
               (relId: Long) => {

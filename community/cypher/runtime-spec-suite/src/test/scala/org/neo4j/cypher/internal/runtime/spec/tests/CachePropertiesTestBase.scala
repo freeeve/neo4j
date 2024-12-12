@@ -776,6 +776,44 @@ abstract class CachePropertiesTestBase[CONTEXT <: RuntimeContext](
 
     result should beColumns("prop").withRows(inAnyOrder(Seq(Array(30), Array(40))))
   }
+
+  test("should handle nullable node property") {
+    // given
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("p")
+      .projection("cache[n.p] AS p")
+      .cacheProperties("cache[n.p]")
+      .optionalExpandAll("(n)-[r]->(m)")
+      .optional()
+      .allNodeScan("n")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("p").withSingleRow(null)
+  }
+
+  test("should handle nullable relationship property") {
+    // given
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("p")
+      .projection("cacheR[r.p] AS p")
+      .cacheProperties("cacheR[r.p]")
+      .optionalExpandAll("(n)-[r]->(m)")
+      .optional()
+      .allNodeScan("n")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("p").withSingleRow(null)
+  }
 }
 
 trait CachePropertiesTxStateTestBase[CONTEXT <: RuntimeContext] {
