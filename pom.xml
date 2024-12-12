@@ -1391,6 +1391,12 @@
         <version>${testcontainers.version}</version>
         <type>pom</type>
         <scope>import</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
 
       <!-- scala -->
