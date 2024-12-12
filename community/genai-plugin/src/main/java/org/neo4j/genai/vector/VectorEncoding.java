@@ -60,7 +60,7 @@ import org.neo4j.values.storable.Values;
 import org.neo4j.values.virtual.MapValue;
 
 public class VectorEncoding {
-    public static String VERSION = "1.2.0";
+    public static final String VERSION = "1.2.0";
 
     @SuppressWarnings("rawtypes")
     private static final ImmutableList<Provider> PROVIDERS = Lists.immutable.withAllSorted(

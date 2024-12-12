@@ -305,17 +305,17 @@ public abstract class StringValue extends TextValue {
 
         @Override
         public boolean startsWith(TextValue other) {
-            return other.length() == 0;
+            return other.isEmpty();
         }
 
         @Override
         public boolean endsWith(TextValue other) {
-            return other.length() == 0;
+            return other.isEmpty();
         }
 
         @Override
         public boolean contains(TextValue other) {
-            return other.length() == 0;
+            return other.isEmpty();
         }
 
         @Override

@@ -32,7 +32,7 @@ import org.neo4j.cypher.internal.util.InputPosition;
 
 /** Reader that replace cypher unicode escape codes and keep track of query offsets. */
 public class UnicodeEscapeReplacementReader extends Reader {
-    public static int DEFAULT_BUFFER_SIZE = 4096;
+    public static final int DEFAULT_BUFFER_SIZE = 4096;
     private final String cypher;
     private int srcPos;
     private OffsetTableBuilder offsetTable = null;

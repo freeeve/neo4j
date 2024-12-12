@@ -23,6 +23,7 @@ import static java.lang.Math.max;
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.server.WebContainerTestUtils.withCSVFile;
 import static org.neo4j.server.http.cypher.integration.TransactionConditions.containsNoErrors;
@@ -546,7 +547,7 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
         for (JsonNode node : nodes.get(0).get("labels")) {
             labels.add(node.asText());
         }
-        assertTrue(labels.size() > 0, "some labels");
+        assertFalse(labels.isEmpty(), "some labels");
     }
 
     @Test

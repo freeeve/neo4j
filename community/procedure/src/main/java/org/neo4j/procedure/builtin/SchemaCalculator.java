@@ -113,7 +113,7 @@ public class SchemaCalculator {
 
             // lookup property value types
             MutableIntSet propertyIds = relMappings.relationshipTypeIdToPropertyKeys.get(typeId);
-            if (propertyIds.size() == 0) {
+            if (propertyIds.isEmpty()) {
                 results.add(new RelationshipPropertySchemaInfoResult(name, null, null, false));
             } else {
                 String finalName = name;
@@ -157,7 +157,7 @@ public class SchemaCalculator {
 
             // lookup property value types
             MutableIntSet propertyIds = nodeMappings.labelSetToPropertyKeys.get(labelSet);
-            if (propertyIds.size() == 0) {
+            if (propertyIds.isEmpty()) {
                 results.add(new NodePropertySchemaInfoResult(labels, labelNames, null, null, false));
             } else {
                 propertyIds.forEach(propId -> {
@@ -213,7 +213,7 @@ public class SchemaCalculator {
 
                 // find out which old properties we did not visited and mark them as nullable
                 if (oldPropertyKeySet == emptyPropertyIdSet) {
-                    if (propertyIds.size() == 0) {
+                    if (propertyIds.isEmpty()) {
                         // Even if we find property key on other rels with this type, set all of them nullable
                         relMappings.nullableRelationshipTypes.add(typeId);
                     }
@@ -273,7 +273,7 @@ public class SchemaCalculator {
 
                 // find out which old properties we did not visited and mark them as nullable
                 if (oldPropertyKeySet == emptyPropertyIdSet) {
-                    if (propertyIds.size() == 0) {
+                    if (propertyIds.isEmpty()) {
                         // Even if we find property key on other nodes with those labels, set all of them nullable
                         nodeMappings.nullableLabelSets.add(labels);
                     }

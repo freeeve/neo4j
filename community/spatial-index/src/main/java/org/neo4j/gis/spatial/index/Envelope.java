@@ -281,14 +281,14 @@ public class Envelope {
             sb.append("null");
         } else {
             for (double val : vals) {
-                if (sb.length() > 0) {
+                if (!sb.isEmpty()) {
                     sb.append(',');
                 } else {
                     sb.append('(');
                 }
                 sb.append(val);
             }
-            if (sb.length() > 0) {
+            if (!sb.isEmpty()) {
                 sb.append(')');
             }
         }

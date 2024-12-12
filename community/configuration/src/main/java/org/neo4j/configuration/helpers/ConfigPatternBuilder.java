@@ -82,7 +82,7 @@ public class ConfigPatternBuilder {
     }
 
     private static void flushBuffer(StringBuilder fromBuffer, StringBuilder toPattern) {
-        if (fromBuffer.length() > 0) {
+        if (!fromBuffer.isEmpty()) {
             toPattern.append(Pattern.quote(fromBuffer.toString()));
             fromBuffer.delete(0, Integer.MAX_VALUE);
         }

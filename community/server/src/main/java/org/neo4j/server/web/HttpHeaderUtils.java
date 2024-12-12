@@ -110,7 +110,7 @@ public class HttpHeaderUtils {
     public static List<String> getBookmarks(HttpHeaders headers) {
         String headerValue = headers.getHeaderString(BOOKMARKS_HEADER);
 
-        if (headerValue == null || headerValue.length() == 0) {
+        if (headerValue == null || headerValue.isEmpty()) {
             return Collections.emptyList();
         }
 

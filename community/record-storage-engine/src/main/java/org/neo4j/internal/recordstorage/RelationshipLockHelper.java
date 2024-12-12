@@ -381,7 +381,7 @@ final class RelationshipLockHelper {
         }
 
         boolean next() {
-            if (list.size() > 0 && index < list.size()) {
+            if (!list.isEmpty() && index < list.size()) {
                 index++;
                 return index < list.size();
             }

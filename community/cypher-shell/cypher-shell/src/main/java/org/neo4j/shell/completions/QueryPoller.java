@@ -38,7 +38,7 @@ public class QueryPoller implements AutoCloseable {
     private static final int ITEM_LIMIT = 1000;
     private final BoltStateHandler boltStateHandler;
 
-    public static String fetchDataSummary =
+    public static final String FETCH_DATA_SUMMARY =
             "CALL db.labels() YIELD label\n" + String.format("RETURN COLLECT(label)[..%s] AS result\n", ITEM_LIMIT)
                     + "UNION ALL\n"
                     + "CALL db.relationshipTypes() YIELD relationshipType\n"
@@ -47,11 +47,11 @@ public class QueryPoller implements AutoCloseable {
                     + "CALL db.propertyKeys() YIELD propertyKey\n"
                     + String.format("RETURN COLLECT(propertyKey)[..%s] AS result", ITEM_LIMIT);
 
-    public static String fetchProcedures = "SHOW PROCEDURES YIELD name, returnDescription";
-    public static String fetchFunctions = "SHOW FUNCTIONS YIELD name";
-    public static String fetchDatabases = "SHOW DATABASES YIELD name, aliases;";
-    public static String fetchRoles = "SHOW ROLES YIELD role;";
-    public static String fetchUsers = "SHOW USERS YIELD user;";
+    public static final String FETCH_PROCEDURES = "SHOW PROCEDURES YIELD name, returnDescription";
+    public static final String FETCH_FUNCTIONS = "SHOW FUNCTIONS YIELD name";
+    public static final String FETCH_DATABASES = "SHOW DATABASES YIELD name, aliases;";
+    public static final String FETCH_ROLES = "SHOW ROLES YIELD role;";
+    public static final String FETCH_USERS = "SHOW USERS YIELD user;";
 
     public QueryPoller(BoltStateHandler boltStateHandler) {
         this.boltStateHandler = boltStateHandler;

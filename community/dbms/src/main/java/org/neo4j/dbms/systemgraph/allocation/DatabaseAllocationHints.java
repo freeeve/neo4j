@@ -37,15 +37,15 @@ import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.MapValueBuilder;
 
 public record DatabaseAllocationHints(Set<Hint<?>> hints) {
-    public static DatabaseAllocationHints EMPTY = new DatabaseAllocationHints(Set.of());
+    public static final DatabaseAllocationHints EMPTY = new DatabaseAllocationHints(Set.of());
 
-    public static DatabaseAllocationHints DEFAULT =
+    public static final DatabaseAllocationHints DEFAULT =
             new DatabaseAllocationHints(Arrays.stream(Hint.class.getPermittedSubclasses())
                     .filter(hint -> defaultValue(hint).isPresent())
                     .map(hintClass -> defaultValue(hintClass).orElseThrow())
                     .collect(Collectors.toSet()));
 
-    public static Set<String> VALID_HINT_KEYS = Arrays.stream(Hint.class.getPermittedSubclasses())
+    public static final Set<String> VALID_HINT_KEYS = Arrays.stream(Hint.class.getPermittedSubclasses())
             .map(DatabaseAllocationHints::key)
             .collect(Collectors.toSet());
 

@@ -329,7 +329,7 @@ public class Args {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         for (String arg : asArgs()) {
-            builder.append(builder.length() > 0 ? " " : "").append(arg);
+            builder.append(builder.isEmpty() ? "" : " ").append(arg);
         }
         return builder.toString();
     }

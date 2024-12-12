@@ -43,7 +43,7 @@ public class Help implements Command {
     @Override
     public void execute(final List<String> args) throws CommandException {
         requireArgumentCount(args, 0, 1);
-        if (args.size() == 0) {
+        if (args.isEmpty()) {
             printGeneralHelp();
         } else {
             printHelpFor(args.get(0));

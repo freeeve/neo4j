@@ -233,7 +233,7 @@ abstract class ConfigurationTestBase<PARAMETERS> {
     }
 
     protected record Models(String setting, Class<?> type, Collection<?> supported, Collection<?> unsupported) {
-        public static Models IMPLICIT = new Models(null, null, List.of(), List.of());
+        public static final Models IMPLICIT = new Models(null, null, List.of(), List.of());
     }
 
     private static String requiredConfigType(Provider<?> provider) {

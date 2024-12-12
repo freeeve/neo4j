@@ -850,7 +850,7 @@ public class SpaceFillingCurveTest {
         }
         for (long derivedValue = 0; derivedValue < curve.getValueWidth(); derivedValue++) {
             if (!outerRing.contains(derivedValue)) {
-                SpaceFillingCurve.LongRange current = (expected.size() > 0) ? expected.get(expected.size() - 1) : null;
+                SpaceFillingCurve.LongRange current = (!expected.isEmpty()) ? expected.get(expected.size() - 1) : null;
                 if (current != null && current.max == derivedValue - 1) {
                     current.expandToMax(derivedValue);
                 } else {
@@ -1022,7 +1022,7 @@ public class SpaceFillingCurveTest {
         StringBuilder topRightDescription = new StringBuilder();
         for (int l = 0; l < level; l++) {
             topRight += topRightFactor;
-            if (topRightDescription.length() == 0) {
+            if (topRightDescription.isEmpty()) {
                 topRightDescription.append(topRightFactor);
             } else {
                 topRightDescription.append(" + ").append(topRightFactor);

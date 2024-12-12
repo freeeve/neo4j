@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.newapi;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
@@ -90,7 +91,7 @@ public abstract class ParallelPartitionedRelationshipCursorTestBase<G extends Ke
             while (relationships.next()) {
                 ids.add(relationships.relationshipReference());
             }
-            assertTrue(ids.size() > 0);
+            assertFalse(ids.isEmpty());
             assertTrue(ids.size() < RELATIONSHIPS.size());
             assertTrue(RELATIONSHIPS.containsAll(ids));
 

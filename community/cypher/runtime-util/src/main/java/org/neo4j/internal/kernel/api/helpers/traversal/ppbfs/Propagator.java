@@ -92,7 +92,7 @@ public final class Propagator implements AutoCloseable {
             nodeState.propagateLengthPair(sourceLength, totalLength - sourceLength);
         }
 
-        public static long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(QueuedPropagation.class);
+        public static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(QueuedPropagation.class);
 
         static Comparator<QueuedPropagation> COMPARATOR = (a, b) -> {
             var tl = Integer.compare(a.totalLength, b.totalLength);

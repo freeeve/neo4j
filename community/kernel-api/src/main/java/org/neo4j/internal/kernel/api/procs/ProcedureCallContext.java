@@ -29,7 +29,7 @@ import org.neo4j.memory.MemoryTracker;
  */
 public class ProcedureCallContext {
 
-    public static String[] EMPTY_OUTPUT_FIELDNAMES = new String[0];
+    public static final String[] EMPTY_OUTPUT_FIELDNAMES = new String[0];
 
     private final int id;
     private final String[] outputFieldNames;

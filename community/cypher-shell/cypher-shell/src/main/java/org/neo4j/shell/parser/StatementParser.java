@@ -85,7 +85,7 @@ public interface StatementParser {
     record CypherStatement(String statement, boolean isComplete, int beginOffset, int endOffset)
             implements ParsedStatement {
         public static CypherStatement complete(String statement) {
-            return new CypherStatement(statement, true, 0, statement.length() == 0 ? 0 : statement.length() - 1);
+            return new CypherStatement(statement, true, 0, statement.isEmpty() ? 0 : statement.length() - 1);
         }
     }
 }

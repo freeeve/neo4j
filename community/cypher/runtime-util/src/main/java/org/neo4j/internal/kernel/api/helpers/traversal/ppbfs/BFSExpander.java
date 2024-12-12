@@ -61,11 +61,11 @@ final class BFSExpander implements AutoCloseable {
     private final FoundNodes foundNodes;
 
     record CachedRelPredicate(Predicate<RelationshipTraversalEntities> predicate, long rel, TraversalDirection dir) {
-        public static long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(CachedRelPredicate.class);
+        public static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(CachedRelPredicate.class);
     }
 
     record CachedNodePredicate(LongPredicate predicate, long node) {
-        public static long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(CachedNodePredicate.class);
+        public static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(CachedNodePredicate.class);
     }
 
     private final HeapTrackingUnifiedMap<CachedRelPredicate, Boolean> relPredicateCache;
@@ -387,7 +387,7 @@ final class BFSExpander implements AutoCloseable {
                 return Objects.hash(nodeId, Arrays.hashCode(types), direction);
             }
 
-            public static long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(CachedNode.class);
+            public static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(CachedNode.class);
         }
 
         private record CachedRel(
@@ -398,7 +398,7 @@ final class BFSExpander implements AutoCloseable {
                 long otherNodeReference,
                 long originNodeReference)
                 implements RelationshipTraversalEntities {
-            public static long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(CachedRel.class);
+            public static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(CachedRel.class);
         }
 
         private final ProductGraphTraversalCursor.DataGraphRelationshipCursor relCursor;

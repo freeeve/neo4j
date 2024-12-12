@@ -154,7 +154,7 @@ class SharedLock implements ForsetiLockManager.Lock {
     public String toString() {
         StringBuilder owners = new StringBuilder();
         for (ForsetiClient forsetiClient : clientsHoldingThisLock) {
-            if (owners.length() > 0) {
+            if (!owners.isEmpty()) {
                 owners.append(", ");
             }
             owners.append(forsetiClient);

@@ -119,7 +119,7 @@ public abstract class Neo4jAlgoTestCase {
     protected static String getPathDef(Path path) {
         StringBuilder builder = new StringBuilder();
         for (Node node : path.nodes()) {
-            if (builder.length() > 0) {
+            if (!builder.isEmpty()) {
                 builder.append(',');
             }
             builder.append(node.getProperty(SimpleGraphBuilder.KEY_ID));

@@ -60,7 +60,7 @@ public class LifecycleException extends RuntimeException {
             default:
                 break;
         }
-        if (message.length() == 0) {
+        if (message.isEmpty()) {
             message.append("Component '")
                     .append(instanceStr)
                     .append("' failed to transition from ")

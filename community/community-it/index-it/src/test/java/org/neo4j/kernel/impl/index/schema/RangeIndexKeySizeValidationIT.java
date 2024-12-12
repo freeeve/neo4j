@@ -170,7 +170,7 @@ public class RangeIndexKeySizeValidationIT {
                         generator.name() + ": expected=" + expectedMax + ", actual=" + binarySearch.longestSuccessful);
             }
         }
-        if (failureMessages.size() > 0) {
+        if (!failureMessages.isEmpty()) {
             StringJoiner joiner = new StringJoiner(
                     System.lineSeparator(),
                     "Some value types did not have expected longest successful array. "

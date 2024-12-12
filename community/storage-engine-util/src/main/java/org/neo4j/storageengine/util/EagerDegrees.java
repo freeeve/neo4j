@@ -254,7 +254,7 @@ public class EagerDegrees implements Degrees, Degrees.Mutator {
     public String toString() {
         StringBuilder degrees = new StringBuilder();
         for (int type : types()) {
-            degrees.append(degrees.length() > 0 ? ", " : "")
+            degrees.append(degrees.isEmpty() ? "" : ", ")
                     .append(":")
                     .append(type)
                     .append(findDegree(type));

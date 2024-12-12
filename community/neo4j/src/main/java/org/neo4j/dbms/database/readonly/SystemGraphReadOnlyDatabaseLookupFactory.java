@@ -35,9 +35,10 @@ public final class SystemGraphReadOnlyDatabaseLookupFactory implements ReadOnlyD
         Stream<DatabaseId> getDatabaseIds(CommunityTopologyGraphDbmsModel model);
     }
 
-    public static ReadonlyDatabasesProvider DEFAULT_PROVIDER = model -> model.getAllDatabaseAccess().entrySet().stream()
-            .filter(e -> e.getValue() == TopologyGraphDbmsModel.DatabaseAccess.READ_ONLY)
-            .map(e -> e.getKey().databaseId());
+    public static final ReadonlyDatabasesProvider DEFAULT_PROVIDER =
+            model -> model.getAllDatabaseAccess().entrySet().stream()
+                    .filter(e -> e.getValue() == TopologyGraphDbmsModel.DatabaseAccess.READ_ONLY)
+                    .map(e -> e.getKey().databaseId());
 
     private final SystemDatabaseProvider systemDatabaseProvider;
     private final InternalLog log;

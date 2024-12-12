@@ -287,7 +287,7 @@ public class GBPTreeFormatTest<KEY, VALUE> extends FormatCompatibilityVerifier {
                 // WHEN writing more to the tree
                 // THEN we should not see any format conflicts
                 try (Writer<KEY, VALUE> writer = tree.writer(W_BATCHED_SINGLE_THREADED, NULL_CONTEXT)) {
-                    while (keysToAdd.size() > 0) {
+                    while (!keysToAdd.isEmpty()) {
                         int next = random.nextInt(keysToAdd.size());
                         Long key = keysToAdd.get(next);
                         put(writer, key);

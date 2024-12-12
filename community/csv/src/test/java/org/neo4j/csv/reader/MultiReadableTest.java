@@ -162,7 +162,7 @@ class MultiReadableTest {
             private String join(String[] strings) {
                 StringBuilder builder = new StringBuilder();
                 for (String string : strings) {
-                    builder.append(builder.length() > 0 ? "," : "").append(string);
+                    builder.append(builder.isEmpty() ? "" : ",").append(string);
                 }
                 if (lineEnding != null) {
                     builder.append(lineEnding);

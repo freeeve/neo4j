@@ -144,7 +144,7 @@ public class CommunityWebContainerBuilder {
             properties.put(ServerSettings.webserver_max_threads.name(), maxThreads);
         }
 
-        if (thirdPartyPackages.keySet().size() > 0) {
+        if (!thirdPartyPackages.keySet().isEmpty()) {
             properties.put(ServerSettings.third_party_packages.name(), asOneLine(thirdPartyPackages));
         }
 

@@ -196,7 +196,7 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
         ZoneId zoneId = input.supportsTimeZone() ? input.getZoneId(defaultZone) : defaultZone.get();
         ZonedDateTime truncatedZDT = ZonedDateTime.of(truncatedDate, truncatedTime, zoneId);
 
-        if (fields.size() == 0) {
+        if (fields.isEmpty()) {
             return datetime(truncatedZDT);
         } else {
             // Timezone needs some special handling, since the builder will shift keeping the instant instead of the
@@ -207,7 +207,7 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
             }
 
             return updateFieldMapWithConflictingSubseconds(fields, unit, truncatedZDT, (mapValue, zonedDateTime) -> {
-                if (mapValue.size() == 0) {
+                if (mapValue.isEmpty()) {
                     return datetime(zonedDateTime);
                 } else {
                     return build(mapValue.updatedWith("datetime", datetime(zonedDateTime)), defaultZone);

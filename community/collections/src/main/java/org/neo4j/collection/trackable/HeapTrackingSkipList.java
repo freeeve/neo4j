@@ -69,7 +69,7 @@ public class HeapTrackingSkipList<T> implements Iterable<T>, AutoCloseable {
             return s.toString();
         }
 
-        public static long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(Node.class);
+        public static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(Node.class);
 
         @Override
         public long estimatedHeapUsage() {

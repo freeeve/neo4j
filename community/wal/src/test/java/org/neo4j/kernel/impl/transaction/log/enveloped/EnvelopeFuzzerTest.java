@@ -179,7 +179,7 @@ class EnvelopeFuzzerTest {
     }
 
     private static void completeEntry(List<DataStep> sequence) {
-        if (sequence.size() > 0) {
+        if (!sequence.isEmpty()) {
             DataStep previousStep = sequence.get(sequence.size() - 1);
             if (!(previousStep instanceof EndEntryDataStep)) {
                 sequence.add(new EndEntryDataStep());

@@ -39,7 +39,7 @@ public class Use implements Command {
     @Override
     public void execute(final List<String> args) throws ExitException, CommandException {
         requireArgumentCount(args, 0, 1);
-        String databaseName = args.size() == 0 ? DatabaseManager.ABSENT_DB_NAME : args.get(0);
+        String databaseName = args.isEmpty() ? DatabaseManager.ABSENT_DB_NAME : args.get(0);
         databaseManager.setActiveDatabase(stripEnclosingBackTicks(databaseName));
     }
 

@@ -105,11 +105,11 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
             TemporalUnit unit, TemporalValue input, MapValue fields, Supplier<ZoneId> defaultZone) {
         LocalTime localTime = input.getLocalTimePart();
         LocalTime truncatedLT = assertValidUnit(unit, () -> localTime.truncatedTo(unit));
-        if (fields.size() == 0) {
+        if (fields.isEmpty()) {
             return localTime(truncatedLT);
         } else {
             return updateFieldMapWithConflictingSubseconds(fields, unit, truncatedLT, (mapValue, localTime1) -> {
-                if (mapValue.size() == 0) {
+                if (mapValue.isEmpty()) {
                     return localTime(localTime1);
                 } else {
                     return build(mapValue.updatedWith("time", localTime(localTime1)), defaultZone);

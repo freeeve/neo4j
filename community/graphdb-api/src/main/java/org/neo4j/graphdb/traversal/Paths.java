@@ -188,7 +188,7 @@ public class Paths {
                 for (String key : propertyKeys) {
                     Object value = entity.getProperty(key, null);
                     if (value != null) {
-                        if (builder.length() > 0) {
+                        if (!builder.isEmpty()) {
                             builder.append(',');
                         }
                         builder.append(value);
@@ -287,7 +287,7 @@ public class Paths {
         }
         StringBuilder sb = new StringBuilder();
         for (Relationship rel : path.relationships()) {
-            if (sb.length() == 0) {
+            if (sb.isEmpty()) {
                 sb.append("(?)");
             }
             sb.append("-[?,").append(rel.getId()).append("]-(?)");

@@ -200,7 +200,7 @@ abstract class BFS<STEPS> implements AutoCloseable {
 
         @Override
         State searchForIntersectionInNextLevel() {
-            if (currentLevel.size() == 0) {
+            if (currentLevel.isEmpty()) {
                 return State.THERE_IS_NO_INTERSECTION;
             }
 

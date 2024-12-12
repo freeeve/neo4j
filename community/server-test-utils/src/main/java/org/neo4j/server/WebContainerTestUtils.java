@@ -79,7 +79,7 @@ public final class WebContainerTestUtils {
     public static String asOneLine(Map<String, String> properties) {
         StringBuilder builder = new StringBuilder();
         for (Map.Entry<String, String> property : properties.entrySet()) {
-            builder.append(builder.length() > 0 ? "," : "");
+            builder.append(builder.isEmpty() ? "" : ",");
             builder.append(property.getKey()).append('=').append(property.getValue());
         }
         return builder.toString();

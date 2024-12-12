@@ -122,7 +122,7 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
             TemporalUnit unit, TemporalValue input, MapValue fields, Supplier<ZoneId> defaultZone) {
         LocalDate localDate = input.getDatePart();
         DateValue truncated = date(truncateTo(localDate, unit));
-        if (fields.size() == 0) {
+        if (fields.isEmpty()) {
             return truncated;
         } else {
             MapValue updatedFields = fields.updatedWith("date", truncated);

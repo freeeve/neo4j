@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 import org.neo4j.logging.InternalLog;
 
 public final class LogMessageUtil {
-    public static int LOG_LINE_MAX_LENGTH =
+    public static final int LOG_LINE_MAX_LENGTH =
             getInteger(getProperty("log4j.layout.jsonTemplate.maxStringLength"), 32 * 1024);
     private static final Pattern SLF4J_PLACEHOLDER = Pattern.compile("\\{}");
 

@@ -202,7 +202,7 @@ public abstract class BaseToObjectValueWriter<E extends Exception> implements An
     public void writePathReference(List<VirtualNodeValue> nodes, List<VirtualRelationshipValue> relationships)
             throws E {
         assert nodes != null;
-        assert nodes.size() > 0;
+        assert !nodes.isEmpty();
         assert relationships != null;
         assert nodes.size() == relationships.size() + 1;
 

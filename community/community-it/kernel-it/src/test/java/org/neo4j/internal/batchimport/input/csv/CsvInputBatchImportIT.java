@@ -299,7 +299,7 @@ class CsvInputBatchImportIT {
         }
         StringBuilder builder = new StringBuilder();
         for (String label : labels) {
-            builder.append(builder.length() > 0 ? ";" : "").append(label);
+            builder.append(builder.isEmpty() ? "" : ";").append(label);
         }
         return builder.toString();
     }

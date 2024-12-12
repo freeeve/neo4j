@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.LongAccumulator;
  */
 public class HighWaterMarkMemoryPool extends DelegatingMemoryPool {
 
-    public static HighWaterMarkMemoryPool NO_TRACKING = new HighWaterMarkMemoryPool(MemoryPools.NO_TRACKING);
+    public static final HighWaterMarkMemoryPool NO_TRACKING = new HighWaterMarkMemoryPool(MemoryPools.NO_TRACKING);
 
     LongAccumulator highWaterMark = new LongAccumulator(Long::max, 0L);
 

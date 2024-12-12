@@ -35,12 +35,12 @@ public class DbInfoImpl extends DbInfo {
 
     private void initializeQueryPoller() {
         this.queryPoller = new QueryPoller(boltStateHandler);
-        var fetchDataSummary = new QueryPoller.PollingQuery(QueryPoller.fetchDataSummary, records -> {
+        var fetchDataSummary = new QueryPoller.PollingQuery(QueryPoller.FETCH_DATA_SUMMARY, records -> {
             this.labels = records.get(0).get("result").asList(Value::asString);
             this.relationshipTypes = records.get(1).get("result").asList(Value::asString);
             this.propertyKeys = records.get(2).get("result").asList(Value::asString);
         });
-        var fetchProcedures = new QueryPoller.PollingQuery(QueryPoller.fetchProcedures, records -> {
+        var fetchProcedures = new QueryPoller.PollingQuery(QueryPoller.FETCH_PROCEDURES, records -> {
             this.procedures = new HashMap<>();
             for (var record : records) {
                 var procedureName = record.get("name").asString();
@@ -49,10 +49,10 @@ public class DbInfoImpl extends DbInfo {
                 this.procedures.put(procedureName, new Neo4jProcedure(returnDescription));
             }
         });
-        var fetchFunctions = new QueryPoller.PollingQuery(QueryPoller.fetchFunctions, records -> {
+        var fetchFunctions = new QueryPoller.PollingQuery(QueryPoller.FETCH_FUNCTIONS, records -> {
             this.functions = records.stream().map(r -> r.get("name").asString()).toList();
         });
-        var fetchDatabases = new QueryPoller.PollingQuery(QueryPoller.fetchDatabases, records -> {
+        var fetchDatabases = new QueryPoller.PollingQuery(QueryPoller.FETCH_DATABASES, records -> {
             this.databaseNames =
                     records.stream().map(r -> r.get("name").asString()).toList();
             this.aliasNames = records.stream()
@@ -66,10 +66,10 @@ public class DbInfoImpl extends DbInfo {
                             }))
                     .toList();
         });
-        var fetchRoles = new QueryPoller.PollingQuery(QueryPoller.fetchRoles, records -> {
+        var fetchRoles = new QueryPoller.PollingQuery(QueryPoller.FETCH_ROLES, records -> {
             this.roleNames = records.stream().map(r -> r.get("role").asString()).toList();
         });
-        var fetchUsers = new QueryPoller.PollingQuery(QueryPoller.fetchUsers, records -> {
+        var fetchUsers = new QueryPoller.PollingQuery(QueryPoller.FETCH_USERS, records -> {
             this.userNames = records.stream().map(r -> r.get("user").asString()).toList();
         });
 

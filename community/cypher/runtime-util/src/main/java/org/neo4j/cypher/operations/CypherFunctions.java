@@ -973,7 +973,7 @@ public final class CypherFunctions {
         if (original == NO_VALUE || separator == NO_VALUE) {
             return NO_VALUE;
         } else if (original instanceof TextValue asText) {
-            if (asText.length() == 0) {
+            if (asText.isEmpty()) {
                 return VirtualValues.list(EMPTY_STRING);
             }
             if (separator instanceof SequenceValue separatorList) {

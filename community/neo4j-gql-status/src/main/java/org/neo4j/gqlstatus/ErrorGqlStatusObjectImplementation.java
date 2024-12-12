@@ -144,7 +144,7 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
             sb.append(indent).append(line).append("\n");
         }
 
-        if (sb.length() > 0) {
+        if (!sb.isEmpty()) {
             sb.setLength(sb.length() - 1);
         }
 

@@ -140,7 +140,7 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
             TemporalUnit unit, TemporalValue input, MapValue fields, Supplier<ZoneId> defaultZone) {
         OffsetTime time = input.getTimePart(defaultZone);
         OffsetTime truncatedOT = assertValidUnit(unit, () -> time.truncatedTo(unit));
-        if (fields.size() == 0) {
+        if (fields.isEmpty()) {
             return time(truncatedOT);
         } else {
             // Timezone needs some special handling, since the builder will shift keeping the instant instead of the
@@ -154,7 +154,7 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
             }
 
             return updateFieldMapWithConflictingSubseconds(fields, unit, truncatedOT, (mapValue, offsetTime) -> {
-                if (mapValue.size() == 0) {
+                if (mapValue.isEmpty()) {
                     return time(offsetTime);
                 } else {
                     return build(mapValue.updatedWith("time", time(offsetTime)), defaultZone);

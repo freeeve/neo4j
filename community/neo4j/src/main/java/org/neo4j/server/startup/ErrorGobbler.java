@@ -73,7 +73,7 @@ class ErrorGobbler extends Thread {
         try {
             String line;
             while ((line = childProcessStdErr.readLine()) != null) {
-                if (line.length() > 0 && line.charAt(0) == FULLY_FLEDGED) {
+                if (!line.isEmpty() && line.charAt(0) == FULLY_FLEDGED) {
                     success = true;
                     blockParent.countDown();
                 } else {

@@ -115,7 +115,7 @@ class CommandPrimer {
     }
 
     private Action touchFile() {
-        if (mappedFiles.size() > 0) {
+        if (!mappedFiles.isEmpty()) {
             final Path file = mappedFiles.get(rng.nextInt(mappedFiles.size()));
             return new Action(Command.Touch, "[file=%s]", file.getFileName()) {
                 @Override
@@ -144,7 +144,7 @@ class CommandPrimer {
     }
 
     private Action flushFile() {
-        if (mappedFiles.size() > 0) {
+        if (!mappedFiles.isEmpty()) {
             final Path file = mappedFiles.get(rng.nextInt(mappedFiles.size()));
             return new Action(Command.FlushFile, "[file=%s]", file.getFileName()) {
                 @Override
@@ -175,7 +175,7 @@ class CommandPrimer {
     }
 
     private Action unmapFile() {
-        if (mappedFiles.size() > 0) {
+        if (!mappedFiles.isEmpty()) {
             final Path file = mappedFiles.remove(rng.nextInt(mappedFiles.size()));
             return new Action(Command.UnmapFile, "[file=%s]", file) {
                 @Override

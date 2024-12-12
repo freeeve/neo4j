@@ -29,7 +29,7 @@ public record PartitionedMultiScan<INNER extends Cursor, OUTER extends Cursor>(L
 
     @Override
     public int getNumberOfPartitions() {
-        return scans.size() > 0 ? scans.get(0).getNumberOfPartitions() : 0;
+        return scans.isEmpty() ? 0 : scans.get(0).getNumberOfPartitions();
     }
 
     @Override

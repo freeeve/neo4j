@@ -129,11 +129,11 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
 
         LocalDateTime truncatedLDT = LocalDateTime.of(truncatedDate, truncatedTime);
 
-        if (fields.size() == 0) {
+        if (fields.isEmpty()) {
             return localDateTime(truncatedLDT);
         } else {
             return updateFieldMapWithConflictingSubseconds(fields, unit, truncatedLDT, (mapValue, localDateTime) -> {
-                if (mapValue.size() == 0) {
+                if (mapValue.isEmpty()) {
                     return localDateTime(localDateTime);
                 } else {
                     return build(mapValue.updatedWith("datetime", localDateTime(localDateTime)), defaultZone);

@@ -263,7 +263,7 @@ public final class SettingValueParsers {
         }
 
         private static void addToken(List<String> tokens, StringBuilder sb) {
-            if (sb.length() > 0) {
+            if (!sb.isEmpty()) {
                 tokens.add(sb.toString());
                 sb.setLength(0);
             }

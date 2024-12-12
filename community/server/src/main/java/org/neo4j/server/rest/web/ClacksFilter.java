@@ -31,7 +31,7 @@ import javax.servlet.http.HttpServletResponse;
  */
 public class ClacksFilter extends AbstractFilter {
 
-    public static String X_CLACKS_OVERHEAD_HEADER = "X-Clacks-Overhead";
+    public static final String X_CLACKS_OVERHEAD_HEADER = "X-Clacks-Overhead";
 
     private final String clacksNames;
 

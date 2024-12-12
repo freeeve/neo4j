@@ -371,7 +371,7 @@ class FreeListIdProviderTest {
             freelist.releaseId(GENERATION_ONE, GENERATION_TWO, id, CursorCreator.bind(cursor));
         }
         freelist.flush(GENERATION_ONE, GENERATION_TWO, CursorCreator.bind(cursor));
-        assertTrue(expected.size() > 0);
+        assertTrue(!expected.isEmpty());
 
         // WHEN/THEN
         freelist.visitFreelist(

@@ -97,6 +97,6 @@ public class StepStats implements StatsProvider {
                         .append(stat);
             }
         }
-        return name + (builder.length() > 0 ? ":" + builder : "");
+        return name + (builder.isEmpty() ? "" : ":" + builder);
     }
 }

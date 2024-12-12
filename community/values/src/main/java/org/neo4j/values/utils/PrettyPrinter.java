@@ -113,7 +113,7 @@ public class PrettyPrinter implements AnyValueWriter<RuntimeException> {
             append(labels.stringValue(i));
             sep = "";
         }
-        if (properties.size() > 0) {
+        if (!properties.isEmpty()) {
             append(" ");
             properties.writeTo(this);
         }
@@ -144,7 +144,7 @@ public class PrettyPrinter implements AnyValueWriter<RuntimeException> {
         append(elementId);
         append(" :");
         append(type.stringValue());
-        if (properties.size() > 0) {
+        if (!properties.isEmpty()) {
             append(" ");
             properties.writeTo(this);
         }
@@ -215,7 +215,7 @@ public class PrettyPrinter implements AnyValueWriter<RuntimeException> {
     @Override
     public void writePathReference(List<VirtualNodeValue> nodes, List<VirtualRelationshipValue> relationships)
             throws RuntimeException {
-        if (nodes.size() == 0) {
+        if (nodes.isEmpty()) {
             return;
         }
         // Path guarantees that nodes.length = edges.length = 1

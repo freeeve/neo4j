@@ -58,7 +58,7 @@ public class GenericStatsProvider implements StatsProvider {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         for (KeyStatistics stat : stats) {
-            builder.append(builder.length() > 0 ? ", " : "")
+            builder.append(builder.isEmpty() ? "" : ", ")
                     .append(format("%s: %s", stat.key().shortName(), stat.stat()));
         }
         return builder.toString();

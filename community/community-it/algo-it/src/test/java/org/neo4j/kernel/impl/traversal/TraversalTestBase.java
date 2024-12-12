@@ -180,7 +180,7 @@ abstract class TraversalTestBase {
         public String represent(Path item) {
             StringBuilder builder = new StringBuilder();
             for (Node node : item.nodes()) {
-                builder.append(builder.length() > 0 ? "," : "");
+                builder.append(builder.isEmpty() ? "" : ",");
                 builder.append(nodes.represent(node));
             }
             return builder.toString();
@@ -249,7 +249,7 @@ abstract class TraversalTestBase {
     private static <T> String join(String delimiter, T... items) {
         StringBuilder buffer = new StringBuilder();
         for (T item : items) {
-            if (buffer.length() > 0) {
+            if (!buffer.isEmpty()) {
                 buffer.append(delimiter);
             }
             buffer.append(item);

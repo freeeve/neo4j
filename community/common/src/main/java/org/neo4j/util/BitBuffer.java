@@ -129,7 +129,7 @@ public final class BitBuffer {
         StringBuilder builder = new StringBuilder();
         for (int longIndex = longs.length - 1; longIndex >= 0; longIndex--) {
             long value = longs[longIndex];
-            if (builder.length() > 0) {
+            if (!builder.isEmpty()) {
                 builder.append('\n');
             }
             builder.append(longIndex);

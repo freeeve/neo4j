@@ -26,7 +26,7 @@ import org.neo4j.common.EntityType;
 
 public class ElementIdDecoderV1 implements ElementIdDecoder.VersionedElementIdDecoder {
 
-    public static byte ELEMENT_ID_FORMAT_VERSION = 1;
+    public static final byte ELEMENT_ID_FORMAT_VERSION = 1;
 
     @Override
     public long nodeId(String elementId) {
