@@ -57,6 +57,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.exceptions.CypherExecutionException;
 import org.neo4j.function.ThrowingFunction;
 import org.neo4j.graphdb.schema.AnyTokens;
 import org.neo4j.graphdb.schema.ConstraintCreator;
@@ -82,7 +83,9 @@ import org.neo4j.kernel.DeadlockDetectedException;
 import org.neo4j.kernel.api.exceptions.schema.AlreadyConstrainedException;
 import org.neo4j.kernel.api.exceptions.schema.AlreadyIndexedException;
 import org.neo4j.kernel.api.exceptions.schema.ConstraintWithNameAlreadyExistsException;
+import org.neo4j.kernel.api.exceptions.schema.DropIndexFailureException;
 import org.neo4j.kernel.api.exceptions.schema.EquivalentSchemaRuleAlreadyExistsException;
+import org.neo4j.kernel.api.exceptions.schema.IndexBelongsToConstraintException;
 import org.neo4j.kernel.api.exceptions.schema.IndexWithNameAlreadyExistsException;
 import org.neo4j.kernel.api.exceptions.schema.NoSuchConstraintException;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
@@ -93,6 +96,7 @@ import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
 import org.neo4j.kernel.impl.index.schema.IndexEntryTestUtil;
 import org.neo4j.kernel.impl.index.schema.IndexFiles;
 import org.neo4j.kernel.impl.locking.forseti.ForsetiClient;
+import org.neo4j.kernel.impl.query.QueryExecutionKernelException;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.test.Barrier;
@@ -581,6 +585,86 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         try (Transaction tx = db.beginTx()) {
             assertThat(getIndexes(tx, label)).doesNotContain(index);
         }
+    }
+
+    @ParameterizedTest()
+    @EnumSource(SchemaTxStrategy.class)
+    void droppingIndexThatBelongsToConstraintShouldGiveHelpfulException(SchemaTxStrategy txStrategy) {
+        // TODO comment: we have such a deep exception chain, with various non-GQL exceptions along the way.
+        //  DropIndexFailureException will be updated later on, but I haven't found anything on
+        //  ConstraintViolationException in the spreadsheet. And IllegalStateException obviously neither.
+        //  Does the user get the correct GQL status? I guess not.
+        //  Does it matter? This is Core API, and via Cypher (test below) it looks fine.
+        final IllegalStateException exception = txStrategy.execute(
+                db,
+                schema -> schema.constraintFor(label)
+                        .assertPropertyIsUnique(propertyKey)
+                        .withName("MyConstraint")
+                        .create(),
+                schema -> schema.getIndexByName("MyConstraint").drop(),
+                IllegalStateException.class);
+
+        assertThat(exception.getMessage())
+                .contains(
+                        "Constraint indexes cannot be dropped directly, instead drop the owning uniqueness constraint.");
+        assertThat(exception.getCause()).isInstanceOf(ConstraintViolationException.class);
+
+        ConstraintViolationException c1 = (ConstraintViolationException) exception.getCause();
+        assertThat(c1.getMessage())
+                .contains("Unable to drop index: Index belongs to constraint: (:MY_LABEL {my_property_key})");
+        assertThat(c1.getCause()).isInstanceOf(DropIndexFailureException.class);
+
+        DropIndexFailureException c2 = (DropIndexFailureException) c1.getCause();
+        assertThat(c2.getMessage())
+                .contains("Unable to drop index: Index belongs to constraint: (:MY_LABEL {my_property_key})");
+        assertThat(c2.getCause()).isInstanceOf(IndexBelongsToConstraintException.class);
+
+        IndexBelongsToConstraintException c3 = (IndexBelongsToConstraintException) c2.getCause();
+        assertThat(c3.getMessage()).contains("Index belongs to constraint: (:MY_LABEL {my_property_key})");
+        assertThat(c3.getCause()).isNull();
+        assertThat(c3.gqlStatus()).isEqualTo("22N73");
+        assertThat(c3.statusDescription())
+                .isEqualTo(
+                        "error: data exception - constraint conflicts with existing index. Constraint conflicts with already existing index '(:MY_LABEL {my_property_key})'.");
+        assertThat(c3.gqlStatusObject().cause()).isNotPresent();
+    }
+
+    @ParameterizedTest()
+    @EnumSource(SchemaAndCypherTxStrategy.class)
+    void droppingIndexViaCypherThatBelongsToConstraintShouldGiveHelpfulException(SchemaAndCypherTxStrategy txStrategy) {
+        final QueryExecutionException exception = txStrategy.execute(
+                db,
+                schema -> schema.constraintFor(label)
+                        .assertPropertyIsUnique(propertyKey)
+                        .withName("MyConstraint")
+                        .create(),
+                "DROP INDEX MyConstraint",
+                QueryExecutionException.class);
+
+        assertThat(exception.getMessage())
+                .contains("Unable to drop index: Index belongs to constraint: `MyConstraint`");
+        assertThat(exception.getCause()).isInstanceOf(QueryExecutionKernelException.class);
+
+        QueryExecutionKernelException c1 = (QueryExecutionKernelException) exception.getCause();
+        assertThat(c1.getMessage()).contains("Unable to drop index: Index belongs to constraint: `MyConstraint`");
+        assertThat(c1.getCause()).isInstanceOf(CypherExecutionException.class);
+
+        CypherExecutionException c2 = (CypherExecutionException) c1.getCause();
+        assertThat(c2.getMessage()).contains("Unable to drop index: Index belongs to constraint: `MyConstraint`");
+        assertThat(c2.getCause()).isInstanceOf(DropIndexFailureException.class);
+
+        DropIndexFailureException c3 = (DropIndexFailureException) c2.getCause();
+        assertThat(c3.getMessage()).contains("Unable to drop index: Index belongs to constraint: `MyConstraint`");
+        assertThat(c3.getCause()).isInstanceOf(IndexBelongsToConstraintException.class);
+
+        IndexBelongsToConstraintException c4 = (IndexBelongsToConstraintException) c3.getCause();
+        assertThat(c4.getMessage()).contains("Index belongs to constraint: `MyConstraint`");
+        assertThat(c4.getCause()).isNull();
+        assertThat(c4.gqlStatus()).isEqualTo("22N73");
+        assertThat(c4.statusDescription())
+                .isEqualTo(
+                        "error: data exception - constraint conflicts with existing index. Constraint conflicts with already existing index 'MyConstraint'.");
+        assertThat(c4.gqlStatusObject().cause()).isNotPresent();
     }
 
     @ParameterizedTest

@@ -1787,11 +1787,25 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         exclusiveSchemaLock(index.schema());
         exclusiveSchemaNameLock(index.getName());
         assertIndexExistsForDrop(index);
-        if (index.isUnique() && schemaRead.indexGetOwningUniquenessConstraintId(index) != null) {
-            IndexBelongsToConstraintException cause = new IndexBelongsToConstraintException(index.schema());
+        if (index.isUnique() && indexHasOwningConstraint(index)) {
+            IndexBelongsToConstraintException cause =
+                    IndexBelongsToConstraintException.indexBelongsToConstraint(index.schema(), token);
             throw new DropIndexFailureException("Unable to drop index: " + cause.getUserMessage(token), cause);
         }
         ktx.txState().indexDoDrop(index);
+    }
+
+    private boolean indexHasOwningConstraint(IndexDescriptor index) {
+        // First check tx state
+        for (var it = ktx.txState().constraintIndexesCreatedInTx(); it.hasNext(); ) {
+            var constraintOwnedIndex = it.next();
+            if (index.equals(constraintOwnedIndex)) {
+                return true;
+            }
+        }
+        // Otherwise check schema read - this call alone does not work since a constraint created in this TX
+        // does not have an ID yet.
+        return schemaRead.indexGetOwningUniquenessConstraintId(index) != null;
     }
 
     private void assertIndexExistsForDrop(IndexDescriptor index) throws DropIndexFailureException {
@@ -1812,8 +1826,9 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         }
         exclusiveSchemaLock(index.schema());
         assertIndexExistsForDrop(index);
-        if (index.isUnique() && schemaRead.indexGetOwningUniquenessConstraintId(index) != null) {
-            IndexBelongsToConstraintException cause = new IndexBelongsToConstraintException(indexName, index.schema());
+        if (index.isUnique() && indexHasOwningConstraint(index)) {
+            IndexBelongsToConstraintException cause =
+                    IndexBelongsToConstraintException.indexBelongsToConstraint(indexName);
             throw new DropIndexFailureException("Unable to drop index: " + cause.getUserMessage(token), cause);
         }
         ktx.txState().indexDoDrop(index);

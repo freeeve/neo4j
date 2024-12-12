@@ -145,6 +145,52 @@ public class SchemaAcceptanceTestBase {
                 Class<EXCEPTION> expectedException);
     }
 
+    protected enum SchemaAndCypherTxStrategy {
+        SEPARATE_TX {
+            @Override
+            public <EXCEPTION extends Throwable> EXCEPTION execute(
+                    GraphDatabaseService db,
+                    Consumer<Schema> firstSchemaRule,
+                    String cypherQuery,
+                    Class<EXCEPTION> expectedException) {
+                try (Transaction tx = db.beginTx()) {
+                    firstSchemaRule.accept(tx.schema());
+                    tx.commit();
+                }
+                return assertThrows(expectedException, () -> {
+                    try (Transaction tx = db.beginTx()) {
+                        // Execute and consume all results
+                        tx.execute(cypherQuery).resultAsString();
+                        tx.commit();
+                    }
+                });
+            }
+        },
+        SAME_TX {
+            @Override
+            public <EXCEPTION extends Throwable> EXCEPTION execute(
+                    GraphDatabaseService db,
+                    Consumer<Schema> firstSchemaRule,
+                    String cypherQuery,
+                    Class<EXCEPTION> expectedException) {
+                return assertThrows(expectedException, () -> {
+                    try (Transaction tx = db.beginTx()) {
+                        firstSchemaRule.accept(tx.schema());
+                        // Execute and consume all results
+                        tx.execute(cypherQuery).resultAsString();
+                        tx.commit();
+                    }
+                });
+            }
+        };
+
+        public abstract <EXCEPTION extends Throwable> EXCEPTION execute(
+                GraphDatabaseService db,
+                Consumer<Schema> firstSchemaRule,
+                String cypherQuery,
+                Class<EXCEPTION> expectedException);
+    }
+
     @FunctionalInterface
     protected interface ConstraintCreateOperation {
         ConstraintDefinition createConstraint(Schema schema, String prop, String name);

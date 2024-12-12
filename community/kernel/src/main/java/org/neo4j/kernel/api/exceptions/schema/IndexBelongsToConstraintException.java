@@ -23,49 +23,38 @@ import static java.lang.String.format;
 
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.schema.SchemaKernelException;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class IndexBelongsToConstraintException extends SchemaKernelException {
-    private final SchemaDescriptor descriptor;
-    private final String indexName;
     private static final String MESSAGE_SCHEMA = "Index belongs to constraint: %s";
     private static final String MESSAGE_NAME = "Index belongs to constraint: `%s`";
 
-    public IndexBelongsToConstraintException(SchemaDescriptor descriptor) {
-        super(Status.Schema.ForbiddenOnConstraintIndex, format(MESSAGE_SCHEMA, descriptor));
-        this.descriptor = descriptor;
-        this.indexName = null;
+    private IndexBelongsToConstraintException(String message, ErrorGqlStatusObject errorGqlStatusObject) {
+        super(errorGqlStatusObject, Status.Schema.ForbiddenOnConstraintIndex, message);
     }
 
-    public IndexBelongsToConstraintException(ErrorGqlStatusObject gqlStatusObject, SchemaDescriptor descriptor) {
-        super(gqlStatusObject, Status.Schema.ForbiddenOnConstraintIndex, format(MESSAGE_SCHEMA, descriptor));
-
-        this.descriptor = descriptor;
-        this.indexName = null;
+    // KNL-019
+    public static IndexBelongsToConstraintException indexBelongsToConstraint(
+            SchemaDescriptor descriptor, TokenNameLookup tokenNameLookup) {
+        var userDescription = descriptor.userDescription(tokenNameLookup);
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N73)
+                .withParam(GqlParams.StringParam.idxDescrOrName, userDescription)
+                .build();
+        var message = format(MESSAGE_SCHEMA, userDescription);
+        return new IndexBelongsToConstraintException(message, gql);
     }
 
-    public IndexBelongsToConstraintException(String indexName, SchemaDescriptor descriptor) {
-        super(Status.Schema.ForbiddenOnConstraintIndex, format(MESSAGE_NAME, indexName));
-        this.descriptor = descriptor;
-        this.indexName = indexName;
-    }
-
-    public IndexBelongsToConstraintException(
-            ErrorGqlStatusObject gqlStatusObject, String indexName, SchemaDescriptor descriptor) {
-        super(gqlStatusObject, Status.Schema.ForbiddenOnConstraintIndex, format(MESSAGE_NAME, indexName));
-
-        this.descriptor = descriptor;
-        this.indexName = indexName;
-    }
-
-    @Override
-    public String getUserMessage(TokenNameLookup tokenNameLookup) {
-        if (indexName == null) {
-            return format(MESSAGE_SCHEMA, descriptor.userDescription(tokenNameLookup));
-        } else {
-            return format(MESSAGE_NAME, indexName);
-        }
+    // KNL-020
+    public static IndexBelongsToConstraintException indexBelongsToConstraint(String indexName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N73)
+                .withParam(GqlParams.StringParam.idxDescrOrName, indexName)
+                .build();
+        var message = format(MESSAGE_NAME, indexName);
+        return new IndexBelongsToConstraintException(message, gql);
     }
 }
