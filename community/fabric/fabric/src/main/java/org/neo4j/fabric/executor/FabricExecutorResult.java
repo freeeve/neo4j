@@ -19,6 +19,8 @@
  */
 package org.neo4j.fabric.executor;
 
+import static org.neo4j.notifications.StandardGqlStatusObject.isStandardGqlStatusCode;
+
 import java.util.HashSet;
 import java.util.List;
 import org.neo4j.fabric.stream.FragmentResult;
@@ -30,6 +32,7 @@ import org.neo4j.graphdb.GqlStatusObject;
 import org.neo4j.graphdb.Notification;
 import org.neo4j.graphdb.QueryExecutionType;
 import org.neo4j.notifications.NotificationImplementation;
+import org.neo4j.notifications.StandardGqlStatusObject;
 
 class FabricExecutorResult implements StatementResult {
 
@@ -37,6 +40,7 @@ class FabricExecutorResult implements StatementResult {
     private final List<NotificationImplementation> planNotifications;
     private final boolean produceResults;
     private final QueryStatementLifecycles.StatementLifecycle lifecycle;
+    private StandardGqlStatusObject standardGqlStatusObject;
 
     FabricExecutorResult(
             FragmentResult fragmentResult,
@@ -47,6 +51,11 @@ class FabricExecutorResult implements StatementResult {
         this.planNotifications = planNotifications;
         this.produceResults = produceResults;
         this.lifecycle = lifecycle;
+        if (produceResults) {
+            standardGqlStatusObject = StandardGqlStatusObject.NO_DATA;
+        } else {
+            standardGqlStatusObject = StandardGqlStatusObject.OMITTED_RESULT;
+        }
     }
 
     @Override
@@ -65,6 +74,8 @@ class FabricExecutorResult implements StatementResult {
                 var record = fragmentResult.next();
                 if (record == null) {
                     lifecycle.endSuccess();
+                } else {
+                    standardGqlStatusObject = StandardGqlStatusObject.SUCCESS;
                 }
 
                 return record;
@@ -89,7 +100,10 @@ class FabricExecutorResult implements StatementResult {
 
         var mergedGqlStatusObjects = new HashSet<GqlStatusObject>();
         mergedGqlStatusObjects.addAll(planNotifications);
-        mergedGqlStatusObjects.addAll(executionSummary.getGqlStatusObjects());
+        mergedGqlStatusObjects.addAll(executionSummary.getGqlStatusObjects().stream()
+                .filter(gso -> !isStandardGqlStatusCode(gso.gqlStatus()))
+                .toList());
+        mergedGqlStatusObjects.add(standardGqlStatusObject);
         return new MergedSummary(
                 null, executionSummary.getQueryStatistics(), mergedNotifications, mergedGqlStatusObjects);
     }

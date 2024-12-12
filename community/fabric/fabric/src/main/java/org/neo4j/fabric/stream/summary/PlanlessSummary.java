@@ -39,12 +39,10 @@ public record PlanlessSummary(
 
     /**
      * Merges the two summaries.
-     * Standard GQL status codes are taken only from the summary2.
-     * The reason for that in many cases we want to take the standard
-     * GQL status codes only from one summary.
-     * For example when we merge summary from a subquery, we need to present only
-     * the standard GQL status codes from the outer query. So a subquery summary
-     * should be submitted as summary1 into this method.
+     * Standard GQL status codes are omitted.
+     * The reason for that the standard GQL status codes for Composite queries
+     * are not determined from GQL status codes of query fragments,
+     * so preserving the standard GQL status codes on this level is useless.
      */
     public static PlanlessSummary merge(PlanlessSummary summary1, PlanlessSummary summary2) {
         var mergedStatistics = new MergedQueryStatistics();
@@ -59,7 +57,9 @@ public record PlanlessSummary(
         mergedGqlStatusObjects.addAll(summary1.getGqlStatusObjects().stream()
                 .filter(gso -> !isStandardGqlStatusCode(gso.gqlStatus()))
                 .toList());
-        mergedGqlStatusObjects.addAll(summary2.getGqlStatusObjects());
+        mergedGqlStatusObjects.addAll(summary2.getGqlStatusObjects().stream()
+                .filter(gso -> !isStandardGqlStatusCode(gso.gqlStatus()))
+                .toList());
 
         return new PlanlessSummary(mergedNotifications, mergedGqlStatusObjects, mergedStatistics);
     }

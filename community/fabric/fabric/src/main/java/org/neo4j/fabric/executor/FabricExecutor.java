@@ -24,6 +24,7 @@ import static scala.jdk.javaapi.CollectionConverters.asJava;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -52,6 +53,7 @@ import org.neo4j.fabric.stream.summary.MergedSummary;
 import org.neo4j.fabric.stream.summary.PlanlessSummary;
 import org.neo4j.fabric.transaction.FabricTransaction;
 import org.neo4j.fabric.transaction.TransactionMode;
+import org.neo4j.graphdb.GqlStatusObject;
 import org.neo4j.graphdb.QueryStatistics;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
 import org.neo4j.kernel.impl.query.NotificationConfiguration;
@@ -60,6 +62,7 @@ import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.notifications.NotificationImplementation;
+import org.neo4j.notifications.StandardGqlStatusObject;
 import org.neo4j.scheduler.CallableExecutor;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.virtual.MapValue;
@@ -222,13 +225,16 @@ public class FabricExecutor {
             if (plan.executionType() == FabricPlan.EXPLAIN() && plan.inCompositeContext()) {
                 lifecycle.endSuccess();
 
+                Set<GqlStatusObject> gqlStatusObjects = new HashSet<>(planNotifications);
+                // EXPLAIN queries always give OMITTED RESULT
+                gqlStatusObjects.add(StandardGqlStatusObject.OMITTED_RESULT);
                 return StatementResults.emptyStream(
                         asJava(query.outputColumns()),
                         new MergedSummary(
                                 plan.query().description(),
                                 QueryStatistics.EMPTY,
                                 new HashSet<>(planNotifications),
-                                new HashSet<>(planNotifications)),
+                                gqlStatusObjects),
                         EffectiveQueryType.queryExecutionType(plan, accessMode));
             } else {
                 FragmentResult fragmentResult = run(query, null);
