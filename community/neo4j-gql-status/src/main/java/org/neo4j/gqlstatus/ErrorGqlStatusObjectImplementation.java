@@ -162,7 +162,9 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
         }
 
         public Builder withParam(GqlParams.StringParam param, String value) {
-            this.paramMap.put(param, value);
+            if (value != null) {
+                this.paramMap.put(param, value);
+            }
             return this;
         }
 
@@ -172,17 +174,16 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
         }
 
         public Builder withParam(GqlParams.NumberParam param, Number value) {
-            this.paramMap.put(param, value);
+            if (value != null) {
+                this.paramMap.put(param, value);
+            }
             return this;
         }
 
         public Builder withParam(GqlParams.ListParam param, List<?> value) {
-            this.paramMap.put(param, value);
-            return this;
-        }
-
-        Builder withParamMap(Map<GqlParams.GqlParam, Object> paramMap) {
-            this.paramMap = paramMap;
+            if (value != null) {
+                this.paramMap.put(param, value);
+            }
             return this;
         }
 
