@@ -2447,6 +2447,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             NodeLabelExistenceSchemaDescriptor schemaDescriptor, String name, int requiredLabelId)
             throws KernelException {
         exclusiveSchemaLock(schemaDescriptor);
+        exclusiveLock(ResourceType.LABEL, new long[] {requiredLabelId});
         ktx.assertOpen();
 
         try {
@@ -2473,7 +2474,6 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     private void enforceNodeLabelExistenceConstraint(NodeLabelExistenceConstraintDescriptor descriptor)
             throws KernelException {
-        exclusiveLock(ResourceType.LABEL, new long[] {descriptor.requiredLabelId()});
         var schema = descriptor.schema();
 
         IndexDescriptor index = findUsableTokenIndex(NODE);
