@@ -121,7 +121,7 @@
                         </goals>
                         <configuration>
                             <rules>
-                                <!-- Antlr generates start imports so ignore it -->
+                                <!-- Antlr generates star imports so ignore it -->
                                 <RestrictImports>
                                     <excludedSourceRoot>${basedir}/src/main/java/</excludedSourceRoot>
                                 </RestrictImports>
