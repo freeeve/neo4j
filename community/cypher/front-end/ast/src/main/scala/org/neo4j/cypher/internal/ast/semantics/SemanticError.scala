@@ -1098,6 +1098,22 @@ object SemanticError {
       position
     )
   }
+
+  def variableNotDefined(variableName: String, legacyMessage: String, position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+        .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.StringParam.variable, variableName)
+        .build())
+      .build()
+
+    SemanticError(gql, legacyMessage, position)
+  }
+
+  def variableNotDefined(variableName: String, position: InputPosition): SemanticError = {
+    variableNotDefined(variableName, s"Variable `$variableName` not defined", position)
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

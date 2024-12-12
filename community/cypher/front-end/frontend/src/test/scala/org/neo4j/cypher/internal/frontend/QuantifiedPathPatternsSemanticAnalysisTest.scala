@@ -581,9 +581,17 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
   }
 
   test("MATCH p=(x)-->(y), ((a)-[e]->(b {h: nodes(p)[0].prop}))* (s)-->(u) RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasError(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(6, 1, 7)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+          .atPosition(6, 1, 7)
+          .withParam(GqlParams.StringParam.variable, "p")
+          .build())
+        .build(),
       """From within a quantified path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
-        |In this case, `p` is defined in the same `MATCH` clause as ((a)-[e]->(b {h: (nodes(p)[0]).prop}))*.""".stripMargin
+        |In this case, `p` is defined in the same `MATCH` clause as ((a)-[e]->(b {h: (nodes(p)[0]).prop}))*.""".stripMargin,
+      InputPosition(6, 1, 7)
     )
   }
 

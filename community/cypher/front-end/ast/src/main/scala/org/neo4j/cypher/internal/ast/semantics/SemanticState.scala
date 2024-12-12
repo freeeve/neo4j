@@ -398,7 +398,7 @@ case class SemanticState(
   def ensureVariableDefined(variable: LogicalVariable): Either[SemanticError, SemanticState] =
     this.symbol(variable.name) match {
       case None =>
-        Left(SemanticError(s"Variable `${variable.name}` not defined", variable.position))
+        Left(SemanticError.variableNotDefined(variable.name, variable.position))
       case Some(symbol) =>
         Right(updateVariable(variable, symbol.types, symbol.definition, symbol.uses + SymbolUse(variable)))
     }

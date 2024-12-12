@@ -65,7 +65,7 @@ class PatternComprehensionTest extends SemanticFunSuite {
 
     val result = SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
 
-    result.errors shouldBe Seq(SemanticError("Variable `missing` not defined", pos))
+    result.errors shouldBe Seq(SemanticError.variableNotDefined("missing", pos))
   }
 
   test("inner filter using missing identifier reports error") {
@@ -74,7 +74,7 @@ class PatternComprehensionTest extends SemanticFunSuite {
 
     val result = SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
 
-    result.errors shouldBe Seq(SemanticError("Variable `missing` not defined", pos))
+    result.errors shouldBe Seq(SemanticError.variableNotDefined("missing", pos))
   }
 
   test("pattern can't reuse identifier with different type") {

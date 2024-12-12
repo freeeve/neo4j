@@ -26,8 +26,11 @@ import org.neo4j.cypher.internal.frontend.SemanticAnalysisTest.gql42NA5
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.SubqueryVariableShadowing
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N07
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N71
+import org.neo4j.gqlstatus.GqlParams
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class SubqueryCallSemanticAnalysisTest
     extends CypherFunSuite
@@ -692,8 +695,28 @@ class SubqueryCallSemanticAnalysisTest
         |""".stripMargin
 
     run(query, withMultiGraphs).hasErrors(
-      SemanticError("Variable `y` not defined", p(50, 4, 28)),
-      SemanticError("Variable `x` not defined", p(53, 4, 31))
+      SemanticError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(50, 4, 28)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(50, 4, 28)
+            .withParam(GqlParams.StringParam.variable, "y")
+            .build())
+          .build(),
+        "Variable `y` not defined",
+        p(50, 4, 28)
+      ),
+      SemanticError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(53, 4, 31)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(53, 4, 31)
+            .withParam(GqlParams.StringParam.variable, "x")
+            .build())
+          .build(),
+        "Variable `x` not defined",
+        p(53, 4, 31)
+      )
     )
   }
 
@@ -708,7 +731,17 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN a
         |""".stripMargin
 
-    run(query, withMultiGraphs).hasError("Variable `y` not defined", p(47, 4, 28))
+    run(query, withMultiGraphs).hasError(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(47, 4, 28)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+          .atPosition(47, 4, 28)
+          .withParam(GqlParams.StringParam.variable, "y")
+          .build())
+        .build(),
+      "Variable `y` not defined",
+      p(47, 4, 28)
+    )
   }
 
   test("should allow USE only in leading sub-query position in scoped subquery") {

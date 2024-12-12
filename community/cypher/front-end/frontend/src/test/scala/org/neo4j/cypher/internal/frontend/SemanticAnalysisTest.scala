@@ -560,6 +560,13 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   test("Expressions in view invocations are checked (with feature flag)") {
     val query = "USE graph.byName(2, 'x', y, $x+3) RETURN 1"
     run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true).hasError(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(25, 1, 26)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+          .atPosition(25, 1, 26)
+          .withParam(GqlParams.StringParam.variable, "y")
+          .build())
+        .build(),
       "Variable `y` not defined",
       p(25, 1, 26)
     )
@@ -715,6 +722,13 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   test("Should give helpful error when accessing illegal variable in ORDER BY after WITH DISTINCT") {
     run("MATCH (p) WITH DISTINCT p.email AS mail ORDER BY p.name RETURN mail AS mail")
       .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(49, 1, 50)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(49, 1, 50)
+            .withParam(GqlParams.StringParam.variable, "p")
+            .build())
+          .build(),
         "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
         p(49, 1, 50)
       )
@@ -723,6 +737,13 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   test("Should give helpful error when accessing illegal variable in ORDER BY after WITH with aggregation") {
     run("MATCH (p) WITH collect(p.email) AS mail ORDER BY p.name RETURN mail AS mail")
       .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(49, 1, 50)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(49, 1, 50)
+            .withParam(GqlParams.StringParam.variable, "p")
+            .build())
+          .build(),
         "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
         p(49, 1, 50)
       )
@@ -731,6 +752,13 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   test("Should give helpful error when accessing illegal variable in ORDER BY after RETURN DISTINCT") {
     run("MATCH (p) RETURN DISTINCT p.email AS mail ORDER BY p.name")
       .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(51, 1, 52)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(51, 1, 52)
+            .withParam(GqlParams.StringParam.variable, "p")
+            .build())
+          .build(),
         "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
         p(51, 1, 52)
       )
@@ -739,6 +767,13 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   test("Should give helpful error when accessing illegal variable in ORDER BY after RETURN with aggregation") {
     run("MATCH (p) RETURN collect(p.email) AS mail ORDER BY p.name")
       .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(51, 1, 52)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(51, 1, 52)
+            .withParam(GqlParams.StringParam.variable, "p")
+            .build())
+          .build(),
         "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
         p(51, 1, 52)
       )
@@ -747,6 +782,13 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   test("Should give helpful error when accessing illegal variable in WHERE after WITH DISTINCT") {
     run("MATCH (p) WITH DISTINCT p.email AS mail WHERE p.name IS NOT NULL RETURN mail AS mail")
       .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(46, 1, 47)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(46, 1, 47)
+            .withParam(GqlParams.StringParam.variable, "p")
+            .build())
+          .build(),
         "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
         p(46, 1, 47)
       )
@@ -755,6 +797,13 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   test("Should give helpful error when accessing illegal variable in WHERE after WITH with aggregation") {
     run("MATCH (p) WITH collect(p.email) AS mail WHERE p.name IS NOT NULL RETURN mail AS mail")
       .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(46, 1, 47)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(46, 1, 47)
+            .withParam(GqlParams.StringParam.variable, "p")
+            .build())
+          .build(),
         "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
         p(46, 1, 47)
       )
@@ -764,32 +813,92 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("Should not invent helpful error when accessing undefined variable in ORDER BY after WITH DISTINCT") {
     run("MATCH (p) WITH DISTINCT p.email AS mail ORDER BY q.name RETURN mail AS mail")
-      .hasError("Variable `q` not defined", p(49, 1, 50))
+      .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(49, 1, 50)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(49, 1, 50)
+            .withParam(GqlParams.StringParam.variable, "q")
+            .build())
+          .build(),
+        "Variable `q` not defined",
+        p(49, 1, 50)
+      )
   }
 
   test("Should not invent helpful error when accessing undefined variable in ORDER BY after WITH with aggregation") {
     run("MATCH (p) WITH collect(p.email) AS mail ORDER BY q.name RETURN mail AS mail")
-      .hasError("Variable `q` not defined", p(49, 1, 50))
+      .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(49, 1, 50)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(49, 1, 50)
+            .withParam(GqlParams.StringParam.variable, "q")
+            .build())
+          .build(),
+        "Variable `q` not defined",
+        p(49, 1, 50)
+      )
   }
 
   test("Should not invent helpful error when accessing undefined variable in ORDER BY after RETURN DISTINCT") {
     run("MATCH (p) RETURN DISTINCT p.email AS mail ORDER BY q.name")
-      .hasError("Variable `q` not defined", p(51, 1, 52))
+      .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(51, 1, 52)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(51, 1, 52)
+            .withParam(GqlParams.StringParam.variable, "q")
+            .build())
+          .build(),
+        "Variable `q` not defined",
+        p(51, 1, 52)
+      )
   }
 
   test("Should not invent helpful error when accessing undefined variable in ORDER BY after RETURN with aggregation") {
     run("MATCH (p) RETURN collect(p.email) AS mail ORDER BY q.name")
-      .hasError("Variable `q` not defined", p(51, 1, 52))
+      .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(51, 1, 52)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(51, 1, 52)
+            .withParam(GqlParams.StringParam.variable, "q")
+            .build())
+          .build(),
+        "Variable `q` not defined",
+        p(51, 1, 52)
+      )
   }
 
   test("Should not invent helpful error when accessing undefined variable in WHERE after WITH DISTINCT") {
     run("MATCH (p) WITH DISTINCT p.email AS mail WHERE q.name IS NOT NULL RETURN mail AS mail")
-      .hasError("Variable `q` not defined", p(46, 1, 47))
+      .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(46, 1, 47)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(46, 1, 47)
+            .withParam(GqlParams.StringParam.variable, "q")
+            .build())
+          .build(),
+        "Variable `q` not defined",
+        p(46, 1, 47)
+      )
   }
 
   test("Should not invent helpful error when accessing undefined variable in WHERE after WITH with aggregation") {
     run("MATCH (p) WITH collect(p.email) AS mail WHERE q.name IS NOT NULL RETURN mail AS mail")
-      .hasError("Variable `q` not defined", p(46, 1, 47))
+      .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(46, 1, 47)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(46, 1, 47)
+            .withParam(GqlParams.StringParam.variable, "q")
+            .build())
+          .build(),
+        "Variable `q` not defined",
+        p(46, 1, 47)
+      )
   }
 
   // Empty tokens for node property
@@ -1322,7 +1431,13 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("Query with only importing WITH") {
     run("WITH a").hasErrors(
-      null,
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(5, 1, 6)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+          .atPosition(5, 1, 6)
+          .withParam(GqlParams.StringParam.variable, "a")
+          .build())
+        .build(),
       "Variable `a` not defined",
       p(5, 1, 6),
       getGql42001_42N71(0, 1, 1),
@@ -1408,12 +1523,32 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("Should check for undefined variables in type predicate expression") {
     run("MATCH (n) WHERE x IS :: BOOL RETURN 1")
-      .hasError("Variable `x` not defined", p(16, 1, 17))
+      .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(16, 1, 17)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(16, 1, 17)
+            .withParam(GqlParams.StringParam.variable, "x")
+            .build())
+          .build(),
+        "Variable `x` not defined",
+        p(16, 1, 17)
+      )
   }
 
   test("Should check for undefined variables in negative type predicate expression") {
     run("MATCH (n) WHERE x IS NOT :: BOOL RETURN 1")
-      .hasError("Variable `x` not defined", p(16, 1, 17))
+      .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(16, 1, 17)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(16, 1, 17)
+            .withParam(GqlParams.StringParam.variable, "x")
+            .build())
+          .build(),
+        "Variable `x` not defined",
+        p(16, 1, 17)
+      )
   }
 
   test("should fail for normalize() with incorrect arguments") {
@@ -1428,12 +1563,32 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("Should check for undefined variables in normalized predicate expression") {
     run("MATCH (n) WHERE x IS NORMALIZED RETURN 1")
-      .hasError("Variable `x` not defined", p(16, 1, 17))
+      .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(16, 1, 17)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(16, 1, 17)
+            .withParam(GqlParams.StringParam.variable, "x")
+            .build())
+          .build(),
+        "Variable `x` not defined",
+        p(16, 1, 17)
+      )
   }
 
   test("Should check for undefined variables in negative normalized predicate expression") {
     run("MATCH (n) WHERE x IS NOT NORMALIZED RETURN 1")
-      .hasError("Variable `x` not defined", p(16, 1, 17))
+      .hasError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(16, 1, 17)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+            .atPosition(16, 1, 17)
+            .withParam(GqlParams.StringParam.variable, "x")
+            .build())
+          .build(),
+        "Variable `x` not defined",
+        p(16, 1, 17)
+      )
   }
 
   test("Should not allow too large lower bound in variable length relationship") {

@@ -749,7 +749,8 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
       val referencesFromPatternElementToPattern = dependencies.intersect(declarationsInPattern).toSeq
       val errors = referencesFromPatternElementToPattern.map { symbolUse =>
         val stringifiedPatternElement = stringifier.patterns(patternElement)
-        SemanticError(
+        SemanticError.variableNotDefined(
+          symbolUse.name,
           s"""From within a $patternElementErrorMessageDescription, one may only reference variables, that are already bound in a previous `MATCH` clause.
              |In this case, `${symbolUse.name}` is defined in the same `MATCH` clause as $stringifiedPatternElement.""".stripMargin,
           symbolUse.asVariable.position

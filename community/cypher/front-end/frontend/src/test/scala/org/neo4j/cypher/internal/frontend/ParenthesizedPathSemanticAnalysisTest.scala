@@ -35,14 +35,21 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
 
   test("can not use path variable from the same MATCH clause in WHERE") {
     val q =
-      """
-        |MATCH p = SHORTEST 1 ((a)-[r]->+(b) WHERE length(p) % 2 = 0)
+      """MATCH p = SHORTEST 1 ((a)-[r]->+(b) WHERE length(p) % 2 = 0)
         |RETURN b
         |""".stripMargin
 
-    run(q).hasErrorMessages(
+    run(q).hasError(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(6, 1, 7)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+          .atPosition(6, 1, 7)
+          .withParam(GqlParams.StringParam.variable, "p")
+          .build())
+        .build(),
       """From within a parenthesized path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
-        |In this case, `p` is defined in the same `MATCH` clause as ((a) (()-[r]->())+ (b) WHERE length(p) % 2 = 0).""".stripMargin
+        |In this case, `p` is defined in the same `MATCH` clause as ((a) (()-[r]->())+ (b) WHERE length(p) % 2 = 0).""".stripMargin,
+      InputPosition(6, 1, 7)
     )
   }
 
@@ -59,15 +66,22 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
 
   test("can not use a variable from the same MATCH clause in a subquery expression") {
     val q =
-      """
-        |MATCH p = SHORTEST 1 ((a)-[r]->+(b) WHERE 0 = COUNT { (x)-->(y) WHERE length(p) % 2 = 0} )
+      """MATCH p = SHORTEST 1 ((a)-[r]->+(b) WHERE 0 = COUNT { (x)-->(y) WHERE length(p) % 2 = 0} )
         |RETURN b
         |""".stripMargin
 
-    run(q).hasErrorMessages(
+    run(q).hasError(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(6, 1, 7)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+          .atPosition(6, 1, 7)
+          .withParam(GqlParams.StringParam.variable, "p")
+          .build())
+        .build(),
       """From within a parenthesized path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
         |In this case, `p` is defined in the same `MATCH` clause as ((a) (()-[r]->())+ (b) WHERE 0 = COUNT { MATCH (x)-->(y)
-        |  WHERE length(p) % 2 = 0 }).""".stripMargin
+        |  WHERE length(p) % 2 = 0 }).""".stripMargin,
+      InputPosition(6, 1, 7)
     )
   }
 
