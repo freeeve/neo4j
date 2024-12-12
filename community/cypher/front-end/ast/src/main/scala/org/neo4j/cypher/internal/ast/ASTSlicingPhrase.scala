@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.ast
 
 import org.neo4j.cypher.internal.ast.ASTSlicingPhrase.checkExpressionIsStaticInt
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
+import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisToolingErrorWithGqlInfo
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
@@ -102,7 +103,7 @@ object ASTSlicingPhrase extends SemanticAnalysisTooling {
         case lit: Literal =>
           val accepted = if (acceptsZero) "non-negative" else "positive"
           val lowerBound = if (acceptsZero) 0 else 1
-          specifiedNumberOutOfRangeError(
+          SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
             name,
             "INTEGER",
             lowerBound,

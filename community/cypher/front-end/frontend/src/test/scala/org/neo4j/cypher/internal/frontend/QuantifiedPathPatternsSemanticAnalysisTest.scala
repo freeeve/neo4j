@@ -286,17 +286,55 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
   }
 
   test("MATCH ((a)-[*]->(b))+ RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(10, 1, 11)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I41)
+          .atPosition(10, 1, 11)
+          .withParam(GqlParams.StringParam.value, "a quantified path pattern")
+          .build())
+        .build(),
       "Variable length relationships cannot be part of a quantified path pattern.",
-      "Mixing variable-length relationships ('-[*]-') with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*') is not allowed."
+      InputPosition(10, 1, 11),
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(10, 1, 11)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I41)
+          .atPosition(10, 1, 11)
+          .withParam(
+            GqlParams.StringParam.value,
+            "combination with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*')"
+          )
+          .build())
+        .build(),
+      "Mixing variable-length relationships ('-[*]-') with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*') is not allowed.",
+      InputPosition(10, 1, 11)
     )
   }
 
   // relationship quantification
   test("MATCH (a)-[*]->+(b) RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(9, 1, 10)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I41)
+          .atPosition(9, 1, 10)
+          .withParam(GqlParams.StringParam.value, "a quantified path pattern")
+          .build())
+        .build(),
       "Variable length relationships cannot be part of a quantified path pattern.",
-      "Mixing variable-length relationships ('-[*]-') with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*') is not allowed."
+      InputPosition(9, 1, 10),
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(9, 1, 10)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I41)
+          .atPosition(9, 1, 10)
+          .withParam(
+            GqlParams.StringParam.value,
+            "combination with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*')"
+          )
+          .build())
+        .build(),
+      "Mixing variable-length relationships ('-[*]-') with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*') is not allowed.",
+      InputPosition(9, 1, 10)
     )
   }
 
@@ -644,16 +682,54 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
 
   // ... on same element pattern
   test("MATCH ()-[r:A*]->*() RETURN r") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(8, 1, 9)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I41)
+          .atPosition(8, 1, 9)
+          .withParam(GqlParams.StringParam.value, "a quantified path pattern")
+          .build())
+        .build(),
       "Variable length relationships cannot be part of a quantified path pattern.",
-      "Mixing variable-length relationships ('-[*]-') with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*') is not allowed."
+      InputPosition(8, 1, 9),
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(8, 1, 9)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I41)
+          .atPosition(8, 1, 9)
+          .withParam(
+            GqlParams.StringParam.value,
+            "combination with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*')"
+          )
+          .build())
+        .build(),
+      "Mixing variable-length relationships ('-[*]-') with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*') is not allowed.",
+      InputPosition(8, 1, 9)
     )
   }
 
   test("MATCH ()-[r:A*1..2]->{1,2}() RETURN r") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(8, 1, 9)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I41)
+          .atPosition(8, 1, 9)
+          .withParam(GqlParams.StringParam.value, "a quantified path pattern")
+          .build())
+        .build(),
       "Variable length relationships cannot be part of a quantified path pattern.",
-      "Mixing variable-length relationships ('-[*]-') with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*') is not allowed."
+      InputPosition(8, 1, 9),
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(8, 1, 9)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I41)
+          .atPosition(8, 1, 9)
+          .withParam(
+            GqlParams.StringParam.value,
+            "combination with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*')"
+          )
+          .build())
+        .build(),
+      "Mixing variable-length relationships ('-[*]-') with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*') is not allowed.",
+      InputPosition(8, 1, 9)
     )
   }
 

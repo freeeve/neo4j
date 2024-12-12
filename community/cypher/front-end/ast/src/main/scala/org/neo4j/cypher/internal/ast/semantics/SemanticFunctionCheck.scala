@@ -314,7 +314,7 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
       case i: IntegerLiteral if i.value == 0L || i.value == 1L =>
         SemanticCheck.success
       case d: DoubleLiteral =>
-        specifiedNumberOutOfRangeError(
+        SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
           "percentile range",
           "FLOAT",
           0.0,
@@ -325,7 +325,7 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
         )
 
       case l: Literal =>
-        specifiedNumberOutOfRangeError(
+        SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
           "percentile range",
           "FLOAT",
           0.0,

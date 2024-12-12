@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.ast.ReturnItems.ReturnVariables
 import org.neo4j.cypher.internal.ast.Union.UnionMapping
 import org.neo4j.cypher.internal.ast.semantics.Scope
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
+import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisToolingErrorWithGqlInfo
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromState
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.success
@@ -521,7 +522,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     clauses.collect {
       case useGraph: UseGraph => useGraph
     }.foldSemanticCheck { clause =>
-      invalidPlacementOfUseClauseError(
+      SemanticAnalysisToolingErrorWithGqlInfo.invalidPlacementOfUseClauseError(
         clause.position
       )
     }

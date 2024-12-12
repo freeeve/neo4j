@@ -2849,7 +2849,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlStatus("42I41"),
             """
                     Variable length relationships cannot be used in { %s }.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
+            new GqlParams.GqlParam[] {GqlParams.StringParam.value},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "invalid use of variable length relationship",

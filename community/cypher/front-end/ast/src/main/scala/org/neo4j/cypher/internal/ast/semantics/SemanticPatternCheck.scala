@@ -262,7 +262,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
 
   def check(selector: PatternPart.Selector): SemanticCheck = selector match {
     case ShortestGroups(Left(countOfGroups)) if countOfGroups.value <= 0 =>
-      specifiedNumberOutOfRangeError(
+      SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
         "group count",
         "INTEGER",
         1,
@@ -273,7 +273,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
       )
     case sel: CountedSelector => sel.count match {
         case Left(count) if count.value <= 0 =>
-          specifiedNumberOutOfRangeError(
+          SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
             "path count",
             "INTEGER",
             1,
@@ -328,7 +328,8 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
                   shortestPaths.position
                 ))
             case rel @ RelationshipPattern(_, _, Some(_), _, _, _) => acc =>
-                SkipChildren(acc chain SemanticError(
+                SkipChildren(acc chain SemanticError.invalidUseOfVariableLengthRelationship(
+                  "a quantified path pattern",
                   "Variable length relationships cannot be part of a quantified path pattern.",
                   rel.position
                 ))
@@ -421,7 +422,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
     checkQuantifierValue(quantifier) ifOkChain {
       quantifier match {
         case FixedQuantifier(UnsignedDecimalIntegerLiteral("0")) =>
-          specifiedNumberOutOfRangeError(
+          SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
             "quantifier for a path pattern",
             "INTEGER",
             1,
@@ -437,7 +438,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
             quantifier.position
           )
         case IntervalQuantifier(_, Some(UnsignedDecimalIntegerLiteral("0"))) =>
-          specifiedNumberOutOfRangeError(
+          SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
             "quantifier upperbound for a path pattern",
             "INTEGER",
             1,
@@ -472,7 +473,11 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
       when(!x.isSingleLength) {
         ctx match {
           case SemanticContext.Merge | SemanticContext.Create =>
-            error(s"Variable length relationships cannot be used in ${name(ctx)}", x.position)
+            SemanticAnalysisToolingErrorWithGqlInfo.invalidUseOfVariableLengthRelationshipError(
+              name(ctx),
+              s"Variable length relationships cannot be used in ${name(ctx)}",
+              x.position
+            )
           case _ =>
             None
         }
@@ -517,7 +522,8 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
       x match {
         case RelationshipPattern(_, Some(labelExpression), Some(_), _, _, _)
           if labelExpression.containsGpmSpecificRelTypeExpression =>
-          error(
+          SemanticAnalysisToolingErrorWithGqlInfo.invalidUseOfVariableLengthRelationshipError(
+            "combination with relationship type expressions",
             """Variable length relationships must not use relationship type expressions.""".stripMargin,
             labelExpression.position
           )

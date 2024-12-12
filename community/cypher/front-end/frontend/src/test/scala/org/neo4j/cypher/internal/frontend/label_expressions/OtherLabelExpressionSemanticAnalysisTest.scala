@@ -17,6 +17,10 @@
 package org.neo4j.cypher.internal.frontend.label_expressions
 
 import org.neo4j.cypher.internal.frontend.NameBasedSemanticAnalysisTestSuite
+import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
+import org.neo4j.gqlstatus.GqlParams
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.scalatest.LoneElement
 
 class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite with LoneElement {
@@ -38,7 +42,17 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   }
 
   test("MATCH (n), (m) WITH shortestPath((n)-[:!A&!B*]->(m)) AS p RETURN length(p) AS result") {
-    run().hasErrorMessages("Variable length relationships must not use relationship type expressions.")
+    run().hasError(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(41, 1, 42)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I41)
+          .atPosition(41, 1, 42)
+          .withParam(GqlParams.StringParam.value, "combination with relationship type expressions")
+          .build())
+        .build(),
+      "Variable length relationships must not use relationship type expressions.",
+      InputPosition(41, 1, 42)
+    )
   }
 
   test("MATCH (n), (m) WITH shortestPath((n)-[IS A*]->(m)) AS p RETURN length(p) AS result") {

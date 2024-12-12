@@ -387,31 +387,6 @@ trait SemanticAnalysisTooling {
 
   def error(semanticError: SemanticError): SemanticCheck = SemanticCheck.error(semanticError)
 
-  def specifiedNumberOutOfRangeError(
-    component: String,
-    valueType: String,
-    lower: Number,
-    upper: Number,
-    inputValue: String,
-    legacyMessage: String,
-    position: InputPosition
-  ): SemanticCheck =
-    SemanticCheck.error(SemanticError.specifiedNumberOutOfRange(
-      component,
-      valueType,
-      lower,
-      upper,
-      inputValue,
-      legacyMessage,
-      position
-    ))
-
-  def invalidPlacementOfUseClauseError(position: InputPosition): SemanticCheck =
-    SemanticCheck.error(SemanticError.invalidPlacementOfUseClause(position))
-
-  def variableAlreadyDeclaredError(variableName: String, position: InputPosition): SemanticCheck =
-    SemanticCheck.error(SemanticError.variableAlreadyDeclared(variableName, position))
-
   def warn(notification: InternalNotification): SemanticCheck = SemanticCheck.warn(notification)
 
   def possibleTypes(expression: Expression): TypeGenerator =

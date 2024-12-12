@@ -26,6 +26,8 @@ import org.neo4j.cypher.internal.ast.prettifier.PatternStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.Scope
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
+import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisToolingErrorWithGqlInfo
+import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisToolingErrorWithGqlInfo.variableAlreadyDeclaredError
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromState
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.success
@@ -342,7 +344,8 @@ sealed trait Clause extends ASTNode with SemanticCheckable with SemanticAnalysis
 
     when(hasQPP) {
       legacyVarLengthRelationships.foldSemanticCheck { legacyVarLengthRelationship =>
-        error(
+        SemanticAnalysisToolingErrorWithGqlInfo.invalidUseOfVariableLengthRelationshipError(
+          "combination with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*')",
           "Mixing variable-length relationships ('-[*]-') with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*') is not allowed.",
           legacyVarLengthRelationship.position
         )

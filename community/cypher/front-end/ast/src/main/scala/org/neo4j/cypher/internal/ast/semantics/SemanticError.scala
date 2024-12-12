@@ -1080,6 +1080,24 @@ object SemanticError {
       position
     )
   }
+
+  def invalidUseOfVariableLengthRelationship(
+    expr: String,
+    legacyMessage: String,
+    position: InputPosition
+  ): SemanticError = {
+    SemanticError(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(position.offset, position.line, position.column)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I41)
+          .atPosition(position.offset, position.line, position.column)
+          .withParam(GqlParams.StringParam.value, expr)
+          .build())
+        .build(),
+      legacyMessage,
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef
