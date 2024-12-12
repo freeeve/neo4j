@@ -168,6 +168,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
 
   /**
    * Build a semantic check for the given expression using the simple expression context.
+   * The simple expression context disallows aggregating functions.
    */
   def simple(expression: Expression): SemanticCheck = check(SemanticContext.Simple, expression)
 
@@ -598,7 +599,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
 
             declareVariable(x.variable, indexType) chain
               declareVariable(x.accumulator, accType) chain
-              check(SemanticContext.Simple, x.expression)
+              simple(x.expression)
           } chain
           expectType(
             s => types(x.init)(s) coerceOrConvert types(x.expression)(s),
@@ -917,6 +918,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
 
   /**
    * Build a semantic check over a iterable of expressions.
+   * The simple semantic context disallows aggregating functions.
    */
   def simple(iterable: Iterable[Expression]): SemanticCheck = check(SemanticContext.Simple, iterable)
 
@@ -928,6 +930,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
 
   /**
    * Build a semantic check over an optional expression.
+   * The simple semantic context disallows aggregating functions.
    */
   def simple(option: Option[Expression]): SemanticCheck = check(SemanticContext.Simple, option)
 
@@ -964,7 +967,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       e.innerPredicate match {
         case Some(predicate) => withScopedState {
             declareVariable(e.variable, possibleInnerTypes(e)) chain
-              SemanticExpressionCheck.check(SemanticContext.Simple, predicate) chain
+              SemanticExpressionCheck.simple(predicate) chain
               SemanticExpressionCheck.expectType(CTBoolean.covariant, predicate)
           }
         case None => SemanticCheck.success
@@ -1132,7 +1135,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       case Some(e) =>
         withScopedState {
           declareVariable(x.variable, FilteringExpressions.possibleInnerTypes(x)) chain
-            check(SemanticContext.Simple, e)
+            simple(e)
         } chain {
           val outerTypes: TypeGenerator = types(e)(_).wrapInList
           specifyType(outerTypes, x)

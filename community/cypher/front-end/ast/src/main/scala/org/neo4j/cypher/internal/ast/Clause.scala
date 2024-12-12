@@ -2006,7 +2006,7 @@ case class ScopeClauseSubqueryCall(
       // Get current state
       current <- SemanticCheck.getState
       // Checks for errors in imported variables
-      stateWithImports <- SemanticExpressionCheck.check(Expression.SemanticContext.Simple, importedVariables)
+      stateWithImports <- SemanticExpressionCheck.simple(importedVariables)
       // Create empty scope under root
       _ <- SemanticCheck.setState(current.state.newBaseScope)
       // Import variables from outer to new scope

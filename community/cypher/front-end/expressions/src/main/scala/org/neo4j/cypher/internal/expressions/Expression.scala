@@ -30,7 +30,9 @@ object Expression {
   sealed trait SemanticContext
 
   object SemanticContext {
+    // Simple Semantic Context disallows usage of AggregatingFunctions
     case object Simple extends SemanticContext
+    // Results Semantic Context allows all functions
     case object Results extends SemanticContext
   }
 
