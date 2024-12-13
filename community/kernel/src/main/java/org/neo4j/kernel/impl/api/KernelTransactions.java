@@ -647,7 +647,7 @@ public class KernelTransactions extends LifecycleAdapter
                 activeTransactions = activeTransactionCounter.get();
                 int localTransactionMaximum = maxNumberOfTransaction;
                 if (localTransactionMaximum != 0 && activeTransactions >= localTransactionMaximum) {
-                    throw new MaximumTransactionLimitExceededException();
+                    throw MaximumTransactionLimitExceededException.maximumNumberOfTransactionsExceeded();
                 }
             } while (!activeTransactionCounter.weakCompareAndSetAcquire(activeTransactions, activeTransactions + 1));
         }

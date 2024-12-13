@@ -23,6 +23,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.locks.LockSupport.parkNanos;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -558,9 +559,13 @@ class KernelTransactionsTest {
         KernelTransaction ignore = kernelTransactions.newInstance(EXPLICIT, access(), EMBEDDED_CONNECTION, NO_TIMEOUT);
         KernelTransaction ignore2 = kernelTransactions.newInstance(EXPLICIT, access(), EMBEDDED_CONNECTION, NO_TIMEOUT);
 
-        assertThrows(
+        var exception = catchThrowableOfType(
                 MaximumTransactionLimitExceededException.class,
                 () -> kernelTransactions.newInstance(EXPLICIT, access(), EMBEDDED_CONNECTION, NO_TIMEOUT));
+        assertThat(exception.gqlStatus()).isEqualTo("51N74");
+        assertThat(exception.statusDescription())
+                .isEqualTo(
+                        "error: system configuration or operation exception - maximum number of transactions reached. Failed to start a new transaction. The limit of concurrent transactions is reached. Increase the number of concurrent transactions using db.transaction.concurrent.maximum in the neo4j configuration.");
     }
 
     @Test

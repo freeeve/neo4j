@@ -4680,6 +4680,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "transaction memory limit reached",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_51N74(
+            new GqlStatus("51N74"),
+            """
+                    Failed to start a new transaction. The limit of concurrent transactions is reached. Increase the number of concurrent transactions using { %s } in the neo4j configuration.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.cfgSetting},
+            emptyMap(),
+            Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
+            "maximum number of transactions reached",
+            ErrorClassification.TRANSIENT_ERROR),
     STATUS_52N01(
             new GqlStatus("52N01"),
             """

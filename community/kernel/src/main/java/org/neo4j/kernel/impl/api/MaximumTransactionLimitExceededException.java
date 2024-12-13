@@ -22,6 +22,9 @@ package org.neo4j.kernel.impl.api;
 import static org.neo4j.configuration.GraphDatabaseSettings.max_concurrent_transactions;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.kernel.api.exceptions.Status;
 
@@ -30,11 +33,15 @@ public class MaximumTransactionLimitExceededException extends TransactionFailure
             "Unable to start new transaction since limit of concurrently executed transactions is reached. See setting "
                     + max_concurrent_transactions.name();
 
-    MaximumTransactionLimitExceededException() {
-        super(MAXIMUM_TRANSACTIONS_LIMIT_MESSAGE, Status.Transaction.MaximumTransactionLimitReached);
+    private MaximumTransactionLimitExceededException(ErrorGqlStatusObject gqlStatusObject) {
+        super(gqlStatusObject, MAXIMUM_TRANSACTIONS_LIMIT_MESSAGE, Status.Transaction.MaximumTransactionLimitReached);
     }
 
-    MaximumTransactionLimitExceededException(ErrorGqlStatusObject gqlStatusObject) {
-        super(gqlStatusObject, MAXIMUM_TRANSACTIONS_LIMIT_MESSAGE, Status.Transaction.MaximumTransactionLimitReached);
+    public static MaximumTransactionLimitExceededException maximumNumberOfTransactionsExceeded() {
+        // KNL-012
+        var gqlStatusObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N74)
+                .withParam(GqlParams.StringParam.cfgSetting, max_concurrent_transactions.name())
+                .build();
+        return new MaximumTransactionLimitExceededException(gqlStatusObject);
     }
 }
