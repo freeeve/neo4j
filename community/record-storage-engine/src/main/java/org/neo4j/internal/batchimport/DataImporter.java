@@ -191,7 +191,7 @@ public class DataImporter {
             Monitor monitor,
             CursorContextFactory contextFactory,
             MemoryTracker memoryTracker,
-            Supplier<SchemaMonitor> schemaMonitors)
+            SchemaMonitors schemaMonitors)
             throws IOException {
         Supplier<EntityImporter> importers = () -> new NodeImporter(
                 stores, idMapper, monitor, badCollector, contextFactory, memoryTracker, schemaMonitors.get());
@@ -216,7 +216,7 @@ public class DataImporter {
             boolean validateRelationshipData,
             CursorContextFactory contextFactory,
             MemoryTracker memoryTracker,
-            Supplier<SchemaMonitor> schemaMonitors)
+            SchemaMonitors schemaMonitors)
             throws IOException {
         DataStatistics typeDistribution = new DataStatistics(monitor, new DataStatistics.RelationshipTypeCount[0]);
         Supplier<EntityImporter> importers = () -> new RelationshipImporter(

@@ -22,12 +22,11 @@ package org.neo4j.internal.batchimport;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.function.LongPredicate;
-import java.util.function.Supplier;
 import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.set.primitive.LongSet;
 import org.neo4j.batchimport.api.input.Collector;
 
-public interface SchemaMonitors extends Supplier<SchemaMonitor>, Closeable {
+public interface SchemaMonitors extends Closeable {
     SchemaMonitors NO_SCHEMA = new SchemaMonitors() {
         @Override
         public LongSet validate(Collector collector) {
@@ -56,4 +55,6 @@ public interface SchemaMonitors extends Supplier<SchemaMonitor>, Closeable {
     void writeToTarget(LongPredicate skippedEntityIds) throws IOException;
 
     LongSet affectedIndexes();
+
+    SchemaMonitor get();
 }
