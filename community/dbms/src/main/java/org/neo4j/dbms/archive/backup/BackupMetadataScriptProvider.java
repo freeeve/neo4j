@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.concurrent.Future;
 
 public interface BackupMetadataScriptProvider {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     Future<String> backupMetadataScript(String uriString, Optional<String> credentials, Optional<String> config)
             throws Exception;
 }
