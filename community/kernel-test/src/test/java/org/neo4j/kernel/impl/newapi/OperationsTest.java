@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.newapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -32,6 +33,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.neo4j.function.Suppliers.singleton;
 import static org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo.EMBEDDED_CONNECTION;
+import static org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory.existsForLabel;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.lock.LockTracer.NONE;
 import static org.neo4j.logging.SecurityLogHelper.line;
@@ -84,8 +86,10 @@ import org.neo4j.internal.schema.SchemaDescriptorImplementation;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.SchemaState;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
+import org.neo4j.internal.schema.constraints.ExistenceConstraintDescriptor;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.AssertOpen;
+import org.neo4j.kernel.api.exceptions.schema.DropConstraintFailureException;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
@@ -414,6 +418,29 @@ abstract class OperationsTest {
                 .thenReturn(new NamedToken("Property", propertyId));
         assertThatThrownBy(() -> operations.nodePropertyExistenceConstraintCreate(schemaDescriptor, "name2", false))
                 .hasMessageContainingAll("Graph Type", "dependent", "independent", "incompatible");
+    }
+
+    @Test
+    void shouldFailToDropDependentConstraint() {
+        int labelId = 1;
+        int propertyId = 2;
+        ExistenceConstraintDescriptor constraint =
+                existsForLabel(true, labelId, propertyId).withName("constraint");
+
+        var e = catchThrowableOfType(
+                DropConstraintFailureException.class, () -> operations.constraintDrop(constraint, false));
+
+        assertThat(e.getMessage()).isEqualTo("Unable to drop constraint: Cannot drop dependent constraint");
+        assertThat(e.gqlStatus()).isEqualTo("50N12");
+        assertThat(e.statusDescription())
+                .isEqualTo(
+                        "error: general processing exception - constraint drop failed. Unable to drop 'constraint'.");
+        assertThat(e.cause()).isPresent();
+        var cause = e.cause().get();
+        assertThat(cause.gqlStatus()).isEqualTo("22N68");
+        assertThat(cause.statusDescription())
+                .isEqualTo(
+                        "error: data exception - dependent constraint managed individually. Dependent constraints cannot be managed individually and must be managed together with its graph type.");
     }
 
     protected String runForSecurityLevel(Executable executable, AccessMode mode, boolean shouldBeAuthorized)

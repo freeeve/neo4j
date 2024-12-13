@@ -2579,8 +2579,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         ktx.assertOpen();
 
         if (constraint.graphTypeDependence() == GraphTypeDependence.DEPENDENT && !canDropDependent) {
-            throw DropConstraintFailureException.constraintDropFailed(
-                    constraint, new IllegalStateException("Cannot drop dependent constraint"));
+            throw DropConstraintFailureException.constraintDropFailedForDependentConstraint(constraint);
         }
 
         // verify data integrity

@@ -74,6 +74,19 @@ public class DropConstraintFailureException extends SchemaKernelException {
         return new DropConstraintFailureException(gql, constraint, cause);
     }
 
+    // KNL-184
+    public static DropConstraintFailureException constraintDropFailedForDependentConstraint(
+            ConstraintDescriptor constraint) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N12)
+                .withParam(GqlParams.StringParam.constrDescrOrName, constraint.getName())
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N68)
+                        .build())
+                .build();
+
+        return new DropConstraintFailureException(
+                gql, constraint, new IllegalStateException("Cannot drop dependent constraint"));
+    }
+
     @Override
     public String getUserMessage(TokenNameLookup tokenNameLookup) {
         String message;
