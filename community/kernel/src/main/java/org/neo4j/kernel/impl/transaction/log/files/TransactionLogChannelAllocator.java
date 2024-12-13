@@ -69,6 +69,43 @@ public class TransactionLogChannelAllocator {
         AllocatedFile allocatedFile = allocateFile(version);
         var storeChannel = allocatedFile.storeChannel();
         var logFile = allocatedFile.path();
+        LogHeader header = maybeInitLogHeader(
+                version, lastAppendIndex, previousLogFileChecksum, kernelVersionProvider, storeChannel, logFile);
+        assert header.getLogVersion() == version;
+        logHeaderCache.putHeader(version, header);
+
+        storeChannel.position(header.getStartPosition().getByteOffset());
+
+        return new PhysicalLogVersionedStoreChannel(
+                storeChannel, version, header.getLogFormatVersion(), logFile, nativeChannelAccessor, databaseTracer);
+    }
+
+    public void initializeLogFile(
+            long version,
+            long lastAppendIndex,
+            int previousLogFileChecksum,
+            KernelVersionProvider kernelVersionProvider)
+            throws IOException {
+        var allocatedFile = allocateFile(version);
+        try (StoreChannel storeChannel = allocatedFile.storeChannel()) {
+            maybeInitLogHeader(
+                    version,
+                    lastAppendIndex,
+                    previousLogFileChecksum,
+                    kernelVersionProvider,
+                    storeChannel,
+                    allocatedFile.path());
+        }
+    }
+
+    private LogHeader maybeInitLogHeader(
+            long version,
+            long lastAppendIndex,
+            int previousLogFileChecksum,
+            KernelVersionProvider kernelVersionProvider,
+            StoreChannel storeChannel,
+            Path logFile)
+            throws IOException {
         LogHeader header = readLogHeader(storeChannel, false, logFile, logFilesContext.getMemoryTracker());
         if (header == null) {
             try (LogFileCreateEvent ignored = databaseTracer.createLogFile()) {
@@ -87,13 +124,7 @@ public class TransactionLogChannelAllocator {
                 writeLogHeader(storeChannel, header, logFilesContext.getMemoryTracker());
             }
         }
-        assert header.getLogVersion() == version;
-        logHeaderCache.putHeader(version, header);
-
-        storeChannel.position(header.getStartPosition().getByteOffset());
-
-        return new PhysicalLogVersionedStoreChannel(
-                storeChannel, version, header.getLogFormatVersion(), logFile, nativeChannelAccessor, databaseTracer);
+        return header;
     }
 
     public PhysicalLogVersionedStoreChannel createLogChannelExistingVersion(long version) throws IOException {

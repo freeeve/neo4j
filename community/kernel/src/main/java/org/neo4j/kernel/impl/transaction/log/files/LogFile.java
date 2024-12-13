@@ -111,6 +111,12 @@ public interface LogFile extends VersionedFile, RotatableFile {
 
     void flush() throws IOException;
 
+    /**
+     * This utility method creates initial empty log file when no transaction log files are discovered during recovery
+     * Implementations should work without extra preparations, i.e. starting LifeCycle`d component
+     */
+    void initializeMissingLogFile() throws IOException;
+
     void truncate() throws IOException;
 
     void truncate(LogPosition position) throws IOException;

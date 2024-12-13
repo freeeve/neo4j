@@ -754,7 +754,11 @@ public final class Recovery {
         recoveryLife.add(indexStatisticsStore);
         recoveryLife.add(storageEngine);
         recoveryLife.add(new MissingTransactionLogsCheck(config, logTailMetadata, recoveryLog));
-        recoveryLife.add(logFiles);
+        // Starting the checkpoint file to append recovery checkpoint at the end.
+        // Not starting the transaction log file since it requires a fully recovered state, which
+        // is not guaranteed after TransactionLogsRecovery. For example seen with partial recovery
+        // if chunks from incomplete transactions were encountered.
+        recoveryLife.add(logFiles.getCheckpointFile());
         recoveryLife.add(transactionLogsRecovery);
         recoveryLife.add(checkPointer);
         try {

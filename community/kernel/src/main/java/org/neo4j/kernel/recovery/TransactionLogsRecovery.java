@@ -128,6 +128,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         monitor.recoveryRequired(recoveryStartInformation);
         if (recoveryStartInformation.missingLogs()) {
             recoveryService.missingLogs();
+            logFiles.getLogFile().initializeMissingLogFile();
         } else {
             performRecovery(recoveryStartInformation);
         }

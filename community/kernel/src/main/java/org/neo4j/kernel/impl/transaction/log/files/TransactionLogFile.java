@@ -261,6 +261,18 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     }
 
     @Override
+    public void initializeMissingLogFile() throws IOException {
+        long currentLogVersion = context.getLogVersionRepositoryProvider()
+                .logVersionRepository(logFiles)
+                .getCurrentLogVersion();
+        channelAllocator.initializeLogFile(
+                currentLogVersion,
+                context.appendIndex(),
+                context.getLastCommittedChecksumProvider().getLastCommittedChecksum(logFiles),
+                context.getKernelVersionProvider());
+    }
+
+    @Override
     public boolean rotationNeeded() throws IOException {
         return writer.getCurrentLogPosition().getByteOffset() >= rotateAtSize.get();
     }
