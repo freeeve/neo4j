@@ -20,23 +20,23 @@
 package org.neo4j.memory;
 
 import static java.lang.String.format;
+import static org.neo4j.kernel.api.exceptions.Status.General.MemoryPoolOutOfMemoryError;
+import static org.neo4j.kernel.api.exceptions.Status.General.TransactionOutOfMemoryError;
 
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import org.apache.commons.lang3.StringUtils;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlRuntimeException;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class MemoryLimitExceededException extends GqlRuntimeException implements Status.HasStatus {
     private final Status status;
 
-    public MemoryLimitExceededException(long allocation, long limit, long current, Status status, String settingName) {
-        super(getMessage(allocation, limit, current, settingName));
-        this.status = status;
-    }
-
-    public MemoryLimitExceededException(
+    private MemoryLimitExceededException(
             ErrorGqlStatusObject gqlStatusObject,
             long allocation,
             long limit,
@@ -45,6 +45,26 @@ public class MemoryLimitExceededException extends GqlRuntimeException implements
             String settingName) {
         super(gqlStatusObject, getMessage(allocation, limit, current, settingName));
         this.status = status;
+    }
+
+    public static MemoryLimitExceededException memoryPoolOutOfMemoryExceeded(
+            long allocation, long limit, long current, String settingName) {
+        // KNL-008 and KNL-009
+        var gqlStatusObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N72)
+                .withParam(GqlParams.StringParam.cfgSetting, settingName)
+                .build();
+        return new MemoryLimitExceededException(
+                gqlStatusObject, allocation, limit, current, MemoryPoolOutOfMemoryError, settingName);
+    }
+
+    public static MemoryLimitExceededException transactionMemoryLimitExceeded(
+            long allocation, long limit, long current, String settingName) {
+        // KNL-010
+        var gqlStatusObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N73)
+                .withParam(GqlParams.StringParam.cfgSetting, settingName)
+                .build();
+        return new MemoryLimitExceededException(
+                gqlStatusObject, allocation, limit, current, TransactionOutOfMemoryError, settingName);
     }
 
     @Override

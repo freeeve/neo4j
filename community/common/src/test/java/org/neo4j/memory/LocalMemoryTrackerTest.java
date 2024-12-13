@@ -21,6 +21,7 @@ package org.neo4j.memory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.memory.MemoryPools.NO_TRACKING;
 
@@ -78,6 +79,29 @@ class LocalMemoryTrackerTest {
         assertThatThrownBy(() -> memoryTracker.allocateHeap(100))
                 .isInstanceOf(MemoryLimitExceededException.class)
                 .hasMessageContaining("settingName");
+        assertThat(memoryTracker.estimatedHeapMemory()).isEqualTo(0);
+    }
+
+    @Test
+    void usesCorrectGQLStatusWhenTransactionLimitIsExceeded() {
+        var memoryTracker = new LocalMemoryTracker(NO_TRACKING, 10, 0, "settingName");
+        var exception = catchThrowableOfType(MemoryLimitExceededException.class, () -> memoryTracker.allocateHeap(100));
+        assertThat(exception.gqlStatus()).isEqualTo("51N73");
+        assertThat(exception.statusDescription())
+                .isEqualTo(
+                        "error: system configuration or operation exception - transaction memory limit reached. The transaction used more memory than was allowed. The maximum allowed size for a transaction can be configured with settingName in the neo4j configuration.");
+        assertThat(memoryTracker.estimatedHeapMemory()).isEqualTo(0);
+    }
+
+    @Test
+    void usesCorrectGQLStatusWhenMemoryPoolIsOutOfMemory() {
+        var pool = new MemoryPools().pool(MemoryGroup.BOLT, 10L, "bolt_setting");
+        var memoryTracker = new LocalMemoryTracker(pool, 1000, 0, "settingName");
+        var exception = catchThrowableOfType(MemoryLimitExceededException.class, () -> memoryTracker.allocateHeap(100));
+        assertThat(exception.gqlStatus()).isEqualTo("51N72");
+        assertThat(exception.statusDescription())
+                .isEqualTo(
+                        "error: system configuration or operation exception - memory pool out of memory. Failed to allocate memory in a memory pool. See bolt_setting in the neo4j configuration.");
         assertThat(memoryTracker.estimatedHeapMemory()).isEqualTo(0);
     }
 

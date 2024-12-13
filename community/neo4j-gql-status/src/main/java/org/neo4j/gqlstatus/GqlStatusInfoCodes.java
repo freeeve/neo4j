@@ -4662,6 +4662,24 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "unsupported operation on a sharded database",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_51N72(
+            new GqlStatus("51N72"),
+            """
+                    Failed to allocate memory in a memory pool. See { %s } in the neo4j configuration.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.cfgSetting},
+            emptyMap(),
+            Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
+            "memory pool out of memory",
+            ErrorClassification.TRANSIENT_ERROR),
+    STATUS_51N73(
+            new GqlStatus("51N73"),
+            """
+                    The transaction used more memory than was allowed. The maximum allowed size for a transaction can be configured with { %s } in the neo4j configuration.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.cfgSetting},
+            emptyMap(),
+            Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
+            "transaction memory limit reached",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_52N01(
             new GqlStatus("52N01"),
             """

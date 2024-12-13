@@ -22,7 +22,6 @@ package org.neo4j.memory;
 import static java.lang.Math.max;
 import static java.util.Objects.requireNonNull;
 import static org.neo4j.internal.helpers.Numbers.ceilingPowerOfTwo;
-import static org.neo4j.kernel.api.exceptions.Status.General.TransactionOutOfMemoryError;
 import static org.neo4j.memory.HighWaterMarkMemoryPool.NO_TRACKING;
 import static org.neo4j.util.Preconditions.requireNonNegative;
 import static org.neo4j.util.Preconditions.requirePositive;
@@ -158,12 +157,8 @@ public class ExecutionContextMemoryTracker implements LimitedMemoryTracker {
 
         if (allocatedBytesHeap + allocatedBytesNative > localBytesLimit) {
             allocatedBytesNative -= bytes;
-            throw new MemoryLimitExceededException(
-                    bytes,
-                    localBytesLimit,
-                    allocatedBytesHeap + allocatedBytesNative,
-                    TransactionOutOfMemoryError,
-                    limitSettingName);
+            throw MemoryLimitExceededException.transactionMemoryLimitExceeded(
+                    bytes, localBytesLimit, allocatedBytesHeap + allocatedBytesNative, limitSettingName);
         }
 
         try {
@@ -196,12 +191,8 @@ public class ExecutionContextMemoryTracker implements LimitedMemoryTracker {
 
         if (allocatedBytesHeap + allocatedBytesNative > localBytesLimit) {
             allocatedBytesHeap -= bytes;
-            throw new MemoryLimitExceededException(
-                    bytes,
-                    localBytesLimit,
-                    allocatedBytesHeap + allocatedBytesNative,
-                    TransactionOutOfMemoryError,
-                    limitSettingName);
+            throw MemoryLimitExceededException.transactionMemoryLimitExceeded(
+                    bytes, localBytesLimit, allocatedBytesHeap + allocatedBytesNative, limitSettingName);
         }
 
         localHeapPool -= bytes;
