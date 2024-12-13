@@ -70,14 +70,17 @@ case class ParameterName(parameter: Parameter)(val position: InputPosition) exte
         s"Expected parameter $$${parameter.name} to have type String but was $paramValue"
       )
     } else {
-      val nameParts = paramValue.asInstanceOf[TextValue].stringValue().split('.')
+      val paramStringValue = paramValue.asInstanceOf[TextValue].stringValue()
+      val namePartsSplit = paramStringValue.split('.')
+      // To not loose trailing dots we add in the empty string that followed it
+      val nameParts = if (paramStringValue.endsWith(".")) namePartsSplit :+ "" else namePartsSplit
       if (nameParts.length == 1) {
         (None, nameParts(0), nameParts(0))
       } else {
         val displayName =
           if (nameParts(0).equals(defaultNamespace))
             nameParts.tail.mkString(".")
-          else paramValue.asInstanceOf[TextValue].stringValue()
+          else paramStringValue
         (Some(nameParts(0)), nameParts.tail.mkString("."), displayName)
       }
     }
