@@ -26,6 +26,7 @@ import static org.eclipse.collections.impl.factory.Sets.immutable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -43,7 +44,6 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.token.ReadOnlyTokenCreator.READ_ONLY;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -62,13 +62,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.neo4j.batchimport.api.IndexImporterFactory.CreationContext;
-import org.neo4j.batchimport.api.IndexesCreator;
-import org.neo4j.batchimport.api.IndexesCreator.CreationListener;
+import org.neo4j.batchimport.api.IndexImporterFactory.LifecycleContext;
+import org.neo4j.batchimport.api.IndexesLifecycleManager.CreationListener;
+import org.neo4j.batchimport.api.IndexesLifecycleManager.DropListener;
+import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.common.EntityType;
 import org.neo4j.configuration.Config;
 import org.neo4j.exceptions.KernelException;
-import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.PopulationProgress;
@@ -88,7 +88,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.exceptions.index.IndexPopulationFailedKernelException;
-import org.neo4j.kernel.api.index.BulkIndexCreationContext;
+import org.neo4j.kernel.api.index.KernelSchemaLifecycleContext;
 import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.api.index.IndexPopulationFailure;
 import org.neo4j.kernel.impl.api.index.IndexProxy;
@@ -116,7 +116,7 @@ import org.neo4j.values.storable.Values;
 @ExtendWith(RandomExtension.class)
 @Neo4jLayoutExtension
 @PageCacheExtension
-class BulkIndexesCreatorTest {
+class KernelIndexesLifecycleManagerTest {
 
     // for relationships and nodes and for all the different index types
     private static final int TOKEN_COUNT = INDEX_TYPES.size() * 2 * 2;
@@ -142,6 +142,8 @@ class BulkIndexesCreatorTest {
 
     private final StorageRelationshipScanCursor relCursor = mock(StorageRelationshipScanCursor.class);
 
+    private KernelIndexesLifecycleManager indexesLifecycleManager;
+
     @BeforeEach
     void setUp() throws Exception {
         scheduler.init();
@@ -154,17 +156,38 @@ class BulkIndexesCreatorTest {
         when(storageReader.indexesGetAll()).thenReturn(Collections.emptyIterator());
         when(storageReader.allocateNodeCursor(any(), any(), any())).thenReturn(nodeCursor);
         when(storageReader.allocateRelationshipScanCursor(any(), any(), any())).thenReturn(relCursor);
+
+        final var config = Config.defaults();
+        indexesLifecycleManager = new KernelIndexesLifecycleManager(new KernelSchemaLifecycleContext(
+                config,
+                storageEngine,
+                databaseLayout,
+                fs,
+                pageCache,
+                new MetadataCache(KernelVersion.getLatestVersion(config)),
+                scheduler,
+                new TokenHolders(
+                        tokenHolder(TokenHolder.TYPE_LABEL),
+                        tokenHolder(TokenHolder.TYPE_RELATIONSHIP_TYPE),
+                        tokenHolder(TokenHolder.TYPE_PROPERTY_KEY)),
+                ElementIdMapper.PLACEHOLDER,
+                CursorContextFactory.NULL_CONTEXT_FACTORY,
+                PageCacheTracer.NULL,
+                NullLogService.getInstance(),
+                Collector.EMPTY,
+                INSTANCE));
     }
 
     @AfterEach
     void shutdown() throws Exception {
+        indexesLifecycleManager.close();
         scheduler.shutdown();
     }
 
     @Test
     void factoryRequiresCorrectContext() {
         final var factory = new IndexImporterFactoryImpl();
-        assertThatThrownBy(() -> factory.getCreator(new DuffContext(fs)))
+        assertThatThrownBy(() -> factory.getLifecycleManager(new DuffContext(fs)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Index creation requires an instance of BulkIndexCreationContext");
     }
@@ -184,30 +207,27 @@ class BulkIndexesCreatorTest {
 
     @ParameterizedTest
     @MethodSource
-    void completeConfiguration(IndexProviderDescriptor providerDescriptor, IndexType type, boolean addsDefaultConfig)
-            throws IOException {
-        runWithIndexCreator(indexesCreator -> {
-            final var descriptor = forSchema(forLabel(1, 2))
-                    .withName("basic")
-                    .withIndexType(type)
-                    .withIndexProvider(providerDescriptor)
-                    .materialise(3);
-            assertThat(descriptor.getCapability()).isEqualTo(IndexCapability.NO_CAPABILITY);
+    void completeConfiguration(IndexProviderDescriptor providerDescriptor, IndexType type, boolean addsDefaultConfig) {
+        final var descriptor = forSchema(forLabel(1, 2))
+                .withName("basic")
+                .withIndexType(type)
+                .withIndexProvider(providerDescriptor)
+                .materialise(3);
+        assertThat(descriptor.getCapability()).isEqualTo(IndexCapability.NO_CAPABILITY);
 
-            final var completedDescriptor = indexesCreator.completeConfiguration(descriptor);
-            assertThat(completedDescriptor.getCapability())
-                    .as("completion should set the correct capability")
-                    .isNotEqualTo(IndexCapability.NO_CAPABILITY);
-            if (addsDefaultConfig) {
-                assertThat(descriptor.getIndexConfig().asMap())
-                        .as("use the default index config for descriptor")
-                        .isEmpty();
+        final var completedDescriptor = indexesLifecycleManager.completeConfiguration(descriptor);
+        assertThat(completedDescriptor.getCapability())
+                .as("completion should set the correct capability")
+                .isNotEqualTo(IndexCapability.NO_CAPABILITY);
+        if (addsDefaultConfig) {
+            assertThat(descriptor.getIndexConfig().asMap())
+                    .as("use the default index config for descriptor")
+                    .isEmpty();
 
-                assertThat(completedDescriptor.getIndexConfig().asMap())
-                        .as("completion should set the default index config for descriptor")
-                        .isNotEmpty();
-            }
-        });
+            assertThat(completedDescriptor.getIndexConfig().asMap())
+                    .as("completion should set the default index config for descriptor")
+                    .isNotEmpty();
+        }
     }
 
     @ParameterizedTest
@@ -223,93 +243,66 @@ class BulkIndexesCreatorTest {
 
     @Test
     void createWithError() throws IOException {
-        runWithIndexCreator(indexesCreator -> {
-            final var deltas = ObjectFloatMaps.mutable.<IndexDescriptor>empty();
-            final var completed = new MutableBoolean();
-            final var checkPointed = new MutableBoolean();
+        final var deltas = ObjectFloatMaps.mutable.<IndexDescriptor>empty();
+        final var completed = new MutableBoolean();
+        final var checkPointed = new MutableBoolean();
 
-            // this isn't valid config (RANGE + LOOKUP) => boom
-            final var descriptor = indexesCreator.completeConfiguration(forSchema(forLabel(1, 2))
-                    .withName("duff")
-                    .withIndexType(IndexType.RANGE)
-                    .withIndexProvider(TOKEN_DESCRIPTOR)
-                    .materialise(0));
-            indexesCreator.create(
-                    new CreationListener() {
-                        @Override
-                        public void onUpdate(IndexDescriptor indexDescriptor, float percentDelta) {
-                            deltas.updateValue(indexDescriptor, 0.0f, f -> f + percentDelta);
-                        }
+        // this isn't valid config (RANGE + LOOKUP) => boom
+        final var descriptor = forSchema(forLabel(1, 2))
+                .withName("duff")
+                .withIndexType(IndexType.RANGE)
+                .withIndexProvider(TOKEN_DESCRIPTOR)
+                .materialise(0);
+        indexesLifecycleManager.create(
+                new CreationListener() {
+                    @Override
+                    public void onUpdate(IndexDescriptor indexDescriptor, float percentDelta) {
+                        deltas.updateValue(indexDescriptor, 0.0f, f -> f + percentDelta);
+                    }
 
-                        @Override
-                        public void onFailure(IndexDescriptor indexDescriptor, KernelException error) {
-                            assertThat(indexDescriptor).isEqualTo(descriptor);
-                            assertThat(error)
-                                    .hasMessageContainingAll(
-                                            "Failed to populate index",
-                                            "type='RANGE'",
-                                            "indexProvider='token-lookup-1.0'");
-                        }
+                    @Override
+                    public void onFailure(IndexDescriptor indexDescriptor, KernelException error) {
+                        assertThat(indexDescriptor).isEqualTo(descriptor);
+                        assertThat(error)
+                                .hasMessageContainingAll(
+                                        "Failed to populate index", "type='RANGE'", "indexProvider='token-lookup-1.0'");
+                    }
 
-                        @Override
-                        public void onCreationCompleted(boolean withSuccess) {
-                            completed.setValue(withSuccess);
-                        }
+                    @Override
+                    public void onCreationCompleted(boolean withSuccess) {
+                        completed.setValue(withSuccess);
+                    }
 
-                        @Override
-                        public void onCheckpointingCompleted() {
-                            checkPointed.setTrue();
-                        }
-                    },
-                    List.of(descriptor));
+                    @Override
+                    public void onCheckpointingCompleted() {
+                        checkPointed.setTrue();
+                    }
+                },
+                List.of(descriptor));
 
-            assertThat(deltas.get(descriptor))
-                    .as("should not have completed the progress")
-                    .isEqualTo(0.0f);
+        assertThat(deltas.get(descriptor))
+                .as("should not have completed the progress")
+                .isEqualTo(0.0f);
 
-            assertThat(fs.fileExists(directoriesByProvider(databaseLayout.databaseDirectory())
-                            .forProvider(descriptor.getIndexProvider())
-                            .directoryForIndex(descriptor.getId())))
-                    .as("should still create the directory structure of the index")
-                    .isTrue();
+        assertThat(fs.fileExists(directoriesByProvider(databaseLayout.databaseDirectory())
+                        .forProvider(descriptor.getIndexProvider())
+                        .directoryForIndex(descriptor.getId())))
+                .as("should still create the directory structure of the index")
+                .isTrue();
 
-            assertThat(completed.booleanValue())
-                    .as("should complete the creation steps with failure flag")
-                    .isFalse();
-            assertThat(checkPointed.booleanValue())
-                    .as("should NOT checkpoint on failure")
-                    .isFalse();
-        });
+        assertThat(completed.booleanValue())
+                .as("should complete the creation steps with failure flag")
+                .isFalse();
+        assertThat(checkPointed.booleanValue())
+                .as("should NOT checkpoint on failure")
+                .isFalse();
     }
 
     @Test
     void longerRunningIndexingReportsCorrectly()
             throws IOException, IndexPopulationFailedKernelException, IndexNotFoundKernelException {
-        final var config = Config.defaults();
-        final var context = new BulkIndexCreationContext(
-                config,
-                storageEngine,
-                databaseLayout,
-                fs,
-                pageCache,
-                new MetadataCache(KernelVersion.getLatestVersion(config)),
-                scheduler,
-                new TokenHolders(
-                        tokenHolder(TokenHolder.TYPE_LABEL),
-                        tokenHolder(TokenHolder.TYPE_RELATIONSHIP_TYPE),
-                        tokenHolder(TokenHolder.TYPE_PROPERTY_KEY)),
-                ElementIdMapper.PLACEHOLDER,
-                CursorContextFactory.NULL_CONTEXT_FACTORY,
-                PageCacheTracer.NULL,
-                NullLogService.getInstance(),
-                INSTANCE);
         final var indexingService = mock(IndexingService.class);
-        try (var indexesCreator = new BulkIndexesCreator(context) {
-            @Override
-            protected IndexingService createIndexingService(LifeSupport life, BulkIndexCreationContext context) {
-                return indexingService;
-            }
-        }) {
+        try (var lifecycleManager = indexesLifecycleManager(indexingService)) {
             final var descriptor1 = forSchema(forLabel(1, 2))
                     .withName("descriptor1")
                     .withIndexType(IndexType.RANGE)
@@ -345,7 +338,7 @@ class BulkIndexesCreatorTest {
             final var completed = new MutableBoolean();
             final var errors = Lists.mutable.<IndexDescriptor>empty();
             final var progress = Multimaps.mutable.list.<IndexDescriptor, Float>empty();
-            indexesCreator.create(
+            lifecycleManager.create(
                     new CreationListener() {
                         @Override
                         public void onUpdate(IndexDescriptor indexDescriptor, float percentDelta) {
@@ -384,63 +377,61 @@ class BulkIndexesCreatorTest {
         }
     }
 
-    private void assertCreation(IndexDescriptor... descriptors) throws Exception {
-        runWithIndexCreator(indexesCreator -> {
-            final var deltas = ObjectFloatMaps.mutable.<IndexDescriptor>empty();
-            final var completed = new MutableBoolean();
-            final var checkPointed = new MutableBoolean();
-            final var indexDescriptors = Arrays.stream(descriptors)
-                    .map(indexesCreator::completeConfiguration)
-                    .toList();
-            indexesCreator.create(
-                    new CreationListener() {
+    @Test
+    void drop() throws IOException {
+        final var descriptor1 = forSchema(forLabel(1, 2))
+                .withName("descriptor1")
+                .withIndexType(IndexType.RANGE)
+                .withIndexProvider(RANGE_DESCRIPTOR)
+                .materialise(1);
+        final var descriptor2 = forSchema(forLabel(3, 4))
+                .withName("descriptor2")
+                .withIndexType(IndexType.RANGE)
+                .withIndexProvider(RANGE_DESCRIPTOR)
+                .materialise(2);
+        final var descriptor3 = forSchema(forLabel(5, 6))
+                .withName("descriptor3")
+                .withIndexType(IndexType.RANGE)
+                .withIndexProvider(RANGE_DESCRIPTOR)
+                .materialise(3);
+
+        final var indexingService = mock(IndexingService.class);
+
+        final var boom = new IllegalArgumentException("boom");
+        doThrow(boom).when(indexingService).dropIndex(eq(descriptor3));
+
+        try (var lifecycleManager = indexesLifecycleManager(indexingService)) {
+            lifecycleManager.drop(
+                    new DropListener() {
                         @Override
-                        public void onUpdate(IndexDescriptor indexDescriptor, float percentDelta) {
-                            deltas.updateValue(indexDescriptor, 0.0f, f -> f + percentDelta);
+                        public boolean onDrop(IndexDescriptor indexDescriptor) {
+                            assertThat(indexDescriptor).isIn(descriptor1, descriptor2);
+                            return indexDescriptor == descriptor1;
                         }
 
                         @Override
-                        public void onFailure(IndexDescriptor indexDescriptor, KernelException error) {
-                            fail("should not report any error for %s: %s", indexDescriptor, error);
+                        public void onDropFailed(IndexDescriptor indexDescriptor, RuntimeException ex) {
+                            assertThat(indexDescriptor).isEqualTo(descriptor3);
+                            assertThat(ex).isEqualTo(boom);
                         }
 
                         @Override
-                        public void onCreationCompleted(boolean withSuccess) {
-                            completed.setValue(withSuccess);
-                        }
-
-                        @Override
-                        public void onCheckpointingCompleted() {
-                            checkPointed.setTrue();
+                        public void onDropCompleted(int dropOk, int dropFailed) {
+                            assertThat(dropOk)
+                                    .as("should record that descriptor1 was OK")
+                                    .isOne();
+                            assertThat(dropFailed)
+                                    .as("should record that both descriptor2 and descriptor3 failed")
+                                    .isEqualTo(2);
                         }
                     },
-                    indexDescriptors);
-
-            // THEN
-            for (var descriptor : descriptors) {
-                assertThat(deltas.get(descriptor))
-                        .as("should have completed the progress")
-                        .isEqualTo(1.0f);
-
-                assertThat(fs.fileExists(directoriesByProvider(databaseLayout.databaseDirectory())
-                                .forProvider(descriptor.getIndexProvider())
-                                .directoryForIndex(descriptor.getId())))
-                        .as("should create the directory structure of the index")
-                        .isTrue();
-            }
-
-            assertThat(completed.booleanValue())
-                    .as("should complete the creation steps")
-                    .isTrue();
-            assertThat(checkPointed.booleanValue())
-                    .as("should checkpoint the results indexes")
-                    .isTrue();
-        });
+                    List.of(descriptor1, descriptor2, descriptor3));
+        }
     }
 
-    private void runWithIndexCreator(ThrowingConsumer<IndexesCreator, IOException> consumer) throws IOException {
+    private KernelIndexesLifecycleManager indexesLifecycleManager(IndexingService indexingService) throws IOException {
         final var config = Config.defaults();
-        try (var indexesCreator = new BulkIndexesCreator(new BulkIndexCreationContext(
+        final var context = new KernelSchemaLifecycleContext(
                 config,
                 storageEngine,
                 databaseLayout,
@@ -456,9 +447,64 @@ class BulkIndexesCreatorTest {
                 CursorContextFactory.NULL_CONTEXT_FACTORY,
                 PageCacheTracer.NULL,
                 NullLogService.getInstance(),
-                INSTANCE))) {
-            consumer.accept(indexesCreator);
+                Collector.EMPTY,
+                INSTANCE);
+        return new KernelIndexesLifecycleManager(context) {
+            @Override
+            protected IndexingService createIndexingService(LifeSupport life, KernelSchemaLifecycleContext context) {
+                return indexingService;
+            }
+        };
+    }
+
+    private void assertCreation(IndexDescriptor... descriptors) throws Exception {
+        // WHEN
+        final var deltas = ObjectFloatMaps.mutable.<IndexDescriptor>empty();
+        final var completed = new MutableBoolean();
+        final var checkPointed = new MutableBoolean();
+        indexesLifecycleManager.create(
+                new CreationListener() {
+                    @Override
+                    public void onUpdate(IndexDescriptor indexDescriptor, float percentDelta) {
+                        deltas.updateValue(indexDescriptor, 0.0f, f -> f + percentDelta);
+                    }
+
+                    @Override
+                    public void onFailure(IndexDescriptor indexDescriptor, KernelException error) {
+                        fail("should not report any error for %s: %s", indexDescriptor, error);
+                    }
+
+                    @Override
+                    public void onCreationCompleted(boolean withSuccess) {
+                        completed.setValue(withSuccess);
+                    }
+
+                    @Override
+                    public void onCheckpointingCompleted() {
+                        checkPointed.setTrue();
+                    }
+                },
+                List.of(descriptors));
+
+        // THEN
+        for (var descriptor : descriptors) {
+            assertThat(deltas.get(descriptor))
+                    .as("should have completed the progress")
+                    .isEqualTo(1.0f);
+
+            assertThat(fs.fileExists(directoriesByProvider(databaseLayout.databaseDirectory())
+                            .forProvider(descriptor.getIndexProvider())
+                            .directoryForIndex(descriptor.getId())))
+                    .as("should create the directory structure of the index")
+                    .isTrue();
         }
+
+        assertThat(completed.booleanValue())
+                .as("should complete the creation steps")
+                .isTrue();
+        assertThat(checkPointed.booleanValue())
+                .as("should checkpoint the results indexes")
+                .isTrue();
     }
 
     private static IndexProxy populatingProxy(IndexDescriptor descriptor, float percent) {
@@ -552,5 +598,5 @@ class BulkIndexesCreatorTest {
                 }));
     }
 
-    private record DuffContext(FileSystemAbstraction fs) implements CreationContext {}
+    private record DuffContext(FileSystemAbstraction fs) implements LifecycleContext {}
 }

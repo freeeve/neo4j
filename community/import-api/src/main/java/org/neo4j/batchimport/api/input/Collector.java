@@ -54,7 +54,7 @@ public interface Collector extends AutoCloseable {
 
     /**
      * @param entityType the type of entity that relates to the {@link org.neo4j.internal.schema.SchemaCommand} being
-     *                  applied
+     *                  applied (or <code>null</code> if the type is unknown)
      * @param failureMessage the failure message that resulted when applying a {@link org.neo4j.internal.schema.SchemaCommand}
      */
     void collectSchemaCommandFailure(EntityType entityType, String failureMessage);

@@ -415,11 +415,25 @@ public final class BadCollector implements Collector {
     }
 
     private static class SchemaCommandFailureReporter extends ProblemReporter {
+
+        private static final int ALL_SCHEMA_VIOLATIONS = VIOLATING_SCHEMA | BAD_NODES | BAD_RELATIONSHIPS;
+        private static final int NODE_SCHEMA_VIOLATIONS = VIOLATING_SCHEMA | BAD_NODES;
+        private static final int REL_SCHEMA_VIOLATIONS = VIOLATING_SCHEMA | BAD_RELATIONSHIPS;
+
         private final String failureMessage;
 
         private SchemaCommandFailureReporter(EntityType entityType, String failureMessage) {
-            super(VIOLATING_SCHEMA | (entityType == EntityType.NODE ? BAD_NODES : BAD_RELATIONSHIPS));
+            super(violationType(entityType));
             this.failureMessage = failureMessage;
+        }
+
+        private static int violationType(EntityType entityType) {
+            if (entityType == null) {
+                // just collect them all in this case as we don't know which one it was
+                return ALL_SCHEMA_VIOLATIONS;
+            }
+
+            return entityType == EntityType.NODE ? NODE_SCHEMA_VIOLATIONS : REL_SCHEMA_VIOLATIONS;
         }
 
         @Override

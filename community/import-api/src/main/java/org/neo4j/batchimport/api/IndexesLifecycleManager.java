@@ -25,15 +25,22 @@ import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
 
 /**
- * Used by the {@link BatchImporter} to create indexes after it has imported node & relationship entities.
+ * Used by the {@link BatchImporter} to create/drop indexes during the import process.
  */
-public interface IndexesCreator extends AutoCloseable {
+public interface IndexesLifecycleManager extends AutoCloseable {
 
     /**
      * @param index the index descriptor to complete before writing to the schema store
      * @return the completed index descriptor
      */
     IndexDescriptor completeConfiguration(IndexDescriptor index);
+
+    /**
+     * Drop all the provided indexes
+     * @param dropListener callback mechanism used to track the status of the drop process
+     * @param indexDescriptors the indexes to drop
+     */
+    void drop(DropListener dropListener, List<IndexDescriptor> indexDescriptors);
 
     /**
      * Creates all the provided indexes
@@ -45,6 +52,29 @@ public interface IndexesCreator extends AutoCloseable {
 
     @Override
     void close();
+
+    interface DropListener {
+        /**
+         * Updates interested parties when the index has been removed for the provided {@link IndexDescriptor}
+         * @param indexDescriptor the index that has been dropped
+         * @return <code>true</code> if the index is considered dropped
+         */
+        boolean onDrop(IndexDescriptor indexDescriptor);
+
+        /**
+         * Updates interested parties when unable to drop the provided {@link IndexDescriptor}
+         * @param indexDescriptor the index to drop
+         * @param ex the error that occurred
+         */
+        void onDropFailed(IndexDescriptor indexDescriptor, RuntimeException ex);
+
+        /**
+         * When the index removal for all the indexes have been completed
+         * @param dropOk the number of indexes successfully dropped
+         * @param dropFailed the number of indexes where the drop failed
+         */
+        void onDropCompleted(int dropOk, int dropFailed);
+    }
 
     interface CreationListener {
         /**
@@ -74,15 +104,20 @@ public interface IndexesCreator extends AutoCloseable {
         void onCheckpointingCompleted();
     }
 
-    IndexesCreator EMPTY_CREATOR = new IndexesCreator() {
+    IndexesLifecycleManager EMPTY_CREATOR = new IndexesLifecycleManager() {
         @Override
-        public void create(CreationListener creationListener, List<IndexDescriptor> indexDescriptors) {
+        public void drop(DropListener dropListener, List<IndexDescriptor> indexDescriptors) {
             // no-op
         }
 
         @Override
         public IndexDescriptor completeConfiguration(IndexDescriptor index) {
             return index;
+        }
+
+        @Override
+        public void create(CreationListener creationListener, List<IndexDescriptor> indexDescriptors) {
+            // no-op
         }
 
         @Override

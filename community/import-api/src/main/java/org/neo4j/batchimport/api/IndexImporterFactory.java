@@ -20,7 +20,7 @@
 package org.neo4j.batchimport.api;
 
 import static org.neo4j.batchimport.api.IndexImporter.EMPTY_IMPORTER;
-import static org.neo4j.batchimport.api.IndexesCreator.EMPTY_CREATOR;
+import static org.neo4j.batchimport.api.IndexesLifecycleManager.EMPTY_CREATOR;
 
 import java.io.IOException;
 import java.nio.file.OpenOption;
@@ -48,10 +48,10 @@ public interface IndexImporterFactory {
             StorageEngineIndexingBehaviour indexingBehaviour);
 
     /**
-     * @param context the context required for this creator to build the indexes
-     * @return the creator of indexes
+     * @param context the context required for this manager to create or drop the indexes
+     * @return the indexes lifecycle manager
      */
-    <CONTEXT extends CreationContext> IndexesCreator getCreator(CONTEXT context) throws IOException;
+    <CONTEXT extends LifecycleContext> IndexesLifecycleManager getLifecycleManager(CONTEXT context) throws IOException;
 
     IndexImporterFactory EMPTY = new IndexImporterFactory() {
         @Override
@@ -68,10 +68,10 @@ public interface IndexImporterFactory {
         }
 
         @Override
-        public IndexesCreator getCreator(CreationContext context) {
+        public IndexesLifecycleManager getLifecycleManager(LifecycleContext context) {
             return EMPTY_CREATOR;
         }
     };
 
-    interface CreationContext {}
+    interface LifecycleContext {}
 }

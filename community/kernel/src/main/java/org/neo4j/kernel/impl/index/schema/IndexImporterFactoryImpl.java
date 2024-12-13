@@ -24,7 +24,7 @@ import java.nio.file.OpenOption;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.batchimport.api.IndexImporter;
 import org.neo4j.batchimport.api.IndexImporterFactory;
-import org.neo4j.batchimport.api.IndexesCreator;
+import org.neo4j.batchimport.api.IndexesLifecycleManager;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -32,7 +32,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
-import org.neo4j.kernel.api.index.BulkIndexCreationContext;
+import org.neo4j.kernel.api.index.KernelSchemaLifecycleContext;
 import org.neo4j.util.Preconditions;
 
 public class IndexImporterFactoryImpl implements IndexImporterFactory {
@@ -51,10 +51,10 @@ public class IndexImporterFactoryImpl implements IndexImporterFactory {
     }
 
     @Override
-    public IndexesCreator getCreator(CreationContext context) throws IOException {
+    public IndexesLifecycleManager getLifecycleManager(LifecycleContext context) throws IOException {
         Preconditions.checkState(
-                context instanceof BulkIndexCreationContext,
+                context instanceof KernelSchemaLifecycleContext,
                 "Index creation requires an instance of BulkIndexCreationContext");
-        return new BulkIndexesCreator((BulkIndexCreationContext) context);
+        return new KernelIndexesLifecycleManager((KernelSchemaLifecycleContext) context);
     }
 }

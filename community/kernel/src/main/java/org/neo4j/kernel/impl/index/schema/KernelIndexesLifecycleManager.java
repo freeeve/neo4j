@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.util.List;
 import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.factory.primitive.ObjectFloatMaps;
-import org.neo4j.batchimport.api.IndexesCreator;
+import org.neo4j.batchimport.api.IndexesLifecycleManager;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.common.Subject;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
@@ -44,7 +44,7 @@ import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelExcept
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.kernel.api.exceptions.index.IndexPopulationFailedKernelException;
-import org.neo4j.kernel.api.index.BulkIndexCreationContext;
+import org.neo4j.kernel.api.index.KernelSchemaLifecycleContext;
 import org.neo4j.kernel.impl.api.DatabaseSchemaState;
 import org.neo4j.kernel.impl.api.index.IndexProxy;
 import org.neo4j.kernel.impl.api.index.IndexingService;
@@ -60,15 +60,15 @@ import org.neo4j.monitoring.Monitors;
 import org.neo4j.time.Clocks;
 import org.neo4j.util.VisibleForTesting;
 
-public class BulkIndexesCreator implements IndexesCreator {
+public class KernelIndexesLifecycleManager implements IndexesLifecycleManager {
 
     private static final float ZERO = 0.0f;
 
-    private final BulkIndexCreationContext context;
+    private final KernelSchemaLifecycleContext context;
     private final Lifespan lifespan;
     private final IndexingService indexingService;
 
-    public BulkIndexesCreator(BulkIndexCreationContext context) throws IOException {
+    public KernelIndexesLifecycleManager(KernelSchemaLifecycleContext context) throws IOException {
         this.context = requireNonNull(context);
 
         // need to create the lifecycle in the NONE state as the scheduler has already been started
@@ -84,9 +84,34 @@ public class BulkIndexesCreator implements IndexesCreator {
     }
 
     @Override
-    public void create(CreationListener creationListener, List<IndexDescriptor> indexDescriptors) throws IOException {
+    public void drop(DropListener dropListener, List<IndexDescriptor> indexDescriptors) {
         final var descriptorCount = indexDescriptors.size();
         if (descriptorCount == 0) {
+            return;
+        }
+
+        var dropOk = 0;
+        var dropFailed = 0;
+        for (var descriptor : indexDescriptors) {
+            try {
+                indexingService.dropIndex(descriptor);
+                if (dropListener.onDrop(descriptor)) {
+                    dropOk++;
+                } else {
+                    dropFailed++;
+                }
+            } catch (RuntimeException ex) {
+                dropListener.onDropFailed(descriptor, ex);
+                dropFailed++;
+            }
+        }
+
+        dropListener.onDropCompleted(dropOk, dropFailed);
+    }
+
+    @Override
+    public void create(CreationListener creationListener, List<IndexDescriptor> indexDescriptors) throws IOException {
+        if (indexDescriptors.isEmpty()) {
             return;
         }
 
@@ -130,9 +155,9 @@ public class BulkIndexesCreator implements IndexesCreator {
                     });
 
                     if (state == InternalIndexState.ONLINE) {
-                        // some proxies are 'tentative' and stay at POPULATING even though they are actually done
                         descriptorsToCreate.remove(descriptor);
                     } else if (latestProgress == 1.0f) {
+                        // some proxies are 'tentative' and stay at POPULATING even though they are actually done
                         tentatives.add(indexProxy);
                     }
                 }
@@ -170,7 +195,7 @@ public class BulkIndexesCreator implements IndexesCreator {
     }
 
     @VisibleForTesting
-    protected IndexingService createIndexingService(LifeSupport life, BulkIndexCreationContext context)
+    protected IndexingService createIndexingService(LifeSupport life, KernelSchemaLifecycleContext context)
             throws IOException {
         final var clock = Clocks.nanoClock();
         final var readOnlyChecker = DatabaseReadOnlyChecker.writable();

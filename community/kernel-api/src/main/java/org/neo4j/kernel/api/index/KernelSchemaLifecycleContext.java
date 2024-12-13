@@ -19,7 +19,8 @@
  */
 package org.neo4j.kernel.api.index;
 
-import org.neo4j.batchimport.api.IndexImporterFactory.CreationContext;
+import org.neo4j.batchimport.api.IndexImporterFactory.LifecycleContext;
+import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -37,7 +38,7 @@ import org.neo4j.values.ElementIdMapper;
 /**
  * Context container for the dependencies required to perform the bulk creation of indexes
  */
-public record BulkIndexCreationContext(
+public record KernelSchemaLifecycleContext(
         Config config,
         ReadableStorageEngine storageEngine,
         DatabaseLayout databaseLayout,
@@ -50,5 +51,6 @@ public record BulkIndexCreationContext(
         CursorContextFactory contextFactory,
         PageCacheTracer pageCacheTracer,
         LogService logService,
+        Collector badCollector,
         MemoryTracker memoryTracker)
-        implements CreationContext {}
+        implements LifecycleContext {}
