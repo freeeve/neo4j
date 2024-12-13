@@ -2565,7 +2565,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         exclusiveSchemaNameLock(name);
         ConstraintDescriptor constraint = schemaRead.constraintGetForName(name);
         if (constraint == null) {
-            throw DropConstraintFailureException.constraintDropFailed(name, new NoSuchConstraintException(name));
+            throw DropConstraintFailureException.constraintDropFailed(
+                    name, NoSuchConstraintException.noSuchConstraint(name));
         }
         constraintDrop(constraint, canDropDependent);
     }
@@ -2668,7 +2669,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     private void assertConstraintExists(ConstraintDescriptor constraint) throws NoSuchConstraintException {
         if (!schemaRead.constraintExists(constraint)) {
-            throw new NoSuchConstraintException(constraint, token);
+            throw NoSuchConstraintException.noSuchConstraint(constraint, token);
         }
     }
 

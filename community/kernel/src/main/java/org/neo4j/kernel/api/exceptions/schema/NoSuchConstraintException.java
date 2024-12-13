@@ -23,48 +23,34 @@ import static java.lang.String.format;
 
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.schema.SchemaKernelException;
 import org.neo4j.internal.schema.SchemaDescriptorSupplier;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class NoSuchConstraintException extends SchemaKernelException {
-    private final SchemaDescriptorSupplier constraint;
-    private final String name;
     private static final String MESSAGE = "No such constraint %s.";
 
-    public NoSuchConstraintException(SchemaDescriptorSupplier constraint, TokenNameLookup lookup) {
-        super(Status.Schema.ConstraintNotFound, format(MESSAGE, constraint.userDescription(lookup)));
-        this.constraint = constraint;
-        this.name = "";
+    private NoSuchConstraintException(ErrorGqlStatusObject gqlStatusObject, String message) {
+        super(gqlStatusObject, Status.Schema.ConstraintNotFound, message);
     }
 
-    public NoSuchConstraintException(
-            ErrorGqlStatusObject gqlStatusObject, SchemaDescriptorSupplier constraint, TokenNameLookup lookup) {
-        super(gqlStatusObject, Status.Schema.ConstraintNotFound, format(MESSAGE, constraint.userDescription(lookup)));
-
-        this.constraint = constraint;
-        this.name = "";
+    // KNL-027
+    public static NoSuchConstraintException noSuchConstraint(String name) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N64)
+                .withParam(GqlParams.StringParam.constrDescrOrName, name)
+                .build();
+        return new NoSuchConstraintException(gql, format(MESSAGE, name));
     }
 
-    public NoSuchConstraintException(String name) {
-        super(Status.Schema.ConstraintNotFound, format(MESSAGE, name));
-        this.constraint = null;
-        this.name = name;
-    }
-
-    public NoSuchConstraintException(ErrorGqlStatusObject gqlStatusObject, String name) {
-        super(gqlStatusObject, Status.Schema.ConstraintNotFound, format(MESSAGE, name));
-
-        this.constraint = null;
-        this.name = name;
-    }
-
-    @Override
-    public String getUserMessage(TokenNameLookup tokenNameLookup) {
-        if (constraint == null) {
-            return format(MESSAGE, name);
-        } else {
-            return format(MESSAGE, constraint.userDescription(tokenNameLookup));
-        }
+    // KNL-027
+    public static NoSuchConstraintException noSuchConstraint(
+            SchemaDescriptorSupplier constraint, TokenNameLookup lookup) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N64)
+                .withParam(GqlParams.StringParam.constrDescrOrName, constraint.userDescription(lookup))
+                .build();
+        return new NoSuchConstraintException(gql, format(MESSAGE, constraint.userDescription(lookup)));
     }
 }
