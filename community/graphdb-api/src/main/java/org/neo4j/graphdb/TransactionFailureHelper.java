@@ -29,13 +29,6 @@ import org.neo4j.kernel.api.exceptions.Status;
  */
 public class TransactionFailureHelper {
 
-    public static TransactionFailureException failToRollbackTransaction(Throwable e) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_40N01)
-                .build();
-        return new TransactionFailureException(
-                gql, "Fail to rollback transaction.", e, Status.Transaction.TransactionRollbackFailed);
-    }
-
     public static TransactionFailureException failToStartTransaction(Throwable e) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N06)
                 .build();

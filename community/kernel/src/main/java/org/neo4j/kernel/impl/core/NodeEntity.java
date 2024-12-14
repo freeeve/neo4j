@@ -39,7 +39,6 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.ResourceIterable;
 import org.neo4j.graphdb.ResourceIterator;
-import org.neo4j.graphdb.TransactionFailureHelper;
 import org.neo4j.internal.helpers.collection.AbstractResourceIterable;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.RelationshipTraversalCursor;
@@ -164,14 +163,6 @@ public class NodeEntity extends AbstractNodeEntity implements RelationshipFactor
             transaction.dataWrite().nodeSetProperty(nodeId, propertyKeyId, Values.of(value, false));
         } catch (ConstraintValidationException e) {
             throw new ConstraintViolationException(e.getUserMessage(transaction.tokenRead()), e);
-        } catch (IllegalArgumentException e) {
-            try {
-                transaction.rollback();
-            } catch (org.neo4j.internal.kernel.api.exceptions.TransactionFailureException ex) {
-                ex.addSuppressed(e);
-                throw TransactionFailureHelper.failToRollbackTransaction(ex);
-            }
-            throw e;
         } catch (EntityNotFoundException e) {
             throw new NotFoundException(e);
         } catch (KernelException e) {
