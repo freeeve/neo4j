@@ -104,28 +104,28 @@ public class JlineCompleter implements Completer {
                 if (completionType.equals(SuggestionType.LABEL_OR_RELATIONSHIP.name)) {
                     return new Suggestion(
                             textUntilSentinel(lastToken, ':') + completion.value(),
-                            completion.value(),
+                            completion.displ(),
                             SuggestionType.LABEL_OR_RELATIONSHIP,
                             completion.descr(),
                             completion.complete());
                 } else if (completionType.equals(SuggestionType.PROPERTY.name)) {
                     return new Suggestion(
                             textUntilSentinel(lastToken, '.') + completion.value(),
-                            completion.value(),
+                            completion.displ(),
                             SuggestionType.PROPERTY,
                             completion.descr(),
                             completion.complete());
                 } else if (completionType.equals(SuggestionType.FUNCTION.name)) {
                     return new Suggestion(
                             textUntilSentinel(lastToken, '.') + completion.value(),
-                            completion.value(),
+                            completion.displ(),
                             SuggestionType.FUNCTION,
                             completion.descr(),
                             completion.complete());
                 } else if (completionType.equals(SuggestionType.PROCEDURE.name)) {
                     return new Suggestion(
                             textUntilSentinel(lastToken, '.') + completion.value(),
-                            completion.value(),
+                            completion.displ(),
                             SuggestionType.PROCEDURE,
                             completion.descr(),
                             completion.complete());

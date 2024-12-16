@@ -151,9 +151,21 @@ class JlineCompleterTest {
                         new DbInfo.ReturnDescription("versions"),
                         new DbInfo.ReturnDescription("edition"))));
         dbInfo.functions = List.of("a.b", "xx.yy.fna", "xx.yy.fnb");
-        dbInfo.labels = List.of("Actor", "Airport", "Dog", "Gym", "Window", "Wedding");
-        dbInfo.relationshipTypes = List.of("ACTED_IN", "DIRECTED", "FOLLOWS", "PRODUCED", "REVIEWED");
-        dbInfo.propertyKeys = List.of("born", "data", "id", "name", "nodes", "rating", "relationships");
+        dbInfo.labels =
+                List.of("Actor", "_Airport", "Dog", "Gym", "Window", "123Wedding", "Odd1", "Odd_x", "Odd label");
+        dbInfo.relationshipTypes =
+                List.of("ACTED_IN", "DIRECTED", "9FOLLOWS", "PRODUCED_GLÖGG", "REVIEWED", "ODD1", "ODD RELTYPE");
+        dbInfo.propertyKeys = List.of(
+                "1born",
+                "data",
+                "körkort",
+                "name",
+                "nodes",
+                "rating",
+                "relationships",
+                "rating1",
+                "rating_x",
+                "rating score");
         dbInfo.databaseNames = List.of("neo4j", "oskar", "system", "Restaurant", "Cafe");
         dbInfo.aliasNames = List.of("alias2", "scoped.alias", "Bar", "Hotel", "Supermarket");
         dbInfo.userNames = List.of("oskar", "neo4j", "admin");
@@ -301,15 +313,28 @@ class JlineCompleterTest {
     @Test
     void completesLabels() {
         assertThat(complete("MATCH (n: "))
-                .contains(labelOrRelType("Actor"), labelOrRelType("Airport"), labelOrRelType("Wedding"));
-
+                .contains(
+                        labelOrRelType("Actor"),
+                        labelOrRelType("_Airport"),
+                        labelOrRelType("Odd1"),
+                        labelOrRelType("Odd_x"),
+                        labelOrRelType("`123Wedding`", "123Wedding"),
+                        labelOrRelType("`Odd label`", "Odd label"));
         assertThat(complete("MATCH (n:"))
                 .contains(
                         labelOrRelType("(n:Actor", "Actor"),
-                        labelOrRelType("(n:Airport", "Airport"),
-                        labelOrRelType("(n:Wedding", "Wedding"));
+                        labelOrRelType("(n:_Airport", "_Airport"),
+                        labelOrRelType("(n:`123Wedding`", "123Wedding"),
+                        labelOrRelType("(n:Odd1", "Odd1"),
+                        labelOrRelType("(n:Odd_x", "Odd_x"),
+                        labelOrRelType("(n:`Odd label`", "Odd label"));
 
         assertThat(complete("MATCH (n:Ac")).contains(labelOrRelType("(n:Actor", "Actor"));
+        assertThat(complete("MATCH (n:Od"))
+                .contains(
+                        labelOrRelType("(n:Odd1", "Odd1"),
+                        labelOrRelType("(n:Odd_x", "Odd_x"),
+                        labelOrRelType("(n:`Odd label`", "Odd label"));
     }
 
     @Test
@@ -318,20 +343,36 @@ class JlineCompleterTest {
                 .contains(
                         labelOrRelType("(n)-[r:ACTED_IN", "ACTED_IN"),
                         labelOrRelType("(n)-[r:DIRECTED", "DIRECTED"),
-                        labelOrRelType("(n)-[r:FOLLOWS", "FOLLOWS"));
+                        labelOrRelType("(n)-[r:PRODUCED_GLÖGG", "PRODUCED_GLÖGG"),
+                        labelOrRelType("(n)-[r:`9FOLLOWS`", "9FOLLOWS"),
+                        labelOrRelType("(n)-[r:ODD1", "ODD1"),
+                        labelOrRelType("(n)-[r:`ODD RELTYPE`", "ODD RELTYPE"));
 
         assertThat(complete("MATCH (n)-[r: "))
-                .contains(labelOrRelType("ACTED_IN"), labelOrRelType("DIRECTED"), labelOrRelType("FOLLOWS"));
+                .contains(labelOrRelType("ACTED_IN"), labelOrRelType("DIRECTED"), labelOrRelType("ODD1"));
 
         assertThat(complete("MATCH (n)-[r:A")).contains(labelOrRelType("(n)-[r:ACTED_IN", "ACTED_IN"));
+        assertThat(complete("MATCH (n)-[r:OD"))
+                .contains(labelOrRelType("(n)-[r:ODD1", "ODD1"), labelOrRelType("(n)-[r:`ODD RELTYPE`", "ODD RELTYPE"));
     }
 
     @Test
     void completePropertyKeys() {
         assertThat(complete("RETURN n."))
-                .contains(property("n.data", "data"), property("n.born", "born"), property("n.id", "id"));
+                .contains(
+                        property("n.data", "data"),
+                        property("n.`1born`", "1born"),
+                        property("n.körkort", "körkort"),
+                        property("n.rating1", "rating1"),
+                        property("n.rating_x", "rating_x"),
+                        property("n.`rating score`", "rating score"));
 
         assertThat(complete("RETURN n.d")).contains(property("n.data", "data"));
+        assertThat(complete("RETURN n.rat"))
+                .contains(
+                        property("n.`rating score`", "rating score"),
+                        property("n.rating1", "rating1"),
+                        property("n.rating_x", "rating_x"));
     }
 
     @Test

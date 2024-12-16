@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -203,16 +205,33 @@ public class CompletionEngine {
         return result;
     }
 
+    private static String backtickIfNeeded(String e) {
+        if (e == null || e.isEmpty()) {
+            return e;
+        }
+        Pattern invalidStartPattern = Pattern.compile("^[^\\p{L}_]", Pattern.UNICODE_CHARACTER_CLASS);
+        Pattern invalidAnywherePattern = Pattern.compile("[^\\p{L}\\p{N}_]", Pattern.UNICODE_CHARACTER_CLASS);
+        Matcher m1 = invalidStartPattern.matcher(String.valueOf(e.charAt(0)));
+        Matcher m2 = invalidAnywherePattern.matcher(e);
+        if (m1.find() || m2.find()) {
+            return "`" + e + "`";
+        } else {
+            return e;
+        }
+    }
+
     private Stream<Suggestion> labelCompletions() {
-        return this.dbInfo.labels.stream().map(Suggestion::labelOrRelType);
+        return this.dbInfo.labels.stream().map(label -> Suggestion.labelOrRelType(backtickIfNeeded(label), label));
     }
 
     private Stream<Suggestion> relTypeCompletions() {
-        return this.dbInfo.relationshipTypes.stream().map(Suggestion::labelOrRelType);
+        return this.dbInfo.relationshipTypes.stream()
+                .map(relType -> Suggestion.labelOrRelType(backtickIfNeeded(relType), relType));
     }
 
     private Stream<Suggestion> propertyKeyCompletions() {
-        return this.dbInfo.propertyKeys.stream().map(Suggestion::property);
+        return this.dbInfo.propertyKeys.stream()
+                .map(property -> Suggestion.property(backtickIfNeeded(property), property));
     }
 
     private ParserRuleContext findStopNode(Cypher5Parser.StatementsContext root) {
