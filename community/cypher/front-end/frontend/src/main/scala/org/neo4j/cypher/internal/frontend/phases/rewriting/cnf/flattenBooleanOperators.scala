@@ -41,14 +41,8 @@ case object flattenBooleanOperators extends CnfPhase {
   }
 
   private val secondStep: Rewriter = Rewriter.lift {
-    case p @ Ands(exprs) => Ands(exprs.flatMap {
-        case Ands(inner) => inner
-        case x           => Set(x)
-      })(p.position)
-    case p @ Ors(exprs) => Ors(exprs.flatMap {
-        case Ors(inner) => inner
-        case x          => Set(x)
-      })(p.position)
+    case p @ Ands(exprs) => Ands(exprs.flatMap(Ands.unwrap))(p.position)
+    case p @ Ors(exprs)  => Ors(exprs.flatMap(Ors.unwrap))(p.position)
   }
 
   def instance(cancellationChecker: CancellationChecker): Rewriter = inSequence(cancellationChecker)(
