@@ -518,6 +518,10 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         while (versionExists(logVersion)) {
             LogHeader logHeader = extractHeader(logVersion, false);
             if (logHeader != null) {
+                // This is not necessarily true, there can be one tx/chunk spanning multiple log files in which case
+                // the last append index is still the lowest. It is correct that this is not the file with the
+                // start of that tx/chunk tough, and the current implementations of the visitor will still find
+                // the correct file based on this.
                 long lowAppendIndex = logHeader.getLastAppendIndex() + 1;
                 LogPosition position = logHeader.getStartPosition();
                 if (!visitor.visit(logHeader, position, lowAppendIndex, highAppendIndex)) {

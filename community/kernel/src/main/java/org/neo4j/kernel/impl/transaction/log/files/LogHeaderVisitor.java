@@ -26,6 +26,10 @@ public interface LogHeaderVisitor {
     /***
      * Used for visiting log headers in reverse order of age, meaning latest first.
      * Stops visiting when false is returned.
+     *
+     * NOTE that firstAppendIndexInLog is not necessarily in the logfile - it is based on the last append index from
+     * the previous log file and a guess that the last chunk from that file isn't spanning the whole of the current file
+     * too. firstAppendIndexInLog is only guaranteed to be in the log file if firstAppendIndexInLog <= lastAppendIndexInLog
      */
     boolean visit(LogHeader logHeader, LogPosition position, long firstAppendIndexInLog, long lastAppendIndexInLog);
 }

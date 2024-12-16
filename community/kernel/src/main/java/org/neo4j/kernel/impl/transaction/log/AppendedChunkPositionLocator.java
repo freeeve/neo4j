@@ -32,6 +32,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryRollback;
+import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 
 public class AppendedChunkPositionLocator implements LogFile.LogFileVisitor {
@@ -48,6 +49,12 @@ public class AppendedChunkPositionLocator implements LogFile.LogFileVisitor {
     public boolean visit(ReadableLogPositionAwareChannel channel) throws IOException {
         LogPosition lastStartPosition = null;
         LogEntry logEntry;
+
+        // Envelope channels can have half an entry from the previous channel, let's align to the start of a tx/chunk
+        if (channel instanceof EnvelopeReadChannel ch) {
+            ch.alignWithStartEntry();
+        }
+
         do {
             var logPosition = channel.getCurrentLogPosition();
             logEntry = logEntryReader.readLogEntry(channel);
