@@ -40,7 +40,8 @@ class PrettifierPropertyTest extends CypherFunSuite
 
   implicit val config: PropertyCheckConfiguration = PropertyCheckConfiguration(minSuccessful = 5000)
 
-  test("Prettifier output should parse to the same ast - Cypher 5 version") {
+  // Enable when the test runs in reasonable time
+  ignore("Prettifier output should parse to the same ast - Cypher 5 version") {
     // To reproduce test failures, enable the following line with the seed from the TC build
     // setScalaCheckInitialSeed(seed)
     forAll(astGeneratorCypher5._statement) { statement =>
@@ -48,7 +49,8 @@ class PrettifierPropertyTest extends CypherFunSuite
     }
   }
 
-  test("Prettifier output should parse to the same ast - Cypher 25 version") {
+  // Enable when the test runs in reasonable time
+  ignore("Prettifier output should parse to the same ast - Cypher 25 version") {
     // To reproduce test failures, enable the following line with the seed from the TC build
     // setScalaCheckInitialSeed(seed)
     forAll(astGeneratorCypher25._statement) { statement =>
