@@ -464,6 +464,13 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
         return ToStringBuilder.reflectionToString(this);
     }
 
+    // access unstable state
+
+    /** Returns compilation time in nano seconds, or a negative number if compilation has not completed. */
+    public long compilationTimeNanos() {
+        return compilationCompletedNanos - startTimeNanos;
+    }
+
     // access stable state
 
     public long internalQueryId() {
