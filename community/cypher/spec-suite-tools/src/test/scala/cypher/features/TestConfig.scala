@@ -19,6 +19,8 @@
  */
 package cypher.features
 
+import org.neo4j.cypher.internal.CypherVersion
+
 case class QueryPrefix(commonPrefix: String, executionPrefix: String)
 
 object QueryPrefix {
@@ -36,38 +38,39 @@ object TestConfig {
   ): TestConfig =
     TestConfig(Some(testClass.getPackageName.replace('.', '/') + "/denylist/" + denyListFilename), prefix, experimental)
 
-  def default(testClass: Class[_], deny: String = "default-cypher5.txt"): TestConfig =
+  def default(testClass: Class[_], deny: String = denyFile("default")): TestConfig =
     TestConfig(testClass, deny, QueryPrefix.empty)
 
-  def slotted(testClass: Class[_], denyList: String = "slotted-cypher5.txt"): TestConfig =
+  def slotted(testClass: Class[_], denyList: String = denyFile("slotted")): TestConfig =
     TestConfig(testClass, denyList, QueryPrefix("", "CYPHER planner=cost runtime=slotted"))
 
   def slottedWithCompiledExpressions(testClass: Class[_]): TestConfig = TestConfig(
     testClass,
-    "slotted-with-compiled-expressions-cypher5.txt",
+    denyFile("slotted-with-compiled-expressions"),
     QueryPrefix("", "CYPHER planner=cost runtime=slotted expressionEngine=COMPILED")
   )
 
   def pipelined(testClass: Class[_]): TestConfig =
     TestConfig(
       testClass,
-      "pipelined-single-threaded-cypher5.txt",
+      denyFile("pipelined-single-threaded"),
       QueryPrefix("", "CYPHER planner=cost runtime=pipelined")
     )
 
   def pipelinedFull(testClass: Class[_]): TestConfig = TestConfig(
     testClass,
-    "pipelined-single-threaded-full-cypher5.txt",
+    denyFile("pipelined-single-threaded-full"),
     QueryPrefix("", "CYPHER planner=cost runtime=pipelined interpretedPipesFallback=all"),
     experimental = true
   )
 
   def parallel(testClass: Class[_]): TestConfig =
-    TestConfig(testClass, "parallel-cypher5.txt", QueryPrefix("", "CYPHER planner=cost runtime=parallel"))
+    TestConfig(testClass, denyFile("parallel"), QueryPrefix("", "CYPHER planner=cost runtime=parallel"))
 
   def interpreted(testClass: Class[_]): TestConfig =
-    TestConfig(testClass, "interpreted-cypher5.txt", QueryPrefix("", "CYPHER planner=cost runtime=legacy"))
+    TestConfig(testClass, denyFile("interpreted"), QueryPrefix("", "CYPHER planner=cost runtime=legacy"))
 
-  def defaultSpd(testClass: Class[_]): TestConfig = TestConfig(testClass, "default-spd-cypher5.txt", QueryPrefix.empty)
+  def defaultSpd(testClass: Class[_]): TestConfig = TestConfig(testClass, denyFile("default-spd"), QueryPrefix.empty)
 
+  private def denyFile(name: String): String = s"$name-cypher${CypherVersion.Default.versionName}.txt"
 }
