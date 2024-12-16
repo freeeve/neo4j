@@ -537,8 +537,20 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         }
     }
 
-    private void skipToNextEnvelope() {
-        buffer.position(payloadEndOffset);
+    private void skipToNextEnvelope() throws IOException {
+        try {
+            buffer.position(payloadEndOffset);
+        } catch (IllegalArgumentException e) {
+            // Either an incomplete envelope, or a larger corruption if there is things after this segment.
+            // Would only get here in the unlikely case that the checksums did not mismatch even though the
+            // envelope wasn't complete.
+            buffer.position(buffer.limit());
+            checkTail(
+                    this,
+                    new LogPosition(channel.getLogVersion(), currentSegment * segmentBlockSize + payloadStartOffset),
+                    e);
+            throw new IncompleteEnvelopeReadException("Could not go to end of envelope", e);
+        }
     }
 
     private void ensureDataExists(int requestedNumberOfBytes) throws IOException {
