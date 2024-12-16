@@ -35,6 +35,7 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.cordonedSe
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedBooleanCoercion;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedConnectComponentsPlannerPreParserOption;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedDatabaseName;
+import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedEagerAnalyzerPreParserOption;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedExistingDataOption;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFormat;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFunctionWithReplacement;
@@ -1345,6 +1346,33 @@ class NotificationCodeWithDescriptionTest {
     }
 
     @Test
+    void shouldConstructNotificationsFor_DEPRECATED_EAGER_ANALYZER_PRE_PARSER_OPTION() {
+        NotificationImplementation notification = deprecatedEagerAnalyzerPreParserOption(InputPosition.empty);
+
+        verifyNotification(
+                notification,
+                "This feature is deprecated and will be removed in future versions.",
+                SeverityLevel.WARNING,
+                "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
+                "The Cypher query option `eagerAnalyzer` is deprecated. "
+                        + "It will be removed without a replacement. "
+                        + "The option is ignored, eagerness analysis is systematically performed on the logical plan "
+                        + "regardless of the value provided.",
+                NotificationCategory.DEPRECATION,
+                NotificationClassification.DEPRECATION,
+                "01N02",
+                new DiagnosticRecord(
+                                warning,
+                                NotificationClassification.DEPRECATION,
+                                -1,
+                                -1,
+                                -1,
+                                Map.of("feat", "eagerAnalyzer"))
+                        .asMap(),
+                "warn: feature deprecated without replacement. eagerAnalyzer is deprecated and will be removed without a replacement.");
+    }
+
+    @Test
     void shouldConstructNotificationsFor_AUTH_PROVIDER_NOT_DEFINED() {
         NotificationImplementation notification = authProviderNotDefined(InputPosition.empty, "foo");
 
@@ -2135,8 +2163,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            -102, 86, 9, 24, -78, 39, -35, 70, -106, -51, 63, -10, 67, -108, -71, 17, -82, 6, -28, 93, -115, 49, 46, 37,
-            -30, 75, -65, -6, 121, 27, -105, 56
+            -115, 41, 121, -48, -121, 47, -47, 36, 55, -65, -13, -57, -112, -89, 39, 124, 7, 81, 116, 11, 108, -57, -74,
+            118, -95, -88, -120, 60, -40, -61, 10, 46
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {

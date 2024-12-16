@@ -24,6 +24,7 @@ import org.antlr.v4.runtime.CommonTokenStream
 import org.neo4j.cypher.internal.cache.LFUCache
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.options.CypherConnectComponentsPlannerOption
+import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption
 import org.neo4j.cypher.internal.options.CypherExecutionMode
 import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
 import org.neo4j.cypher.internal.options.CypherQueryOptions
@@ -42,7 +43,9 @@ import org.neo4j.cypher.internal.preparser.javacc.CypherPreParser
 import org.neo4j.cypher.internal.preparser.javacc.PreParserCharStream
 import org.neo4j.cypher.internal.preparser.javacc.PreParserResult
 import org.neo4j.cypher.internal.util.DeprecatedConnectComponentsPlannerPreParserOption
+import org.neo4j.cypher.internal.util.DeprecatedEagerAnalyzerPreParserOption
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.exceptions.SyntaxException
@@ -164,10 +167,7 @@ class PreParser(
       preParserResult.position
     )
 
-    val notifications = preParsedStatement.options.collect {
-      case PreParserOption(key, _, pos) if key.toLowerCase(Locale.ROOT) == CypherConnectComponentsPlannerOption.key =>
-        DeprecatedConnectComponentsPlannerPreParserOption(pos)
-    }
+    val notifications = preParserOptionsNotifications(preParsedStatement)
 
     val options = PreParser.queryOptions(
       preParsedStatement.options,
@@ -180,10 +180,7 @@ class PreParser(
 
   def preParseAntlr(queryText: String): PreParsedQuery = {
     val preParsedStatement = preParseQuery(queryText)
-    val notifications = preParsedStatement.options.collect {
-      case PreParserOption(key, _, pos) if key.toLowerCase(Locale.ROOT) == CypherConnectComponentsPlannerOption.key =>
-        DeprecatedConnectComponentsPlannerPreParserOption(pos)
-    }
+    val notifications = preParserOptionsNotifications(preParsedStatement)
 
     PreParsedQuery(
       preParsedStatement.statement,
@@ -247,6 +244,18 @@ class PreParser(
     )
 
   }
+
+  private def preParserOptionsNotifications(preParsedStatement: PreParsedStatement): List[InternalNotification] =
+    preParsedStatement.options.flatMap { option =>
+      option.key.toLowerCase(Locale.ROOT) match {
+        case CypherConnectComponentsPlannerOption.key =>
+          Some(DeprecatedConnectComponentsPlannerPreParserOption(option.position))
+        case CypherEagerAnalyzerOption.key =>
+          Some(DeprecatedEagerAnalyzerPreParserOption(option.position))
+        case _ =>
+          None
+      }
+    }
 
   // Used as an optimisation to shortcut preparsing.
   private def hasPreparserOptions(token: Int): Boolean = {

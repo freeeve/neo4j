@@ -69,7 +69,7 @@ class CacheKeyTest extends CypherFunSuite {
       connectComponentsPlanner = CypherConnectComponentsPlannerOption.idp,
       debugOptions = CypherDebugOptions(Set(CypherDebugOption.queryGraph, CypherDebugOption.tostring)),
       parallelRuntimeSupportOption = CypherParallelRuntimeSupportOption.disabled,
-      eagerAnalyzer = CypherEagerAnalyzerOption.lp,
+      eagerAnalyzer = CypherEagerAnalyzerOption.ir,
       inferSchemaParts = CypherInferSchemaPartsOption.mostSelectiveLabel,
       statefulShortestPlanningModeOption = CypherStatefulShortestPlanningModeOption.allIfPossible,
       planVarExpandInto = CypherPlanVarExpandInto.minimumCost
@@ -77,7 +77,7 @@ class CacheKeyTest extends CypherFunSuite {
 
     options.cacheKey
       .shouldEqual(
-        """5 PROFILE planner=dp runtime=pipelined updateStrategy=eager expressionEngine=interpreted operatorEngine=interpreted interpretedPipesFallback=all connectComponentsPlanner=idp debug=querygraph debug=tostring parallelRuntimeSupport=disabled inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost"""
+        """5 PROFILE planner=dp runtime=pipelined updateStrategy=eager expressionEngine=interpreted operatorEngine=interpreted interpretedPipesFallback=all connectComponentsPlanner=idp debug=querygraph debug=tostring parallelRuntimeSupport=disabled eagerAnalyzer=ir inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost"""
       )
   }
 
@@ -95,7 +95,7 @@ class CacheKeyTest extends CypherFunSuite {
       connectComponentsPlanner = CypherConnectComponentsPlannerOption.idp,
       debugOptions = CypherDebugOptions(Set(CypherDebugOption.queryGraph, CypherDebugOption.tostring)),
       parallelRuntimeSupportOption = CypherParallelRuntimeSupportOption.disabled,
-      eagerAnalyzer = CypherEagerAnalyzerOption.lp,
+      eagerAnalyzer = CypherEagerAnalyzerOption.ir,
       inferSchemaParts = CypherInferSchemaPartsOption.mostSelectiveLabel,
       statefulShortestPlanningModeOption = CypherStatefulShortestPlanningModeOption.allIfPossible,
       planVarExpandInto = CypherPlanVarExpandInto.minimumCost
@@ -103,7 +103,7 @@ class CacheKeyTest extends CypherFunSuite {
 
     options.logicalPlanCacheKey
       .shouldEqual(
-        """5 updateStrategy=eager connectComponentsPlanner=idp inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost"""
+        """5 updateStrategy=eager connectComponentsPlanner=idp eagerAnalyzer=ir inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost"""
       )
   }
 }

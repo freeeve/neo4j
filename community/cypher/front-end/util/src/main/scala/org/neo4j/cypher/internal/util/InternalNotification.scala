@@ -58,6 +58,7 @@ object InternalNotification {
     "RepeatedRelationshipReference",
     "RepeatedVarLengthRelationshipReference",
     "DeprecatedConnectComponentsPlannerPreParserOption",
+    "DeprecatedEagerAnalyzerPreParserOption",
     "AssignPrivilegeCommandHasNoEffectNotification",
     "RevokePrivilegeCommandHasNoEffectNotification",
     "GrantRoleCommandHasNoEffectNotification",
@@ -187,6 +188,7 @@ case class RepeatedVarLengthRelationshipReference(position: InputPosition, relNa
     extends InternalNotification
 
 case class DeprecatedConnectComponentsPlannerPreParserOption(position: InputPosition) extends InternalNotification
+case class DeprecatedEagerAnalyzerPreParserOption(position: InputPosition) extends InternalNotification
 
 case class AuthProviderNotDefined(provider: String) extends InternalNotification
 case class ExternalAuthNotEnabled() extends InternalNotification

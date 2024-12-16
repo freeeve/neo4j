@@ -535,9 +535,7 @@ sealed abstract class CypherEagerAnalyzerOption(name: String) extends CypherKeyV
 }
 
 case object CypherEagerAnalyzerOption extends CypherOptionCompanion[CypherEagerAnalyzerOption](
-      name = "eagerAnalyzer",
-      setting = Some(GraphDatabaseInternalSettings.cypher_eager_analysis_implementation),
-      cypherConfigField = None
+      name = "eagerAnalyzer"
     ) {
 
   case object lp extends CypherEagerAnalyzerOption("lp")

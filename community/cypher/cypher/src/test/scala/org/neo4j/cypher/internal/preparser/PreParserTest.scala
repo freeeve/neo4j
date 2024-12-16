@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.options.CypherRuntimeOption.slotted
 import org.neo4j.cypher.internal.options.CypherVersion.cypher5
 import org.neo4j.cypher.internal.options._
 import org.neo4j.cypher.internal.util.DeprecatedConnectComponentsPlannerPreParserOption
+import org.neo4j.cypher.internal.util.DeprecatedEagerAnalyzerPreParserOption
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.RecordingNotificationLogger
 import org.neo4j.cypher.internal.util.devNullLogger
@@ -269,6 +270,34 @@ class PreParserTest extends CypherFunSuite {
     preParsedQuery.notifications should equal(Seq(
       DeprecatedConnectComponentsPlannerPreParserOption(InputPosition(7, 1, 8))
     ))
+  }
+
+  test("should issue a notification for deprecated eagerAnalyzer option") {
+    val notificationLogger = new RecordingNotificationLogger()
+    val preParsedQuery = preParser.preParseQuery(
+      "CYPHER eagerAnalyzer=ir RETURN 42",
+      notificationLogger
+    )
+    notificationLogger.notifications shouldEqual Set(
+      DeprecatedEagerAnalyzerPreParserOption(InputPosition(7, 1, 8))
+    )
+    preParsedQuery.notifications shouldEqual List(
+      DeprecatedEagerAnalyzerPreParserOption(InputPosition(7, 1, 8))
+    )
+  }
+
+  test("should issue a notification for deprecated eagerAnalyzer option, even when setting it to LP eagerness") {
+    val notificationLogger = new RecordingNotificationLogger()
+    val preParsedQuery = preParser.preParseQuery(
+      "CYPHER eagerAnalyzer=lp RETURN 42",
+      notificationLogger
+    )
+    notificationLogger.notifications shouldEqual Set(
+      DeprecatedEagerAnalyzerPreParserOption(InputPosition(7, 1, 8))
+    )
+    preParsedQuery.notifications shouldEqual List(
+      DeprecatedEagerAnalyzerPreParserOption(InputPosition(7, 1, 8))
+    )
   }
 
   test("should not allow multiple conflicting replan strategies") {

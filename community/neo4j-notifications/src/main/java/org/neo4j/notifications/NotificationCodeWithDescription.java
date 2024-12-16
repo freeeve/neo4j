@@ -268,6 +268,14 @@ public enum NotificationCodeWithDescription {
                     + "The product's default behavior of using a cost-based IDP search algorithm when combining sub-plans will be kept. "
                     + "For more information, see Cypher Manual -> Cypher planner."),
 
+    DEPRECATED_EAGER_ANALYZER_PRE_PARSER_OPTION(
+            Status.Statement.FeatureDeprecationWarning,
+            GqlStatusInfoCodes.STATUS_01N02,
+            "The Cypher query option `eagerAnalyzer` is deprecated. "
+                    + "It will be removed without a replacement. "
+                    + "The option is ignored, eagerness analysis is systematically performed on the logical plan "
+                    + "regardless of the value provided."),
+
     COMMAND_HAS_NO_EFFECT_ASSIGN_PRIVILEGE(
             Status.Security.CommandHasNoEffect,
             GqlStatusInfoCodes.STATUS_00N70,
@@ -741,6 +749,11 @@ public enum NotificationCodeWithDescription {
     public static NotificationImplementation deprecatedConnectComponentsPlannerPreParserOption(InputPosition position) {
         return DEPRECATED_CONNECT_COMPONENTS_PLANNER_PRE_PARSER_OPTION.notificationWithParameters(
                 position, new String[] {}, new String[] {"connectComponentsPlanner"});
+    }
+
+    public static NotificationImplementation deprecatedEagerAnalyzerPreParserOption(InputPosition position) {
+        return DEPRECATED_EAGER_ANALYZER_PRE_PARSER_OPTION.notificationWithParameters(
+                position, new String[] {}, new String[] {"eagerAnalyzer"});
     }
 
     public static NotificationImplementation authProviderNotDefined(InputPosition position, String provider) {

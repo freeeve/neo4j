@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.util.CordonedServersExistedDuringAllocation
 import org.neo4j.cypher.internal.util.DeprecatedBooleanCoercion
 import org.neo4j.cypher.internal.util.DeprecatedConnectComponentsPlannerPreParserOption
 import org.neo4j.cypher.internal.util.DeprecatedDatabaseNameNotification
+import org.neo4j.cypher.internal.util.DeprecatedEagerAnalyzerPreParserOption
 import org.neo4j.cypher.internal.util.DeprecatedExistingDataOption
 import org.neo4j.cypher.internal.util.DeprecatedFunctionNotification
 import org.neo4j.cypher.internal.util.DeprecatedIdentifierUnicode
@@ -393,6 +394,10 @@ object NotificationWrapping {
       NotificationCodeWithDescription.deprecatedConnectComponentsPlannerPreParserOption(
         position.asInputPosition
       )
+
+    case DeprecatedEagerAnalyzerPreParserOption(position) =>
+      NotificationCodeWithDescription
+        .deprecatedEagerAnalyzerPreParserOption(position.asInputPosition)
 
     case DeprecatedOptionInOptionMap(oldOption, newOption) =>
       NotificationCodeWithDescription.deprecatedOptionInOptionMap(oldOption, newOption)

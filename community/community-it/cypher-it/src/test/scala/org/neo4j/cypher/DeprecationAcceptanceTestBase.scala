@@ -38,6 +38,7 @@ import org.neo4j.graphdb.Notification
 import org.neo4j.graphdb.SeverityLevel
 import org.neo4j.internal.schema.AllIndexProviderDescriptors
 import org.neo4j.notifications.NotificationCodeWithDescription.deprecatedConnectComponentsPlannerPreParserOption
+import org.neo4j.notifications.NotificationCodeWithDescription.deprecatedEagerAnalyzerPreParserOption
 import org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFunctionField
 import org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFunctionWithReplacement
 import org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFunctionWithoutReplacement
@@ -1066,6 +1067,27 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         TestGqlStatusObject(
           STATUS_01N02.getStatusString,
           "warn: feature deprecated without replacement. connectComponentsPlanner is deprecated and will be removed without a replacement.",
+          SeverityLevel.WARNING,
+          NotificationClassification.DEPRECATION
+        ),
+        testOmittedResult
+      )
+    )
+  }
+
+  test("eagerAnalyzer pre parser option is deprecated and ignored") {
+    val queries = Seq(
+      "CYPHER eagerAnalyzer=lp RETURN 1",
+      "CYPHER eagerAnalyzer=ir RETURN 1"
+    )
+    assertNotification(
+      queries,
+      shouldContainNotification = true,
+      deprecatedEagerAnalyzerPreParserOption,
+      List(
+        TestGqlStatusObject(
+          STATUS_01N02.getStatusString,
+          "warn: feature deprecated without replacement. eagerAnalyzer is deprecated and will be removed without a replacement.",
           SeverityLevel.WARNING,
           NotificationClassification.DEPRECATION
         ),

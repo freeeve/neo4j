@@ -519,19 +519,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
                     "internal.cypher.pipelined.operator_fusion_lower_limit", INT, 2)
             .build();
 
-    public enum EagerAnalysisImplementation {
-        IR,
-        LP
-    }
-
-    @Internal
-    @Description("Choose the Eager Analysis implementation")
-    public static final Setting<EagerAnalysisImplementation> cypher_eager_analysis_implementation = newBuilder(
-                    "internal.cypher.eager_analysis_implementation",
-                    ofEnum(EagerAnalysisImplementation.class),
-                    EagerAnalysisImplementation.LP)
-            .build();
-
     @Internal
     @Description("Enable fallback to updateStrategy=alwaysEager for LP eager analyzer")
     public static final Setting<Boolean> cypher_lp_eager_analysis_fallback_enabled = newBuilder(
