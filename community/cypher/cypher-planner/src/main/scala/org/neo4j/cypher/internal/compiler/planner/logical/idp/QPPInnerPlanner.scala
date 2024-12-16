@@ -39,14 +39,14 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.NonEmptyList
 
 /**
- * Produces a logical plan for the the inner pattern of a QPP, which is the equivalent of the RHS of the Trail operator.
+ * Produces a logical plan for the inner pattern of a QPP, which is the equivalent of the RHS of the Trail operator.
  * [[QPPInnerPlanner]] has two implementations, where [[CacheBackedQPPInnerPlanner]] simply provides an additional layer
  * of caching on top of the planning capabilities of [[IDPQPPInnerPlanner]].
  */
 trait QPPInnerPlanner {
 
   /**
-   * Takes a QPP pattern, a direction, and inlineable predicates. Depending on the direciton, it produces a LogicalPlan
+   * Takes a QPP pattern, a direction, and inlineable predicates. Depending on the direction, it produces a LogicalPlan
    * with either the leftmost or rightmost node of the inner QPP as argument. The inlineable predicates are pushed down
    * as early as possible.
    *
