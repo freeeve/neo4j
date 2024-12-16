@@ -23,6 +23,8 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.ExecutionModel
+import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.HasDegreeGreaterThan
@@ -42,10 +44,90 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest extends CypherFunSuite
+class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest
+    extends AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(ExecutionModel.default) {
+
+  test("should batch properties for ordered aggregations") {
+    val query =
+      """MATCH (person)
+        |WITH person ORDER BY person.age
+        |RETURN person.name, person.age, count(person.age)""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults("`person.name`", "`person.age`", "`count(person.age)`")
+      .orderedAggregation(
+        Seq("cacheN[person.name] AS `person.name`", "cacheN[person.age] AS `person.age`"),
+        Seq("count(cacheN[person.age]) AS `count(person.age)`"),
+        Seq("cacheN[person.age]")
+      )
+      .remoteBatchProperties("cacheNFromStore[person.name]")
+      .sort("`person.age` ASC")
+      .projection("cacheN[person.age] AS `person.age`")
+      .remoteBatchProperties("cacheNFromStore[person.age]")
+      .allNodeScan("person")
+      .build()
+  }
+
+  test("should propagate cached properties for an ordered distinct projection") {
+    val query =
+      """
+        |MATCH (n:Person)
+        |WHERE n.firstName = 'foo'
+        |RETURN DISTINCT n.firstName""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+
+    plan should equal(planner.subPlanBuilder()
+      .orderedDistinct(Seq("cacheN[n.firstName]"), "cacheN[n.firstName] AS `n.firstName`")
+      .nodeIndexOperator(
+        "n:Person(firstName = 'foo')",
+        indexOrder = IndexOrderAscending,
+        getValue = Map("firstName" -> GetValue)
+      )
+      .build())
+  }
+
+  test("should batch properties when finding triadic selections") {
+    val query =
+      """
+        |MATCH (n:Person {firstName: "Dave"})-[:KNOWS]-(friend:Person)-[:KNOWS]-(friendOfFriend:Person)
+        |WHERE NOT (n)-[:KNOWS]-(friendOfFriend)
+        |RETURN n. firstName, n.lastName, friendOfFriend.firstName, friendOfFriend.lastName""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+
+    plan should equal(planner.subPlanBuilder()
+      .projection(
+        "cacheN[n.firstName] AS `n. firstName`",
+        "cacheN[n.lastName] AS `n.lastName`",
+        "cacheN[friendOfFriend.firstName] AS `friendOfFriend.firstName`",
+        "cacheN[friendOfFriend.lastName] AS `friendOfFriend.lastName`"
+      )
+      .remoteBatchProperties(
+        "cacheNFromStore[n.lastName]",
+        "cacheNFromStore[friendOfFriend.firstName]",
+        "cacheNFromStore[friendOfFriend.lastName]"
+      )
+      .filter("NOT anon_1 = anon_0", "friendOfFriend:Person")
+      .triadicSelection(positivePredicate = false, "n", "friend", "friendOfFriend")
+      .|.expandAll("(friend)-[anon_1:KNOWS]-(friendOfFriend)")
+      .|.argument("friend", "anon_0")
+      .filter("friend:Person")
+      .expandAll("(n)-[anon_0:KNOWS]-(friend)")
+      .nodeIndexOperator("n:Person(firstName = 'Dave')", getValue = Map("firstName" -> GetValue))
+      .build())
+  }
+}
+
+class ParallelRuntimeRemoteBatchPropertiesPlanningIntegrationTest
+    extends AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(BatchedParallel(1, 2))
+
+abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(executionModel: ExecutionModel)
+    extends CypherFunSuite
     with LogicalPlanningIntegrationTestSupport with AstConstructionTestSupport {
 
-  private val spdPlanner = plannerBuilder()
+  protected val spdPlanner = plannerBuilder()
     .setDatabaseMode(DatabaseMode.SHARDED)
     .withSetting(
       GraphDatabaseInternalSettings.cypher_remote_batch_properties_implementation,
@@ -53,7 +135,7 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest extends CypherFun
     )
 
   // Graph counts based on a subset of LDBC SF 1
-  final private val planner = spdPlanner
+  final protected val planner = spdPlanner
     .setAllNodesCardinality(3181725)
     .setLabelCardinality("Person", 9892)
     .setLabelCardinality("Message", 3055774)
@@ -88,6 +170,7 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest extends CypherFun
       uniqueSelectivity = 1.0 / 2052169,
       isUnique = true
     )
+    .setExecutionModel(executionModel)
     .build()
 
   test("should batch node properties") {
@@ -705,30 +788,6 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest extends CypherFun
       .build()
   }
 
-  test("should batch properties for ordered aggregations") {
-    val query =
-      """MATCH (person)
-        |WITH person ORDER BY person.age
-        |RETURN person.name, person.age, count(person.age)""".stripMargin
-
-    val plan = planner.plan(query)
-
-    plan shouldEqual planner
-      .planBuilder()
-      .produceResults("`person.name`", "`person.age`", "`count(person.age)`")
-      .orderedAggregation(
-        Seq("cacheN[person.name] AS `person.name`", "cacheN[person.age] AS `person.age`"),
-        Seq("count(cacheN[person.age]) AS `count(person.age)`"),
-        Seq("cacheN[person.age]")
-      )
-      .remoteBatchProperties("cacheNFromStore[person.name]")
-      .sort("`person.age` ASC")
-      .projection("cacheN[person.age] AS `person.age`")
-      .remoteBatchProperties("cacheNFromStore[person.age]")
-      .allNodeScan("person")
-      .build()
-  }
-
   test("should batch properties for collect function") {
     val query =
       """MATCH (person)
@@ -788,24 +847,6 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest extends CypherFun
       .build())
   }
 
-  test("should propagate cached properties for an ordered distinct projection") {
-    val query =
-      """
-        |MATCH (n:Person)
-        |WHERE n.firstName = 'foo'
-        |RETURN DISTINCT n.firstName""".stripMargin
-    val plan = planner.plan(query).stripProduceResults
-
-    plan should equal(planner.subPlanBuilder()
-      .orderedDistinct(Seq("cacheN[n.firstName]"), "cacheN[n.firstName] AS `n.firstName`")
-      .nodeIndexOperator(
-        "n:Person(firstName = 'foo')",
-        indexOrder = IndexOrderAscending,
-        getValue = Map("firstName" -> GetValue)
-      )
-      .build())
-  }
-
   test("should propagate cached properties for a distinct projection") {
     val query =
       """
@@ -818,36 +859,6 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest extends CypherFun
       .distinct("cacheN[n.lastName] AS `n.lastName`")
       .remoteBatchProperties("cacheNFromStore[n.lastName]")
       .nodeIndexOperator("n:Person(firstName = 'foo')", getValue = Map("firstName" -> DoNotGetValue))
-      .build())
-  }
-
-  test("should batch properties when finding triadic selections") {
-    val query =
-      """
-        |MATCH (n:Person {firstName: "Dave"})-[:KNOWS]-(friend:Person)-[:KNOWS]-(friendOfFriend:Person)
-        |WHERE NOT (n)-[:KNOWS]-(friendOfFriend)
-        |RETURN n. firstName, n.lastName, friendOfFriend.firstName, friendOfFriend.lastName""".stripMargin
-    val plan = planner.plan(query).stripProduceResults
-
-    plan should equal(planner.subPlanBuilder()
-      .projection(
-        "cacheN[n.firstName] AS `n. firstName`",
-        "cacheN[n.lastName] AS `n.lastName`",
-        "cacheN[friendOfFriend.firstName] AS `friendOfFriend.firstName`",
-        "cacheN[friendOfFriend.lastName] AS `friendOfFriend.lastName`"
-      )
-      .remoteBatchProperties(
-        "cacheNFromStore[n.lastName]",
-        "cacheNFromStore[friendOfFriend.firstName]",
-        "cacheNFromStore[friendOfFriend.lastName]"
-      )
-      .filter("NOT anon_1 = anon_0", "friendOfFriend:Person")
-      .triadicSelection(positivePredicate = false, "n", "friend", "friendOfFriend")
-      .|.expandAll("(friend)-[anon_1:KNOWS]-(friendOfFriend)")
-      .|.argument("friend", "anon_0")
-      .filter("friend:Person")
-      .expandAll("(n)-[anon_0:KNOWS]-(friend)")
-      .nodeIndexOperator("n:Person(firstName = 'Dave')", getValue = Map("firstName" -> GetValue))
       .build())
   }
 
