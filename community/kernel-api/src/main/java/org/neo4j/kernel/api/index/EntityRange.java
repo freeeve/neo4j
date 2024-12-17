@@ -27,6 +27,6 @@ public record EntityRange(long fromInclusive, long toExclusive) {
     }
 
     public boolean contains(long entityId) {
-        return entityId >= fromInclusive() && entityId < toExclusive();
+        return entityId >= fromInclusive && entityId < toExclusive;
     }
 }

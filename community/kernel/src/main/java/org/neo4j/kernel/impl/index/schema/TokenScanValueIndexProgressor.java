@@ -32,7 +32,7 @@ import org.neo4j.kernel.api.index.IndexProgressor;
  * iterate over each set bit, returning actual entity ids, i.e. {@code entityIdRange+bitOffset}.
  *
  */
-public class TokenScanValueIndexProgressor implements IndexProgressor, Resource {
+public abstract class TokenScanValueIndexProgressor implements IndexProgressor, Resource {
 
     public static final int RANGE_SIZE = Long.SIZE;
     /**
@@ -62,45 +62,60 @@ public class TokenScanValueIndexProgressor implements IndexProgressor, Resource 
     private boolean closed;
 
     private final EntityTokenClient client;
-    private final IndexOrder indexOrder;
     private final EntityRange range;
     private final TokenIndexIdLayout idLayout;
     private final int tokenId;
 
-    TokenScanValueIndexProgressor(
+    static TokenScanValueIndexProgressor tokenScanValueIndexProgressor(
             Seeker<TokenScanKey, TokenScanValue> cursor,
             EntityTokenClient client,
             IndexOrder indexOrder,
             EntityRange range,
             TokenIndexIdLayout idLayout,
             int tokenId) {
+
+        return switch (indexOrder) {
+            case DESCENDING -> new DescendingTokenScanValueProgressor(cursor, client, range, idLayout, tokenId);
+            case ASCENDING, NONE -> new AscendingOrNoneTokenScanValueProgressor(
+                    cursor, client, indexOrder, range, idLayout, tokenId);
+        };
+    }
+
+    private TokenScanValueIndexProgressor(
+            Seeker<TokenScanKey, TokenScanValue> cursor,
+            EntityTokenClient client,
+            EntityRange range,
+            TokenIndexIdLayout idLayout,
+            int tokenId) {
         this.cursor = cursor;
         this.client = client;
-        this.indexOrder = indexOrder;
         this.range = range;
         this.idLayout = idLayout;
         this.tokenId = tokenId;
     }
 
+    abstract long extremeValue();
+
+    abstract boolean compare(long a, long b);
+
+    abstract long mask(long offset);
+
+    abstract int relevantBits(long bits);
+
+    abstract IndexOrder indexOrder();
+
     /**
      *  Progress through the index until the next accepted entry.
-     *
+     * <p>
      *  Progress the cursor to the current {@link TokenScanValue}, if this is not accepted by the client or if current
      *  value has been exhausted it continues to the next {@link TokenScanValue} by progressing the {@link Seeker}.
      * @return <code>true</code> if it found an accepted entry, <code>false</code> otherwise
      */
     @Override
-    public boolean next() {
+    public final boolean next() {
         for (; ; ) {
             while (bits != 0) {
-                long idForClient =
-                        switch (indexOrder) {
-                                // When descending, the next idForClient can be found at the next 1-bit from the left.
-                            case DESCENDING -> extractNextId(RANGE_SIZE - Long.numberOfLeadingZeros(bits) - 1);
-                                // When ascending, the next idForClient can be found at the next 1-bit from the right.
-                            case ASCENDING, NONE -> extractNextId(Long.numberOfTrailingZeros(bits));
-                        };
-
+                long idForClient = extractNextId(relevantBits(bits));
                 if (isInRange(idForClient) && client.acceptEntity(idForClient, tokenId)) {
                     return true;
                 }
@@ -110,7 +125,7 @@ public class TokenScanValueIndexProgressor implements IndexProgressor, Resource 
             }
 
             //noinspection AssertWithSideEffects
-            assert keysInOrder(cursor.key(), indexOrder);
+            assert keysInOrder(cursor.key(), indexOrder());
         }
     }
 
@@ -148,15 +163,8 @@ public class TokenScanValueIndexProgressor implements IndexProgressor, Resource 
     public void skipUntil(long id) {
         if (id - baseEntityId > RANGE_SIZE * 10) {
             // if we need to take a long stride in tree
-
-            if (indexOrder != IndexOrder.DESCENDING) {
-                cursor.reinitializeToNewRange(
-                        new TokenScanKey(tokenId, idLayout.rangeOf(id)), new TokenScanKey(tokenId, Long.MAX_VALUE));
-            } else {
-                cursor.reinitializeToNewRange(
-                        new TokenScanKey(tokenId, idLayout.rangeOf(id)), new TokenScanKey(tokenId, Long.MIN_VALUE));
-            }
-
+            cursor.reinitializeToNewRange(
+                    new TokenScanKey(tokenId, idLayout.rangeOf(id)), new TokenScanKey(tokenId, extremeValue()));
             if (!nextRange()) {
                 return;
             }
@@ -187,11 +195,7 @@ public class TokenScanValueIndexProgressor implements IndexProgressor, Resource 
         long offset = idLayout.idWithinRange(id);
 
         // Move progressor to id
-        if (indexOrder != IndexOrder.DESCENDING) {
-            bits &= (-1L << offset);
-        } else {
-            bits &= (-1L >>> (RANGE_SIZE - offset - 1L));
-        }
+        bits &= mask(offset);
     }
 
     private boolean isInBitMapRange(long id) {
@@ -199,11 +203,7 @@ public class TokenScanValueIndexProgressor implements IndexProgressor, Resource 
     }
 
     private boolean isAtOrPastBitMapRange(long id) {
-        if (indexOrder != IndexOrder.DESCENDING) {
-            return idLayout.rangeOf(id) <= idLayout.rangeOf(baseEntityId);
-        } else {
-            return idLayout.rangeOf(id) >= idLayout.rangeOf(baseEntityId);
-        }
+        return compare(idLayout.rangeOf(id), idLayout.rangeOf(baseEntityId));
     }
 
     /**
@@ -251,6 +251,83 @@ public class TokenScanValueIndexProgressor implements IndexProgressor, Resource 
             } finally {
                 closed = true;
             }
+        }
+    }
+
+    private static final class AscendingOrNoneTokenScanValueProgressor extends TokenScanValueIndexProgressor {
+        private final IndexOrder indexOrder;
+
+        AscendingOrNoneTokenScanValueProgressor(
+                Seeker<TokenScanKey, TokenScanValue> cursor,
+                EntityTokenClient client,
+                IndexOrder indexOrder,
+                EntityRange range,
+                TokenIndexIdLayout idLayout,
+                int tokenId) {
+            super(cursor, client, range, idLayout, tokenId);
+            this.indexOrder = indexOrder;
+        }
+
+        @Override
+        long extremeValue() {
+            return Long.MAX_VALUE;
+        }
+
+        @Override
+        boolean compare(long a, long b) {
+            return a <= b;
+        }
+
+        @Override
+        long mask(long offset) {
+            return (-1L << offset);
+        }
+
+        @Override
+        int relevantBits(long bits) {
+            return Long.numberOfTrailingZeros(bits);
+        }
+
+        @Override
+        IndexOrder indexOrder() {
+            return indexOrder;
+        }
+    }
+
+    private static final class DescendingTokenScanValueProgressor extends TokenScanValueIndexProgressor {
+
+        DescendingTokenScanValueProgressor(
+                Seeker<TokenScanKey, TokenScanValue> cursor,
+                EntityTokenClient client,
+                EntityRange range,
+                TokenIndexIdLayout idLayout,
+                int tokenId) {
+            super(cursor, client, range, idLayout, tokenId);
+        }
+
+        @Override
+        int relevantBits(long bits) {
+            return RANGE_SIZE - Long.numberOfLeadingZeros(bits) - 1;
+        }
+
+        @Override
+        IndexOrder indexOrder() {
+            return IndexOrder.DESCENDING;
+        }
+
+        @Override
+        long mask(long offset) {
+            return (-1L >>> (RANGE_SIZE - offset - 1L));
+        }
+
+        @Override
+        boolean compare(long a, long b) {
+            return a >= b;
+        }
+
+        @Override
+        long extremeValue() {
+            return Long.MIN_VALUE;
         }
     }
 }
