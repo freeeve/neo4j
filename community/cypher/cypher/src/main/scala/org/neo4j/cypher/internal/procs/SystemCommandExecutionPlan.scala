@@ -76,7 +76,7 @@ case class SystemCommandExecutionPlan(
 
       val systemSubscriber = new SystemCommandQuerySubscriber(ctx, subscriber, new QueryHandler(), updatedParams)
       val execution = normalExecutionEngine.executeSubquery(
-        cypherVersion.map(queryPrefix(_)).getOrElse(queryPrefix) + query,
+        formatQuery(query, cypherVersion),
         updatedParams,
         tc,
         isOutermostQuery = false,

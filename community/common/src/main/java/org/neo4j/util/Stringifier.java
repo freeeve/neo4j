@@ -19,6 +19,7 @@
  */
 package org.neo4j.util;
 
+import java.util.regex.Pattern;
 import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.internal.helpers.Strings;
 
@@ -57,8 +58,11 @@ public final class Stringifier {
         }
     }
 
+    private static final Pattern UNICODE_ESCAPE_PATTERN = Pattern.compile("([^\\\\])(\\\\u[0-9]{4})");
+
     private static String escaped(String txt) {
-        return txt.replace("`", "``");
+        String bt = txt.replace("`", "``");
+        return UNICODE_ESCAPE_PATTERN.matcher(bt).replaceAll("$1\\\\$2");
     }
 
     private static boolean orGlobbedCharacter(boolean globbing, int p) {

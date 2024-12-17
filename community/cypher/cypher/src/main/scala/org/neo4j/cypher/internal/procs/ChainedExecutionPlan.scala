@@ -112,7 +112,7 @@ abstract class ChainedExecutionPlan[T <: QueryContext with CountingQueryContext]
 abstract class AdministrationChainedExecutionPlan(source: Option[ExecutionPlan])
     extends ChainedExecutionPlan[SystemUpdateCountingQueryContext](source) {
   // To avoid code generation for administration commands
-  protected val queryPrefix: String = "CYPHER operatorEngine=interpreted expressionEngine=interpreted "
+  final private val queryPrefix: String = "CYPHER operatorEngine=interpreted expressionEngine=interpreted "
 
   def queryPrefix(cypherVersion: CypherVersion) =
     s"CYPHER $cypherVersion operatorEngine=interpreted expressionEngine=interpreted "
@@ -128,6 +128,10 @@ abstract class AdministrationChainedExecutionPlan(source: Option[ExecutionPlan])
     }
 
   override def runtimeName: RuntimeName = SystemCommandRuntimeName
+
+  protected def formatQuery(cypher: String, cypherVersion: Option[CypherVersion]): String = {
+    cypherVersion.map(queryPrefix(_)).getOrElse(queryPrefix) + cypher
+  }
 }
 
 case class IgnoredRuntimeResult(runtimeNotifications: Set[InternalNotification]) extends RuntimeResult {

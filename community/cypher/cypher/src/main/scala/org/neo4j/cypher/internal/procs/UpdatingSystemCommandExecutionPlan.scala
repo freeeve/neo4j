@@ -110,7 +110,7 @@ abstract class UpdatingSystemCommandExecutionPlanBase(
       assertCanWrite(tc, systemSubscriber)
       initAndFinally.execute(ctx, systemSubscriber, previousNotifications ++ notifications, updatedParams) { () =>
         val execution = normalExecutionEngine.executeSubquery(
-          queryPrefix + query,
+          formatQuery(query, None),
           updatedParams,
           tc,
           isOutermostQuery = false,
