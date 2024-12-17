@@ -760,8 +760,8 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       .planBuilder()
       .produceResults("`person.name`")
       .projection("cacheN[person.name] AS `person.name`")
-      .remoteBatchProperties("cacheNFromStore[person.name]")
-      .filter("person.age = maxAge")
+      .filter("cacheN[person.age] = maxAge")
+      .remoteBatchProperties("cacheNFromStore[person.age]", "cacheNFromStore[person.name]")
       .aggregation(Seq("person AS person"), Seq("MAX(cacheN[person.age]) AS maxAge"))
       .remoteBatchProperties("cacheNFromStore[person.age]")
       .allNodeScan("person")
@@ -1305,5 +1305,4 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       .nodeIndexOperator("b:PROFILES(children STARTS WITH 'x')", getValue = Map("children" -> GetValue))
       .build()
   }
-
 }
