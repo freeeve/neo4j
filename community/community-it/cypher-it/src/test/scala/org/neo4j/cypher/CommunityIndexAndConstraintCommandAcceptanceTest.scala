@@ -428,15 +428,23 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     val result = execute("SHOW CONSTRAINTS")
 
     // THEN
-    withoutIdColumn(result.toList) should be(List(Map[String, AnyRef](
+    val expectedBase = Map[String, AnyRef](
       "name" -> constraintName,
-      "type" -> ConstraintType.RELATIONSHIP_UNIQUENESS.name(),
       "entityType" -> "RELATIONSHIP",
       "labelsOrTypes" -> List(relType),
       "properties" -> List(prop),
       "ownedIndex" -> constraintName,
       "propertyType" -> null
-    )))
+    )
+    val expectedCypher5 = expectedBase ++ Map[String, AnyRef](
+      "type" -> ConstraintType.RELATIONSHIP_UNIQUENESS.name()
+    )
+    val expectedCypher25 = expectedBase ++ Map[String, AnyRef](
+      "type" -> "RELATIONSHIP_PROPERTY_UNIQUENESS",
+      "enforcedLabel" -> null
+    )
+    val expected = if (CypherVersion.Default.equals(CypherVersion.Cypher5)) expectedCypher5 else expectedCypher25
+    withoutIdColumn(result.toList) should be(List(expected))
   }
 
   test("Constraint commands with Cypher versions") {

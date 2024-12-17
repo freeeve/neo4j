@@ -69,6 +69,8 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
       .filterNot(m => m("removedInCypher25").asInstanceOf[Boolean])
       .map(m => m("name").asInstanceOf[String])
 
+  private val defaultUsesCypher5 = CypherVersion.Default.equals(CypherVersion.Cypher5)
+
   // Tests
 
   test("Should show and terminate transaction with id from show") {
@@ -374,7 +376,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
       ).toList
 
       // THEN
-      val expected = allProceduresNamesCypher5.map(pName =>
+      val expected = (if (defaultUsesCypher5) allProceduresNamesCypher5 else allProceduresNamesCypher25).map(pName =>
         Map(
           "txId" -> unwindTransactionId,
           "name" -> pName
@@ -403,7 +405,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
       ).toList
 
       // THEN
-      val expected = allProceduresNamesCypher5.map(pName =>
+      val expected = (if (defaultUsesCypher5) allProceduresNamesCypher5 else allProceduresNamesCypher25).map(pName =>
         Map(
           "name" -> pName,
           "txId" -> unwindTransactionId,
@@ -429,7 +431,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
     ).toList
 
     // THEN
-    val expected = allProceduresNamesCypher5.map(pName =>
+    val expected = (if (defaultUsesCypher5) allProceduresNamesCypher5 else allProceduresNamesCypher25).map(pName =>
       Map(
         "procedure" -> pName,
         "setting" -> expectedSetting("name"),
@@ -441,7 +443,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
 
   test("Should show functions and show procedures") {
     // GIVEN
-    val expectedProcedure = allProceduresNamesCypher5.head
+    val expectedProcedure = (if (defaultUsesCypher5) allProceduresNamesCypher5 else allProceduresNamesCypher25).head
 
     val result = execute(
       s"""SHOW FUNCTIONS
@@ -558,7 +560,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
   test("Should show constraints and show procedures") {
     // GIVEN
     graph.createNodeUniquenessConstraintWithName("my_constraint", "L", "p")
-    val expectedProcedure = allProceduresNamesCypher5.head
+    val expectedProcedure = (if (defaultUsesCypher5) allProceduresNamesCypher5 else allProceduresNamesCypher25).head
 
     val result = execute(
       s"""SHOW CONSTRAINTS
@@ -675,7 +677,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
   test("Should show indexes and show procedures") {
     // GIVEN
     graph.createNodeIndexWithName("my_index", "L", "p")
-    val expectedProcedure = allProceduresNamesCypher5.head
+    val expectedProcedure = (if (defaultUsesCypher5) allProceduresNamesCypher5 else allProceduresNamesCypher25).head
 
     val result = execute(
       s"""SHOW RANGE INDEXES
@@ -726,7 +728,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
   test("Should combine all show and terminate commands") {
     // GIVEN
     val expectedSetting = allSettings(graph).head
-    val expectedProcedure = allProceduresNamesCypher5.head
+    val expectedProcedure = (if (defaultUsesCypher5) allProceduresNamesCypher5 else allProceduresNamesCypher25).head
     graph.createNodeUniquenessConstraintWithName("my_constraint", "L", "p")
     graph.createRelationshipIndexWithName("my_index", "L", "p")
     val (unwindQuery, latch) = setupUserWithOneTransaction(Map("setting" -> expectedSetting("name")))
@@ -767,7 +769,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
         "message" -> "Transaction terminated.",
         "function" -> "test.return.latest",
         "constraint" -> "my_constraint",
-        "constraintType" -> "UNIQUENESS"
+        "constraintType" -> (if (defaultUsesCypher5) "UNIQUENESS" else "NODE_PROPERTY_UNIQUENESS")
       )))
     } finally {
       latch.finishAndWaitForAllToFinish()
@@ -778,7 +780,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
     // GIVEN
     val cypherVersions =
       (CypherVersion.values().map(cv => (s"CYPHER ${cv.versionName}", cv.equals(CypherVersion.Cypher5)))
-        :+ ("", CypherVersion.Default.equals(CypherVersion.Cypher5)))
+        :+ ("", defaultUsesCypher5))
     val expectedSetting = allSettings(graph).head
     // Cypher 5 has two procedures with 'status' in the name, Cypher 25 only has one
     val expectedProceduresCypher5 = allProceduresNamesCypher5.filter(_.toLowerCase.contains("status"))
@@ -790,7 +792,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
     createUser()
 
     cypherVersions.foreach { case (cypherVersionString, usesCypher5) =>
-      withClue(cypherVersionString) {
+      withClue(if (cypherVersionString.isEmpty) "default" else cypherVersionString) {
         // GIVEN
         val expectedProcedures = if (usesCypher5) expectedProceduresCypher5 else expectedProcedureCypher25
         val expectedConstraintType = if (usesCypher5) "UNIQUENESS" else "NODE_PROPERTY_UNIQUENESS"
