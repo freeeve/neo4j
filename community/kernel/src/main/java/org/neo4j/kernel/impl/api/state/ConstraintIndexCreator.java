@@ -109,7 +109,7 @@ public class ConstraintIndexCreator {
         } catch (AlreadyConstrainedException e) {
             throw e;
         } catch (KernelException e) {
-            throw CreateConstraintFailureException.constraintCreationFailed(constraint, constraintString, e);
+            throw CreateConstraintFailureException.constraintCreationFailed(constraint, transaction.tokenRead(), e);
         }
 
         boolean success = false;
@@ -145,10 +145,8 @@ public class ConstraintIndexCreator {
                 String indexString = index.userDescription(transaction.tokenRead());
                 throw new TransactionFailureException(
                         format("Index (%s) that we just created does not exist.", indexString), e);
-            } catch (IndexPopulationFailedKernelException e) {
-                throw CreateConstraintFailureException.constraintCreationFailed(constraint, constraintString, e);
-            } catch (InterruptedException e) {
-                throw CreateConstraintFailureException.constraintCreationFailed(constraint, constraintString, e);
+            } catch (IndexPopulationFailedKernelException | InterruptedException e) {
+                throw CreateConstraintFailureException.constraintCreationFailed(constraint, transaction.tokenRead(), e);
             }
 
             propertyExistenceEnforcer.existenceEnforcement(index.schema());

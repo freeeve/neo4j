@@ -33,71 +33,44 @@ public class CreateConstraintFailureException extends SchemaKernelException {
 
     private final String cause;
 
-    @Deprecated
-    public CreateConstraintFailureException(ConstraintDescriptor constraint, Throwable cause) {
-        super(
-                Status.Schema.ConstraintCreationFailed,
-                cause,
-                "Unable to create constraint %s: %s",
-                constraint,
-                cause.getMessage());
-        this.constraint = constraint;
-        this.cause = null;
-    }
-
-    public CreateConstraintFailureException(
-            ErrorGqlStatusObject gqlStatusObject, ConstraintDescriptor constraint, Throwable cause) {
+    private CreateConstraintFailureException(
+            ErrorGqlStatusObject gqlStatusObject,
+            ConstraintDescriptor constraint,
+            Throwable cause,
+            String causeString) {
         super(
                 gqlStatusObject,
                 Status.Schema.ConstraintCreationFailed,
                 cause,
                 "Unable to create constraint %s: %s",
                 constraint,
-                cause.getMessage());
+                causeString);
 
         this.constraint = constraint;
-        this.cause = null;
+        this.cause = causeString;
     }
 
-    public static CreateConstraintFailureException constraintCreationFailed(
-            ConstraintValidationException cause, TokenNameLookup tokenNameLookup) {
-        return constraintCreationFailed(cause.constraint, tokenNameLookup, cause);
-    }
-
+    // KNL-028
     public static CreateConstraintFailureException constraintCreationFailed(
             ConstraintDescriptor constraint, TokenNameLookup tokenNameLookup, Throwable cause) {
         var constraintString = constraint.userDescription(tokenNameLookup);
-        return constraintCreationFailed(constraint, constraintString, cause);
+        return constraintCreationFailed(constraint, constraintString, cause, cause.getMessage());
     }
 
+    // KNL-028
     public static CreateConstraintFailureException constraintCreationFailed(
-            ConstraintDescriptor constraint, String constraintString, Throwable cause) {
+            ConstraintDescriptor constraint, String cause) {
+        return constraintCreationFailed(constraint, null, null, cause);
+    }
+
+    private static CreateConstraintFailureException constraintCreationFailed(
+            ConstraintDescriptor constraint, String constraintString, Throwable cause, String causeString) {
         var errorGqlStatusObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
                 .withParam(
                         GqlParams.StringParam.constrDescrOrName,
                         constraint.getName() != null ? constraint.getName() : constraintString)
                 .build();
-        return new CreateConstraintFailureException(errorGqlStatusObject, constraint, cause);
-    }
-
-    public CreateConstraintFailureException(ConstraintDescriptor constraint, String cause) {
-        super(Status.Schema.ConstraintCreationFailed, null, "Unable to create constraint %s: %s", constraint, cause);
-        this.constraint = constraint;
-        this.cause = cause;
-    }
-
-    public CreateConstraintFailureException(
-            ErrorGqlStatusObject gqlStatusObject, ConstraintDescriptor constraint, String cause) {
-        super(
-                gqlStatusObject,
-                Status.Schema.ConstraintCreationFailed,
-                null,
-                "Unable to create constraint %s: %s",
-                constraint,
-                cause);
-
-        this.constraint = constraint;
-        this.cause = cause;
+        return new CreateConstraintFailureException(errorGqlStatusObject, constraint, cause, causeString);
     }
 
     public ConstraintDescriptor constraint() {

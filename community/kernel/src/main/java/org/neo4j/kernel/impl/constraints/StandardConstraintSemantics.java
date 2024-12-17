@@ -152,24 +152,26 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
     private static CreateConstraintFailureException propertyExistenceConstraintsNotAllowed(
             SchemaDescriptor descriptor, boolean isDependent) {
         // When creating a Property Existence Constraint in Community Edition
-        return new CreateConstraintFailureException(
+        return CreateConstraintFailureException.constraintCreationFailed(
                 ConstraintDescriptorFactory.existsForSchema(descriptor, isDependent), ERROR_MESSAGE_EXISTS);
     }
 
     private static CreateConstraintFailureException propertyTypeConstraintsNotAllowed(
             TypeConstraintDescriptor descriptor) {
         // When creating a Property Type Constraint in Community Edition
-        return new CreateConstraintFailureException(descriptor, ERROR_MESSAGE_TYPE);
+        return CreateConstraintFailureException.constraintCreationFailed(descriptor, ERROR_MESSAGE_TYPE);
     }
 
     private static CreateConstraintFailureException relationshipEndpointLabelConstraintsNotAllowed(
             RelationshipEndpointLabelConstraintDescriptor descriptor) {
-        return new CreateConstraintFailureException(descriptor, ERROR_MESSAGE_RELATIONSHIP_ENDPOINT_LABEL);
+        return CreateConstraintFailureException.constraintCreationFailed(
+                descriptor, ERROR_MESSAGE_RELATIONSHIP_ENDPOINT_LABEL);
     }
 
     private static CreateConstraintFailureException nodeLabelExistenceConstraintsNotAllowed(
             NodeLabelExistenceConstraintDescriptor descriptor) {
-        return new CreateConstraintFailureException(descriptor, ERROR_MESSAGE_NODE_LABEL_EXISTENCE);
+        return CreateConstraintFailureException.constraintCreationFailed(
+                descriptor, ERROR_MESSAGE_NODE_LABEL_EXISTENCE);
     }
 
     private static String keyConstraintErrorMessage(SchemaDescriptor descriptor) {
@@ -178,7 +180,7 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
 
     private static CreateConstraintFailureException keyConstraintsNotAllowed(SchemaDescriptor descriptor) {
         // When creating a Key Constraint in Community Edition
-        return new CreateConstraintFailureException(
+        return CreateConstraintFailureException.constraintCreationFailed(
                 ConstraintDescriptorFactory.keyForSchema(descriptor), keyConstraintErrorMessage(descriptor));
     }
 

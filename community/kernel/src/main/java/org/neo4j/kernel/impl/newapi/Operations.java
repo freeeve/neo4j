@@ -2704,23 +2704,23 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             }
             IndexType indexType = prototype.getIndexType();
             if (indexType != IndexType.RANGE) {
-                throw new CreateConstraintFailureException(
+                throw CreateConstraintFailureException.constraintCreationFailed(
                         constraint, "Cannot create backing constraint index with index type " + indexType + ".");
             }
             if (prototype.schema().isFulltextSchemaDescriptor()) {
-                throw new CreateConstraintFailureException(
+                throw CreateConstraintFailureException.constraintCreationFailed(
                         constraint,
                         "Cannot create backing constraint index using a full-text schema: "
                                 + prototype.schema().userDescription(token));
             }
             if (prototype.schema().isAnyTokenSchemaDescriptor()) {
-                throw new CreateConstraintFailureException(
+                throw CreateConstraintFailureException.constraintCreationFailed(
                         constraint,
                         "Cannot create backing constraint index using an any token schema: "
                                 + prototype.schema().userDescription(token));
             }
             if (!prototype.isUnique()) {
-                throw new CreateConstraintFailureException(
+                throw CreateConstraintFailureException.constraintCreationFailed(
                         constraint,
                         "Cannot create index backed constraint using an index prototype that is not unique: "
                                 + prototype.userDescription(token));
@@ -2751,8 +2751,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             }
             return constraint;
         } catch (UniquePropertyValueValidationException | TransactionFailureException | AlreadyConstrainedException e) {
-            throw CreateConstraintFailureException.constraintCreationFailed(
-                    constraint, constraint.userDescription(token), e);
+            throw CreateConstraintFailureException.constraintCreationFailed(constraint, token, e);
         }
     }
 
