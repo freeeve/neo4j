@@ -96,7 +96,6 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
             Configuration configuration,
             IndexStatisticsStore indexStatisticsStore,
             StorageEngineIndexingBehaviour indexingBehaviour,
-            boolean incrementalIndexing,
             boolean generateNonUniqueIndexUpdates,
             Set<IndexDescriptor> excludedIndexes) {
         this.schemaCache = schemaCache;
@@ -117,7 +116,6 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
                 configuration,
                 indexStatisticsStore,
                 indexingBehaviour,
-                incrementalIndexing,
                 excludedIndexes);
     }
 

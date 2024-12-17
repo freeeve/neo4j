@@ -97,12 +97,8 @@ public class ImportIndexBuilder implements Closeable {
     private final ByteBufferFactory bufferFactory;
     private final MutableLongSet violatingEntities = LongSets.mutable.empty().asSynchronized();
     private final StorageEngineIndexingBehaviour indexingBehaviour;
-    private final boolean incrementalIndexing;
     private final Set<IndexDescriptor> excludedIndexes;
 
-    /**
-     * @param incrementalIndexing {@code true} if build/merge is split and right now we're doing build.
-     */
     public ImportIndexBuilder(
             FileSystemAbstraction fileSystem,
             IndexProviderMap indexProviderMap,
@@ -115,7 +111,6 @@ public class ImportIndexBuilder implements Closeable {
             Configuration configuration,
             IndexStatisticsStore indexStatisticsStore,
             StorageEngineIndexingBehaviour indexingBehaviour,
-            boolean incrementalIndexing,
             Set<IndexDescriptor> excludedIndexes) {
         this.fileSystem = fileSystem;
         this.indexProviderMap = indexProviderMap;
@@ -128,7 +123,6 @@ public class ImportIndexBuilder implements Closeable {
         this.configuration = configuration;
         this.indexStatisticsStore = indexStatisticsStore;
         this.indexingBehaviour = indexingBehaviour;
-        this.incrementalIndexing = incrementalIndexing;
         this.excludedIndexes = excludedIndexes;
         this.bufferFactory = new ByteBufferFactory(
                 UnsafeDirectByteBufferAllocator::new,
