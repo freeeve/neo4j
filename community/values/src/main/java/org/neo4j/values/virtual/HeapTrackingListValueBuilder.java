@@ -25,7 +25,7 @@ import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
 import org.github.jamm.Unmetered;
 import org.neo4j.collection.trackable.HeapTrackingArrayList;
-import org.neo4j.memory.DeduplicateLargeObjectsHeapEstimatorCache;
+import org.neo4j.memory.HeapEstimatorCache;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.AnyValue;
@@ -59,7 +59,7 @@ public class HeapTrackingListValueBuilder implements AutoCloseable {
 
     private final HeapTrackingArrayList<AnyValue> values;
     private final MemoryTracker scopedMemoryTracker;
-    private final DeduplicateLargeObjectsHeapEstimatorCache heapEstimatorCache;
+    private final HeapEstimatorCache heapEstimatorCache;
 
     @Unmetered
     private ValueRepresentation representation;
@@ -74,14 +74,14 @@ public class HeapTrackingListValueBuilder implements AutoCloseable {
      */
     private long unAllocatedHeapSize;
 
-    public HeapTrackingListValueBuilder(MemoryTracker memoryTracker) {
+    HeapTrackingListValueBuilder(MemoryTracker memoryTracker) {
         // To be in control of the heap usage of both the added values and the internal array list holding them,
         // we use a scoped memory tracker
         scopedMemoryTracker = memoryTracker.getScopedMemoryTracker();
         scopedMemoryTracker.allocateHeap(COMBINED_SHALLOW_SIZE);
         values = HeapTrackingArrayList.newArrayList(16, scopedMemoryTracker);
         representation = ValueRepresentation.ANYTHING;
-        heapEstimatorCache = new DeduplicateLargeObjectsHeapEstimatorCache();
+        heapEstimatorCache = memoryTracker.getHeapEstimatorCache().newWithSameSettings();
     }
 
     public void addAll(Iterable<AnyValue> values) {

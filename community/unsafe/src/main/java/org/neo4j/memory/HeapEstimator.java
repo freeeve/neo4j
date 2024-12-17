@@ -142,9 +142,9 @@ public final class HeapEstimator {
         NO_HEAP_ESTIMATOR_CACHE_SHALLOW_SIZE = shallowSizeOfInstance(HeapEstimatorCache.NoHeapEstimatorCache.class);
         DEFAULT_HEAP_ESTIMATOR_CACHE_SHALLOW_SIZE =
                 shallowSizeOfInstance(DeduplicateLargeObjectsHeapEstimatorCache.class)
-                        + shallowSizeOfObjectArray(DeduplicateLargeObjectsHeapEstimatorCache.DEFAULT_SIZE_LIMIT)
-                        + sizeOfIntArray(DeduplicateLargeObjectsHeapEstimatorCache.DEFAULT_SIZE_LIMIT)
-                        + sizeOfLongArray(DeduplicateLargeObjectsHeapEstimatorCache.DEFAULT_SIZE_LIMIT);
+                        + shallowSizeOfObjectArray(HeapEstimatorCacheConfig.DEFAULT_SIZE_LIMIT)
+                        + sizeOfIntArray(HeapEstimatorCacheConfig.DEFAULT_SIZE_LIMIT)
+                        + sizeOfLongArray(HeapEstimatorCacheConfig.DEFAULT_SIZE_LIMIT);
         SCOPED_MEMORY_TRACKER_SHALLOW_SIZE = shallowSizeOfInstance(DefaultScopedMemoryTracker.class);
     }
 

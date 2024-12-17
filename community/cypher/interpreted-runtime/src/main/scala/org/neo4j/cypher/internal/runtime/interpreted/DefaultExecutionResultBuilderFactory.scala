@@ -49,6 +49,7 @@ import org.neo4j.cypher.internal.runtime.memory.TransactionWorkerThreadDelegatin
 import org.neo4j.cypher.result.RuntimeResult
 import org.neo4j.internal.kernel.api.DefaultCloseListenable
 import org.neo4j.kernel.impl.query.QuerySubscriber
+import org.neo4j.memory.HeapEstimatorCacheConfig
 import org.neo4j.scheduler.CallableExecutor
 import org.neo4j.scheduler.Group
 import org.neo4j.values.AnyValue
@@ -58,7 +59,8 @@ abstract class BaseExecutionResultBuilderFactory(
   pipe: Pipe,
   columns: Seq[String],
   hasLoadCSV: Boolean,
-  transactionMode: QueryTransactionMode
+  transactionMode: QueryTransactionMode,
+  heapEstimatorCacheConfig: HeapEstimatorCacheConfig
 ) extends ExecutionResultBuilderFactory {
 
   abstract class BaseExecutionResultBuilder() extends ExecutionResultBuilder {
@@ -84,16 +86,17 @@ abstract class BaseExecutionResultBuilderFactory(
           }
           val mainThreadMemoryTracker = queryContext.transactionalContext.createExecutionContextMemoryTracker()
           val mt = if (profile) {
-            new ProfilingParallelTrackingQueryMemoryTracker(delegateFactory)
+            new ProfilingParallelTrackingQueryMemoryTracker(delegateFactory, heapEstimatorCacheConfig)
           } else {
-            new ParallelTrackingQueryMemoryTracker(delegateFactory)
+            new ParallelTrackingQueryMemoryTracker(delegateFactory, heapEstimatorCacheConfig)
           }
           // mainThreadMemoryTracker should be closed together with the query context
           queryContext.resources.trace(DefaultCloseListenable.wrap(mainThreadMemoryTracker))
           mt.setInitializationMemoryTracker(mainThreadMemoryTracker)
           mt
-        case (MEMORY_TRACKING, _)                   => new TrackingQueryMemoryTracker
-        case (CUSTOM_MEMORY_TRACKING(decorator), _) => new CustomTrackingQueryMemoryTracker(decorator)
+        case (MEMORY_TRACKING, _) => new TrackingQueryMemoryTracker(heapEstimatorCacheConfig)
+        case (CUSTOM_MEMORY_TRACKING(decorator), _) =>
+          new CustomTrackingQueryMemoryTracker(decorator, heapEstimatorCacheConfig)
       }
     }
 
@@ -145,8 +148,9 @@ case class InterpretedExecutionResultBuilderFactory(
   lenientCreateRelationship: Boolean,
   memoryTrackingController: MemoryTrackingController,
   hasLoadCSV: Boolean,
-  transactionMode: QueryTransactionMode
-) extends BaseExecutionResultBuilderFactory(pipe, columns, hasLoadCSV, transactionMode) {
+  transactionMode: QueryTransactionMode,
+  heapEstimatorCacheConfig: HeapEstimatorCacheConfig
+) extends BaseExecutionResultBuilderFactory(pipe, columns, hasLoadCSV, transactionMode, heapEstimatorCacheConfig) {
 
   override def create(queryContext: QueryContext): ExecutionResultBuilder =
     InterpretedExecutionResultBuilder(queryContext: QueryContext)

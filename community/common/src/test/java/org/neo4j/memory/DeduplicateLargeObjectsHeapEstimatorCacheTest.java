@@ -28,8 +28,7 @@ import org.junit.jupiter.api.Test;
 class DeduplicateLargeObjectsHeapEstimatorCacheTest {
 
     private DeduplicateLargeObjectsHeapEstimatorCache cache;
-    private static final long LARGE_OBJECT_THRESHOLD =
-            DeduplicateLargeObjectsHeapEstimatorCache.DEFAULT_LARGE_OBJECT_THRESHOLD;
+    private static final long LARGE_OBJECT_THRESHOLD = HeapEstimatorCacheConfig.DEFAULT_LARGE_OBJECT_THRESHOLD;
 
     @BeforeEach
     void setUp() {

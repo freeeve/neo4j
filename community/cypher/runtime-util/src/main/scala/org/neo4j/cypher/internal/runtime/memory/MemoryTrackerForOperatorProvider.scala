@@ -24,6 +24,7 @@ import org.neo4j.cypher.result.OperatorProfile
 import org.neo4j.memory.DeduplicateLargeObjectsHeapEstimatorCache
 import org.neo4j.memory.DefaultScopedMemoryTracker
 import org.neo4j.memory.EmptyMemoryTracker
+import org.neo4j.memory.HeapEstimatorCacheConfig
 import org.neo4j.memory.HeapHighWaterMarkTracker
 import org.neo4j.memory.HeapMemoryTracker
 import org.neo4j.memory.MemoryTracker
@@ -78,8 +79,12 @@ object TransactionBoundMemoryTrackerForOperatorProvider {
    */
   class TransactionBoundMemoryTracker(
     transactionMemoryTracker: MemoryTracker,
-    queryGlobalMemoryTracker: HeapMemoryTracker
-  ) extends DefaultScopedMemoryTracker(transactionMemoryTracker, new DeduplicateLargeObjectsHeapEstimatorCache()) {
+    queryGlobalMemoryTracker: HeapMemoryTracker,
+    heapEstimatorCacheConfig: HeapEstimatorCacheConfig
+  ) extends DefaultScopedMemoryTracker(
+        transactionMemoryTracker,
+        heapEstimatorCacheConfig.newDefaultHeapEstimatorCache()
+      ) {
 
     override def allocateHeap(bytes: Long): Unit = {
       // Forward to transaction memory tracker
@@ -106,14 +111,20 @@ object TransactionBoundMemoryTrackerForOperatorProvider {
  */
 class TransactionBoundMemoryTrackerForOperatorProvider(
   val transactionMemoryTracker: MemoryTracker,
-  queryHeapHighWatermarkTracker: TrackingQueryMemoryTracker
-) extends TransactionBoundMemoryTracker(transactionMemoryTracker, queryHeapHighWatermarkTracker)
+  queryHeapHighWatermarkTracker: TrackingQueryMemoryTracker,
+  heapEstimatorCacheConfig: HeapEstimatorCacheConfig
+) extends TransactionBoundMemoryTracker(
+      transactionMemoryTracker,
+      queryHeapHighWatermarkTracker,
+      heapEstimatorCacheConfig
+    )
     with MemoryTrackerForOperatorProvider {
 
   override def memoryTrackerForOperator(operatorId: Int): MemoryTracker = {
     new TransactionBoundMemoryTracker(
       transactionMemoryTracker,
-      queryHeapHighWatermarkTracker.memoryTrackerForOperator(operatorId)
+      queryHeapHighWatermarkTracker.memoryTrackerForOperator(operatorId),
+      heapEstimatorCacheConfig
     )
   }
 }

@@ -25,7 +25,6 @@ import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
 import org.neo4j.collection.trackable.HeapTrackingCollections;
 import org.neo4j.collection.trackable.HeapTrackingUnifiedMap;
-import org.neo4j.memory.DeduplicateLargeObjectsHeapEstimatorCache;
 import org.neo4j.memory.HeapEstimatorCache;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.util.VisibleForTesting;
@@ -75,7 +74,7 @@ public class HeapTrackingMapValueBuilder implements AutoCloseable {
         scopedMemoryTracker = memoryTracker.getScopedMemoryTracker();
         scopedMemoryTracker.allocateHeap(COMBINED_SHALLOW_SIZE);
         values = HeapTrackingCollections.newMap(scopedMemoryTracker);
-        heapEstimatorCache = new DeduplicateLargeObjectsHeapEstimatorCache();
+        heapEstimatorCache = memoryTracker.getHeapEstimatorCache().newWithSameSettings();
     }
 
     public void put(String key, AnyValue value) {

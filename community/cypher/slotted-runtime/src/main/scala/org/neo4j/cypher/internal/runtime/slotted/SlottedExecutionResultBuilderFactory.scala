@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState.createDefaultInCache
 import org.neo4j.cypher.internal.runtime.interpreted.profiler.InterpretedProfileInformation
 import org.neo4j.kernel.impl.query.QuerySubscriber
+import org.neo4j.memory.HeapEstimatorCacheConfig
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.values.AnyValue
 import org.neo4j.values.virtual.MapValue
@@ -49,8 +50,9 @@ class SlottedExecutionResultBuilderFactory(
   lenientCreateRelationship: Boolean,
   memoryTrackingController: MemoryTrackingController,
   hasLoadCSV: Boolean,
-  transactionMode: QueryTransactionMode
-) extends BaseExecutionResultBuilderFactory(pipe, columns, hasLoadCSV, transactionMode) {
+  transactionMode: QueryTransactionMode,
+  heapEstimatorCacheConfig: HeapEstimatorCacheConfig
+) extends BaseExecutionResultBuilderFactory(pipe, columns, hasLoadCSV, transactionMode, heapEstimatorCacheConfig) {
 
   override def create(queryContext: QueryContext): ExecutionResultBuilder = SlottedExecutionResultBuilder(queryContext)
 

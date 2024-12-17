@@ -105,4 +105,8 @@ public interface MemoryTracker extends AutoCloseable, HeapMemoryTracker, HeapEst
     default void fastReset() {}
 
     default void fullReset() {}
+
+    default HeapEstimatorCache newWithSameSettings() {
+        return this;
+    }
 }

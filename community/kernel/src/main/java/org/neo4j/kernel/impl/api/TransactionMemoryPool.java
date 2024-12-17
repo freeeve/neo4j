@@ -31,6 +31,7 @@ import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.DelegatingMemoryPool;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.ExecutionContextMemoryTracker;
+import org.neo4j.memory.HeapEstimatorCacheConfig;
 import org.neo4j.memory.HighWaterMarkMemoryPool;
 import org.neo4j.memory.LocalMemoryTracker;
 import org.neo4j.memory.MemoryGroup;
@@ -81,7 +82,8 @@ public class TransactionMemoryPool extends DelegatingMemoryPool implements Scope
     public MemoryTracker getExecutionContextPoolMemoryTracker(long grabSize, long maxGrabSize) {
         if (config.get(memory_tracking)) {
             hasExecutionContextMemoryTrackers = true;
-            return createExecutionContextMemoryTracker(grabSize, maxGrabSize);
+            var heapEstimatorCacheConfig = GraphDatabaseInternalSettings.extractHeapEstimatorCacheConfig(config);
+            return createExecutionContextMemoryTracker(grabSize, maxGrabSize, heapEstimatorCacheConfig);
         } else {
             return EmptyMemoryTracker.INSTANCE;
         }
@@ -140,12 +142,14 @@ public class TransactionMemoryPool extends DelegatingMemoryPool implements Scope
         return pool;
     }
 
-    private ExecutionContextMemoryTracker createExecutionContextMemoryTracker(long grabSize, long maxGrabSize) {
+    private ExecutionContextMemoryTracker createExecutionContextMemoryTracker(
+            long grabSize, long maxGrabSize, HeapEstimatorCacheConfig heapEstimatorCacheConfig) {
         return new ExecutionContextMemoryTracker(
                 highWaterMarkMemoryPool(),
                 LocalMemoryTracker.NO_LIMIT,
                 grabSize,
                 maxGrabSize,
+                heapEstimatorCacheConfig,
                 memory_transaction_max_size.name(),
                 openCheck);
     }

@@ -22,8 +22,6 @@ package org.neo4j.memory;
 import org.neo4j.util.VisibleForTesting;
 
 public class DeduplicateLargeObjectsHeapEstimatorCache implements HeapEstimatorCache {
-    public static final int DEFAULT_SIZE_LIMIT = 16;
-    public static final long DEFAULT_LARGE_OBJECT_THRESHOLD = 64L * 1024L; // 64KiB
     public static final int MAX_CACHE_HITS = 1_000_000;
     public static final boolean DEBUG_LOG_ENABLED = false;
 
@@ -34,7 +32,11 @@ public class DeduplicateLargeObjectsHeapEstimatorCache implements HeapEstimatorC
     private final int[] cacheHits;
     private int currentSize;
 
-    public DeduplicateLargeObjectsHeapEstimatorCache(int sizeLimit, long largeObjectThreshold) {
+    DeduplicateLargeObjectsHeapEstimatorCache(HeapEstimatorCacheConfig config) {
+        this(config.sizeLimit(), config.largeObjectThreshold());
+    }
+
+    DeduplicateLargeObjectsHeapEstimatorCache(int sizeLimit, long largeObjectThreshold) {
         this.sizeLimit = sizeLimit;
         this.largeObjectThreshold = largeObjectThreshold;
         this.cacheRefs = new Measurable[sizeLimit];
@@ -43,7 +45,7 @@ public class DeduplicateLargeObjectsHeapEstimatorCache implements HeapEstimatorC
     }
 
     public DeduplicateLargeObjectsHeapEstimatorCache() {
-        this(DEFAULT_SIZE_LIMIT, DEFAULT_LARGE_OBJECT_THRESHOLD);
+        this(HeapEstimatorCacheConfig.DEFAULT);
     }
 
     @Override
@@ -74,6 +76,11 @@ public class DeduplicateLargeObjectsHeapEstimatorCache implements HeapEstimatorC
             cacheRefs[i] = null;
         }
         currentSize = 0;
+    }
+
+    @Override
+    public HeapEstimatorCache newWithSameSettings() {
+        return new DeduplicateLargeObjectsHeapEstimatorCache(sizeLimit, largeObjectThreshold);
     }
 
     private int find(Measurable measurable, long estimate) {

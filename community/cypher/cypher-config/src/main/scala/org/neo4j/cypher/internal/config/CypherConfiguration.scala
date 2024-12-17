@@ -23,6 +23,7 @@ import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
+import org.neo4j.configuration.GraphDatabaseInternalSettings.extractHeapEstimatorCacheConfig
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.config.CypherConfiguration.statsDivergenceFromConfig
@@ -37,6 +38,7 @@ import org.neo4j.cypher.internal.options.CypherPlannerOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
 import org.neo4j.graphdb.config.Setting
+import org.neo4j.memory.HeapEstimatorCacheConfig
 
 import java.io.File
 
@@ -212,6 +214,9 @@ class CypherConfiguration private (val config: Config) {
   private var _parallelRuntimeSupport: CypherParallelRuntimeSupportOption =
     CypherParallelRuntimeSupportOption.fromConfig(config)
 
+  private var _heapEstimatorCacheConfig: HeapEstimatorCacheConfig =
+    GraphDatabaseInternalSettings.extractHeapEstimatorCacheConfig(config)
+
   config.addListener[GraphDatabaseInternalSettings.CypherParallelRuntimeSupport](
     GraphDatabaseInternalSettings.cypher_parallel_runtime_support,
     (
@@ -235,11 +240,27 @@ class CypherConfiguration private (val config: Config) {
     (_: java.lang.Boolean, newValue: java.lang.Boolean) => _renderPlanDescription = newValue
   )
 
+  // Heap estimator cache config
+  config.addListener[java.lang.Boolean](
+    GraphDatabaseInternalSettings.heap_estimator_cache_enabled,
+    (_: java.lang.Boolean, _: java.lang.Boolean) => _heapEstimatorCacheConfig = extractHeapEstimatorCacheConfig(config)
+  )
+
+  config.addListener[java.lang.Integer](
+    GraphDatabaseInternalSettings.heap_estimator_cache_size_limit,
+    (_: java.lang.Integer, _: java.lang.Integer) => _heapEstimatorCacheConfig = extractHeapEstimatorCacheConfig(config)
+  )
+
+  config.addListener[java.lang.Long](
+    GraphDatabaseInternalSettings.heap_estimator_cache_large_object_threshold,
+    (_: java.lang.Long, _: java.lang.Long) => _heapEstimatorCacheConfig = extractHeapEstimatorCacheConfig(config)
+  )
+
   def toggledFeatures(features: Map[Setting[java.lang.Boolean], String]): Set[String] =
     features.filter(s => config.get(s._1)).values.toSet
 
   def obfuscateLiterals: Boolean = _obfuscateLiterals
   def renderPlanDescription: Boolean = _renderPlanDescription
   def parallelRuntimeSupport: CypherParallelRuntimeSupportOption = _parallelRuntimeSupport
-
+  def heapEstimatorCacheConfig: HeapEstimatorCacheConfig = _heapEstimatorCacheConfig
 }

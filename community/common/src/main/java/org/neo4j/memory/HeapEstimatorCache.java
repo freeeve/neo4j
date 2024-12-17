@@ -40,6 +40,8 @@ public interface HeapEstimatorCache {
      */
     void fullReset();
 
+    HeapEstimatorCache newWithSameSettings();
+
     class NoHeapEstimatorCache implements HeapEstimatorCache {
         public static final NoHeapEstimatorCache INSTANCE = new NoHeapEstimatorCache();
 
@@ -53,5 +55,10 @@ public interface HeapEstimatorCache {
 
         @Override
         public void fullReset() {}
+
+        @Override
+        public HeapEstimatorCache newWithSameSettings() {
+            return this;
+        }
     }
 }
