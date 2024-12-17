@@ -67,6 +67,7 @@ public record LogEnvelopeHeader(
 
     public static final byte IGNORE_KERNEL_VERSION = -1;
     public static final byte UNSPECIFIED_CONTENT_TYPE = -1;
+    public static final byte UNSPECIFIED_INDEX = -1;
     public static final byte UNSPECIFIED_TERM = -1;
     public static final byte KERNEL_CONTENT_TYPE = 64;
 

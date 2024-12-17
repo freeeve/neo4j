@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.impl.transaction.log.enveloped;
 
+import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -47,7 +49,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
     private final int writerBufferedBlocks;
     private final MemoryTracker memoryTracker;
     private final LogRotation logRotation;
-    private final LogTracers logTracers = LogTracers.NULL; // TODO: probably not?
+    private final LogTracers logTracers = LogTracers.NULL; // TODO: Use these when log is merged
     private final LogsRepository logsRepository;
     private final long maxFileSize;
     private final LogHeaderFactory logHeaderFactory;
@@ -93,50 +95,77 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
 
     @Override
     public EnvelopeReadChannel openReadChannel(long fileWithIndex) throws IOException {
-        long desiredVersion = -1;
-        try (var metadataCursor = new MetadataCursor(logsRepository, this, true)) {
-            while (metadataCursor.next()) {
-                var logHeader = metadataCursor.get();
-                if (logHeader.getLastAppendIndex() < fileWithIndex) {
-                    desiredVersion = metadataCursor.currentVersion();
-                    break;
-                }
+        var logFileVersions = logsRepository.logVersions(false);
+        int low = 0;
+        int high = logFileVersions.length - 1;
+
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+
+            long midVersion = logFileVersions[mid];
+            var midLogHeader =
+                    readLogHeader(logsRepository.openReadChannel(midVersion).channel(), true, null, memoryTracker);
+            // null header means empty pre-allocated file
+            long midVal = midLogHeader == null ? Long.MAX_VALUE : midLogHeader.getLastAppendIndex();
+            if (midVal < fileWithIndex) {
+                low = mid + 1;
+            } else if (midVal > fileWithIndex) {
+                high = mid - 1;
+            } else {
+                low = mid;
+                break;
             }
         }
-        if (desiredVersion == -1) {
+        if (low == 0) {
+            // 0 means that the prev index has been pruned.
             return null;
+        } else {
+            // low will point to the version that either has the closest index higher than or equal to what we are
+            // looking for. In either case, since logHeaders append index points to prev files last index, we want
+            // the index before low
+            // note! if the index has been truncated or is higher than what exists in the log, then we still get the
+            // last file, but that should never have been attempted and should be caught higher up the stack.
+            var fileVersion = logFileVersions[low - 1];
+            return envelopedReadChannel(logsRepository.openReadChannel(fileVersion), fileVersion);
         }
-        return envelopedReadChannel(logsRepository.openReadChannel(desiredVersion), desiredVersion);
     }
 
     public long initialise() throws IOException {
         logsRepository.initialise();
-        if (logsRepository.isEmpty()) {
-            var logChannelCtx = createNewStoreChannel(
-                    LogsRepository.BASE_VERSION,
-                    logHeaderFactory.createLogHeader(
-                            LogsRepository.BASE_VERSION, -1, INITIAL_CHECKSUM, segmentBlockSize));
-            updateState(logChannelCtx, INITIAL_CHECKSUM, BASE_INDEX - 1);
-            return -1;
-        } else {
+        if (!logsRepository.isEmpty()) {
             try (var envelopeReadChannel = openReadChannel()) {
-                try {
-                    while (true) {
-                        envelopeReadChannel.goToNextEntry();
+                if (envelopeReadChannel.logHeader() != null) {
+
+                    try {
+                        while (true) {
+                            envelopeReadChannel.goToNextEntry();
+                        }
+                    } catch (ReadPastEndException ignore) {
+                        // we reached the end
                     }
-                } catch (ReadPastEndException ignore) {
-                    // we reached the end
+                    var prevChecksum = envelopeReadChannel.getChecksum();
+                    var prevIndex = envelopeReadChannel.entryIndex();
+                    var logChannelCtx =
+                            openWriteChannel(envelopeReadChannel.getLogVersion(), envelopeReadChannel.position());
+                    updateState(logChannelCtx, prevChecksum, prevIndex);
+                    return prevIndex;
                 }
-                var prevChecksum = envelopeReadChannel.getChecksum();
-                var prevIndex = envelopeReadChannel.entryIndex();
-                var logChannelCtx =
-                        openWriteChannel(envelopeReadChannel.getLogVersion(), envelopeReadChannel.position());
-                updateState(logChannelCtx, prevChecksum, prevIndex);
-                return prevIndex;
             }
         }
+        // no existing data found, either no log files or only pre-allocated logs
+        var logChannelCtx = createNewStoreChannel(
+                LogsRepository.BASE_VERSION,
+                logHeaderFactory.createLogHeader(LogsRepository.BASE_VERSION, -1, INITIAL_CHECKSUM, segmentBlockSize));
+        updateState(logChannelCtx, INITIAL_CHECKSUM, BASE_INDEX - 1);
+        return -1;
     }
 
+    /**
+     * Truncates the envelope log files.
+     * @param fromIndex the index to truncate from (inclusive)
+     * @return the current write channel after the truncate.
+     * @throws IllegalArgumentException if fromIndex is negative, higher than current index or if it has been pruned
+     */
     public EnvelopeWriteChannel truncate(long fromIndex) throws IOException {
         if (fromIndex < 0) {
             throw new IllegalArgumentException("Negative values is not allowed " + fromIndex);
@@ -177,6 +206,11 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         return appendingChannel;
     }
 
+    /**
+     * Prunes the envelope files. Only entire files can be removed by prune.
+     * @param index the desired index to prune up to (exclusive)
+     * @return the highest index that was removed after the prune event, or -1 if there is nothing to prune
+     */
     public long prune(long index) throws IOException {
         if (index > appendingChannel.currentIndex()) {
             var nextVersion = logsRepository.logVersionsRange().to() + 1;
@@ -266,6 +300,10 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
 
     private void preallocate(LogChannelContext<StoreChannel> logChannelCtx) throws IOException {
         // TODO - Ugly pre-allocation
+        if (logChannelCtx.channel().size() == maxFileSize) {
+            // already pre-allocated
+            return;
+        }
         var buffer = ByteBuffer.wrap(new byte[segmentBlockSize]);
         long preallocated = 0;
         while (preallocated != maxFileSize) {
@@ -324,8 +362,8 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         return null;
     }
 
-    public MetadataCursor metadataCursor() throws IOException {
-        return new MetadataCursor(logsRepository, this, false);
+    public LogFilesMetadata logFilesMetadata() throws IOException {
+        return new LogFilesMetadata(logsRepository);
     }
 
     private static class EnvelopedLogRotation implements LogRotation {

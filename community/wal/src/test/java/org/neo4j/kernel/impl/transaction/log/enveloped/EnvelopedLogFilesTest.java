@@ -176,6 +176,175 @@ class EnvelopedLogFilesTest {
     }
 
     @Test
+    void shouldFindFileContainingIndexDirectly() throws IOException {
+        var baseData = new byte[segmentBlockSize / 3];
+
+        envelopedLogFiles.initialise();
+
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        for (int i = 0; i < 20; i++) {
+            baseData[0] = (byte) i; // set unique data index
+            writeData(writeChannel, baseData);
+        }
+
+        for (int i = 0; i < 20; i++) {
+            try (var readChannel = envelopedLogFiles.openReadChannel(i)) {
+                var currentLogHeader = readChannel.logHeader();
+                var readData = new byte[baseData.length];
+                while (readChannel.entryIndex() != i) {
+                    readChannel.goToNextEntry();
+                }
+                readChannel.get(readData, readData.length);
+                // assert it did not switch file
+                assertThat(currentLogHeader).isEqualTo(readChannel.logHeader());
+                // and that we found the expected entry
+                assertThat(readData[0]).isEqualTo((byte) i);
+            }
+        }
+    }
+
+    @Test
+    void shouldFindFileContainingIndexDirectlyEvenAFterPrune() throws IOException {
+        var baseData = new byte[segmentBlockSize / 3];
+
+        envelopedLogFiles.initialise();
+
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        for (int i = 0; i < 40; i++) {
+            baseData[0] = (byte) i; // set unique data index
+            writeData(writeChannel, baseData);
+        }
+
+        long prunedIndex = envelopedLogFiles.prune(20);
+
+        for (int i = (int) (prunedIndex + 1); i < 40; i++) {
+            try (var readChannel = envelopedLogFiles.openReadChannel(i)) {
+                var currentLogHeader = readChannel.logHeader();
+                var readData = new byte[baseData.length];
+                while (readChannel.entryIndex() != i) {
+                    readChannel.goToNextEntry();
+                }
+                readChannel.get(readData, readData.length);
+                // assert it did not switch file
+                assertThat(currentLogHeader).isEqualTo(readChannel.logHeader());
+                // and that we found the expected entry
+                assertThat(readData[0]).isEqualTo((byte) i);
+            }
+        }
+    }
+
+    @Test
+    void shouldReturnNullIfIndexHasPruned() throws IOException {
+        envelopedLogFiles.initialise();
+
+        var data = EIGHT_BYTES_MESSAGE.getBytes();
+        var largeData = new byte[segmentBlockSize / 2];
+        writeData(envelopedLogFiles.currentWriteChannel(), largeData);
+        writeData(envelopedLogFiles.currentWriteChannel(), largeData); // spills over to next file
+        writeData(envelopedLogFiles.currentWriteChannel(), data);
+        writeData(envelopedLogFiles.currentWriteChannel(), data);
+        envelopedLogFiles.currentWriteChannel().prepareForFlush().flush();
+
+        // 1 is completed in first file, so we expect it to be removed
+        assertThat(envelopedLogFiles.prune(2)).isEqualTo(1);
+
+        // 0 has been pruned entirley
+        assertThat(envelopedLogFiles.openReadChannel(0)).isNull();
+        // 1 spills over but should still be considered pruned
+        assertThat(envelopedLogFiles.openReadChannel(1)).isNull();
+        // 2 has not been pruned and should open a file
+        try (var envelopeReadChannel = envelopedLogFiles.openReadChannel(2)) {
+            envelopeReadChannel.alignWithStartEntry();
+            assertThat(envelopeReadChannel.entryIndex()).isEqualTo(2);
+        }
+    }
+
+    @Test
+    void shouldHandlePreAllocatedFileWhenOpeningReadChannel() throws IOException {
+
+        var baseData = new byte[segmentBlockSize / 3];
+
+        envelopedLogFiles.initialise();
+
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        for (int i = 0; i < 20; i++) {
+            baseData[0] = (byte) i; // set unique data index
+            writeData(writeChannel, baseData);
+        }
+        assertThat(mirroringRepository.logVersionsRange().to()).isEqualTo(10);
+
+        // create pre-allocated files
+        for (int i = 10; i < 20; i++) {
+            try (var channel = mirroringRepository.createWriteChannel(i).channel()) {
+                var zeros = ByteBuffer.wrap(new byte[segmentBlockSize]);
+                channel.writeAll(zeros);
+                channel.writeAll(zeros);
+                channel.flush();
+            }
+        }
+
+        for (int i = 0; i < 20; i++) {
+            try (var readChannel = envelopedLogFiles.openReadChannel(i)) {
+                var currentLogHeader = readChannel.logHeader();
+                var readData = new byte[baseData.length];
+                while (readChannel.entryIndex() != i) {
+                    readChannel.goToNextEntry();
+                }
+                readChannel.get(readData, readData.length);
+                // assert it did not switch file
+                assertThat(currentLogHeader).isEqualTo(readChannel.logHeader());
+                // and that we found the expected entry
+                assertThat(readData[0]).isEqualTo((byte) i);
+            }
+        }
+    }
+
+    @Test
+    void shouldHandleOnlyPreAllocatedFilesWithLogHeaderMetadata() throws IOException {
+        for (int i = 0; i < 2; i++) {
+            try (var channel = mirroringRepository.createWriteChannel(i).channel()) {
+                var zeros = ByteBuffer.wrap(new byte[segmentBlockSize]);
+                channel.writeAll(zeros);
+                channel.writeAll(zeros);
+                channel.flush();
+            }
+        }
+
+        envelopedLogFiles.initialise();
+        var itr = envelopedLogFiles.logFilesMetadata();
+        // envelopedLogFiles.initialise() will write a header to the first file
+        assertThat(itr.hasNext()).isTrue();
+        var logHeaderMetadata = itr.next();
+        assertThat(logHeaderMetadata.logHeader().getLastAppendIndex()).isEqualTo(-1);
+        assertThat(logHeaderMetadata.version()).isEqualTo(0);
+
+        // the next file exits but is an empty pre-allocatd file and should be ignore
+        assertThat(itr.hasNext()).isFalse();
+    }
+
+    @Test
+    void shouldHandleOnlyPreAllocatedFiles() throws IOException {
+        for (int i = 0; i < 2; i++) {
+            try (var channel = mirroringRepository.createWriteChannel(i).channel()) {
+                var zeros = ByteBuffer.wrap(new byte[segmentBlockSize]);
+                channel.writeAll(zeros);
+                channel.writeAll(zeros);
+                channel.flush();
+            }
+        }
+
+        envelopedLogFiles.initialise();
+        assertThat(envelopedLogFiles.currentWriteChannel().currentIndex()).isEqualTo(-1);
+        byte[] data = {1, 2, 3};
+        writeData(envelopedLogFiles.currentWriteChannel(), data);
+        envelopedLogFiles.currentWriteChannel().prepareForFlush().flush();
+        readData(data, envelopedLogFiles.openReadChannel(), 0);
+    }
+
+    @Test
     void shouldRotateWhenWritingMoreThanFileSize() throws IOException {
         envelopedLogFiles.initialise();
 

@@ -27,6 +27,7 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEAD
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.IGNORE_KERNEL_VERSION;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.MAX_ZERO_PADDING_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_CONTENT_TYPE;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_INDEX;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_TERM;
 import static org.neo4j.kernel.impl.transaction.log.entry.TailUtils.checkTail;
 import static org.neo4j.util.Preconditions.checkState;
@@ -110,7 +111,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     protected int previousChecksum;
     protected long currentSegment;
     protected EnvelopeType payloadType;
-    protected long currentIndex;
+    protected long currentIndex = UNSPECIFIED_INDEX;
     protected long currentTerm = UNSPECIFIED_TERM;
     protected byte currentContentType = UNSPECIFIED_CONTENT_TYPE;
     protected byte payloadVersion;
