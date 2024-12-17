@@ -37,7 +37,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.idp.CacheBackedQPPInne
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.CacheBackedQPPInnerPlannerTest.fromLeft
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.CacheBackedQPPInnerPlannerTest.fromRight
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.CacheBackedQPPInnerPlannerTest.mockPlanner
-import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQPPPredicates.ExtractedPredicates
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQppPredicates.ExtractedPredicates
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable
 import org.neo4j.cypher.internal.ir.NodeBinding

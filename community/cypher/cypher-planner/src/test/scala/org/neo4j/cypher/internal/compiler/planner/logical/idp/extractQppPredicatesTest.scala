@@ -21,8 +21,8 @@ package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
-import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQPPPredicates.ExtractedPredicate
-import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQPPPredicates.ExtractedPredicates
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQppPredicates.ExtractedPredicate
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQppPredicates.ExtractedPredicates
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.ir.NodeBinding
 import org.neo4j.cypher.internal.ir.PatternRelationship
@@ -61,12 +61,12 @@ class extractQppPredicatesTest extends CypherFunSuite with AstConstructionTestSu
 
   test("should extract ForAllRepetitions predicates into QPP") {
     val innerPredicate = in(varFor("r_inner"), varFor("s"))
-    // Scenario: We have solve the QPP containing o-s-p first. Therefore, we could inline this predicate.
+    // Scenario: We have solved the QPP containing o-s-p first. Therefore, we could inline this predicate.
     val predicate_r_in_s = ForAllRepetitions(
       `(a) ((n)-[r]->(m))+ (b)`,
       innerPredicate
     )
-    extractQPPPredicates(
+    extractQppPredicates(
       Seq(predicate_r_in_s),
       `(a) ((n)-[r]->(m))+ (b)`.variableGroupings,
       Set(varFor("o"), varFor("s"), varFor("p"))
@@ -85,7 +85,7 @@ class extractQppPredicatesTest extends CypherFunSuite with AstConstructionTestSu
       `(a) ((n)-[r]->(m))+ (b)`,
       in(varFor("r_inner"), varFor("s"))
     )
-    extractQPPPredicates(
+    extractQppPredicates(
       Seq(predicate_r_in_s),
       `(a) ((o)-[s]->(p))+ (b)`.variableGroupings,
       Set(varFor("n"), varFor("r"), varFor("m"))

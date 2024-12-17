@@ -200,7 +200,7 @@ object expandSolverStep {
       case rel: PatternRelationship =>
         Some(produceExpandLogicalPlan(qg, rel, rel.variable, sourcePlan, nodeId, availableSymbols, context))
       case qpp: QuantifiedPathPattern =>
-        Some(produceTrailLogicalPlan(
+        Some(produceRepeatLogicalPlan(
           qpp,
           sourcePlan,
           nodeId,
@@ -306,7 +306,7 @@ object expandSolverStep {
     }
   }
 
-  private def produceTrailLogicalPlan(
+  private def produceRepeatLogicalPlan(
     quantifiedPathPattern: QuantifiedPathPattern,
     sourcePlan: LogicalPlan,
     startNode: LogicalVariable,
@@ -319,7 +319,7 @@ object expandSolverStep {
     val fromLeft = startNode == quantifiedPathPattern.left
 
     // Get the QPP inner plan
-    val extractedPredicates = extractQPPPredicates(predicates, quantifiedPathPattern.variableGroupings, availableVars)
+    val extractedPredicates = extractQppPredicates(predicates, quantifiedPathPattern.variableGroupings, availableVars)
 
     val (updatedLabelInfo, updatedContext) = context.staticComponents.labelInferenceStrategy.inferLabels(
       context,
@@ -555,7 +555,7 @@ object expandSolverStep {
 
               val extractedPredicates = variableGroupings.map {
                 case VariableGroupingSet(variableGrouping, inlineCheck) =>
-                  val extracted = extractQPPPredicates(
+                  val extracted = extractQppPredicates(
                     rewrittenSppSelections.flatPredicates,
                     variableGrouping,
                     availableSymbols

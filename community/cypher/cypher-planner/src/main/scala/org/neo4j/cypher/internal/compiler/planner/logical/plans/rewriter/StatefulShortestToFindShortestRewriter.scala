@@ -22,7 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 import org.neo4j.cypher.internal.compiler.planner.logical.convertToInlinedPredicates
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractPredicates
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractPredicates.RelationshipPredicates
-import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQPPPredicates
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQppPredicates
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NodePattern
@@ -309,7 +309,7 @@ case class StatefulShortestToFindShortestRewriter(
     qpp: QuantifiedPathPattern
   ): (Seq[Expression], RelationshipPredicates) = {
     val (innerFrom, innerTo) = (qpp.leftBinding.inner, qpp.rightBinding.inner)
-    val extractedPredicates = extractQPPPredicates(
+    val extractedPredicates = extractQppPredicates(
       spp.selections.flatPredicates,
       qpp.variableGroupings,
       statefulShortestPath.source.availableSymbols
