@@ -163,9 +163,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
 
         final var channelProvider =
                 new PhysicalFlushableLogPositionAwareChannel.VersionedPhysicalFlushableLogChannelProvider(
-                        logRotation,
-                        context.getDatabaseTracers().getDatabaseTracer(),
-                        new NativeScopedBuffer(context.getBufferSizeBytes(), ByteOrder.LITTLE_ENDIAN, memoryTracker));
+                        logRotation, context.getDatabaseTracers().getDatabaseTracer(), createScopedBuffer());
 
         writer = new PhysicalFlushableLogPositionAwareChannel(
                 channel, channelAllocator.readLogHeaderForVersion(currentLogVersion), channelProvider);
@@ -176,6 +174,11 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
                     context.getBinarySupportedKernelVersions(),
                     logRotation);
         }
+    }
+
+    @Override
+    public NativeScopedBuffer createScopedBuffer() {
+        return new NativeScopedBuffer(context.getBufferSizeBytes(), ByteOrder.LITTLE_ENDIAN, memoryTracker);
     }
 
     /**

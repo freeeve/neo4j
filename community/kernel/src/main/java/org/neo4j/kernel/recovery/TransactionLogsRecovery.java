@@ -28,8 +28,10 @@ import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.MVCC_INCOMPLETE_REVERSE_RECOVERY;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.RECOVERY;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.REVERSE_RECOVERY;
+import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.channels.ClosedByInterruptException;
 import java.time.Clock;
@@ -47,12 +49,13 @@ import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.PhysicalFlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
-import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
+import org.neo4j.kernel.impl.transaction.log.rotation.LogRotateEvents;
+import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
+import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
-import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.time.Stopwatch;
 
@@ -333,12 +336,9 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         }
         KernelVersion kernelVersion = versionProvider.kernelVersion();
         LogFile logFile = logFiles.getLogFile();
-        PhysicalLogVersionedStoreChannel channel =
-                logFile.createLogChannelForExistingVersion(writePosition.getLogVersion());
-        LogHeader logHeader = logFile.extractHeader(writePosition.getLogVersion());
-        channel.position(writePosition.getByteOffset());
-        try (var writerChannel =
-                new PhysicalFlushableLogPositionAwareChannel(channel, logHeader, EmptyMemoryTracker.INSTANCE)) {
+        try (ChannelWithPartialLogRotationAbility channelAllocator = new ChannelWithPartialLogRotationAbility(
+                logFile, appendIndexProvider, versionProvider, logFile.rotationSize(), writePosition)) {
+            PhysicalFlushableLogPositionAwareChannel writerChannel = channelAllocator.getWriterChannel();
             var entryWriter = new LogEntryWriter<>(writerChannel, binarySupportedKernelVersions);
             long time = clock.millis();
             CommittedCommandBatchRepresentation.BatchInformation lastBatchInfo = null;
@@ -360,6 +360,96 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
             }
 
             return new RollbackTransactionInfo(lastBatchInfo, writerChannel.getCurrentLogPosition());
+        }
+    }
+
+    private static class ChannelWithPartialLogRotationAbility implements LogRotation, Closeable {
+        private final PhysicalFlushableLogPositionAwareChannel writer;
+        private PhysicalLogVersionedStoreChannel channel;
+        private final LogFile logFile;
+        private final AppendIndexProvider appendIndexProvider;
+        private final KernelVersionProvider versionProvider;
+        private final long rotateAtSize;
+
+        public ChannelWithPartialLogRotationAbility(
+                LogFile logFile,
+                AppendIndexProvider appendIndexProvider,
+                KernelVersionProvider versionProvider,
+                long rotateAtSize,
+                LogPosition writePosition)
+                throws IOException {
+            this.logFile = logFile;
+            this.appendIndexProvider = appendIndexProvider;
+            this.versionProvider = versionProvider;
+            this.rotateAtSize = rotateAtSize;
+
+            channel = logFile.createLogChannelForExistingVersion(writePosition.getLogVersion());
+            channel.position(writePosition.getByteOffset());
+            writer = new PhysicalFlushableLogPositionAwareChannel(
+                    channel,
+                    logFile.extractHeader(writePosition.getLogVersion()),
+                    new PhysicalFlushableLogPositionAwareChannel.VersionedPhysicalFlushableLogChannelProvider(
+                            LogRotation.NO_ROTATION, DatabaseTracer.NULL, logFile.createScopedBuffer()));
+        }
+
+        public PhysicalFlushableLogPositionAwareChannel getWriterChannel() {
+            return writer;
+        }
+
+        @Override
+        public boolean rotateLogIfNeeded(LogRotateEvents logRotateEvents) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean locklessBatchedRotateLogIfNeeded(
+                LogRotateEvents logRotateEvents, long lastAppendIndex, KernelVersion kernelVersion, int checksum) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean locklessRotateLogIfNeeded(LogRotateEvents logRotateEvents) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean locklessRotateLogIfNeeded(
+                LogRotateEvents logRotateEvents, KernelVersion kernelVersion, boolean force) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void rotateLogFile(LogRotateEvents logRotateEvents) throws IOException {
+            long newLogVersion = channel.getLogVersion() + 1;
+            writer.prepareForFlush().flush();
+            channel.truncate(channel.position());
+            PhysicalLogVersionedStoreChannel newLog = logFile.createLogChannelForVersion(
+                    newLogVersion,
+                    appendIndexProvider::getLastAppendIndex,
+                    versionProvider,
+                    writer.currentChecksum().orElse(BASE_TX_CHECKSUM));
+            channel.close();
+            channel = newLog;
+            writer.setChannel(channel, logFile.extractHeader(channel.getLogVersion()));
+        }
+
+        @Override
+        public void locklessRotateLogFile(
+                LogRotateEvents logRotateEvents,
+                KernelVersion kernelVersion,
+                long lastAppendIndex,
+                int previousChecksum) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public long rotationSize() {
+            return rotateAtSize;
+        }
+
+        @Override
+        public void close() throws IOException {
+            writer.close();
         }
     }
 

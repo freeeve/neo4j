@@ -28,6 +28,7 @@ import java.util.function.LongSupplier;
 import org.eclipse.collections.api.map.primitive.LongObjectMap;
 import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.fs.StoreChannel;
+import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogForceEvents;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
@@ -81,6 +82,8 @@ public interface LogFile extends VersionedFile, RotatableFile {
     void accept(LogFileVisitor visitor, LogPosition startingFromPosition) throws IOException;
 
     TransactionLogFileInformation getLogFileInformation();
+
+    NativeScopedBuffer createScopedBuffer();
 
     PhysicalLogVersionedStoreChannel openForVersion(long version, boolean raw) throws IOException;
 
