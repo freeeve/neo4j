@@ -382,7 +382,7 @@ class IndexingServiceTest {
                 .thenReturn(updater);
         ValueIndexReader indexReader = mock(ValueIndexReader.class);
         when(accessor.newValueReader(any())).thenReturn(indexReader);
-        doAnswer(new NodeIdsIndexReaderQueryAnswer(index)).when(indexReader).query(any(), any(), any(), any());
+        doAnswer(new NodeIdsIndexReaderQueryAnswer(index)).when(indexReader).query(any(), any(), any(), any(), any());
 
         IndexingService indexingService = newIndexingServiceWithMockedDependencies(populator, accessor, withData());
 
@@ -1699,6 +1699,7 @@ class IndexingServiceTest {
             reader.query(
                     new SimpleEntityValueClient(),
                     QueryContext.NULL_CONTEXT,
+                    CursorContext.NULL_CONTEXT,
                     IndexQueryConstraints.unconstrained(),
                     PropertyIndexQuery.allEntries());
         }
@@ -2169,6 +2170,7 @@ class IndexingServiceTest {
         public void query(
                 IndexProgressor.EntityValueClient client,
                 QueryContext context,
+                CursorContext cursorContext,
                 IndexQueryConstraints constraints,
                 PropertyIndexQuery... query) {
             tracker.queried();

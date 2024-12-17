@@ -97,6 +97,7 @@ public class FulltextIndexReader implements ValueIndexReader {
     public void query(
             IndexProgressor.EntityValueClient client,
             QueryContext context,
+            CursorContext cursorContext,
             IndexQueryConstraints constraints,
             PropertyIndexQuery... queries)
             throws IndexNotApplicableKernelException {

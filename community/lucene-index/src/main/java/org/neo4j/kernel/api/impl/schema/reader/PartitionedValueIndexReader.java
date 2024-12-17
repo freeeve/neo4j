@@ -59,6 +59,7 @@ public class PartitionedValueIndexReader implements ValueIndexReader {
     public void query(
             IndexProgressor.EntityValueClient client,
             QueryContext context,
+            CursorContext cursorContext,
             IndexQueryConstraints constraints,
             PropertyIndexQuery... query)
             throws IndexNotApplicableKernelException {
@@ -67,7 +68,7 @@ public class PartitionedValueIndexReader implements ValueIndexReader {
                     new BridgingIndexProgressor(client, descriptor.schema().getPropertyIds());
             indexReaders.parallelStream().forEach(reader -> {
                 try {
-                    reader.query(bridgingIndexProgressor, context, constraints, query);
+                    reader.query(bridgingIndexProgressor, context, cursorContext, constraints, query);
                 } catch (IndexNotApplicableKernelException e) {
                     throw new InnerException(e);
                 }

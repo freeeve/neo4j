@@ -43,6 +43,7 @@ import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelE
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
+import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
@@ -215,7 +216,8 @@ abstract class BaseAccessorTilesTest<KEY extends NativeIndexKey<KEY>> {
 
             var boundingBox = PropertyIndexQuery.boundingBox(
                     descriptor.schema().getPropertyId(), Values.pointValue(WGS_84, searchStart), limitPoint);
-            indexReader.query(client, QueryContext.NULL_CONTEXT, unorderedValues(), boundingBox);
+            indexReader.query(
+                    client, QueryContext.NULL_CONTEXT, CursorContext.NULL_CONTEXT, unorderedValues(), boundingBox);
 
             List<Value> queryResult = new ArrayList<>();
             while (client.next()) {
@@ -262,7 +264,8 @@ abstract class BaseAccessorTilesTest<KEY extends NativeIndexKey<KEY>> {
             for (Value value : values) {
                 PropertyIndexQuery.ExactPredicate exact =
                         PropertyIndexQuery.exact(descriptor.schema().getPropertyId(), value);
-                indexReader.query(client, QueryContext.NULL_CONTEXT, unorderedValues(), exact);
+                indexReader.query(
+                        client, QueryContext.NULL_CONTEXT, CursorContext.NULL_CONTEXT, unorderedValues(), exact);
 
                 // then
                 assertTrue(client.next());

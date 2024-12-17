@@ -104,7 +104,11 @@ class TextIndexPopulationIT {
                         NodeValueIterator results = new NodeValueIterator();
                         IndexSampler indexSampler = indexReader.createSampler()) {
                     indexReader.query(
-                            results, QueryContext.NULL_CONTEXT, unconstrained(), PropertyIndexQuery.allEntries());
+                            results,
+                            QueryContext.NULL_CONTEXT,
+                            CursorContext.NULL_CONTEXT,
+                            unconstrained(),
+                            PropertyIndexQuery.allEntries());
                     long[] nodes = PrimitiveLongCollections.asArray(results);
                     assertEquals(affectedNodes, nodes.length);
 

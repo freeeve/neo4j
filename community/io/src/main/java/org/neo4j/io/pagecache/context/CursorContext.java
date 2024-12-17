@@ -61,4 +61,8 @@ public class CursorContext implements AutoCloseable {
     public CursorContext createRelatedContext(String tag) {
         return contextFactory.create(tag, versionContext);
     }
+
+    public CursorContext createUnboundedRelatedContext() {
+        return new CursorContext(contextFactory, cursorTracer, EMPTY_VERSION_CONTEXT);
+    }
 }

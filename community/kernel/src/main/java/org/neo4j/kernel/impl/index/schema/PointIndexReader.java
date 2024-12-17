@@ -35,6 +35,7 @@ import org.neo4j.internal.kernel.api.QueryContext;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
+import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.index.BridgingIndexProgressor;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettings;
@@ -90,6 +91,7 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
     public void query(
             IndexProgressor.EntityValueClient client,
             QueryContext context,
+            CursorContext cursorContext,
             IndexQueryConstraints constraints,
             PropertyIndexQuery... predicates) {
         if (predicates.length == 0) {
@@ -140,7 +142,7 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
                         descriptor, IndexProgressor.EMPTY, false, false, constraints, boundingBoxPredicate);
             }
         } else {
-            super.query(client, context, constraints, predicates);
+            super.query(client, context, cursorContext, constraints, predicates);
         }
     }
 

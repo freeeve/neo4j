@@ -20,9 +20,7 @@
 package org.neo4j.kernel.impl.newapi;
 
 import java.util.Arrays;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.eclipse.collections.api.set.primitive.IntSet;
-import org.eclipse.collections.api.set.primitive.LongSet;
 import org.neo4j.collection.PrimitiveArrays;
 import org.neo4j.internal.kernel.api.TokenSet;
 
@@ -39,13 +37,6 @@ public class Labels implements TokenSet {
 
     static Labels from(IntSet set) {
         return new Labels(set.toArray());
-    }
-
-    static Labels from(LongSet set) {
-        final int[] labelIds = new int[set.size()];
-        MutableInt index = new MutableInt();
-        set.each(element -> labelIds[index.getAndIncrement()] = (int) element);
-        return new Labels(labelIds);
     }
 
     @Override

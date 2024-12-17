@@ -229,8 +229,14 @@ abstract class IndexPopulationStressTest {
                 var referenceReader = referenceAccessor.newValueReader(NO_USAGE_TRACKING)) {
             RecordingClient entries = new RecordingClient();
             RecordingClient referenceEntries = new RecordingClient();
-            reader.query(entries, QueryContext.NULL_CONTEXT, unordered(hasValues), allEntries());
-            referenceReader.query(referenceEntries, QueryContext.NULL_CONTEXT, unordered(hasValues), allEntries());
+            reader.query(
+                    entries, QueryContext.NULL_CONTEXT, CursorContext.NULL_CONTEXT, unordered(hasValues), allEntries());
+            referenceReader.query(
+                    referenceEntries,
+                    QueryContext.NULL_CONTEXT,
+                    CursorContext.NULL_CONTEXT,
+                    unordered(hasValues),
+                    allEntries());
 
             exhaustAndSort(referenceEntries);
             exhaustAndSort(entries);

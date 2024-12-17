@@ -117,6 +117,7 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
     public void query(
             IndexProgressor.EntityValueClient cursor,
             QueryContext context,
+            CursorContext cursorContext,
             IndexQueryConstraints constraints,
             PropertyIndexQuery... predicates) {
         validateQuery(constraints, predicates);
@@ -129,7 +130,7 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
 
         boolean needFilter = initializeRangeForQuery(treeKeyFrom, treeKeyTo, predicates);
         startSeekForInitializedRange(
-                cursor, treeKeyFrom, treeKeyTo, context.cursorContext(), needFilter, constraints, predicates);
+                cursor, treeKeyFrom, treeKeyTo, cursorContext, needFilter, constraints, predicates);
     }
 
     void initializeFromToKeys(KEY treeKeyFrom, KEY treeKeyTo) {

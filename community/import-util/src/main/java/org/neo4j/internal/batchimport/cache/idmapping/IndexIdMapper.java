@@ -304,6 +304,7 @@ public class IndexIdMapper implements IdMapper {
                     index.reader.query(
                             client,
                             NULL_CONTEXT,
+                            CursorContext.NULL_CONTEXT,
                             unconstrained(),
                             exact(index.schemaDescriptor.getPropertyId(), inputId));
                     return client.hasNext() ? client.next() : -1;

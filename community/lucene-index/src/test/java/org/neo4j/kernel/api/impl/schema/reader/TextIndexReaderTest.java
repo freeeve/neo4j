@@ -135,7 +135,8 @@ class TextIndexReaderTest {
 
     private static void doQuery(ValueIndexReader reader, PropertyIndexQuery query)
             throws IndexNotApplicableKernelException {
-        reader.query(new NodeValueIterator(), QueryContext.NULL_CONTEXT, unconstrained(), query);
+        reader.query(
+                new NodeValueIterator(), QueryContext.NULL_CONTEXT, CursorContext.NULL_CONTEXT, unconstrained(), query);
     }
 
     private TextIndexReader getNonUniqueSimpleReader() {

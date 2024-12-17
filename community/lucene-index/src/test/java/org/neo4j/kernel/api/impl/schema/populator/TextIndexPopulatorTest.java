@@ -148,7 +148,12 @@ class TextIndexPopulatorTest {
         index.maybeRefreshBlocking();
         try (ValueIndexReader reader = index.getIndexReader(NO_USAGE_TRACKING);
                 NodeValueIterator allEntities = new NodeValueIterator()) {
-            reader.query(allEntities, QueryContext.NULL_CONTEXT, unconstrained(), PropertyIndexQuery.allEntries());
+            reader.query(
+                    allEntities,
+                    QueryContext.NULL_CONTEXT,
+                    CursorContext.NULL_CONTEXT,
+                    unconstrained(),
+                    PropertyIndexQuery.allEntries());
             assertArrayEquals(new long[] {1, 2, 42}, PrimitiveLongCollections.asArray(allEntities));
         }
     }

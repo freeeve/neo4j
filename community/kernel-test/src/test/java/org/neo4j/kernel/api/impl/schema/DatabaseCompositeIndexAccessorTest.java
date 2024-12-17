@@ -366,7 +366,7 @@ public class DatabaseCompositeIndexAccessorTest {
     private static Set<Long> resultSet(ValueIndexReader reader, PropertyIndexQuery... queries)
             throws IndexNotApplicableKernelException {
         try (NodeValueIterator results = new NodeValueIterator()) {
-            reader.query(results, QueryContext.NULL_CONTEXT, unconstrained(), queries);
+            reader.query(results, QueryContext.NULL_CONTEXT, CursorContext.NULL_CONTEXT, unconstrained(), queries);
             return toSet(results);
         }
     }

@@ -119,7 +119,11 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
             assertThatThrownBy(
                             () -> reader.query(
-                                    new SimpleEntityValueClient(), NULL_CONTEXT, unorderedValues(), predicate),
+                                    new SimpleEntityValueClient(),
+                                    NULL_CONTEXT,
+                                    CursorContext.NULL_CONTEXT,
+                                    unorderedValues(),
+                                    predicate),
                             "%s is an unsupported query",
                             predicate)
                     .isInstanceOf(IllegalArgumentException.class)
@@ -136,7 +140,11 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
             PropertyIndexQuery.ExactPredicate query = PropertyIndexQuery.exact(0, PointValue.MAX_VALUE);
             assertThatThrownBy(
                             () -> reader.query(
-                                    new SimpleEntityValueClient(), NULL_CONTEXT, constrained(indexOrder, false), query),
+                                    new SimpleEntityValueClient(),
+                                    NULL_CONTEXT,
+                                    CursorContext.NULL_CONTEXT,
+                                    constrained(indexOrder, false),
+                                    query),
                             "order is not supported with point index")
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContainingAll(

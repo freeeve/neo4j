@@ -202,7 +202,12 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
                                         queries[i] = exact(propertyKeyIds[i], values[i]);
                                     }
                                     try (var client = new NodeValueIterator()) {
-                                        reader.query(client, QueryContext.NULL_CONTEXT, unconstrained(), queries);
+                                        reader.query(
+                                                client,
+                                                QueryContext.NULL_CONTEXT,
+                                                CursorContext.NULL_CONTEXT,
+                                                unconstrained(),
+                                                queries);
                                         if (client.hasNext()) {
                                             var existingEntityId = client.next();
                                             conflictHandler.indexEntryConflict(existingEntityId, entityId, values);

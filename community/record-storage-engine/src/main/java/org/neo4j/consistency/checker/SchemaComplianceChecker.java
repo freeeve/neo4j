@@ -149,7 +149,7 @@ class SchemaComplianceChecker implements AutoCloseable {
     private static LongIterator queryIndexOrEmpty(ValueIndexReader reader, PropertyIndexQuery[] query) {
         try {
             NodeValueIterator indexedNodeIds = new NodeValueIterator();
-            reader.query(indexedNodeIds, NULL_CONTEXT, unconstrained(), query);
+            reader.query(indexedNodeIds, NULL_CONTEXT, CursorContext.NULL_CONTEXT, unconstrained(), query);
             return indexedNodeIds;
         } catch (IndexNotApplicableKernelException e) {
             throw new RuntimeException(

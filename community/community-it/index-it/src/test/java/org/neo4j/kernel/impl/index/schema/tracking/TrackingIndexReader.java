@@ -55,10 +55,11 @@ public class TrackingIndexReader implements ValueIndexReader {
     public void query(
             IndexProgressor.EntityValueClient client,
             QueryContext context,
+            CursorContext cursorContext,
             IndexQueryConstraints constraints,
             PropertyIndexQuery... query)
             throws IndexNotApplicableKernelException {
-        delegate.query(client, context, constraints, query);
+        delegate.query(client, context, cursorContext, constraints, query);
     }
 
     @Override

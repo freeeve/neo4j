@@ -92,7 +92,7 @@ public class DeferredConflictCheckingIndexUpdater implements IndexUpdater {
         try (ValueIndexReader reader = readerSupplier.get()) {
             for (ValueTuple tuple : touchedTuples) {
                 try (NodeValueIterator client = new NodeValueIterator()) {
-                    reader.query(client, NULL_CONTEXT, unconstrained(), queryOf(tuple));
+                    reader.query(client, NULL_CONTEXT, CursorContext.NULL_CONTEXT, unconstrained(), queryOf(tuple));
                     if (client.hasNext()) {
                         long firstEntityId = client.next();
                         if (client.hasNext()) {

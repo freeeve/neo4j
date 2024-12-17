@@ -40,6 +40,7 @@ import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
+import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
@@ -233,7 +234,7 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
             PropertyIndexQuery rangeQuery =
                     ValueCreatorUtil.rangeQuery(valueOf(updates[0]), true, valueOf(updates[2]), true);
             IndexProgressor.EntityValueClient filterClient = filterClient(iter, filter);
-            reader.query(filterClient, NULL_CONTEXT, unconstrained(), rangeQuery);
+            reader.query(filterClient, NULL_CONTEXT, CursorContext.NULL_CONTEXT, unconstrained(), rangeQuery);
 
             // then
             assertTrue(iter.hasNext());
@@ -319,7 +320,8 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
             Arrays.sort(expectedValues, Values.COMPARATOR.reversed());
         }
         SimpleEntityValueClient client = new SimpleEntityValueClient();
-        reader.query(client, NULL_CONTEXT, constrained(supportedOrder, true), supportedQuery);
+        reader.query(
+                client, NULL_CONTEXT, CursorContext.NULL_CONTEXT, constrained(supportedOrder, true), supportedQuery);
         int i = 0;
         while (client.next()) {
             assertEquals(expectedValues[i++], client.values[0], "values in order");

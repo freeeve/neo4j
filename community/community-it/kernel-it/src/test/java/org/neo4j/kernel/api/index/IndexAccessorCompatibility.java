@@ -133,7 +133,12 @@ abstract class IndexAccessorCompatibility extends PropertyIndexProviderCompatibi
     protected List<Long> queryNoSort(PropertyIndexQuery... predicates) throws Exception {
         try (ValueIndexReader reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
             SimpleEntityValueClient nodeValueClient = new SimpleEntityValueClient();
-            reader.query(nodeValueClient, QueryContext.NULL_CONTEXT, unconstrained(), predicates);
+            reader.query(
+                    nodeValueClient,
+                    QueryContext.NULL_CONTEXT,
+                    CursorContext.NULL_CONTEXT,
+                    unconstrained(),
+                    predicates);
             List<Long> list = new LinkedList<>();
             while (nodeValueClient.next()) {
                 long entityId = nodeValueClient.reference;
@@ -148,7 +153,8 @@ abstract class IndexAccessorCompatibility extends PropertyIndexProviderCompatibi
     protected AutoCloseable query(SimpleEntityValueClient client, IndexOrder order, PropertyIndexQuery... predicates)
             throws Exception {
         ValueIndexReader reader = accessor.newValueReader(NO_USAGE_TRACKING);
-        reader.query(client, QueryContext.NULL_CONTEXT, constrained(order, false), predicates);
+        reader.query(
+                client, QueryContext.NULL_CONTEXT, CursorContext.NULL_CONTEXT, constrained(order, false), predicates);
         return reader;
     }
 
@@ -237,15 +243,9 @@ abstract class IndexAccessorCompatibility extends PropertyIndexProviderCompatibi
             for (ValueIndexEntryUpdate<?> update : updates) {
                 updater.process(update);
                 switch (update.updateMode()) {
-                    case ADDED:
-                    case CHANGED:
-                        committedValues.put(update.getEntityId(), update.values());
-                        break;
-                    case REMOVED:
-                        committedValues.remove(update.getEntityId());
-                        break;
-                    default:
-                        throw new IllegalArgumentException("Unknown update mode " + update.updateMode());
+                    case ADDED, CHANGED -> committedValues.put(update.getEntityId(), update.values());
+                    case REMOVED -> committedValues.remove(update.getEntityId());
+                    default -> throw new IllegalArgumentException("Unknown update mode " + update.updateMode());
                 }
             }
         }

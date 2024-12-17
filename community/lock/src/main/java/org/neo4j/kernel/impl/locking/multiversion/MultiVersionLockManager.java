@@ -118,7 +118,7 @@ public class MultiVersionLockManager implements LockManager {
         @Override
         public void acquireExclusive(LockTracer tracer, ResourceType resourceType, long... resourceIds) {
             switch (resourceType) {
-                case PAGE, RELATIONSHIP_TYPE, LABEL, SCHEMA_NAME -> delegate.acquireExclusive(
+                case PAGE, RELATIONSHIP_TYPE, LABEL, SCHEMA_NAME, INDEX_ENTRY -> delegate.acquireExclusive(
                         tracer, resourceType, resourceIds);
             }
         }
@@ -126,7 +126,7 @@ public class MultiVersionLockManager implements LockManager {
         @Override
         public void releaseExclusive(ResourceType resourceType, long... resourceIds) {
             switch (resourceType) {
-                case PAGE, RELATIONSHIP_TYPE, LABEL, SCHEMA_NAME -> delegate.releaseExclusive(
+                case PAGE, RELATIONSHIP_TYPE, LABEL, SCHEMA_NAME, INDEX_ENTRY -> delegate.releaseExclusive(
                         resourceType, resourceIds);
             }
         }

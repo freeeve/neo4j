@@ -395,7 +395,7 @@ public class TextIndexAccessorTest {
     private static NodeValueIterator results(ValueIndexReader reader, PropertyIndexQuery... queries)
             throws IndexNotApplicableKernelException {
         NodeValueIterator results = new NodeValueIterator();
-        reader.query(results, QueryContext.NULL_CONTEXT, unconstrained(), queries);
+        reader.query(results, QueryContext.NULL_CONTEXT, CursorContext.NULL_CONTEXT, unconstrained(), queries);
         return results;
     }
 

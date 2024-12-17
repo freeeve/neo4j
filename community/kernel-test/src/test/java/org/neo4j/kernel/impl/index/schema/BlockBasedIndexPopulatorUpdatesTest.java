@@ -246,7 +246,7 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
             SimpleEntityValueClient valueClient = new SimpleEntityValueClient();
             PropertyIndexQuery.ExactPredicate exact =
                     PropertyIndexQuery.exact(INDEX_DESCRIPTOR.schema().getPropertyId(), entry);
-            reader.query(valueClient, QueryContext.NULL_CONTEXT, unconstrained(), exact);
+            reader.query(valueClient, QueryContext.NULL_CONTEXT, CursorContext.NULL_CONTEXT, unconstrained(), exact);
             assertTrue(valueClient.next());
             long id = valueClient.reference;
             assertEquals(expectedId, id);
@@ -268,6 +268,7 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
             reader.query(
                     cursor,
                     QueryContext.NULL_CONTEXT,
+                    CursorContext.NULL_CONTEXT,
                     unorderedValues(),
                     PropertyIndexQuery.exact(INDEX_DESCRIPTOR.schema().getPropertyId(), value));
             assertTrue(cursor.next());

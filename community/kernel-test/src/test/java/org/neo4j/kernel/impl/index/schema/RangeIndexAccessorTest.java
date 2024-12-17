@@ -43,6 +43,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.io.pagecache.PageCache;
+import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
@@ -105,7 +106,11 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
 
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
             assertThatThrownBy(() -> reader.query(
-                            new SimpleEntityValueClient(), NULL_CONTEXT, unorderedValues(), boundingBoxPredicate))
+                            new SimpleEntityValueClient(),
+                            NULL_CONTEXT,
+                            CursorContext.NULL_CONTEXT,
+                            unorderedValues(),
+                            boundingBoxPredicate))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining(
                             "Tried to query index with illegal query. A %s predicate is not allowed",
@@ -120,7 +125,11 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
 
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
             assertThatThrownBy(() -> reader.query(
-                            new SimpleEntityValueClient(), NULL_CONTEXT, unorderedValues(), suffixPredicate))
+                            new SimpleEntityValueClient(),
+                            NULL_CONTEXT,
+                            CursorContext.NULL_CONTEXT,
+                            unorderedValues(),
+                            suffixPredicate))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining(
                             "Tried to query index with illegal query. A %s predicate is not allowed",
@@ -135,7 +144,11 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
 
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
             assertThatThrownBy(() -> reader.query(
-                            new SimpleEntityValueClient(), NULL_CONTEXT, unorderedValues(), containsPredicate))
+                            new SimpleEntityValueClient(),
+                            NULL_CONTEXT,
+                            CursorContext.NULL_CONTEXT,
+                            unorderedValues(),
+                            containsPredicate))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining(
                             "Tried to query index with illegal query. A %s predicate is not allowed",
@@ -179,7 +192,8 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
             Arrays.sort(allValues, Values.COMPARATOR.reversed());
         }
         SimpleEntityValueClient client = new SimpleEntityValueClient();
-        reader.query(client, NULL_CONTEXT, constrained(supportedOrder, true), supportedQuery);
+        reader.query(
+                client, NULL_CONTEXT, CursorContext.NULL_CONTEXT, constrained(supportedOrder, true), supportedQuery);
         int i = 0;
         while (client.next()) {
             assertEquals(allValues[i++], client.values[0], "values in order");

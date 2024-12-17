@@ -345,7 +345,11 @@ public class IndexAccessorUsageStatsTest {
             throws IndexNotApplicableKernelException {
         clock.forward(deltaMillis, MILLISECONDS);
         reader.query(
-                new SimpleEntityValueClient(), QueryContext.NULL_CONTEXT, IndexQueryConstraints.unconstrained(), query);
+                new SimpleEntityValueClient(),
+                QueryContext.NULL_CONTEXT,
+                CursorContext.NULL_CONTEXT,
+                IndexQueryConstraints.unconstrained(),
+                query);
     }
 
     private static void assertUsage(IndexUsageStats usageStats, long expectedLastUsedTime, long expectedQueryCount) {

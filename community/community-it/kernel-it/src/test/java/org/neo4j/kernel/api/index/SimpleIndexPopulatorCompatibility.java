@@ -185,6 +185,7 @@ abstract class SimpleIndexPopulatorCompatibility extends PropertyIndexProviderCo
                 reader.query(
                         nodes,
                         QueryContext.NULL_CONTEXT,
+                        CursorContext.NULL_CONTEXT,
                         unconstrained(),
                         PropertyIndexQuery.exact(propertyKeyId, propertyValue));
                 assertEquals(asSet(1L), PrimitiveLongCollections.toSet(nodes));
@@ -275,6 +276,7 @@ abstract class SimpleIndexPopulatorCompatibility extends PropertyIndexProviderCo
                         reader.query(
                                 nodes,
                                 QueryContext.NULL_CONTEXT,
+                                CursorContext.NULL_CONTEXT,
                                 unconstrained(),
                                 PropertyIndexQuery.exact(propertyKeyId, entry.value));
                         assertEquals(entry.nodeId, nodes.next());
@@ -369,6 +371,7 @@ abstract class SimpleIndexPopulatorCompatibility extends PropertyIndexProviderCo
                     reader.query(
                             nodes,
                             QueryContext.NULL_CONTEXT,
+                            CursorContext.NULL_CONTEXT,
                             unconstrained(),
                             PropertyIndexQuery.exact(propertyKeyId, nodeAndValue.value));
                     boolean anyHits = false;
@@ -399,6 +402,7 @@ abstract class SimpleIndexPopulatorCompatibility extends PropertyIndexProviderCo
                         reader.query(
                                 nodes,
                                 QueryContext.NULL_CONTEXT,
+                                CursorContext.NULL_CONTEXT,
                                 unconstrained(),
                                 PropertyIndexQuery.exact(propertyKeyId, entry.value));
                         assertEquals(entry.nodeId, nodes.next());
@@ -448,6 +452,7 @@ abstract class SimpleIndexPopulatorCompatibility extends PropertyIndexProviderCo
                             reader.query(
                                     nodes,
                                     QueryContext.NULL_CONTEXT,
+                                    CursorContext.NULL_CONTEXT,
                                     unconstrained(),
                                     PropertyIndexQuery.exact(propertyKeyId, entry.value));
                             assertEquals(

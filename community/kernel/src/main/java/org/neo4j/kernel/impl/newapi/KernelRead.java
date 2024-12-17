@@ -162,7 +162,7 @@ public final class KernelRead implements Read {
 
         EntityIndexSeekClient client = (EntityIndexSeekClient) cursor;
         client.initState(this, txStateHolder, accessModeProvider);
-        indexSession.reader().query(client, queryContext, constraints, query);
+        indexSession.reader().query(client, queryContext, queryContext.cursorContext(), constraints, query);
     }
 
     @Override
@@ -199,7 +199,7 @@ public final class KernelRead implements Read {
 
         EntityIndexSeekClient client = (EntityIndexSeekClient) cursor;
         client.initState(this, txStateHolder, accessModeProvider);
-        indexSession.reader().query(client, queryContext, constraints, query);
+        indexSession.reader().query(client, queryContext, queryContext.cursorContext(), constraints, query);
     }
 
     @Override
@@ -244,12 +244,19 @@ public final class KernelRead implements Read {
         // if not found upgrade to exclusive and try again
         entityLocks.acquireSharedIndexEntryLock(indexEntryId);
         try (IndexReaders readers = new IndexReaders(index, this)) {
-            nodeIndexSeekWithFreshIndexReader((DefaultNodeValueIndexCursor) cursor, readers.createReader(), predicates);
+            nodeIndexSeekWithFreshIndexReader(
+                    (DefaultNodeValueIndexCursor) cursor,
+                    queryContext.cursorContext(),
+                    readers.createReader(),
+                    predicates);
             if (!cursor.next()) {
                 entityLocks.releaseSharedIndexEntryLock(indexEntryId);
                 entityLocks.acquireExclusiveIndexEntryLock(indexEntryId);
                 nodeIndexSeekWithFreshIndexReader(
-                        (DefaultNodeValueIndexCursor) cursor, readers.createReader(), predicates);
+                        (DefaultNodeValueIndexCursor) cursor,
+                        queryContext.cursorContext(),
+                        readers.createReader(),
+                        predicates);
                 if (cursor.next()) {
                     // we found it under the exclusive lock
                     // downgrade to a shared lock
@@ -284,11 +291,13 @@ public final class KernelRead implements Read {
         entityLocks.acquireSharedIndexEntryLock(indexEntryId);
         try (IndexReaders readers = new IndexReaders(index, this)) {
             DefaultRelationshipValueIndexCursor indexCursor = (DefaultRelationshipValueIndexCursor) cursor;
-            relationshipIndexSeekWithFreshIndexReader(indexCursor, readers.createReader(), predicates);
+            relationshipIndexSeekWithFreshIndexReader(
+                    indexCursor, queryContext.cursorContext(), readers.createReader(), predicates);
             if (!cursor.next()) {
                 entityLocks.releaseSharedIndexEntryLock(indexEntryId);
                 entityLocks.acquireExclusiveIndexEntryLock(indexEntryId);
-                relationshipIndexSeekWithFreshIndexReader(indexCursor, readers.createReader(), predicates);
+                relationshipIndexSeekWithFreshIndexReader(
+                        indexCursor, queryContext.cursorContext(), readers.createReader(), predicates);
                 if (cursor.next()) {
                     // we found it under the exclusive lock
                     // downgrade to a shared lock
@@ -306,20 +315,22 @@ public final class KernelRead implements Read {
 
     public void nodeIndexSeekWithFreshIndexReader(
             DefaultNodeValueIndexCursor cursor,
+            CursorContext cursorContext,
             ValueIndexReader indexReader,
             PropertyIndexQuery.ExactPredicate... query)
             throws IndexNotApplicableKernelException {
         cursor.initState(this, txStateHolder, accessModeProvider);
-        indexReader.query(cursor, queryContext, unconstrained(), query);
+        indexReader.query(cursor, queryContext, cursorContext, unconstrained(), query);
     }
 
     public void relationshipIndexSeekWithFreshIndexReader(
             DefaultRelationshipValueIndexCursor cursor,
+            CursorContext cursorContext,
             ValueIndexReader indexReader,
             PropertyIndexQuery.ExactPredicate... query)
             throws IndexNotApplicableKernelException {
         cursor.initState(this, txStateHolder, accessModeProvider);
-        indexReader.query(cursor, queryContext, unconstrained(), query);
+        indexReader.query(cursor, queryContext, cursorContext, unconstrained(), query);
     }
 
     @Override
@@ -385,7 +396,14 @@ public final class KernelRead implements Read {
             IndexQueryConstraints constraints)
             throws KernelException {
         indexSeekClient.initState(this, txStateHolder, accessModeProvider);
-        indexSession.reader().query(indexSeekClient, queryContext, constraints, PropertyIndexQuery.allEntries());
+        indexSession
+                .reader()
+                .query(
+                        indexSeekClient,
+                        queryContext,
+                        queryContext.cursorContext(),
+                        constraints,
+                        PropertyIndexQuery.allEntries());
     }
 
     @Override

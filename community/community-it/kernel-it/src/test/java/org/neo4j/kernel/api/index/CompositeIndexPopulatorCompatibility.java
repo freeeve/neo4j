@@ -91,6 +91,7 @@ abstract class CompositeIndexPopulatorCompatibility extends PropertyIndexProvide
                     reader.query(
                             nodes,
                             QueryContext.NULL_CONTEXT,
+                            CursorContext.NULL_CONTEXT,
                             unconstrained(),
                             PropertyIndexQuery.exact(1, "v1"),
                             PropertyIndexQuery.exact(1, "v2"));

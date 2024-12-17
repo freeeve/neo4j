@@ -76,6 +76,7 @@ import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptorSupplier;
+import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
@@ -1150,13 +1151,13 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
                 Boolean legal = pair.other();
                 if (legal) {
                     // when
-                    reader.query(client, NULL_CONTEXT, unconstrained(), theQuery);
+                    reader.query(client, NULL_CONTEXT, CursorContext.NULL_CONTEXT, unconstrained(), theQuery);
 
                     // then should not throw
                 } else {
                     try {
                         // when
-                        reader.query(client, NULL_CONTEXT, unconstrained(), theQuery);
+                        reader.query(client, NULL_CONTEXT, CursorContext.NULL_CONTEXT, unconstrained(), theQuery);
                         fail("Expected index reader to throw for illegal composite query. Query was, "
                                 + Arrays.toString(theQuery));
                     } catch (IllegalArgumentException e) {

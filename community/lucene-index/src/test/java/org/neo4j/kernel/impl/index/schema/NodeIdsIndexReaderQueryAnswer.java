@@ -44,13 +44,13 @@ public class NodeIdsIndexReaderQueryAnswer implements Answer<Object> {
         IndexProgressor.EntityValueClient client = invocation.getArgument(0);
         NodeValueIndexProgressor progressor = new NodeValueIndexProgressor(iterator(EMPTY, nodeIds), client);
         client.initializeQuery(
-                descriptor, progressor, false, false, invocation.getArgument(2), getIndexQueryArgument(invocation));
+                descriptor, progressor, false, false, invocation.getArgument(3), getIndexQueryArgument(invocation));
         return null;
     }
 
     public static PropertyIndexQuery[] getIndexQueryArgument(InvocationOnMock invocation) {
         // Apparently vararg arguments from mockito can either be non-existent, a single value or an array...
-        Object rawQuery = invocation.getArgument(3);
+        Object rawQuery = invocation.getArgument(4);
         return rawQuery.getClass().isArray() ? (PropertyIndexQuery[]) rawQuery : array((PropertyIndexQuery) rawQuery);
     }
 }

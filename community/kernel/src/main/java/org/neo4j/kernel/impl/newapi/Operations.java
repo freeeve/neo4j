@@ -765,12 +765,17 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         }
 
         long existingNodeId = NO_SUCH_NODE;
+        // we need to create unbounded context that shares the page cache cursors but have unlimited visibility to see
+        // all
+        // existing data even from non visible transactions
+        var unboundedRelatedContext = ktx.cursorContext().createUnboundedRelatedContext();
         try (var r = ktx.overrideWith(ktx.securityContext().withMode(Static.FULL));
-                var valueCursor = cursors.allocateNodeValueIndexCursor(ktx.cursorContext(), memoryTracker);
+                var valueCursor = cursors.allocateNodeValueIndexCursor(unboundedRelatedContext, memoryTracker);
                 IndexReaders indexReaders = new IndexReaders(index, kernelRead)) {
             assertOnlineAndLock(constraint, index, propertyValues);
 
-            kernelRead.nodeIndexSeekWithFreshIndexReader(valueCursor, indexReaders.createReader(), propertyValues);
+            kernelRead.nodeIndexSeekWithFreshIndexReader(
+                    valueCursor, unboundedRelatedContext, indexReaders.createReader(), propertyValues);
             while (valueCursor.next()) {
                 if (valueCursor.nodeReference() != modifiedNode) {
                     existingNodeId = valueCursor.nodeReference();
@@ -787,8 +792,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             // For nodes, we can grant read access based on property key AND values, so we need to check if we can read
             // all the properties with security context aware cursors
             var allowsReadAllProperties = false;
-            try (var nodeCursor = cursors.allocateNodeCursor(ktx.cursorContext(), memoryTracker);
-                    var propertyCursor = cursors.allocatePropertyCursor(ktx.cursorContext(), memoryTracker)) {
+            try (var nodeCursor = cursors.allocateNodeCursor(unboundedRelatedContext, memoryTracker);
+                    var propertyCursor = cursors.allocatePropertyCursor(unboundedRelatedContext, memoryTracker)) {
                 nodeCursor.single(existingNodeId, kernelRead, ktx, accessModeProvider);
                 // First check if the current access mode can read the node
                 if (nodeCursor.next()) {
@@ -861,13 +866,17 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             return;
         }
         long existingRelationshipId = NO_SUCH_RELATIONSHIP;
+        // we need to create unbounded context that shares the page cache cursors but have unlimited visibility to see
+        // all
+        // existing data even from non visible transactions
+        var unboundedRelatedContext = ktx.cursorContext().createUnboundedRelatedContext();
         try (var r = ktx.overrideWith(ktx.securityContext().withMode(Static.FULL));
-                var valueCursor = cursors.allocateRelationshipValueIndexCursor(ktx.cursorContext(), memoryTracker);
+                var valueCursor = cursors.allocateRelationshipValueIndexCursor(unboundedRelatedContext, memoryTracker);
                 IndexReaders indexReaders = new IndexReaders(index, kernelRead)) {
             assertOnlineAndLock(constraint, index, propertyValues);
 
             kernelRead.relationshipIndexSeekWithFreshIndexReader(
-                    valueCursor, indexReaders.createReader(), propertyValues);
+                    valueCursor, unboundedRelatedContext, indexReaders.createReader(), propertyValues);
             while (valueCursor.next()) {
                 if (valueCursor.relationshipReference() != modifiedRel) {
                     existingRelationshipId = valueCursor.relationshipReference();
@@ -883,8 +892,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             int[] propertyKeys = getPropertyIds(propertyValues);
             var allowsReadAllProperties = false;
             try (var relCursor = (DefaultRelationshipScanCursor)
-                            cursors.allocateRelationshipScanCursor(ktx.cursorContext(), memoryTracker);
-                    var propertyCursor = cursors.allocatePropertyCursor(ktx.cursorContext(), memoryTracker)) {
+                            cursors.allocateRelationshipScanCursor(unboundedRelatedContext, memoryTracker);
+                    var propertyCursor = cursors.allocatePropertyCursor(unboundedRelatedContext, memoryTracker)) {
                 relCursor.single(existingRelationshipId, kernelRead, ktx, accessModeProvider);
                 //  First check if the current access mode can read the relationship
                 if (relCursor.next()) {

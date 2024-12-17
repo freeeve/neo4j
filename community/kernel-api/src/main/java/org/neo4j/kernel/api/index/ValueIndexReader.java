@@ -42,13 +42,16 @@ public interface ValueIndexReader extends IndexReader {
 
     /**
      * Queries the index for the given {@link PropertyIndexQuery} predicates.
-     * @param client the client which will control the progression though query results.
-     * @param constraints constraints upon the query result, like ordering and whether the index should fetch property values alongside the entity ids.
-     * @param query the query so serve.
+     *
+     * @param client        the client which will control the progression though query results.
+     * @param cursorContext context with which query should be executed with
+     * @param constraints   constraints upon the query result, like ordering and whether the index should fetch property values alongside the entity ids.
+     * @param query         the query so serve.
      */
     void query(
             IndexProgressor.EntityValueClient client,
             QueryContext context,
+            CursorContext cursorContext,
             IndexQueryConstraints constraints,
             PropertyIndexQuery... query)
             throws IndexNotApplicableKernelException;
@@ -80,6 +83,7 @@ public interface ValueIndexReader extends IndexReader {
         public void query(
                 IndexProgressor.EntityValueClient client,
                 QueryContext context,
+                CursorContext cursorContext,
                 IndexQueryConstraints constraints,
                 PropertyIndexQuery... query) {
             // do nothing
