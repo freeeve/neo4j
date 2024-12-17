@@ -19,13 +19,8 @@
  */
 package org.neo4j.kernel.database;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.neo4j.configuration.GraphDatabaseInternalSettings.shutdown_terminated_transaction_wait_timeout;
-
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.LongFunction;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.common.DependencyResolver;
@@ -186,7 +181,6 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
 
         eventListeners.databaseShutdown(namedDatabaseId);
         life.stop();
-        awaitAllClosingTransactions();
         life.shutdown();
         started = false;
         initialized = false;
@@ -221,26 +215,6 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
             internalLog.error("Couldn't close database after startup failure", closeException);
         }
         throw new RuntimeException(e);
-    }
-
-    protected void awaitAllClosingTransactions() {
-        internalLog.info("Waiting for closing transactions.");
-
-        var transactionRegistry = transactionRegistry();
-        transactionRegistry.terminateTransactions();
-
-        // Give transactions a short time to detect they are terminated
-        long waitTime =
-                databaseConfig.get(shutdown_terminated_transaction_wait_timeout).toMillis();
-        long deadline = clock.millis() + waitTime;
-        while (transactionRegistry.haveActiveTransaction() && clock.millis() < deadline) {
-            LockSupport.parkNanos(MILLISECONDS.toNanos(10));
-        }
-
-        while (transactionRegistry.haveClosingTransaction()) {
-            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
-        }
-        internalLog.info("All transactions are closed.");
     }
 
     protected AtomicReference<CpuClock> setupCpuClockAtomicReference() {

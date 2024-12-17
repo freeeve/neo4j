@@ -157,7 +157,10 @@ public class TestDatabaseManagementServiceBuilder extends DatabaseManagementServ
                 .setDefault(GraphDatabaseSettings.udc_enabled, false)
                 .setDefault(
                         BoltConnector.listen_address,
-                        new SocketAddress("localhost", DynamicPorts.OS_SELECTED_DYNAMIC_PORT));
+                        new SocketAddress("localhost", DynamicPorts.OS_SELECTED_DYNAMIC_PORT))
+                .setDefault(
+                        GraphDatabaseInternalSettings.shutdown_terminated_transaction_wait_timeout,
+                        Duration.ofSeconds(1));
         return builder.build();
     }
 

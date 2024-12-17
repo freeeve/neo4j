@@ -22,21 +22,29 @@ package org.neo4j.kernel.database;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.shutdown_terminated_transaction_wait_timeout;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+import static org.neo4j.configuration.GraphDatabaseSettings.shutdown_transaction_end_timeout;
+import static org.neo4j.logging.AssertableLogProvider.Level.WARN;
 
 import java.time.Duration;
 import java.util.concurrent.Future;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.graphdb.DatabaseShutdownException;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.graphdb.TransactionTerminatedException;
 import org.neo4j.kernel.api.KernelTransaction;
+import org.neo4j.kernel.availability.AvailabilityGuard;
+import org.neo4j.kernel.availability.AvailabilityListener;
+import org.neo4j.kernel.impl.api.KernelTransactions;
 import org.neo4j.kernel.impl.coreapi.TransactionImpl;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.logging.AssertableLogProvider;
+import org.neo4j.logging.LogAssertions;
 import org.neo4j.test.OtherThreadExecutor;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
@@ -44,6 +52,7 @@ import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.time.Clocks;
 import org.neo4j.time.FakeClock;
+import org.neo4j.time.SystemNanoClock;
 
 @TestDirectoryExtension
 class DatabaseTransactionShutdownIT {
@@ -51,17 +60,18 @@ class DatabaseTransactionShutdownIT {
     @Inject
     TestDirectory directory;
 
-    FakeClock clock = Clocks.fakeClock();
     DatabaseManagementService dbms;
     GraphDatabaseAPI db;
+    AssertableLogProvider logProvider = new AssertableLogProvider();
 
-    @BeforeEach
-    void setUp() {
+    void setUp(SystemNanoClock clock) {
         dbms = new TestDatabaseManagementServiceBuilder(directory.homePath())
-                .setConfig(GraphDatabaseSettings.shutdown_transaction_end_timeout, Duration.ofMillis(0))
+                .setConfig(shutdown_transaction_end_timeout, Duration.ofMillis(0))
+                .setConfig(shutdown_terminated_transaction_wait_timeout, Duration.ofMillis(1))
                 .setClock(clock)
+                .setInternalLogProvider(logProvider)
                 .build();
-        db = (GraphDatabaseAPI) dbms.database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
+        db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
     }
 
     @AfterEach
@@ -71,6 +81,8 @@ class DatabaseTransactionShutdownIT {
 
     @Test
     void shouldWaitForTransactionToDetectTerminationOnShutdown() throws Exception {
+        FakeClock clock = Clocks.fakeClock();
+        setUp(clock);
         // Given
         Duration waitTime = db.getDependencyResolver()
                 .resolveDependency(Config.class)
@@ -82,7 +94,7 @@ class DatabaseTransactionShutdownIT {
             // When
             tx.createNode();
             Future<Object> shutdownFuture = executor.executeDontWait(this::shutdownDbms);
-            executor.waitUntilWaiting(details -> details.isAt(AbstractDatabase.class, "awaitAllClosingTransactions"));
+            executor.waitUntilWaiting(details -> details.isAt(Database.class, "awaitAllClosingTransactions"));
 
             // Then
             assertThat(ktx.getTerminationMark()).isNotEmpty();
@@ -101,6 +113,7 @@ class DatabaseTransactionShutdownIT {
 
     @Test
     void shouldWaitForTransactionToDetectTerminationAndCloseOnShutdown() throws Exception {
+        setUp(Clocks.fakeClock());
         // Given
         try (OtherThreadExecutor executor = new OtherThreadExecutor("test")) {
             Future<Object> shutdownFuture;
@@ -109,13 +122,56 @@ class DatabaseTransactionShutdownIT {
             // When
             tx.createNode();
             shutdownFuture = executor.executeDontWait(this::shutdownDbms);
-            executor.waitUntilWaiting(details -> details.isAt(AbstractDatabase.class, "awaitAllClosingTransactions"));
+            executor.waitUntilWaiting(details -> details.isAt(Database.class, "awaitAllClosingTransactions"));
             assertThat(ktx.getTerminationMark()).isNotEmpty();
 
             // Transaction is terminated. Let's close it.
             tx.close();
             // Shutdown then continues. Note: we don't forward the clock
             shutdownFuture.get();
+        }
+    }
+
+    @Test
+    void shouldNotAllowNewTransactionsAfterUnavailable() throws Exception {
+        setUp(Clocks.nanoClock());
+        DependencyResolver dep = db.getDependencyResolver();
+        KernelTransactions ktxs = dep.resolveDependency(KernelTransactions.class);
+        dep.resolveDependency(AvailabilityGuard.class).addListener(new AvailabilityListener() {
+            @Override
+            public void available() {}
+
+            @Override
+            public void unavailable() {
+                ktxs.unblockNewTransactions();
+            }
+        });
+
+        try (OtherThreadExecutor executor = new OtherThreadExecutor("test")) {
+            Future<RuntimeException> future;
+            ktxs.blockNewTransactions();
+            future = executor.executeDontWait(() -> {
+                try (Transaction tx = db.beginTx()) {
+                } catch (RuntimeException e) {
+                    return e;
+                }
+                return null;
+            });
+            executor.waitUntilWaiting(details -> details.isAt(KernelTransactions.class, "newKernelTransaction"));
+            shutdownDbms();
+            assertThat(future.get()).isInstanceOf(DatabaseShutdownException.class);
+        }
+    }
+
+    @Test
+    void shouldLogUncleanShutdownOnLeakedTransaction() {
+        setUp(Clocks.nanoClock());
+        try (Transaction leakedTx = db.beginTx()) {
+            dbms.shutdown();
+            LogAssertions.assertThat(logProvider)
+                    .forClass(Database.class)
+                    .forLevel(WARN)
+                    .containsMessages("Failed to close all transactions. Shutdown may be unclean.");
         }
     }
 

@@ -1616,7 +1616,7 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Description("The maximum amount of time to wait for terminated transactions to start closing before allowing "
             + "initiated database shutdown to continue")
     public static final Setting<Duration> shutdown_terminated_transaction_wait_timeout = newBuilder(
-                    "internal.db.transaction.shutdown_terminated_transaction_wait_timeout", DURATION, ofSeconds(1))
+                    "internal.db.transaction.shutdown_terminated_transaction_wait_timeout", DURATION, ofMinutes(1))
             .build();
 
     @Internal

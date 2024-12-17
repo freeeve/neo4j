@@ -506,6 +506,15 @@ class KernelTransactionsTest {
     }
 
     @Test
+    void exceptionWhenStartingNewTransactionOnUnavailableInstance() throws Throwable {
+        KernelTransactions kernelTransactions = newKernelTransactions();
+        databaseAvailabilityGuard.require(() -> "unavailable instance");
+        assertThrows(
+                DatabaseShutdownException.class,
+                () -> kernelTransactions.newInstance(EXPLICIT, AUTH_DISABLED, EMBEDDED_CONNECTION, NO_TIMEOUT));
+    }
+
+    @Test
     void exceptionWhenStartingNewTransactionOnStoppedKernelTransactions() throws Throwable {
         KernelTransactions kernelTransactions = newKernelTransactions();
         t2.execute(() -> {
@@ -520,7 +529,7 @@ class KernelTransactionsTest {
     }
 
     @Test
-    void startNewTransactionOnRestartedKErnelTransactions() throws Throwable {
+    void startNewTransactionOnRestartedKernelTransactions() throws Throwable {
         KernelTransactions kernelTransactions = newKernelTransactions();
 
         kernelTransactions.stop();

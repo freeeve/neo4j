@@ -20,6 +20,8 @@
 package org.neo4j.kernel.database;
 
 import static java.lang.String.format;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.shutdown_terminated_transaction_wait_timeout;
 import static org.neo4j.configuration.GraphDatabaseSettings.db_format;
 import static org.neo4j.function.Predicates.alwaysTrue;
 import static org.neo4j.function.ThrowingAction.executeAll;
@@ -38,8 +40,10 @@ import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -561,6 +565,7 @@ public class Database extends AbstractDatabase {
         databaseTransactionEventListeners =
                 new DatabaseTransactionEventListeners(databaseFacade, transactionEventListeners, namedDatabaseId);
         life.add(databaseTransactionEventListeners);
+        life.add(idController);
         final DatabaseKernelModule kernelModule = buildKernel(
                 logFiles,
                 transactionLogModule,
@@ -598,13 +603,13 @@ public class Database extends AbstractDatabase {
 
         this.checkpointerLifecycle = new CheckpointerLifecycle(transactionLogModule.checkPointer(), databaseHealth);
 
-        life.add(idController);
+        life.add(onStop(() -> this.executionEngine.clearQueryCaches()));
         life.add(onStart(this::registerUpgradeListener));
         life.add(databaseHealth);
         life.add(databaseAvailabilityGuard);
+        life.add(onStop(this::awaitAllClosingTransactions));
         life.add(databaseAvailability);
         life.setLast(checkpointerLifecycle);
-        life.add(onStop(() -> this.executionEngine.clearQueryCaches()));
 
         databaseDependencies.resolveDependency(DbmsDiagnosticsManager.class).dumpDatabaseDiagnostics(this);
 
@@ -1250,6 +1255,31 @@ public class Database extends AbstractDatabase {
         return databaseConfig
                 .get(GraphDatabaseSettings.shutdown_transaction_end_timeout)
                 .toMillis();
+    }
+
+    private void awaitAllClosingTransactions() {
+        internalLog.info("Waiting for closing transactions.");
+
+        var transactionRegistry = transactionRegistry();
+        transactionRegistry.terminateTransactions();
+
+        // Give transactions a short time to detect they are terminated
+        long waitTime =
+                databaseConfig.get(shutdown_terminated_transaction_wait_timeout).toMillis();
+        long deadline = clock.millis() + waitTime;
+        while (transactionRegistry.haveActiveTransaction() && clock.millis() < deadline) {
+            LockSupport.parkNanos(MILLISECONDS.toNanos(10));
+        }
+
+        while (transactionRegistry.haveClosingTransaction()) {
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
+        }
+
+        if (transactionRegistry.haveActiveTransaction()) {
+            internalLog.warn("Failed to close all transactions. Shutdown may be unclean.");
+        } else {
+            internalLog.info("All transactions are closed.");
+        }
     }
 
     public static Iterable<IndexDescriptor> initialSchemaRulesLoader(ReadableStorageEngine storageEngine) {

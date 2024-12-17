@@ -313,7 +313,6 @@ public class KernelTransactions extends LifecycleAdapter
                 assertRunning();
             }
             try {
-                assertRunning();
                 TransactionId lastCommittedTransaction = transactionIdStore.getLastCommittedTransaction();
                 KernelTransactionImplementation tx = txPool.acquire();
                 tx.initialize(
@@ -324,6 +323,7 @@ public class KernelTransactions extends LifecycleAdapter
                         transactionIdSequence.next(),
                         clientInfo,
                         procedureView);
+                assertRunning();
                 return tx;
             } finally {
                 newTransactionsLock.readLock().unlock();
@@ -511,8 +511,8 @@ public class KernelTransactions extends LifecycleAdapter
     }
 
     private void assertRunning() {
-        if (databaseAvailabilityGuard.isShutdown()) {
-            throw new DatabaseShutdownException();
+        if (!databaseAvailabilityGuard.isAvailable()) {
+            throw DatabaseShutdownException.databaseUnavailable(namedDatabaseId.name());
         }
         if (stopped) {
             throw new IllegalStateException("Can't start new transaction with stopped " + getClass());
