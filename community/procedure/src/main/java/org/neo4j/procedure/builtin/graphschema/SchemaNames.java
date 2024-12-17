@@ -141,19 +141,7 @@ final class SchemaNames {
      * @return True, if {@code name} represents an identifier.
      */
     private static boolean isIdentifier(CharSequence name) {
-
-        String id = name.toString();
-        int cp = id.codePointAt(0);
-        if (!UnicodeHelper.isIdentifierStart(cp, CypherVersion.Cypher25)) {
-            return false;
-        }
-        for (int i = Character.charCount(cp); i < id.length(); i += Character.charCount(cp)) {
-            cp = id.codePointAt(i);
-            if (!UnicodeHelper.isIdentifierPart(cp, CypherVersion.Cypher25)) {
-                return false;
-            }
-        }
-        return true;
+        return UnicodeHelper.isIdentifier(name.toString(), CypherVersion.Cypher25);
     }
 
     private SchemaNames() {}
