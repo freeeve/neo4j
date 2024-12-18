@@ -20,7 +20,6 @@ Apache Software License, Version 2.0
   Apache Parquet Format Structures
   Apache Parquet Hadoop
   AssertJ Core
-  Awaitility
   Byte Buddy (without dependencies)
   Byte Buddy agent
   Caffeine cache

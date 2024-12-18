@@ -24,11 +24,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
-import org.awaitility.Awaitility;
-import org.awaitility.Durations;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.dbms.database.SystemGraphComponent.Status;
+import org.neo4j.dbms.database.SystemGraphComponents;
 import org.neo4j.function.ThrowingSupplier;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
@@ -74,12 +72,11 @@ public class UpgradeTestUtil {
 
     public static void upgradeDbms(DatabaseManagementService dbms) {
         final var system = dbms.database(GraphDatabaseSettings.SYSTEM_DATABASE_NAME);
-        Awaitility.await()
-                .atMost(Durations.FIVE_MINUTES)
-                .pollDelay(Durations.FIVE_SECONDS)
-                .untilAsserted(() -> assertThat(callUpgrade(system))
-                        .as("Unable to upgrade the system graph to the current version")
-                        .isEqualTo(Status.CURRENT.name()));
+        try {
+            manuallyUpgrade(system);
+        } catch (Exception e) {
+            throw new RuntimeException("this was unexpected...", e);
+        }
     }
 
     public static void assertUpgradeTransactionInOrder(
@@ -122,16 +119,10 @@ public class UpgradeTestUtil {
         }
     }
 
-    private static String callUpgrade(GraphDatabaseService db) {
-        String status;
-        try (var tx = db.beginTx()) {
-            // whilst 'dbms.upgrade' returns a stream from BuiltInDbmsProcedures - it only ever contains one item
-            status = tx.execute("CALL dbms.upgrade()").stream()
-                    .map(row -> row.get("status").toString())
-                    .findFirst()
-                    .orElse(Status.UNINITIALIZED.name());
-            tx.commit();
-        }
-        return status;
+    public static void manuallyUpgrade(GraphDatabaseService systemDb) throws Exception {
+        ((GraphDatabaseAPI) systemDb)
+                .getDependencyResolver()
+                .resolveDependency(SystemGraphComponents.class)
+                .upgradeToCurrent(systemDb);
     }
 }

@@ -21,7 +21,6 @@ package org.neo4j.index;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
-import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
 import static org.neo4j.internal.kernel.api.security.LoginContext.AUTH_DISABLED;
 import static org.neo4j.kernel.api.KernelTransaction.Type.EXPLICIT;
@@ -44,7 +43,9 @@ import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.coreapi.TransactionImpl;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.test.LatestVersions;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.UpgradeTestUtil;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -86,7 +87,7 @@ public class IndexUsageStatsBehindKernelVersionIT {
     }
 
     @Test
-    void assertDeliverCorrectValueAfterUpgradeToLatestKernelVersion() throws KernelException, IOException {
+    void assertDeliverCorrectValueAfterUpgradeToLatestKernelVersion() throws Exception {
         // Given
         var storeWithOldKernelVersion = ZippedStoreCommunity.REC_AF11_V50_EMPTY;
         storeWithOldKernelVersion.unzip(testDirectory.homePath());
@@ -94,7 +95,9 @@ public class IndexUsageStatsBehindKernelVersionIT {
         var indexName = createIndex(db);
 
         // When
-        triggerUpgrade(db);
+        UpgradeTestUtil.upgradeDatabase(
+                dbms, db, storeWithOldKernelVersion.statistics().kernelVersion(), LatestVersions.LATEST_KERNEL_VERSION);
+
         singleIndexRead(db, indexName);
         triggerReportUsageStatistics(db);
 
@@ -112,19 +115,6 @@ public class IndexUsageStatsBehindKernelVersionIT {
         var ktx = tx.kernelTransaction();
         var index = ktx.schemaRead().indexGetForName(indexName);
         return ktx.schemaRead().indexUsageStats(index);
-    }
-
-    private void triggerUpgrade(GraphDatabaseAPI db) {
-        var system = dbms.database(SYSTEM_DATABASE_NAME);
-        system.executeTransactionally("CALL dbms.upgrade()");
-        createWriteTransaction(db);
-    }
-
-    private void createWriteTransaction(GraphDatabaseAPI db) {
-        try (Transaction tx = db.beginTx()) {
-            tx.createNode().delete();
-            tx.commit();
-        }
     }
 
     private String createIndex(GraphDatabaseAPI db) {

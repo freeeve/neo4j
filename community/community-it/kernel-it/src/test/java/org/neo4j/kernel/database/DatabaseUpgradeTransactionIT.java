@@ -73,6 +73,7 @@ import org.neo4j.test.LatestVersions;
 import org.neo4j.test.OtherThreadExecutor;
 import org.neo4j.test.Race;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.UpgradeTestUtil;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -190,7 +191,7 @@ public class DatabaseUpgradeTransactionIT {
         Race race = new Race()
                 .withRandomStartDelays()
                 .withEndCondition(() -> LatestVersions.LATEST_KERNEL_VERSION.equals(kernelVersion()));
-        race.addContestant(() -> systemDb.executeTransactionally("CALL dbms.upgrade()"), 1);
+        race.addContestant(() -> UpgradeTestUtil.upgradeDbms(dbms), 1);
         race.addContestants(max(Runtime.getRuntime().availableProcessors() - 1, 2), Race.throwing(() -> {
             createWriteTransaction();
             Thread.sleep(ThreadLocalRandom.current().nextInt(0, 2));
@@ -231,7 +232,7 @@ public class DatabaseUpgradeTransactionIT {
                     while (true) {
                         try {
                             Thread.sleep(ThreadLocalRandom.current().nextInt(0, 1_000));
-                            systemDb.executeTransactionally("CALL dbms.upgrade()");
+                            UpgradeTestUtil.upgradeDbms(dbms);
                             return;
                         } catch (DeadlockDetectedException de) {
                             // retry

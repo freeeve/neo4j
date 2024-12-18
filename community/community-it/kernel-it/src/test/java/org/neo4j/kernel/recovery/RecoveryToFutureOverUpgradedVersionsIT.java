@@ -64,6 +64,7 @@ import org.neo4j.kernel.internal.event.InternalTransactionEventListener;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.UpgradeTestUtil;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
 
@@ -125,9 +126,8 @@ class RecoveryToFutureOverUpgradedVersionsIT {
         GraphDatabaseAPI testDb = (GraphDatabaseAPI) managementService.database(dbName);
         DatabaseLayout dbLayout = testDb.databaseLayout();
         createWriteTransaction(testDb);
-        systemDb.executeTransactionally("CALL dbms.upgrade()");
-        createWriteTransaction(testDb);
-        assertKernelVersion(testDb, KernelVersion.GLORIOUS_FUTURE);
+        UpgradeTestUtil.upgradeDatabase(
+                managementService, testDb, LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE);
 
         shutdownDbms();
         var config = Config.newBuilder()
@@ -179,9 +179,10 @@ class RecoveryToFutureOverUpgradedVersionsIT {
         createWriteTransaction(testDb);
         CheckPointer checkPointer = testDb.getDependencyResolver().resolveDependency(CheckPointer.class);
         checkPointer.forceCheckPoint(new SimpleTriggerInfo("extra checkpoint"));
-        systemDb.executeTransactionally("CALL dbms.upgrade()");
-        createWriteTransaction(testDb);
-        assertKernelVersion(testDb, KernelVersion.GLORIOUS_FUTURE);
+
+        UpgradeTestUtil.upgradeDatabase(
+                managementService, testDb, LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE);
+
         shutdownDbms();
 
         var config = Config.newBuilder()
@@ -265,7 +266,7 @@ class RecoveryToFutureOverUpgradedVersionsIT {
         });
 
         // then upgrade dbms runtime to trigger db upgrade on next write
-        systemDb.executeTransactionally("CALL dbms.upgrade()");
+        UpgradeTestUtil.manuallyUpgrade(systemDb);
 
         assertThatThrownBy(() -> {
                     try (TransactionImpl tx = (TransactionImpl) testDb.beginTx()) {
@@ -324,7 +325,7 @@ class RecoveryToFutureOverUpgradedVersionsIT {
         });
 
         // then upgrade dbms runtime to trigger db upgrade on next write
-        systemDb.executeTransactionally("CALL dbms.upgrade()");
+        UpgradeTestUtil.manuallyUpgrade(systemDb);
 
         assertThatThrownBy(() -> {
                     try (TransactionImpl tx = (TransactionImpl) testDb.beginTx()) {

@@ -122,7 +122,7 @@ class UpgradeToFutureVersionIT {
         createWriteTransaction(); // Just to have at least one tx from our measurement point in the old version
         assertThat(kernelVersion()).isEqualTo(LatestVersions.LATEST_KERNEL_VERSION);
 
-        systemDb.executeTransactionally("CALL dbms.upgrade()");
+        UpgradeTestUtil.manuallyUpgrade(systemDb);
         assertThat(dbmsRuntimeVersion()).isEqualTo(DbmsRuntimeVersion.GLORIOUS_FUTURE);
 
         createReadTransaction();
@@ -181,7 +181,7 @@ class UpgradeToFutureVersionIT {
         Race race = new Race()
                 .withRandomStartDelays()
                 .withEndCondition(() -> KernelVersion.GLORIOUS_FUTURE.equals(kernelVersion()));
-        race.addContestant(() -> systemDb.executeTransactionally("CALL dbms.upgrade()"), 1);
+        race.addContestant(() -> UpgradeTestUtil.upgradeDbms(dbms), 1);
         race.addContestants(max(Runtime.getRuntime().availableProcessors() - 1, 2), Race.throwing(() -> {
             try {
                 createWriteTransaction();
@@ -255,8 +255,7 @@ class UpgradeToFutureVersionIT {
             Future<String> f1 = executor.executeDontWait(this::createWriteTransaction);
             l2.await(); // wait for it to be committing
             // then upgrade dbms runtime to trigger db upgrade on next write
-            systemDb.executeTransactionally("CALL dbms.upgrade()");
-
+            UpgradeTestUtil.manuallyUpgrade(systemDb);
             try (Transaction tx = db.beginTx()) {
                 tx.acquireWriteLock(tx.getNodeByElementId(lockNode1)); // take the lock
                 tx.createNode(); // and make sure it is a write to trigger upgrade
