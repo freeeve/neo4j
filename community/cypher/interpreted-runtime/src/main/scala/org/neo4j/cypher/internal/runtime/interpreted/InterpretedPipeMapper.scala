@@ -2105,7 +2105,8 @@ case class InterpretedPipeMapper(
           innerRelationships,
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
-          reverseGroupVariableProjections
+          reverseGroupVariableProjections,
+          emitPredicate
         ) =>
         RepeatPipe(
           lhs,

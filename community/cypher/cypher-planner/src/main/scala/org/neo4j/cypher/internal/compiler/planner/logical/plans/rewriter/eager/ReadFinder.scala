@@ -825,7 +825,22 @@ object ReadFinder {
       case TransactionForeach(_, _, _, _, _, _, _) =>
         PlanReads().withCallInTx
 
-      case RepeatTrail(_, _, _, _, end, _, _, _, _, _, _, _, _) =>
+      case RepeatTrail(
+          _,
+          _,
+          _,
+          _,
+          end,
+          _,
+          _,
+          _,
+          _,
+          _,
+          _,
+          _,
+          _,
+          _
+        ) =>
         PlanReads().withIntroducedNodeVariable(end)
 
       case RepeatWalk(_, _, _, _, end, _, _, _, _, _) =>

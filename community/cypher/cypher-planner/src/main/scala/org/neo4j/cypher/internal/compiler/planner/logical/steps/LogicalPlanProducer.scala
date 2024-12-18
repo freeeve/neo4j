@@ -1339,9 +1339,10 @@ case class LogicalPlanProducer(
           innerRelationships = pattern.patternRelationships.map(p => p.variable).toSet,
           previouslyBoundRelationships = previouslyBoundRelationships,
           previouslyBoundRelationshipGroups = previouslyBoundRelationshipGroups,
-          reverseGroupVariableProjections = reverseGroupVariableProjections
-        )
-      case TraversalMatchMode.Walk =>
+          reverseGroupVariableProjections = reverseGroupVariableProjections,
+        emitPredicate = None
+      )
+    case TraversalMatchMode.Walk =>
         RepeatWalk(
           left = source,
           right = innerPlan,

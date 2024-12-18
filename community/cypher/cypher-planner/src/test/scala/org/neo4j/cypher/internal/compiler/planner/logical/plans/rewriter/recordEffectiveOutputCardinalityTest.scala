@@ -338,7 +338,8 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
       innerRelationships = Set("r"),
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
-      reverseGroupVariableProjections = false
+      reverseGroupVariableProjections = false,
+      emitPredicate = None
     )
 
     val initial = new LogicalPlanBuilder(false)
@@ -381,7 +382,8 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
       innerRelationships = Set("r"),
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
-      reverseGroupVariableProjections = false
+      reverseGroupVariableProjections = false,
+      emitPredicate = None
     )
 
     val initial = new LogicalPlanBuilder(false)
@@ -484,7 +486,8 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
       innerRelationships = Set("r"),
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
-      reverseGroupVariableProjections = false
+      reverseGroupVariableProjections = false,
+      emitPredicate = None
     )
 
     val initial = new LogicalPlanBuilder(false)
@@ -532,7 +535,8 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
       innerRelationships = Set("r"),
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
-      reverseGroupVariableProjections = false
+      reverseGroupVariableProjections = false,
+      emitPredicate = None
     )
 
     val trailCardinality = (0 to upperBound).map(Math.pow(expandCardinality, _)).sum * lhsCardinality
@@ -590,7 +594,8 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
       innerRelationships = Set("r"),
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
-      reverseGroupVariableProjections = false
+      reverseGroupVariableProjections = false,
+      emitPredicate = None
     )
 
     val trailCardinality = (0 to upperBound).map(Math.pow(expandCardinality, _)).sum * lhsCardinality

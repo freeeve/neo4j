@@ -3116,7 +3116,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         trailParameters.innerRelationships.map(varFor),
         trailParameters.previouslyBoundRelationships.map(varFor),
         trailParameters.previouslyBoundRelationshipGroups.map(varFor),
-        trailParameters.reverseGroupVariableProjections
+        trailParameters.reverseGroupVariableProjections,
+        trailParameters.emitPredicate
       )(_)
     ))
   }
@@ -3379,7 +3380,8 @@ object AbstractLogicalPlanBuilder {
     innerRelationships: Set[String],
     previouslyBoundRelationships: Set[String],
     previouslyBoundRelationshipGroups: Set[String],
-    reverseGroupVariableProjections: Boolean
+    reverseGroupVariableProjections: Boolean,
+    emitPredicate: Option[Ands]
   )
 
   case class WalkParameters(

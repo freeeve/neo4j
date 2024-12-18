@@ -2937,7 +2937,8 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         innerRelationships = Set("r_inner"),
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set("r_group"),
-        reverseGroupVariableProjections = true
+        reverseGroupVariableProjections = true,
+        emitPredicate = None
       ))
       .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
       .|.argument("me", "a_inner")
@@ -2961,7 +2962,8 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         innerRelationships = Set("r_inner"),
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set("r_group"),
-        reverseGroupVariableProjections = true
+        reverseGroupVariableProjections = true,
+        emitPredicate = None
       ))
       .|.repeatOptions()
       .|.|.expandAll("(b_inner)<-[r_inner]-(a_inner)")

@@ -546,7 +546,7 @@ object VariableRefRewriter extends Rewriter {
           p.copy(idName = varRef(node))(SameId(p.id))
         case p: StatefulShortestPath =>
           p.copy(sourceNode = varRef(p.sourceNode), targetNode = varRef(p.targetNode))(SameId(p.id))
-        case p @ RepeatTrail(_, _, _, start, end, iStart, iEnd, _, _, iRels, pRels, pRelGr, _) =>
+        case p @ RepeatTrail(_, _, _, start, end, iStart, iEnd, _, _, iRels, pRels, pRelGr, _, _) =>
           p.copy(
             start = varRef(start),
             end = varRef(end),

@@ -364,7 +364,8 @@ object TrailToVarExpandRewriter {
             _,
             _,
             _,
-            _
+            _,
+            None
           ) => Option((trail, expand, inlinablePredicates, quantifier, relationship))
         case _ => None
       }

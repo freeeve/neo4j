@@ -685,7 +685,8 @@ object LogicalPlanToPlanBuilderString {
           innerRelationships,
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
-          reverseGroupVariableProjections
+          reverseGroupVariableProjections,
+          emitPredicate
         ) =>
         trailParametersString(
           repetition,

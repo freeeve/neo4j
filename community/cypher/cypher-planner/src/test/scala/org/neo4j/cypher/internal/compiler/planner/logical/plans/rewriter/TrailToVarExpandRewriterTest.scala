@@ -164,7 +164,8 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
         innerRelationships = Set("r_i", "rr_i"),
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
-        reverseGroupVariableProjections = false
+        reverseGroupVariableProjections = false,
+        emitPredicate = None
       )
     }
 
@@ -745,7 +746,8 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
         innerRelationships = Set("rr_i", "rrr_i"),
         previouslyBoundRelationships = Set(),
         previouslyBoundRelationshipGroups = Set(),
-        reverseGroupVariableProjections = false
+        reverseGroupVariableProjections = false,
+        emitPredicate = None
       )
     }
 
@@ -859,7 +861,8 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
         innerRelationships = Set("rrr_i"),
         previouslyBoundRelationships = Set("rr"),
         previouslyBoundRelationshipGroups = Set("r"),
-        reverseGroupVariableProjections = false
+        reverseGroupVariableProjections = false,
+        emitPredicate = None
       )
     }
     val trail = subPlanBuilder
@@ -934,7 +937,8 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
     innerRelationships = Set("r_i"),
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
-    reverseGroupVariableProjections = false
+    reverseGroupVariableProjections = false,
+    emitPredicate = None
   )
 
   test("Rewrite selection and trail to VarLengthExpand(Into)") {
@@ -1285,7 +1289,8 @@ object TrailToVarExpandRewriterTest {
       innerRelationships = Set("r_i"),
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
-      reverseGroupVariableProjections = false
+      reverseGroupVariableProjections = false,
+      emitPredicate = None
     )
 
     val nless: TrailParameters = full.copy(groupNodes = Set(("m_i", "m")))
@@ -1317,7 +1322,8 @@ object TrailToVarExpandRewriterTest {
       innerRelationships = Set("rr_i"),
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
-      reverseGroupVariableProjections = false
+      reverseGroupVariableProjections = false,
+      emitPredicate = None
     )
 
     val xyless: TrailParameters = empty.copy(groupRelationships = Set(("rr_i", "rr")))

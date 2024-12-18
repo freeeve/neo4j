@@ -3137,7 +3137,7 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case RepeatTrail(_, _, repetition, start, end, _, _, _, _, _, _, _, _) =>
+      case RepeatTrail(_, _, repetition, start, end, _, _, _, _, _, _, _, _, emitPredicate) =>
         PlanDescriptionImpl(
           id = plan.id,
           "Repeat(Trail)",
