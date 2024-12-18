@@ -23,8 +23,8 @@ import org.apache.commons.text.StringEscapeUtils
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
-import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier.Extension
+import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
