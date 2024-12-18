@@ -20,9 +20,12 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.expressions.Ands
+import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
+import org.neo4j.cypher.internal.logical.plans.RepeatWalk
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.Rewriter.TopDownMergeableRewriter
@@ -57,8 +60,39 @@ import org.neo4j.cypher.internal.util.topDown
  * Should run after [[pruningVarExpander]] & [[TrailToVarExpandRewriter]] in order to rewrite as many (pruning) 
  * VarExpand as possible.
  */
+// TODO check that endNode is a Variable, if it exists
+// TODO later figure out how to rewrite LogicalVariable
+// TODO split into pre & post predicates, and only push down pre
 case class repeatEmitPredicateRewriter(attributes: Attributes[LogicalPlan]) extends Rewriter
     with TopDownMergeableRewriter {
+
+  private def renameEnd(innerEnd: LogicalVariable, end: LogicalVariable, predicates: Ands): Ands = {
+    val rewriter = topDown(Rewriter.lift {
+      case v @ Variable(name) if name == end.name =>
+        v.copy(name = innerEnd.name)(v.position, v.isIsolated)
+    })
+    predicates.endoRewrite(rewriter)
+  }
+
+  private def mergeEmitPredicates(prevEmitPredicates: Option[Ands], emitPredicates: Ands): Ands = {
+    val newEmitPredicates = prevEmitPredicates match {
+      case Some(predicates) =>
+        Ands(emitPredicates.exprs ++ predicates.exprs)(emitPredicates.position)
+      case None =>
+        Ands(emitPredicates.exprs)(emitPredicates.position)
+    }
+    newEmitPredicates
+  }
+
+  private def isGroupVarInPredicate(
+    predicates: Ands,
+    nodeVariableGroupings: Set[VariableGrouping],
+    relationshipVariableGroupings: Set[VariableGrouping]
+  ) = {
+    val groupVars = (nodeVariableGroupings ++ relationshipVariableGroupings).map(_.group.name)
+    val groupVarIsInPredicate = predicates.dependencies.exists(v => groupVars.contains(v.name))
+    groupVarIsInPredicate
+  }
 
   override val innerRewriter: Rewriter = {
     Rewriter.lift {
@@ -81,21 +115,34 @@ case class repeatEmitPredicateRewriter(attributes: Attributes[LogicalPlan]) exte
             existingEmitPredicates
           )
         ) =>
-        val groupVars = (nodeVariableGroupings ++ relationshipVariableGroupings).map(_.group.name)
-        val groupVarIsInPredicate = predicates.dependencies.exists(v => groupVars.contains(v.name))
+        if (!isGroupVarInPredicate(predicates, nodeVariableGroupings, relationshipVariableGroupings)) {
+          val rewrittenAnds = renameEnd(innerEnd, end, predicates)
+          val newEmitPredicates = mergeEmitPredicates(existingEmitPredicates, rewrittenAnds)
+          val id = attributes.copy(s.id).id()
+          r.copy(emitPredicate = Some(newEmitPredicates))(SameId(id))
+        } else {
+          s
+        }
 
-        if (!groupVarIsInPredicate) {
-          val newPredicateRewriter = topDown(Rewriter.lift {
-            case v @ Variable(name) if name == end.name =>
-              v.copy(name = innerEnd.name)(v.position, v.isIsolated)
-          })
-          val rewrittenAnds = predicates.endoRewrite(newPredicateRewriter)
-          val newEmitPredicates = existingEmitPredicates match {
-            case Some(predicates) =>
-              Ands(rewrittenAnds.exprs ++ predicates.exprs)(rewrittenAnds.position)
-            case None =>
-              Ands(rewrittenAnds.exprs)(rewrittenAnds.position)
-          }
+      case s @ Selection(
+          predicates,
+          r @ RepeatWalk(
+            _,
+            _,
+            _,
+            _,
+            end,
+            _,
+            innerEnd,
+            nodeVariableGroupings,
+            relationshipVariableGroupings,
+            _,
+            existingEmitPredicates
+          )
+        ) =>
+        if (!isGroupVarInPredicate(predicates, nodeVariableGroupings, relationshipVariableGroupings)) {
+          val rewrittenAnds = renameEnd(innerEnd, end, predicates)
+          val newEmitPredicates = mergeEmitPredicates(existingEmitPredicates, rewrittenAnds)
           val id = attributes.copy(s.id).id()
           r.copy(emitPredicate = Some(newEmitPredicates))(SameId(id))
         } else {

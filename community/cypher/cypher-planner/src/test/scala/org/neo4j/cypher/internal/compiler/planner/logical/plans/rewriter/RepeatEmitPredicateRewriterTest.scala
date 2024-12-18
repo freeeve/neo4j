@@ -32,7 +32,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class RepeatEmitPredicateRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport {
   private def subPlanBuilder = new LogicalPlanBuilder(wholePlan = false)
 
-  private val `TRAIL (a) ((n)-[r]-(m))+ (b)` : TrailParameters = TrailParameters(
+  private val `TRAIL (a) ((n)-[r]-(m))+ (b)`: TrailParameters = TrailParameters(
     min = 1,
     max = Unlimited,
     start = "a",
@@ -48,7 +48,7 @@ class RepeatEmitPredicateRewriterTest extends CypherFunSuite with LogicalPlannin
     emitPredicate = None
   )
 
-  private val `WALK (a) ((n)-[r]-(m))+ (b)` : WalkParameters = WalkParameters(
+  private val `WALK (a) ((n)-[r]-(m))+ (b)`: WalkParameters = WalkParameters(
     min = 1,
     max = Unlimited,
     start = "a",
