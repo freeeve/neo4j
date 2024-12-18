@@ -827,6 +827,8 @@ trait AstConstructionTestSupport {
 
   def ands(expressions: Expression*): Ands = Ands(expressions)(pos)
 
+  def ands(expressions: ListSet[Expression]): Ands = Ands(expressions)(pos)
+
   def containerIndex(container: Expression, index: Int): ContainerIndex = containerIndex(container, literalInt(index))
 
   def containerIndex(container: Expression, index: Expression): ContainerIndex = ContainerIndex(container, index)(pos)
