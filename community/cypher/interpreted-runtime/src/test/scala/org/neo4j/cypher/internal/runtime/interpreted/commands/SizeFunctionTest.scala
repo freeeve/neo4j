@@ -72,6 +72,17 @@ class SizeFunctionTest extends CypherFunSuite {
     // when/then
     val e = intercept[CypherTypeException](sizeFunction.apply(m, QueryStateHelper.empty))
     e.getMessage should be("Invalid input for function 'size()': Expected a String or List, got: Path{(0)-[0]-(0)}")
+    e.gqlStatus() should be("22N38")
+    e.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function size()."
+    )
+    e.cause().isEmpty should be(false)
+    val eCause = e.cause().get()
+    eCause.gqlStatus() should be("22N01")
+    eCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value Path{(0)-[0]-(0)} to be of type STRING or LIST, but was of type Path."
+    )
+    eCause.cause().isEmpty should be(true)
   }
 
   test("size cannot be used on integers") {
@@ -82,6 +93,17 @@ class SizeFunctionTest extends CypherFunSuite {
     // when/then
     val e = intercept[CypherTypeException](sizeFunction.apply(m, QueryStateHelper.empty))
     e.getMessage should be("Invalid input for function 'size()': Expected a String or List, got: Int(33)")
+    e.gqlStatus() should be("22N38")
+    e.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function size()."
+    )
+    e.cause().isEmpty should be(false)
+    val eCause = e.cause().get()
+    eCause.gqlStatus() should be("22N01")
+    eCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value Int(33) to be of type STRING or LIST, but was of type Integer."
+    )
+    eCause.cause().isEmpty should be(true)
   }
 
   private def mockNode() = {

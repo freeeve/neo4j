@@ -61,6 +61,17 @@ class CharacterFunctionTest extends CypherFunSuite {
     e.getMessage should be(
       "Invalid input for function 'character_length()': Expected a String, got: List{String(\"it\"), String(\"was\"), String(\"the\")}"
     )
+    e.gqlStatus() should be("22N38")
+    e.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function character_length()."
+    )
+    e.cause().isEmpty should be(false)
+    val eCause = e.cause().get()
+    eCause.gqlStatus() should be("22N01")
+    eCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value List{String(\"it\"), String(\"was\"), String(\"the\")} to be of type STRING, but was of type List."
+    )
+    eCause.cause().isEmpty should be(true)
   }
 
   test("character length cannot be used on paths") {
@@ -72,6 +83,17 @@ class CharacterFunctionTest extends CypherFunSuite {
     // when/then
     val e = intercept[CypherTypeException](characterLengthFunction.apply(m, QueryStateHelper.empty))
     e.getMessage should be("Invalid input for function 'character_length()': Expected a String, got: Path{(0)-[0]-(0)}")
+    e.gqlStatus() should be("22N38")
+    e.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function character_length()."
+    )
+    e.cause().isEmpty should be(false)
+    val eCause = e.cause().get()
+    eCause.gqlStatus() should be("22N01")
+    eCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value Path{(0)-[0]-(0)} to be of type STRING, but was of type Path."
+    )
+    eCause.cause().isEmpty should be(true)
   }
 
   test("character length cannot be used on integers") {
@@ -82,6 +104,17 @@ class CharacterFunctionTest extends CypherFunSuite {
     // when/then
     val e = intercept[CypherTypeException](characterLengthFunction.apply(m, QueryStateHelper.empty))
     e.getMessage should be("Invalid input for function 'character_length()': Expected a String, got: Int(33)")
+    e.gqlStatus() should be("22N38")
+    e.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function character_length()."
+    )
+    e.cause().isEmpty should be(false)
+    val eCause = e.cause().get()
+    eCause.gqlStatus() should be("22N01")
+    eCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value Int(33) to be of type STRING, but was of type Integer."
+    )
+    eCause.cause().isEmpty should be(true)
   }
 
   private def mockNode() = {

@@ -60,6 +60,17 @@ class LengthFunctionTest extends CypherFunSuite {
     e.getMessage should be(
       "Invalid input for function 'length()': Expected a Path, got: List{String(\"it\"), String(\"was\"), String(\"the\")}"
     )
+    e.gqlStatus() should be("22N38")
+    e.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function length()."
+    )
+    e.cause().isEmpty should be(false)
+    val eCause = e.cause().get()
+    eCause.gqlStatus() should be("22N01")
+    eCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value List{String(\"it\"), String(\"was\"), String(\"the\")} to be of type PATH, but was of type List."
+    )
+    eCause.cause().isEmpty should be(true)
   }
 
   test("length cannot be used on strings") {
@@ -71,6 +82,17 @@ class LengthFunctionTest extends CypherFunSuite {
     // when/then
     val e = intercept[CypherTypeException](lengthFunction.apply(m, QueryStateHelper.empty))
     e.getMessage should be("Invalid input for function 'length()': Expected a Path, got: String(\"it was the\")")
+    e.gqlStatus() should be("22N38")
+    e.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function length()."
+    )
+    e.cause().isEmpty should be(false)
+    val eCause = e.cause().get()
+    eCause.gqlStatus() should be("22N01")
+    eCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value String(\"it was the\") to be of type PATH, but was of type String."
+    )
+    eCause.cause().isEmpty should be(true)
   }
 
   private def mockNode() = {

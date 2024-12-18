@@ -81,6 +81,17 @@ class ToStringFunctionTest extends CypherFunSuite with CypherScalaCheckDrivenPro
     caughtException.getMessage should startWith(
       "Invalid input for function 'toString()': Expected a String, Float, Integer, Boolean, Temporal or Duration, got: "
     )
+    caughtException.gqlStatus() should be("22N38")
+    caughtException.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function toString()."
+    )
+    caughtException.cause().isEmpty should be(false)
+    val caughtExceptionCause = caughtException.cause().get()
+    caughtExceptionCause.gqlStatus() should be("22N01")
+    caughtExceptionCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value List{Int(1), Int(24)} to be of type STRING, FLOAT, INTEGER, BOOLEAN, TEMPORAL or DURATION, but was of type List."
+    )
+    caughtExceptionCause.cause().isEmpty should be(true)
   }
 
   // toStringOrNull

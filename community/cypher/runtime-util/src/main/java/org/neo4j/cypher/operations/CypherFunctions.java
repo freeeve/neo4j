@@ -1526,7 +1526,12 @@ public final class CypherFunctions {
             }
             return builder.build();
         } else {
-            throw new CypherTypeException(format("Invalid input for function 'nodes()': Expected %s to be a path", in));
+            throw CypherTypeException.functionArgumentWrongType(
+                    format("Invalid input for function 'nodes()': Expected %s to be a path", in),
+                    "nodes",
+                    in.toString(),
+                    List.of("PATH"),
+                    in.getTypeName());
         }
     }
 
@@ -1536,8 +1541,12 @@ public final class CypherFunctions {
         } else if (in instanceof VirtualPathValue path) {
             return path.relationshipsAsList();
         } else {
-            throw new CypherTypeException(
-                    format("Invalid input for function 'relationships()': Expected %s to be a path", in));
+            throw CypherTypeException.functionArgumentWrongType(
+                    format("Invalid input for function 'relationships()': Expected %s to be a path", in),
+                    "relationships",
+                    in.toString(),
+                    List.of("PATH"),
+                    in.getTypeName());
         }
     }
 
@@ -1554,8 +1563,12 @@ public final class CypherFunctions {
             }
             return PointValue.fromMap(map);
         } else {
-            throw new CypherTypeException(
-                    format("Invalid input for function 'point()': Expected a map but got %s", in));
+            throw CypherTypeException.functionArgumentWrongType(
+                    format("Invalid input for function 'point()': Expected a map but got %s", in),
+                    "point",
+                    in.toString(),
+                    List.of("MAP"),
+                    in.getTypeName());
         }
     }
 
@@ -1574,9 +1587,14 @@ public final class CypherFunctions {
         } else if (in instanceof MapValue) {
             return ((MapValue) in).keys();
         } else {
-            throw new CypherTypeException(format(
-                    "Invalid input for function 'keys()': Expected a node, a relationship or a literal map but got %s",
-                    in));
+            throw CypherTypeException.functionArgumentWrongType(
+                    format(
+                            "Invalid input for function 'keys()': Expected a node, a relationship or a literal map but got %s",
+                            in),
+                    "keys",
+                    in.toString(),
+                    List.of("NODE", "RELATIONSHIP", "LITERAL MAP"),
+                    in.getTypeName());
         }
     }
 
@@ -1597,9 +1615,14 @@ public final class CypherFunctions {
         } else if (in instanceof MapValue) {
             return in;
         } else {
-            throw new CypherTypeException(format(
-                    "Invalid input for function 'properties()': Expected a node, a relationship or a literal map but got %s",
-                    in));
+            throw CypherTypeException.functionArgumentWrongType(
+                    format(
+                            "Invalid input for function 'properties()': Expected a node, a relationship or a literal map but got %s",
+                            in),
+                    "properties",
+                    in.toString(),
+                    List.of("NODE", "RELATIONSHIP", "LITERAL MAP"),
+                    in.getTypeName());
         }
     }
 
@@ -1622,9 +1645,14 @@ public final class CypherFunctions {
         } else if (in instanceof MapValue) {
             return in;
         } else {
-            throw new CypherTypeException(format(
-                    "Invalid input for function 'properties()': Expected a node, a relationship or a literal map but got %s",
-                    in));
+            throw CypherTypeException.functionArgumentWrongType(
+                    format(
+                            "Invalid input for function 'properties()': Expected a node, a relationship or a literal map but got %s",
+                            in),
+                    "properties",
+                    in.toString(),
+                    List.of("NODE", "RELATIONSHIP", "LITERAL MAP"),
+                    in.getTypeName());
         }
     }
 
@@ -1634,8 +1662,12 @@ public final class CypherFunctions {
         } else if (item instanceof TextValue) {
             return size(item);
         } else {
-            throw new CypherTypeException(
-                    "Invalid input for function 'character_length()': Expected a String, got: " + item);
+            throw CypherTypeException.functionArgumentWrongType(
+                    "Invalid input for function 'character_length()': Expected a String, got: " + item,
+                    "character_length",
+                    item.toString(),
+                    List.of("STRING"),
+                    item.getTypeName());
         }
     }
 
@@ -1647,8 +1679,12 @@ public final class CypherFunctions {
         } else if (item instanceof SequenceValue) {
             return longValue(((SequenceValue) item).actualSize());
         } else {
-            throw new CypherTypeException(
-                    "Invalid input for function 'size()': Expected a String or List, got: " + item);
+            throw CypherTypeException.functionArgumentWrongType(
+                    "Invalid input for function 'size()': Expected a String or List, got: " + item,
+                    "size",
+                    item.toString(),
+                    List.of("STRING", "LIST"),
+                    item.getTypeName());
         }
     }
 
@@ -1662,8 +1698,12 @@ public final class CypherFunctions {
         } else if (item instanceof TextValue) {
             return Values.booleanValue(((TextValue) item).isEmpty());
         } else {
-            throw new CypherTypeException(
-                    "Invalid input for function 'isEmpty()': Expected a List, Map, or String, got: " + item);
+            throw CypherTypeException.functionArgumentWrongType(
+                    "Invalid input for function 'isEmpty()': Expected a List, Map, or String, got: " + item,
+                    "isEmpty",
+                    item.toString(),
+                    List.of("LIST", "MAP", "STRING"),
+                    item.getTypeName());
         }
     }
 
@@ -1673,7 +1713,12 @@ public final class CypherFunctions {
         } else if (item instanceof VirtualPathValue) {
             return longValue(((VirtualPathValue) item).size());
         } else {
-            throw new CypherTypeException("Invalid input for function 'length()': Expected a Path, got: " + item);
+            throw CypherTypeException.functionArgumentWrongType(
+                    "Invalid input for function 'length()': Expected a Path, got: " + item,
+                    "length",
+                    item.toString(),
+                    List.of("PATH"),
+                    item.getTypeName());
         }
     }
 
@@ -1691,8 +1736,12 @@ public final class CypherFunctions {
         } else if (in instanceof IntegralValue integer) {
             return integer.longValue() == 0L ? FALSE : TRUE;
         } else {
-            throw new CypherTypeException(
-                    "Invalid input for function 'toBoolean()': Expected a Boolean, Integer or String, got: " + in);
+            throw CypherTypeException.functionArgumentWrongType(
+                    "Invalid input for function 'toBoolean()': Expected a Boolean, Integer or String, got: " + in,
+                    "toBoolean",
+                    in.toString(),
+                    List.of("BOOLEAN", "INTEGER", "STRING"),
+                    in.getTypeName());
         }
     }
 
@@ -1714,8 +1763,12 @@ public final class CypherFunctions {
                     .map(entry -> entry == NO_VALUE ? NO_VALUE : toBooleanOrNull(entry))
                     .collect(ListValueBuilder.collector());
         } else {
-            throw new CypherTypeException(
-                    String.format("Invalid input for function 'toBooleanList()': Expected a List, got: %s", in));
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format("Invalid input for function 'toBooleanList()': Expected a List, got: %s", in),
+                    "toBooleanList",
+                    in.toString(),
+                    List.of("LIST"),
+                    in.getTypeName());
         }
     }
 
@@ -1733,8 +1786,12 @@ public final class CypherFunctions {
                 return NO_VALUE;
             }
         } else {
-            throw new CypherTypeException(
-                    "Invalid input for function 'toFloat()': Expected a String, Float or Integer, got: " + in);
+            throw CypherTypeException.functionArgumentWrongType(
+                    "Invalid input for function 'toFloat()': Expected a String, Float or Integer, got: " + in,
+                    "toFloat",
+                    in.toString(),
+                    List.of("STRING", "FLOAT", "INTEGER"),
+                    in.getTypeName());
         }
     }
 
@@ -1754,8 +1811,12 @@ public final class CypherFunctions {
                     .map(entry -> entry == NO_VALUE ? NO_VALUE : toFloatOrNull(entry))
                     .collect(ListValueBuilder.collector());
         } else {
-            throw new CypherTypeException(
-                    String.format("Invalid input for function 'toFloatList()': Expected a List, got: %s", in));
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format("Invalid input for function 'toFloatList()': Expected a List, got: %s", in),
+                    "toFloatList",
+                    in.toString(),
+                    List.of("LIST"),
+                    in.getTypeName());
         }
     }
 
@@ -1775,9 +1836,13 @@ public final class CypherFunctions {
                 return longValue(0L);
             }
         } else {
-            throw new CypherTypeException(
+            throw CypherTypeException.functionArgumentWrongType(
                     "Invalid input for function 'toInteger()': Expected a String, Float, Integer or Boolean, got: "
-                            + in);
+                            + in,
+                    "toInteger",
+                    in.toString(),
+                    List.of("STRING", "FLOAT", "INTEGER", "BOOLEAN"),
+                    in.getTypeName());
         }
     }
 
@@ -1805,8 +1870,12 @@ public final class CypherFunctions {
         } else if (in instanceof SequenceValue sequence) {
             return toIntegerList(sequence);
         } else {
-            throw new CypherTypeException(
-                    String.format("Invalid input for function 'toIntegerList()': Expected a List, got: %s", in));
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format("Invalid input for function 'toIntegerList()': Expected a List, got: %s", in),
+                    "toIntegerList",
+                    in.toString(),
+                    List.of("LIST"),
+                    in.getTypeName());
         }
     }
 
@@ -1822,9 +1891,13 @@ public final class CypherFunctions {
         } else if (in instanceof TemporalValue || in instanceof DurationValue || in instanceof PointValue) {
             return stringValue(in.toString());
         } else {
-            throw new CypherTypeException(
+            throw CypherTypeException.functionArgumentWrongType(
                     "Invalid input for function 'toString()': Expected a String, Float, Integer, Boolean, Temporal or Duration, got: "
-                            + in);
+                            + in,
+                    "toString",
+                    in.toString(),
+                    List.of("STRING", "FLOAT", "INTEGER", "BOOLEAN", "TEMPORAL", "DURATION"),
+                    in.getTypeName());
         }
     }
 
@@ -1849,8 +1922,12 @@ public final class CypherFunctions {
                     .map(entry -> entry == NO_VALUE ? NO_VALUE : toStringOrNull(entry))
                     .collect(ListValueBuilder.collector());
         } else {
-            throw new CypherTypeException(
-                    String.format("Invalid input for function 'toStringList()': Expected a List, got: %s", in));
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format("Invalid input for function 'toStringList()': Expected a List, got: %s", in),
+                    "toStringList",
+                    in.toString(),
+                    List.of("LIST"),
+                    in.getTypeName());
         }
     }
 

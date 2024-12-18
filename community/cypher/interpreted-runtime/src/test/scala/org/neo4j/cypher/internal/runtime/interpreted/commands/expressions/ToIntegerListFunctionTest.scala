@@ -97,6 +97,17 @@ class ToIntegerListFunctionTest extends CypherFunSuite with CypherScalaCheckDriv
     caughtException.getMessage should equal(
       """Invalid input for function 'toIntegerList()': Expected a List, got: String("foo")"""
     )
+    caughtException.gqlStatus() should be("22N38")
+    caughtException.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function toIntegerList()."
+    )
+    caughtException.cause().isEmpty should be(false)
+    val caughtExceptionCause = caughtException.cause().get()
+    caughtExceptionCause.gqlStatus() should be("22N01")
+    caughtExceptionCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value String(\"foo\") to be of type LIST, but was of type String."
+    )
+    caughtExceptionCause.cause().isEmpty should be(true)
   }
 
   test("should not throw an exception for any value in the list") {

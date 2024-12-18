@@ -81,6 +81,17 @@ class ToFloatFunctionTest extends CypherFunSuite with CypherScalaCheckDrivenProp
     caughtException.getMessage should startWith(
       "Invalid input for function 'toFloat()': Expected a String, Float or Integer, got: "
     )
+    caughtException.gqlStatus() should be("22N38")
+    caughtException.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function toFloat()."
+    )
+    caughtException.cause().isEmpty should be(false)
+    val caughtExceptionCause = caughtException.cause().get()
+    caughtExceptionCause.gqlStatus() should be("22N01")
+    caughtExceptionCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value Boolean('true') to be of type STRING, FLOAT or INTEGER, but was of type Boolean."
+    )
+    caughtExceptionCause.cause().isEmpty should be(true)
   }
 
   // toFloatOrNull

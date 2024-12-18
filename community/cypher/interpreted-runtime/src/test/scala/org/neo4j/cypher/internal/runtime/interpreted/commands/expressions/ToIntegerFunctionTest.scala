@@ -130,6 +130,17 @@ class ToIntegerFunctionTest extends CypherFunSuite with CypherScalaCheckDrivenPr
     caughtException.getMessage should startWith(
       "Invalid input for function 'toInteger()': Expected a String, Float, Integer or Boolean, got: point({x: 1.0, y: 0.0, crs: 'cartesian'})"
     )
+    caughtException.gqlStatus() should be("22N38")
+    caughtException.statusDescription() should be(
+      "error: data exception - invalid function argument. Invalid argument to the function toInteger()."
+    )
+    caughtException.cause().isEmpty should be(false)
+    val caughtExceptionCause = caughtException.cause().get()
+    caughtExceptionCause.gqlStatus() should be("22N01")
+    caughtExceptionCause.statusDescription() should be(
+      "error: data exception - invalid type. Expected the value point({x: 1.0, y: 0.0, crs: 'cartesian'}) to be of type STRING, FLOAT, INTEGER or BOOLEAN, but was of type Point."
+    )
+    caughtExceptionCause.cause().isEmpty should be(true)
   }
 
   // ToIntegerOrNull
