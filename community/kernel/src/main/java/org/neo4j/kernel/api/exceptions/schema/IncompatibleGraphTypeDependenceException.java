@@ -23,19 +23,44 @@ import static java.lang.String.format;
 
 import java.util.Locale;
 import org.neo4j.common.TokenNameLookup;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.schema.SchemaKernelException;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class IncompatibleGraphTypeDependenceException extends SchemaKernelException {
 
-    public IncompatibleGraphTypeDependenceException(
+    private IncompatibleGraphTypeDependenceException(
+            ErrorGqlStatusObject gqlStatusObject,
             ConstraintDescriptor constraint,
             ConstraintDescriptor preExistingConstraint,
             TokenNameLookup tokenNameLookup) {
         super(
+                gqlStatusObject,
                 Status.Schema.ConstraintCreationFailed,
                 constructUserMessage(constraint, preExistingConstraint, tokenNameLookup));
+    }
+
+    public static IncompatibleGraphTypeDependenceException incompatibleGraphTypeDependence(
+            ConstraintDescriptor constraint,
+            ConstraintDescriptor preExistingConstraint,
+            TokenNameLookup tokenNameLookup) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB2)
+                .withParam(
+                        GqlParams.StringParam.graphTypeDependence1,
+                        constraint.graphTypeDependence().name().toLowerCase(Locale.ROOT))
+                .withParam(GqlParams.StringParam.constrDescrOrName1, constraint.userDescription(tokenNameLookup))
+                .withParam(
+                        GqlParams.StringParam.graphTypeDependence2,
+                        preExistingConstraint.graphTypeDependence().name().toLowerCase(Locale.ROOT))
+                .withParam(
+                        GqlParams.StringParam.constrDescrOrName2,
+                        preExistingConstraint.userDescription(tokenNameLookup))
+                .build();
+        return new IncompatibleGraphTypeDependenceException(gql, constraint, preExistingConstraint, tokenNameLookup);
     }
 
     private static String constructUserMessage(
@@ -43,9 +68,9 @@ public class IncompatibleGraphTypeDependenceException extends SchemaKernelExcept
             ConstraintDescriptor preExistingConstraint,
             TokenNameLookup tokenNameLookup) {
         return format(
-                "Graph Type %s constraint: %s is incompatible with Graph Type %s %s due to differing Graph Type dependence.",
+                "Graph type %s constraint: %s is incompatible with graph type %s %s due to differing graph type dependence.",
                 constraint.graphTypeDependence().name().toLowerCase(Locale.ROOT),
-                constraint.schema().userDescription(tokenNameLookup),
+                constraint.userDescription(tokenNameLookup),
                 preExistingConstraint.graphTypeDependence().name().toLowerCase(Locale.ROOT),
                 preExistingConstraint.userDescription(tokenNameLookup));
     }

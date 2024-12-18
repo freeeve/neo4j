@@ -2087,6 +2087,20 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "type mismatch",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NB2(
+            new GqlStatus("22NB2"),
+            """
+                    Graph type { %s } constraint: { %s } is incompatible with graph type { %s } { %s } due to differing graph type dependence.""",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.graphTypeDependence1,
+                GqlParams.StringParam.constrDescrOrName1,
+                GqlParams.StringParam.graphTypeDependence2,
+                GqlParams.StringParam.constrDescrOrName2
+            },
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "incompatible graph type dependence",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_25000(
             new GqlStatus("25000"),
             """

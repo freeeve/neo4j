@@ -417,7 +417,7 @@ abstract class OperationsTest {
         when(tokenHolders.propertyKeyTokens().getTokenById(anyInt()))
                 .thenReturn(new NamedToken("Property", propertyId));
         assertThatThrownBy(() -> operations.nodePropertyExistenceConstraintCreate(schemaDescriptor, "name2", false))
-                .hasMessageContainingAll("Graph Type", "dependent", "independent", "incompatible");
+                .hasMessageContainingAll("Graph type", "dependent", "independent", "incompatible");
     }
 
     @Test

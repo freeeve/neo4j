@@ -55,6 +55,8 @@ public class GqlParams {
         component(new STRLIT()), // Component name
         constr(new IDENT()), // Constraint name
         constrDescrOrName(new STRLIT()), // Constraint descriptor or name
+        constrDescrOrName1(new STRLIT()),
+        constrDescrOrName2(new STRLIT()),
         context(new VERBATIM()), // Freeform description of some "context"
         coordinates(new COORDINATES()), // Coordinates
         crs(new VERBATIM()), // Coordinate reference system | WGS8
@@ -74,6 +76,8 @@ public class GqlParams {
         fun(new CALLABLE_IDENT()), // Function name
         funClass(new IDENT()), // Function implementation class name
         graph(new IDENT()), // Graph name | myGrap
+        graphTypeDependence1(new VERBATIM()), // GraphTypeDependence | independent
+        graphTypeDependence2(new VERBATIM()),
         hint(new VERBATIM()), // Freeform description of some "hint"
         ident(new IDENT()), // Generic identifier
         idx(new IDENT()), // Index name

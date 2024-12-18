@@ -2046,7 +2046,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             ConstraintDescriptor constraintWithSameEntityToken = constraintsWithSameEntityToken.next();
             GraphTypeDependence thatDependence = constraintWithSameEntityToken.graphTypeDependence();
             if (thatDependence != GraphTypeDependence.UNDESIGNATED && thisDependence != thatDependence) {
-                throw new IncompatibleGraphTypeDependenceException(constraint, constraintWithSameEntityToken, token);
+                throw IncompatibleGraphTypeDependenceException.incompatibleGraphTypeDependence(
+                        constraint, constraintWithSameEntityToken, token);
             }
         }
     }
