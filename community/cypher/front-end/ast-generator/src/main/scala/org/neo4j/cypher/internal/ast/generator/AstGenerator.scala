@@ -503,7 +503,6 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.ListType
-import org.neo4j.util
 import org.neo4j.util.UnicodeHelper
 import org.reflections.Reflections
 import org.scalacheck.Arbitrary
@@ -567,8 +566,8 @@ object AstGenerator {
     nonEmptyListOf(char).map(_.mkString).suchThat(chars =>
       !chars.matches("^.*\\\\[u,U].*$") && UnicodeHelper.isIdentifierStart(
         chars.head,
-        util.CypherVersion.Cypher5
-      ) && chars.forall(UnicodeHelper.isIdentifierPart(_, util.CypherVersion.Cypher5))
+        CypherVersion.Cypher5
+      ) && chars.forall(UnicodeHelper.isIdentifierPart(_, CypherVersion.Cypher5))
     )
 
   def acceptedChar(c: Char): Boolean = {

@@ -19,6 +19,7 @@
  */
 package org.neo4j.util;
 
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.internal.helpers.Strings;
 
 public final class Stringifier {

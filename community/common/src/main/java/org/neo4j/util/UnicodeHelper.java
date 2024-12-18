@@ -20,6 +20,7 @@
 package org.neo4j.util;
 
 import java.util.ArrayList;
+import org.neo4j.cypher.internal.CypherVersion;
 
 public final class UnicodeHelper {
 
@@ -40,6 +41,9 @@ public final class UnicodeHelper {
 
     public static boolean isIdentifierStart(int codepoint, CypherVersion version) {
         return switch (version) {
+                // Adding support for a new version?
+                // Watch out for usages of this class, some make assumptions about version compatibility.
+                // For example org.neo4j.util.Stringifier
             case CypherVersion.Cypher25 -> Cypher25.isLetter(codepoint);
             case CypherVersion.Cypher5 -> Cypher5.isLetter(codepoint);
         };
@@ -47,6 +51,9 @@ public final class UnicodeHelper {
 
     public static boolean isIdentifierPart(int codepoint, CypherVersion version) {
         return switch (version) {
+                // Adding support for a new version?
+                // Watch out for usages of this class, some make assumptions about version compatibility.
+                // For example org.neo4j.util.Stringifier
             case CypherVersion.Cypher25 -> Cypher25.isLetterPart(codepoint);
             case CypherVersion.Cypher5 -> Cypher5.isLetterPart(codepoint);
         };

@@ -17,9 +17,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.util;
+package org.neo4j.cypher.internal;
 
 public enum CypherVersion {
-    Cypher5(),
-    Cypher25()
+    Cypher5("5", "CYPHER 5", false),
+    Cypher25("25", "CYPHER 25", true);
+
+    public static final CypherVersion Default = Cypher5;
+
+    public final String versionName;
+    public final String description;
+    public final boolean experimental;
+
+    CypherVersion(String versionName, String description, boolean experimental) {
+        this.versionName = versionName;
+        this.description = description;
+        this.experimental = experimental;
+    }
+
+    @Override
+    public String toString() {
+        return versionName;
+    }
 }
