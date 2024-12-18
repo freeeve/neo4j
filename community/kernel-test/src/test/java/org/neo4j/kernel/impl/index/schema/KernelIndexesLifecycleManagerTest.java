@@ -534,7 +534,7 @@ class KernelIndexesLifecycleManagerTest {
 
         final var failure = mock(IndexPopulationFailure.class);
         when(failure.asIndexPopulationFailure(any(), any()))
-                .thenReturn(new IndexPopulationFailedKernelException("boom", new IOException()));
+                .thenReturn(IndexPopulationFailedKernelException.indexPopulationFailed("boom", new IOException()));
 
         final var proxy = mock(IndexProxy.class);
         when(proxy.getState()).thenReturn(InternalIndexState.FAILED);

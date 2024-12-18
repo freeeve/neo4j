@@ -40,12 +40,15 @@ class IndexPopulationFailedKernelExceptionTest {
         LabelSchemaDescriptor descriptor = SchemaDescriptors.forLabel(0, 42, 43, 44);
 
         // When
-        IndexPopulationFailedKernelException index = new IndexPopulationFailedKernelException(
+        IndexPopulationFailedKernelException e = IndexPopulationFailedKernelException.indexPopulationFailed(
                 descriptor.userDescription(TOKEN_NAME_LOOKUP), new RuntimeException());
 
         // Then
-        assertThat(index.getUserMessage(TOKEN_NAME_LOOKUP))
-                .isEqualTo("Failed to populate index (:label0 {p42, p43, p44})");
+        assertThat(e.getUserMessage(TOKEN_NAME_LOOKUP)).isEqualTo("Failed to populate index (:label0 {p42, p43, p44})");
+        assertThat(e.gqlStatus()).isEqualTo("51N61");
+        assertThat(e.statusDescription())
+                .isEqualTo(
+                        "error: system configuration or operation exception - index population failed. Index `(:label0 {p42, p43, p44})` population failed.");
     }
 
     @Test
@@ -54,11 +57,15 @@ class IndexPopulationFailedKernelExceptionTest {
         LabelSchemaDescriptor descriptor = SchemaDescriptors.forLabel(0, 42, 43, 44);
 
         // When
-        IndexPopulationFailedKernelException index = new IndexPopulationFailedKernelException(
-                descriptor.userDescription(TOKEN_NAME_LOOKUP), "an act of pure evil occurred");
+        IndexPopulationFailedKernelException e = IndexPopulationFailedKernelException.indexPopulationFailed(
+                descriptor.userDescription(TOKEN_NAME_LOOKUP), "an act of pure evil");
 
         // Then
-        assertThat(index.getUserMessage(TOKEN_NAME_LOOKUP))
-                .isEqualTo("Failed to populate index (:label0 {p42, p43, p44}), due to an act of pure evil occurred");
+        assertThat(e.getUserMessage(TOKEN_NAME_LOOKUP))
+                .isEqualTo("Failed to populate index (:label0 {p42, p43, p44}), due to an act of pure evil");
+        assertThat(e.gqlStatus()).isEqualTo("51N61");
+        assertThat(e.statusDescription())
+                .isEqualTo(
+                        "error: system configuration or operation exception - index population failed. Index `(:label0 {p42, p43, p44})` population failed.");
     }
 }

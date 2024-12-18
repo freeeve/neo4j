@@ -138,7 +138,7 @@ class ConstraintIndexCreatorTest {
 
         IndexEntryConflictException cause =
                 IndexEntryConflictException.indexEntryConflict(index.schema(), 2, 1, Values.of("a"));
-        doThrow(new IndexPopulationFailedKernelException("some index", cause))
+        doThrow(IndexPopulationFailedKernelException.indexPopulationFailed("some index", cause))
                 .when(indexProxy)
                 .awaitStoreScanCompleted(anyLong(), any());
         when(schemaRead.index(any(SchemaDescriptor.class)))

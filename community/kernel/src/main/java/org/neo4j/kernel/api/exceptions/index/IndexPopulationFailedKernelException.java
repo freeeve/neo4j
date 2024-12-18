@@ -21,16 +21,15 @@ package org.neo4j.kernel.api.exceptions.index;
 
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class IndexPopulationFailedKernelException extends KernelException {
     private static final String FORMAT_MESSAGE = "Failed to populate index %s";
 
-    public IndexPopulationFailedKernelException(String indexUserDescription, Throwable cause) {
-        super(Status.Schema.IndexCreationFailed, cause, FORMAT_MESSAGE, indexUserDescription);
-    }
-
-    public IndexPopulationFailedKernelException(
+    private IndexPopulationFailedKernelException(
             ErrorGqlStatusObject gqlStatusObject, String indexUserDescription, Throwable cause) {
         super(gqlStatusObject, Status.Schema.IndexCreationFailed, cause, FORMAT_MESSAGE, indexUserDescription);
     }
@@ -39,12 +38,30 @@ public class IndexPopulationFailedKernelException extends KernelException {
         super(Status.Schema.IndexCreationFailed, FORMAT_MESSAGE + ", due to " + message, indexUserDescription);
     }
 
-    public IndexPopulationFailedKernelException(
+    private IndexPopulationFailedKernelException(
             ErrorGqlStatusObject gqlStatusObject, String indexUserDescription, String message) {
         super(
                 gqlStatusObject,
                 Status.Schema.IndexCreationFailed,
                 FORMAT_MESSAGE + ", due to " + message,
                 indexUserDescription);
+    }
+
+    // KNL-032
+    public static IndexPopulationFailedKernelException indexPopulationFailed(
+            String indexUserDescription, Throwable cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N61)
+                .withParam(GqlParams.StringParam.idx, indexUserDescription)
+                .build();
+        return new IndexPopulationFailedKernelException(gql, indexUserDescription, cause);
+    }
+
+    // KNL-033
+    public static IndexPopulationFailedKernelException indexPopulationFailed(
+            String indexUserDescription, String message) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N61)
+                .withParam(GqlParams.StringParam.idx, indexUserDescription)
+                .build();
+        return new IndexPopulationFailedKernelException(gql, indexUserDescription, message);
     }
 }

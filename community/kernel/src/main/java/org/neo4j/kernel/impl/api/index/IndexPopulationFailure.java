@@ -39,7 +39,7 @@ public interface IndexPopulationFailure {
             @Override
             public IndexPopulationFailedKernelException asIndexPopulationFailure(
                     SchemaDescriptor descriptor, String indexUserDescription) {
-                return new IndexPopulationFailedKernelException(indexUserDescription, failure);
+                return IndexPopulationFailedKernelException.indexPopulationFailed(indexUserDescription, failure);
             }
         };
     }
@@ -54,7 +54,7 @@ public interface IndexPopulationFailure {
             @Override
             public IndexPopulationFailedKernelException asIndexPopulationFailure(
                     SchemaDescriptor descriptor, String indexUserDescription) {
-                return new IndexPopulationFailedKernelException(indexUserDescription, failure);
+                return IndexPopulationFailedKernelException.indexPopulationFailed(indexUserDescription, failure);
             }
         };
     }
