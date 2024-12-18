@@ -19,7 +19,7 @@
  */
 package org.neo4j.util;
 
-import org.eclipse.collections.api.factory.primitive.CharLists;
+import java.util.ArrayList;
 
 public final class UnicodeHelper {
 
@@ -118,21 +118,25 @@ public final class UnicodeHelper {
             throw new IllegalArgumentException("Unexpected ranges " + antlr);
         }
 
-        final var ranges = CharLists.mutable.empty();
+        final var ranges = new ArrayList<Character>();
         final var length = antlr.length() - 2;
         for (int offset = 1; offset < length; ) {
             final int from = antlr.codePointAt(offset);
             final var isRange = offset + 2 <= length && antlr.charAt(offset + 1) == '-';
 
             if (isRange) {
-                ranges.addAll((char) from, (char) antlr.codePointAt(offset + 2));
+                ranges.add((char) from);
+                ranges.add((char) antlr.codePointAt(offset + 2));
                 offset += 3;
             } else {
-                ranges.addAll((char) from, (char) from);
+                ranges.add((char) from);
+                ranges.add((char) from);
                 offset += 1;
             }
         }
 
-        return new CharRangeSet(ranges.toArray());
+        final var array = new char[ranges.size()];
+        for (int i = 0; i < ranges.size(); ++i) array[i] = ranges.get(i);
+        return new CharRangeSet(array);
     }
 }
