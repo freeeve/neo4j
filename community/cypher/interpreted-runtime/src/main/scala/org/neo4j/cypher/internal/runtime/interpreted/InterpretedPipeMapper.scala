@@ -2123,7 +2123,8 @@ case class InterpretedPipeMapper(
             previouslyBoundRelationships.map(_.name),
             previouslyBoundRelationshipGroups.map(_.name)
           ),
-          reverseGroupVariableProjections
+          reverseGroupVariableProjections,
+          maybeEmitPredicate = emitPredicate.map(buildExpression(_))
         )(id = id)
 
       case RepeatWalk(
@@ -2149,7 +2150,8 @@ case class InterpretedPipeMapper(
           groupNodes,
           groupRelationships,
           RepeatPipe.WalkModeConstraint,
-          reverseGroupVariableProjections
+          reverseGroupVariableProjections,
+          maybeEmitPredicate = None
         )(id = id)
 
       case x =>

@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IsNoValue
 import org.neo4j.cypher.internal.runtime.PrefetchingIterator
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.TrailModeConstraint
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.TraversalModeConstraint
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.WalkModeConstraint
@@ -39,6 +40,7 @@ import org.neo4j.exceptions.InternalException
 import org.neo4j.memory.EmptyMemoryTracker
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.ListValue
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
@@ -101,13 +103,15 @@ case class RepeatPipe(
   groupNodes: Set[VariableGrouping],
   groupRelationships: Set[VariableGrouping],
   uniquenessConstraint: TraversalModeConstraint,
-  reverseGroupVariableProjections: Boolean
+  reverseGroupVariableProjections: Boolean,
+  maybeEmitPredicate: Option[Expression]
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) {
 
   private val groupNodeNames = groupNodes.toArray.sortBy(_.singleton.name)
   private val groupRelationshipNames = groupRelationships.toArray.sortBy(_.singleton.name)
   private val emptyGroupNodes = emptyLists(groupNodes.size)
   private val emptyGroupRelationships = emptyLists(groupRelationships.size)
+  private val emitPredicate = maybeEmitPredicate.orNull
 
   private def createNewState(
     outerRow: CypherRow,
@@ -193,7 +197,7 @@ case class RepeatPipe(
         ))
     }
 
-  private def filterRow(row: CypherRow, repeatState: LegacyRepeatState): Boolean =
+  private def filterRow(row: CypherRow, repeatState: LegacyRepeatState, state: QueryState): Boolean =
     repeatState match {
       case trailState: TrailLegacyRepeatState =>
         val innerRelationshipsArray = trailState.constraint.innerRelationships
@@ -206,7 +210,7 @@ case class RepeatPipe(
           relationshipsAreUnique = !trailState.relationshipsSeen.contains(rel) && innerRelationshipsSeen.add(rel)
           i += 1
         }
-        relationshipsAreUnique
+        relationshipsAreUnique && (emitPredicate == null || (emitPredicate(row, state) eq Values.TRUE))
       case _: WalkLegacyRepeatState =>
         true
     }
@@ -269,7 +273,7 @@ case class RepeatPipe(
                 stackHead = stack.pop()
                 outerRow.set(innerStart, VirtualValues.node(stackHead.endNode))
                 val innerState = state.withInitialContext(outerRow)
-                innerResult = inner.createResults(innerState).filter(filterRow(_, stackHead))
+                innerResult = inner.createResults(innerState).filter(filterRow(_, stackHead, state))
                 produceNext()
               } else {
                 None

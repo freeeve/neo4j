@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.runtime.PrefetchingIterator
 import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.RuntimeMetadataValue
 import org.neo4j.cypher.internal.runtime.WritableRow
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.PipeWithSource
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
@@ -45,9 +46,11 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.RepeatSlottedPipe.Travers
 import org.neo4j.cypher.internal.runtime.slotted.pipes.RepeatSlottedPipe.WalkModeConstraint
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.memory.EmptyMemoryTracker
 import org.neo4j.memory.HeapEstimator
 import org.neo4j.memory.Measurable
 import org.neo4j.memory.MemoryTracker
+import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.ListValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
 import org.neo4j.values.virtual.VirtualValues
@@ -116,12 +119,14 @@ case class RepeatSlottedPipe(
   slots: SlotConfiguration,
   rhsSlots: SlotConfiguration,
   argumentSize: SlotConfiguration.Size,
-  reverseGroupVariableProjections: Boolean
+  reverseGroupVariableProjections: Boolean,
+  maybeEmitPredicate: Option[Expression]
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) {
 
   private[this] val emptyGroupNodes = emptyLists(groupNodes.length)
   private[this] val emptyGroupRelationships = emptyLists(groupRelationships.length)
   private[this] val getStartNodeFunction = makeGetPrimitiveNodeFromSlotFunctionFor(startSlot)
+  private[this] val emitPredicate = maybeEmitPredicate.orNull
 
   private def createNewState(outerRow: CypherRow, startNode: Long, tracker: MemoryTracker): SlottedRepeatState =
     uniquenessConstraint match {
@@ -317,7 +322,10 @@ case class RepeatSlottedPipe(
               }
 
               val innerState = state.withInitialContext(rhsInitialRow)
-              innerResult = inner.createResults(innerState)
+              innerResult = if (emitPredicate == null)
+                inner.createResults(innerState)
+              else
+                inner.createResults(innerState).filter(row => emitPredicate(row, state) eq Values.TRUE)
               produceNext()
             } else {
               if (stackHead != null) {

@@ -2039,7 +2039,8 @@ class SlottedPipeMapper(
           slots,
           rhsSlots,
           argumentSize,
-          reverseGroupVariableProjections
+          reverseGroupVariableProjections,
+          maybeEmitPredicate = emitPredicate.map(e => expressionConverters.toCommandExpression(id, e))
         )(id = id)
 
       case RepeatWalk(
@@ -2069,7 +2070,8 @@ class SlottedPipeMapper(
           slots,
           rhsSlots,
           argumentSize,
-          reverseGroupVariableProjections
+          reverseGroupVariableProjections,
+          maybeEmitPredicate = None
         )(id = id)
 
       case _ =>
