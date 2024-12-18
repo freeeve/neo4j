@@ -108,7 +108,9 @@ public interface OutputFormatter {
 
         Plan plan = summary.plan();
         result.put("Plan", Values.value(summary.hasProfile() ? "PROFILE" : "EXPLAIN"));
-        result.put("Statement", Values.value(summary.queryType().name()));
+        result.put(
+                "Statement",
+                Values.value(summary.queryType() != null ? summary.queryType().name() : ""));
         Map<String, Value> arguments = plan.arguments();
         Value emptyString = Values.value("");
         Value questionMark = Values.value("?");
