@@ -3142,7 +3142,7 @@ case class LogicalPlan2PlanDescription(
           id = plan.id,
           "Repeat(Trail)",
           children,
-          Seq(Details(repeatDetails(repetition, start, end))),
+          Seq(Details(repeatDetails(repetition, start, end, emitPredicate))),
           variables,
           withRawCardinalities,
           withDistinctness
@@ -3153,7 +3153,7 @@ case class LogicalPlan2PlanDescription(
           id = plan.id,
           "BidirectionalRepeat(Trail)",
           children,
-          Seq(Details(repeatDetails(repetition, start, end))),
+          Seq(Details(repeatDetails(repetition, start, end, None))),
           variables,
           withRawCardinalities,
           withDistinctness
@@ -3175,7 +3175,7 @@ case class LogicalPlan2PlanDescription(
           id = plan.id,
           "Repeat(Walk)",
           children,
-          Seq(Details(repeatDetails(repetition, start, end))),
+          Seq(Details(repeatDetails(repetition, start, end, None))),
           variables,
           withRawCardinalities,
           withDistinctness
@@ -3187,14 +3187,20 @@ case class LogicalPlan2PlanDescription(
     addRuntimeAttributes(addPlanningAttributes(result, plan), plan)
   }
 
-  private def repeatDetails(repetition: Repetition, start: LogicalVariable, end: LogicalVariable): PrettyString = {
+  private def repeatDetails(
+    repetition: Repetition,
+    start: LogicalVariable,
+    end: LogicalVariable,
+    emitPredicate: Option[Ands]
+  ): PrettyString = {
     val repString = repetition match {
       case Repetition(min, Limited(n)) =>
         pretty"{${asPrettyString.raw(min.toString)}, ${asPrettyString.raw(n.toString)}}"
       case Repetition(min, Unlimited) =>
         pretty"{${asPrettyString.raw(min.toString)}, }"
     }
-    pretty"(${asPrettyString(start.name)}) (...)$repString (${asPrettyString(end.name)})"
+    val emitPredicateString = emitPredicate.map(p => pretty" WHERE ${asPrettyString(p)}").getOrElse(pretty"")
+    pretty"(${asPrettyString(start.name)}) (...)$repString (${asPrettyString(end.name)})$emitPredicateString"
   }
 
   private def addPlanningAttributes(

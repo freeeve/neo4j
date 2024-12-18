@@ -23,6 +23,7 @@ import org.apache.commons.text.StringEscapeUtils
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier.Extension
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
 import org.neo4j.cypher.internal.expressions.CachedProperty
@@ -699,7 +700,8 @@ object LogicalPlanToPlanBuilderString {
           innerRelationships,
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
-          reverseGroupVariableProjections
+          reverseGroupVariableProjections,
+          emitPredicate
         )
       case BidirectionalRepeatTrail(
           _,
@@ -727,7 +729,8 @@ object LogicalPlanToPlanBuilderString {
           innerRelationships,
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
-          reverseGroupVariableProjections
+          reverseGroupVariableProjections,
+          None
         )
       case RepeatWalk(
           _,
@@ -1548,7 +1551,8 @@ object LogicalPlanToPlanBuilderString {
     innerRelationships: Set[LogicalVariable],
     previouslyBoundRelationships: Set[LogicalVariable],
     previouslyBoundRelationshipGroups: Set[LogicalVariable],
-    reverseGroupVariableProjections: Boolean
+    reverseGroupVariableProjections: Boolean,
+    emitPredicate: Option[Ands]
   ) =
     call(
       "TrailParameters",
@@ -1563,7 +1567,8 @@ object LogicalPlanToPlanBuilderString {
       innerRelationships,
       previouslyBoundRelationships,
       previouslyBoundRelationshipGroups,
-      reverseGroupVariableProjections
+      reverseGroupVariableProjections + ", " +
+        emitPredicate.map(expressionStringifier(_))
     )
 
   private def walkParametersString(

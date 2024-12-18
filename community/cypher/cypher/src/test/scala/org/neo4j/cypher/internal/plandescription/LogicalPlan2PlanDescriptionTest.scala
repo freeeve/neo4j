@@ -124,6 +124,7 @@ import org.neo4j.cypher.internal.ast.WriteAction
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
+import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
@@ -8286,6 +8287,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
   }
 
   test("Repeat(Trail)") {
+    val emitPredicate = Some(Ands(Seq(LessThan(prop("end", "prop"), number("42"))(pos)))(pos))
+
     assertGood(
       attach(
         RepeatTrail(
@@ -8304,7 +8307,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Set(varFor("  r@1")),
           Set.empty,
           Set.empty,
-          reverseGroupVariableProjections = false
+          reverseGroupVariableProjections = false,
+          emitPredicate
         ),
         2345.0
       ),
@@ -8312,7 +8316,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         id,
         "Repeat(Trail)",
         Seq(lhsPD, rhsPD),
-        List(details("(start) (...){0, } (end)")),
+        List(details("(start) (...){0, } (end) WHERE end.prop < 42")),
         Set("r", "a", "anon_2", "start", "end")
       )
     )
@@ -8335,7 +8339,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Set(varFor("  r@1")),
           Set.empty,
           Set.empty,
-          reverseGroupVariableProjections = false
+          reverseGroupVariableProjections = false,
+          emitPredicate = None
         ),
         2345.0
       ),
