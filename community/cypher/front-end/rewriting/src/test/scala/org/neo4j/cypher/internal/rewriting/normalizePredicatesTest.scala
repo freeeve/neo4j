@@ -21,10 +21,10 @@ import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
-import org.neo4j.cypher.internal.rewriting.rewriters.LabelExpressionPredicateNormalizer
-import org.neo4j.cypher.internal.rewriting.rewriters.nameAllPatternElements
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeHasLabelsAndHasType
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizePredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.LabelExpressionPredicateNormalizer
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NameAllPatternElements
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeHasLabelsAndHasType
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizePredicates
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
@@ -41,15 +41,14 @@ class normalizePredicatesTest extends CypherFunSuite with TestName with AstRewri
     val anonVarNameGen = new AnonymousVariableNameGenerator
     inSequence(
       LabelExpressionPredicateNormalizer.instance,
-      nameAllPatternElements(anonVarNameGen),
-      normalizePredicates.getRewriter(
+      NameAllPatternElements(anonVarNameGen),
+      NormalizePredicates.getRewriter(
         semanticState,
         Map.empty,
-        OpenCypherExceptionFactory(None),
         new AnonymousVariableNameGenerator,
         CancellationChecker.neverCancelled()
       ),
-      normalizeHasLabelsAndHasType(semanticState)
+      NormalizeHasLabelsAndHasType(semanticState)
     )
   }
 
@@ -57,8 +56,8 @@ class normalizePredicatesTest extends CypherFunSuite with TestName with AstRewri
     val anonVarNameGen = new AnonymousVariableNameGenerator
     inSequence(
       LabelExpressionPredicateNormalizer.instance,
-      nameAllPatternElements(anonVarNameGen),
-      normalizeHasLabelsAndHasType(semanticState)
+      NameAllPatternElements(anonVarNameGen),
+      NormalizeHasLabelsAndHasType(semanticState)
     )
   }
 

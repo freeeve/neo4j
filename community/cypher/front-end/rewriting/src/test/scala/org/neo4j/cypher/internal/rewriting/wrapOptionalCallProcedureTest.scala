@@ -16,13 +16,13 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
-import org.neo4j.cypher.internal.rewriting.rewriters.wrapOptionalCallProcedure
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.WrapOptionalCallProcedure
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class wrapOptionalCallProcedureTest extends CypherFunSuite with RewriteTest {
 
-  override val rewriterUnderTest: Rewriter = wrapOptionalCallProcedure.getRewriter(null)
+  override val rewriterUnderTest: Rewriter = WrapOptionalCallProcedure.getRewriter(null)
 
   test("rewrite optional call procedure") {
     assertRewrite(

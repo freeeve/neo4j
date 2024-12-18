@@ -18,7 +18,7 @@ package org.neo4j.cypher.internal.rewriting
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.expressions.InvalidNotEquals
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeComparisons
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeComparisons
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class NormalizeComparisonsTest extends CypherFunSuite with AstConstructionTestSupport {
@@ -37,7 +37,7 @@ class NormalizeComparisonsTest extends CypherFunSuite with AstConstructionTestSu
 
   comparisons.foreach { operator =>
     test(operator.toString) {
-      val rewritten = operator.endoRewrite(normalizeComparisons.instance)
+      val rewritten = operator.endoRewrite(NormalizeComparisons.instance)
 
       rewritten.lhs shouldNot be theSameInstanceAs rewritten.rhs
     }
@@ -46,7 +46,7 @@ class NormalizeComparisonsTest extends CypherFunSuite with AstConstructionTestSu
   test("extract multiple hasLabels") {
     val original = hasLabels(varFor("a"), "X", "Y")
 
-    original.endoRewrite(normalizeComparisons.instance) should equal(
+    original.endoRewrite(NormalizeComparisons.instance) should equal(
       ands(hasLabels("a", "X"), hasLabels("a", "Y"))
     )
   }
@@ -54,6 +54,6 @@ class NormalizeComparisonsTest extends CypherFunSuite with AstConstructionTestSu
   test("does not extract single hasLabels") {
     val original = hasLabels("a", "Y")
 
-    original.endoRewrite(normalizeComparisons.instance) should equal(original)
+    original.endoRewrite(NormalizeComparisons.instance) should equal(original)
   }
 }

@@ -30,7 +30,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class ContainsNoNodesOfTypeTest extends CypherFunSuite with AstConstructionTestSupport {
 
   val condition: Any => Seq[String] =
-    containsNoNodesOfType[UnaliasedReturnItem]().apply(_)(CancellationChecker.NeverCancelled)
+    ContainsNoNodesOfType[UnaliasedReturnItem]().apply(_)(CancellationChecker.NeverCancelled)
 
   test("Happy when not finding UnaliasedReturnItem") {
     val ast: ASTNode =

@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.ast.semantics.Scope
-import org.neo4j.cypher.internal.rewriting.rewriters.addDependenciesToProjectionsInSubqueryExpressions
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddDependenciesToProjectionsInSubqueryExpressions
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.fabric.planning.Fragment.Apply
 import org.neo4j.fabric.planning.Fragment.Init
@@ -122,7 +122,7 @@ class FabricFragmenter(
 
   private def avoidDelisting(call: ast.ScopeClauseSubqueryCall): ast.Query = {
     call.endoRewrite(
-      addDependenciesToProjectionsInSubqueryExpressions.subqueryExpressionAndCallClauseRewriter
+      AddDependenciesToProjectionsInSubqueryExpressions.subqueryExpressionAndCallClauseRewriter
     ).innerQuery
   }
 

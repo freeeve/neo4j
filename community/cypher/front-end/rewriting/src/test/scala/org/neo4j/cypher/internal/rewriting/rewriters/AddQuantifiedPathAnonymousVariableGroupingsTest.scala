@@ -18,6 +18,8 @@ package org.neo4j.cypher.internal.rewriting.rewriters
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddQuantifiedPathAnonymousVariableGroupings
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NameAllPatternElements
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -27,7 +29,7 @@ class AddQuantifiedPathAnonymousVariableGroupingsTest extends CypherFunSuite wit
   private def rewrite(qpp: QuantifiedPath): QuantifiedPath = {
     val anonymousVariableNameGenerator = new AnonymousVariableNameGenerator()
     qpp.endoRewrite(inSequence(
-      nameAllPatternElements(anonymousVariableNameGenerator),
+      NameAllPatternElements(anonymousVariableNameGenerator),
       AddQuantifiedPathAnonymousVariableGroupings.instance
     ))
   }

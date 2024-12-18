@@ -48,7 +48,7 @@ import org.neo4j.cypher.internal.frontend.phases.collapseMultipleInPredicates
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.rewriteEqualityToInPredicate
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeWithAndReturnClauses
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
@@ -82,7 +82,7 @@ trait QueryGraphProducer {
     val exceptionFactory = Neo4jCypherExceptionFactory(q, None)
     val ast = parse(q, exceptionFactory)
     val cleanedStatement: Statement =
-      ast.endoRewrite(inSequence(normalizeWithAndReturnClauses(exceptionFactory)))
+      ast.endoRewrite(inSequence(NormalizeWithAndReturnClauses(exceptionFactory)))
     val onError = SyntaxExceptionCreator.throwOnError(exceptionFactory)
     val SemanticCheckResult(semanticState, errors) =
       SemanticChecker.check(cleanedStatement, SemanticState.clean.withFeatures(semanticFeatures: _*))

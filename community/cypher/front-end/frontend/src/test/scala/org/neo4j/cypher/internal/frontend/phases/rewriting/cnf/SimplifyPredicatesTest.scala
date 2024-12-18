@@ -40,7 +40,7 @@ import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.True
 import org.neo4j.cypher.internal.logical.plans.CoerceToPredicate
 import org.neo4j.cypher.internal.rewriting.AstRewritingTestSupport
-import org.neo4j.cypher.internal.rewriting.conditions.noReferenceEqualityAmongVariables
+import org.neo4j.cypher.internal.rewriting.conditions.NoReferenceEqualityAmongVariables
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
@@ -264,7 +264,7 @@ class SimplifyPredicatesTest extends CypherFunSuite with AstRewritingTestSupport
           _: AllIterablePredicate,
           _: AllIterablePredicate
         )) =>
-        noReferenceEqualityAmongVariables(rewrittenExpr)(CancellationChecker.NeverCancelled) shouldBe empty
+        NoReferenceEqualityAmongVariables(rewrittenExpr)(CancellationChecker.NeverCancelled) shouldBe empty
     }
   }
 

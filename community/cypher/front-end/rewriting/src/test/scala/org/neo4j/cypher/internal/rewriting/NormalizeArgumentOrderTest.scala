@@ -19,7 +19,7 @@ package org.neo4j.cypher.internal.rewriting
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeArgumentOrder
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeArgumentOrder
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class NormalizeArgumentOrderTest extends CypherFunSuite with AstConstructionTestSupport {
@@ -30,7 +30,7 @@ class NormalizeArgumentOrderTest extends CypherFunSuite with AstConstructionTest
 
     val input = equals(lhs, rhs)
 
-    normalizeArgumentOrder.instance(input) should equal(input)
+    NormalizeArgumentOrder.instance(input) should equal(input)
   }
 
   test("12 = a.prop rewritten to: a.prop = 12") {
@@ -40,7 +40,7 @@ class NormalizeArgumentOrderTest extends CypherFunSuite with AstConstructionTest
     val input = equals(lhs, rhs)
     val expected = equals(rhs, lhs)
 
-    normalizeArgumentOrder.instance(input) should equal(expected)
+    NormalizeArgumentOrder.instance(input) should equal(expected)
   }
 
   test("a < n.prop rewritten to: n.prop > a") {
@@ -49,7 +49,7 @@ class NormalizeArgumentOrderTest extends CypherFunSuite with AstConstructionTest
 
     val input = lessThan(lhs, rhs)
 
-    normalizeArgumentOrder.instance(input) should equal(greaterThan(rhs, lhs))
+    NormalizeArgumentOrder.instance(input) should equal(greaterThan(rhs, lhs))
   }
 
   test("a <= n.prop rewritten to: n.prop >= a") {
@@ -58,7 +58,7 @@ class NormalizeArgumentOrderTest extends CypherFunSuite with AstConstructionTest
 
     val input = lessThanOrEqual(lhs, rhs)
 
-    normalizeArgumentOrder.instance(input) should equal(greaterThanOrEqual(rhs, lhs))
+    NormalizeArgumentOrder.instance(input) should equal(greaterThanOrEqual(rhs, lhs))
   }
 
   test("a > n.prop rewritten to: n.prop < a") {
@@ -67,7 +67,7 @@ class NormalizeArgumentOrderTest extends CypherFunSuite with AstConstructionTest
 
     val input = greaterThan(lhs, rhs)
 
-    normalizeArgumentOrder.instance(input) should equal(lessThan(rhs, lhs))
+    NormalizeArgumentOrder.instance(input) should equal(lessThan(rhs, lhs))
   }
 
   test("a >= n.prop rewritten to: n.prop <= a") {
@@ -76,7 +76,7 @@ class NormalizeArgumentOrderTest extends CypherFunSuite with AstConstructionTest
 
     val input = greaterThanOrEqual(lhs, rhs)
 
-    normalizeArgumentOrder.instance(input) should equal(lessThanOrEqual(rhs, lhs))
+    NormalizeArgumentOrder.instance(input) should equal(lessThanOrEqual(rhs, lhs))
   }
 }
 
@@ -90,7 +90,7 @@ trait NormalizeArgumentOrderIdTestBase extends CypherFunSuite with AstConstructi
 
     val input = equals(lhs, rhs)
 
-    normalizeArgumentOrder.instance(input) should equal(input)
+    NormalizeArgumentOrder.instance(input) should equal(input)
   }
 
   test("23 = makeId(a) rewritten to: id(a) = 23") {
@@ -100,7 +100,7 @@ trait NormalizeArgumentOrderIdTestBase extends CypherFunSuite with AstConstructi
     val input = equals(lhs, rhs)
     val expected = equals(rhs, lhs)
 
-    normalizeArgumentOrder.instance(input) should equal(expected)
+    NormalizeArgumentOrder.instance(input) should equal(expected)
   }
 
   test("a.prop = makeId(b) rewritten to: id(b) = a.prop") {
@@ -109,7 +109,7 @@ trait NormalizeArgumentOrderIdTestBase extends CypherFunSuite with AstConstructi
 
     val input = equals(rhs, lhs)
 
-    normalizeArgumentOrder.instance(input) should equal(input)
+    NormalizeArgumentOrder.instance(input) should equal(input)
   }
 
   test("id(a) = b.prop rewritten to: id(a) = b.prop") {
@@ -118,7 +118,7 @@ trait NormalizeArgumentOrderIdTestBase extends CypherFunSuite with AstConstructi
 
     val input = equals(lhs, rhs)
 
-    normalizeArgumentOrder.instance(input) should equal(input)
+    NormalizeArgumentOrder.instance(input) should equal(input)
   }
 }
 

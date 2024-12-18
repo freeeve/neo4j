@@ -41,7 +41,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class NoUnnamedNodesAndRelationshipsTest extends CypherFunSuite with AstConstructionTestSupport {
 
-  private val condition: Any => Seq[String] = noUnnamedNodesAndRelationships(_)(CancellationChecker.NeverCancelled)
+  private val condition: Any => Seq[String] = NoUnnamedNodesAndRelationships(_)(CancellationChecker.NeverCancelled)
 
   test("unhappy when a node pattern is unnamed") {
     val nodePattern: NodePattern = node(None)

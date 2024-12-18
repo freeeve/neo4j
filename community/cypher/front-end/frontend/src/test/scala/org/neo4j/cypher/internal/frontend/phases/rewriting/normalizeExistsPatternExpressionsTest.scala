@@ -20,8 +20,8 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.simplifyPredicates
 import org.neo4j.cypher.internal.rewriting.AstRewritingTestSupport
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeExistsPatternExpressions
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeExistsPatternExpressions
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.inSequence
@@ -157,7 +157,7 @@ class normalizeExistsPatternExpressionsTest extends CypherFunSuite with AstRewri
     val rewriter =
       inSequence(
         computeDependenciesForExpressions(checkResult.state),
-        normalizeExistsPatternExpressions(checkResult.state),
+        NormalizeExistsPatternExpressions(checkResult.state),
         simplifyPredicates(checkResult.state, CancellationChecker.neverCancelled())
       )
 

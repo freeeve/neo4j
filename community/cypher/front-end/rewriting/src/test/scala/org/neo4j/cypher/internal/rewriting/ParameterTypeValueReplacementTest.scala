@@ -18,7 +18,7 @@ package org.neo4j.cypher.internal.rewriting
 
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.expressions.Parameter
-import org.neo4j.cypher.internal.rewriting.rewriters.parameterValueTypeReplacement
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ParameterValueTypeReplacement
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
@@ -68,7 +68,7 @@ class ParameterTypeValueReplacementTest extends CypherFunSuite with AstRewriting
       parameterTypes.size
     ) // make sure we use all given parameters in the query
 
-    val rewriter = parameterValueTypeReplacement(parameterTypes)
+    val rewriter = ParameterValueTypeReplacement(parameterTypes)
     val result = original.endoRewrite(rewriter)
 
     val rewrittenParameters: Seq[Parameter] = result.folder.findAllByClass[Parameter]

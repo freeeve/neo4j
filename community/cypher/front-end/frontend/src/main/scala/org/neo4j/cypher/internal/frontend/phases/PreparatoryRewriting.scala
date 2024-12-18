@@ -22,19 +22,19 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.Compilat
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.rewriting.RewriterStep
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
-import org.neo4j.cypher.internal.rewriting.rewriters.expandCallWhere
-import org.neo4j.cypher.internal.rewriting.rewriters.expandShowWhere
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.PreparatoryRewritingRewriterFactory
-import org.neo4j.cypher.internal.rewriting.rewriters.insertWithBetweenOptionalMatchAndMatch
-import org.neo4j.cypher.internal.rewriting.rewriters.mergeInPredicates
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeWithAndReturnClauses
-import org.neo4j.cypher.internal.rewriting.rewriters.nullIfFunctionRewriter
-import org.neo4j.cypher.internal.rewriting.rewriters.removeSyntaxTracking
-import org.neo4j.cypher.internal.rewriting.rewriters.rewriteShortestPathWithFixedLengthRelationship
-import org.neo4j.cypher.internal.rewriting.rewriters.rewriteShowQuery
-import org.neo4j.cypher.internal.rewriting.rewriters.timestampRewriter
-import org.neo4j.cypher.internal.rewriting.rewriters.unwrapTopLevelBraces
-import org.neo4j.cypher.internal.rewriting.rewriters.wrapOptionalCallProcedure
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.ExpandCallWhere
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.ExpandShowWhere
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.InsertWithBetweenOptionalMatchAndMatch
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.MergeInPredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NullIfFunctionRewriter
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RemoveSyntaxTracking
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RewriteShortestPathWithFixedLengthRelationship
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RewriteShowQuery
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.TimestampRewriter
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.UnwrapTopLevelBraces
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.WrapOptionalCallProcedure
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.AccumulatedSteps
 import org.neo4j.cypher.internal.util.inSequence
@@ -49,18 +49,18 @@ case object PreparatoryRewriting extends Phase[BaseContext, BaseState, BaseState
   val AccumulatedSteps(orderedSteps, _postConditions) =
     StepSequencer[StepSequencer.Step with PreparatoryRewritingRewriterFactory]().orderSteps(
       Set(
-        removeSyntaxTracking,
-        normalizeWithAndReturnClauses,
-        insertWithBetweenOptionalMatchAndMatch,
-        wrapOptionalCallProcedure,
-        expandCallWhere,
-        expandShowWhere,
-        rewriteShowQuery,
-        mergeInPredicates,
-        timestampRewriter,
-        rewriteShortestPathWithFixedLengthRelationship,
-        nullIfFunctionRewriter,
-        unwrapTopLevelBraces
+        ExpandCallWhere,
+        ExpandShowWhere,
+        InsertWithBetweenOptionalMatchAndMatch,
+        MergeInPredicates,
+        NormalizeWithAndReturnClauses,
+        NullIfFunctionRewriter,
+        RemoveSyntaxTracking,
+        TimestampRewriter,
+        UnwrapTopLevelBraces,
+        WrapOptionalCallProcedure,
+        RewriteShortestPathWithFixedLengthRelationship,
+        RewriteShowQuery
       )
     )
 

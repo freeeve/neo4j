@@ -16,7 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
-import org.neo4j.cypher.internal.rewriting.rewriters.rewriteShortestPathWithFixedLengthRel
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RewriteShortestPathWithFixedLengthRel
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -62,5 +62,5 @@ class ShortestPathFixedLengthReplacementTest extends CypherFunSuite with Rewrite
     )
   }
 
-  val rewriterUnderTest: Rewriter = rewriteShortestPathWithFixedLengthRel
+  val rewriterUnderTest: Rewriter = RewriteShortestPathWithFixedLengthRel
 }

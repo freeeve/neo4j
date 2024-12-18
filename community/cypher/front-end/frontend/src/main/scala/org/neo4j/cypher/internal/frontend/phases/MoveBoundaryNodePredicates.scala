@@ -32,9 +32,9 @@ import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.rewriting.conditions.AndRewrittenToAnds
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
-import org.neo4j.cypher.internal.rewriting.rewriters.QuantifiedPathPatternNodeInsertRewriter
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizePredicates
-import org.neo4j.cypher.internal.rewriting.rewriters.unwrapParenthesizedPath
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizePredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.QuantifiedPathPatternNodeInsertRewriter
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.UnwrapParenthesizedPath
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.DefaultPostCondition
@@ -51,11 +51,11 @@ case object MoveBoundaryNodePredicates extends StatementRewriter
     with PlanPipelineTransformerFactory {
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
-    normalizePredicates.completed,
+    NormalizePredicates.completed,
     AndRewrittenToAnds,
     QuantifiedPathPatternNodeInsertRewriter.completed,
     CopyQuantifiedPathPatternPredicatesToJuxtaposedNodes.completed,
-    unwrapParenthesizedPath.completed,
+    UnwrapParenthesizedPath.completed,
     // This will potentially change the dependencies of some predicates
     ShortestPathVariableDeduplicator.completed
   )

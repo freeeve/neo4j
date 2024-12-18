@@ -34,9 +34,9 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.ReduceExpression
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
+import org.neo4j.cypher.internal.rewriting.conditions.AggregationsAreIsolated
+import org.neo4j.cypher.internal.rewriting.conditions.HasAggregateButIsNotAggregate
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
-import org.neo4j.cypher.internal.rewriting.conditions.aggregationsAreIsolated
-import org.neo4j.cypher.internal.rewriting.conditions.hasAggregateButIsNotAggregate
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Ref
 import org.neo4j.cypher.internal.util.Rewriter
@@ -72,7 +72,7 @@ case object isolateAggregation extends StatementRewriter with StepSequencer.Step
         case clause: ProjectionClause if clauseNeedingWork(clause)(cancellationChecker) =>
           val clauseReturnItems = clause.returnItems.items
           val (returnsItemsWithAggregations, others) =
-            clauseReturnItems.partition(r => hasAggregateButIsNotAggregate(r.expression)(cancellationChecker))
+            clauseReturnItems.partition(r => HasAggregateButIsNotAggregate(r.expression)(cancellationChecker))
 
           val withAggregations = returnsItemsWithAggregations.map(_.expression).toSet
 
@@ -135,26 +135,26 @@ case object isolateAggregation extends StatementRewriter with StepSequencer.Step
     val expressionsToGoToWith: Set[Expression] = fixedPoint(cancellationChecker) {
       (expressions: Set[Expression]) =>
         expressions.flatMap {
-          case e @ ReduceExpression(scope, init, coll) if hasAggregateButIsNotAggregate(e)(cancellationChecker) =>
+          case e @ ReduceExpression(scope, init, coll) if HasAggregateButIsNotAggregate(e)(cancellationChecker) =>
             Seq(init, coll) ++ scope.expression.dependencies.diff(Set(e.accumulator) ++ Set(e.variable))
 
-          case e @ ListComprehension(scope, expr) if hasAggregateButIsNotAggregate(e)(cancellationChecker) =>
+          case e @ ListComprehension(scope, expr) if HasAggregateButIsNotAggregate(e)(cancellationChecker) =>
             scope.extractExpression match {
               case None => Seq(expr)
               case Some(extract) =>
                 Seq(expr) ++ extract.dependencies.diff(Set(e.variable))
             }
 
-          case e @ DesugaredMapProjection(entity, items, _) if hasAggregateButIsNotAggregate(e)(cancellationChecker) =>
+          case e @ DesugaredMapProjection(entity, items, _) if HasAggregateButIsNotAggregate(e)(cancellationChecker) =>
             items.map(_.exp) :+ entity
 
-          case e: IterablePredicateExpression if hasAggregateButIsNotAggregate(e)(cancellationChecker) =>
+          case e: IterablePredicateExpression if HasAggregateButIsNotAggregate(e)(cancellationChecker) =>
             val predicate: Expression =
               e.innerPredicate.getOrElse(throw new IllegalStateException("Should never be empty"))
             // Weird way of doing it to make scalac happy
             Set(e.expression) ++ predicate.dependencies - e.variable
 
-          case e if hasAggregateButIsNotAggregate(e)(cancellationChecker) =>
+          case e if HasAggregateButIsNotAggregate(e)(cancellationChecker) =>
             e.arguments
 
           case e =>
@@ -171,7 +171,7 @@ case object isolateAggregation extends StatementRewriter with StepSequencer.Step
     IsAggregate(expr) || expr.dependencies.nonEmpty
 
   private def clauseNeedingWork(c: Clause)(cancellationChecker: CancellationChecker): Boolean = c.folder.treeExists {
-    case e: Expression => hasAggregateButIsNotAggregate(e)(cancellationChecker)
+    case e: Expression => HasAggregateButIsNotAggregate(e)(cancellationChecker)
   }
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
@@ -179,7 +179,7 @@ case object isolateAggregation extends StatementRewriter with StepSequencer.Step
     Namespacer.completed
   )
 
-  override def postConditions: Set[StepSequencer.Condition] = Set(StatementCondition(aggregationsAreIsolated))
+  override def postConditions: Set[StepSequencer.Condition] = Set(StatementCondition(AggregationsAreIsolated))
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set(
     // Can introduces new ambiguous variable names itself.

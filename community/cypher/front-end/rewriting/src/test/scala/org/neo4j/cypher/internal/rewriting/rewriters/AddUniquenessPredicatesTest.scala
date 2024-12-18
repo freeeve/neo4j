@@ -30,9 +30,10 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.Negation
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Wildcard
 import org.neo4j.cypher.internal.label_expressions.MultiOperatorLabelExpression
 import org.neo4j.cypher.internal.rewriting.RewriteTest
-import org.neo4j.cypher.internal.rewriting.rewriters.AddUniquenessPredicates.evaluate
-import org.neo4j.cypher.internal.rewriting.rewriters.AddUniquenessPredicates.getRelTypesToConsider
-import org.neo4j.cypher.internal.rewriting.rewriters.RelationshipUniqueness.SingleRelationship
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddUniquenessPredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddUniquenessPredicates.evaluate
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddUniquenessPredicates.getRelTypesToConsider
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.RelationshipUniqueness.SingleRelationship
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter

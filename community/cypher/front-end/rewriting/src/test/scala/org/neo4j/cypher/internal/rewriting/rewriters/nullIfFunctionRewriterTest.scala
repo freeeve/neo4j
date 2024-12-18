@@ -17,13 +17,14 @@
 package org.neo4j.cypher.internal.rewriting.rewriters
 
 import org.neo4j.cypher.internal.rewriting.RewriteTest
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NullIfFunctionRewriter
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
 
 class nullIfFunctionRewriterTest extends CypherFunSuite with RewriteTest with TestName {
 
-  override val rewriterUnderTest: Rewriter = nullIfFunctionRewriter.instance
+  override val rewriterUnderTest: Rewriter = NullIfFunctionRewriter.instance
 
   override protected def assertRewrite(originalQuery: String, expectedQuery: String): Unit =
     super.assertRewrite(originalQuery, expectedQuery)

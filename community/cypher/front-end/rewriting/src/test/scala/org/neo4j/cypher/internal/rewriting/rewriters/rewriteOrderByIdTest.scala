@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.rewriting.AstRewritingTestSupport
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.RewriteOrderById
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -50,7 +51,7 @@ class rewriteOrderByIdTest extends CypherFunSuite with AstRewritingTestSupport {
     val expected = parse(expectedQuery, OpenCypherExceptionFactory(None))
 
     val checkResult = original.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
-    val rewriter = rewriteOrderById(checkResult.state)
+    val rewriter = RewriteOrderById(checkResult.state)
 
     val result = original.rewrite(rewriter)
     assert(
@@ -63,7 +64,7 @@ class rewriteOrderByIdTest extends CypherFunSuite with AstRewritingTestSupport {
     val original = parse(query, OpenCypherExceptionFactory(None))
 
     val checkResult = original.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
-    val rewriter = rewriteOrderById(checkResult.state)
+    val rewriter = RewriteOrderById(checkResult.state)
 
     val result = original.rewrite(rewriter)
     assert(

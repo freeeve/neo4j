@@ -16,13 +16,13 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
-import org.neo4j.cypher.internal.rewriting.rewriters.unwrapParenthesizedPath
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.UnwrapParenthesizedPath
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class unwrapParenthesizedPathTest extends CypherFunSuite with RewriteTest {
 
-  override def rewriterUnderTest: Rewriter = unwrapParenthesizedPath.instance
+  override def rewriterUnderTest: Rewriter = UnwrapParenthesizedPath.instance
 
   test("Unwrap in concatenation") {
     assertRewrite(

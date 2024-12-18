@@ -40,8 +40,8 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.SubqueryExpression
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
-import org.neo4j.cypher.internal.rewriting.conditions.containsNoReturnAll
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
@@ -79,7 +79,7 @@ case object IsolateSubqueriesInMutatingPatterns extends StatementRewriter
 
   override def postConditions: Set[StepSequencer.Condition] = Set(SubqueriesInMutatingPatternsIsolated)
 
-  override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable + containsNoReturnAll
+  override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable + ContainsNoReturnAll
 
   override def getTransformer(
     literalExtractionStrategy: LiteralExtractionStrategy,

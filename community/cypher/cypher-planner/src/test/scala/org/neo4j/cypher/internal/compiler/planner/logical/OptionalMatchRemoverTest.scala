@@ -34,12 +34,12 @@ import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOpe
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.SimplePatternLength
-import org.neo4j.cypher.internal.rewriting.rewriters.AddUniquenessPredicates
-import org.neo4j.cypher.internal.rewriting.rewriters.LabelExpressionPredicateNormalizer
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddUniquenessPredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.LabelExpressionPredicateNormalizer
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeExistsPatternExpressions
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeHasLabelsAndHasType
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions
-import org.neo4j.cypher.internal.rewriting.rewriters.insertWithBetweenOptionalMatchAndMatch
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeExistsPatternExpressions
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeHasLabelsAndHasType
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.InsertWithBetweenOptionalMatchAndMatch
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
@@ -68,11 +68,11 @@ class OptionalMatchRemoverTest extends CypherFunSuite with PlannerQueryRewriterT
     val orgAstState = SemanticChecker.check(astOriginal).state
     val ast_0 = astOriginal.endoRewrite(inSequence(
       LabelExpressionPredicateNormalizer.instance,
-      normalizeExistsPatternExpressions(orgAstState),
-      normalizeHasLabelsAndHasType(orgAstState),
+      NormalizeExistsPatternExpressions(orgAstState),
+      NormalizeHasLabelsAndHasType(orgAstState),
       AddUniquenessPredicates.rewriter,
       flattenBooleanOperators.instance(CancellationChecker.NeverCancelled),
-      insertWithBetweenOptionalMatchAndMatch.instance
+      InsertWithBetweenOptionalMatchAndMatch.instance
     ))
     // computeDependenciesForExpressions needs a new run of SemanticChecker after normalizeExistsPatternExpressions
     ast_0.endoRewrite(computeDependenciesForExpressions(SemanticChecker.check(ast_0).state))

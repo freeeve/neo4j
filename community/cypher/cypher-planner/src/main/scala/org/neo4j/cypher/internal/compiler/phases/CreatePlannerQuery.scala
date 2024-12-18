@@ -37,10 +37,10 @@ import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransform
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizer.PredicatesInCNF
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryProjection
+import org.neo4j.cypher.internal.rewriting.conditions.AggregationsAreIsolated
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNamedPathOnlyForShortestPath
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNodesOfType
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
-import org.neo4j.cypher.internal.rewriting.conditions.aggregationsAreIsolated
-import org.neo4j.cypher.internal.rewriting.conditions.containsNamedPathOnlyForShortestPath
-import org.neo4j.cypher.internal.rewriting.conditions.containsNoNodesOfType
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.NotSystemDatabaseException
@@ -89,13 +89,13 @@ case object CreatePlannerQuery extends StepSequencer.Step with PlanPipelineTrans
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
     // We would get MatchErrors if the first 3 conditions would not be met.
-    StatementCondition(containsNamedPathOnlyForShortestPath),
-    StatementCondition(containsNoNodesOfType[UnionAll]()),
-    StatementCondition(containsNoNodesOfType[UnionDistinct]()),
+    StatementCondition(ContainsNamedPathOnlyForShortestPath),
+    StatementCondition(ContainsNoNodesOfType[UnionAll]()),
+    StatementCondition(ContainsNoNodesOfType[UnionDistinct]()),
     // The PlannerQuery we create should already contain disambiguated names
     Namespacer.completed,
     // and we want to take advantage of isolated aggregations in the planner
-    StatementCondition(aggregationsAreIsolated),
+    StatementCondition(AggregationsAreIsolated),
     collapseMultipleInPredicates.completed
   ) ++
     // The PlannerQuery should be created based on normalised predicates

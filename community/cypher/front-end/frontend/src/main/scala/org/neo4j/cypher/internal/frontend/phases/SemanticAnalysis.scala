@@ -28,8 +28,8 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.Compilat
 import org.neo4j.cypher.internal.frontend.phases.PreparatoryRewriting.SemanticAnalysisPossible
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNodesOfType
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
-import org.neo4j.cypher.internal.rewriting.conditions.containsNoNodesOfType
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions.ExpressionsHaveComputedDependencies
@@ -101,7 +101,7 @@ case object SemanticAnalysis extends StepSequencer.Step with ParsePipelineTransf
 
   override def postConditions: Set[StepSequencer.Condition] = Set(
     BaseContains[SemanticState](),
-    StatementCondition(containsNoNodesOfType[UnaliasedReturnItem]()),
+    StatementCondition(ContainsNoNodesOfType[UnaliasedReturnItem]()),
     BaseContains[SemanticTable](),
     ExpressionsHaveComputedDependencies
   ) ++ SemanticInfoAvailable

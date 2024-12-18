@@ -20,36 +20,36 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.rewriting.RewriterStep
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
-import org.neo4j.cypher.internal.rewriting.rewriters.AddQuantifiedPathAnonymousVariableGroupings
-import org.neo4j.cypher.internal.rewriting.rewriters.AddUniquenessPredicates
-import org.neo4j.cypher.internal.rewriting.rewriters.AddVarLengthPredicates
-import org.neo4j.cypher.internal.rewriting.rewriters.FixedLengthShortestToAllRewriter
-import org.neo4j.cypher.internal.rewriting.rewriters.GQLAliasFunctionNameRewriter
-import org.neo4j.cypher.internal.rewriting.rewriters.LabelExpressionPredicateNormalizer
-import org.neo4j.cypher.internal.rewriting.rewriters.QuantifiedPathPatternNodeInsertRewriter
-import org.neo4j.cypher.internal.rewriting.rewriters.ReplacePatternComprehensionWithCollectSubquery
-import org.neo4j.cypher.internal.rewriting.rewriters.ReturnItemsAreAliased
-import org.neo4j.cypher.internal.rewriting.rewriters.RewriteSizeOfCollectToCount
-import org.neo4j.cypher.internal.rewriting.rewriters.addDependenciesToProjectionsInSubqueryExpressions
-import org.neo4j.cypher.internal.rewriting.rewriters.combineSetProperty
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddDependenciesToProjectionsInSubqueryExpressions
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddQuantifiedPathAnonymousVariableGroupings
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddUniquenessPredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddVarLengthPredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.CombineSetProperty
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.CypherTypeNormalizationRewriter
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.DesugarMapProjection
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ExpandStar
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.FixedLengthShortestToAllRewriter
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.FoldConstants
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.GQLAliasFunctionNameRewriter
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.LabelExpressionPredicateNormalizer
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.MoveWithPastMatch
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NameAllPatternElements
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeArgumentOrder
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeComparisons
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeExistsPatternExpressions
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeHasLabelsAndHasType
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeNotEquals
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizePredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ParameterValueTypeReplacement
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.QuantifiedPathPatternNodeInsertRewriter
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ReplaceLiteralDynamicPropertyLookups
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ReplacePatternComprehensionWithCollectSubquery
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.RewriteOrderById
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.RewriteSizeOfCollectToCount
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.UnwrapParenthesizedPath
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions.ExpressionsHaveComputedDependencies
-import org.neo4j.cypher.internal.rewriting.rewriters.cypherTypeNormalizationRewriter
-import org.neo4j.cypher.internal.rewriting.rewriters.desugarMapProjection
-import org.neo4j.cypher.internal.rewriting.rewriters.expandStar
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.ASTRewriterFactory
-import org.neo4j.cypher.internal.rewriting.rewriters.foldConstants
-import org.neo4j.cypher.internal.rewriting.rewriters.moveWithPastMatch
-import org.neo4j.cypher.internal.rewriting.rewriters.nameAllPatternElements
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeArgumentOrder
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeComparisons
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeExistsPatternExpressions
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeHasLabelsAndHasType
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeNotEquals
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizePredicates
-import org.neo4j.cypher.internal.rewriting.rewriters.parameterValueTypeReplacement
-import org.neo4j.cypher.internal.rewriting.rewriters.replaceLiteralDynamicPropertyLookups
-import org.neo4j.cypher.internal.rewriting.rewriters.rewriteOrderById
-import org.neo4j.cypher.internal.rewriting.rewriters.unwrapParenthesizedPath
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.ReturnItemsAreAliased
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
@@ -63,33 +63,33 @@ object ASTRewriter {
   val AccumulatedSteps(orderedSteps, postConditions) =
     StepSequencer[StepSequencer.Step with ASTRewriterFactory]().orderSteps(
       Set(
-        combineSetProperty,
-        expandStar,
-        normalizeHasLabelsAndHasType,
-        desugarMapProjection,
-        moveWithPastMatch,
-        normalizeComparisons,
-        foldConstants,
-        normalizeExistsPatternExpressions,
-        nameAllPatternElements,
-        normalizePredicates,
-        normalizeNotEquals,
-        normalizeArgumentOrder,
+        AddDependenciesToProjectionsInSubqueryExpressions,
+        AddQuantifiedPathAnonymousVariableGroupings,
         AddUniquenessPredicates,
         AddVarLengthPredicates,
-        replaceLiteralDynamicPropertyLookups,
-        parameterValueTypeReplacement,
-        rewriteOrderById,
-        LabelExpressionPredicateNormalizer,
-        unwrapParenthesizedPath,
-        QuantifiedPathPatternNodeInsertRewriter,
-        addDependenciesToProjectionsInSubqueryExpressions,
+        CombineSetProperty,
+        CypherTypeNormalizationRewriter,
+        DesugarMapProjection,
+        ExpandStar,
         FixedLengthShortestToAllRewriter,
-        cypherTypeNormalizationRewriter,
-        RewriteSizeOfCollectToCount,
-        ReplacePatternComprehensionWithCollectSubquery,
+        FoldConstants,
         GQLAliasFunctionNameRewriter,
-        AddQuantifiedPathAnonymousVariableGroupings
+        LabelExpressionPredicateNormalizer,
+        MoveWithPastMatch,
+        NameAllPatternElements,
+        NormalizeArgumentOrder,
+        NormalizeComparisons,
+        NormalizeExistsPatternExpressions,
+        NormalizeHasLabelsAndHasType,
+        NormalizeNotEquals,
+        NormalizePredicates,
+        ParameterValueTypeReplacement,
+        QuantifiedPathPatternNodeInsertRewriter,
+        ReplaceLiteralDynamicPropertyLookups,
+        ReplacePatternComprehensionWithCollectSubquery,
+        RewriteOrderById,
+        RewriteSizeOfCollectToCount,
+        UnwrapParenthesizedPath
       ),
       initialConditions = SemanticInfoAvailable ++ Set(
         ReturnItemsAreAliased,
@@ -107,13 +107,7 @@ object ASTRewriter {
   ): Statement = {
     val rewriters = orderedSteps.map { step =>
       val rewriter =
-        step.getRewriter(
-          semanticState,
-          parameterTypeMapping,
-          cypherExceptionFactory,
-          anonymousVariableNameGenerator,
-          cancellationChecker
-        )
+        step.getRewriter(semanticState, parameterTypeMapping, anonymousVariableNameGenerator, cancellationChecker)
       RewriterStep.validatingRewriter(rewriter, step, cancellationChecker)
     }
 

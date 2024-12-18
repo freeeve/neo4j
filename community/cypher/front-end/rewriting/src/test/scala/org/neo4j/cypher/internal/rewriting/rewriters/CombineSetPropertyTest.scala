@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.SetPropertyItems
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.rewriting.AstRewritingTestSupport
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.CombineSetProperty
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class CombineSetPropertyTest extends CypherFunSuite with AstRewritingTestSupport {
@@ -32,7 +33,7 @@ class CombineSetPropertyTest extends CypherFunSuite with AstRewritingTestSupport
     val clause = setClause(setProperty(prop(varFor("n"), "prop"), literal(42)))
 
     // when
-    val rewritten = combineSetProperty.instance(clause)
+    val rewritten = CombineSetProperty.instance(clause)
 
     // then
     rewritten should equal(clause)
@@ -46,7 +47,7 @@ class CombineSetPropertyTest extends CypherFunSuite with AstRewritingTestSupport
     )
 
     // when
-    val rewritten = combineSetProperty.instance(clause)
+    val rewritten = CombineSetProperty.instance(clause)
 
     // then
     rewritten should equal(setClause(setProperties(varFor("n"), ("prop1", literal(1)), ("prop2", literal(2)))))
@@ -60,7 +61,7 @@ class CombineSetPropertyTest extends CypherFunSuite with AstRewritingTestSupport
     )
 
     // when
-    val rewritten = combineSetProperty.instance(clause)
+    val rewritten = CombineSetProperty.instance(clause)
 
     // then
     rewritten should equal(clause)
@@ -77,7 +78,7 @@ class CombineSetPropertyTest extends CypherFunSuite with AstRewritingTestSupport
     )
 
     // when
-    val rewritten = combineSetProperty.instance(clause)
+    val rewritten = CombineSetProperty.instance(clause)
 
     // then
     rewritten should equal(clause)
@@ -95,7 +96,7 @@ class CombineSetPropertyTest extends CypherFunSuite with AstRewritingTestSupport
     )
 
     // when
-    val rewritten = combineSetProperty.instance(clause)
+    val rewritten = CombineSetProperty.instance(clause)
 
     // then
     rewritten should equal(

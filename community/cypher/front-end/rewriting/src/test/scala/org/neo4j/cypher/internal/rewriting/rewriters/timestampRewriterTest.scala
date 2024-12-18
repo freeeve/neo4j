@@ -17,12 +17,13 @@
 package org.neo4j.cypher.internal.rewriting.rewriters
 
 import org.neo4j.cypher.internal.rewriting.RewriteTest
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.TimestampRewriter
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class timestampRewriterTest extends CypherFunSuite with RewriteTest {
 
-  override val rewriterUnderTest: Rewriter = timestampRewriter.instance
+  override val rewriterUnderTest: Rewriter = TimestampRewriter.instance
 
   test("Rewrites timestamp to datetime.epochMillis") {
     assertRewrite("RETURN timestamp() as t", "RETURN datetime().epochMillis as t")

@@ -17,13 +17,14 @@
 package org.neo4j.cypher.internal.rewriting.rewriters
 
 import org.neo4j.cypher.internal.rewriting.RewriteTest
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.MoveWithPastMatch
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class moveWithPastMatchTest extends CypherFunSuite with RewriteTest {
 
-  val rewriterUnderTest: Rewriter = moveWithPastMatch(CancellationChecker.neverCancelled()).instance
+  val rewriterUnderTest: Rewriter = MoveWithPastMatch(CancellationChecker.neverCancelled()).instance
 
   test("does not move WITH if it is not a simple projection") {
     assertIsNotRewritten("WITH DISTINCT 1 AS foo MATCH (n) RETURN n")

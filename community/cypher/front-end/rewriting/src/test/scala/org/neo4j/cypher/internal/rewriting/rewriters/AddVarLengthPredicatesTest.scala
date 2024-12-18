@@ -18,6 +18,8 @@ package org.neo4j.cypher.internal.rewriting.rewriters
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.rewriting.RewriteTest
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddVarLengthPredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NameAllPatternElements
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.inSequence
@@ -64,7 +66,7 @@ class AddVarLengthPredicatesTest extends CypherFunSuite with RewriteTest with As
   }
 
   def rewriterUnderTest: Rewriter = inSequence(
-    nameAllPatternElements(new AnonymousVariableNameGenerator),
+    NameAllPatternElements(new AnonymousVariableNameGenerator),
     AddVarLengthPredicates.rewriter,
     VarLengthRewriter
   )

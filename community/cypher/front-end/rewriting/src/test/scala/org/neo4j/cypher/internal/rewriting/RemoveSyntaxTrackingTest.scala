@@ -21,7 +21,7 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
-import org.neo4j.cypher.internal.rewriting.rewriters.removeSyntaxTracking
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RemoveSyntaxTracking
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
@@ -31,7 +31,7 @@ class RemoveSyntaxTrackingTest extends CypherFunSuite with AstRewritingTestSuppo
 
   private val prettifier = Prettifier(ExpressionStringifier(_.asCanonicalStringVal))
 
-  private val rewriterUnderTest: Rewriter = removeSyntaxTracking.instance
+  private val rewriterUnderTest: Rewriter = RemoveSyntaxTracking.instance
 
   test("remove tracking of escaped variable") {
     assertRewriteForEachVersion(

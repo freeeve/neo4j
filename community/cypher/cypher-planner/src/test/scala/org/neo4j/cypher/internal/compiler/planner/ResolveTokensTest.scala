@@ -48,8 +48,8 @@ import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.planner.spi.PlanContext
-import org.neo4j.cypher.internal.rewriting.rewriters.LabelExpressionPredicateNormalizer
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeHasLabelsAndHasType
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.LabelExpressionPredicateNormalizer
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeHasLabelsAndHasType
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.PropertyKeyId
@@ -234,7 +234,7 @@ class ResolveTokensTest extends CypherFunSuite {
         val parsed = AstParserFactory(version)(queryText, Neo4jCypherExceptionFactory(queryText, None), None)
           .singleStatement()
         val rewriter = LabelExpressionPredicateNormalizer.instance andThen
-          normalizeHasLabelsAndHasType(SemanticChecker.check(parsed).state)
+          NormalizeHasLabelsAndHasType(SemanticChecker.check(parsed).state)
         rewriter(parsed) match {
           case query: Query => withClue(s"Parser: $version\n")(f(query))
           case other        => throw new IllegalArgumentException(s"Unexpected value with $version: $other")

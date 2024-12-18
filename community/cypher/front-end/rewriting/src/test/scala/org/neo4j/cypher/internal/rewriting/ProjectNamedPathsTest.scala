@@ -49,11 +49,11 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.expressions.SingleRelationshipPathStep
 import org.neo4j.cypher.internal.expressions.Variable
-import org.neo4j.cypher.internal.rewriting.rewriters.QuantifiedPathPatternNodeInsertRewriter
-import org.neo4j.cypher.internal.rewriting.rewriters.expandStar
-import org.neo4j.cypher.internal.rewriting.rewriters.nameAllPatternElements
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeWithAndReturnClauses
-import org.neo4j.cypher.internal.rewriting.rewriters.projectNamedPaths
+import org.neo4j.cypher.internal.rewriting.rewriters.ProjectNamedPaths
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ExpandStar
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NameAllPatternElements
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.QuantifiedPathPatternNodeInsertRewriter
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.inSequence
@@ -62,18 +62,18 @@ import org.neo4j.cypher.internal.util.test_helpers.TestName
 
 class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport with TestName {
 
-  private def projectionInlinedAst(queryText: String) = ast(queryText).endoRewrite(projectNamedPaths)
+  private def projectionInlinedAst(queryText: String) = ast(queryText).endoRewrite(ProjectNamedPaths)
 
   private def projectionInlinedQppAst(queryText: String) = ast(queryText).endoRewrite(
     QuantifiedPathPatternNodeInsertRewriter.instance
-  ).endoRewrite(nameAllPatternElements(new AnonymousVariableNameGenerator)).endoRewrite(projectNamedPaths)
+  ).endoRewrite(NameAllPatternElements(new AnonymousVariableNameGenerator)).endoRewrite(ProjectNamedPaths)
 
   private def ast(queryText: String) = {
     val parsed = parse(queryText, OpenCypherExceptionFactory(None))
     val exceptionFactory = OpenCypherExceptionFactory(Some(pos))
-    val normalized = parsed.endoRewrite(inSequence(normalizeWithAndReturnClauses(exceptionFactory)))
+    val normalized = parsed.endoRewrite(inSequence(NormalizeWithAndReturnClauses(exceptionFactory)))
     val checkResult = normalized.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
-    normalized.endoRewrite(inSequence(expandStar(checkResult.state)))
+    normalized.endoRewrite(inSequence(ExpandStar(checkResult.state)))
   }
 
   private def parseReturnedExpr(queryText: String) = {

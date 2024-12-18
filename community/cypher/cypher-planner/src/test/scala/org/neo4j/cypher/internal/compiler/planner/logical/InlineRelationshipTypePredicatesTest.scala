@@ -26,13 +26,13 @@ import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOperators
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.simplifyPredicates
-import org.neo4j.cypher.internal.rewriting.rewriters.LabelExpressionPredicateNormalizer
-import org.neo4j.cypher.internal.rewriting.rewriters.QuantifiedPathPatternNodeInsertRewriter
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ExpandStar
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.LabelExpressionPredicateNormalizer
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NameAllPatternElements
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeHasLabelsAndHasType
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizePredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.QuantifiedPathPatternNodeInsertRewriter
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions
-import org.neo4j.cypher.internal.rewriting.rewriters.expandStar
-import org.neo4j.cypher.internal.rewriting.rewriters.nameAllPatternElements
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeHasLabelsAndHasType
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizePredicates
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
@@ -61,12 +61,12 @@ class InlineRelationshipTypePredicatesTest extends CypherFunSuite with PlannerQu
     astOriginal.endoRewrite(inSequence(
       computeDependenciesForExpressions(orgAstState),
       LabelExpressionPredicateNormalizer.instance,
-      normalizeHasLabelsAndHasType(orgAstState),
+      NormalizeHasLabelsAndHasType(orgAstState),
       QuantifiedPathPatternNodeInsertRewriter.instance,
-      nameAllPatternElements.getRewriter(orgAstState, Map.empty, ceF, anonVarGen, CancellationChecker.neverCancelled()),
-      normalizePredicates.getRewriter(orgAstState, Map.empty, ceF, anonVarGen, CancellationChecker.neverCancelled()),
+      NameAllPatternElements.getRewriter(orgAstState, Map.empty, anonVarGen, CancellationChecker.neverCancelled()),
+      NormalizePredicates.getRewriter(orgAstState, Map.empty, anonVarGen, CancellationChecker.neverCancelled()),
       flattenBooleanOperators.instance(CancellationChecker.NeverCancelled),
-      expandStar(orgAstState),
+      ExpandStar(orgAstState),
       simplifyPredicates(orgAstState, CancellationChecker.neverCancelled())
     ))
   }

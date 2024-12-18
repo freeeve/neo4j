@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class ContainsNoMatchingNodesTest extends CypherFunSuite with AstConstructionTestSupport {
 
-  val condition: Any => Seq[String] = containsNoMatchingNodes({
+  val condition: Any => Seq[String] = ContainsNoMatchingNodes({
     case ri: ReturnItems if ri.includeExisting => "ReturnItems(includeExisting = true, ...)"
   })(_)(CancellationChecker.NeverCancelled)
 

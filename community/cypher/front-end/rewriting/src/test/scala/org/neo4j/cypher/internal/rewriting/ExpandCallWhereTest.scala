@@ -19,14 +19,14 @@ package org.neo4j.cypher.internal.rewriting
 import org.neo4j.cypher.internal.ast.AddedInRewriteProcCall
 import org.neo4j.cypher.internal.ast.DefaultWith
 import org.neo4j.cypher.internal.ast.With
-import org.neo4j.cypher.internal.rewriting.rewriters.expandCallWhere
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.ExpandCallWhere
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class ExpandCallWhereTest extends CypherFunSuite with RewriteTest {
 
-  override val rewriterUnderTest: Rewriter = expandCallWhere.instance
+  override val rewriterUnderTest: Rewriter = ExpandCallWhere.instance
 
   test("rewrite call yield where") {
     assertRewrite(

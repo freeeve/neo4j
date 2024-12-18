@@ -16,7 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
-import org.neo4j.cypher.internal.rewriting.rewriters.nameAllPatternElements
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NameAllPatternElements
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.helpers.NameDeduplicator.removeGeneratedNamesAndParamsOnTree
@@ -33,7 +33,7 @@ class nameAllPatternElementsTest extends CypherFunSuite with AstRewritingTestSup
       expectedQuery,
       exceptionFactory
     ))
-    val result = removeGeneratedNamesAndParamsOnTree(original.rewrite(nameAllPatternElements(nameGenerator)))
+    val result = removeGeneratedNamesAndParamsOnTree(original.rewrite(NameAllPatternElements(nameGenerator)))
 
     assert(result === expected)
   }
@@ -118,7 +118,7 @@ class nameAllPatternElementsTest extends CypherFunSuite with AstRewritingTestSup
   test("should not change names of already named things") {
     val original = parse("RETURN [p=(a)-[r]->(b) | 'foo'] AS foo", exceptionFactory)
 
-    val result = original.rewrite(nameAllPatternElements(new AnonymousVariableNameGenerator))
+    val result = original.rewrite(NameAllPatternElements(new AnonymousVariableNameGenerator))
     assert(result === original)
   }
 
@@ -131,7 +131,7 @@ class nameAllPatternElementsTest extends CypherFunSuite with AstRewritingTestSup
       exceptionFactory
     )
 
-    val result = original.rewrite(nameAllPatternElements(new AnonymousVariableNameGenerator))
+    val result = original.rewrite(NameAllPatternElements(new AnonymousVariableNameGenerator))
     assert(result === original)
   }
 }

@@ -19,6 +19,8 @@ package org.neo4j.cypher.internal.rewriting.rewriters
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.rewriting.AstRewritingTestSupport
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddDependenciesToProjectionsInSubqueryExpressions
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -531,13 +533,13 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
     val expected = parse(expectedQuery, cypherExceptionFactory)
 
     val normalizedWithAndReturnClauses =
-      original.endoRewrite(normalizeWithAndReturnClauses.getRewriter(cypherExceptionFactory))
+      original.endoRewrite(NormalizeWithAndReturnClauses.getRewriter(cypherExceptionFactory))
     val checkResult =
       normalizedWithAndReturnClauses.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
     val rewriter =
       inSequence(
         computeDependenciesForExpressions(checkResult.state),
-        addDependenciesToProjectionsInSubqueryExpressions.subqueryExpressionAndCallClauseRewriter
+        AddDependenciesToProjectionsInSubqueryExpressions.subqueryExpressionAndCallClauseRewriter
       )
 
     val result = normalizedWithAndReturnClauses.rewrite(rewriter)

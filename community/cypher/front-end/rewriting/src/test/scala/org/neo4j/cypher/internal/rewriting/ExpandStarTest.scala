@@ -32,10 +32,10 @@ import org.neo4j.cypher.internal.ast.TerminateTransactionsClause
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
-import org.neo4j.cypher.internal.rewriting.rewriters.expandShowWhere
-import org.neo4j.cypher.internal.rewriting.rewriters.expandStar
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeWithAndReturnClauses
-import org.neo4j.cypher.internal.rewriting.rewriters.rewriteShowQuery
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ExpandStar
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.ExpandShowWhere
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RewriteShowQuery
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.inSequence
@@ -305,7 +305,7 @@ class ExpandStarTest extends CypherFunSuite with AstRewritingTestSupport {
 
     val original = prepRewrite(s"${wizz}RETURN *")
     val checkResult = original.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
-    val after = original.rewrite(expandStar(checkResult.state))
+    val after = original.rewrite(ExpandStar(checkResult.state))
     val returnItem = after.asInstanceOf[Query].asInstanceOf[SingleQuery]
       .clauses.last.asInstanceOf[Return].returnItems.items.head.asInstanceOf[AliasedReturnItem]
     returnItem.expression.position should equal(expressionPos)
@@ -375,7 +375,7 @@ class ExpandStarTest extends CypherFunSuite with AstRewritingTestSupport {
       } else expectedUpdatedReturn
 
     val checkResult = original.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
-    val rewriter = expandStar(checkResult.state)
+    val rewriter = ExpandStar(checkResult.state)
 
     val result = original.rewrite(rewriter)
     assert(result === expectedUpdatedYield)
@@ -399,12 +399,12 @@ class ExpandStarTest extends CypherFunSuite with AstRewritingTestSupport {
     val rewriter =
       if (rewriteShowCommand)
         inSequence(
-          normalizeWithAndReturnClauses(exceptionFactory),
-          rewriteShowQuery.instance,
-          expandShowWhere.instance
+          NormalizeWithAndReturnClauses(exceptionFactory),
+          RewriteShowQuery.instance,
+          ExpandShowWhere.instance
         )
       else
-        inSequence(normalizeWithAndReturnClauses(exceptionFactory))
+        inSequence(NormalizeWithAndReturnClauses(exceptionFactory))
     parse(q, exceptionFactory).endoRewrite(rewriter)
   }
 

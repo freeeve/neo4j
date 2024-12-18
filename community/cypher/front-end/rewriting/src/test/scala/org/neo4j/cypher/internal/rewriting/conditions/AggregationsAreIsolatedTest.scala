@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class AggregationsAreIsolatedTest extends CypherFunSuite with AstConstructionTestSupport {
 
-  private val condition: Any => Seq[String] = aggregationsAreIsolated(_)(CancellationChecker.NeverCancelled)
+  private val condition: Any => Seq[String] = AggregationsAreIsolated(_)(CancellationChecker.NeverCancelled)
 
   test("happy when aggregation are top level in expressions") {
     val ast = CountStar() _

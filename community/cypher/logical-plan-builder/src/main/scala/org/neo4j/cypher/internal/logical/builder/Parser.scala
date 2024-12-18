@@ -43,8 +43,8 @@ import org.neo4j.cypher.internal.logical.plans.CoerceToPredicate
 import org.neo4j.cypher.internal.logical.plans.ColumnOrder
 import org.neo4j.cypher.internal.logical.plans.Descending
 import org.neo4j.cypher.internal.parser.v5.ast.factory.Cypher5AstParser
-import org.neo4j.cypher.internal.rewriting.rewriters.LabelExpressionPredicateNormalizer
-import org.neo4j.cypher.internal.rewriting.rewriters.removeSyntaxTracking
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.LabelExpressionPredicateNormalizer
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RemoveSyntaxTracking
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
@@ -97,7 +97,7 @@ object Parser {
   })
 
   def cleanup[T <: ASTNode](in: T): T = inSequence(
-    removeSyntaxTracking.instance,
+    RemoveSyntaxTracking.instance,
     injectCachedProperties,
     invalidateInputPositions,
     replaceWrongFunctionInvocation,

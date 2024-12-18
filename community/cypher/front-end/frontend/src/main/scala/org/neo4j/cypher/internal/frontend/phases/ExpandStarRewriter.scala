@@ -17,8 +17,8 @@
 package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.AST_REWRITE
-import org.neo4j.cypher.internal.rewriting.conditions.containsNoReturnAll
-import org.neo4j.cypher.internal.rewriting.rewriters.expandStar
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ExpandStar
 import org.neo4j.cypher.internal.util.StepSequencer
 
 /**
@@ -29,8 +29,8 @@ case object ExpandStarRewriter extends Phase[BaseContext, BaseState, BaseState] 
   def phase: CompilationPhaseTracer.CompilationPhase = AST_REWRITE
 
   def process(from: BaseState, context: BaseContext): BaseState =
-    from.withStatement(from.statement().endoRewrite(expandStar(from.semantics())))
+    from.withStatement(from.statement().endoRewrite(ExpandStar(from.semantics())))
 
   override def postConditions: Set[StepSequencer.Condition] =
-    Set(StatementCondition(containsNoReturnAll))
+    Set(StatementCondition(ContainsNoReturnAll))
 }

@@ -19,7 +19,7 @@ package org.neo4j.cypher.internal.frontend.phases.rewriting
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOperators
 import org.neo4j.cypher.internal.rewriting.AstRewritingTestSupport
-import org.neo4j.cypher.internal.rewriting.rewriters.mergeInPredicates
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.MergeInPredicates
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
@@ -220,7 +220,7 @@ class mergeInPredicatesTest extends CypherFunSuite with AstRewritingTestSupport 
     val original = parse(from, exceptionFactory).asInstanceOf[Query]
     val expected = parse(to, exceptionFactory).asInstanceOf[Query]
     val common: Rewriter = flattenBooleanOperators.instance(CancellationChecker.NeverCancelled)
-    val result = mergeInPredicates.instance(original)
+    val result = MergeInPredicates.instance(original)
 
     common(result) should equal(common(expected))
   }

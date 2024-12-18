@@ -30,12 +30,12 @@ import org.neo4j.cypher.internal.expressions.Contains
 import org.neo4j.cypher.internal.expressions.StartsWith
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.Variable
-import org.neo4j.cypher.internal.rewriting.rewriters.expandShowWhere
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.ExpandShowWhere
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
-  val rewriterUnderTest: Rewriter = expandShowWhere.instance
+  val rewriterUnderTest: Rewriter = ExpandShowWhere.instance
 
   test("SHOW DATABASES") {
     val originalQuery = "SHOW DATABASES WHERE name STARTS WITH 's'"

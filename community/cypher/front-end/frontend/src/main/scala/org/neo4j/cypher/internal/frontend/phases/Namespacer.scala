@@ -32,8 +32,8 @@ import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.AST_REWRITE
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNodesOfType
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
-import org.neo4j.cypher.internal.rewriting.conditions.containsNoNodesOfType
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.Ref
@@ -178,8 +178,8 @@ case object Namespacer extends Phase[BaseContext, BaseState, BaseState]
   override def preConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable
 
   override def postConditions: Set[StepSequencer.Condition] = Set(
-    StatementCondition(containsNoNodesOfType[UnionAll]()),
-    StatementCondition(containsNoNodesOfType[UnionDistinct]()),
+    StatementCondition(ContainsNoNodesOfType[UnionAll]()),
+    StatementCondition(ContainsNoNodesOfType[UnionDistinct]()),
     completed
   )
 

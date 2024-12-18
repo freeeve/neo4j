@@ -20,14 +20,14 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.Statement
-import org.neo4j.cypher.internal.rewriting.rewriters.unwrapTopLevelBraces
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.UnwrapTopLevelBraces
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
 
-  override val rewriterUnderTest: Rewriter = unwrapTopLevelBraces.instance
+  override val rewriterUnderTest: Rewriter = UnwrapTopLevelBraces.instance
 
   test("braces") {
     assertRewrite(CypherVersion.Cypher25, "{ RETURN 1 AS x }", "RETURN 1 AS x")

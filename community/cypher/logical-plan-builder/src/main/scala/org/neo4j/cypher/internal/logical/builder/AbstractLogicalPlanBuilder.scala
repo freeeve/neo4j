@@ -268,10 +268,10 @@ import org.neo4j.cypher.internal.logical.plans.UnionNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
 import org.neo4j.cypher.internal.logical.plans.VarExpand
-import org.neo4j.cypher.internal.rewriting.rewriters.HasLabelsAndHasTypeNormalizer
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.DesugarMapProjection
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.HasLabelsAndHasTypeNormalizer
 import org.neo4j.cypher.internal.rewriting.rewriters.combineHasLabels
-import org.neo4j.cypher.internal.rewriting.rewriters.desugarMapProjection
-import org.neo4j.cypher.internal.rewriting.rewriters.removeSyntaxTracking
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RemoveSyntaxTracking
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InputPosition.NONE
 import org.neo4j.cypher.internal.util.LabelId
@@ -3222,10 +3222,10 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
 
   protected def expressionRewriter: Rewriter =
     inSequence(
-      removeSyntaxTracking.instance,
+      RemoveSyntaxTracking.instance,
       hasLabelsAndHasTypeNormalizer,
       combineHasLabels,
-      desugarMapProjection.instance
+      DesugarMapProjection.instance
     )
 
   /**

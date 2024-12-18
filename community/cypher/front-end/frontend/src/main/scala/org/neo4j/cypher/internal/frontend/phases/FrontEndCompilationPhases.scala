@@ -57,7 +57,7 @@ trait FrontEndCompilationPhases {
       SyntaxDeprecationWarningsAndReplacements(Deprecations.SyntacticallyDeprecatedFeatures) andThen
       PreparatoryRewriting andThen
       If((_: BaseState) => config.obfuscateLiterals)(
-        extractSensitiveLiterals
+        ExtractSensitiveLiterals
       ) andThen
       SemanticAnalysis(warn = true, config.semanticFeatures: _*) andThen
       RemoveDuplicateUseClauses andThen

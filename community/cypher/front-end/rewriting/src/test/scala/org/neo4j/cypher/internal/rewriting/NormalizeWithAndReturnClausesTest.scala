@@ -20,7 +20,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
-import org.neo4j.cypher.internal.rewriting.rewriters.normalizeWithAndReturnClauses
+import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory.SyntaxException
 import org.neo4j.cypher.internal.util.Rewriter
@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest {
   private val exceptionFactory = OpenCypherExceptionFactory(None)
-  val rewriterUnderTest: Rewriter = normalizeWithAndReturnClauses(exceptionFactory)
+  val rewriterUnderTest: Rewriter = NormalizeWithAndReturnClauses(exceptionFactory)
 
   test("ensure variables are aliased") {
     assertRewrite(

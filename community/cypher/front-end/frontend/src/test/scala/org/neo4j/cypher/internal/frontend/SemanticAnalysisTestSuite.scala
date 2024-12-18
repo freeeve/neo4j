@@ -39,7 +39,7 @@ import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.frontend.phases.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.Transformer
-import org.neo4j.cypher.internal.rewriting.rewriters.projectNamedPaths
+import org.neo4j.cypher.internal.rewriting.rewriters.ProjectNamedPaths
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.InputPosition
@@ -268,7 +268,7 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     override def phase: CompilationPhaseTracer.CompilationPhase = AST_REWRITE
 
     override def process(from: BaseState, context: BaseContext): BaseState = {
-      from.withStatement(from.statement().endoRewrite(projectNamedPaths))
+      from.withStatement(from.statement().endoRewrite(ProjectNamedPaths))
     }
     override def postConditions: Set[StepSequencer.Condition] = Set.empty
   }

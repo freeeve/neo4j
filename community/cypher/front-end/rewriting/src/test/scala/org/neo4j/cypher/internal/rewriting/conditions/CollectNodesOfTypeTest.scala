@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class CollectNodesOfTypeTest extends CypherFunSuite with AstConstructionTestSupport {
 
   private val collector: Any => Seq[Variable] =
-    collectNodesOfType[Variable]().apply(_)(CancellationChecker.NeverCancelled)
+    CollectNodesOfType[Variable]().apply(_)(CancellationChecker.NeverCancelled)
 
   test("collect all variables") {
     val idA = varFor("a")

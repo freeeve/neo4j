@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.rewriting.rewriters
 
 import org.neo4j.cypher.internal.rewriting.RewriteTest
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.CypherTypeNormalizationRewriter
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -26,7 +27,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
  */
 class cypherTypeNormalizationRewriterTest extends CypherFunSuite with RewriteTest {
 
-  override val rewriterUnderTest: Rewriter = cypherTypeNormalizationRewriter.instance
+  override val rewriterUnderTest: Rewriter = CypherTypeNormalizationRewriter.instance
 
   test("List encapsulation normalization") {
     assertRewrite(

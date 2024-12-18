@@ -42,7 +42,7 @@ import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.logical.plans.Ascending
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.rewriting.rewriters.projectNamedPaths
+import org.neo4j.cypher.internal.rewriting.rewriters.ProjectNamedPaths
 import org.neo4j.cypher.internal.util.Rewritable.RewritableAny
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.topDown
@@ -115,7 +115,7 @@ case object planShortestRelationships {
   private def createPathExpression(pattern: PatternElement): PathExpression = {
     val pos = pattern.position
     val path = PatternPart(pattern)
-    val step: PathStep = projectNamedPaths.patternPartPathExpression(path)
+    val step: PathStep = ProjectNamedPaths.patternPartPathExpression(path)
     PathExpression(step)(pos)
   }
 

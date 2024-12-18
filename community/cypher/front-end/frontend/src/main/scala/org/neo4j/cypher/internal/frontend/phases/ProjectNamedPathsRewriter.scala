@@ -20,9 +20,9 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.AST_REWRITE
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNodesOfType
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
-import org.neo4j.cypher.internal.rewriting.conditions.containsNoNodesOfType
-import org.neo4j.cypher.internal.rewriting.rewriters.projectNamedPaths
+import org.neo4j.cypher.internal.rewriting.rewriters.ProjectNamedPaths
 import org.neo4j.cypher.internal.util.StepSequencer
 
 /**
@@ -34,18 +34,18 @@ case object ProjectNamedPathsRewriter extends Phase[BaseContext, BaseState, Base
   def phase: CompilationPhaseTracer.CompilationPhase = AST_REWRITE
 
   def process(from: BaseState, context: BaseContext): BaseState =
-    from.withStatement(from.statement().endoRewrite(projectNamedPaths))
+    from.withStatement(from.statement().endoRewrite(ProjectNamedPaths))
 
   override def preConditions: Set[StepSequencer.Condition] =
-    projectNamedPaths.preConditions.map(StatementCondition.wrap) ++ Set(
+    ProjectNamedPaths.preConditions.map(StatementCondition.wrap) ++ Set(
       Namespacer.completed,
       // Pattern comprehensions must have been rewritten to COLLECT,
       // since this rewriter does not match on named paths in pattern comprehensions.
-      StatementCondition(containsNoNodesOfType[PatternComprehension]())
+      StatementCondition(ContainsNoNodesOfType[PatternComprehension]())
     )
 
   override def postConditions: Set[StepSequencer.Condition] =
-    projectNamedPaths.postConditions.map(StatementCondition.wrap)
+    ProjectNamedPaths.postConditions.map(StatementCondition.wrap)
 
   override def invalidatedConditions: Set[StepSequencer.Condition] =
     SemanticInfoAvailable +
