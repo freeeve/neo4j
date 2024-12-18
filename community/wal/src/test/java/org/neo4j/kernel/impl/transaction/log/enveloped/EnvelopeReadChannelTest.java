@@ -1101,6 +1101,45 @@ class EnvelopeReadChannelTest {
         }
     }
 
+    @Test
+    void setPositionAtExactlySegmentBoundary() throws IOException {
+        // GIVEN
+        final var segmentSize = 128;
+        final var payloadSize = segmentSize - HEADER_SIZE;
+        final var envelopeSize = payloadSize + HEADER_SIZE;
+        final var bytes1 = bytes(random, payloadSize);
+        final var bytes2 = bytes(random, payloadSize);
+
+        final var positions =
+                IntStream.range(0, 2).map(i -> segmentSize + (i * envelopeSize)).toArray();
+
+        final var checksums = new int[2];
+        writeSomeData(buffer -> {
+            writeZeroSegment(buffer, segmentSize);
+
+            checksums[0] = writeHeaderAndPayload(buffer, EnvelopeType.FULL, BASE_TX_CHECKSUM, bytes1, START_INDEX);
+            checksums[1] = writeHeaderAndPayload(buffer, EnvelopeType.FULL, checksums[0], bytes2, START_INDEX + 1);
+        });
+
+        final var logChannel = logChannel();
+        try (var channel = new EnvelopeReadChannel(
+                logChannel, segmentSize, NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
+            // THEN
+            final var bytesRead = new byte[payloadSize];
+            channel.position(positions[1]);
+            channel.get(bytesRead, bytesRead.length);
+            assertThat(bytes2).isEqualTo(bytesRead);
+            assertThat(checksums[1]).isEqualTo(channel.getChecksum());
+            assertThat(channel.entryIndex()).isEqualTo(START_INDEX + 1);
+
+            channel.position(positions[0]);
+            channel.get(bytesRead, bytesRead.length);
+            assertThat(bytes1).isEqualTo(bytesRead);
+            assertThat(checksums[0]).isEqualTo(channel.getChecksum());
+            assertThat(channel.entryIndex()).isEqualTo(START_INDEX);
+        }
+    }
+
     @ParameterizedTest
     @EnumSource(names = {"FULL", "END"})
     void shouldFailForReadsOutsideOfTerminatingEnvelope(EnvelopeType envelopeType) throws Exception {

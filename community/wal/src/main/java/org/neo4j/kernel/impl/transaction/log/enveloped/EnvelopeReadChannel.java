@@ -275,6 +275,8 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             // we're skipping the START_OFFSET envelope if it is present.
             if (newBufferOffset != 0 || newSegment == 1) {
                 readAllEnvelopesUpToIncluding(newBufferOffset, false);
+            } else {
+                enforceChecksumChain = false;
             }
         }
         checkState(newBufferOffset == 0 || newBufferOffset <= payloadEndOffset, "Invalid end of payload.");
