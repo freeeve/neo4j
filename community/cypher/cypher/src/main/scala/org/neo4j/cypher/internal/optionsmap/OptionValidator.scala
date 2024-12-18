@@ -98,7 +98,7 @@ object SeedRestoreUntilOption extends OptionValidator[SeedRestoreUntil] {
   override val KEY: String = "seedRestoreUntil"
 
   override protected def validate(value: AnyValue, config: Option[Config])(implicit
-  operation: String): SeedRestoreUntil = {
+    operation: String): SeedRestoreUntil = {
     value match {
       case numberValue: NumberValue =>
         SeedRestoreUntil.txId(numberValue.asObject().longValue())

@@ -181,7 +181,7 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
           source.map(logicalToExecutable.applyOrElse(_, throwCantCompile).apply(context))
         )
 
-      // CREATE CONSTRAINT [name] [IF NOT EXISTS] FOR (node:Label) REQUIRE node.prop IS UNIQUE [OPTIONS {...}]
+    // CREATE CONSTRAINT [name] [IF NOT EXISTS] FOR (node:Label) REQUIRE node.prop IS UNIQUE [OPTIONS {...}]
     // CREATE CONSTRAINT [name] [IF NOT EXISTS] FOR (node:Label) REQUIRE (node.prop1,node.prop2) IS UNIQUE [OPTIONS {...}]
     case CreateConstraint(source, nodePropUnique: NodePropertyUniqueness, label: LabelName, props, name, options) =>
       context =>
@@ -202,7 +202,7 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
           source.map(logicalToExecutable.applyOrElse(_, throwCantCompile).apply(context))
         )
 
-      // CREATE CONSTRAINT [name] [IF NOT EXISTS] FOR ()-[rel:TYPE]-() REQUIRE rel.prop IS UNIQUE [OPTIONS {...}]
+    // CREATE CONSTRAINT [name] [IF NOT EXISTS] FOR ()-[rel:TYPE]-() REQUIRE rel.prop IS UNIQUE [OPTIONS {...}]
     // CREATE CONSTRAINT [name] [IF NOT EXISTS] FOR ()-[rel:TYPE]-() REQUIRE (rel.prop1,rel.prop2) IS UNIQUE [OPTIONS {...}]
     case CreateConstraint(
         source,
@@ -332,7 +332,7 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
           }
         )
 
-      // CREATE [RANGE] INDEX [name] [IF NOT EXISTS] FOR (n:LABEL) ON (n.prop) [OPTIONS {...}]
+    // CREATE [RANGE] INDEX [name] [IF NOT EXISTS] FOR (n:LABEL) ON (n.prop) [OPTIONS {...}]
     // CREATE [RANGE] INDEX [name] [IF NOT EXISTS] FOR ()-[n:TYPE]-() ON (n.prop) [OPTIONS {...}]
     case CreateIndex(source, RANGE, entityName, props, name, options) => context =>
         SchemaExecutionPlan(
@@ -356,7 +356,7 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
           source.map(logicalToExecutable.applyOrElse(_, throwCantCompile).apply(context))
         )
 
-      // CREATE LOOKUP INDEX [name] [IF NOT EXISTS] FOR (n) ON EACH labels(n)
+    // CREATE LOOKUP INDEX [name] [IF NOT EXISTS] FOR (n) ON EACH labels(n)
     // CREATE LOOKUP INDEX [name] [IF NOT EXISTS] FOR ()-[r]-() ON [EACH] type(r)
     case CreateLookupIndex(source, entityType, name, options) => context =>
         SchemaExecutionPlan(
@@ -373,7 +373,7 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
           source.map(logicalToExecutable.applyOrElse(_, throwCantCompile).apply(context))
         )
 
-      // CREATE FULLTEXT INDEX [name] [IF NOT EXISTS] FOR (n:LABEL) ON EACH (n.prop) [OPTIONS {...}]
+    // CREATE FULLTEXT INDEX [name] [IF NOT EXISTS] FOR (n:LABEL) ON EACH (n.prop) [OPTIONS {...}]
     // CREATE FULLTEXT INDEX [name] [IF NOT EXISTS] FOR ()-[n:TYPE]-() ON EACH (n.prop) [OPTIONS {...}]
     case CreateFulltextIndex(source, entityNames, props, name, options) => context =>
         SchemaExecutionPlan(
@@ -397,7 +397,7 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
           source.map(logicalToExecutable.applyOrElse(_, throwCantCompile).apply(context))
         )
 
-      // CREATE TEXT INDEX [name] [IF NOT EXISTS] FOR (n:LABEL) ON (n.prop) [OPTIONS {...}]
+    // CREATE TEXT INDEX [name] [IF NOT EXISTS] FOR (n:LABEL) ON (n.prop) [OPTIONS {...}]
     // CREATE TEXT INDEX [name] [IF NOT EXISTS] FOR ()-[n:TYPE]-() ON (n.prop) [OPTIONS {...}]
     case CreateIndex(source, TEXT, entityName, props, name, options) => context =>
         SchemaExecutionPlan(
@@ -417,7 +417,7 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
           source.map(logicalToExecutable.applyOrElse(_, throwCantCompile).apply(context))
         )
 
-      // CREATE POINT INDEX [name] [IF NOT EXISTS] FOR (n:LABEL) ON (n.prop) [OPTIONS {...}]
+    // CREATE POINT INDEX [name] [IF NOT EXISTS] FOR (n:LABEL) ON (n.prop) [OPTIONS {...}]
     // CREATE POINT INDEX [name] [IF NOT EXISTS] FOR ()-[n:TYPE]-() ON (n.prop) [OPTIONS {...}]
     case CreateIndex(source, POINT, entityName, props, name, options) => context =>
         SchemaExecutionPlan(
@@ -441,7 +441,7 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
           source.map(logicalToExecutable.applyOrElse(_, throwCantCompile).apply(context))
         )
 
-      // CREATE VECTOR INDEX [name] [IF NOT EXISTS] FOR (n:LABEL) ON (n.prop) OPTIONS {...}
+    // CREATE VECTOR INDEX [name] [IF NOT EXISTS] FOR (n:LABEL) ON (n.prop) OPTIONS {...}
     // CREATE VECTOR INDEX [name] [IF NOT EXISTS] FOR ()-[n:TYPE]-() ON (n.prop) OPTIONS {...}
     case CreateIndex(source, VECTOR, entityName, props, name, options) => context =>
         SchemaExecutionPlan(

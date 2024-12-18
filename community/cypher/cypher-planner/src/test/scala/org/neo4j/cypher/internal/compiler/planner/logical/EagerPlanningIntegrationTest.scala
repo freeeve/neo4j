@@ -740,7 +740,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
         )
   }
 
-  val `(start)-[r]->(end)` : ShortestPathParameters =
+  val `(start)-[r]->(end)`: ShortestPathParameters =
     ShortestPathParameters(
       "start",
       "end",
@@ -756,7 +756,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
       Some(1)
     )
 
-  val `((start)((a{prop: 5})-[r:R]->(b))+(end))` : ShortestPathParameters =
+  val `((start)((a{prop: 5})-[r:R]->(b))+(end))`: ShortestPathParameters =
     ShortestPathParameters(
       "start",
       "end",
@@ -775,7 +775,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
       None
     )
 
-  val `((start)(({prop: 5})-[r:R]->())+(end))` : ShortestPathParameters =
+  val `((start)(({prop: 5})-[r:R]->())+(end))`: ShortestPathParameters =
     ShortestPathParameters(
       "start",
       "end",
@@ -794,7 +794,7 @@ abstract class EagerPlanningIntegrationTest(impl: EagerAnalysisImplementation) e
       None
     )
 
-  val `(start)-[r:R]->(end)` : ShortestPathParameters =
+  val `(start)-[r:R]->(end)`: ShortestPathParameters =
     ShortestPathParameters(
       "start",
       "end",
