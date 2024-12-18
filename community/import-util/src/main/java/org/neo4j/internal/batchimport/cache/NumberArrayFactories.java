@@ -149,7 +149,7 @@ public final class NumberArrayFactories {
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
             IOUtils.closeAllUnchecked(bufferFactory);
         }
 

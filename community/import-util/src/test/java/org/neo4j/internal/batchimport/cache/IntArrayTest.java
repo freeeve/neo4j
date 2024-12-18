@@ -50,7 +50,8 @@ class IntArrayTest {
         // GIVEN
         int length = random.nextInt(100_000) + 100;
         int defaultValue = random.nextInt(2) - 1; // 0 or -1
-        try (IntArray array = getNumberArrayFactory(factory).newIntArray(length, defaultValue, INSTANCE)) {
+        try (NumberArrayFactory numberArrayFactory = getNumberArrayFactory(factory);
+                IntArray array = numberArrayFactory.newIntArray(length, defaultValue, INSTANCE)) {
             int[] expected = new int[length];
             Arrays.fill(expected, defaultValue);
 
@@ -82,13 +83,15 @@ class IntArrayTest {
     @ArgumentsSource(NumberArraysArgumentProvider.class)
     void shouldHandleMultipleCallsToClose(NumberArraysArgumentProvider.Factory factory) {
         // GIVEN
-        NumberArray array = getNumberArrayFactory(factory).newIntArray(10, -1, INSTANCE);
+        try (NumberArrayFactory numberArrayFactory = getNumberArrayFactory(factory)) {
+            NumberArray array = numberArrayFactory.newIntArray(10, -1, INSTANCE);
 
-        // WHEN
-        array.close();
+            // WHEN
+            array.close();
 
-        // THEN should also work
-        array.close();
+            // THEN should also work
+            array.close();
+        }
     }
 
     @ParameterizedTest
@@ -96,7 +99,8 @@ class IntArrayTest {
     void shouldWorkOnSingleChunk(NumberArraysArgumentProvider.Factory factory) {
         // GIVEN
         int defaultValue = 0;
-        try (IntArray array = getNumberArrayFactory(factory).newDynamicIntArray(10, defaultValue, INSTANCE)) {
+        try (NumberArrayFactory numberArrayFactory = getNumberArrayFactory(factory);
+                IntArray array = numberArrayFactory.newDynamicIntArray(10, defaultValue, INSTANCE)) {
             array.set(4, 5);
 
             // WHEN
@@ -139,9 +143,9 @@ class IntArrayTest {
     @ParameterizedTest
     @ArgumentsSource(NumberArraysArgumentProvider.class)
     void shouldAddChunksAsNeeded(NumberArraysArgumentProvider.Factory factory) {
-        NumberArrayFactory numberArrayFactory = getNumberArrayFactory(factory);
         // GIVEN
-        try (IntArray array = numberArrayFactory.newDynamicIntArray(10, 0, INSTANCE)) {
+        try (NumberArrayFactory numberArrayFactory = getNumberArrayFactory(factory);
+                IntArray array = numberArrayFactory.newDynamicIntArray(10, 0, INSTANCE)) {
 
             // WHEN
             long index = 243;

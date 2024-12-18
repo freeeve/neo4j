@@ -26,18 +26,14 @@ import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.counts.CountsUpdater;
 import org.neo4j.internal.batchimport.NodeCountsStage;
 import org.neo4j.internal.batchimport.RelationshipCountsStage;
-import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactory;
 import org.neo4j.internal.batchimport.cache.legacy.NodeLabelsCache;
 import org.neo4j.internal.counts.CountsBuilder;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
-import org.neo4j.io.fs.FileSystemAbstraction;
-import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
-import org.neo4j.logging.InternalLog;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 
@@ -55,29 +51,23 @@ public class CountsComputer implements CountsBuilder {
 
     public CountsComputer(
             NeoStores stores,
-            FileSystemAbstraction fs,
             CursorContextFactory contextFactory,
-            DatabaseLayout databaseLayout,
             MemoryTracker memoryTracker,
-            InternalLog log) {
+            NumberArrayFactory numberArrayFactory) {
         this(
                 stores,
                 stores.getMetaDataStore().getLastCommittedTransactionId(),
-                fs,
                 contextFactory,
-                databaseLayout,
                 memoryTracker,
-                log);
+                numberArrayFactory);
     }
 
     public CountsComputer(
             NeoStores stores,
             long lastCommittedTransactionId,
-            FileSystemAbstraction fs,
             CursorContextFactory contextFactory,
-            DatabaseLayout databaseLayout,
             MemoryTracker memoryTracker,
-            InternalLog log) {
+            NumberArrayFactory numberArrayFactory) {
         this(
                 stores,
                 lastCommittedTransactionId,
@@ -85,7 +75,7 @@ public class CountsComputer implements CountsBuilder {
                 stores.getRelationshipStore(),
                 (int) stores.getLabelTokenStore().getIdGenerator().getHighId(),
                 (int) stores.getRelationshipTypeTokenStore().getIdGenerator().getHighId(),
-                NumberArrayFactories.auto(fs, databaseLayout.databaseDirectory(), true, log),
+                numberArrayFactory,
                 ProgressMonitorFactory.NONE,
                 contextFactory,
                 memoryTracker);

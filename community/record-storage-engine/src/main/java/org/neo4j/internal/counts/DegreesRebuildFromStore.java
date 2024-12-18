@@ -94,12 +94,12 @@ public class DegreesRebuildFromStore implements DegreesRebuilder {
         }
 
         log.warn("Missing relationship degrees store, rebuilding it.");
-        NumberArrayFactory numberArrayFactory = NumberArrayFactories.auto(
-                neoStores.getFileSystem(), databaseLayout.databaseDirectory(), true, NullLog.getInstance());
         var loggerPrintWriterAdaptor = new LoggerPrintWriterAdaptor(log, Level.INFO);
         var totalCount = neoStores.getRelationshipGroupStore().getIdGenerator().getHighId()
                 + neoStores.getRelationshipStore().getIdGenerator().getHighId();
-        try (GroupDegreesCache cache = new GroupDegreesCache(
+        try (NumberArrayFactory numberArrayFactory = NumberArrayFactories.auto(
+                        neoStores.getFileSystem(), databaseLayout.databaseDirectory(), true, NullLog.getInstance());
+                GroupDegreesCache cache = new GroupDegreesCache(
                         numberArrayFactory,
                         neoStores.getNodeStore().getIdGenerator().getHighId(),
                         memoryTracker);

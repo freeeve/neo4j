@@ -75,8 +75,8 @@ class StringCollisionValuesTest {
     @MethodSource("data")
     void shouldStoreAndLoadStrings(BiFunction<FileSystemAbstraction, Path, NumberArrayFactory> factory) {
         // given
-        try (StringCollisionValues values = new StringCollisionValues(
-                factory.apply(testDirectory.getFileSystem(), testDirectory.homePath()), 10_000, INSTANCE)) {
+        try (NumberArrayFactory arrayFactory = factory.apply(testDirectory.getFileSystem(), testDirectory.homePath());
+                StringCollisionValues values = new StringCollisionValues(arrayFactory, 10_000, INSTANCE)) {
             // when
             long[] offsets = new long[100];
             String[] strings = new String[offsets.length];
@@ -97,8 +97,8 @@ class StringCollisionValuesTest {
     @MethodSource("data")
     void shouldMoveOverToNextChunkOnNearEnd(BiFunction<FileSystemAbstraction, Path, NumberArrayFactory> factory) {
         // given
-        try (StringCollisionValues values = new StringCollisionValues(
-                factory.apply(testDirectory.getFileSystem(), testDirectory.homePath()), 10_000, INSTANCE)) {
+        try (NumberArrayFactory arrayFactory = factory.apply(testDirectory.getFileSystem(), testDirectory.homePath());
+                StringCollisionValues values = new StringCollisionValues(arrayFactory, 10_000, INSTANCE)) {
             char[] chars = new char[PAGE_SIZE - 3];
             Arrays.fill(chars, 'a');
 

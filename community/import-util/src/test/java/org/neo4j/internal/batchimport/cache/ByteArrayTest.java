@@ -76,8 +76,7 @@ public class ByteArrayTest {
 
     @ParameterizedTest
     @MethodSource("argumentsProvider")
-    public void shouldSetAndGetBasicTypes(NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator)
-            throws Exception {
+    public void shouldSetAndGetBasicTypes(NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) {
         try (NumberArrayFactory arrayFactory = getArrayFactory(factoryCreator);
                 ByteArray array = arrayCreator.createByteArray(arrayFactory)) {
 
@@ -105,7 +104,7 @@ public class ByteArrayTest {
     @ParameterizedTest
     @MethodSource("argumentsProvider")
     public void shouldDetectMinusOneFor3ByteInts(
-            NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) throws Exception {
+            NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) {
         try (NumberArrayFactory arrayFactory = getArrayFactory(factoryCreator);
                 ByteArray array = arrayCreator.createByteArray(arrayFactory)) {
 
@@ -122,7 +121,7 @@ public class ByteArrayTest {
     @ParameterizedTest
     @MethodSource("argumentsProvider")
     public void shouldDetectMinusOneFor5ByteLongs(
-            NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) throws Exception {
+            NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) {
         try (NumberArrayFactory arrayFactory = getArrayFactory(factoryCreator);
                 ByteArray array = arrayCreator.createByteArray(arrayFactory)) {
 
@@ -139,7 +138,7 @@ public class ByteArrayTest {
     @ParameterizedTest
     @MethodSource("argumentsProvider")
     public void shouldDetectMinusOneFor6ByteLongs(
-            NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) throws Exception {
+            NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) {
         try (NumberArrayFactory arrayFactory = getArrayFactory(factoryCreator);
                 ByteArray array = arrayCreator.createByteArray(arrayFactory)) {
 
@@ -156,7 +155,7 @@ public class ByteArrayTest {
     @ParameterizedTest
     @MethodSource("argumentsProvider")
     public void shouldHandleMultipleCallsToClose(
-            NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) throws Exception {
+            NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) {
         try (NumberArrayFactory arrayFactory = getArrayFactory(factoryCreator)) {
             ByteArray array = arrayCreator.createByteArray(arrayFactory);
 
@@ -171,9 +170,9 @@ public class ByteArrayTest {
     @ParameterizedTest
     @ArgumentsSource(NumberArraysArgumentProvider.class)
     void bulkSetAndGetLarge(NumberArraysArgumentProvider.Factory factory) {
-        NumberArrayFactory numberArrayFactory = factory.create(testDirectory.getFileSystem(), testDirectory.homePath());
         int chunkSize = random.nextInt(32, 1024);
-        try (ByteArray array = numberArrayFactory.newDynamicByteArray(chunkSize, new byte[1], INSTANCE)) {
+        try (NumberArrayFactory arrayFactory = factory.create(testDirectory.getFileSystem(), testDirectory.homePath());
+                ByteArray array = arrayFactory.newDynamicByteArray(chunkSize, new byte[1], INSTANCE)) {
 
             HashMap<Integer, String> map = new HashMap<>();
             int offset = 0;
@@ -197,9 +196,9 @@ public class ByteArrayTest {
     @ParameterizedTest
     @ArgumentsSource(NumberArraysArgumentProvider.class)
     void bulkSetAndGetSmall(NumberArraysArgumentProvider.Factory factory) {
-        NumberArrayFactory numberArrayFactory = factory.create(testDirectory.getFileSystem(), testDirectory.homePath());
         int chunkSize = random.nextInt(4, 8);
-        try (ByteArray array = numberArrayFactory.newDynamicByteArray(chunkSize, new byte[1], INSTANCE)) {
+        try (NumberArrayFactory arrayFactory = factory.create(testDirectory.getFileSystem(), testDirectory.homePath());
+                ByteArray array = arrayFactory.newDynamicByteArray(chunkSize, new byte[1], INSTANCE)) {
 
             HashMap<Integer, String> map = new HashMap<>();
             int offset = 0;
@@ -222,9 +221,10 @@ public class ByteArrayTest {
 
     @Test
     void capChunkSize() {
-        NumberArrayFactory factory = NumberArrayFactories.HEAP;
-        assertThatCode(() -> factory.newDynamicByteArray(Integer.MAX_VALUE, new byte[2], INSTANCE))
-                .doesNotThrowAnyException();
+        try (NumberArrayFactory factory = NumberArrayFactories.HEAP) {
+            assertThatCode(() -> factory.newDynamicByteArray(Integer.MAX_VALUE, new byte[2], INSTANCE))
+                    .doesNotThrowAnyException();
+        }
     }
 
     private NumberArrayFactory getArrayFactory(NumberArrayFactoryCreator creator) {

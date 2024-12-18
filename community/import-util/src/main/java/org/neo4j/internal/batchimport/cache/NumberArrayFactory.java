@@ -74,4 +74,7 @@ public interface NumberArrayFactory extends AutoCloseable {
      * @return dynamically growing {@link ByteArray}.
      */
     ByteArray newDynamicByteArray(int chunkSize, byte[] defaultValue, MemoryTracker memoryTracker);
+
+    @Override
+    void close();
 }

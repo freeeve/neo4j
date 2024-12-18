@@ -655,7 +655,7 @@ public class ImportLogic implements Closeable {
                 format("%n%s%nPeak memory usage: %s", additionalInformation, bytesToString(peakMemoryUsage)));
         log.info("Import " + (successful ? "completed successfully" : "failed") + ", took " + duration(totalTimeMillis)
                 + ". " + additionalInformation);
-        closeAll(nodeRelationshipCache, nodeLabelsCache, idMapper);
+        closeAll(nodeRelationshipCache, nodeLabelsCache, idMapper, numberArrayFactory);
         monitor.completed(successful);
     }
 

@@ -114,15 +114,16 @@ class NumberArrayFactoryTest {
         // GIVEN
         BufferFactory lowMemoryFactory = mock(BufferFactory.class);
         doThrow(OutOfMemoryError.class).when(lowMemoryFactory).allocate(anyInt(), any());
-        NumberArrayFactory factory = new NumberArrayFactories.NumberArrayFactoryImpl(
-                new NumberArrayFactories.Auto(NullLog.getInstance(), lowMemoryFactory, BufferFactories.HEAP));
+        try (NumberArrayFactory factory = new NumberArrayFactories.NumberArrayFactoryImpl(
+                new NumberArrayFactories.Auto(NullLog.getInstance(), lowMemoryFactory, BufferFactories.HEAP))) {
 
-        // WHEN
-        try (LongArray array = factory.newLongArray(KILO, -1, INSTANCE)) {
-            array.set(KILO - 10, 12345);
+            // WHEN
+            try (LongArray array = factory.newLongArray(KILO, -1, INSTANCE)) {
+                array.set(KILO - 10, 12345);
 
-            // THEN
-            assertEquals(12345, array.get(KILO - 10));
+                // THEN
+                assertEquals(12345, array.get(KILO - 10));
+            }
         }
     }
 
@@ -134,11 +135,10 @@ class NumberArrayFactoryTest {
 
         when(lowMemoryFactory.allocate(anyInt(), any())).thenThrow(exception);
 
-        NumberArrayFactory factory = NumberArrayFactories.fromBufferFactory(
-                new NumberArrayFactories.Auto(NullLog.getInstance(), lowMemoryFactory, BufferFactories.HEAP));
-
         // WHEN
-        try (IntArray array = factory.newIntArray(KILO, -1, INSTANCE)) {
+        try (NumberArrayFactory factory = NumberArrayFactories.fromBufferFactory(
+                        new NumberArrayFactories.Auto(NullLog.getInstance(), lowMemoryFactory, BufferFactories.HEAP));
+                IntArray array = factory.newIntArray(KILO, -1, INSTANCE)) {
             array.set(KILO - 10, 12345);
 
             // THEN
@@ -155,11 +155,12 @@ class NumberArrayFactoryTest {
         BufferFactory swap = BufferFactories.fileBacked(testDirectory.getFileSystem(), testDirectory.homePath());
         AssertableLogProvider logProvider = new AssertableLogProvider();
 
-        NumberArrayFactory factory = NumberArrayFactories.fromBufferFactory(
-                new NumberArrayFactories.Auto(logProvider.getLog("test"), lowMemoryFactory, swap));
+        try (NumberArrayFactory factory = NumberArrayFactories.fromBufferFactory(
+                new NumberArrayFactories.Auto(logProvider.getLog("test"), lowMemoryFactory, swap))) {
 
-        try (IntArray array = factory.newIntArray(KILO, -1, INSTANCE)) {
-            array.set(KILO - 10, 12345);
+            try (IntArray array = factory.newIntArray(KILO, -1, INSTANCE)) {
+                array.set(KILO - 10, 12345);
+            }
         }
 
         assertThat(logProvider)

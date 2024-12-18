@@ -50,6 +50,8 @@ import org.neo4j.counts.CountsStore;
 import org.neo4j.counts.CountsUpdater;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
+import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
+import org.neo4j.internal.batchimport.cache.NumberArrayFactory;
 import org.neo4j.internal.counts.CountsBuilder;
 import org.neo4j.internal.counts.CountsStoreProvider;
 import org.neo4j.internal.counts.DegreeStoreProvider;
@@ -852,8 +854,11 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
         @Override
         public void initialize(CountsUpdater updater, CursorContext cursorContext, MemoryTracker memoryTracker) {
             log.warn("Missing counts store, rebuilding it.");
-            new CountsComputer(neoStores, fs, contextFactory, layout, memoryTracker, log)
-                    .initialize(updater, cursorContext, memoryTracker);
+            try (NumberArrayFactory numberArrayFactory =
+                    NumberArrayFactories.auto(fs, layout.databaseDirectory(), true, log)) {
+                new CountsComputer(neoStores, contextFactory, memoryTracker, numberArrayFactory)
+                        .initialize(updater, cursorContext, memoryTracker);
+            }
             log.warn("Counts store rebuild completed.");
         }
 
