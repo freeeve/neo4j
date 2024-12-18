@@ -33,6 +33,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import org.neo4j.collection.Dependencies;
+import org.neo4j.collection.factory.CollectionsFactory;
 import org.neo4j.collection.factory.OnHeapCollectionsFactory;
 import org.neo4j.collection.pool.LinkedQueuePool;
 import org.neo4j.collection.pool.Pool;
@@ -259,8 +260,7 @@ public class KernelTransactions extends LifecycleAdapter
         this.multiVersioned = storageEngine.getOpenOptions().contains(MULTI_VERSIONED);
         this.mode = mode;
         this.txPool = new MonitoredTransactionPool(
-                new GlobalKernelTransactionPool(
-                        allTransactions, new KernelTransactionImplementationFactory(allTransactions, tracers)),
+                new GlobalKernelTransactionPool(allTransactions, new TransactionFactory(allTransactions, tracers)),
                 activeTransactionCounter,
                 config);
         this.enrichmentStrategy = this.databaseDependencies.resolveDependency(ApplyEnrichmentStrategy.class);
@@ -302,7 +302,7 @@ public class KernelTransactions extends LifecycleAdapter
         return databaseReferenceRepository.getByAlias(namedDatabaseId.name()).orElseThrow();
     }
 
-    protected KernelTransaction newKernelTransaction(
+    private KernelTransaction newKernelTransaction(
             KernelTransaction.Type type,
             ClientConnectionInfo clientInfo,
             TransactionTimeout timeout,
@@ -526,64 +526,68 @@ public class KernelTransactions extends LifecycleAdapter
         }
     }
 
-    private class KernelTransactionImplementationFactory implements Factory<KernelTransactionImplementation> {
+    private class TransactionFactory implements Factory<KernelTransactionImplementation> {
         private final Set<KernelTransactionImplementation> transactions;
         private final DatabaseTracers tracers;
 
-        KernelTransactionImplementationFactory(
-                Set<KernelTransactionImplementation> transactions, DatabaseTracers tracers) {
+        TransactionFactory(Set<KernelTransactionImplementation> transactions, DatabaseTracers tracers) {
             this.transactions = transactions;
             this.tracers = tracers;
         }
 
         @Override
         public KernelTransactionImplementation newInstance() {
-            KernelTransactionImplementation tx = new KernelTransactionImplementation(
-                    config,
-                    eventListeners,
-                    constraintIndexCreator,
-                    transactionCommitProcess,
-                    rollbackProcess,
-                    transactionMonitor,
-                    txPool,
-                    clock,
-                    cpuClockRef,
-                    tracers,
-                    storageEngine,
-                    accessCapabilityFactory,
-                    contextFactory,
-                    OnHeapCollectionsFactory.INSTANCE,
-                    constraintSemantics,
-                    schemaState,
-                    tokenHolders,
-                    elementIdMapper,
-                    indexingService,
-                    indexStatisticsStore,
-                    databaseDependencies,
-                    namedDatabaseId,
-                    leaseService,
-                    transactionMemoryPool,
-                    readOnlyDatabaseChecker,
-                    transactionExecutionMonitor,
-                    securityLog,
-                    lockManager,
-                    commitmentFactory,
-                    KernelTransactions.this,
-                    transactionIdGenerator,
-                    dbmsRuntimeVersionProvider,
-                    kernelVersionProvider,
-                    serverIdentity,
-                    enrichmentStrategy,
-                    transactionStateBehaviour,
-                    databaseHealth,
-                    internalLogProvider,
-                    transactionValidatorFactory,
-                    databaseSerialGuard,
-                    multiVersioned,
-                    mode);
+            KernelTransactionImplementation tx = ktiFactory()
+                    .createTransactionImplementation(
+                            config,
+                            eventListeners,
+                            constraintIndexCreator,
+                            transactionCommitProcess,
+                            rollbackProcess,
+                            transactionMonitor,
+                            txPool,
+                            clock,
+                            cpuClockRef,
+                            tracers,
+                            storageEngine,
+                            accessCapabilityFactory,
+                            contextFactory,
+                            OnHeapCollectionsFactory.INSTANCE,
+                            constraintSemantics,
+                            schemaState,
+                            tokenHolders,
+                            elementIdMapper,
+                            indexingService,
+                            indexStatisticsStore,
+                            databaseDependencies,
+                            namedDatabaseId,
+                            leaseService,
+                            transactionMemoryPool,
+                            readOnlyDatabaseChecker,
+                            transactionExecutionMonitor,
+                            securityLog,
+                            lockManager,
+                            commitmentFactory,
+                            KernelTransactions.this,
+                            transactionIdGenerator,
+                            dbmsRuntimeVersionProvider,
+                            kernelVersionProvider,
+                            serverIdentity,
+                            enrichmentStrategy,
+                            transactionStateBehaviour,
+                            databaseHealth,
+                            internalLogProvider,
+                            transactionValidatorFactory,
+                            databaseSerialGuard,
+                            multiVersioned,
+                            mode);
             this.transactions.add(tx);
             return tx;
         }
+    }
+
+    protected KernelTransactionImplementationFactory ktiFactory() {
+        return KernelTransactionImplementation::new;
     }
 
     private static class GlobalKernelTransactionPool extends LinkedQueuePool<KernelTransactionImplementation> {
@@ -651,5 +655,51 @@ public class KernelTransactions extends LifecycleAdapter
                 }
             } while (!activeTransactionCounter.weakCompareAndSetAcquire(activeTransactions, activeTransactions + 1));
         }
+    }
+
+    protected interface KernelTransactionImplementationFactory {
+        KernelTransactionImplementation createTransactionImplementation(
+                Config externalConfig,
+                DatabaseTransactionEventListeners transactionEventListeners,
+                ConstraintIndexCreator constraintIndexCreator,
+                TransactionCommitProcess commitProcess,
+                TransactionRollbackProcess rollbackProcess,
+                TransactionMonitor transactionMonitor,
+                Pool<KernelTransactionImplementation> pool,
+                SystemNanoClock clock,
+                AtomicReference<CpuClock> cpuClockRef,
+                DatabaseTracers tracers,
+                StorageEngine storageEngine,
+                AccessCapabilityFactory accessCapabilityFactory,
+                CursorContextFactory contextFactory,
+                CollectionsFactory collectionsFactory,
+                ConstraintSemantics constraintSemantics,
+                SchemaState schemaState,
+                TokenHolders tokenHolders,
+                ElementIdMapper elementIdMapper,
+                IndexingService indexingService,
+                IndexStatisticsStore indexStatisticsStore,
+                Dependencies dependencies,
+                NamedDatabaseId namedDatabaseId,
+                LeaseService leaseService,
+                ScopedMemoryPool dbTransactionsPool,
+                DatabaseReadOnlyChecker readOnlyDatabaseChecker,
+                TransactionExecutionMonitor transactionExecutionMonitor,
+                AbstractSecurityLog securityLog,
+                LockManager lockManager,
+                TransactionCommitmentFactory commitmentFactory,
+                KernelTransactions kernelTransactions,
+                TransactionIdGenerator transactionIdGenerator,
+                DbmsRuntimeVersionProvider dbmsRuntimeVersionProvider,
+                KernelVersionProvider kernelVersionProvider,
+                ServerIdentity serverIdentity,
+                ApplyEnrichmentStrategy enrichmentStrategy,
+                TransactionStateBehaviour transactionStateBehaviour,
+                DatabaseHealth databaseHealth,
+                LogProvider logProvider,
+                TransactionValidatorFactory transactionValidatorFactory,
+                DatabaseSerialGuard databaseSerialGuard,
+                boolean multiVersioned,
+                TopologyGraphDbmsModel.HostedOnMode mode);
     }
 }

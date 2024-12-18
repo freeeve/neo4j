@@ -1355,7 +1355,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
      * This method is guarded by {@link #terminationReleaseLock} to coordinate concurrent
      * {@link #markForTermination(Status)} calls.
      */
-    private void reset() {
+    protected void reset() {
         terminationReleaseLock.lock();
         Throwable error = null;
         try {
