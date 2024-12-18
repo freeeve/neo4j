@@ -2053,7 +2053,8 @@ class SlottedPipeMapper(
           innerEnd,
           groupNodes,
           groupRelationships,
-          reverseGroupVariableProjections
+          reverseGroupVariableProjections,
+          emitPredicate
         ) =>
         val rhsSlots = slotConfigs(rhs.id)
         RepeatSlottedPipe(
@@ -2071,7 +2072,7 @@ class SlottedPipeMapper(
           rhsSlots,
           argumentSize,
           reverseGroupVariableProjections,
-          maybeEmitPredicate = None
+          maybeEmitPredicate = emitPredicate.map(e => expressionConverters.toCommandExpression(id, e))
         )(id = id)
 
       case _ =>

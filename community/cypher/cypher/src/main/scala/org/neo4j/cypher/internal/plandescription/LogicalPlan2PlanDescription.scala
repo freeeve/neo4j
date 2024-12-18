@@ -3170,12 +3170,12 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case RepeatWalk(_, _, repetition, start, end, _, _, _, _, _) =>
+      case RepeatWalk(_, _, repetition, start, end, _, _, _, _, _, emitPredicate) =>
         PlanDescriptionImpl(
           id = plan.id,
           "Repeat(Walk)",
           children,
-          Seq(Details(repeatDetails(repetition, start, end, None))),
+          Seq(Details(repeatDetails(repetition, start, end, emitPredicate))),
           variables,
           withRawCardinalities,
           withDistinctness

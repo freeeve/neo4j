@@ -742,7 +742,8 @@ object LogicalPlanToPlanBuilderString {
           innerEnd,
           groupNodes,
           groupRelationships,
-          reverseGroupVariableProjections
+          reverseGroupVariableProjections,
+          emitPredicate
         ) =>
         walkParametersString(
           repetition,
@@ -752,7 +753,8 @@ object LogicalPlanToPlanBuilderString {
           innerEnd,
           groupNodes,
           groupRelationships,
-          reverseGroupVariableProjections
+          reverseGroupVariableProjections,
+          emitPredicate
         )
 
       case NodeByIdSeek(idName, ids, argumentIds) =>
@@ -1579,7 +1581,8 @@ object LogicalPlanToPlanBuilderString {
     innerEnd: LogicalVariable,
     groupNodes: Set[VariableGrouping],
     groupRelationships: Set[VariableGrouping],
-    reverseGroupVariableProjections: Boolean
+    reverseGroupVariableProjections: Boolean,
+    emitPredicate: Option[Ands]
   ) =
     call(
       "WalkParameters",
@@ -1591,7 +1594,8 @@ object LogicalPlanToPlanBuilderString {
       innerEnd,
       groupNodes,
       groupRelationships,
-      reverseGroupVariableProjections
+      reverseGroupVariableProjections + ", " +
+        emitPredicate.map(expressionStringifier(_))
     )
 
   private def setPropertiesParam(items: Seq[(PropertyKeyName, Expression)]): Param =

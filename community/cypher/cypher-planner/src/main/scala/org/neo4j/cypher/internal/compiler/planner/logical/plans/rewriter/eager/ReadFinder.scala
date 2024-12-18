@@ -843,7 +843,7 @@ object ReadFinder {
         ) =>
         PlanReads().withIntroducedNodeVariable(end)
 
-      case RepeatWalk(_, _, _, _, end, _, _, _, _, _) =>
+      case RepeatWalk(_, _, _, _, end, _, _, _, _, _, _) =>
         PlanReads().withIntroducedNodeVariable(end)
 
       case BidirectionalRepeatTrail(_, _, _, _, _, _, _, _, _, _, _, _, _) |

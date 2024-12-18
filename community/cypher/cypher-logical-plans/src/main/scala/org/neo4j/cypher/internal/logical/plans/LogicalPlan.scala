@@ -4274,7 +4274,8 @@ case class RepeatWalk(
   innerEnd: LogicalVariable,
   override val nodeVariableGroupings: Set[VariableGrouping],
   override val relationshipVariableGroupings: Set[VariableGrouping],
-  reverseGroupVariableProjections: Boolean
+  reverseGroupVariableProjections: Boolean,
+  emitPredicate: Option[Ands]
 )(implicit idGen: IdGen) extends Repeat(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(left = newLHS)(idGen)
   override def withRhs(newRHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(right = newRHS)(idGen)

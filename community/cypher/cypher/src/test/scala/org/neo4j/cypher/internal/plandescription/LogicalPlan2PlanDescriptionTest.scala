@@ -8397,6 +8397,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
   }
 
   test("Repeat(Walk)") {
+    val emitPredicate = Some(Ands(Seq(LessThan(prop("end", "prop"), number("42"))(pos)))(pos))
+
     assertGood(
       attach(
         RepeatWalk(
@@ -8412,7 +8414,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
             variableGrouping(varFor("  UNNAMED1"), varFor("  UNNAMED2"))
           ),
           Set(variableGrouping(varFor("  r@1"), varFor("  r@2"))),
-          reverseGroupVariableProjections = false
+          reverseGroupVariableProjections = false,
+          emitPredicate
         ),
         2345.0
       ),
@@ -8420,7 +8423,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         id,
         "Repeat(Walk)",
         Seq(lhsPD, rhsPD),
-        List(details("(start) (...){0, } (end)")),
+        List(details("(start) (...){0, } (end) WHERE end.prop=42")),
         Set("r", "a", "anon_2", "start", "end")
       )
     )
@@ -8440,7 +8443,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
             variableGrouping(varFor("  UNNAMED1"), varFor("  UNNAMED2"))
           ),
           Set(variableGrouping(varFor("  r@1"), varFor("  r@2"))),
-          reverseGroupVariableProjections = false
+          reverseGroupVariableProjections = false,
+          None
         ),
         2345.0
       ),

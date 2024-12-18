@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Trai
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
+import org.neo4j.cypher.internal.util.attribution.Attributes
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class RepeatEmitPredicateRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport {
@@ -56,7 +57,8 @@ class RepeatEmitPredicateRewriterTest extends CypherFunSuite with LogicalPlannin
     innerEnd = "m_i",
     groupNodes = Set(("n_i", "n"), ("m_i", "m")),
     groupRelationships = Set(("r_i", "r")),
-    reverseGroupVariableProjections = false
+    reverseGroupVariableProjections = false,
+    emitPredicate = None
   )
 
   test("should not rewrite trail when no filter") {
@@ -110,7 +112,7 @@ class RepeatEmitPredicateRewriterTest extends CypherFunSuite with LogicalPlannin
     rewrite(before) should equal(after)
   }
 
-  test("should not push down walk with Into filter") {
+  test("should push down walk with Into filter") {
 
     val before = subPlanBuilder
       .filter("b=a")
@@ -120,7 +122,20 @@ class RepeatEmitPredicateRewriterTest extends CypherFunSuite with LogicalPlannin
       .allNodeScan("a")
       .build()
 
-    assertNotRewritten(before)
+    val newEmitPredicate = `WALK (a) ((n)-[r]-(m))+ (b)`.emitPredicate match {
+      case None              => ands(equals(varFor("m_i"), varFor("a")))
+      case Some(Ands(exprs)) => ands(exprs.incl(equals(varFor("m_i"), varFor("a"))))
+      case Some(e)           => throw new IllegalStateException(s"Unexpected predicate expression: $e")
+    }
+    val rewrittenWalkParams = `WALK (a) ((n)-[r]-(m))+ (b)`.copy(emitPredicate = Some(newEmitPredicate))
+    val after = subPlanBuilder
+      .repeatWalk(rewrittenWalkParams)
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+
+    rewrite(before) should equal(after)
   }
 
   private def assertNotRewritten(p: LogicalPlan): Unit = {
@@ -128,5 +143,5 @@ class RepeatEmitPredicateRewriterTest extends CypherFunSuite with LogicalPlannin
   }
 
   private def rewrite(p: LogicalPlan): LogicalPlan =
-    p.endoRewrite(repeatEmitPredicateRewriter)
+    p.endoRewrite(repeatEmitPredicateRewriter(Attributes(idGen)))
 }

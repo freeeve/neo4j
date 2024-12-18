@@ -2989,7 +2989,8 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         innerEnd = "b",
         groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
         groupRelationships = Set(("r_inner", "r")),
-        reverseGroupVariableProjections = true
+        reverseGroupVariableProjections = true,
+        None
       ))
       .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
       .|.argument("me", "a_inner")
