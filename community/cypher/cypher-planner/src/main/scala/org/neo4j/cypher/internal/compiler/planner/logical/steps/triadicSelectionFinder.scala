@@ -161,17 +161,17 @@ case object triadicSelectionFinder extends SelectionCandidateGenerator {
     exp2: Expand,
     qg: QueryGraph,
     context: LogicalPlanningContext
-  ): Seq[LogicalPlan] =
+  ): Seq[LogicalPlan] = {
+    val (acceptableLeftPredicates, newRightPredicates) =
+      leftPredicates.partition(leftPredicatesAcceptable(exp1.to, _))
     if (
       exp1.mode == ExpandAll && exp1.to == exp2.from &&
       matchingLabels(positivePredicate, exp1.to, exp2.to, qg) &&
-      leftPredicatesAcceptable(exp1.to, leftPredicates) &&
       matchingIRExpression(subqueryExpression, exp1.from, exp2.to, exp1.types, exp1.dir)
     ) {
-
       val left =
-        if (leftPredicates.nonEmpty)
-          context.staticComponents.logicalPlanProducer.planSelection(exp1, leftPredicates, context)
+        if (acceptableLeftPredicates.nonEmpty)
+          context.staticComponents.logicalPlanProducer.planSelection(exp1, acceptableLeftPredicates, context)
         else
           exp1
 
@@ -204,8 +204,7 @@ case object triadicSelectionFinder extends SelectionCandidateGenerator {
           context.staticComponents.logicalPlanProducer.planSelection(newExpand2, incomingPredicates, context)
         else
           newExpand2
-
-      Seq(context.staticComponents.logicalPlanProducer.planTriadicSelection(
+      val triadicSelection = context.staticComponents.logicalPlanProducer.planTriadicSelection(
         positivePredicate,
         left,
         exp1.from,
@@ -214,15 +213,21 @@ case object triadicSelectionFinder extends SelectionCandidateGenerator {
         right,
         triadicPredicate,
         context
-      ))
+      )
+      val newPlan = if (newRightPredicates.nonEmpty) {
+        context.staticComponents.logicalPlanProducer.planSelection(triadicSelection, newRightPredicates, context)
+      } else
+        triadicSelection
+
+      Seq(newPlan)
     } else
       Seq.empty
+  }
 
-  private def leftPredicatesAcceptable(leftId: LogicalVariable, leftPredicates: Seq[Expression]) =
-    leftPredicates.forall {
-      case HasLabels(v: Variable, Seq(_)) if v == leftId => true
-      case _                                             => false
-    }
+  private def leftPredicatesAcceptable(leftId: LogicalVariable, leftPredicate: Expression) = leftPredicate match {
+    case HasLabels(v: Variable, Seq(_)) if v == leftId => true
+    case _                                             => false
+  }
 
   private def matchingLabels(
     positivePredicate: Boolean,
