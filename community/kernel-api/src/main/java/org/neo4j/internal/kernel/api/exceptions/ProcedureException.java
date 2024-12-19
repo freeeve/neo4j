@@ -53,7 +53,7 @@ public class ProcedureException extends KernelException {
         super(statusCode, cause, message, parameters);
     }
 
-    public ProcedureException(
+    protected ProcedureException(
             ErrorGqlStatusObject gqlStatusObject,
             Status statusCode,
             Throwable cause,
@@ -67,9 +67,17 @@ public class ProcedureException extends KernelException {
         super(statusCode, message, parameters);
     }
 
-    public ProcedureException(
+    protected ProcedureException(
             ErrorGqlStatusObject gqlStatusObject, Status statusCode, String message, Object... parameters) {
         super(gqlStatusObject, statusCode, message, parameters);
+    }
+
+    // KNL-034
+    public static ProcedureException indexInFailedState(String indexName, String errorMessage) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N62)
+                .withParam(GqlParams.StringParam.idx, indexName)
+                .build();
+        return new ProcedureException(gql, Status.Schema.IndexCreationFailed, errorMessage);
     }
 
     public static ProcedureException indexDidNotComeOnline(
@@ -869,6 +877,16 @@ public class ProcedureException extends KernelException {
     public static ProcedureException generalProcedureException(String procedure, Throwable e) {
         var gql = GqlHelper.getGql52N02_52N11(procedure);
         return new ProcedureException(gql, ProcedureCallFailed, e, e.getMessage());
+    }
+
+    /**
+     * This one does not set 52N11 as the cause.
+     */
+    public static ProcedureException generalProcedureExceptionNoCause(String procedure, Status status, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N02)
+                .withParam(GqlParams.StringParam.proc, procedure)
+                .build();
+        return new ProcedureException(gql, status, e, e.getMessage());
     }
 
     public static ProcedureException generalProcedureExceptionWithCustomMessage(String procedure, Throwable e) {

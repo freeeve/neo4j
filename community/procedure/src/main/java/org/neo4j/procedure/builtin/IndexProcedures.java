@@ -31,7 +31,6 @@ import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.KernelTransaction;
-import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.api.index.IndexPopulationFailure;
 import org.neo4j.kernel.impl.api.index.IndexSamplingMode;
 import org.neo4j.kernel.impl.api.index.IndexingService;
@@ -94,10 +93,11 @@ public class IndexProcedures {
                 return true;
             case FAILED:
                 String cause = getFailure(index, procedureName);
-                throw new ProcedureException(
-                        Status.Schema.IndexCreationFailed,
-                        IndexPopulationFailure.appendCauseOfFailure("Index '%s' is in failed state.", cause),
-                        index.getName());
+                throw ProcedureException.indexInFailedState(
+                        index.getName(),
+                        String.format(
+                                IndexPopulationFailure.appendCauseOfFailure("Index '%s' is in failed state.", cause),
+                                index.getName()));
             default:
                 throw new IllegalStateException("Unknown index state " + state);
         }

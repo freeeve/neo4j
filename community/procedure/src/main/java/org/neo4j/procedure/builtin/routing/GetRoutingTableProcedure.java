@@ -31,9 +31,6 @@ import org.neo4j.collection.ResourceRawIterator;
 import org.neo4j.dbms.routing.RoutingException;
 import org.neo4j.dbms.routing.RoutingService;
 import org.neo4j.dbms.routing.result.RoutingResultFormat;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlParams;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.Neo4jTypes;
 import org.neo4j.internal.kernel.api.procs.ProcedureSignature;
@@ -105,10 +102,8 @@ public final class GetRoutingTableProcedure implements CallableProcedure {
                     databaseName, routingContext, result);
             return ResourceRawIterator.<AnyValue[], ProcedureException>of(RoutingResultFormat.build(result));
         } catch (RoutingException ex) {
-            var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N02)
-                    .withParam(GqlParams.StringParam.proc, signature.name().toString())
-                    .build();
-            throw new ProcedureException(gql, ex.status(), ex, ex.getMessage());
+            throw ProcedureException.generalProcedureExceptionNoCause(
+                    signature.name().toString(), ex.status(), ex);
         }
     }
 

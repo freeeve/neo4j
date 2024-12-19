@@ -99,6 +99,10 @@ class AwaitIndexProcedureTest {
         assertThat(exception.status()).isEqualTo(Status.Schema.IndexCreationFailed);
         assertThat(exception.getMessage()).contains("Kilroy was here");
         assertThat(exception.getMessage()).contains("Index 'index' is in failed state.: Cause of failure:");
+        assertThat(exception.gqlStatus()).isEqualTo("51N62");
+        assertThat(exception.statusDescription())
+                .isEqualTo(
+                        "error: system configuration or operation exception - index is in a failed state. Unable to use index `index` because it is in a failed state. See logs for more information.");
     }
 
     @Test
