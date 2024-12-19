@@ -301,7 +301,7 @@ case class RepeatSlottedPipe(
                 stack.push(createNextState(stackHead, row, innerEndNode, tracker))
               }
               // if iterated long enough emit, otherwise recurse
-              if (stackHead.iterations >= repetition.min) {
+              if (stackHead.iterations >= repetition.min && (emitPredicate == null || (emitPredicate(row, state) eq Values.TRUE) ) ) {
                 newResultRow(row, stackHead.groupNodes, stackHead.groupRelationships, innerEndNode)
               } else {
                 produceNext()
