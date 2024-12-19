@@ -20,15 +20,18 @@
 package org.neo4j.kernel.api.exceptions.schema;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.schema.SchemaKernelException;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class DropIndexFailureException extends SchemaKernelException {
-    public DropIndexFailureException(String message) {
+    private DropIndexFailureException(String message) {
         super(Status.Schema.IndexDropFailed, message);
     }
 
-    public DropIndexFailureException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    private DropIndexFailureException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, Status.Schema.IndexDropFailed, message);
     }
 
@@ -38,5 +41,22 @@ public class DropIndexFailureException extends SchemaKernelException {
 
     public DropIndexFailureException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, Status.Schema.IndexDropFailed, message, cause);
+    }
+
+    // KNL-035
+    public static DropIndexFailureException noIndexSpecified() {
+        return new DropIndexFailureException("No index was specified.");
+    }
+
+    // KNL-036
+    public static DropIndexFailureException indexDoesNotExist(String indexName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N10)
+                .withParam(GqlParams.StringParam.idxDescrOrName, indexName)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N69)
+                        .withParam(GqlParams.StringParam.idxDescrOrName, indexName)
+                        .build())
+                .build();
+        return new DropIndexFailureException(
+                gql, "Unable to drop index called `" + indexName + "`. There is no such index.");
     }
 }

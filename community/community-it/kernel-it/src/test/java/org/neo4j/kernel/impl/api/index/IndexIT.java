@@ -64,6 +64,7 @@ import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.constraints.IndexBackedConstraintDescriptor;
 import org.neo4j.kernel.api.KernelTransaction;
+import org.neo4j.kernel.api.exceptions.schema.DropIndexFailureException;
 import org.neo4j.kernel.impl.api.integrationtest.KernelIntegrationTest;
 import org.neo4j.kernel.impl.api.state.ConstraintIndexCreator;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -276,8 +277,18 @@ class IndexIT extends KernelIntegrationTest {
 
         // when
         SchemaWrite statement = schemaWriteInNewTransaction();
-        SchemaKernelException e = assertThrows(SchemaKernelException.class, () -> statement.indexDrop(indexName));
-        assertEquals(e.getMessage(), "Unable to drop index called `My fancy index`. There is no such index.");
+        SchemaKernelException e = assertThrows(DropIndexFailureException.class, () -> statement.indexDrop(indexName));
+        assertThat(e.getMessage()).isEqualTo("Unable to drop index called `My fancy index`. There is no such index.");
+        assertThat(e.gqlStatus()).isEqualTo("50N10");
+        assertThat(e.statusDescription())
+                .isEqualTo("error: general processing exception - index drop failed. Unable to drop 'My fancy index'.");
+        assertThat(e.cause()).isPresent();
+        var gqlCause = e.cause().get();
+        assertThat(gqlCause.gqlStatus()).isEqualTo("22N69");
+        assertThat(gqlCause.statusDescription())
+                .isEqualTo(
+                        "error: data exception - index does not exist. The index specified by 'My fancy index' does not exist.");
+        assertThat(gqlCause.cause()).isNotPresent();
         rollback();
     }
 

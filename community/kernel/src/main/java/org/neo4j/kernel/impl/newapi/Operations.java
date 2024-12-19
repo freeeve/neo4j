@@ -1782,7 +1782,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     @Override
     public void indexDrop(IndexDescriptor index) throws SchemaKernelException {
         if (index == IndexDescriptor.NO_INDEX) {
-            throw new DropIndexFailureException("No index was specified.");
+            throw DropIndexFailureException.noIndexSpecified();
         }
         exclusiveSchemaLock(index.schema());
         exclusiveSchemaNameLock(index.getName());
@@ -1821,8 +1821,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         exclusiveSchemaNameLock(indexName);
         IndexDescriptor index = schemaRead.indexGetForName(indexName);
         if (index == IndexDescriptor.NO_INDEX) {
-            throw new DropIndexFailureException(
-                    "Unable to drop index called `" + indexName + "`. There is no such index.");
+            throw DropIndexFailureException.indexDoesNotExist(indexName);
         }
         exclusiveSchemaLock(index.schema());
         assertIndexExistsForDrop(index);
