@@ -22,15 +22,22 @@ package org.neo4j.exceptions;
 import static java.lang.System.lineSeparator;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class FailedIndexException extends Neo4jException {
-    public FailedIndexException(String indexName, String failureMessage) {
-        super(msg(indexName, failureMessage), null);
+    private FailedIndexException(ErrorGqlStatusObject gqlStatusObject, String indexName, String failureMessage) {
+        super(gqlStatusObject, msg(indexName, failureMessage), null);
     }
 
-    public FailedIndexException(ErrorGqlStatusObject gqlStatusObject, String indexName, String failureMessage) {
-        super(gqlStatusObject, msg(indexName, failureMessage), null);
+    // KNL-041 and KNL-042
+    public static FailedIndexException failedIndex(String indexName, String failureMessage) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N62)
+                .withParam(GqlParams.StringParam.idx, indexName)
+                .build();
+        return new FailedIndexException(gql, indexName, failureMessage);
     }
 
     private static String msg(String indexName, String failureMessage) {

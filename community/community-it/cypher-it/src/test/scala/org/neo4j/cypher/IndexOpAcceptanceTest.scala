@@ -78,6 +78,9 @@ class IndexOpAcceptanceTest extends ExecutionEngineFunSuite with QueryStatistics
       e.getMessage should include(
         org.neo4j.kernel.impl.index.schema.FailingNativeIndexProviderFactory.POPULATION_FAILURE_MESSAGE
       )
+      e.gqlStatus() should equal("51N62")
+      e.statusDescription() should fullyMatch regex
+        raw"error: system configuration or operation exception - index is in a failed state\. Unable to use index .* because it is in a failed state\. See logs for more information\."
     } finally {
       managementService.shutdown()
     }

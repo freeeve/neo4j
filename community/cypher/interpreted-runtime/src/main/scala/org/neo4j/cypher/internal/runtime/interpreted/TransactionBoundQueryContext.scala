@@ -354,7 +354,10 @@ sealed class TransactionBoundQueryContext(
         val indexReference = schemaRead.index(descriptor).next()
         if (schemaRead.indexGetState(indexReference) == InternalIndexState.FAILED) {
           val message = schemaRead.indexGetFailure(indexReference)
-          throw new FailedIndexException(indexReference.userDescription(transactionalContext.tokenRead), message)
+          throw FailedIndexException.failedIndex(
+            indexReference.userDescription(transactionalContext.tokenRead),
+            message
+          )
         }
         throw e
     }
