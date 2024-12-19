@@ -47,12 +47,9 @@ public class GqlParams {
         alloc(new IDENT()), // Allocator name
         allocType(new STRLIT()), // Allocation type
         auth(new IDENT()), // Auth provider name
-        boltMsgType(new STRLIT()), // Bolt message type
         boltServerState(new STRLIT()), // Bolt server state
         cause(new VERBATIM()), // Freeform cause
         cfgSetting(new VERBATIM()), // Configuration setting key | https.enable
-        changeIdent(new IDENT()), // Change identifier
-        characterRange(new CHAR_RANGE()), // Character range or character | 'a'-'Z', '@'
         clause(new UPPER().withInner(new VERBATIM())), // Clause
         cmd(new STRLIT()), // Command | 'DROP DATABASE'
         component(new STRLIT()), // Component name
@@ -66,8 +63,6 @@ public class GqlParams {
         db2(new IDENT()),
         db3(new IDENT()),
         edition(new VERBATIM()), // Freeform edition description
-        entityId1(new STRLIT()), // Result of elementId()
-        entityId2(new STRLIT()),
         entityType(new VERBATIM()), // One of 'node', 'relationship'
         expr(new STRLIT()), // Cypher expression | 1 + n.pro
         exprType(new VERBATIM()), // Freeform expression type
@@ -108,8 +103,7 @@ public class GqlParams {
         pat(new STRLIT()), // Pattern | '(:Person)'
         port(new IDENT()), // Port name
         pred(new STRLIT()), // Predicate | 'x < 3'
-        preparserInput(new STRLIT()), // Piece of preparser input
-        preparserInput1(new STRLIT()),
+        preparserInput1(new STRLIT()), // Piece of preparser input
         preparserInput2(new STRLIT()),
         proc(new CALLABLE_IDENT()), // Procedure name | launchRocket
         procClass(new IDENT()), // Procedure implementation class name
@@ -129,8 +123,7 @@ public class GqlParams {
         runtime(new STRLIT()), // Cypher runtime name
         schemaDescr(new STRLIT()), // Schema descriptor
         selector(new VERBATIM()), // A GPM path selector
-        selectorType(new STRLIT()), // Selector type
-        selectorType1(new STRLIT()),
+        selectorType1(new STRLIT()), // Selector type
         selectorType2(new STRLIT()),
         server(new STRLIT()), // Server | 'example.com
         serverAddress(new STRLIT()), // Server address | localhost:1024
@@ -149,8 +142,8 @@ public class GqlParams {
         url(new VERBATIM()), // URL
         user(new IDENT()), // User name
         value(new VAL()), // Value
-        valueType(new VALTYPE()),
-        variable(new IDENT());
+        valueType(new VALTYPE()), // Value type
+        variable(new IDENT()); // Variable name
         public final Processor processor;
 
         @Override
@@ -170,14 +163,14 @@ public class GqlParams {
         count2(new NONNEG()),
         countAllocs(new NUM()), // Desired number of servers to use
         countSeeders(new NUM()), // Number of seeding servers
-        dim1(new NONNEG()), // Freeform description of "index dimensionality"
+        dim1(new NONNEG()), // Number representing index dimensionality
         dim2(new NONNEG()),
-        entityId(new STRLIT()),
+        entityId(new NUM()), // Id of a node or relationship
         lower(new NUM()), // Lower bound
         pos(new NUM()), // A position (e.g., in a sequence)
         timeAmount(new NUM()), // Integral amount of some time unit
         upper(new NUM()), // Upper bound
-        value(new VAL());
+        value(new VAL()); // Value
 
         public final Processor processor;
 
@@ -192,9 +185,9 @@ public class GqlParams {
     }
 
     public enum ListParam implements GqlParam, HasJoinStyle {
-        characterRangeList(new NELIST()
-                .withInner(StringParam.characterRange.processor)), // Comma-separated list of character ranges
-        hintList(new NELIST().withInner(StringParam.hint.processor)),
+        hintList(new NELIST()
+                .withInner(
+                        StringParam.hint.processor)), // Comma-separated list of free form descriptions of some "hints"
         inputList(new NELIST().withInner(StringParam.input.processor)), // Comma-separated list of "inputs"
         labelList(new NELIST()
                 .withInner(StringParam.label.processor)), // Comma-separated list of label names | Person, Human
@@ -207,12 +200,13 @@ public class GqlParams {
                 .withInner(StringParam.pred.processor)), // Comma-separated list of predicates | 'x < 3', 'y > 4'
         propKeyList(
                 new NELIST().withInner(StringParam.propKey.processor)), // Comma-separated list of property key names
+        reasonList(
+                new NELIST().withInner(StringParam.value.processor)), // Comma-separated list of reasons of the failure
         serverList(new NELIST()
                 .withInner(StringParam.server.processor)), // Comma-separated list of servers | 'a.com', 'b.com'
-        valueList(new NELIST().withInner(StringParam.value.processor)),
+        valueList(new NELIST().withInner(StringParam.value.processor)), // Comma-separated list of values
         valueTypeList(new NELIST().withInner(StringParam.valueType.processor)),
-        variableList(new NELIST().withInner(StringParam.variable.processor)), // Comma-separated list of values
-        reasonList(new NELIST().withInner(StringParam.value.processor));
+        variableList(new NELIST().withInner(StringParam.variable.processor)); // Comma-separated list of values
 
         public final ListProcessor processor;
 
