@@ -53,6 +53,7 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.api.ClockContext;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
+import org.neo4j.memory.HeapEstimatorCacheConfig;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.StorageEngineCostCharacteristics;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
@@ -481,7 +482,11 @@ public interface KernelTransaction extends AssertOpen, AutoCloseable {
     /**
      * Create an execution context memory tracker to be used by threads separate to where the transaction is executed.
      */
-    MemoryTracker createExecutionContextMemoryTracker();
+    MemoryTracker createExecutionContextMemoryTracker(HeapEstimatorCacheConfig heapEstimatorCacheConfig);
+
+    default MemoryTracker createExecutionContextMemoryTracker() {
+        return createExecutionContextMemoryTracker(HeapEstimatorCacheConfig.DISABLED);
+    }
 
     /**
      * @return current transaction query execution context

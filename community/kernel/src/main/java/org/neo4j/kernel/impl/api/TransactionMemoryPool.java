@@ -79,10 +79,9 @@ public class TransactionMemoryPool extends DelegatingMemoryPool implements Scope
         throw new UnsupportedOperationException("Use getExecutionContextPoolMemoryTracker instead");
     }
 
-    public MemoryTracker getExecutionContextPoolMemoryTracker(long grabSize, long maxGrabSize) {
+    public MemoryTracker getExecutionContextPoolMemoryTracker(long grabSize, long maxGrabSize, HeapEstimatorCacheConfig heapEstimatorCacheConfig) {
         if (config.get(memory_tracking)) {
             hasExecutionContextMemoryTrackers = true;
-            var heapEstimatorCacheConfig = GraphDatabaseInternalSettings.extractHeapEstimatorCacheConfig(config);
             return createExecutionContextMemoryTracker(grabSize, maxGrabSize, heapEstimatorCacheConfig);
         } else {
             return EmptyMemoryTracker.INSTANCE;

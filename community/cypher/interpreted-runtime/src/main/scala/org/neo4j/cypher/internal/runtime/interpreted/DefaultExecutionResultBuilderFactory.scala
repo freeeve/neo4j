@@ -59,8 +59,7 @@ abstract class BaseExecutionResultBuilderFactory(
   pipe: Pipe,
   columns: Seq[String],
   hasLoadCSV: Boolean,
-  transactionMode: QueryTransactionMode,
-  heapEstimatorCacheConfig: HeapEstimatorCacheConfig
+  transactionMode: QueryTransactionMode
 ) extends ExecutionResultBuilderFactory {
 
   abstract class BaseExecutionResultBuilder() extends ExecutionResultBuilder {
@@ -86,17 +85,17 @@ abstract class BaseExecutionResultBuilderFactory(
           }
           val mainThreadMemoryTracker = queryContext.transactionalContext.createExecutionContextMemoryTracker()
           val mt = if (profile) {
-            new ProfilingParallelTrackingQueryMemoryTracker(delegateFactory, heapEstimatorCacheConfig)
+            new ProfilingParallelTrackingQueryMemoryTracker(delegateFactory, queryContext.heapEstimatorCacheConfig)
           } else {
-            new ParallelTrackingQueryMemoryTracker(delegateFactory, heapEstimatorCacheConfig)
+            new ParallelTrackingQueryMemoryTracker(delegateFactory, queryContext.heapEstimatorCacheConfig)
           }
           // mainThreadMemoryTracker should be closed together with the query context
           queryContext.resources.trace(DefaultCloseListenable.wrap(mainThreadMemoryTracker))
           mt.setInitializationMemoryTracker(mainThreadMemoryTracker)
           mt
-        case (MEMORY_TRACKING, _) => new TrackingQueryMemoryTracker(heapEstimatorCacheConfig)
+        case (MEMORY_TRACKING, _) => new TrackingQueryMemoryTracker(queryContext.heapEstimatorCacheConfig)
         case (CUSTOM_MEMORY_TRACKING(decorator), _) =>
-          new CustomTrackingQueryMemoryTracker(decorator, heapEstimatorCacheConfig)
+          new CustomTrackingQueryMemoryTracker(decorator, queryContext.heapEstimatorCacheConfig)
       }
     }
 
@@ -148,9 +147,8 @@ case class InterpretedExecutionResultBuilderFactory(
   lenientCreateRelationship: Boolean,
   memoryTrackingController: MemoryTrackingController,
   hasLoadCSV: Boolean,
-  transactionMode: QueryTransactionMode,
-  heapEstimatorCacheConfig: HeapEstimatorCacheConfig
-) extends BaseExecutionResultBuilderFactory(pipe, columns, hasLoadCSV, transactionMode, heapEstimatorCacheConfig) {
+  transactionMode: QueryTransactionMode
+) extends BaseExecutionResultBuilderFactory(pipe, columns, hasLoadCSV, transactionMode) {
 
   override def create(queryContext: QueryContext): ExecutionResultBuilder =
     InterpretedExecutionResultBuilder(queryContext: QueryContext)

@@ -28,6 +28,7 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.SettingChangeListener;
 import org.neo4j.cypher.internal.CypherDeprecationNotificationsProvider;
 import org.neo4j.cypher.internal.CypherQueryObfuscator;
+import org.neo4j.cypher.internal.options.CypherHeapEstimatorCacheOption;
 import org.neo4j.cypher.internal.preparser.PreParsedQuery;
 import org.neo4j.cypher.internal.util.InputPosition;
 import org.neo4j.cypher.internal.util.InternalNotification;
@@ -52,6 +53,7 @@ public class QueryStatementLifecycles {
     private final DatabaseContextProvider<? extends DatabaseContext> databaseContextProvider;
     private final QueryExecutionMonitor dbmsMonitor;
     private final ExecutingQueryFactory executingQueryFactory;
+    private final Config config;
     private final boolean shardQueryLogEnabled;
 
     public QueryStatementLifecycles(
@@ -64,6 +66,7 @@ public class QueryStatementLifecycles {
         this.dbmsMonitor = dbmsMonitors.newMonitor(QueryExecutionMonitor.class);
         this.executingQueryFactory =
                 new ExecutingQueryFactory(systemNanoClock, setupCpuClockAtomicReference(config), systemLockTracer);
+        this.config = config;
         this.shardQueryLogEnabled = config.get(GraphDatabaseInternalSettings.shard_query_log_enabled);
     }
 
@@ -167,7 +170,12 @@ public class QueryStatementLifecycles {
 
         @Override
         public void donePreParsing(PreParsedQuery preParsedQuery) {
-            executingQuery.onPreparseReady(preParsedQuery.resolvedLanguage());
+            final var heapEstimatorCacheConfig =
+                    CypherHeapEstimatorCacheOption.heapEstimatorCacheConfigFrom(
+                            preParsedQuery.options().queryOptions().heapEstimatorCacheOption(),
+                            config
+                    );
+            executingQuery.onPreparseReady(preParsedQuery.resolvedLanguage(), heapEstimatorCacheConfig);
         }
 
         @Override

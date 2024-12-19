@@ -46,6 +46,7 @@ import org.neo4j.lock.LockTracer;
 import org.neo4j.lock.LockType;
 import org.neo4j.lock.LockWaitEvent;
 import org.neo4j.lock.ResourceType;
+import org.neo4j.memory.HeapEstimatorCacheConfig;
 import org.neo4j.memory.HeapHighWaterMarkTracker;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.time.SystemNanoClock;
@@ -89,6 +90,7 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
     private DeprecationNotificationsProvider fabricDeprecationNotificationsProvider;
     private int executionPlanCacheKeyHash;
     private CypherVersion queryLanguage;
+    private HeapEstimatorCacheConfig heapEstimatorCacheConfig;
     private volatile ExecutingQueryStatus status = SimpleState.parsing();
     private volatile ExecutingQuery previousQuery;
 
@@ -309,8 +311,9 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
         this.status = SimpleState.planning();
     }
 
-    public void onPreparseReady(CypherVersion queryLanguage) {
+    public void onPreparseReady(CypherVersion queryLanguage, HeapEstimatorCacheConfig heapEstimatorCacheConfig) {
         this.queryLanguage = queryLanguage;
+        this.heapEstimatorCacheConfig = heapEstimatorCacheConfig;
     }
 
     public QueryLanguage cypherVersion() {
@@ -644,6 +647,10 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
         if (!(current instanceof QueryTransactionStatisticsAggregator.ConcurrentImpl)) {
             aggregatedStatistics = new QueryTransactionStatisticsAggregator.ConcurrentImpl(current);
         }
+    }
+
+    public HeapEstimatorCacheConfig heapEstimatorCacheConfig() {
+        return heapEstimatorCacheConfig;
     }
 
     private record ObfuscatedQueryData(

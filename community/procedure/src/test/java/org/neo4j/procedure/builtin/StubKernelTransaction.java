@@ -59,6 +59,7 @@ import org.neo4j.kernel.api.TransactionTimeout;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.api.ClockContext;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
+import org.neo4j.memory.HeapEstimatorCacheConfig;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.StorageEngineCostCharacteristics;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
@@ -348,7 +349,7 @@ public class StubKernelTransaction implements KernelTransaction {
     }
 
     @Override
-    public MemoryTracker createExecutionContextMemoryTracker() {
+    public MemoryTracker createExecutionContextMemoryTracker(HeapEstimatorCacheConfig heapEstimatorCacheConfig) {
         return null;
     }
 

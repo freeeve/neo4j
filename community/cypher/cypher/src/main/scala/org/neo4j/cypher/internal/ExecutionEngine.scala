@@ -19,16 +19,19 @@
  */
 package org.neo4j.cypher.internal
 
+import org.neo4j.cypher.internal.ExecutionEngine.heapEstimatorCacheConfigFrom
 import org.neo4j.cypher.internal.QueryCache.CacheKey
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.expressions.FunctionTypeSignature
 import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.options.CypherHeapEstimatorCacheOption
 import org.neo4j.cypher.internal.options.CypherReplanOption
 import org.neo4j.cypher.internal.planning.CompilationException
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery
 import org.neo4j.cypher.internal.preparser.InputQuery
 import org.neo4j.cypher.internal.preparser.PreParsedQuery
+import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.runtime.InputDataStream
 import org.neo4j.cypher.internal.runtime.NoInput
 import org.neo4j.cypher.internal.tracing.CompilationTracer
@@ -54,6 +57,7 @@ import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.kernel.impl.query.TransactionalContext.DatabaseMode
 import org.neo4j.logging.InternalLogProvider
+import org.neo4j.memory.HeapEstimatorCacheConfig
 import org.neo4j.monitoring.Monitors
 import org.neo4j.values.virtual.MapValue
 
@@ -235,7 +239,8 @@ abstract class ExecutionEngine(
     subscriber: QuerySubscriber,
     notificationLogger: InternalNotificationLogger
   ): QueryExecution = {
-    context.executingQuery().onPreparseReady(query.resolvedLanguage)
+    val heapEstimatorCacheConfig = heapEstimatorCacheConfigFrom(query.options, config)
+    context.executingQuery().onPreparseReady(query.resolvedLanguage, heapEstimatorCacheConfig)
     val executableQuery =
       try {
         getOrCompile(context, query, tracer, params, notificationLogger)
@@ -552,4 +557,20 @@ case class FunctionWithInformation(f: FunctionTypeSignature) extends FunctionInf
 
 object ExecutionEngine {
   val PLAN_BUILDING_TRIES: Int = 20
+
+  // TODO: Try to unify this with the other mapping implementation
+  def heapEstimatorCacheConfigFrom(queryOptions: QueryOptions, cypherConfig: CypherConfiguration): HeapEstimatorCacheConfig = {
+    queryOptions.queryOptions.heapEstimatorCacheOption match {
+      case CypherHeapEstimatorCacheOption.default =>
+        HeapEstimatorCacheConfig.DEFAULT
+      case CypherHeapEstimatorCacheOption.disabled =>
+        HeapEstimatorCacheConfig.DISABLED
+      case CypherHeapEstimatorCacheOption.small =>
+        HeapEstimatorCacheConfig.SMALL
+      case CypherHeapEstimatorCacheOption.large =>
+        HeapEstimatorCacheConfig.LARGE
+      case CypherHeapEstimatorCacheOption.custom =>
+       cypherConfig.customHeapEstimatorCacheConfig
+    }
+  }
 }

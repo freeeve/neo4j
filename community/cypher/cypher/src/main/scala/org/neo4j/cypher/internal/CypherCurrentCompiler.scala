@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.cache.CypherQueryCaches
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.CachedExecutionPlan
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.ExecutionPlanCacheKey
 import org.neo4j.cypher.internal.compiler.phases.CachableLogicalPlanState
+import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
@@ -94,6 +95,7 @@ import org.neo4j.kernel.impl.query.QueryExecution
 import org.neo4j.kernel.impl.query.QueryExecutionMonitor
 import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.kernel.impl.query.TransactionalContext
+import org.neo4j.memory.HeapEstimatorCacheConfig
 import org.neo4j.monitoring.Monitors
 import org.neo4j.notifications.NotificationImplementation
 import org.neo4j.notifications.NotificationWrapping.asKernelNotification

@@ -94,6 +94,7 @@ import org.neo4j.kernel.impl.query.FunctionInformation
 import org.neo4j.kernel.impl.query.QueryExecutionConfiguration
 import org.neo4j.kernel.impl.query.statistic.StatisticProvider
 import org.neo4j.logging.InternalLogProvider
+import org.neo4j.memory.HeapEstimatorCacheConfig
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.scheduler.JobScheduler
 import org.neo4j.values.AnyValue
@@ -132,6 +133,8 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
   override def resources: ResourceManager = inner.resources
 
   override def transactionalContext: QueryTransactionalContext = inner.transactionalContext
+
+  override def heapEstimatorCacheConfig: HeapEstimatorCacheConfig = inner.heapEstimatorCacheConfig
 
   override def setLabelsOnNode(node: Long, labelIds: Iterator[Int]): Int =
     singleDbHit(inner.setLabelsOnNode(node, labelIds))

@@ -123,6 +123,7 @@ import org.neo4j.kernel.impl.util.RelationshipEntityWrappingValue
 import org.neo4j.kernel.impl.util.ValueUtils
 import org.neo4j.logging.InternalLogProvider
 import org.neo4j.logging.internal.LogService
+import org.neo4j.memory.HeapEstimatorCacheConfig
 import org.neo4j.scheduler.JobScheduler
 import org.neo4j.storageengine.api.PropertySelection
 import org.neo4j.storageengine.api.RelationshipVisitor
@@ -596,6 +597,10 @@ private[internal] class TransactionBoundReadQueryContext(
     resources.trace(newResourceManager)
 
     new ParallelTransactionBoundQueryContext(newTransactionalContext, newResourceManager)(indexSearchMonitor)
+  }
+
+  override def heapEstimatorCacheConfig: HeapEstimatorCacheConfig = {
+    transactionalContext.kernelExecutingQuery.heapEstimatorCacheConfig
   }
 
   // We cannot assign to value because of periodic commit

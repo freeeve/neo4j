@@ -158,6 +158,7 @@ import org.neo4j.kernel.internal.event.TransactionEventListeners;
 import org.neo4j.lock.ActiveLock;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.logging.LogProvider;
+import org.neo4j.memory.HeapEstimatorCacheConfig;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.memory.ScopedMemoryPool;
 import org.neo4j.monitoring.DatabaseHealth;
@@ -738,10 +739,10 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     }
 
     @Override
-    public MemoryTracker createExecutionContextMemoryTracker() {
+    public MemoryTracker createExecutionContextMemoryTracker(HeapEstimatorCacheConfig heapEstimatorCacheConfig) {
         var grabSize = config.get(GraphDatabaseInternalSettings.initial_transaction_heap_grab_size_per_worker);
         var maxGrabSize = config.get(GraphDatabaseInternalSettings.max_transaction_heap_grab_size_per_worker);
-        return transactionMemoryPool.getExecutionContextPoolMemoryTracker(grabSize, maxGrabSize);
+        return transactionMemoryPool.getExecutionContextPoolMemoryTracker(grabSize, maxGrabSize, heapEstimatorCacheConfig);
     }
 
     @Override

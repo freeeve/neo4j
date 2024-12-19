@@ -205,8 +205,9 @@ class SingleThreadedTransactionalContextWrapper(tc: TransactionalContext)
 
   override def constituentTransactionFactory: ConstituentTransactionFactory = tc.constituentTransactionFactory()
 
-  override def createExecutionContextMemoryTracker(): MemoryTracker =
-    tc.kernelTransaction().createExecutionContextMemoryTracker()
+  override def createExecutionContextMemoryTracker(): MemoryTracker = {
+    tc.kernelTransaction().createExecutionContextMemoryTracker(kernelExecutingQuery.heapEstimatorCacheConfig())
+  }
 
   override def queryExecutingConfiguration: QueryExecutionConfiguration = tc.queryExecutingConfiguration()
 }

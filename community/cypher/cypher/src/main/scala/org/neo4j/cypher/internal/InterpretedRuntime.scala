@@ -118,8 +118,7 @@ object InterpretedRuntime extends CypherRuntime[RuntimeContext] {
       context.config.lenientCreateRelationship,
       context.config.memoryTrackingController,
       query.hasLoadCSV,
-      transactionsMode,
-      context.config.heapEstimatorCacheConfig
+      transactionsMode
     )
 
     new InterpretedExecutionPlan(

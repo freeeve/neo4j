@@ -75,6 +75,7 @@ import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.api.index.IndexUsageStats
 import org.neo4j.kernel.impl.query.FunctionInformation
 import org.neo4j.logging.InternalLogProvider
+import org.neo4j.memory.HeapEstimatorCacheConfig
 import org.neo4j.scheduler.JobScheduler
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.TextValue
@@ -93,6 +94,8 @@ class ExceptionTranslatingReadQueryContext(val inner: ReadQueryContext) extends 
   override def resources: ResourceManager = inner.resources
 
   override def transactionalContext: QueryTransactionalContext = ExceptionTranslatingTransactionalContext
+
+  override def heapEstimatorCacheConfig: HeapEstimatorCacheConfig = inner.heapEstimatorCacheConfig
 
   override def getLabelsForNode(node: Long, nodeCursor: NodeCursor): ListValue =
     translateException(tokenNameLookup, inner.getLabelsForNode(node, nodeCursor))
