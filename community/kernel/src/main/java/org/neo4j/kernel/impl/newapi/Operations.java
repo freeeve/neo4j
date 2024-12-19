@@ -924,7 +924,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     private void assertIndexOnline(IndexDescriptor descriptor)
             throws IndexNotFoundKernelException, IndexBrokenKernelException {
         if (schemaRead.indexGetState(descriptor) != InternalIndexState.ONLINE) {
-            throw new IndexBrokenKernelException(schemaRead.indexGetFailure(descriptor));
+            throw IndexBrokenKernelException.indexBroken(descriptor.getName(), schemaRead.indexGetFailure(descriptor));
         }
     }
 

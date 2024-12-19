@@ -871,7 +871,7 @@ public final class KernelRead implements Read {
         if (schemaRead.indexGetState(index) == InternalIndexState.ONLINE) {
             return;
         }
-        throw new IndexBrokenKernelException(schemaRead.indexGetFailure(index));
+        throw IndexBrokenKernelException.indexBroken(index.getName(), schemaRead.indexGetFailure(index));
     }
 
     private static void assertPredicatesMatchSchema(

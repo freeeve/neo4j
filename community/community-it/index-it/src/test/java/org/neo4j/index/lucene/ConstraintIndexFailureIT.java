@@ -41,6 +41,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.io.fs.FileUtils;
+import org.neo4j.kernel.api.exceptions.schema.IndexBrokenKernelException;
 import org.neo4j.kernel.api.exceptions.schema.UnableToValidateConstraintException;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.impl.coreapi.TransactionImpl;
@@ -85,10 +86,18 @@ class ConstraintIndexFailureIT {
         // when
         try (Transaction tx = db.beginTx()) {
             var e = assertThrows(ConstraintViolationException.class, () -> createData(entityType, tx));
-            assertThat(e.getCause()).isInstanceOf(UnableToValidateConstraintException.class);
-            assertThat(e.getCause().getCause().getMessage())
+            var cause = e.getCause();
+            assertThat(cause).isInstanceOf(UnableToValidateConstraintException.class);
+            assertThat(cause.getCause()).isInstanceOf(IndexBrokenKernelException.class);
+            var causeCause = (IndexBrokenKernelException) cause.getCause();
+            assertThat(causeCause.getMessage())
                     .contains("The index is in a failed state:")
                     .contains(INITIAL_STATE_FAILURE_MESSAGE);
+            assertThat(causeCause.gqlStatus()).isEqualTo("51N62");
+            assertThat(causeCause.statusDescription())
+                    .contains(
+                            "error: system configuration or operation exception - index is in a failed state. Unable to use index",
+                            "because it is in a failed state. See logs for more information.");
         } finally {
             managementService.shutdown();
         }
