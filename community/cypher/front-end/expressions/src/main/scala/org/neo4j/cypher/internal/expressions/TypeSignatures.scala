@@ -22,3 +22,8 @@ trait TypeSignatures {
 
   lazy val signatureLengths: Seq[Int] = signatures.map(_.argumentTypes.length)
 }
+
+trait FunctionTypeSignatures extends TypeSignatures {
+
+  override def signatures: Seq[FunctionTypeSignature] = Seq.empty
+}

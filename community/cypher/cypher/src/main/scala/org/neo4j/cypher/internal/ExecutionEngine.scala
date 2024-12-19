@@ -40,6 +40,7 @@ import org.neo4j.exceptions.ParameterNotFoundException
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.internal.kernel.api.security.AccessMode
 import org.neo4j.kernel.GraphDatabaseQueryService
+import org.neo4j.kernel.api.QueryLanguage
 import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.api.exceptions.Status.HasStatus
 import org.neo4j.kernel.database.DatabaseReference
@@ -62,6 +63,7 @@ import java.util.Optional
 import java.util.UUID
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.jdk.CollectionConverters.SetHasAsJava
 
 /**
  * This class constructs and initializes both the cypher compilers and runtimes, which are very expensive
@@ -539,6 +541,10 @@ case class FunctionWithInformation(f: FunctionTypeSignature) extends FunctionInf
         java.util.Optional.empty[String]()
       )
     }.asJava
+  }
+
+  override def scopes(): java.util.Set[QueryLanguage] = {
+    f.scopes.map(org.neo4j.cypher.internal.frontend.phases.QueryLanguage.toKernelScope).asJava
   }
 }
 

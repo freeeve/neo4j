@@ -421,7 +421,7 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
               s,
               SemanticError.invalidEntityType(
                 specifiedType.mkString(", "),
-                invocation.function.name,
+                invocation.functionName.name,
                 List("Boolean", "String"),
                 s"Type mismatch: expected Boolean or String but was ${specifiedType.mkString(", ")}",
                 argument.position

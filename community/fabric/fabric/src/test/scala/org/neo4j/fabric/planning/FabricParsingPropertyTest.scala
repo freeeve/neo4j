@@ -42,6 +42,7 @@ import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
 import org.neo4j.cypher.internal.frontend.phases.QualifiedName
+import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
@@ -90,6 +91,8 @@ class FabricParsingPropertyTest extends CypherFunSuite
       override def procedureSignature(name: QualifiedName): ProcedureSignature = signature
       override def functionSignature(name: QualifiedName): Option[UserFunctionSignature] = None
       override def procedureSignatureVersion: Long = -1
+
+      override def queryLanguage: QueryLanguage = QueryLanguage.from(astGenerator.whenAstDifferUseCypherVersion)
     }
   }
 

@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.frontend.phases.ObfuscationMetadataCollection
 import org.neo4j.cypher.internal.frontend.phases.Parse
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
 import org.neo4j.cypher.internal.frontend.phases.QualifiedName
+import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
@@ -209,5 +210,7 @@ class CypherQueryObfuscatorFactory {
     override def databaseMode: DatabaseMode = fail()
 
     override def storageHasPropertyColocation: Boolean = fail()
+
+    override def queryLanguage: QueryLanguage = fail()
   }
 }

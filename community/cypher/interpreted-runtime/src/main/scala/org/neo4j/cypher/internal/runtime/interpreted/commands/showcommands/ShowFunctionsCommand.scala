@@ -55,6 +55,7 @@ import org.neo4j.values.storable.Values
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.SetHasAsScala
 
 // SHOW [ALL | BUILT IN | USER DEFINED] FUNCTION[S] [EXECUTABLE [BY {CURRENT USER | username}]] [WHERE clause | YIELD clause]
 case class ShowFunctionsCommand(
@@ -109,7 +110,7 @@ case class ShowFunctionsCommand(
     val languageFunctionsInfo = functionType match {
       case UserDefinedFunctions =>
         List.empty // Will anyway filter out all built-in functions and all of these are built-in
-      case _ => state.query.providedLanguageFunctions.map(f => FunctionInfo(f)).toList
+      case _ => state.query.providedLanguageFunctions.map(f => FunctionInfo(f)).filter(_.scopes.contains(scope)).toList
     }
 
     // gets you all non-aggregating functions that are registered in the db (incl. those from libs like apoc)
@@ -229,7 +230,8 @@ case class ShowFunctionsCommand(
     retDescr: String,
     aggregating: Boolean,
     deprecated: Boolean,
-    deprecatedBy: String
+    deprecatedBy: String,
+    scopes: Set[QueryLanguage]
   )
 
   private object FunctionInfo {
@@ -244,6 +246,7 @@ case class ShowFunctionsCommand(
       val returnDescr = info.outputType.toString
       val deprecated = info.isDeprecated
       val deprecatedBy = if (info.deprecated() == null || info.deprecated.isEmpty) null else info.deprecated.get
+      val scopes = info.supportedQueryLanguages().asScala.toSet
       FunctionInfo(
         name,
         category,
@@ -254,7 +257,8 @@ case class ShowFunctionsCommand(
         returnDescr,
         aggregating,
         deprecated,
-        deprecatedBy
+        deprecatedBy,
+        scopes
       )
     }
 
@@ -268,6 +272,7 @@ case class ShowFunctionsCommand(
       val returnDescr = info.returnType
       val deprecated = info.isDeprecated
       val deprecatedBy = if (info.deprecatedBy() == null || info.deprecatedBy.isEmpty) null else info.deprecatedBy.get
+      val scopes = info.scopes().asScala.toSet
       FunctionInfo(
         name,
         category,
@@ -278,7 +283,8 @@ case class ShowFunctionsCommand(
         returnDescr,
         aggregating,
         deprecated,
-        deprecatedBy
+        deprecatedBy,
+        scopes
       )
     }
   }

@@ -57,6 +57,7 @@ import java.util.Optional
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.jdk.CollectionConverters.SetHasAsJava
+import scala.jdk.CollectionConverters.SetHasAsScala
 
 class ShowFunctionsCommandTest extends ShowCommandTestBase {
 
@@ -1270,7 +1271,8 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     output: String,
     arguments: List[InputInformation],
     deprecated: Boolean = false,
-    deprecatedByString: Optional[String] = Optional.empty()
+    deprecatedByString: Optional[String] = Optional.empty(),
+    languageScopes: Set[QueryLanguage] = QueryLanguage.ALL.asScala.toSet
   ) extends FunctionInformation {
     override def getFunctionName: String = name
 
@@ -1289,5 +1291,7 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     override def returnType(): String = output
 
     override def inputSignature(): java.util.List[InputInformation] = arguments.asJava
+
+    override def scopes(): java.util.Set[QueryLanguage] = languageScopes.asJava
   }
 }

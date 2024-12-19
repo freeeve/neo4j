@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.frontend.phases.DeprecationInfo
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
 import org.neo4j.cypher.internal.frontend.phases.QualifiedName
+import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage.toKernelScope
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.logical.plans.CanGetValue
@@ -543,4 +544,6 @@ class TransactionBoundPlanContext(
       case _: Neo4jException => false
     }
   }
+
+  override def queryLanguage: QueryLanguage = QueryLanguage.from(cypherVersion)
 }

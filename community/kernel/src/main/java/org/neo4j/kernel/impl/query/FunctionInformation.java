@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.query;
 
 import java.util.Optional;
+import org.neo4j.kernel.api.QueryLanguage;
 
 public interface FunctionInformation {
     String getFunctionName();
@@ -39,6 +40,8 @@ public interface FunctionInformation {
     String returnType();
 
     java.util.List<InputInformation> inputSignature();
+
+    java.util.Set<QueryLanguage> scopes();
 
     record InputInformation(
             String name, String type, String description, Boolean isDeprecated, Optional<String> defaultValue) {}

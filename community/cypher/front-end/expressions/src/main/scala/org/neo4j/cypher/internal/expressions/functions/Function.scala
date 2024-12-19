@@ -16,12 +16,13 @@
  */
 package org.neo4j.cypher.internal.expressions.functions
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.FunctionTypeSignature
+import org.neo4j.cypher.internal.expressions.FunctionTypeSignatures
 import org.neo4j.cypher.internal.expressions.Namespace
-import org.neo4j.cypher.internal.expressions.TypeSignatures
 import org.neo4j.cypher.internal.expressions.functions
 import org.neo4j.cypher.internal.util.InputPosition
 
@@ -147,8 +148,23 @@ object Function {
 
   lazy val lookup: Map[String, Function] = knownFunctions.map { f => (f.name.toLowerCase(Locale.ROOT), f) }.toMap
 
+  def scopedLookup(scope: CypherVersion): Map[String, Function] =
+    knownFunctions.filter(_.signatures.exists(_.scopes.contains(scope))).map { f =>
+      (f.name.toLowerCase(Locale.ROOT), f)
+    }.toMap
+
   lazy val functionInfo: List[FunctionTypeSignature] = {
     lookup.values.flatMap {
+      (f: Function) =>
+        f.signatures.flatMap {
+          case signature: FunctionTypeSignature if !signature.internal => Some(signature)
+          case _                                                       => None
+        }
+    }.toList
+  }
+
+  def scopedFunctionInfo(scope: CypherVersion): List[FunctionTypeSignature] = {
+    scopedLookup(scope).values.flatMap {
       (f: Function) =>
         f.signatures.flatMap {
           case signature: FunctionTypeSignature if !signature.internal => Some(signature)
@@ -173,7 +189,7 @@ object DeterministicFunction {
   def isFunctionDeterministic(f: Function): Boolean = f != Rand && f != RandomUUID && f != UnresolvedFunction
 }
 
-abstract class Function extends FunctionWithName with TypeSignatures {
+abstract class Function extends FunctionWithName with FunctionTypeSignatures {
 
   def asFunctionName(implicit position: InputPosition): FunctionName = {
     val names = name.split("\\.")

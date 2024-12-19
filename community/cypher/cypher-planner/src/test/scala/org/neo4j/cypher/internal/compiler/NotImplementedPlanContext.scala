@@ -21,6 +21,8 @@ package org.neo4j.cypher.internal.compiler
 
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
 import org.neo4j.cypher.internal.frontend.phases.QualifiedName
+import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
+import org.neo4j.cypher.internal.frontend.phases.QueryLanguage.Cypher25
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
@@ -160,4 +162,6 @@ class NotImplementedPlanContext extends PlanContext {
   override def databaseMode: DatabaseMode = ???
 
   override def storageHasPropertyColocation: Boolean = ???
+
+  override def queryLanguage: QueryLanguage = Cypher25
 }

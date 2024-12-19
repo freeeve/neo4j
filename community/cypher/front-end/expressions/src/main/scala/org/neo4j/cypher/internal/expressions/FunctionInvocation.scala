@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.expressions
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentOrder
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentUnordered
 import org.neo4j.cypher.internal.expressions.functions.DeterministicFunction
@@ -78,11 +79,19 @@ case class FunctionInvocation(
   val function: functions.Function =
     functions.Function.lookup.getOrElse(name.toLowerCase(Locale.ROOT), UnresolvedFunction)
 
+  def functionWithScope(version: CypherVersion): functions.Function =
+    functions.Function.scopedLookup(version).getOrElse(name.toLowerCase(Locale.ROOT), UnresolvedFunction)
+
   val isOrdered: Boolean = order != ArgumentUnordered
 
   def withOrder(o: ArgumentOrder): FunctionInvocation = copy(order = o)(position)
 
   def needsToBeResolved: Boolean = function match {
+    case UnresolvedFunction => true
+    case _                  => false
+  }
+
+  def scopedNeedsToBeResolved(version: CypherVersion): Boolean = functionWithScope(version) match {
     case UnresolvedFunction => true
     case _                  => false
   }

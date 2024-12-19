@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.spi
 
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
 import org.neo4j.cypher.internal.frontend.phases.QualifiedName
+import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.macros.TranslateExceptionMacros.translateException
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
@@ -220,4 +221,6 @@ class ExceptionTranslatingPlanContext(inner: PlanContext) extends PlanContext wi
 
   override def storageHasPropertyColocation: Boolean =
     translateException(tokenNameLookup, inner.storageHasPropertyColocation)
+
+  override def queryLanguage: QueryLanguage = inner.queryLanguage
 }

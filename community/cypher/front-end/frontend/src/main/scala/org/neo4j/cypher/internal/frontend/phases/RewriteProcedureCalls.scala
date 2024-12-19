@@ -54,7 +54,8 @@ trait RewriteProcedureCalls {
       case unresolved: UnresolvedCall =>
         resolveProcedure(resolver, unresolved)
 
-      case function: FunctionInvocation if function.needsToBeResolved =>
+      case function: FunctionInvocation
+        if function.scopedNeedsToBeResolved(QueryLanguage.toCypherVersion(resolver.queryLanguage)) =>
         resolveFunction(resolver, function)
     })
 
@@ -162,4 +163,6 @@ class InstrumentedProcedureSignatureResolver(resolver: ScopedProcedureSignatureR
     if (hasAttemptedToResolve) Some(resolver.procedureSignatureVersion) else None
 
   override def procedureSignatureVersion: Long = resolver.procedureSignatureVersion
+
+  override def queryLanguage: QueryLanguage = resolver.queryLanguage
 }

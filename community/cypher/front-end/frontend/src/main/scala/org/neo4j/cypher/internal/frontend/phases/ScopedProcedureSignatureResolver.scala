@@ -26,6 +26,7 @@ trait ScopedProcedureSignatureResolver {
   def procedureSignature(name: QualifiedName): ProcedureSignature
   def functionSignature(name: QualifiedName): Option[UserFunctionSignature]
   def procedureSignatureVersion: Long
+  def queryLanguage: QueryLanguage
 }
 
 object ScopedProcedureSignatureResolver {
@@ -35,6 +36,7 @@ object ScopedProcedureSignatureResolver {
       override def procedureSignature(n: QualifiedName): ProcedureSignature = r.procedureSignature(n, scope)
       override def functionSignature(n: QualifiedName): Option[UserFunctionSignature] = r.functionSignature(n, scope)
       override def procedureSignatureVersion: Long = r.procedureSignatureVersion
+      override def queryLanguage: QueryLanguage = scope
     }
   }
 }
