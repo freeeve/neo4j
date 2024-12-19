@@ -22,6 +22,8 @@ package org.neo4j.collection.trackable;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -77,18 +79,16 @@ public class HeapTrackingOrderedAppendSetTest {
     void shouldReverseBigSet() {
         HeapTrackingOrderedAppendSet<Integer> set = create();
         Random random = new Random();
-        int size = random.nextInt(10000);
-        Integer[] values = new Integer[size];
-        Integer[] reversed = new Integer[size];
+        int size = random.nextInt(10000, 20000);
+        var values = new ArrayList<Integer>(size);
         for (int i = 0; i < size; i++) {
             int value = random.nextInt();
-            set.add(value);
-            values[i] = value;
-            reversed[size - i - 1] = value;
+            if (set.add(value)) {
+                values.add(value);
+            }
         }
-
         assertSetContains(set, values);
-        assertSetContains(set.reversedOrderedAppendSet(), reversed);
+        assertSetContains(set.reversedOrderedAppendSet(), values.reversed());
     }
 
     @Test
@@ -116,13 +116,17 @@ public class HeapTrackingOrderedAppendSetTest {
 
     @SafeVarargs
     private <T> void assertSetContains(OrderedAppendSet<T> set, T... objects) {
-        assertThat(set.size()).isEqualTo(objects.length);
-        assertThat(set.isEmpty()).isEqualTo(objects.length == 0);
-        assertThat(set.getFirst()).isEqualTo(objects[0]);
-        assertThat(set.getLast()).isEqualTo(objects[objects.length - 1]);
+        assertSetContains(set, Arrays.asList(objects));
+    }
+
+    private <T> void assertSetContains(OrderedAppendSet<T> set, List<T> objects) {
+        assertThat(set.size()).isEqualTo(objects.size());
+        assertThat(set.isEmpty()).isEqualTo(objects.isEmpty());
+        assertThat(set.getFirst()).isEqualTo(objects.getFirst());
+        assertThat(set.getLast()).isEqualTo(objects.getLast());
         var iterator = set.iterator();
-        for (int i = 0; i < objects.length; i++) {
-            var expected = objects[i];
+        for (int i = 0; i < objects.size(); i++) {
+            var expected = objects.get(i);
             assertThat(iterator).hasNext();
             assertThat(iterator.next()).isEqualTo(expected);
             assertThat(set.get(i)).isEqualTo(expected);
