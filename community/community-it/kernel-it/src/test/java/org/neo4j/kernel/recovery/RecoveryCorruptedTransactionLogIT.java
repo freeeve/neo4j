@@ -240,15 +240,14 @@ class RecoveryCorruptedTransactionLogIT {
         }
     }
 
-    protected int minimumBytesToConsiderACheckpointRecordBroken() {
+    protected int minimumBytesToConsiderARecordBroken() {
         return 3;
     }
 
     @Test
     void recoverFromLastCorruptedBrokenCheckpointRecord() throws IOException {
         for (int iteration = 0; iteration < 10; iteration++) {
-            int bytesToAdd =
-                    random.nextInt(minimumBytesToConsiderACheckpointRecordBroken(), CHECKPOINT_RECORD_SIZE + 1);
+            int bytesToAdd = random.nextInt(minimumBytesToConsiderARecordBroken(), CHECKPOINT_RECORD_SIZE + 1);
 
             DatabaseManagementService managementService = databaseFactory.build();
             GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
@@ -493,7 +492,8 @@ class RecoveryCorruptedTransactionLogIT {
         }
         managementService1.shutdown();
         removeLastCheckpointRecordFromLastLogFile();
-        addRandomBytesToLastLogFile(this::randomInvalidVersionsBytes);
+        addRandomBytesToLastLogFile(
+                this::randomInvalidVersionsBytes, Math.max(minimumBytesToConsiderARecordBroken(), 10));
 
         DatabaseManagementService managementService = databaseFactory.build();
         GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
@@ -530,7 +530,7 @@ class RecoveryCorruptedTransactionLogIT {
         removeLastCheckpointRecordFromLastLogFile();
         Supplier<Byte> randomBytesSupplier = this::randomInvalidVersionsBytes;
         BytesCaptureSupplier capturingSupplier = new BytesCaptureSupplier(randomBytesSupplier);
-        addRandomBytesToLastLogFile(capturingSupplier);
+        addRandomBytesToLastLogFile(capturingSupplier, Math.max(minimumBytesToConsiderARecordBroken(), 10));
         assertFalse(recoveryMonitor.wasRecoveryRequired());
 
         startStopDbRecoveryOfCorruptedLogs();
@@ -1328,6 +1328,11 @@ class RecoveryCorruptedTransactionLogIT {
     }
 
     private void writeRandomBytesAfterLastCommandInLastLogFile(Supplier<ByteBuffer> source) throws IOException {
+        writeRandomBytesAfterLastCommandInLastLogFile(source, 10);
+    }
+
+    private void writeRandomBytesAfterLastCommandInLastLogFile(Supplier<ByteBuffer> source, int bytesToAdd)
+            throws IOException {
         try (Lifespan lifespan = new Lifespan()) {
             LogFile transactionLogFile = logFiles.getLogFile();
             lifespan.add(logFiles);
@@ -1336,7 +1341,7 @@ class RecoveryCorruptedTransactionLogIT {
 
             try (StoreFileChannel writeChannel = fileSystem.write(transactionLogFile.getHighestLogFile())) {
                 writeChannel.position(position.getByteOffset());
-                for (int i = 0; i < 10; i++) {
+                for (int i = 0; i < bytesToAdd; i++) {
                     writeChannel.writeAll(source.get());
                 }
             }
@@ -1400,6 +1405,10 @@ class RecoveryCorruptedTransactionLogIT {
 
     private void addRandomBytesToLastLogFile(Supplier<Byte> byteSource) throws IOException {
         writeRandomBytesAfterLastCommandInLastLogFile(() -> ByteBuffer.wrap(new byte[] {byteSource.get()}));
+    }
+
+    private void addRandomBytesToLastLogFile(Supplier<Byte> byteSource, int bytesToAdd) throws IOException {
+        writeRandomBytesAfterLastCommandInLastLogFile(() -> ByteBuffer.wrap(new byte[] {byteSource.get()}), bytesToAdd);
     }
 
     private byte randomInvalidVersionsBytes() {

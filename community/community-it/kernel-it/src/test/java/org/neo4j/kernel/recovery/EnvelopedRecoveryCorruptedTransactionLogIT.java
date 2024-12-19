@@ -48,7 +48,7 @@ class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransa
     }
 
     @Override
-    protected int minimumBytesToConsiderACheckpointRecordBroken() {
+    protected int minimumBytesToConsiderARecordBroken() {
         // Anything the length of an envelope header or less is just considered a broken
         // last entry by default and will not be considered corrupted (just last broken entry which is recoverable).
         return LogEnvelopeHeader.HEADER_SIZE + 1;
