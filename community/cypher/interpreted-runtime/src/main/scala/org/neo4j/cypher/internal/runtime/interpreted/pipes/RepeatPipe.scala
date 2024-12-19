@@ -210,7 +210,7 @@ case class RepeatPipe(
           relationshipsAreUnique = !trailState.relationshipsSeen.contains(rel) && innerRelationshipsSeen.add(rel)
           i += 1
         }
-        relationshipsAreUnique && (emitPredicate == null || (emitPredicate(row, state) eq Values.TRUE))
+        relationshipsAreUnique
       case _: WalkLegacyRepeatState =>
         true
     }
@@ -258,7 +258,10 @@ case class RepeatPipe(
                     .foreach(stack.push)
                 }
                 // if iterated long enough emit, otherwise recurse
-                if (stackHead.iterations >= repetition.min) {
+                if (
+                  stackHead.iterations >= repetition.min &&
+                  (emitPredicate == null || (emitPredicate(row, state) eq Values.TRUE))
+                ) {
                   val resultRow = row.copyWith(computeNewEntries(newGroupNodes, newGroupRels, innerEndNode))
                   Some(resultRow)
                 } else {
