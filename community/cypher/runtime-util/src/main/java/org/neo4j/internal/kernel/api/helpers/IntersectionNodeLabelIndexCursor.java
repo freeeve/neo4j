@@ -96,7 +96,7 @@ public abstract class IntersectionNodeLabelIndexCursor extends DefaultCloseListe
     abstract int compare(long current, long other);
 
     @Override
-    public boolean next() {
+    public final boolean next() {
 
         // advance all cursors once
         for (SkippableCursor cursor : cursors) {
@@ -104,8 +104,9 @@ public abstract class IntersectionNodeLabelIndexCursor extends DefaultCloseListe
                 return false;
             }
         }
+        int length = cursors.length;
 
-        if (cursors.length == 1) {
+        if (length == 1) {
             return true;
         }
 
@@ -118,18 +119,14 @@ public abstract class IntersectionNodeLabelIndexCursor extends DefaultCloseListe
             int compare = compare(firstReference, secondReference);
             if (compare == 0) {
                 // we found a match, advance
-                i++;
-                if (i == cursors.length - 1) {
+                if (i == length - 2) {
                     return true;
                 }
+                i++;
             } else if (compare < 0) {
                 // advance all cursors up to first and retry
-                for (int j = 0; j <= i; j++) {
-                    var cursor = cursors[j];
-                    cursor.skipUntil(secondReference);
-                    if (!cursor.next()) {
-                        return false;
-                    }
+                if (!advanceAllUpTo(i, secondReference)) {
+                    return false;
                 }
                 i = 0;
             } else {
@@ -180,6 +177,18 @@ public abstract class IntersectionNodeLabelIndexCursor extends DefaultCloseListe
     @Override
     public boolean isClosed() {
         return false;
+    }
+
+    private boolean advanceAllUpTo(int i, long reference) {
+        for (int j = 0; j <= i; j++) {
+            var cursor = cursors[j];
+            cursor.skipUntil(reference);
+            if (!cursor.next()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static final class AscendingIntersectionLabelIndexCursor extends IntersectionNodeLabelIndexCursor {
