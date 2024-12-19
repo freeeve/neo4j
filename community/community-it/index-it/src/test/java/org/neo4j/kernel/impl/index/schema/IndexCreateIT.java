@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.internal.schema.SchemaDescriptors.forLabel;
@@ -82,7 +83,10 @@ public class IndexCreateIT extends KernelIntegrationTest {
     void shouldFailCreateIndexWithDuplicateLabels() throws KernelException {
         // given
         TokenWrite tokenWrite = tokenWriteInNewTransaction();
-        int labelId = tokenWrite.labelGetOrCreateForName("Label");
+        int labelId0 = tokenWrite.labelGetOrCreateForName("Label0");
+        int labelId1 = tokenWrite.labelGetOrCreateForName("Label1");
+        int labelId2 = tokenWrite.labelGetOrCreateForName("Label2");
+        int labelId3 = tokenWrite.labelGetOrCreateForName("Label3");
         int propId = tokenWrite.propertyKeyGetOrCreateForName("property");
         commit();
 
@@ -90,18 +94,27 @@ public class IndexCreateIT extends KernelIntegrationTest {
 
         // when
         final FulltextSchemaDescriptor descriptor = SchemaDescriptors.fulltext(
-                org.neo4j.common.EntityType.NODE, new int[] {labelId, labelId}, new int[] {propId});
+                org.neo4j.common.EntityType.NODE,
+                new int[] {labelId0, labelId1, labelId2, labelId1, labelId3},
+                new int[] {propId});
         // then
-        assertThrows(
+        var e = assertThrows(
                 RepeatedLabelInSchemaException.class,
                 () -> schemaWrite.indexCreate(IndexPrototype.forSchema(descriptor)));
+        assertThat(e.gqlStatus()).isEqualTo("22N76");
+        assertThat(e.statusDescription())
+                .isEqualTo(
+                        "error: data exception - index contains duplicated tokens. The index specified by '(:Label0:Label1:Label2:Label1:Label3 {property})' includes a label, relationship type, or property key with name 'Label1' more than once.");
     }
 
     @Test
     void shouldFailCreateIndexWithDuplicateRelationshipTypes() throws KernelException {
         // given
         TokenWrite tokenWrite = tokenWriteInNewTransaction();
-        int relTypeId = tokenWrite.relationshipTypeGetOrCreateForName("RELATIONSHIP");
+        int relTypeId0 = tokenWrite.relationshipTypeGetOrCreateForName("RELATIONSHIP0");
+        int relTypeId1 = tokenWrite.relationshipTypeGetOrCreateForName("RELATIONSHIP1");
+        int relTypeId2 = tokenWrite.relationshipTypeGetOrCreateForName("RELATIONSHIP2");
+        int relTypeId3 = tokenWrite.relationshipTypeGetOrCreateForName("RELATIONSHIP3");
         int propId = tokenWrite.propertyKeyGetOrCreateForName("property");
         commit();
 
@@ -109,11 +122,17 @@ public class IndexCreateIT extends KernelIntegrationTest {
 
         // when
         final FulltextSchemaDescriptor descriptor = SchemaDescriptors.fulltext(
-                org.neo4j.common.EntityType.RELATIONSHIP, new int[] {relTypeId, relTypeId}, new int[] {propId});
+                org.neo4j.common.EntityType.RELATIONSHIP,
+                new int[] {relTypeId0, relTypeId1, relTypeId2, relTypeId1, relTypeId3},
+                new int[] {propId});
         // then
-        assertThrows(
+        var e = assertThrows(
                 RepeatedRelationshipTypeInSchemaException.class,
                 () -> schemaWrite.indexCreate(IndexPrototype.forSchema(descriptor)));
+        assertThat(e.gqlStatus()).isEqualTo("22N76");
+        assertThat(e.statusDescription())
+                .isEqualTo(
+                        "error: data exception - index contains duplicated tokens. The index specified by '()-[:RELATIONSHIP0:RELATIONSHIP1:RELATIONSHIP2:RELATIONSHIP1:RELATIONSHIP3 {property}]-()' includes a label, relationship type, or property key with name 'RELATIONSHIP1' more than once.");
     }
 
     @Test

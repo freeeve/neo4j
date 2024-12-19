@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.newapi;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,10 +39,13 @@ import org.neo4j.internal.kernel.api.SchemaRead;
 import org.neo4j.internal.kernel.api.TokenWrite;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.internal.schema.ConstraintDescriptor;
+import org.neo4j.internal.schema.FulltextSchemaDescriptor;
+import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.LabelSchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
 import org.neo4j.kernel.api.KernelTransaction;
+import org.neo4j.kernel.api.exceptions.schema.RepeatedLabelInSchemaException;
 import org.neo4j.storageengine.api.PropertySelection;
 
 public class NodeConstraintTest extends ConstraintTestBase<WriteTestSupport> {
@@ -173,6 +177,35 @@ public class NodeConstraintTest extends ConstraintTestBase<WriteTestSupport> {
             assertTrue(nodeCursor.next());
             nodeCursor.properties(propertyCursor, PropertySelection.selection(property));
             assertFalse(propertyCursor.next());
+        }
+    }
+
+    @Test
+    void shouldFailCreateConstraintWithDuplicateLabels() throws KernelException {
+        // given
+        int labelId0, labelId1, labelId2, labelId3, propId;
+        try (KernelTransaction tx = beginTransaction()) {
+            labelId0 = tx.tokenWrite().labelGetOrCreateForName("Label0");
+            labelId1 = tx.tokenWrite().labelGetOrCreateForName("Label1");
+            labelId2 = tx.tokenWrite().labelGetOrCreateForName("Label2");
+            labelId3 = tx.tokenWrite().labelGetOrCreateForName("Label3");
+            propId = tx.tokenWrite().propertyKeyGetOrCreateForName("property");
+            tx.commit();
+        }
+
+        // when
+        final FulltextSchemaDescriptor descriptor = SchemaDescriptors.fulltext(
+                org.neo4j.common.EntityType.NODE,
+                new int[] {labelId0, labelId1, labelId2, labelId1, labelId3},
+                new int[] {propId});
+        // then
+        try (KernelTransaction tx = beginTransaction()) {
+            var e = assertThrows(RepeatedLabelInSchemaException.class, () -> tx.schemaWrite()
+                    .uniquePropertyConstraintCreate(IndexPrototype.forSchema(descriptor)));
+            assertThat(e.gqlStatus()).isEqualTo("22N75");
+            assertThat(e.statusDescription())
+                    .isEqualTo(
+                            "error: data exception - constraint contains duplicated tokens. The constraint specified by '(:Label0:Label1:Label2:Label1:Label3 {property})' includes a label, relationship type, or property key with name 'Label1' more than once.");
         }
     }
 }

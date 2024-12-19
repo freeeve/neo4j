@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.newapi;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -40,10 +41,13 @@ import org.neo4j.internal.kernel.api.SchemaRead;
 import org.neo4j.internal.kernel.api.TokenWrite;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.internal.schema.ConstraintDescriptor;
+import org.neo4j.internal.schema.FulltextSchemaDescriptor;
+import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
 import org.neo4j.kernel.api.KernelTransaction;
+import org.neo4j.kernel.api.exceptions.schema.RepeatedRelationshipTypeInSchemaException;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.values.storable.Values;
 
@@ -130,6 +134,35 @@ public class RelationshipConstraintTest extends ConstraintTestBase<WriteTestSupp
             assertTrue(relCursor.next());
             relCursor.properties(propertyCursor, PropertySelection.selection(property));
             assertFalse(propertyCursor.next());
+        }
+    }
+
+    @Test
+    void shouldFailCreateConstraintWithDuplicateLabels() throws KernelException {
+        // given
+        int relTypeId0, relTypeId1, relTypeId2, relTypeId3, propId;
+        try (KernelTransaction tx = beginTransaction()) {
+            relTypeId0 = tx.tokenWrite().relationshipTypeGetOrCreateForName("RELATIONSHIP0");
+            relTypeId1 = tx.tokenWrite().relationshipTypeGetOrCreateForName("RELATIONSHIP1");
+            relTypeId2 = tx.tokenWrite().relationshipTypeGetOrCreateForName("RELATIONSHIP2");
+            relTypeId3 = tx.tokenWrite().relationshipTypeGetOrCreateForName("RELATIONSHIP3");
+            propId = tx.tokenWrite().propertyKeyGetOrCreateForName("property");
+            tx.commit();
+        }
+
+        // when
+        final FulltextSchemaDescriptor descriptor = SchemaDescriptors.fulltext(
+                org.neo4j.common.EntityType.RELATIONSHIP,
+                new int[] {relTypeId0, relTypeId1, relTypeId2, relTypeId1, relTypeId3},
+                new int[] {propId});
+        // then
+        try (KernelTransaction tx = beginTransaction()) {
+            var e = assertThrows(RepeatedRelationshipTypeInSchemaException.class, () -> tx.schemaWrite()
+                    .uniquePropertyConstraintCreate(IndexPrototype.forSchema(descriptor)));
+            assertThat(e.gqlStatus()).isEqualTo("22N75");
+            assertThat(e.statusDescription())
+                    .isEqualTo(
+                            "error: data exception - constraint contains duplicated tokens. The constraint specified by '()-[:RELATIONSHIP0:RELATIONSHIP1:RELATIONSHIP2:RELATIONSHIP1:RELATIONSHIP3 {property}]-()' includes a label, relationship type, or property key with name 'RELATIONSHIP1' more than once.");
         }
     }
 }

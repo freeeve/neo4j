@@ -21,16 +21,15 @@ package org.neo4j.kernel.api.exceptions.schema;
 
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class RepeatedLabelInSchemaException extends RepeatedSchemaComponentException {
-    public RepeatedLabelInSchemaException(
-            SchemaDescriptor schema, OperationContext context, TokenNameLookup tokenNameLookup) {
-        super(Status.Schema.RepeatedLabelInSchema, schema, context, SchemaComponent.LABEL, tokenNameLookup);
-    }
 
-    public RepeatedLabelInSchemaException(
+    private RepeatedLabelInSchemaException(
             ErrorGqlStatusObject gqlStatusObject,
             SchemaDescriptor schema,
             OperationContext context,
@@ -42,5 +41,25 @@ public class RepeatedLabelInSchemaException extends RepeatedSchemaComponentExcep
                 context,
                 SchemaComponent.LABEL,
                 tokenNameLookup);
+    }
+
+    // KNL-043
+    public static RepeatedLabelInSchemaException repeatedLabelInConstraint(
+            SchemaDescriptor schema, TokenNameLookup tokenNameLookup, String duplicateLabel) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N75)
+                .withParam(GqlParams.StringParam.constrDescrOrName, schema.userDescription(tokenNameLookup))
+                .withParam(GqlParams.StringParam.token, duplicateLabel)
+                .build();
+        return new RepeatedLabelInSchemaException(gql, schema, OperationContext.CONSTRAINT_CREATION, tokenNameLookup);
+    }
+
+    // KNL-044
+    public static RepeatedLabelInSchemaException repeatedLabelInIndex(
+            SchemaDescriptor schema, TokenNameLookup tokenNameLookup, String duplicateLabel) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N76)
+                .withParam(GqlParams.StringParam.idxDescrOrName, schema.userDescription(tokenNameLookup))
+                .withParam(GqlParams.StringParam.token, duplicateLabel)
+                .build();
+        return new RepeatedLabelInSchemaException(gql, schema, OperationContext.INDEX_CREATION, tokenNameLookup);
     }
 }

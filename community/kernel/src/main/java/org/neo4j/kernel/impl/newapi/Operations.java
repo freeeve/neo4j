@@ -48,9 +48,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Set;
 import java.util.function.Function;
 import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.iterator.IntIterator;
@@ -2691,21 +2694,47 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         }
     }
 
+    private OptionalInt firstDuplicateEntry(int[] array) {
+        Set<Integer> seen = new HashSet<>();
+        for (int i : array) {
+            if (!seen.add(i)) {
+                return OptionalInt.of(i);
+            }
+        }
+        return OptionalInt.empty();
+    }
+
     private void assertValidDescriptor(SchemaDescriptor descriptor, SchemaKernelException.OperationContext context)
             throws RepeatedSchemaComponentException {
         long numUniqueProp =
                 Arrays.stream(descriptor.getPropertyIds()).distinct().count();
-        long numUniqueEntityTokens =
-                Arrays.stream(descriptor.getEntityTokenIds()).distinct().count();
 
         if (numUniqueProp != descriptor.getPropertyIds().length) {
             throw new RepeatedPropertyInSchemaException(descriptor, context, token);
         }
-        if (numUniqueEntityTokens != descriptor.getEntityTokenIds().length) {
+
+        var maybeDuplicateLabelOrRelType = firstDuplicateEntry(descriptor.getEntityTokenIds());
+
+        if (maybeDuplicateLabelOrRelType.isPresent()) {
+            var duplicateLabelOrRelType =
+                    switch (descriptor.entityType()) {
+                        case NODE -> token.labelGetName(maybeDuplicateLabelOrRelType.getAsInt());
+                        case RELATIONSHIP -> token.relationshipTypeGetName(maybeDuplicateLabelOrRelType.getAsInt());
+                    };
             if (descriptor.entityType() == NODE) {
-                throw new RepeatedLabelInSchemaException(descriptor, context, token);
+                switch (context) {
+                    case CONSTRAINT_CREATION -> throw RepeatedLabelInSchemaException.repeatedLabelInConstraint(
+                            descriptor, token, duplicateLabelOrRelType);
+                    case INDEX_CREATION -> throw RepeatedLabelInSchemaException.repeatedLabelInIndex(
+                            descriptor, token, duplicateLabelOrRelType);
+                }
             } else {
-                throw new RepeatedRelationshipTypeInSchemaException(descriptor, context, token);
+                switch (context) {
+                    case CONSTRAINT_CREATION -> throw RepeatedRelationshipTypeInSchemaException
+                            .repeatedRelationshipTypeInConstraint(descriptor, token, duplicateLabelOrRelType);
+                    case INDEX_CREATION -> throw RepeatedRelationshipTypeInSchemaException
+                            .repeatedRelationshipTypeInIndex(descriptor, token, duplicateLabelOrRelType);
+                }
             }
         }
     }

@@ -21,21 +21,15 @@ package org.neo4j.kernel.api.exceptions.schema;
 
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class RepeatedRelationshipTypeInSchemaException extends RepeatedSchemaComponentException {
-    public RepeatedRelationshipTypeInSchemaException(
-            SchemaDescriptor schema, OperationContext context, TokenNameLookup tokenNameLookup) {
-        super(
-                Status.Schema.RepeatedRelationshipTypeInSchema,
-                schema,
-                context,
-                SchemaComponent.RELATIONSHIP_TYPE,
-                tokenNameLookup);
-    }
 
-    public RepeatedRelationshipTypeInSchemaException(
+    private RepeatedRelationshipTypeInSchemaException(
             ErrorGqlStatusObject gqlStatusObject,
             SchemaDescriptor schema,
             OperationContext context,
@@ -47,5 +41,27 @@ public class RepeatedRelationshipTypeInSchemaException extends RepeatedSchemaCom
                 context,
                 SchemaComponent.RELATIONSHIP_TYPE,
                 tokenNameLookup);
+    }
+
+    // KNL-047
+    public static RepeatedRelationshipTypeInSchemaException repeatedRelationshipTypeInConstraint(
+            SchemaDescriptor schema, TokenNameLookup tokenNameLookup, String duplicateRelationshipType) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N75)
+                .withParam(GqlParams.StringParam.constrDescrOrName, schema.userDescription(tokenNameLookup))
+                .withParam(GqlParams.StringParam.token, duplicateRelationshipType)
+                .build();
+        return new RepeatedRelationshipTypeInSchemaException(
+                gql, schema, OperationContext.CONSTRAINT_CREATION, tokenNameLookup);
+    }
+
+    // KNL-048
+    public static RepeatedRelationshipTypeInSchemaException repeatedRelationshipTypeInIndex(
+            SchemaDescriptor schema, TokenNameLookup tokenNameLookup, String duplicateRelationshipType) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N76)
+                .withParam(GqlParams.StringParam.idxDescrOrName, schema.userDescription(tokenNameLookup))
+                .withParam(GqlParams.StringParam.token, duplicateRelationshipType)
+                .build();
+        return new RepeatedRelationshipTypeInSchemaException(
+                gql, schema, OperationContext.INDEX_CREATION, tokenNameLookup);
     }
 }
