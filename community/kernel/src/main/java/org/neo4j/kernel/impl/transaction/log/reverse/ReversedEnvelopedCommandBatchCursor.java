@@ -127,7 +127,8 @@ public class ReversedEnvelopedCommandBatchCursor implements CommandBatchCursor {
         try {
             if (!commandBatchCursor.next()) {
                 // For a last broken entry it could have gotten the offset but then later found incomplete envelopes.
-                return false;
+                // Need to continue to the previous one
+                return next();
             }
         } catch (IllegalStateException | IOException | UnsupportedLogVersionException e) {
             // Since the content is never read while sketching out the offsets any corruption can be found at this point
