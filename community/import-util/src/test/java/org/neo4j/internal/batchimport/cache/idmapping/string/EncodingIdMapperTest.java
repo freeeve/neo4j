@@ -739,10 +739,9 @@ public class EncodingIdMapperTest {
     @Test
     void shouldHandleEqualIdsInMultipleGroups() {
         // given
-        var idMapper = mapper(new StringEncoder(), Radix.STRING, NO_MONITOR, 1);
-        var groups = new Groups();
         var movie = groups.getOrCreate("Movie");
         var actor = groups.getOrCreate("Actor");
+        var idMapper = mapper(new StringEncoder(), Radix.STRING, NO_MONITOR, 1);
 
         // when
         var data = Map.of(546L, "1", 0L, "1", 547L, "2", 1L, "2", 548L, "3", 2L, "3");

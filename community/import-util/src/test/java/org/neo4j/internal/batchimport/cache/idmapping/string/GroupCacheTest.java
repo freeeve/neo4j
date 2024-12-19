@@ -19,10 +19,13 @@
  */
 package org.neo4j.internal.batchimport.cache.idmapping.string;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
 
 class GroupCacheTest {
@@ -55,6 +58,17 @@ class GroupCacheTest {
 
         // then
         assertThrows(ArithmeticException.class, () -> cache.set(100000, 123456));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void shouldSelectZeroMemoryVersion(int numGroups) {
+        // when
+        GroupCache cache = GroupCache.select(NumberArrayFactories.HEAP, 100, numGroups, INSTANCE);
+
+        // then
+        assertThat(cache).isSameAs(GroupCache.SINGLE);
+        assertSetAndGet(cache, 123, 0);
     }
 
     private static void assertSetAndGet(GroupCache cache, long nodeId, int groupId) {

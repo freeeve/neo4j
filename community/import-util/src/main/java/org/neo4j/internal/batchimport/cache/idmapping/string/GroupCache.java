@@ -102,7 +102,7 @@ public interface GroupCache extends AutoCloseable {
 
     static GroupCache select(
             NumberArrayFactory factory, int chunkSize, int numberOfGroups, MemoryTracker memoryTracker) {
-        if (numberOfGroups == 0) {
+        if (numberOfGroups <= 1) {
             return SINGLE;
         }
         if (numberOfGroups <= 0x100) {
