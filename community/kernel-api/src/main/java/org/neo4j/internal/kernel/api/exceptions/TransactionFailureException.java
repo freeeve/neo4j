@@ -126,4 +126,15 @@ public class TransactionFailureException extends KernelException {
                 Status.General.ForbiddenOnReadOnlyDatabase,
                 "Transactions cannot be committed in a read-only Neo4j database");
     }
+
+    // KNL-038
+    public static TransactionFailureException cannotRollbackCannotDropCreatedConstraintIndex(Throwable cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_40N01)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N10)
+                        // We should have an indexName here, but we don't have it
+                        .build())
+                .build();
+        return new TransactionFailureException(
+                gql, Status.Transaction.TransactionRollbackFailed, cause, "Could not drop created constraint indexes");
+    }
 }

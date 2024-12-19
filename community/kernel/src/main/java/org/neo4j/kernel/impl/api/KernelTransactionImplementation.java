@@ -1221,10 +1221,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                     try {
                         dropCreatedConstraintIndexes();
                     } catch (IllegalStateException | SecurityException e) {
-                        throw new TransactionFailureException(
-                                Status.Transaction.TransactionRollbackFailed,
-                                e,
-                                "Could not drop created constraint indexes");
+                        throw TransactionFailureException.cannotRollbackCannotDropCreatedConstraintIndex(e);
                     }
                 }
             }
