@@ -2110,61 +2110,61 @@
     "returnDescription": [
       {
         "name": "database",
-        "description": "database :: STRING",
+        "description": "The database for which a status check entry was replicated.",
         "type": "STRING",
         "isDeprecated": false
       },
       {
         "name": "serverId",
-        "description": "serverId :: STRING",
+        "description": "The UUID of the server, which did or did not participate in a successful replication of the status check entry.",
         "type": "STRING",
         "isDeprecated": false
       },
       {
         "name": "serverName",
-        "description": "serverName :: STRING",
+        "description": "The friendly name of the server, or its UUID if no name is set.",
         "type": "STRING",
         "isDeprecated": false
       },
       {
         "name": "address",
-        "description": "address :: STRING",
+        "description": "The address of the Bolt port for the server.",
         "type": "STRING",
         "isDeprecated": false
       },
       {
         "name": "replicationSuccessful",
-        "description": "replicationSuccessful :: BOOLEAN",
+        "description": "Indicates if the server (on which the procedure is run) can replicate a transaction.",
         "type": "BOOLEAN",
         "isDeprecated": false
       },
       {
         "name": "memberStatus",
-        "description": "memberStatus :: STRING",
+        "description": "The status of each primary member.",
         "type": "STRING",
         "isDeprecated": false
       },
       {
         "name": "recognisedLeader",
-        "description": "recognisedLeader :: STRING",
+        "description": "The server id of the perceived leader of each primary member.",
         "type": "STRING",
         "isDeprecated": false
       },
       {
         "name": "recognisedLeaderTerm",
-        "description": "recognisedLeaderTerm :: INTEGER",
+        "description": "The term of the perceived leader of each primary member. If the members report different leaders, the one with the highest term should be trusted.",
         "type": "INTEGER",
         "isDeprecated": false
       },
       {
         "name": "requester",
-        "description": "requester :: BOOLEAN",
+        "description": "Whether a server is the requester or not.",
         "type": "BOOLEAN",
         "isDeprecated": false
       },
       {
         "name": "error",
-        "description": "error :: STRING",
+        "description": "Contains any error message if present. An example of an error is that one or more of the requested databases do not exist on the requester.",
         "type": "STRING",
         "isDeprecated": false
       }
@@ -2176,14 +2176,14 @@
     "argumentDescription": [
       {
         "name": "databases",
-        "description": "databases :: LIST<STRING>",
+        "description": "Databases for which the status check should run. Providing an empty list runs the status check for all clustered databases on that server, i.e. it does not run on singles or secondaries.",
         "type": "LIST<STRING>",
         "isDeprecated": false
       },
       {
         "default" : "DefaultParameterValue{value=null, type=INTEGER}",
         "name": "timeoutMilliseconds",
-        "description": "timeoutMilliseconds = null :: INTEGER",
+        "description": "Specifies the maximum wait time for replication before marking it unsuccessful. Default value is 1000 milliseconds.",
         "type": "INTEGER",
         "isDeprecated": false
       }
