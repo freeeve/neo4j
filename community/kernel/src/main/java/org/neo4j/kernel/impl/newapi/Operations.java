@@ -1790,7 +1790,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         if (index.isUnique() && indexHasOwningConstraint(index)) {
             IndexBelongsToConstraintException cause =
                     IndexBelongsToConstraintException.indexBelongsToConstraint(index.schema(), token);
-            throw new DropIndexFailureException("Unable to drop index: " + cause.getUserMessage(token), cause);
+            throw DropIndexFailureException.cannotDrop(
+                    index.getName(), "Unable to drop index: " + cause.getUserMessage(token), cause);
         }
         ktx.txState().indexDoDrop(index);
     }
@@ -1812,7 +1813,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         try {
             schemaRead.assertIndexExists(index);
         } catch (IndexNotFoundKernelException e) {
-            throw new DropIndexFailureException("Unable to drop index: " + e.getUserMessage(token), e);
+            throw DropIndexFailureException.cannotDrop(
+                    index.getName(), "Unable to drop index: " + e.getUserMessage(token), e);
         }
     }
 
@@ -1828,7 +1830,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         if (index.isUnique() && indexHasOwningConstraint(index)) {
             IndexBelongsToConstraintException cause =
                     IndexBelongsToConstraintException.indexBelongsToConstraint(indexName);
-            throw new DropIndexFailureException("Unable to drop index: " + cause.getUserMessage(token), cause);
+            throw DropIndexFailureException.cannotDrop(
+                    index.getName(), "Unable to drop index: " + cause.getUserMessage(token), cause);
         }
         ktx.txState().indexDoDrop(index);
     }

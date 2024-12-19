@@ -35,11 +35,7 @@ public class DropIndexFailureException extends SchemaKernelException {
         super(gqlStatusObject, Status.Schema.IndexDropFailed, message);
     }
 
-    public DropIndexFailureException(String message, Throwable cause) {
-        super(Status.Schema.IndexDropFailed, message, cause);
-    }
-
-    public DropIndexFailureException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+    private DropIndexFailureException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, Status.Schema.IndexDropFailed, message, cause);
     }
 
@@ -58,5 +54,13 @@ public class DropIndexFailureException extends SchemaKernelException {
                 .build();
         return new DropIndexFailureException(
                 gql, "Unable to drop index called `" + indexName + "`. There is no such index.");
+    }
+
+    // KNL-037
+    public static DropIndexFailureException cannotDrop(String indexName, String message, Throwable cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N10)
+                .withParam(GqlParams.StringParam.idxDescrOrName, indexName)
+                .build();
+        return new DropIndexFailureException(gql, message, cause);
     }
 }

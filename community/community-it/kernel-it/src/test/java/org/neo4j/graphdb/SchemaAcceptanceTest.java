@@ -670,9 +670,14 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         try (Transaction tx = db.beginTx()) {
             index = tx.schema().getIndexByName(index.getName());
             index.drop();
-            assertThatThrownBy(index::drop)
-                    .isInstanceOf(ConstraintViolationException.class)
-                    .hasMessageContaining("Unable to drop index: Index does not exist: ");
+            ConstraintViolationException e = assertThrows(ConstraintViolationException.class, index::drop);
+            assertThat(e.getMessage()).contains("Unable to drop index: Index does not exist: ");
+            assertThat(e.getCause()).isInstanceOf(DropIndexFailureException.class);
+            var cause = (DropIndexFailureException) e.getCause();
+            assertThat(cause.getMessage()).contains("Unable to drop index: Index does not exist: ");
+            assertThat(cause.gqlStatus()).isEqualTo("50N10");
+            assertThat(cause.statusDescription())
+                    .contains("error: general processing exception - index drop failed. Unable to drop ");
             tx.commit();
         }
 
