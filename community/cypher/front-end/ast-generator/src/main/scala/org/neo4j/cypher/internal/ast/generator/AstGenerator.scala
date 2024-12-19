@@ -562,13 +562,13 @@ object AstGenerator {
 
   // It is difficult to randomly generate a valid unicode string, so this rejects any string
   // that may contain a unicode looking sequence to avoid parser errors.
-  def validString: Gen[String] =
-    nonEmptyListOf(char).map(_.mkString).suchThat(chars =>
-      !chars.matches("^.*\\\\[u,U].*$") && UnicodeHelper.isIdentifierStart(
-        chars.head,
-        CypherVersion.Cypher5
-      ) && chars.forall(UnicodeHelper.isIdentifierPart(_, CypherVersion.Cypher5))
-    )
+  def validString: Gen[String] = oneOf(
+    alphaLowerChar.map(_.toString),
+    nonEmptyListOf(char).map(_.mkString).suchThat { chars =>
+      // Is isIdentifier really neeed, isn't that handled by the prettifier?
+      !chars.contains("\\u") && UnicodeHelper.isIdentifier(chars, CypherVersion.Cypher25)
+    }
+  )
 
   def acceptedChar(c: Char): Boolean = {
     val DEL_ERROR = '\ufdea'
@@ -617,6 +617,8 @@ object AstGenerator {
  * Random query generation
  * Implements instances of Gen[T] for all query ast nodes
  * Generated queries are syntactically (but not semantically) valid
+ *
+ * Limits AST depth with the size parameter to try to avoid stack overflows.
  */
 //noinspection ScalaWeakerAccess
 class AstGenerator(
@@ -1006,48 +1008,57 @@ class AstGenerator(
   // Expression
   // ----------------------------------
 
-  def _expression: Gen[Expression] =
-    frequency(
-      5 -> oneOf(
-        lzy(_nullLit),
-        lzy(_stringLit),
-        lzy(_booleanLit),
-        lzy(_signedDecIntLit),
-        lzy(_signedHexIntLit),
-        lzy(_signedOctIntLit),
-        lzy(_doubleLit),
-        lzy(_variable),
-        lzy(_parameter),
-        lzy(_infinityLit),
-        lzy(_nanLit)
-      ),
-      1 -> oneOf(
-        lzy(_predicateComparison),
-        lzy(_predicateUnary),
-        lzy(_predicateBinary),
-        lzy(_predicateComparisonChain),
-        lzy(_iterablePredicate),
-        lzy(_arithmeticUnary),
-        lzy(_arithmeticBinary),
-        lzy(_case),
-        lzy(_functionInvocation),
-        lzy(_countStar),
-        lzy(_reduceExpr),
-        lzy(_shortestPathExpr),
-        lzy(_patternExpr),
-        lzy(_map),
-        lzy(_mapProjection),
-        lzy(_property),
-        lzy(_list),
-        lzy(_listSlice),
-        lzy(_listComprehension),
-        lzy(_containerIndex),
-        lzy(_existsExpression),
-        lzy(_countExpression),
-        lzy(_collectExpression),
-        lzy(_patternComprehension)
+  private def _shallowExpression: Gen[Expression] = oneOf(
+    lzy(_nullLit),
+    lzy(_stringLit),
+    lzy(_booleanLit),
+    lzy(_signedDecIntLit),
+    lzy(_signedHexIntLit),
+    lzy(_signedOctIntLit),
+    lzy(_doubleLit),
+    lzy(_variable),
+    lzy(_parameter),
+    lzy(_infinityLit),
+    lzy(_nanLit)
+  )
+
+  private def _deepExpression: Gen[Expression] = oneOf(
+    lzy(_predicateComparison),
+    lzy(_predicateUnary),
+    lzy(_predicateBinary),
+    lzy(_predicateComparisonChain),
+    lzy(_iterablePredicate),
+    lzy(_arithmeticUnary),
+    lzy(_arithmeticBinary),
+    lzy(_case),
+    lzy(_functionInvocation),
+    lzy(_countStar),
+    lzy(_reduceExpr),
+    lzy(_shortestPathExpr),
+    lzy(_patternExpr),
+    lzy(_map),
+    lzy(_mapProjection),
+    lzy(_property),
+    lzy(_list),
+    lzy(_listSlice),
+    lzy(_listComprehension),
+    lzy(_containerIndex),
+    lzy(_existsExpression),
+    lzy(_countExpression),
+    lzy(_collectExpression),
+    lzy(_patternComprehension)
+  )
+
+  def _expression: Gen[Expression] = Gen.sized { size =>
+    if (size <= 0) {
+      _shallowExpression
+    } else {
+      frequency(
+        4 -> _shallowExpression,
+        1 -> Gen.resize(size - 1, _deepExpression)
       )
-    )
+    }
+  }
 
   def _labelCheckExpression(variable: Variable): Gen[Expression] = {
     def _hasLabels(): Gen[HasLabels] = for {
@@ -1628,7 +1639,7 @@ class AstGenerator(
       reportAs.map(v => InTransactionsReportParameters(Variable(s"`$v`")(pos, Variable.isIsolatedDefault))(pos))
     )(pos)
 
-  def _clause: Gen[Clause] = oneOf(
+  private def _anyClause: Gen[Clause] = oneOf(
     lzy(_use),
     lzy(_with),
     lzy(_orderByAndPageStatement),
@@ -1643,11 +1654,37 @@ class AstGenerator(
     lzy(_delete),
     lzy(_merge),
     lzy(_call),
-    lzy(_foreach),
     lzy(_loadCsv),
+    lzy(_foreach),
     lzy(_importingWithSubqueryCall),
     lzy(_scopeClauseSubqueryCall)
   )
+
+  private def _shallowClause: Gen[Clause] = oneOf(
+    lzy(_use),
+    lzy(_with),
+    lzy(_orderByAndPageStatement),
+    lzy(_return),
+    lzy(_finish),
+    lzy(_match),
+    lzy(_create),
+    lzy(_insert),
+    lzy(_unwind),
+    lzy(_set),
+    lzy(_remove),
+    lzy(_delete),
+    lzy(_merge),
+    lzy(_call),
+    lzy(_loadCsv)
+  )
+
+  def _clause: Gen[Clause] = Gen.sized { size =>
+    if (size <= 0) {
+      _shallowClause
+    } else {
+      Gen.resize(size - 1, _anyClause)
+    }
+  }
 
   def _singleQuery: Gen[SingleQuery] = for {
     s <- choose(1, 1)
@@ -1668,7 +1705,7 @@ class AstGenerator(
     use <- option(_use)
   } yield TopLevelBraces(inner, use)(pos)
 
-  def _query: Gen[Query] =
+  def _query: Gen[Query] = {
     if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) frequency(
       5 -> lzy(_singleQuery),
       1 -> lzy(_union)
@@ -1678,6 +1715,7 @@ class AstGenerator(
       1 -> lzy(_union),
       1 -> lzy(_topLevelBraces)
     )
+  }
 
   // Show commands
   // ----------------------------------

@@ -38,10 +38,15 @@ class PrettifierPropertyTest extends CypherFunSuite
   val astGeneratorCypher25 =
     new AstGenerator(simpleStrings = false, whenAstDifferUseCypherVersion = CypherVersion.Cypher25)
 
-  implicit val config: PropertyCheckConfiguration = PropertyCheckConfiguration(minSuccessful = 5000)
+  implicit val config: PropertyCheckConfiguration = PropertyCheckConfiguration(
+    minSuccessful = 10000,
+    // AstGenerator limits AST depth with the size parameter to try to avoid stack overflows
+    minSize = 4,
+    sizeRange = 12
+  )
 
   // Enable when the test runs in reasonable time
-  ignore("Prettifier output should parse to the same ast - Cypher 5 version") {
+  test("Prettifier output should parse to the same ast - Cypher 5 version") {
     // To reproduce test failures, enable the following line with the seed from the TC build
     // setScalaCheckInitialSeed(seed)
     forAll(astGeneratorCypher5._statement) { statement =>
@@ -50,7 +55,7 @@ class PrettifierPropertyTest extends CypherFunSuite
   }
 
   // Enable when the test runs in reasonable time
-  ignore("Prettifier output should parse to the same ast - Cypher 25 version") {
+  test("Prettifier output should parse to the same ast - Cypher 25 version") {
     // To reproduce test failures, enable the following line with the seed from the TC build
     // setScalaCheckInitialSeed(seed)
     forAll(astGeneratorCypher25._statement) { statement =>
