@@ -68,7 +68,7 @@ public class IncompatibleGraphTypeDependenceException extends SchemaKernelExcept
             ConstraintDescriptor preExistingConstraint,
             TokenNameLookup tokenNameLookup) {
         return format(
-                "Graph type %s constraint: %s is incompatible with graph type %s %s due to differing graph type dependence.",
+                "Graph type %s constraint %s is incompatible with graph type %s constraint %s because they have different graph type dependence.",
                 constraint.graphTypeDependence().name().toLowerCase(Locale.ROOT),
                 constraint.userDescription(tokenNameLookup),
                 preExistingConstraint.graphTypeDependence().name().toLowerCase(Locale.ROOT),

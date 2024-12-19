@@ -2090,7 +2090,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22NB2(
             new GqlStatus("22NB2"),
             """
-                    Graph type { %s } constraint: { %s } is incompatible with graph type { %s } { %s } due to differing graph type dependence.""",
+                    Graph type { %s } constraint { %s } is incompatible with graph type { %s } constraint { %s } because they have different graph type dependence.""",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.graphTypeDependence1,
                 GqlParams.StringParam.constrDescrOrName1,
