@@ -17,33 +17,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.exceptions;
+package org.neo4j.dbms.api;
 
-import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
-import org.neo4j.kernel.api.exceptions.Status;
 
-public class InvalidTargetDatabaseException extends DatabaseAdministrationException {
-    public InvalidTargetDatabaseException(String message) {
-        super(message);
-    }
-
-    protected InvalidTargetDatabaseException(ErrorGqlStatusObject gqlStatusObject, String message) {
-        super(gqlStatusObject, message);
-    }
-
-    @Override
-    public Status status() {
-        return Status.Statement.InvalidTargetDatabaseError;
-    }
-
-    public static InvalidTargetDatabaseException systemDbIsImmutable(String oldMessage, String action) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N69)
-                .withParam(GqlParams.StringParam.operation, action)
+/**
+ * This helper class contains methods to create `DatabaseLimitReachedException`. These would normally be on the
+ * exception class itself, but that is `@PublicApi`, and we don't want these methods to be public API.
+ */
+public class DatabaseLimitReachedHelper {
+    public static DatabaseLimitReachedException cannotCreateAdditionalDb(String dbName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N55)
+                .withParam(GqlParams.StringParam.db, dbName)
+                .withParam(GqlParams.StringParam.cfgSetting, "dbms.max_databases")
                 .build();
 
-        return new InvalidTargetDatabaseException(gql, oldMessage);
+        return new DatabaseLimitReachedException(
+                gql, String.format("Failed to create the specified database '%s':", dbName));
     }
 }

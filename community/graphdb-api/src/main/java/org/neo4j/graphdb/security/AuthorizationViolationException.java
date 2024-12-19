@@ -19,6 +19,8 @@
  */
 package org.neo4j.graphdb.security;
 
+import static java.lang.String.format;
+
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlRuntimeException;
@@ -61,6 +63,21 @@ public class AuthorizationViolationException extends GqlRuntimeException impleme
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
                 .build();
         return new AuthorizationViolationException(gql, message);
+    }
+
+    public static AuthorizationViolationException credentialsExpired(String oldMessage) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFD)
+                        .build())
+                .build();
+
+        return new AuthorizationViolationException(gql, oldMessage, Status.Security.CredentialsExpired);
+    }
+
+    public static AuthorizationViolationException impersonationDisallowed(String oldMessage) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N83)
+                .build();
+        return new AuthorizationViolationException(gql, oldMessage, Status.Security.CredentialsExpired);
     }
 
     public static AuthorizationViolationException permissionDeniedUnauthorized() {
@@ -141,6 +158,16 @@ public class AuthorizationViolationException extends GqlRuntimeException impleme
         return authorizationViolation(
                 "'$role' cannot be copied because it has one or more immutable privileges assigned to it and immutable privileges cannot be copied. Use `SHOW ROLE $role PRIVILEGES AS COMMANDS YIELD *` to inspect $role's privileges."
                         .replace("$role", role));
+    }
+
+    public static String generateCredentialsExpiredMessage(String message) {
+        return format(
+                "%s%n%nThe credentials you provided were valid, but must be changed before you can use this instance. "
+                        + "If this is the first time you are using Neo4j, this is to ensure you are not using the default credentials in production. "
+                        + "If you are not using default credentials, you are getting this message because an administrator requires a password change.%n"
+                        + "To change your password, issue an `ALTER CURRENT USER SET PASSWORD FROM 'current password' TO 'new password'` "
+                        + "statement against the system database.",
+                message);
     }
 
     /** The Neo4j status code associated with this exception type. */

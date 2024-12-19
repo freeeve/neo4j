@@ -20,7 +20,9 @@
 package org.neo4j.graphdb.security;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlRuntimeException;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 /**
@@ -29,22 +31,54 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class AuthorizationExpiredException extends GqlRuntimeException implements Status.HasStatus {
     private static final Status statusCode = Status.Security.AuthorizationExpired;
 
+    private static final String LDAP_AUTH_INFO_EXPIRED = "LDAP authorization info expired.";
+    private static final String OIDC_AUTH_INFO_EXPIRED = "OIDC authorization info expired.";
+
     @Deprecated
     public AuthorizationExpiredException(String message) {
         super(message);
     }
 
-    public AuthorizationExpiredException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    private AuthorizationExpiredException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
 
-    @Deprecated
-    public AuthorizationExpiredException(String message, Throwable cause) {
-        super(message, cause);
+    private AuthorizationExpiredException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+        super(gqlStatusObject, message, cause);
     }
 
-    public AuthorizationExpiredException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
-        super(gqlStatusObject, message, cause);
+    public static AuthorizationExpiredException ldapAuthInfoExpired() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFE)
+                        .build())
+                .build();
+        return new AuthorizationExpiredException(gql, LDAP_AUTH_INFO_EXPIRED);
+    }
+
+    public static AuthorizationExpiredException oidcAuthInfoExpired() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFE)
+                        .build())
+                .build();
+        return new AuthorizationExpiredException(gql, OIDC_AUTH_INFO_EXPIRED);
+    }
+
+    public static AuthorizationExpiredException pluginAuthInfoExpired(String plugin) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFE)
+                        .build())
+                .build();
+        return new org.neo4j.graphdb.security.AuthorizationExpiredException(
+                gql, "Plugin '" + plugin + "' authorization info expired.");
+    }
+
+    public static AuthorizationExpiredException pluginAuthInfoExpiredWithCause(String plugin, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFE)
+                        .build())
+                .build();
+        return new org.neo4j.graphdb.security.AuthorizationExpiredException(
+                gql, "Plugin '" + plugin + "' authorization info expired: " + e.getMessage(), e);
     }
 
     /** The Neo4j status code associated with this exception type. */

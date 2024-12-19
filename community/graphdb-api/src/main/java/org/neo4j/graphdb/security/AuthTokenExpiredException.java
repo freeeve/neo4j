@@ -20,11 +20,14 @@
 package org.neo4j.graphdb.security;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlRuntimeException;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class AuthTokenExpiredException extends GqlRuntimeException implements Status.HasStatus {
     private static final Status statusCode = Status.Security.TokenExpired;
+    public static final String AUTHENTICATION_INFO_EXPIRED = "Authentication info expired.";
 
     public AuthTokenExpiredException(String message) {
         super(message);
@@ -32,6 +35,14 @@ public class AuthTokenExpiredException extends GqlRuntimeException implements St
 
     public AuthTokenExpiredException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
+    }
+
+    public static AuthTokenExpiredException authTokenExpired() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFE)
+                        .build())
+                .build();
+        return new AuthTokenExpiredException(gql, AUTHENTICATION_INFO_EXPIRED);
     }
 
     /** The Neo4j status code associated with this exception type. */

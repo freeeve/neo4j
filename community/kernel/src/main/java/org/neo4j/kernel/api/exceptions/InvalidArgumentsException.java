@@ -348,4 +348,21 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
                 .build();
         return new InvalidArgumentsException(gql, legacyMessage);
     }
+
+    public static InvalidArgumentsException failedEvaluatingDriverSettings(Exception e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N89)
+                .withParam(GqlParams.StringParam.cause, e.getMessage())
+                .build();
+        return new InvalidArgumentsException(gql, "Failed evaluating the given driver settings.", e);
+    }
+
+    public static InvalidArgumentsException cannotAlterImmutableCompositeDb(String dbName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N90)
+                .withParam(GqlParams.StringParam.db, dbName)
+                .build();
+        return new InvalidArgumentsException(
+                gql,
+                String.format(
+                        "Failed to alter the specified database '%s': Composite databases cannot be altered.", dbName));
+    }
 }

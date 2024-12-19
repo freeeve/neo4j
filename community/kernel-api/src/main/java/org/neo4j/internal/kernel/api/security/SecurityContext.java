@@ -24,10 +24,8 @@ import static org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo.
 
 import java.util.Collections;
 import java.util.Set;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+import org.neo4j.graphdb.security.AuthorizationViolationException;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
-import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.database.PrivilegeDatabaseReference;
 import org.neo4j.messages.MessageUtil;
 
@@ -107,15 +105,8 @@ public class SecurityContext extends LoginContext {
 
     public void assertCredentialsNotExpired(SecurityAuthorizationHandler handler) {
         if (AuthenticationResult.PASSWORD_CHANGE_REQUIRED.equals(subject().getAuthenticationResult())) {
-            var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
-                    .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFD)
-                            .build())
-                    .build();
-            throw handler.logAndGetAuthorizationException(
-                    gql,
-                    this,
-                    SecurityAuthorizationHandler.generateCredentialsExpiredMessage(PERMISSION_DENIED),
-                    Status.Security.CredentialsExpired);
+            throw handler.logAndGetCredentialExpiredException(
+                    this, AuthorizationViolationException.generateCredentialsExpiredMessage(PERMISSION_DENIED));
         }
     }
 

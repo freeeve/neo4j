@@ -856,4 +856,20 @@ public class InvalidArgumentException extends Neo4jException {
                         "The expression %s should have been a node or a relationship, but got %s",
                         entity, resolvedEntity));
     }
+
+    public static InvalidArgumentException impersonationNotSupportedWithAuthDisabled() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N30)
+                .withParam(GqlParams.StringParam.item, "Impersonation")
+                .withParam(GqlParams.StringParam.context, "a database with auth disabled")
+                .build();
+        return new InvalidArgumentException(gql, "Impersonation is not supported with auth disabled.");
+    }
+
+    public static InvalidArgumentException impersonationNotSupportedWithNativeAuthDisabled() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N30)
+                .withParam(GqlParams.StringParam.item, "Impersonation")
+                .withParam(GqlParams.StringParam.context, "a database with native auth disabled")
+                .build();
+        return new InvalidArgumentException(gql, "Cannot impersonate with native authorization disabled.");
+    }
 }

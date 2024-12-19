@@ -24,8 +24,6 @@ import static org.neo4j.internal.kernel.api.security.AuthenticationResult.FAILUR
 import static org.neo4j.internal.kernel.api.security.AuthenticationResult.PASSWORD_CHANGE_REQUIRED;
 import static org.neo4j.internal.kernel.api.security.AuthenticationResult.TOO_MANY_ATTEMPTS;
 
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.security.AuthorizationViolationException;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
 import org.neo4j.internal.kernel.api.security.AbstractSecurityLog;
@@ -33,9 +31,7 @@ import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.AuthSubject;
 import org.neo4j.internal.kernel.api.security.AuthenticationResult;
 import org.neo4j.internal.kernel.api.security.LoginContext;
-import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
-import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.database.PrivilegeDatabaseReference;
 import org.neo4j.kernel.impl.security.User;
 
@@ -97,14 +93,10 @@ public class BasicLoginContext extends LoginContext {
             throw AuthorizationViolationException.permissionDeniedUnauthorized();
         } else if (!dbName.equals(SYSTEM_DATABASE_NAME)
                 && subject().getAuthenticationResult().equals(PASSWORD_CHANGE_REQUIRED)) {
-            String message = SecurityAuthorizationHandler.generateCredentialsExpiredMessage(
+            String message = AuthorizationViolationException.generateCredentialsExpiredMessage(
                     String.format("ACCESS on database '%s' is not allowed.", dbName));
             securityLog.error(securityContext, message);
-            var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
-                    .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFD)
-                            .build())
-                    .build();
-            throw new AuthorizationViolationException(gql, message, Status.Security.CredentialsExpired);
+            throw AuthorizationViolationException.credentialsExpired(message);
         }
         return securityContext;
     }
