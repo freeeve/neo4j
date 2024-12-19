@@ -1753,7 +1753,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N75(
             new GqlStatus("22N75"),
             """
-                    The constraint specified by { %s } includes a label, relationship type, a property key with name { %s } more than once.""",
+                    The constraint specified by { %s } includes a label, relationship type, or property key with name { %s } more than once.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName, GqlParams.StringParam.token},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1762,7 +1762,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N76(
             new GqlStatus("22N76"),
             """
-                    The index specified by { %s } includes a label, relationship type, a property key with name { %s } more than once.""",
+                    The index specified by { %s } includes a label, relationship type, or property key with name { %s } more than once.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idxDescrOrName, GqlParams.StringParam.token},
             emptyMap(),
             Condition.DATA_EXCEPTION,
