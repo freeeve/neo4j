@@ -742,7 +742,8 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     public MemoryTracker createExecutionContextMemoryTracker(HeapEstimatorCacheConfig heapEstimatorCacheConfig) {
         var grabSize = config.get(GraphDatabaseInternalSettings.initial_transaction_heap_grab_size_per_worker);
         var maxGrabSize = config.get(GraphDatabaseInternalSettings.max_transaction_heap_grab_size_per_worker);
-        return transactionMemoryPool.getExecutionContextPoolMemoryTracker(grabSize, maxGrabSize, heapEstimatorCacheConfig);
+        return transactionMemoryPool.getExecutionContextPoolMemoryTracker(
+                grabSize, maxGrabSize, heapEstimatorCacheConfig);
     }
 
     @Override

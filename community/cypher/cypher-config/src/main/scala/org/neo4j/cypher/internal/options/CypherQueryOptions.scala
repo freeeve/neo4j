@@ -693,12 +693,11 @@ sealed abstract class CypherHeapEstimatorCacheOption(val preset: String) extends
 }
 
 case object CypherHeapEstimatorCacheOption extends CypherOptionCompanion[CypherHeapEstimatorCacheOption](
-  name = "heapEstimatorCache",
-  setting = Some(GraphDatabaseInternalSettings.heap_estimator_cache_preset),
-  cypherConfigField = Some(_.heapEstimatorCacheOption)
-) {
+      name = "heapEstimatorCache",
+      setting = Some(GraphDatabaseInternalSettings.heap_estimator_cache_preset),
+      cypherConfigField = Some(_.heapEstimatorCacheOption)
+    ) {
 
-  // Alternatively two options, one for size and one for threshold
   case object default extends CypherHeapEstimatorCacheOption("default")
   case object disabled extends CypherHeapEstimatorCacheOption("disabled")
   case object small extends CypherHeapEstimatorCacheOption("small")
@@ -715,9 +714,6 @@ case object CypherHeapEstimatorCacheOption extends CypherOptionCompanion[CypherH
     OptionLogicalPlanCacheKey.create(_.logicalPlanCacheKey)
   implicit val reader: OptionReader[CypherHeapEstimatorCacheOption] = singleOptionReader()
 
-  /**
-   * Read this option from config
-   */
   override def fromConfig(configuration: Config): CypherHeapEstimatorCacheOption = {
     configuration.get(GraphDatabaseInternalSettings.heap_estimator_cache_preset) match {
       case HeapEstimatorCachePreset.DEFAULT =>
@@ -733,7 +729,10 @@ case object CypherHeapEstimatorCacheOption extends CypherOptionCompanion[CypherH
     }
   }
 
-  def heapEstimatorCacheConfigFrom(option: CypherHeapEstimatorCacheOption, configuration: Config): HeapEstimatorCacheConfig = {
+  def heapEstimatorCacheConfigFrom(
+    option: CypherHeapEstimatorCacheOption,
+    cypherConfig: CypherConfiguration
+  ): HeapEstimatorCacheConfig = {
     option match {
       case CypherHeapEstimatorCacheOption.default =>
         HeapEstimatorCacheConfig.DEFAULT
@@ -744,7 +743,7 @@ case object CypherHeapEstimatorCacheOption extends CypherOptionCompanion[CypherH
       case CypherHeapEstimatorCacheOption.large =>
         HeapEstimatorCacheConfig.LARGE
       case CypherHeapEstimatorCacheOption.custom =>
-        GraphDatabaseInternalSettings.extractCustomHeapEstimatorCacheConfig(configuration)
+        cypherConfig.customHeapEstimatorCacheConfig
     }
   }
 }

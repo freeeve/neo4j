@@ -28,7 +28,6 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.SettingChangeListener;
 import org.neo4j.cypher.internal.CypherDeprecationNotificationsProvider;
 import org.neo4j.cypher.internal.CypherQueryObfuscator;
-import org.neo4j.cypher.internal.options.CypherHeapEstimatorCacheOption;
 import org.neo4j.cypher.internal.preparser.PreParsedQuery;
 import org.neo4j.cypher.internal.util.InputPosition;
 import org.neo4j.cypher.internal.util.InternalNotification;
@@ -170,12 +169,7 @@ public class QueryStatementLifecycles {
 
         @Override
         public void donePreParsing(PreParsedQuery preParsedQuery) {
-            final var heapEstimatorCacheConfig =
-                    CypherHeapEstimatorCacheOption.heapEstimatorCacheConfigFrom(
-                            preParsedQuery.options().queryOptions().heapEstimatorCacheOption(),
-                            config
-                    );
-            executingQuery.onPreparseReady(preParsedQuery.resolvedLanguage(), heapEstimatorCacheConfig);
+            executingQuery.onPreparseReady(preParsedQuery.resolvedLanguage());
         }
 
         @Override

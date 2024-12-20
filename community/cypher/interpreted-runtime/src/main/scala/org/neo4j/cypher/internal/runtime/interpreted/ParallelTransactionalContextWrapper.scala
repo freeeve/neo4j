@@ -52,6 +52,7 @@ import org.neo4j.kernel.impl.query.ConstituentTransactionFactory
 import org.neo4j.kernel.impl.query.QueryExecutionConfiguration
 import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.kernel.impl.query.statistic.StatisticProvider
+import org.neo4j.memory.HeapEstimatorCacheConfig
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.values.ElementIdMapper
 import org.neo4j.values.ValueMapper
@@ -187,5 +188,6 @@ class ParallelTransactionalContextWrapper(
 
   override def constituentTransactionFactory: ConstituentTransactionFactory = ConstituentTransactionFactory.throwing()
 
-  override def createExecutionContextMemoryTracker(): MemoryTracker = unsupported()
+  override def createExecutionContextMemoryTracker(heapEstimatorCacheConfig: HeapEstimatorCacheConfig): MemoryTracker =
+    unsupported()
 }

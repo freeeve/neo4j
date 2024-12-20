@@ -242,19 +242,16 @@ class CypherConfiguration private (val config: Config) {
   )
 
   // Heap estimator cache config
-  config.addListener[java.lang.Boolean](
-    GraphDatabaseInternalSettings.heap_estimator_cache_enabled,
-    (_: java.lang.Boolean, _: java.lang.Boolean) => _heapEstimatorCacheConfig = extractHeapEstimatorCacheConfig(config)
-  )
-
   config.addListener[java.lang.Integer](
     GraphDatabaseInternalSettings.heap_estimator_cache_size_limit,
-    (_: java.lang.Integer, _: java.lang.Integer) => _customHeapEstimatorCacheConfig = extractCustomHeapEstimatorCacheConfig(config)
+    (_: java.lang.Integer, _: java.lang.Integer) =>
+      _customHeapEstimatorCacheConfig = extractCustomHeapEstimatorCacheConfig(config)
   )
 
   config.addListener[java.lang.Long](
     GraphDatabaseInternalSettings.heap_estimator_cache_large_object_threshold,
-    (_: java.lang.Long, _: java.lang.Long) => _customHeapEstimatorCacheConfig = extractCustomHeapEstimatorCacheConfig(config)
+    (_: java.lang.Long, _: java.lang.Long) =>
+      _customHeapEstimatorCacheConfig = extractCustomHeapEstimatorCacheConfig(config)
   )
 
   def toggledFeatures(features: Map[Setting[java.lang.Boolean], String]): Set[String] =

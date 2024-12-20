@@ -1628,10 +1628,12 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     // Heap estimator cache settings
 
     @Internal
-    @Description("Enable the use of a heap estimator cache that can reduce heap usage overestimation of large objects " +
-            " in some queries.")
+    @Description("Enable the use of a heap estimator cache that can reduce heap usage overestimation of large objects "
+            + " in some queries.")
     public static final Setting<HeapEstimatorCachePreset> heap_estimator_cache_preset = newBuilder(
-            "internal.server.heap_estimator_cache.preset", ofEnum(HeapEstimatorCachePreset.class), HeapEstimatorCachePreset.DEFAULT)
+                    "internal.server.heap_estimator_cache.preset",
+                    ofEnum(HeapEstimatorCachePreset.class),
+                    HeapEstimatorCachePreset.DEFAULT)
             .dynamic()
             .build();
 
@@ -1644,8 +1646,9 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     }
 
     @Internal
-    @Description("The maximum size of a heap estimator cache instance. " +
-            "This setting only takes effect in combination with 'internal.server.heap_estimator_cache.preset' set to 'custom'.")
+    @Description(
+            "The maximum size of a heap estimator cache instance. "
+                    + "This setting only takes effect in combination with 'internal.server.heap_estimator_cache.preset' set to 'custom'.")
     public static final Setting<Integer> heap_estimator_cache_size_limit = newBuilder(
                     "internal.server.heap_estimator_cache.size_limit", INT, HeapEstimatorCacheConfig.DEFAULT_SIZE_LIMIT)
             .addConstraint(min(0))
@@ -1653,9 +1656,10 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description("The estimated heap usage threshold in bytes for an object to be considered a large object by " +
-            " the heap estimator cache. Only objects larger than this threshold will be considered for caching. " +
-            "This setting only takes effect in combination with 'internal.server.heap_estimator_cache.preset' set to 'custom'.")
+    @Description(
+            "The estimated heap usage threshold in bytes for an object to be considered a large object by "
+                    + " the heap estimator cache. Only objects larger than this threshold will be considered for caching. "
+                    + "This setting only takes effect in combination with 'internal.server.heap_estimator_cache.preset' set to 'custom'.")
     public static final Setting<Long> heap_estimator_cache_large_object_threshold = newBuilder(
                     "internal.server.heap_estimator_cache.large_object_threshold",
                     BYTES,
@@ -1668,7 +1672,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     public static HeapEstimatorCacheConfig extractCustomHeapEstimatorCacheConfig(Config config) {
         return new HeapEstimatorCacheConfig(
                 config.get(GraphDatabaseInternalSettings.heap_estimator_cache_size_limit),
-                config.get(GraphDatabaseInternalSettings.heap_estimator_cache_large_object_threshold)
-        );
+                config.get(GraphDatabaseInternalSettings.heap_estimator_cache_large_object_threshold));
     }
 }

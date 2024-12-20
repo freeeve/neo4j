@@ -53,6 +53,7 @@ import org.neo4j.kernel.impl.query.QueryExecutionConfiguration
 import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.kernel.impl.query.statistic.StatisticProvider
 import org.neo4j.kernel.impl.util.DefaultValueMapper
+import org.neo4j.memory.HeapEstimatorCacheConfig
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.values.ElementIdMapper
 import org.neo4j.values.ValueMapper
@@ -205,8 +206,9 @@ class SingleThreadedTransactionalContextWrapper(tc: TransactionalContext)
 
   override def constituentTransactionFactory: ConstituentTransactionFactory = tc.constituentTransactionFactory()
 
-  override def createExecutionContextMemoryTracker(): MemoryTracker = {
-    tc.kernelTransaction().createExecutionContextMemoryTracker(kernelExecutingQuery.heapEstimatorCacheConfig())
+  override def createExecutionContextMemoryTracker(heapEstimatorCacheConfig: HeapEstimatorCacheConfig)
+    : MemoryTracker = {
+    tc.kernelTransaction().createExecutionContextMemoryTracker(heapEstimatorCacheConfig)
   }
 
   override def queryExecutingConfiguration: QueryExecutionConfiguration = tc.queryExecutingConfiguration()

@@ -124,7 +124,7 @@ trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable
 
   def resources: ResourceManager
 
-  def heapEstimatorCacheConfig: HeapEstimatorCacheConfig
+  def queryConfig: QueryRuntimeConfig
 
   def nodeReadOps: NodeReadOperations
 
@@ -847,7 +847,7 @@ trait QueryTransactionalContext extends CloseableResource {
 
   def constituentTransactionFactory: ConstituentTransactionFactory
 
-  def createExecutionContextMemoryTracker(): MemoryTracker
+  def createExecutionContextMemoryTracker(heapEstimatorCacheConfig: HeapEstimatorCacheConfig): MemoryTracker
 }
 
 trait KernelPredicate[T] {

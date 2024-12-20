@@ -1022,7 +1022,7 @@ class FabricPlannerTest
           inferSchemaParts = CypherInferSchemaPartsOption.default,
           statefulShortestPlanningModeOption = CypherStatefulShortestPlanningModeOption.default,
           planVarExpandInto = CypherPlanVarExpandInto.default,
-          heapEstimatorCacheOption = CypherHeapEstimatorCacheOption.default,
+          heapEstimatorCacheOption = CypherHeapEstimatorCacheOption.default
         ),
         defaultLanguage = cypherConfig.systemDefaultLanguage
       )

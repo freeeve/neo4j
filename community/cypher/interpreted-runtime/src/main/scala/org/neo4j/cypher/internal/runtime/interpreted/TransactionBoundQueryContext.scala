@@ -48,6 +48,7 @@ import org.neo4j.cypher.internal.runtime.KernelAPISupport.asKernelIndexOrder
 import org.neo4j.cypher.internal.runtime.KernelAPISupport.isImpossibleIndexQuery
 import org.neo4j.cypher.internal.runtime.NodeValueHit
 import org.neo4j.cypher.internal.runtime.QueryContext
+import org.neo4j.cypher.internal.runtime.QueryRuntimeConfig
 import org.neo4j.cypher.internal.runtime.ReadQueryContext
 import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.RelationshipValueHit
@@ -123,7 +124,6 @@ import org.neo4j.kernel.impl.util.RelationshipEntityWrappingValue
 import org.neo4j.kernel.impl.util.ValueUtils
 import org.neo4j.logging.InternalLogProvider
 import org.neo4j.logging.internal.LogService
-import org.neo4j.memory.HeapEstimatorCacheConfig
 import org.neo4j.scheduler.JobScheduler
 import org.neo4j.storageengine.api.PropertySelection
 import org.neo4j.storageengine.api.RelationshipVisitor
@@ -156,9 +156,11 @@ import scala.util.control.NonFatal
 sealed class TransactionBoundQueryContext(
   transactionalContext: TransactionalContextWrapper,
   resources: ResourceManager,
-  closeable: Option[AutoCloseable] = None
+  closeable: Option[AutoCloseable] = None,
+  queryConfig: QueryRuntimeConfig = QueryRuntimeConfig.DEFAULT
 )(implicit indexSearchMonitor: IndexSearchMonitor)
-    extends TransactionBoundReadQueryContext(transactionalContext, resources, closeable) with QueryContext {
+    extends TransactionBoundReadQueryContext(transactionalContext, resources, closeable, queryConfig)
+    with QueryContext {
 
   override val nodeWriteOps: NodeWriteOperations = new NodeWriteOperations
   override val relationshipWriteOps: RelationshipWriteOperations = new RelationshipWriteOperations
@@ -570,7 +572,8 @@ sealed class TransactionBoundQueryContext(
 private[internal] class TransactionBoundReadQueryContext(
   val transactionalContext: TransactionalContextWrapper,
   val resources: ResourceManager,
-  private val closeable: Option[AutoCloseable] = None
+  private val closeable: Option[AutoCloseable] = None,
+  val queryConfig: QueryRuntimeConfig = QueryRuntimeConfig.DEFAULT
 )(implicit indexSearchMonitor: IndexSearchMonitor)
     extends TransactionBoundReadTokenContext(transactionalContext) with ReadQueryContext {
 
@@ -596,11 +599,9 @@ private[internal] class TransactionBoundReadQueryContext(
     AssertMacros.checkOnlyWhenAssertionsAreEnabled(resources.isInstanceOf[ThreadSafeResourceManager])
     resources.trace(newResourceManager)
 
-    new ParallelTransactionBoundQueryContext(newTransactionalContext, newResourceManager)(indexSearchMonitor)
-  }
-
-  override def heapEstimatorCacheConfig: HeapEstimatorCacheConfig = {
-    transactionalContext.kernelExecutingQuery.heapEstimatorCacheConfig
+    new ParallelTransactionBoundQueryContext(newTransactionalContext, newResourceManager, queryConfig = queryConfig)(
+      indexSearchMonitor
+    )
   }
 
   // We cannot assign to value because of periodic commit
@@ -1783,7 +1784,8 @@ private[internal] class TransactionBoundReadQueryContext(
     new TransactionBoundQueryContext(
       newTransactionalContext,
       newResourceManager,
-      None
+      closeable = None,
+      queryConfig = queryConfig
     )(indexSearchMonitor)
   }
 

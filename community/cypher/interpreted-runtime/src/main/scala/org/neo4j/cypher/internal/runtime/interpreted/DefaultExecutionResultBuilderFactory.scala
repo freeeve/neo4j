@@ -49,7 +49,6 @@ import org.neo4j.cypher.internal.runtime.memory.TransactionWorkerThreadDelegatin
 import org.neo4j.cypher.result.RuntimeResult
 import org.neo4j.internal.kernel.api.DefaultCloseListenable
 import org.neo4j.kernel.impl.query.QuerySubscriber
-import org.neo4j.memory.HeapEstimatorCacheConfig
 import org.neo4j.scheduler.CallableExecutor
 import org.neo4j.scheduler.Group
 import org.neo4j.values.AnyValue
@@ -83,19 +82,24 @@ abstract class BaseExecutionResultBuilderFactory(
           val delegateFactory = () => {
             new TransactionWorkerThreadDelegatingMemoryTracker
           }
-          val mainThreadMemoryTracker = queryContext.transactionalContext.createExecutionContextMemoryTracker()
+          val mainThreadMemoryTracker = queryContext.transactionalContext.createExecutionContextMemoryTracker(
+            queryContext.queryConfig.heapEstimatorCacheConfig
+          )
           val mt = if (profile) {
-            new ProfilingParallelTrackingQueryMemoryTracker(delegateFactory, queryContext.heapEstimatorCacheConfig)
+            new ProfilingParallelTrackingQueryMemoryTracker(
+              delegateFactory,
+              queryContext.queryConfig.heapEstimatorCacheConfig
+            )
           } else {
-            new ParallelTrackingQueryMemoryTracker(delegateFactory, queryContext.heapEstimatorCacheConfig)
+            new ParallelTrackingQueryMemoryTracker(delegateFactory, queryContext.queryConfig.heapEstimatorCacheConfig)
           }
           // mainThreadMemoryTracker should be closed together with the query context
           queryContext.resources.trace(DefaultCloseListenable.wrap(mainThreadMemoryTracker))
           mt.setInitializationMemoryTracker(mainThreadMemoryTracker)
           mt
-        case (MEMORY_TRACKING, _) => new TrackingQueryMemoryTracker(queryContext.heapEstimatorCacheConfig)
+        case (MEMORY_TRACKING, _) => new TrackingQueryMemoryTracker(queryContext.queryConfig.heapEstimatorCacheConfig)
         case (CUSTOM_MEMORY_TRACKING(decorator), _) =>
-          new CustomTrackingQueryMemoryTracker(decorator, queryContext.heapEstimatorCacheConfig)
+          new CustomTrackingQueryMemoryTracker(decorator, queryContext.queryConfig.heapEstimatorCacheConfig)
       }
     }
 

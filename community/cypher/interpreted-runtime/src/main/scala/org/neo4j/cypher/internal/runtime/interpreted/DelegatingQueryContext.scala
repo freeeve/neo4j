@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.runtime.NodeOperations
 import org.neo4j.cypher.internal.runtime.NodeReadOperations
 import org.neo4j.cypher.internal.runtime.Operations
 import org.neo4j.cypher.internal.runtime.QueryContext
+import org.neo4j.cypher.internal.runtime.QueryRuntimeConfig
 import org.neo4j.cypher.internal.runtime.QueryStatistics
 import org.neo4j.cypher.internal.runtime.QueryTransactionalContext
 import org.neo4j.cypher.internal.runtime.ReadOperations
@@ -134,7 +135,7 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
 
   override def transactionalContext: QueryTransactionalContext = inner.transactionalContext
 
-  override def heapEstimatorCacheConfig: HeapEstimatorCacheConfig = inner.heapEstimatorCacheConfig
+  override def queryConfig: QueryRuntimeConfig = inner.queryConfig
 
   override def setLabelsOnNode(node: Long, labelIds: Iterator[Int]): Int =
     singleDbHit(inner.setLabelsOnNode(node, labelIds))
@@ -858,7 +859,8 @@ class DelegatingQueryTransactionalContext(val inner: QueryTransactionalContext) 
 
   override def constituentTransactionFactory: ConstituentTransactionFactory = inner.constituentTransactionFactory
 
-  override def createExecutionContextMemoryTracker(): MemoryTracker = inner.createExecutionContextMemoryTracker
+  override def createExecutionContextMemoryTracker(heapEstimatorCacheConfig: HeapEstimatorCacheConfig): MemoryTracker =
+    inner.createExecutionContextMemoryTracker(heapEstimatorCacheConfig)
 
   override def queryExecutingConfiguration: QueryExecutionConfiguration = inner.queryExecutingConfiguration
 }

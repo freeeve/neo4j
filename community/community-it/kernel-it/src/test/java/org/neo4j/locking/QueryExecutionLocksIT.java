@@ -95,6 +95,7 @@ import org.neo4j.kernel.impl.query.statistic.StatisticProvider;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.lock.ResourceType;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.memory.HeapEstimatorCacheConfig;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.StorageEngineCostCharacteristics;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
@@ -1047,8 +1048,8 @@ class QueryExecutionLocksIT {
         }
 
         @Override
-        public MemoryTracker createExecutionContextMemoryTracker() {
-            return internal.createExecutionContextMemoryTracker();
+        public MemoryTracker createExecutionContextMemoryTracker(HeapEstimatorCacheConfig heapEstimatorCacheConfig) {
+            return internal.createExecutionContextMemoryTracker(heapEstimatorCacheConfig);
         }
 
         @Override
