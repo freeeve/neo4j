@@ -20,7 +20,7 @@
 package org.neo4j.kernel.impl.query;
 
 import org.neo4j.collection.Dependencies;
-import org.neo4j.configuration.Config;
+import org.neo4j.configuration.DatabaseConfig;
 import org.neo4j.kernel.api.Kernel;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.lifecycle.LifeSupport;
@@ -62,7 +62,7 @@ public abstract class QueryEngineProvider {
 
         Kernel kernel();
 
-        Config config();
+        DatabaseConfig databaseConfig();
     }
 
     public static SPI spi(
@@ -71,7 +71,7 @@ public abstract class QueryEngineProvider {
             JobScheduler jobScheduler,
             LifeSupport lifeSupport,
             Kernel kernel,
-            Config config) {
+            DatabaseConfig databaseConfig) {
         return new SPI() {
             @Override
             public InternalLogProvider logProvider() {
@@ -99,8 +99,8 @@ public abstract class QueryEngineProvider {
             }
 
             @Override
-            public Config config() {
-                return config;
+            public DatabaseConfig databaseConfig() {
+                return databaseConfig;
             }
         };
     }
