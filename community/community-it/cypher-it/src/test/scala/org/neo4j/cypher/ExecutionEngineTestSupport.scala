@@ -113,7 +113,7 @@ object ExecutionEngineHelper {
   ): ExecutionEngine = {
     val resolver = graphDatabaseCypherService.getDependencyResolver
     resolver.resolveDependency(classOf[QueryExecutionEngine]).asInstanceOf[
-      org.neo4j.cypher.internal.javacompat.ExecutionEngine
+      org.neo4j.cypher.internal.javacompat.InternalQueryExecutionEngine
     ].getCypherExecutionEngine
   }
 

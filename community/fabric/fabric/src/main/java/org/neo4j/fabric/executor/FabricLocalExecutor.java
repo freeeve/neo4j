@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import org.neo4j.cypher.internal.javacompat.ExecutionEngine;
+import org.neo4j.cypher.internal.javacompat.InternalQueryExecutionEngine;
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery;
 import org.neo4j.fabric.FabricDatabaseManager;
 import org.neo4j.fabric.bookmark.LocalBookmark;
@@ -157,7 +157,7 @@ public class FabricLocalExecutor {
 
         private FabricKernelTransaction beginKernelTx(GraphDatabaseAPI databaseFacade) {
             var dependencyResolver = databaseFacade.getDependencyResolver();
-            var executionEngine = dependencyResolver.resolveDependency(ExecutionEngine.class);
+            var executionEngine = dependencyResolver.resolveDependency(InternalQueryExecutionEngine.class);
 
             var internalTransaction = beginInternalTransaction(databaseFacade, transactionInfo);
 

@@ -35,7 +35,7 @@ import org.neo4j.cypher.internal.evaluator.SimpleInternalExpressionEvaluator;
 import org.neo4j.cypher.internal.frontend.phases.BaseState;
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver;
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOperators;
-import org.neo4j.cypher.internal.javacompat.ExecutionEngine;
+import org.neo4j.cypher.internal.javacompat.InternalQueryExecutionEngine;
 import org.neo4j.cypher.internal.preparser.PreParsedQuery;
 import org.neo4j.cypher.internal.preparser.QueryOptions;
 import org.neo4j.cypher.internal.rewriting.rewriters.RemoveUseRewriter;
@@ -268,7 +268,7 @@ public class QueryProcessorImpl implements QueryProcessor {
             checkDatabaseAvailable(databaseContext);
 
             var resolver = databaseContext.dependencies();
-            var queryExecutionEngine = resolver.resolveDependency(ExecutionEngine.class);
+            var queryExecutionEngine = resolver.resolveDependency(InternalQueryExecutionEngine.class);
             queryExecutionEngine.insertIntoCache(
                     query.text(), preParsedQuery, query.parameters(), parsedQuery, parsingNotifications);
         }

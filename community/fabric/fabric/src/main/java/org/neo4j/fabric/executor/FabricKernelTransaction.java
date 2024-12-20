@@ -27,7 +27,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
-import org.neo4j.cypher.internal.javacompat.ExecutionEngine;
+import org.neo4j.cypher.internal.javacompat.InternalQueryExecutionEngine;
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery;
 import org.neo4j.cypher.internal.runtime.InputDataStream;
 import org.neo4j.fabric.config.FabricConfig;
@@ -61,7 +61,7 @@ import org.neo4j.values.virtual.VirtualRelationshipValue;
 import org.neo4j.values.virtual.VirtualValues;
 
 public class FabricKernelTransaction {
-    private final ExecutionEngine queryExecutionEngine;
+    private final InternalQueryExecutionEngine queryExecutionEngine;
     private final TransactionalContextFactory transactionalContextFactory;
     private final InternalTransaction internalTransaction;
     private final FabricConfig config;
@@ -70,7 +70,7 @@ public class FabricKernelTransaction {
     private final FabricTransactionInfo transactionInfo;
 
     FabricKernelTransaction(
-            ExecutionEngine queryExecutionEngine,
+            InternalQueryExecutionEngine queryExecutionEngine,
             TransactionalContextFactory transactionalContextFactory,
             InternalTransaction internalTransaction,
             FabricConfig config,
