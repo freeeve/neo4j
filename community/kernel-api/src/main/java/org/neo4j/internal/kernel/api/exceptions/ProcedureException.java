@@ -21,6 +21,7 @@ package org.neo4j.internal.kernel.api.exceptions;
 
 import static java.lang.String.format;
 import static org.apache.commons.lang3.exception.ExceptionUtils.getRootCause;
+import static org.neo4j.configuration.GraphDatabaseSettings.procedure_unrestricted;
 import static org.neo4j.kernel.api.exceptions.Status.Database.DatabaseNotFound;
 import static org.neo4j.kernel.api.exceptions.Status.Database.Unknown;
 import static org.neo4j.kernel.api.exceptions.Status.Procedure.ProcedureCallFailed;
@@ -39,8 +40,6 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
-import org.neo4j.internal.kernel.api.procs.DescribedSignature;
-import org.neo4j.internal.kernel.api.procs.ProcedureSignature;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.procedure.Context;
@@ -539,12 +538,21 @@ public class ProcedureException extends KernelException {
                 gql, statusCode, "The following namespaces are not reloadable: %s.".formatted(nonReloadableNamespaces));
     }
 
-    public static ProcedureException loadFailedSandboxed(DescribedSignature signature) {
-        var gql = GqlHelper.get52N34(String.valueOf(signature.name()));
-        return new ProcedureException(
-                gql,
-                Status.Procedure.ProcedureRegistrationFailed,
-                signature.description().orElse("Failed to load " + signature.name()));
+    public static ProcedureException loadFailedProcedureRestricted(String proc) {
+        var gql = GqlHelper.get52N34(proc);
+        return new ProcedureException(gql, Status.Procedure.ProcedureRegistrationFailed, restrictedOldMessage(proc));
+    }
+
+    public static ProcedureException loadFailedFunctionRestricted(String func) {
+        var gql = GqlHelper.get53N34(func);
+        return new ProcedureException(gql, Status.Procedure.ProcedureRegistrationFailed, restrictedOldMessage(func));
+    }
+
+    private static String restrictedOldMessage(String name) {
+        return name + " is unavailable because it is sandboxed and has dependencies outside of the sandbox. "
+                + "Sandboxing is controlled by the "
+                + procedure_unrestricted.name() + " setting. "
+                + "Only unrestrict procedures you can trust with access to database internals.";
     }
 
     public static ProcedureException noSuchIndex(String indexName, String procedureName, Boolean formatIndex) {
@@ -584,47 +592,72 @@ public class ProcedureException extends KernelException {
         return exc;
     }
 
-    public static ProcedureException innerExceptionFailed(Throwable throwable, ProcedureSignature signature) {
-        Throwable cause = getRootCause(throwable); // Do we risk losing valuable information here
-        var gql = GqlHelper.get52N33(
-                String.valueOf(signature.name()), (cause != null ? String.valueOf(cause) : String.valueOf(throwable)));
+    public static ProcedureException compilationFailed(boolean isProcedure, String name, Throwable cause) {
+        ErrorGqlStatusObject gql;
+        if (isProcedure) {
 
-        if (throwable instanceof Status.HasStatus statusException) {
-            return new ProcedureException(gql, statusException.status(), throwable, throwable.getMessage());
+            gql = GqlHelper.get51N00_52N35(name, cause.getMessage());
         } else {
-            return new ProcedureException(
-                    gql,
-                    Status.Procedure.ProcedureCallFailed,
-                    throwable,
-                    "Failed to invoke procedure `%s`: %s",
-                    signature.name(),
-                    "Caused by: " + (cause != null ? cause : throwable));
+            gql = GqlHelper.get51N00_53N35(name, cause.getMessage());
         }
-    }
-
-    public static ProcedureException compilationFailed(String routine, String procedureName, Throwable cause) {
-        var gql = GqlHelper.get51N00_52N35(procedureName, cause.getMessage());
         return new ProcedureException(
                 gql,
                 Status.Procedure.ProcedureRegistrationFailed,
                 cause,
                 "Failed to compile %s defined in `%s`: %s",
-                routine,
-                procedureName,
+                isProcedure ? "procedure" : "function",
+                name,
                 cause.getMessage());
     }
 
-    public static ProcedureException invocationFailed(String typeAndName, Throwable cause) {
+    public static ProcedureException invocationFailed(String type, String name, Throwable cause) {
         Throwable rootCause = getRootCause(cause); // Do we risk losing valuable information here
-        var gql = GqlHelper.get52N33(
-                typeAndName, (rootCause != null ? String.valueOf(rootCause) : String.valueOf(cause)));
-        return new ProcedureException(
-                gql,
-                Status.Procedure.ProcedureCallFailed,
-                cause,
-                "Failed to invoke %s: %s",
-                typeAndName,
-                "Caused by: " + (rootCause != null ? rootCause : cause));
+        String typeAndName = String.format("%s `%s`", type, name);
+        ErrorGqlStatusObject gql = getInvocationFailedGqlStatus(cause, rootCause, type, name);
+
+        if (cause instanceof Status.HasStatus statusException) {
+            return new ProcedureException(gql, statusException.status(), cause, cause.getMessage());
+        } else {
+            return new ProcedureException(
+                    gql,
+                    Status.Procedure.ProcedureCallFailed,
+                    cause,
+                    "Failed to invoke %s: %s",
+                    typeAndName,
+                    "Caused by: " + (rootCause != null ? rootCause : cause));
+        }
+    }
+
+    private static ErrorGqlStatusObject getInvocationFailedGqlStatus(
+            Throwable cause, Throwable rootCause, String type, String name) {
+        if (type.equals("procedure")) {
+            if (cause instanceof ErrorGqlStatusObject errorGqlStatusObject) {
+                return GqlHelper.get52N37(name, errorGqlStatusObject);
+            } else if (rootCause instanceof ErrorGqlStatusObject errorGqlStatusObject) {
+                return GqlHelper.get52N37(name, errorGqlStatusObject);
+            } else {
+                return GqlHelper.get52N37(name, GqlHelper.get52U00(name, cause));
+            }
+        } else {
+            if (cause instanceof ErrorGqlStatusObject errorGqlStatusObject) {
+                return GqlHelper.get53N37(name, errorGqlStatusObject);
+            } else if (rootCause instanceof ErrorGqlStatusObject errorGqlStatusObject) {
+                return GqlHelper.get53N37(name, errorGqlStatusObject);
+            } else {
+                return GqlHelper.get53N37(name, GqlHelper.get53U00(name, cause));
+            }
+        }
+    }
+
+    public static <EX extends Throwable & Status.HasStatus & ErrorGqlStatusObject>
+            ProcedureException invocationFailedWithInnerError(EX error, String type, String name) {
+        ErrorGqlStatusObject gql;
+        if (type.equals("procedure")) {
+            gql = GqlHelper.get52N37(name, error);
+        } else {
+            gql = GqlHelper.get53N37(name, error);
+        }
+        return new ProcedureException(gql, error.status(), error, error.getMessage(), error);
     }
 
     public static ProcedureException invalidReturnType(String methodName, String badReturnValue) {

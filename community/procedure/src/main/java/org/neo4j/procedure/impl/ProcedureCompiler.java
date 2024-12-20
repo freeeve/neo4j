@@ -157,7 +157,7 @@ class ProcedureCompiler {
         } catch (ProcedureException e) {
             throw e;
         } catch (Exception e) {
-            throw ProcedureException.compilationFailed("function", fcnDefinition.getName(), e);
+            throw ProcedureException.compilationFailed(false, fcnDefinition.getName(), e);
         }
     }
 
@@ -198,7 +198,7 @@ class ProcedureCompiler {
         } catch (ProcedureException e) {
             throw e;
         } catch (Exception e) {
-            throw ProcedureException.compilationFailed("function", fcnDefinition.getSimpleName(), e);
+            throw ProcedureException.compilationFailed(false, fcnDefinition.getSimpleName(), e);
         }
     }
 
@@ -240,7 +240,7 @@ class ProcedureCompiler {
         } catch (ProcedureException e) {
             throw e;
         } catch (Exception e) {
-            throw ProcedureException.compilationFailed("procedure", procDefinition.getSimpleName(), e);
+            throw ProcedureException.compilationFailed(true, procDefinition.getSimpleName(), e);
         }
     }
 

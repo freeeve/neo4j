@@ -5042,16 +5042,16 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_52N34(
             new GqlStatus("52N34"),
             """
-                    { %s } is unavailable because it is sandboxed. Sandboxing is controlled by the dbms.security.procedures.unrestricted setting. Only un-restrict procedures you can trust with access to database internals.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.sig},
+                    { %s } is restricted and accesses database internals. Procedure restriction is controlled by the dbms.security.procedures.unrestricted setting. Only un-restrict procedures you can trust with access to database internals.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
-            "procedure sandboxed",
+            "procedure restricted",
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N35(
             new GqlStatus("52N35"),
             """
-                    Failed to compile procedure/function defined in { %s }: { %s }""",
+                    Failed to compile procedure defined in { %s }: { %s }""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procClass, GqlParams.StringParam.msg},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5072,6 +5072,64 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.PROCEDURE_EXCEPTION,
             "invalid procedure argument with API documentation hint",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_52N37(
+            new GqlStatus("52N37"),
+            """
+                    Execution of the procedure { %s } failed.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
+            emptyMap(),
+            Condition.PROCEDURE_EXCEPTION,
+            "procedure execution error",
+            ErrorClassification.UNKNOWN),
+    STATUS_52U00(
+            new GqlStatus("52U00"),
+            """
+                    Execution of the procedure { %s } failed due to { %s }: { %s }.""",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.proc, GqlParams.StringParam.msgTitle, GqlParams.StringParam.msg
+            },
+            emptyMap(),
+            Condition.PROCEDURE_EXCEPTION,
+            "custom procedure execution error cause",
+            ErrorClassification.UNKNOWN),
+    STATUS_53N34(
+            new GqlStatus("53N34"),
+            """
+                    { %s } is restricted and accesses database internals. User-defined function restriction is controlled by the dbms.security.procedures.unrestricted setting. Only un-restrict user-defined functions you can trust with access to database internals.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            emptyMap(),
+            Condition.FUNCTION_EXCEPTION,
+            "function restricted",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_53N35(
+            new GqlStatus("53N35"),
+            """
+                    Failed to compile function defined in { %s }: { %s }""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.funClass, GqlParams.StringParam.msg},
+            emptyMap(),
+            Condition.FUNCTION_EXCEPTION,
+            "function compilation failed",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_53N37(
+            new GqlStatus("53N37"),
+            """
+                    Execution of the function { %s } failed.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            emptyMap(),
+            Condition.FUNCTION_EXCEPTION,
+            "function execution error",
+            ErrorClassification.UNKNOWN),
+    STATUS_53U00(
+            new GqlStatus("53U00"),
+            """
+                    Execution of the function { %s } failed due to { %s }: { %s }.""",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.fun, GqlParams.StringParam.msgTitle, GqlParams.StringParam.msg
+            },
+            emptyMap(),
+            Condition.FUNCTION_EXCEPTION,
+            "custom function execution error cause",
+            ErrorClassification.UNKNOWN),
     STATUS_G1000(
             new GqlStatus("G1000"),
             """

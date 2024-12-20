@@ -72,6 +72,7 @@ public class GqlParams {
         field(new IDENT()), // Field identifier
         format(new STRLIT()), // Duration format
         fun(new CALLABLE_IDENT()), // Function name
+        funClass(new IDENT()), // Function implementation class name
         graph(new IDENT()), // Graph name | myGrap
         hint(new VERBATIM()), // Freeform description of some "hint"
         ident(new IDENT()), // Generic identifier

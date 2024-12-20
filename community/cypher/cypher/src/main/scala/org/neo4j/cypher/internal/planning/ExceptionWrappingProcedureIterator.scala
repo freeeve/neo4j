@@ -33,7 +33,7 @@ final class ExceptionWrappingProcedureIterator[T, E <: Exception](
       inner.hasNext
     } catch {
       // Procedures always wraps exceptions in a ProcedureException
-      case e: ProcedureException => throw new CypherExecutionException(e.getMessage, e)
+      case e: ProcedureException => throw CypherExecutionException.wrapError(e)
     }
 
   override def next(): T =
@@ -41,7 +41,7 @@ final class ExceptionWrappingProcedureIterator[T, E <: Exception](
       inner.next()
     } catch {
       // Procedures always wraps exceptions in a ProcedureExceptions
-      case e: ProcedureException => throw new CypherExecutionException(e.getMessage, e)
+      case e: ProcedureException => throw CypherExecutionException.wrapError(e)
     }
 
   override def close(): Unit =

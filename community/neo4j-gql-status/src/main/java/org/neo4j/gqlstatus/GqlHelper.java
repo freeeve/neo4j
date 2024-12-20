@@ -776,6 +776,15 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject get51N00_53N35(String funClass, String msg) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N00)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_53N35)
+                        .withParam(GqlParams.StringParam.funClass, funClass)
+                        .withParam(GqlParams.StringParam.msg, msg)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql52N02_52N11(String procedure) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N02)
                 .withParam(GqlParams.StringParam.proc, procedure)
@@ -784,18 +793,46 @@ public class GqlHelper {
                 .build();
     }
 
-    public static ErrorGqlStatusObject get52N33(String sig, String msg) {
-        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N33)
+    public static ErrorGqlStatusObject get52N34(String proc) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N34)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
-                .withParam(GqlParams.StringParam.sig, sig)
-                .withParam(GqlParams.StringParam.msg, msg)
+                .withParam(GqlParams.StringParam.proc, proc)
                 .build();
     }
 
-    public static ErrorGqlStatusObject get52N34(String sig) {
-        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N34)
-                .withClassification(ErrorClassification.CLIENT_ERROR)
-                .withParam(GqlParams.StringParam.sig, sig)
+    public static ErrorGqlStatusObject get52N37(String procedureName, ErrorGqlStatusObject cause) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N37)
+                .withParam(GqlParams.StringParam.proc, procedureName)
+                .withCause(cause)
+                .build();
+    }
+
+    public static ErrorGqlStatusObject get52U00(String procedureName, Throwable e) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52U00)
+                .withParam(GqlParams.StringParam.proc, procedureName)
+                .withParam(GqlParams.StringParam.msgTitle, e.getClass().getName())
+                .withParam(GqlParams.StringParam.msg, e.getMessage())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject get53N34(String funcName) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_53N34)
+                .withParam(GqlParams.StringParam.fun, funcName)
+                .build();
+    }
+
+    public static ErrorGqlStatusObject get53N37(String funcName, ErrorGqlStatusObject cause) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_53N37)
+                .withParam(GqlParams.StringParam.fun, funcName)
+                .withCause(cause)
+                .build();
+    }
+
+    public static ErrorGqlStatusObject get53U00(String funcName, Throwable e) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_53U00)
+                .withParam(GqlParams.StringParam.fun, funcName)
+                .withParam(GqlParams.StringParam.msgTitle, e.getClass().getName())
+                .withParam(GqlParams.StringParam.msg, e.getMessage())
                 .build();
     }
 

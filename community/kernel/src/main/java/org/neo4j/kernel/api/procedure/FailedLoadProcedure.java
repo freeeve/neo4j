@@ -35,6 +35,7 @@ public class FailedLoadProcedure extends CallableProcedure.BasicProcedure {
     @Override
     public ResourceRawIterator<AnyValue[], ProcedureException> apply(
             Context ctx, AnyValue[] input, ResourceMonitor resourceMonitor) throws ProcedureException {
-        throw ProcedureException.loadFailedSandboxed(signature());
+        throw ProcedureException.loadFailedProcedureRestricted(
+                String.valueOf(signature().name()));
     }
 }

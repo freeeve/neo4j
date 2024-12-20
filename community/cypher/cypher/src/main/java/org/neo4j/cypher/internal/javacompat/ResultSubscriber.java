@@ -40,6 +40,7 @@ import org.neo4j.graphdb.QueryStatistics;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Result;
 import org.neo4j.internal.helpers.collection.PrefetchingResourceIterator;
+import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.kernel.impl.query.QueryExecution;
 import org.neo4j.kernel.impl.query.QueryExecutionKernelException;
 import org.neo4j.kernel.impl.query.QuerySubscriber;
@@ -372,6 +373,8 @@ public class ResultSubscriber extends PrefetchingResourceIterator<Map<String, Ob
             neo4jException = (Neo4jException) e;
         } else if (e instanceof RuntimeException) {
             throw (RuntimeException) e;
+        } else if (e instanceof ProcedureException ex) {
+            neo4jException = CypherExecutionException.wrapError(ex);
         } else {
             neo4jException = CypherExecutionException.unexpectedError(e);
         }

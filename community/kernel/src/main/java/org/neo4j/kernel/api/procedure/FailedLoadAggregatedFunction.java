@@ -30,6 +30,7 @@ public class FailedLoadAggregatedFunction extends CallableUserAggregationFunctio
 
     @Override
     public UserAggregator create(Context ctx) throws ProcedureException {
-        throw ProcedureException.loadFailedSandboxed(signature());
+        throw ProcedureException.loadFailedFunctionRestricted(
+                String.valueOf(signature().name()));
     }
 }

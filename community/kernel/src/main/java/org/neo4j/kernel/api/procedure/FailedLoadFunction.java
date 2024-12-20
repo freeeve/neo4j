@@ -30,6 +30,7 @@ public class FailedLoadFunction extends CallableUserFunction.BasicUserFunction {
 
     @Override
     public AnyValue apply(Context ctx, AnyValue[] input) throws ProcedureException {
-        throw ProcedureException.loadFailedSandboxed(signature());
+        throw ProcedureException.loadFailedFunctionRestricted(
+                String.valueOf(signature().name()));
     }
 }

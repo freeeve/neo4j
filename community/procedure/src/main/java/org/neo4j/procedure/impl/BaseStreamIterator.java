@@ -101,6 +101,6 @@ public abstract class BaseStreamIterator implements ResourceRawIterator<AnyValue
     }
 
     private ProcedureException newProcedureException(Throwable throwable) {
-        return ProcedureException.innerExceptionFailed(throwable, signature);
+        return ProcedureException.invocationFailed("procedure", signature.name().toString(), throwable);
     }
 }

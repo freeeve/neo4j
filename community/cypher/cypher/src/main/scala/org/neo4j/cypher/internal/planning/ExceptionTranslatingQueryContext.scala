@@ -318,7 +318,7 @@ class ExceptionTranslatingReadQueryContext(val inner: ReadQueryContext) extends 
     try {
       new ExceptionWrappingProcedureIterator(inner.callReadOnlyProcedure(id, args, context))
     } catch {
-      case e: ProcedureException => throw new CypherExecutionException(e.getMessage, e)
+      case e: ProcedureException => throw CypherExecutionException.wrapError(e)
     }
 
   override def callReadWriteProcedure(
@@ -329,7 +329,7 @@ class ExceptionTranslatingReadQueryContext(val inner: ReadQueryContext) extends 
     try {
       new ExceptionWrappingProcedureIterator(inner.callReadWriteProcedure(id, args, context))
     } catch {
-      case e: ProcedureException => throw new CypherExecutionException(e.getMessage, e)
+      case e: ProcedureException => throw CypherExecutionException.wrapError(e)
     }
 
   override def callSchemaWriteProcedure(
@@ -340,7 +340,7 @@ class ExceptionTranslatingReadQueryContext(val inner: ReadQueryContext) extends 
     try {
       new ExceptionWrappingProcedureIterator(inner.callSchemaWriteProcedure(id, args, context))
     } catch {
-      case e: ProcedureException => throw new CypherExecutionException(e.getMessage, e)
+      case e: ProcedureException => throw CypherExecutionException.wrapError(e)
     }
 
   override def callDbmsProcedure(
@@ -351,7 +351,7 @@ class ExceptionTranslatingReadQueryContext(val inner: ReadQueryContext) extends 
     try {
       new ExceptionWrappingProcedureIterator(inner.callDbmsProcedure(id, args, context))
     } catch {
-      case e: ProcedureException => throw new CypherExecutionException(e.getMessage, e)
+      case e: ProcedureException => throw CypherExecutionException.wrapError(e)
     }
 
   override def callFunction(id: Int, args: Array[AnyValue], context: ProcedureCallContext): AnyValue =

@@ -71,6 +71,7 @@ import org.neo4j.codegen.Expression;
 import org.neo4j.codegen.FieldReference;
 import org.neo4j.codegen.MethodDeclaration;
 import org.neo4j.collection.ResourceRawIterator;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
@@ -256,7 +257,8 @@ public final class ProcedureCompilation {
                 // CallableUserFunction::apply
                 try (CodeBlock method = generator.generate(USER_FUNCTION)) {
                     try (var body = method.tryCatch(
-                            onError -> onError(onError, format("function `%s`", signature.name())),
+                            onError -> onError(
+                                    onError, "function", signature.name().toString()),
                             param(Throwable.class, "T"))) {
                         functionBody(body, fieldSetters, fieldsToSet, methodToCall);
                     }
@@ -277,7 +279,7 @@ public final class ProcedureCompilation {
             return (CallableUserFunction) clazz.getConstructor().newInstance();
         } catch (Throwable e) {
             throw ProcedureException.compilationFailed(
-                    "function", methodToCall.getDeclaringClass().getSimpleName(), e);
+                    false, methodToCall.getDeclaringClass().getSimpleName(), e);
         }
     }
 
@@ -352,7 +354,8 @@ public final class ProcedureCompilation {
                 // CallableProcedure::apply
                 try (CodeBlock method = generator.generate(USER_PROCEDURE)) {
                     try (var body = method.tryCatch(
-                            onError -> onError(onError, format("procedure `%s`", signature.name())),
+                            onError -> onError(
+                                    onError, "procedure", signature.name().toString()),
                             param(Throwable.class, "T"))) {
                         procedureBody(body, fieldSetters, fieldsToSet, signatureField, methodToCall, iterator);
                     }
@@ -372,7 +375,7 @@ public final class ProcedureCompilation {
             return (CallableProcedure) clazz.getConstructor().newInstance();
         } catch (Throwable e) {
             throw ProcedureException.compilationFailed(
-                    "procedure", methodToCall.getDeclaringClass().getSimpleName(), e);
+                    true, methodToCall.getDeclaringClass().getSimpleName(), e);
         }
     }
 
@@ -485,7 +488,8 @@ public final class ProcedureCompilation {
                 // CallableUserAggregationFunction::create
                 try (CodeBlock method = generator.generate(AGGREGATION_CREATE)) {
                     try (var body = method.tryCatch(
-                            onError -> onError(onError, format("function `%s`", signature.name())),
+                            onError -> onError(
+                                    onError, "function", signature.name().toString()),
                             param(Throwable.class, "T"))) {
                         createAggregationBody(body, fieldSetters, fieldsToSet, create, aggregator);
                     }
@@ -502,25 +506,29 @@ public final class ProcedureCompilation {
                     clazz.getConstructor(UserFunctionSignature.class).newInstance(signature);
         } catch (Throwable e) {
             throw ProcedureException.compilationFailed(
-                    "function", create.getDeclaringClass().getSimpleName(), e);
+                    false, create.getDeclaringClass().getSimpleName(), e);
         }
     }
 
     /**
      * Used by generated code. Needs to be public.
      * @param throwable The thrown exception
-     * @param typeAndName the type and name of the caller, e.g "function `my.udf`"
+     * @param type the type of the caller, e.g. "function"
+     * @param name the name of the caller, e.g "`my.udf`"
      * @return an exception with an appropriate message.
      */
-    public static ProcedureException rethrowProcedureException(Throwable throwable, String typeAndName) {
+    public static ProcedureException rethrowProcedureException(Throwable throwable, String type, String name) {
         if (throwable instanceof ProcedureException) {
             return (ProcedureException) throwable;
         }
-        if (throwable instanceof Status.HasStatus) {
-            return new ProcedureException(
-                    ((Status.HasStatus) throwable).status(), throwable, throwable.getMessage(), throwable);
+        if (throwable instanceof Status.HasStatus throwableWithStatus) {
+            if (throwableWithStatus instanceof ErrorGqlStatusObject gqlError) {
+                return ProcedureException.invocationFailedWithInnerError(
+                        (Throwable & ErrorGqlStatusObject & Status.HasStatus) gqlError, type, name);
+            }
+            return new ProcedureException(throwableWithStatus.status(), throwable, throwable.getMessage(), throwable);
         } else {
-            return ProcedureException.invocationFailed(typeAndName, throwable);
+            return ProcedureException.invocationFailed(type, name, throwable);
         }
     }
 
@@ -644,7 +652,7 @@ public final class ProcedureCompilation {
             // update
             try (CodeBlock block = generator.generate(AGGREGATION_UPDATE)) {
                 try (var body = block.tryCatch(
-                        onError -> onError(onError, format("function `%s`", signature.name())),
+                        onError -> onError(onError, "function", signature.name().toString()),
                         param(Throwable.class, "T"))) {
                     body.expression(invoke(
                             get(body.self(), aggregator),
@@ -656,7 +664,7 @@ public final class ProcedureCompilation {
             // result
             try (CodeBlock block = generator.generate(AGGREGATION_RESULT)) {
                 try (var body = block.tryCatch(
-                        onError -> onError(onError, format("function `%s`", signature.name())),
+                        onError -> onError(onError, "function", signature.name().toString()),
                         param(Throwable.class, "T"))) {
                     body.returns(toAnyValue(
                             body,
@@ -801,9 +809,9 @@ public final class ProcedureCompilation {
     }
 
     /**
-     * Handle errors by redirecting to {@link #rethrowProcedureException(Throwable, String)}  }
+     * Handle errors by redirecting to {@link #rethrowProcedureException(Throwable, String, String)}  }
      */
-    private static void onError(CodeBlock block, String typeAndName) {
+    private static void onError(CodeBlock block, String type, String name) {
 
         block.throwException(invoke(
                 methodReference(
@@ -811,9 +819,11 @@ public final class ProcedureCompilation {
                         ProcedureException.class,
                         "rethrowProcedureException",
                         Throwable.class,
+                        String.class,
                         String.class),
                 block.load("T"),
-                constant(typeAndName)));
+                constant(type),
+                constant(name)));
     }
 
     /**
