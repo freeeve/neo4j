@@ -21,9 +21,7 @@ package org.neo4j.procedure.impl;
 
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.neo4j.configuration.GraphDatabaseSettings.procedure_unrestricted;
@@ -36,7 +34,6 @@ import static org.neo4j.logging.LogAssertions.assertThat;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.lang.reflect.Modifier;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -44,7 +41,6 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-import java.util.function.LongSupplier;
 import java.util.jar.Attributes;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
@@ -54,7 +50,6 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.NamingStrategy;
-import net.bytebuddy.description.annotation.AnnotationDescription;
 import net.bytebuddy.description.modifier.TypeManifestation;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.DynamicType;
@@ -66,17 +61,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.ProcedureSignature;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.kernel.api.procedure.CallableProcedure;
-import org.neo4j.kernel.api.procedure.CallableUserFunction;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.util.DefaultValueMapper;
 import org.neo4j.logging.AssertableLogProvider;
@@ -93,7 +85,6 @@ import org.neo4j.test.jar.JarBuilder;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.ValueMapper;
-import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Values;
 
 @SuppressWarnings("WeakerAccess")
@@ -109,8 +100,6 @@ public class ProcedureJarLoaderTest {
             new QualifiedName("org", "neo4j", "procedure", "impl", "myProcedure");
     private static final QualifiedName OTHER_PROCEDURE_NAME =
             new QualifiedName("org", "neo4j", "procedure", "impl", "myOtherProcedure");
-    private static final AnnotationDescription userFunctionAnnotation =
-            AnnotationDescription.Builder.ofType(UserFunction.class).build();
 
     private AssertableLogProvider logProvider;
     private ProcedureJarLoader jarloader;
@@ -119,14 +108,14 @@ public class ProcedureJarLoaderTest {
 
     @BeforeEach
     void setup() {
+        var config = Config.defaults(procedure_unrestricted, List.of("org.neo4j.kernel.impl.proc.unsafeFullAccess*"));
         logProvider = new AssertableLogProvider(true);
+        jarloader = makeJarLoader(config, logProvider);
         jarDirectory = testDirectory.absolutePath();
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldLoadProcedureFromJar(GraphDatabaseInternalSettings.ProcedureClassPreloading preload) throws Throwable {
-        setupJarLoader(preload);
+    @Test
+    void shouldLoadProcedureFromJar() throws Throwable {
         // Given
         JarBuilder.createJarFor(jarDirectory.resolve("my.jar"), ClassWithOneProcedure.class);
 
@@ -146,11 +135,8 @@ public class ProcedureJarLoaderTest {
                 .containsExactly(new AnyValue[] {Values.longValue(1337L)});
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldLoadProcedureFromJarWithSpacesInFilename(GraphDatabaseInternalSettings.ProcedureClassPreloading preload)
-            throws Throwable {
-        setupJarLoader(preload);
+    @Test
+    void shouldLoadProcedureFromJarWithSpacesInFilename() throws Throwable {
         // Given
         JarBuilder.createJarFor(jarDirectory.resolve("my file with spaces.jar"), ClassWithOneProcedure.class);
 
@@ -170,11 +156,8 @@ public class ProcedureJarLoaderTest {
                 .containsExactly(new AnyValue[] {Values.longValue(1337L)});
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldLoadProcedureWithArgumentFromJar(GraphDatabaseInternalSettings.ProcedureClassPreloading preload)
-            throws Throwable {
-        setupJarLoader(preload);
+    @Test
+    void shouldLoadProcedureWithArgumentFromJar() throws Throwable {
         // Given
         JarBuilder.createJarFor(jarDirectory.resolve("my.jar"), ClassWithProcedureWithArgument.class);
 
@@ -197,11 +180,8 @@ public class ProcedureJarLoaderTest {
                 .containsExactly(new AnyValue[] {Values.longValue(42)});
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldLoadProcedureFromJarWithMultipleProcedureClasses(
-            GraphDatabaseInternalSettings.ProcedureClassPreloading preload) throws Throwable {
-        setupJarLoader(preload);
+    @Test
+    void shouldLoadProcedureFromJarWithMultipleProcedureClasses() throws Throwable {
         // Given
         JarBuilder.createJarFor(
                 jarDirectory.resolve("my.jar"),
@@ -226,11 +206,8 @@ public class ProcedureJarLoaderTest {
                                 .build());
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldGiveHelpfulErrorOnInvalidProcedure(GraphDatabaseInternalSettings.ProcedureClassPreloading preload)
-            throws Throwable {
-        setupJarLoader(preload);
+    @Test
+    void shouldGiveHelpfulErrorOnInvalidProcedure() throws Throwable {
         // Given
         JarBuilder.createJarFor(
                 jarDirectory.resolve("my.jar"), ClassWithOneProcedure.class, ClassWithInvalidProcedure.class);
@@ -247,11 +224,8 @@ public class ProcedureJarLoaderTest {
                         + "And then define your procedure as returning `Stream<Output>`."));
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldLoadProceduresFromDirectory(GraphDatabaseInternalSettings.ProcedureClassPreloading preload)
-            throws Throwable {
-        setupJarLoader(preload);
+    @Test
+    void shouldLoadProceduresFromDirectory() throws Throwable {
         // Given
         JarBuilder.createJarFor(jarDirectory.resolve("my.jar"), ClassWithOneProcedure.class);
         JarBuilder.createJarFor(jarDirectory.resolve("my_other.jar"), ClassWithAnotherProcedure.class);
@@ -273,11 +247,8 @@ public class ProcedureJarLoaderTest {
                                 .build());
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldLoadMultiReleaseJarsAndLoadVersionedClass(GraphDatabaseInternalSettings.ProcedureClassPreloading preload)
-            throws Exception {
-        setupJarLoader(preload);
+    @Test
+    void shouldLoadMultiReleaseJarsAndLoadVersionedClass() throws Exception {
         // given
         createMrJarFor(Runtime.version(), ClassWithOneProcedure.class);
 
@@ -296,11 +267,8 @@ public class ProcedureJarLoaderTest {
         assertThat(logProvider).doesNotHaveAnyLogs();
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldLoadMultiReleaseJarsAndIgnoreFutureVersions(
-            GraphDatabaseInternalSettings.ProcedureClassPreloading preload) throws Exception {
-        setupJarLoader(preload);
+    @Test
+    void shouldLoadMultiReleaseJarsAndIgnoreFutureVersions() throws Exception {
         // given
         Runtime.Version nextVersion =
                 Runtime.Version.parse(String.valueOf(Runtime.version().feature() + 1));
@@ -321,11 +289,8 @@ public class ProcedureJarLoaderTest {
         assertThat(logProvider).doesNotHaveAnyLogs();
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldGiveHelpfulErrorOnWildCardProcedure(GraphDatabaseInternalSettings.ProcedureClassPreloading preload)
-            throws Throwable {
-        setupJarLoader(preload);
+    @Test
+    void shouldGiveHelpfulErrorOnWildCardProcedure() throws Throwable {
         // Given
         JarBuilder.createJarFor(jarDirectory.resolve("my.jar"), ClassWithWildCardStream.class);
 
@@ -336,11 +301,8 @@ public class ProcedureJarLoaderTest {
                         + "that you define and not a Stream<?>."));
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldGiveHelpfulErrorOnRawStreamProcedure(GraphDatabaseInternalSettings.ProcedureClassPreloading preload)
-            throws Throwable {
-        setupJarLoader(preload);
+    @Test
+    void shouldGiveHelpfulErrorOnRawStreamProcedure() throws Throwable {
         // Given
         JarBuilder.createJarFor(jarDirectory.resolve("my.jar"), ClassWithRawStream.class);
 
@@ -351,11 +313,8 @@ public class ProcedureJarLoaderTest {
                         + "that you define and not a raw Stream."));
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldGiveHelpfulErrorOnGenericStreamProcedure(GraphDatabaseInternalSettings.ProcedureClassPreloading preload)
-            throws Throwable {
-        setupJarLoader(preload);
+    @Test
+    void shouldGiveHelpfulErrorOnGenericStreamProcedure() throws Throwable {
         // Given
         JarBuilder.createJarFor(jarDirectory.resolve("my.jar"), ClassWithGenericStream.class);
 
@@ -368,11 +327,8 @@ public class ProcedureJarLoaderTest {
                                         + "that you define and not a parameterized type such as java.util.List<org.neo4j.procedure.impl.ProcedureJarLoaderTest$Output>."));
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldLogHelpfullyWhenPluginJarIsCorrupt(GraphDatabaseInternalSettings.ProcedureClassPreloading preload)
-            throws Exception {
-        setupJarLoader(preload);
+    @Test
+    void shouldLogHelpfullyWhenPluginJarIsCorrupt() throws Exception {
         // given
         var jar = jarDirectory.resolve("my.jar");
         JarBuilder.createJarFor(
@@ -387,11 +343,8 @@ public class ProcedureJarLoaderTest {
         assertThat(logProvider).containsMessages(format("Plugin jar file: %s corrupted.", jar));
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldLogHelpfullyWhenMultiplePluginJarsAreCorrupt(
-            GraphDatabaseInternalSettings.ProcedureClassPreloading preload) throws Exception {
-        setupJarLoader(preload);
+    @Test
+    void shouldLogHelpfullyWhenMultiplePluginJarsAreCorrupt() throws Exception {
         // given
         var jarOne = jarDirectory.resolve("my.jar");
         var jarTwo = jarDirectory.resolve("my_other.jar");
@@ -415,11 +368,8 @@ public class ProcedureJarLoaderTest {
                         format("Plugin jar file: %s corrupted.", jarTwo));
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldLogHelpfullyWhenJarContainsClassTriggeringVerifyError(
-            GraphDatabaseInternalSettings.ProcedureClassPreloading preload) throws Exception {
-        setupJarLoader(preload);
+    @Test
+    void shouldLogHelpfullyWhenJarContainsClassTriggeringVerifyError() throws Exception {
         String className = "BrokenProcedureClass";
         // generate a class that is broken and would not normally compile
         DynamicType.Unloaded<Object> unloaded = new ByteBuddy()
@@ -436,7 +386,6 @@ public class ProcedureJarLoaderTest {
                                 .withAssigner(
                                         (source, target, typing) -> StackManipulation.Trivial.INSTANCE,
                                         Assigner.Typing.STATIC))
-                .annotateMethod(userFunctionAnnotation)
                 .make();
 
         Path jar = unloaded.toJar(testDirectory
@@ -451,11 +400,8 @@ public class ProcedureJarLoaderTest {
                         format("Failed to load `%s` from plugin jar `%s`", className, jar), "Bad return type");
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldLogHelpfullyWhenJarContainsClassTriggeringLinkageErrorFromParent(
-            GraphDatabaseInternalSettings.ProcedureClassPreloading preload) throws Exception {
-        setupJarLoader(preload);
+    @Test
+    void shouldLogHelpfullyWhenJarContainsClassTriggeringLinkageErrorFromParent() throws Exception {
         String baseClassName = "FinalBase";
         String className = "BrokenProcedureClass";
 
@@ -468,10 +414,6 @@ public class ProcedureJarLoaderTest {
                 // provide a name so that we can assert on it showing up in the log
                 .with(oneNameStrategy(className))
                 .subclass(base.getTypeDescription())
-                // require some form of user extension to be loaded at all
-                .defineMethod("fakeUserFunc", String.class, Modifier.PUBLIC)
-                .intercept(FixedValue.nullValue())
-                .annotateMethod(userFunctionAnnotation)
                 .make();
 
         Path jar = testDirectory.createFile(new Random().nextInt() + ".jar");
@@ -493,11 +435,8 @@ public class ProcedureJarLoaderTest {
                         "cannot inherit from final class");
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldLogHelpfullyWhenJarContainsClassTriggeringNoClassDefErrorFromMethod(
-            GraphDatabaseInternalSettings.ProcedureClassPreloading preload) throws Exception {
-        setupJarLoader(preload);
+    @Test
+    void shouldLogHelpfullyWhenJarContainsClassTriggeringNoClassDefErrorFromMethod() throws Exception {
         var notFoundClassName = "IAmNotHere";
         var willNotBeFound = new ByteBuddy()
                 .with(oneNameStrategy(notFoundClassName))
@@ -512,7 +451,6 @@ public class ProcedureJarLoaderTest {
                 .subclass(Object.class)
                 .defineMethod("get", willNotBeFound.getTypeDescription())
                 .intercept(FixedValue.nullValue())
-                .annotateMethod(userFunctionAnnotation)
                 .make();
 
         Path jar = unloaded.toJar(testDirectory
@@ -529,11 +467,8 @@ public class ProcedureJarLoaderTest {
                         NoClassDefFoundError.class.getName());
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldLogHelpfullyWhenJarContainsClassTriggeringNoClassDefErrorFromField(
-            GraphDatabaseInternalSettings.ProcedureClassPreloading preload) throws Exception {
-        setupJarLoader(preload);
+    @Test
+    void shouldLogHelpfullyWhenJarContainsClassTriggeringNoClassDefErrorFromField() throws Exception {
         var notFoundClassName = "IAmNotHere";
         var willNotBeFound = new ByteBuddy()
                 .with(oneNameStrategy(notFoundClassName))
@@ -547,9 +482,6 @@ public class ProcedureJarLoaderTest {
                 .with(oneNameStrategy(brokenClassName))
                 .subclass(Object.class)
                 .defineField("service", willNotBeFound.getTypeDescription())
-                .defineMethod("fakeUserFunc", String.class, Modifier.PUBLIC)
-                .intercept(FixedValue.nullValue())
-                .annotateMethod(userFunctionAnnotation)
                 .make();
 
         Path jar = unloaded.toJar(testDirectory
@@ -566,11 +498,8 @@ public class ProcedureJarLoaderTest {
                         NoClassDefFoundError.class.getName());
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void proceduresCanDependOnOtherJARInDirectory(GraphDatabaseInternalSettings.ProcedureClassPreloading preload)
-            throws Exception {
-        setupJarLoader(preload);
+    @Test
+    void proceduresCanDependOnOtherJARInDirectory() throws Exception {
         // given
         var neighbourhood = new ByteBuddy().subclass(Object.class).make();
 
@@ -600,10 +529,8 @@ public class ProcedureJarLoaderTest {
         };
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldWorkOnPathsWithSpaces(GraphDatabaseInternalSettings.ProcedureClassPreloading preload) throws Exception {
-        setupJarLoader(preload);
+    @Test
+    void shouldWorkOnPathsWithSpaces() throws Exception {
         // given
         Path fileWithSpacesInName =
                 testDirectory.createFile(new Random().nextInt() + "  some spaces in the filename" + ".jar");
@@ -615,11 +542,8 @@ public class ProcedureJarLoaderTest {
         assertThat(logProvider).containsMessages(format("Plugin jar file: %s corrupted.", fileWithSpacesInName));
     }
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldReturnEmptySetOnNullArgument(GraphDatabaseInternalSettings.ProcedureClassPreloading preload)
-            throws Exception {
-        setupJarLoader(preload);
+    @Test
+    void shouldReturnEmptySetOnNullArgument() throws Exception {
         // when
         ProcedureJarLoader.Callables callables = jarloader.loadProceduresFromDir(null);
 
@@ -643,7 +567,6 @@ public class ProcedureJarLoaderTest {
     @MethodSource("namespaceLimits")
     void shouldBeAbleToLimitLoadedNamespaces(List<String> include, List<String> exclude, List<String> expected)
             throws Exception {
-        setupJarLoader(GraphDatabaseInternalSettings.ProcedureClassPreloading.ALL);
         // Given
         JarBuilder.createJarFor(jarDirectory.resolve("my.jar"), ClassWithProcedureNamespaces.class);
         var methodNameFilter = Globbing.compose(include, exclude);
@@ -654,87 +577,6 @@ public class ProcedureJarLoaderTest {
                 .toList();
 
         assertThat(procedures).containsExactlyInAnyOrderElementsOf(expected);
-    }
-
-    @Test
-    public void shouldFailIfPreloadAllAndIncidentalDependencyMissing() {
-        setupJarLoader(GraphDatabaseInternalSettings.ProcedureClassPreloading.ALL);
-
-        // Given
-        JarBuilder.createJarFor(
-                jarDirectory.resolve("missing_dependency.jar"),
-                ClassWithOneProcedure.class,
-                ClassWithDependencyAndNoProcedure.class);
-
-        // then
-        assertThrows(ProcedureException.class, () -> jarloader.loadProceduresFromDir(testDirectory.absolutePath()));
-    }
-
-    @Test
-    public void shouldWorkIfAnnotatedOnlyLoadingAndIncidentalDependencyMissing() {
-        setupJarLoader(GraphDatabaseInternalSettings.ProcedureClassPreloading.ANNOTATED);
-
-        // Given
-        JarBuilder.createJarFor(
-                jarDirectory.resolve("missing_dependency.jar"),
-                ClassWithOneProcedure.class,
-                ClassWithDependencyAndNoProcedure.class);
-
-        // then
-        assertDoesNotThrow(() -> {
-            var callables = jarloader.loadProceduresFromDir(testDirectory.absolutePath());
-            assertEquals(1, callables.procedures().size());
-        });
-    }
-
-    @Test
-    public void shouldFailIfAnnotatedOnlyLoadButDependencyMissing() {
-        setupJarLoader(GraphDatabaseInternalSettings.ProcedureClassPreloading.ANNOTATED);
-
-        // Given
-        JarBuilder.createJarFor(
-                jarDirectory.resolve("missing_dependency.jar"), ClassWithDependencyAndOneProcedure.class);
-
-        // then
-        assertThrows(ProcedureException.class, () -> jarloader.loadProceduresFromDir(testDirectory.absolutePath()));
-    }
-
-    @ParameterizedTest
-    @EnumSource
-    public void functionsWithWithReflectionShouldWorkHoweverLoaded(
-            GraphDatabaseInternalSettings.ProcedureClassPreloading preload) {
-        setupJarLoader(preload);
-        // Given jar containing classes and info on their ByteBuddy remapped names
-        List<String> byteBuddyRemappedNames = JarBuilder.createJarFor(
-                jarDirectory.resolve("dynamic_dependency.jar"),
-                DynamicallyLoadedLongFunc.class,
-                ClassWithDynamicallyLoadedDependency.class);
-        // Then we should be able to load and run the function
-        assertDoesNotThrow(() -> {
-            ProcedureJarLoader.Callables callables = jarloader.loadProceduresFromDir(testDirectory.absolutePath());
-            CallableUserFunction reflectiveFunction = callables.functions().getFirst();
-            TextValue dynamicLoadedClassName = Values.utf8Value(byteBuddyRemappedNames.getFirst());
-            AnyValue functionResult =
-                    reflectiveFunction.apply(prepareContext(), new AnyValue[] {dynamicLoadedClassName});
-            assertEquals(100L, functionResult.map(valueMapper));
-        });
-    }
-
-    @ParameterizedTest
-    @EnumSource
-    public void failedReflectionShouldThrowNormally(GraphDatabaseInternalSettings.ProcedureClassPreloading preload) {
-        setupJarLoader(preload);
-        // Given
-        JarBuilder.createJarFor(
-                jarDirectory.resolve("missing_dynamic_dependency.jar"), ClassWithDynamicallyLoadedDependency.class);
-        ProcedureException thrown = assertThrows(ProcedureException.class, () -> {
-            ProcedureJarLoader.Callables callables = jarloader.loadProceduresFromDir(testDirectory.absolutePath());
-            CallableUserFunction reflectiveFunction = callables.functions().getFirst();
-            TextValue dynamicLoadedClassName = Values.utf8Value("org.neo4j.BadClass");
-            // Should throw when it can't resolve class
-            reflectiveFunction.apply(prepareContext(), new AnyValue[] {dynamicLoadedClassName});
-        });
-        assertInstanceOf(ClassNotFoundException.class, thrown.getCause());
     }
 
     private org.neo4j.kernel.api.procedure.Context prepareContext() {
@@ -896,45 +738,6 @@ public class ProcedureJarLoaderTest {
         }
     }
 
-    private static class ClassToUseAsDependency {}
-
-    private static class ClassWithDependencyAndNoProcedure {
-        public ClassToUseAsDependency dependency;
-    }
-
-    private static class ClassWithDependencyAndOneProcedure {
-        public ClassToUseAsDependency dependency;
-
-        @Procedure
-        public Stream<Output> myProcedure() {
-            return Stream.of(new Output());
-        }
-    }
-
-    public static class DynamicallyLoadedLongFunc implements LongSupplier {
-        @Override
-        public long getAsLong() {
-            return 100L;
-        }
-    }
-
-    public static class ClassWithDynamicallyLoadedDependency {
-        @UserFunction
-        public long reflectionUsingFunction(@Name("dynamicLoadedClassName") String dynamicLoadedClassName)
-                throws Exception {
-            assertInstanceOf(ProcedureClassLoader.class, this.getClass().getClassLoader());
-            var dynamicLoadedClass = getClass().getClassLoader().loadClass(dynamicLoadedClassName);
-            var dynamicClassConstructor = dynamicLoadedClass.getConstructor();
-            var dynamicInstance = (LongSupplier) dynamicClassConstructor.newInstance();
-            assertInstanceOf(ProcedureClassLoader.class, dynamicLoadedClass.getClassLoader());
-            assertEquals(
-                    this.getClass().getClassLoader(),
-                    dynamicLoadedClass.getClassLoader(),
-                    "Reflective class should have same classloader");
-            return dynamicInstance.getAsLong();
-        }
-    }
-
     private static class UnsafeAPI {
         public long getNumber() {
             return 7331;
@@ -952,14 +755,6 @@ public class ProcedureJarLoaderTest {
         final InternalLog log = logProvider.getLog(ProcedureJarLoader.class);
         final var compiler = new ProcedureCompiler(
                 new Cypher5TypeCheckers(), new ComponentRegistry(), registryWithUnsafeAPI(), log, cfg);
-        return new ProcedureJarLoader(compiler, log, cfg.procedureReloadEnabled(), cfg.preload());
-    }
-
-    private void setupJarLoader(GraphDatabaseInternalSettings.ProcedureClassPreloading preload) {
-        var config = Config.newBuilder()
-                .setDefault(procedure_unrestricted, List.of("org.neo4j.kernel.impl.proc.unsafeFullAccess*"))
-                .set(GraphDatabaseInternalSettings.preload, preload)
-                .build();
-        jarloader = makeJarLoader(config, logProvider);
+        return new ProcedureJarLoader(compiler, log, cfg.procedureReloadEnabled());
     }
 }
