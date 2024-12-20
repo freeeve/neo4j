@@ -55,6 +55,7 @@ import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.logging.LoggingReporterFactoryInvocationHandler;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.FileSystemUtils;
 import org.neo4j.io.layout.CommonDatabaseStores;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
@@ -484,17 +485,16 @@ public class ConsistencyCheckService {
             // instantiate the inconsistencies report logging
             final var outLog = logProvider.getLog(getClass());
             final var reportFile = chooseReportFile(config);
-            final var reportLogProvider = new Log4jLogProvider(createLoggerFromXmlConfig(
-                    fileSystem,
-                    newTemporaryXmlConfigBuilder(fileSystem)
-                            .withLogger(newLoggerBuilder(ROOT_LOGGER, reportFile)
-                                    .withLevel(Level.INFO)
-                                    .createOnDemand()
-                                    .withCategory(false)
-                                    .build())
-                            .create(),
-                    false,
-                    config::configStringLookup));
+            Path logConfig = newTemporaryXmlConfigBuilder(fileSystem)
+                    .withLogger(newLoggerBuilder(ROOT_LOGGER, reportFile)
+                            .withLevel(Level.INFO)
+                            .createOnDemand()
+                            .withCategory(false)
+                            .build())
+                    .create();
+            life.add(onShutdown(() -> FileSystemUtils.deleteFile(fileSystem, logConfig)));
+            final var reportLogProvider = new Log4jLogProvider(
+                    createLoggerFromXmlConfig(fileSystem, logConfig, false, config::configStringLookup));
             life.add(onShutdown(reportLogProvider::close));
             final var reportFileLog = reportLogProvider.getLog(getClass());
             final var reportLog = new DuplicatingLog(outLog, reportFileLog);
