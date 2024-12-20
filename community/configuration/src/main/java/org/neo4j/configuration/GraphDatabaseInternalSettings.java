@@ -1626,4 +1626,20 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
                     "internal.cypher.preparser.antlr_enabled", BOOL, true)
             .dynamic()
             .build();
+
+    public enum ProcedureClassPreloading {
+        // All classes are preloaded from the plugins before filtering
+        ALL,
+        // Only plugin classes with procedure, or function api annotations are directly loaded,
+        // with dependencies loaded indirectly only
+        ANNOTATED
+    }
+
+    @Internal
+    @Description("Select how eagerly procedure loader will class load procedures")
+    public static final Setting<ProcedureClassPreloading> preload = newBuilder(
+                    "internal.dbms.procedures.preload",
+                    ofEnum(ProcedureClassPreloading.class),
+                    ProcedureClassPreloading.ANNOTATED)
+            .build();
 }

@@ -30,12 +30,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.kernel.extension.ExtensionFactory;
 import org.neo4j.logging.InternalLog;
+import org.neo4j.procedure.Procedure;
+import org.neo4j.procedure.UserAggregationFunction;
+import org.neo4j.procedure.UserAggregationResult;
+import org.neo4j.procedure.UserAggregationUpdate;
+import org.neo4j.procedure.UserFunction;
 import org.neo4j.util.VisibleForTesting;
 
 /**
@@ -55,13 +64,22 @@ class ProcedureClassLoader extends URLClassLoader {
      * @param jars Paths to JAR archives
      * @return the created classloader and a list of classes it has resolved.
      */
-    public static Result setup(Collection<Path> jars, InternalLog log, boolean procedureReloadEnabled)
+    public static Result setup(
+            Collection<Path> jars,
+            InternalLog log,
+            boolean procedureReloadEnabled,
+            GraphDatabaseInternalSettings.ProcedureClassPreloading preload)
             throws ZipException, ProcedureException {
-        return setup(ProcedureClassLoader.class.getClassLoader(), jars, log, procedureReloadEnabled);
+        return setup(ProcedureClassLoader.class.getClassLoader(), jars, log, procedureReloadEnabled, preload);
     }
 
     @VisibleForTesting
-    static Result setup(ClassLoader parent, Collection<Path> jars, InternalLog log, boolean procedureReloadEnabled)
+    static Result setup(
+            ClassLoader parent,
+            Collection<Path> jars,
+            InternalLog log,
+            boolean procedureReloadEnabled,
+            GraphDatabaseInternalSettings.ProcedureClassPreloading preload)
             throws ZipException, ProcedureException {
         var loader = new ProcedureClassLoader(
                 jars.stream().map(ProcedureClassLoader::toURL).toArray(URL[]::new), parent);
@@ -74,7 +92,7 @@ class ProcedureClassLoader extends URLClassLoader {
         ClassResolver extensionlessResolver = (procedureReloadEnabled ? loader::preload : loader::loadClass);
 
         // Enumerate all classes present in the provided JARs.
-        var classes = enumerateClasses(jars, log);
+        var classes = enumerateClasses(jars, log, preload);
         var entries = resolveAll(classes, log, extensionResolver, extensionlessResolver);
 
         return new Result(loader, entries);
@@ -202,13 +220,15 @@ class ProcedureClassLoader extends URLClassLoader {
 
     private record ClassEnumeration(Map<String, Path> withExtensions, Map<String, Path> withoutExtensions) {}
 
-    private static ClassEnumeration enumerateClasses(Collection<Path> jars, InternalLog log) throws ZipException {
+    private static ClassEnumeration enumerateClasses(
+            Collection<Path> jars, InternalLog log, GraphDatabaseInternalSettings.ProcedureClassPreloading preload)
+            throws ZipException {
         var out = new ClassEnumeration(new HashMap<>(), new HashMap<>());
         var invalidFiles = new ArrayList<String>();
 
         for (Path pth : jars) {
             try (var jf = open(pth)) {
-                var content = listClasses(jf);
+                var content = listClasses(jf, preload);
                 var destination = (content.hasExtension ? out.withExtensions : out.withoutExtensions);
                 for (var klass : content.classes()) {
                     destination.put(klass, pth);
@@ -230,22 +250,37 @@ class ProcedureClassLoader extends URLClassLoader {
 
     private record Content(List<String> classes, boolean hasExtension) {}
 
-    private static Content listClasses(JarFile jf) {
-        var classes = new ArrayList<String>();
-        var it = jf.versionedStream().iterator();
+    private static Content listClasses(JarFile jf, GraphDatabaseInternalSettings.ProcedureClassPreloading preload) {
+        List<String> classes =
+                switch (preload) {
+                    case ALL -> eagerLoadedClasses(jf, entry -> entry.getName().endsWith(".class"));
+                    case ANNOTATED -> {
+                        final ASMAnnotationScanner asmScanner = new ASMAnnotationScanner(Set.of(
+                                Procedure.class,
+                                UserFunction.class,
+                                UserAggregationFunction.class,
+                                UserAggregationUpdate.class,
+                                UserAggregationResult.class));
+                        yield eagerLoadedClasses(jf, entry -> asmScanner.checkIfClassContainsAnnotation(jf, entry));
+                    }
+                };
 
         boolean hasExtension = jf.getEntry("META-INF/services/" + ExtensionFactory.class.getCanonicalName()) != null;
 
+        return new Content(classes, hasExtension);
+    }
+
+    private static List<String> eagerLoadedClasses(JarFile jf, Predicate<JarEntry> shouldLoad) {
+        var classes = new ArrayList<String>();
+        var it = jf.versionedStream().iterator();
         while (it.hasNext()) {
             var entry = it.next();
             var name = entry.getName();
-
-            if (name.endsWith(".class")) {
+            if (shouldLoad.test(entry)) {
                 classes.add(qualifiedName(name));
             }
         }
-
-        return new Content(classes, hasExtension);
+        return classes;
     }
 
     private static String qualifiedName(String name) {
