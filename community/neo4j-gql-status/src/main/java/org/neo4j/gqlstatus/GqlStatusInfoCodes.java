@@ -713,6 +713,33 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.CONNECTION_EXCEPTION,
             "general driver database error",
             ErrorClassification.DATABASE_ERROR),
+    STATUS_08N19(
+            new GqlStatus("08N19"),
+            """
+                    Communication with shard { %s } failed. with message '{ %s }'.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.graph, GqlParams.StringParam.msg},
+            emptyMap(),
+            Condition.CONNECTION_EXCEPTION,
+            "shard execution transient error",
+            ErrorClassification.TRANSIENT_ERROR),
+    STATUS_08N20(
+            new GqlStatus("08N20"),
+            """
+                    Communication with shard { %s } failed. with message '{ %s }'.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.graph, GqlParams.StringParam.msg},
+            emptyMap(),
+            Condition.CONNECTION_EXCEPTION,
+            "shard execution database error",
+            ErrorClassification.DATABASE_ERROR),
+    STATUS_08N21(
+            new GqlStatus("08N21"),
+            """
+                    Communication with shard { %s } failed. with message '{ %s }'.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.graph, GqlParams.StringParam.msg},
+            emptyMap(),
+            Condition.CONNECTION_EXCEPTION,
+            "shard execution client error",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_22000(
             new GqlStatus("22000"),
             """
@@ -4000,6 +4027,33 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.GENERAL_PROCESSING_EXCEPTION,
             "remote execution database error",
             ErrorClassification.DATABASE_ERROR),
+    STATUS_50N18(
+            new GqlStatus("50N18"),
+            """
+                    Communication with shard { %s } failed. See cause for more details.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.graph},
+            emptyMap(),
+            Condition.GENERAL_PROCESSING_EXCEPTION,
+            "shard execution transient error",
+            ErrorClassification.TRANSIENT_ERROR),
+    STATUS_50N19(
+            new GqlStatus("50N19"),
+            """
+                    Communication with shard { %s } failed. See cause for more details.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.graph},
+            emptyMap(),
+            Condition.GENERAL_PROCESSING_EXCEPTION,
+            "shard execution database error",
+            ErrorClassification.DATABASE_ERROR),
+    STATUS_50N20(
+            new GqlStatus("50N20"),
+            """
+                    Communication with shard { %s } failed. See cause for more details.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.graph},
+            emptyMap(),
+            Condition.GENERAL_PROCESSING_EXCEPTION,
+            "shard execution client error",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_50N21(
             new GqlStatus("50N21"),
             """
