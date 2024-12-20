@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
-import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.andsReorderable
 import org.neo4j.cypher.internal.logical.plans.TriadicSelection
@@ -120,10 +119,7 @@ class TriadicSelectionPlanningIntegrationTest extends CypherFunSuite with Logica
   }
 
   test("MATCH (a:X)-[:A]->(b)-[:B]->(c) WHERE NOT (a)-->(c) passes through") {
-    val plan = planner.plan(
-      CypherVersion.Cypher5,
-      "MATCH (a:X)-[:A]->(b)-[:B]->(c) WHERE NOT (a)-->(c) RETURN 1"
-    ).stripProduceResults
+    val plan = planner.plan("MATCH (a:X)-[:A]->(b)-[:B]->(c) WHERE NOT (a)-->(c) RETURN 1").stripProduceResults
 
     plan.folder.treeExists {
       case _: TriadicSelection => true
@@ -131,10 +127,7 @@ class TriadicSelectionPlanningIntegrationTest extends CypherFunSuite with Logica
   }
 
   test("MATCH (a:X)-[:A]->(b)-[:A]->(c) WHERE NOT (a)<-[:A]-(c) passes through") {
-    val plan = planner.plan(
-      CypherVersion.Cypher5,
-      "MATCH (a:X)-[:A]->(b)-[:A]->(c) WHERE NOT (a)<-[:A]-(c) RETURN 1"
-    ).stripProduceResults
+    val plan = planner.plan("MATCH (a:X)-[:A]->(b)-[:A]->(c) WHERE NOT (a)<-[:A]-(c) RETURN 1").stripProduceResults
 
     plan.folder.treeExists {
       case _: TriadicSelection => true
@@ -142,10 +135,7 @@ class TriadicSelectionPlanningIntegrationTest extends CypherFunSuite with Logica
   }
 
   test("MATCH (a:X)-[:A]->(b)-[:A]->(c) WHERE NOT (a:X)-[:A]->(c)") {
-    val plan = planner.plan(
-      CypherVersion.Cypher5,
-      "MATCH (a:X)-[r1:A]->(b)-[r2:A]->(c) WHERE NOT (a)-[:A]->(c) RETURN 1"
-    ).stripProduceResults
+    val plan = planner.plan("MATCH (a:X)-[r1:A]->(b)-[r2:A]->(c) WHERE NOT (a)-[:A]->(c) RETURN 1").stripProduceResults
 
     plan should equal(planner.subPlanBuilder()
       .projection("1 AS 1")
@@ -159,10 +149,7 @@ class TriadicSelectionPlanningIntegrationTest extends CypherFunSuite with Logica
   }
 
   test("MATCH (a:X)-[:A]->(b)-[:B]->(c) WHERE NOT (a:X)-[:A]->(c)") {
-    val plan = planner.plan(
-      CypherVersion.Cypher5,
-      "MATCH (a:X)-[r1:A]->(b)-[r2:B]->(c) WHERE NOT (a)-[:A]->(c) RETURN 1"
-    ).stripProduceResults
+    val plan = planner.plan("MATCH (a:X)-[r1:A]->(b)-[r2:B]->(c) WHERE NOT (a)-[:A]->(c) RETURN 1").stripProduceResults
 
     plan should equal(planner.subPlanBuilder()
       .projection("1 AS 1")
@@ -175,10 +162,7 @@ class TriadicSelectionPlanningIntegrationTest extends CypherFunSuite with Logica
   }
 
   test("MATCH (a:X)-[:A]->(b)<-[:B]-(c) WHERE NOT (a:X)-[:A]->(c)") {
-    val plan = planner.plan(
-      CypherVersion.Cypher5,
-      "MATCH (a:X)-[r1:A]->(b)<-[r2:B]-(c) WHERE NOT (a)-[:A]->(c) RETURN 1"
-    ).stripProduceResults
+    val plan = planner.plan("MATCH (a:X)-[r1:A]->(b)<-[r2:B]-(c) WHERE NOT (a)-[:A]->(c) RETURN 1").stripProduceResults
 
     plan should equal(planner.subPlanBuilder()
       .projection("1 AS 1")
@@ -193,10 +177,7 @@ class TriadicSelectionPlanningIntegrationTest extends CypherFunSuite with Logica
   // Positive Predicate Expression
 
   test("MATCH (a:X)-->(b)-[:A]->(c) WHERE (a:X)-[:A]->(c) passes through") {
-    val plan = planner.plan(
-      CypherVersion.Cypher5,
-      "MATCH (a:X)-[r1]->(b)-[r2:A]->(c) WHERE (a)-[:A]->(c) RETURN 1"
-    ).stripProduceResults
+    val plan = planner.plan("MATCH (a:X)-[r1]->(b)-[r2:A]->(c) WHERE (a)-[:A]->(c) RETURN 1").stripProduceResults
 
     plan.folder.treeExists {
       case _: TriadicSelection => true
@@ -218,10 +199,7 @@ class TriadicSelectionPlanningIntegrationTest extends CypherFunSuite with Logica
   }
 
   test("MATCH (a:X)-[:A]->(b)-[:B]->(c) WHERE (a)-->(c) passes through") {
-    val plan = planner.plan(
-      CypherVersion.Cypher5,
-      "MATCH (a:X)-[r1:A]->(b)-[r2:B]->(c) WHERE (a)-->(c) RETURN 1"
-    ).stripProduceResults
+    val plan = planner.plan("MATCH (a:X)-[r1:A]->(b)-[r2:B]->(c) WHERE (a)-->(c) RETURN 1").stripProduceResults
 
     plan.folder.treeExists {
       case _: TriadicSelection => true
@@ -229,10 +207,7 @@ class TriadicSelectionPlanningIntegrationTest extends CypherFunSuite with Logica
   }
 
   test("MATCH (a:X)-[:A]->(b)-[:A]->(c) WHERE (a)<-[:A]-(c) passes through") {
-    val plan = planner.plan(
-      CypherVersion.Cypher5,
-      "MATCH (a:X)-[r1:A]->(b)-[r2:A]->(c) WHERE (a)<-[:A]-(c) RETURN 1"
-    ).stripProduceResults
+    val plan = planner.plan("MATCH (a:X)-[r1:A]->(b)-[r2:A]->(c) WHERE (a)<-[:A]-(c) RETURN 1").stripProduceResults
 
     plan.folder.treeExists {
       case _: TriadicSelection => true
@@ -240,10 +215,7 @@ class TriadicSelectionPlanningIntegrationTest extends CypherFunSuite with Logica
   }
 
   test("MATCH (a:X)-[:A]->(b)-[:A]->(c) WHERE (a:X)-[:A]->(c)") {
-    val plan = planner.plan(
-      CypherVersion.Cypher5,
-      "MATCH (a:X)-[r1:A]->(b)-[r2:A]->(c) WHERE (a)-[:A]->(c) RETURN 1"
-    ).stripProduceResults
+    val plan = planner.plan("MATCH (a:X)-[r1:A]->(b)-[r2:A]->(c) WHERE (a)-[:A]->(c) RETURN 1").stripProduceResults
 
     plan should equal(planner.subPlanBuilder()
       .projection("1 AS 1")
@@ -257,10 +229,7 @@ class TriadicSelectionPlanningIntegrationTest extends CypherFunSuite with Logica
   }
 
   test("MATCH (a:X)-[:A]->(b)-[:B]->(c) WHERE (a:X)-[:A]->(c)") {
-    val plan = planner.plan(
-      CypherVersion.Cypher5,
-      "MATCH (a:X)-[r1:A]->(b)-[r2:B]->(c) WHERE (a)-[:A]->(c) RETURN 1"
-    ).stripProduceResults
+    val plan = planner.plan("MATCH (a:X)-[r1:A]->(b)-[r2:B]->(c) WHERE (a)-[:A]->(c) RETURN 1").stripProduceResults
 
     plan should equal(planner.subPlanBuilder()
       .projection("1 AS 1")
@@ -273,10 +242,7 @@ class TriadicSelectionPlanningIntegrationTest extends CypherFunSuite with Logica
   }
 
   test("MATCH (a:X)-[:A]->(b)<-[:B]-(c) WHERE (a:X)-[:A]->(c)") {
-    val plan = planner.plan(
-      CypherVersion.Cypher5,
-      "MATCH (a:X)-[r1:A]->(b)<-[r2:B]-(c) WHERE (a)-[:A]->(c) RETURN 1"
-    ).stripProduceResults
+    val plan = planner.plan("MATCH (a:X)-[r1:A]->(b)<-[r2:B]-(c) WHERE (a)-[:A]->(c) RETURN 1").stripProduceResults
 
     plan should equal(planner.subPlanBuilder()
       .projection("1 AS 1")
