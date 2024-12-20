@@ -32,7 +32,7 @@ import org.neo4j.kernel.api.index.IndexProgressor;
  * iterate over each set bit, returning actual entity ids, i.e. {@code entityIdRange+bitOffset}.
  *
  */
-public abstract class TokenScanValueIndexProgressor implements IndexProgressor, Resource {
+public abstract sealed class TokenScanValueIndexProgressor implements IndexProgressor, Resource {
 
     public static final int RANGE_SIZE = Long.SIZE;
     /**
@@ -66,7 +66,7 @@ public abstract class TokenScanValueIndexProgressor implements IndexProgressor, 
     private final TokenIndexIdLayout idLayout;
     private final int tokenId;
 
-    static TokenScanValueIndexProgressor tokenScanValueIndexProgressor(
+    static TokenScanValueIndexProgressor create(
             Seeker<TokenScanKey, TokenScanValue> cursor,
             EntityTokenClient client,
             IndexOrder indexOrder,

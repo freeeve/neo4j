@@ -52,7 +52,7 @@ public class TokenScanValueIndexProgressorTest {
     @Test
     void shouldNotProgressOnEmptyCursor() {
         MyClient client = new MyClient();
-        TokenScanValueIndexProgressor progressor = TokenScanValueIndexProgressor.tokenScanValueIndexProgressor(
+        TokenScanValueIndexProgressor progressor = TokenScanValueIndexProgressor.create(
                 EMPTY_CURSOR, client, IndexOrder.ASCENDING, EntityRange.FULL, new DefaultTokenIndexIdLayout(), 0);
         assertFalse(progressor.next());
         assertThat(client.observedIds).isEmpty();
@@ -66,7 +66,7 @@ public class TokenScanValueIndexProgressorTest {
         for (Labels label : labels) {
             long[] nodeIds = label.getNodeIds();
             MyClient client = new MyClient();
-            TokenScanValueIndexProgressor progressor = TokenScanValueIndexProgressor.tokenScanValueIndexProgressor(
+            TokenScanValueIndexProgressor progressor = TokenScanValueIndexProgressor.create(
                     label.cursor(), client, IndexOrder.ASCENDING, EntityRange.FULL, idLayout, label.getId());
             while (progressor.next()) {}
 
@@ -83,7 +83,7 @@ public class TokenScanValueIndexProgressorTest {
         for (Labels label : labels) {
             long[] nodeIds = label.getNodeIds();
             MyClient client = new MyClient();
-            TokenScanValueIndexProgressor progressor = TokenScanValueIndexProgressor.tokenScanValueIndexProgressor(
+            TokenScanValueIndexProgressor progressor = TokenScanValueIndexProgressor.create(
                     label.descendingCursor(), client, IndexOrder.DESCENDING, EntityRange.FULL, idLayout, label.getId());
             while (progressor.next()) {}
 
@@ -100,7 +100,7 @@ public class TokenScanValueIndexProgressorTest {
         var idLayout = new DefaultTokenIndexIdLayout();
         Labels label = labels(1, idLayout, 20, 39, 40, 41, 60, 80, 99, 100, 101, 120);
         MyClient client = new MyClient();
-        TokenScanValueIndexProgressor progressor = TokenScanValueIndexProgressor.tokenScanValueIndexProgressor(
+        TokenScanValueIndexProgressor progressor = TokenScanValueIndexProgressor.create(
                 label.cursor(), client, IndexOrder.ASCENDING, new EntityRange(40, 100), idLayout, label.getId());
         while (progressor.next()) {}
 
@@ -336,7 +336,7 @@ public class TokenScanValueIndexProgressorTest {
         for (Labels label : labels) {
             MyClient client = new MyClient();
             EntityRange range = labelToRange.apply(label);
-            TokenScanValueIndexProgressor progressor = TokenScanValueIndexProgressor.tokenScanValueIndexProgressor(
+            TokenScanValueIndexProgressor progressor = TokenScanValueIndexProgressor.create(
                     order != IndexOrder.DESCENDING ? label.cursor() : label.descendingCursor(),
                     client,
                     order,

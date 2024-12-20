@@ -119,10 +119,10 @@ public abstract class IntersectionNodeLabelIndexCursor extends DefaultCloseListe
             int compare = compare(firstReference, secondReference);
             if (compare == 0) {
                 // we found a match, advance
-                if (i == length - 2) {
+                i++;
+                if (i == length - 1) {
                     return true;
                 }
-                i++;
             } else if (compare < 0) {
                 // advance all cursors up to first and retry
                 if (!advanceAllUpTo(i, secondReference)) {
@@ -179,8 +179,8 @@ public abstract class IntersectionNodeLabelIndexCursor extends DefaultCloseListe
         return false;
     }
 
-    private boolean advanceAllUpTo(int i, long reference) {
-        for (int j = 0; j <= i; j++) {
+    private boolean advanceAllUpTo(int maxIndex, long reference) {
+        for (int j = 0; j <= maxIndex; j++) {
             var cursor = cursors[j];
             cursor.skipUntil(reference);
             if (!cursor.next()) {
