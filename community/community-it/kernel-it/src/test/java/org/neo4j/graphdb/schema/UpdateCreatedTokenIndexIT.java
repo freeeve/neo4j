@@ -19,30 +19,43 @@
  */
 package org.neo4j.graphdb.schema;
 
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.neo4j.test.Race.throwing;
 import static org.neo4j.test.TestLabels.LABEL_ONE;
 
+import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.helpers.collection.Iterators;
+import org.neo4j.internal.kernel.api.IndexMonitor;
+import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.monitoring.Monitors;
 import org.neo4j.test.Race;
 import org.neo4j.test.RandomSupport;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
 
 @ExtendWith(RandomExtension.class)
-@ImpermanentDbmsExtension
+@ImpermanentDbmsExtension(configurationCallback = "configure")
 class UpdateCreatedTokenIndexIT {
+    private static final int NODES = 100;
+    private static final int SKIP_NODES = 100;
+
     @Inject
     private GraphDatabaseAPI db;
 
@@ -52,8 +65,12 @@ class UpdateCreatedTokenIndexIT {
     @Inject
     RandomSupport random;
 
-    private static final int NODES = 100;
-    private static final int SKIP_NODES = 100;
+    private final Monitors monitors = new Monitors();
+
+    @ExtensionCallback
+    void configure(TestDatabaseManagementServiceBuilder builder) {
+        builder.setMonitors(monitors);
+    }
 
     @BeforeEach
     void before() {
@@ -85,6 +102,48 @@ class UpdateCreatedTokenIndexIT {
         shouldHandleIndexCreateConcurentlyWithOperation((tx, nodeId) -> {
             ((InternalTransaction) tx).kernelTransaction().dataWrite().nodeDetachDelete(nodeId);
         });
+    }
+
+    @Test
+    void shouldNotPlanTokenIndexInPopulatingState() {
+        Label label = Label.label("Label");
+        String indexName = "testIndex";
+        CountDownLatch populationScanLatch = new CountDownLatch(1);
+
+        monitors.addMonitorListener(new IndexMonitor.MonitorAdapter() {
+            @Override
+            public void indexPopulationScanStarting(IndexDescriptor[] indexDescriptors) {
+                if (Arrays.stream(indexDescriptors)
+                        .map(IndexDescriptor::getName)
+                        .anyMatch(indexName::equals)) {
+                    try {
+                        populationScanLatch.await();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        });
+
+        try (var tx = db.beginTx()) {
+            for (int i = 0; i < 100; i++) {
+                tx.createNode(label);
+            }
+            tx.commit();
+        }
+
+        try {
+            try (var tx = db.beginTx()) {
+                tx.schema().indexFor(AnyTokens.ANY_LABELS).withName(indexName).create();
+                tx.commit();
+            }
+
+            try (var tx = db.beginTx()) {
+                assertThatNoException().isThrownBy(() -> tx.execute("MATCH (n:Label) RETURN n"));
+            }
+        } finally {
+            populationScanLatch.countDown();
+        }
     }
 
     private void shouldHandleIndexCreateConcurentlyWithOperation(NodeOperation operation) throws Throwable {

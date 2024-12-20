@@ -356,6 +356,7 @@ class TransactionBoundPlanContext(
   private def getTokenIndexDescriptor(indexes: java.util.Iterator[schema.IndexDescriptor])
     : Option[TokenIndexDescriptor] = {
     indexes.asScala
+      .filter(tc.schemaRead.indexGetStateNonLocking(_) == InternalIndexState.ONLINE)
       .nextOption()
       .map { kernelIndexDescriptor =>
         val typ = kernelIndexDescriptor.schema().entityType()
