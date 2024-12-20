@@ -282,8 +282,13 @@ public class FabricExecutor {
         private boolean isRemoteFragment(Fragment fragment, Record argument) {
             if (fragment instanceof Fragment.Exec exec) {
                 Map<String, AnyValue> argumentValues = SingleQueryFragmentExecutor.argumentValues(fragment, argument);
-                Catalog.Graph graph = useEvaluator.evaluate(
-                        exec.use().graphSelection(), queryParams, argumentValues, ctx.getSessionDatabaseReference());
+                Catalog.Graph graph = useEvaluator
+                        .evaluate(
+                                exec.use().graphSelection(),
+                                queryParams,
+                                argumentValues,
+                                ctx.getSessionDatabaseReference())
+                        .graph();
                 TransactionMode transactionMode = SingleQueryFragmentExecutor.getTransactionMode(
                         plan, accessMode, exec.queryType(), graph.reference().toPrettyString());
 

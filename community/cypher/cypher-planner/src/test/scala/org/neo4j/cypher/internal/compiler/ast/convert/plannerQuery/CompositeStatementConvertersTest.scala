@@ -557,33 +557,41 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
     query shouldEqual StandardFixtures.topLevelQuery
   }
 
-  test("simple top-level composite query with parameters in graph reference and in query body") {
-    val query =
-      buildPlannerQuery(
-        """USE graph.byName($graphName)
-          |MATCH (product: Product {id: $pId})
-          |RETURN product""".stripMargin
-      )
+  CypherVersion.values().foreach(version => {
+    test(s"Cypher $version: simple top-level composite query with parameters in graph reference and in query body") {
+      val query =
+        buildPlannerQuery(
+          version,
+          """USE graph.byName($graphName)
+            |MATCH (product: Product {id: $pId})
+            |RETURN product""".stripMargin,
+          None,
+          None,
+          compareVersions = false
+        )
 
-    val expected =
-      SinglePlannerQuery
-        .empty
-        .withHorizon(RunQueryAtProjection(
-          graphReference = GraphFunctionReference(
-            function(List("graph"), "byName", parameter("graphName", CTAny)).copy(calledFromUseClause = true)(pos)
-          )(pos),
-          queryString = List(
-            "MATCH (`product`)",
-            "  WHERE (((`product`).`id`) IN ([$`pId`])) AND ((`product`):`Product`)",
-            "RETURN `product` AS `product`"
-          ).mkString(NL),
-          parameters = Set(parameter("pId", CTAny)), // We need to forward $pId to the component DB but not $graphName.
-          importsAsParameters = Map.empty,
-          columns = Set(varFor("product"))
-        ))
+      val expected =
+        SinglePlannerQuery
+          .empty
+          .withHorizon(RunQueryAtProjection(
+            graphReference = GraphFunctionReference(
+              function(List("graph"), "byName", parameter("graphName", CTAny)).copy(calledFromUseClause = true)(pos),
+              parseStringGraphReferences = !(version == CypherVersion.Cypher5)
+            )(pos),
+            queryString = List(
+              "MATCH (`product`)",
+              "  WHERE (((`product`).`id`) IN ([$`pId`])) AND ((`product`):`Product`)",
+              "RETURN `product` AS `product`"
+            ).mkString(NL),
+            parameters =
+              Set(parameter("pId", CTAny)), // We need to forward $pId to the component DB but not $graphName.
+            importsAsParameters = Map.empty,
+            columns = Set(varFor("product"))
+          ))
 
-    query shouldEqual expected
-  }
+      query shouldEqual expected
+    }
+  })
 
   test("standard union query") {
     val query =
@@ -751,7 +759,6 @@ class StandardStatementConvertersTest extends CypherFunSuite with LogicalPlannin
       query shouldEqual StandardFixtures.queryContainingSubQuery
     }
   })
-
 }
 
 object StandardFixtures extends AstConstructionTestSupport {

@@ -21,6 +21,7 @@ package org.neo4j.fabric.executor;
 
 import static scala.jdk.javaapi.CollectionConverters.asJava;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
@@ -49,6 +50,7 @@ import org.neo4j.graphdb.QueryExecutionType;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.impl.query.QueryRoutingMonitor;
+import org.neo4j.notifications.NotificationImplementation;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.MapValueBuilder;
@@ -109,13 +111,13 @@ abstract class SingleQueryFragmentExecutor {
         ctx.validateStatementType(fragment.query(), fragment.statementType());
         Map<String, AnyValue> argumentValues = argumentValues(fragment, argument);
 
-        Catalog.Graph graph =
+        Catalog.GraphWithNotification graph =
                 evalUse(fragment.use().graphSelection(), argumentValues, ctx.getSessionDatabaseReference());
 
-        validateCanUseGraph(graph, ctx.getSessionDatabaseReference());
+        validateCanUseGraph(graph.graph(), ctx.getSessionDatabaseReference());
 
-        var transactionMode =
-                getTransactionMode(fragment.queryType(), graph.reference().toPrettyString());
+        var transactionMode = getTransactionMode(
+                fragment.queryType(), graph.graph().reference().toPrettyString());
         return new PrepareResult(graph, argumentValues, transactionMode);
     }
 
@@ -124,7 +126,8 @@ abstract class SingleQueryFragmentExecutor {
             MapValue parameters,
             Catalog.Graph graph,
             TransactionMode transactionMode,
-            Supplier<FragmentResult> executeFragmentInput) {
+            Supplier<FragmentResult> executeFragmentInput,
+            List<NotificationImplementation> notifications) {
         var location = this.ctx.locationOf(graph, transactionMode.requiresWrite());
 
         if (location instanceof Location.Local local) {
@@ -144,7 +147,12 @@ abstract class SingleQueryFragmentExecutor {
 
                     @Override
                     public PlanlessSummary consume() {
-                        return PlanlessSummary.merge(input.consume(), super.consume());
+                        PlanlessSummary summary = PlanlessSummary.merge(input.consume(), super.consume());
+                        if (notifications != null) {
+                            summary.getNotifications().addAll(notifications);
+                            summary.getGqlStatusObjects().addAll(notifications);
+                        }
+                        return summary;
                     }
                 };
             } else {
@@ -162,7 +170,19 @@ abstract class SingleQueryFragmentExecutor {
             }
             MapValue fullParams = parameters.updatedWith(builder.build());
 
-            return runRemoteQueryAt(remote, transactionMode, remoteQuery.query(), fullParams);
+            var fragmentResult = runRemoteQueryAt(remote, transactionMode, remoteQuery.query(), fullParams);
+            return new DelegatingFragmentResult(fragmentResult) {
+
+                @Override
+                public PlanlessSummary consume() {
+                    PlanlessSummary summary = fragmentResult.consume();
+                    if (notifications != null) {
+                        summary.getNotifications().addAll(notifications);
+                        summary.getGqlStatusObjects().addAll(notifications);
+                    }
+                    return summary;
+                }
+            };
         } else {
             throw notImplemented("Invalid graph location", location);
         }
@@ -249,7 +269,8 @@ abstract class SingleQueryFragmentExecutor {
         }
     }
 
-    private Catalog.Graph evalUse(GraphSelection selection, Map<String, AnyValue> record, DatabaseReference sessionDb) {
+    private Catalog.GraphWithNotification evalUse(
+            GraphSelection selection, Map<String, AnyValue> record, DatabaseReference sessionDb) {
         return useEvaluator.evaluate(selection, queryParams, record, sessionDb);
     }
 
@@ -324,7 +345,10 @@ abstract class SingleQueryFragmentExecutor {
         }
     }
 
-    record PrepareResult(Catalog.Graph graph, Map<String, AnyValue> argumentValues, TransactionMode transactionMode) {}
+    record PrepareResult(
+            Catalog.GraphWithNotification graphWithNotification,
+            Map<String, AnyValue> argumentValues,
+            TransactionMode transactionMode) {}
 
     interface Tracer {
 

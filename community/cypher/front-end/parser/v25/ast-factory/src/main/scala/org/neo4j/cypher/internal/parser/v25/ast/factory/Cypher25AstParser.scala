@@ -31,6 +31,8 @@ import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
 
+import scala.collection.immutable.ArraySeq
+
 final class Cypher25AstParser(
   query: String,
   override val exceptionFactory: CypherExceptionFactory,
@@ -49,6 +51,8 @@ final class Cypher25AstParser(
 
   override protected def newLexer(fullTokens: Boolean): Lexer = Cypher25AstLexer.fromString(query, fullTokens)
   override protected def errorStrategyConf: CypherErrorStrategy.Conf = new Cypher25ErrorStrategyConf
+
+  override def symbolicAliasName(): ArraySeq[String] = parse(_.symbolicAliasName())
 }
 
 /**

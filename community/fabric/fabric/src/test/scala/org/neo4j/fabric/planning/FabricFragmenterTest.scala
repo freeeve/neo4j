@@ -287,7 +287,10 @@ class FabricFragmenterTest
 
       inside(frag) {
         case Leaf(Apply(_, inner: Leaf, _), _, _) =>
-          inner.use.shouldEqual(Declared(use(useClauseFunction(Seq("graph"), "byName", varFor("x")))))
+          inner.use.shouldEqual(Declared(use(
+            useClauseFunction(Seq("graph"), "byName", varFor("x")),
+            parseStringGraphReferences = false
+          )))
       }
     }
 
@@ -305,7 +308,10 @@ class FabricFragmenterTest
 
       inside(frag) {
         case Leaf(Apply(_, inner: Leaf, _), _, _) =>
-          inner.use.shouldEqual(Declared(use(useClauseFunction(Seq("graph"), "byName", varFor("x")))))
+          inner.use.shouldEqual(Declared(use(
+            useClauseFunction(Seq("graph"), "byName", varFor("x")),
+            parseStringGraphReferences = false
+          )))
       }
     }
 

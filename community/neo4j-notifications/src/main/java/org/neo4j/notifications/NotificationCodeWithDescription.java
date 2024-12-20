@@ -243,6 +243,10 @@ public enum NotificationCodeWithDescription {
             GqlStatusInfoCodes.STATUS_01N00,
             "Databases and aliases with unescaped `.` are deprecated unless to indicate that they belong to a composite database. "
                     + "Names containing `.` should be escaped. (%s)"),
+    DEPRECATED_PARSED_DATABASE_NAME(
+            Status.Statement.FeatureDeprecationWarning,
+            GqlStatusInfoCodes.STATUS_01N00,
+            "The graph name `%s` will no longer resolve to the same graph in future versions. Databases and aliases with unescaped dot (.) are deprecated unless to indicate that they belong to a composite database. Graph name parts that contain unsupported characters for unescaped identifiers require backtick escaping. Graph name parts with special characters may require additional escaping of those characters, for example, composite.`a.b`, composite.`1` or composite.`a``b`."),
     UNSATISFIABLE_RELATIONSHIP_TYPE_EXPRESSION(
             Status.Statement.UnsatisfiableRelationshipTypeExpression,
             GqlStatusInfoCodes.STATUS_01N61,
@@ -704,6 +708,14 @@ public enum NotificationCodeWithDescription {
         return DEPRECATED_DATABASE_NAME.notificationWithParameters(position, new String[] {param}, new String[] {
             String.format(
                     "Databases and aliases with unescaped `.` are deprecated unless they belong to a composite database. Names containing `.` should be escaped. (%s)",
+                    param)
+        });
+    }
+
+    public static NotificationImplementation deprecatedParsedDatabaseName(InputPosition position, String param) {
+        return DEPRECATED_PARSED_DATABASE_NAME.notificationWithParameters(position, new String[] {param}, new String[] {
+            String.format(
+                    "The graph name `%s` will no longer resolve to the same graph in future versions. Databases and aliases with unescaped dot (.) are deprecated unless to indicate that they belong to a composite database. Graph name parts that contain unsupported characters for unescaped identifiers require backtick escaping. Graph name parts with special characters may require additional escaping of those characters, for example, composite.`a.b`, composite.`1` or composite.`a``b`.",
                     param)
         });
     }

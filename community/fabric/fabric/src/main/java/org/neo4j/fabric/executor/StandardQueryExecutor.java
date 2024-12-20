@@ -21,6 +21,8 @@ package org.neo4j.fabric.executor;
 
 import static scala.jdk.javaapi.CollectionConverters.asJava;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery;
@@ -36,6 +38,7 @@ import org.neo4j.fabric.stream.StatementResults;
 import org.neo4j.fabric.transaction.FabricTransaction;
 import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.kernel.impl.query.QueryRoutingMonitor;
+import org.neo4j.notifications.NotificationImplementation;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.MapValueBuilder;
@@ -78,9 +81,18 @@ class StandardQueryExecutor extends SingleQueryFragmentExecutor {
         var prepareResult = prepare(fragment, argument);
         MapValue parameters =
                 addParamsFromRecord(queryParams(), prepareResult.argumentValues(), asJava(fragment.parameters()));
+        List<NotificationImplementation> notifications = new ArrayList<>();
+        if (prepareResult.graphWithNotification().notification().isDefined()) {
+            notifications.add(
+                    prepareResult.graphWithNotification().notification().get());
+        }
         return doExecuteFragment(
-                fragment, parameters, prepareResult.graph(), prepareResult.transactionMode(), () -> fragmentExecutor()
-                        .run(fragment.input(), argument));
+                fragment,
+                parameters,
+                prepareResult.graphWithNotification().graph(),
+                prepareResult.transactionMode(),
+                () -> fragmentExecutor().run(fragment.input(), argument),
+                notifications);
     }
 
     @Override

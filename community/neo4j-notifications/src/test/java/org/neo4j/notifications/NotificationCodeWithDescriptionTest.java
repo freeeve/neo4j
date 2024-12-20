@@ -46,6 +46,7 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.deprecated
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedKeywordVariableInWhenOperand;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedNodeOrRelationshipOnRhsSetClause;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedOptionInOptionMap;
+import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedParsedDatabaseName;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedPrecedenceOfLabelExpressionPredicate;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedProcedureReturnField;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedProcedureWithReplacement;
@@ -1227,6 +1228,27 @@ class NotificationCodeWithDescriptionTest {
     }
 
     @Test
+    void shouldConstructNotificationsFor_DEPRECATED_PARSED_DATABASE_NAME() {
+        NotificationImplementation notification = deprecatedParsedDatabaseName(InputPosition.empty, "db.one");
+
+        String message =
+                "The graph name `db.one` will no longer resolve to the same graph in future versions. Databases and aliases with unescaped dot (.) are deprecated unless to indicate that they belong to a composite database. Graph name parts that contain unsupported characters for unescaped identifiers require backtick escaping. Graph name parts with special characters may require additional escaping of those characters, for example, composite.`a.b`, composite.`1` or composite.`a``b`.";
+        verifyNotification(
+                notification,
+                "This feature is deprecated and will be removed in future versions.",
+                SeverityLevel.WARNING,
+                "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
+                message,
+                NotificationCategory.DEPRECATION,
+                NotificationClassification.DEPRECATION,
+                "01N00",
+                new DiagnosticRecord(
+                                warning, NotificationClassification.DEPRECATION, -1, -1, -1, Map.of("item", message))
+                        .asMap(),
+                String.format("warn: feature deprecated. %s", message));
+    }
+
+    @Test
     void shouldConstructNotificationsFor_UNSATISFIABLE_RELATIONSHIP_TYPE_EXPRESSION() {
         NotificationImplementation notification = unsatisfiableRelationshipTypeExpression(
                 InputPosition.empty, unsatisfiableRelTypeExpression("!%"), "!%");
@@ -2113,8 +2135,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            -109, -13, -44, -122, 6, -94, 79, -2, -27, -9, 34, 19, -97, 87, -111, -4, 2, -115, 106, -39, 123, 86, -95,
-            93, 81, -21, 115, -38, -36, 8, -42, -16
+            -102, 86, 9, 24, -78, 39, -35, 70, -106, -51, 63, -10, 67, -108, -71, 17, -82, 6, -28, 93, -115, 49, 46, 37,
+            -30, 75, -65, -6, 121, 27, -105, 56
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {

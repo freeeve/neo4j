@@ -22,11 +22,11 @@ import org.neo4j.cypher.internal.ast.GraphReference
 import org.neo4j.cypher.internal.ast._
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
-import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
 import org.neo4j.cypher.internal.expressions
+import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.util.symbols
 
-class MultipleGraphClausesParsingTest extends AstParsingTestBase with LegacyAstParsingTestSupport {
+class MultipleGraphClausesParsingTest extends AstParsingTestBase {
 
   val keywords: Seq[(String, GraphReference => ast.UseGraph)] = Seq(
     "USE" -> use,
@@ -47,35 +47,55 @@ class MultipleGraphClausesParsingTest extends AstParsingTestBase with LegacyAstP
         GraphDirectReference(CatalogName(List.apply("foo", "bar"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
       ),
     "foo()" ->
-      (_ => GraphFunctionReference(function(true, "foo")())(pos)),
+      (cypherVersion =>
+        GraphFunctionReference(function(true, "foo")(), cypherVersion.equals(CypherVersion.Cypher25))(pos)
+      ),
     "foo   (    )" ->
-      (_ => GraphFunctionReference(function(true, "foo")())(pos)),
+      (cypherVersion =>
+        GraphFunctionReference(function(true, "foo")(), cypherVersion.equals(CypherVersion.Cypher25))(pos)
+      ),
     "graph.foo" ->
       (cypherVersion =>
         GraphDirectReference(CatalogName(List("graph", "foo"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
       ),
     "graph.foo()" ->
-      (_ => GraphFunctionReference(function(true, "graph", "foo")())(pos)),
+      (cypherVersion =>
+        GraphFunctionReference(function(true, "graph", "foo")(), cypherVersion.equals(CypherVersion.Cypher25))(pos)
+      ),
     "foo.bar(baz(grok))" ->
-      (_ => GraphFunctionReference(function(true, "foo", "bar")(function(false, "baz")(varFor("grok"))))(pos)),
+      (cypherVersion =>
+        GraphFunctionReference(
+          function(true, "foo", "bar")(function(false, "baz")(varFor("grok"))),
+          cypherVersion.equals(CypherVersion.Cypher25)
+        )(pos)
+      ),
     "foo. bar   (baz  (grok   )  )" ->
-      (_ => GraphFunctionReference(function(true, "foo", "bar")(function(false, "baz")(varFor("grok"))))(pos)),
+      (cypherVersion =>
+        GraphFunctionReference(
+          function(true, "foo", "bar")(function(false, "baz")(varFor("grok"))),
+          cypherVersion.equals(CypherVersion.Cypher25)
+        )(pos)
+      ),
     "foo.bar(baz(grok), another.name)" ->
-      (_ =>
-        GraphFunctionReference(function(true, "foo", "bar")(
-          function(false, "baz")(varFor("grok")),
-          prop(varFor("another"), "name")
-        ))(
+      (cypherVersion =>
+        GraphFunctionReference(
+          function(true, "foo", "bar")(
+            function(false, "baz")(varFor("grok")),
+            prop(varFor("another"), "name")
+          ),
+          cypherVersion.equals(CypherVersion.Cypher25)
+        )(
           pos
         )
       ),
     "foo.bar(1, $par)" ->
-      (_ =>
+      (cypherVersion =>
         GraphFunctionReference(
           function(true, "foo", "bar")(
             literalInt(1),
             parameter("par", symbols.CTAny)
-          )
+          ),
+          cypherVersion.equals(CypherVersion.Cypher25)
         )(pos)
       ),
     "`graph`" ->
@@ -106,7 +126,9 @@ class MultipleGraphClausesParsingTest extends AstParsingTestBase with LegacyAstP
 
   val fullGraphSelections: Seq[(String, CypherVersion => GraphSelection)] =
     Seq(
-      "USE GRAPH graph()" -> (_ => use(function(true, "graph")())),
+      "USE GRAPH graph()" -> (cypherVersion =>
+        use(function(true, "graph")(), cypherVersion.equals(CypherVersion.Cypher25))
+      ),
       // Interpreted as GRAPH keyword, followed by parenthesized expression
       "USE graph(x)" -> (cypherVersion => use(List.apply("x"), cypherVersion.equals(CypherVersion.Cypher25)))
     )
@@ -127,7 +149,10 @@ class MultipleGraphClausesParsingTest extends AstParsingTestBase with LegacyAstP
     }
   }
 
-  private def function(calledFromUseClause: Boolean, nameParts: String*)(args: expressions.Expression*) =
+  private def function(
+    calledFromUseClause: Boolean,
+    nameParts: String*
+  )(args: expressions.Expression*): FunctionInvocation =
     expressions.FunctionInvocation(
       expressions.FunctionName(expressions.Namespace(nameParts.init.toList)(pos), nameParts.last)(pos),
       distinct = false,

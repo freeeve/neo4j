@@ -539,7 +539,7 @@ final case class UseGraph(graphReference: GraphReference)(val position: InputPos
       case GraphDirectReference(catalogName) =>
         sessionDatabaseReference != null &&
         new NormalizedDatabaseName(catalogName.qualifiedNameString).equals(sessionDatabaseReference.fullName())
-      case GraphFunctionReference(_) => false
+      case GraphFunctionReference(_, _) => false
     }
   }
 
@@ -638,7 +638,7 @@ final case class GraphDirectReference(catalogName: CatalogName)(val position: In
   }
 }
 
-final case class GraphFunctionReference(functionInvocation: FunctionInvocation)(
+final case class GraphFunctionReference(functionInvocation: FunctionInvocation, parseStringGraphReferences: Boolean)(
   val position: InputPosition
 ) extends GraphReference with SemanticAnalysisTooling {
   override def print: String = ExpressionStringifier(_.asCanonicalStringVal).apply(functionInvocation)
@@ -667,7 +667,7 @@ final case class GraphFunctionReference(functionInvocation: FunctionInvocation)(
   override def isConstantForQuery: Boolean = functionInvocation.arguments.forall(_.isConstantForQuery)
 
   override def semanticallyEqual(other: Any): Boolean = other match {
-    case GraphFunctionReference(other) =>
+    case GraphFunctionReference(other, _) =>
       other.equals(functionInvocation) &&
       functionInvocation.arguments.forall(_.isConstantForQuery) &&
       other.arguments.forall(_.isConstantForQuery)

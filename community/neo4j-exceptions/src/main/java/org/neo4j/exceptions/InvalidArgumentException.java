@@ -872,4 +872,12 @@ public class InvalidArgumentException extends Neo4jException {
                 .build();
         return new InvalidArgumentException(gql, "Cannot impersonate with native authorization disabled.");
     }
+
+    public static InvalidArgumentException invalidGraphName(String graphName) {
+        var msg = String.format(
+                "Failed to parse `%s` as a graph name. Graph name parts that contain unsupported characters for unescaped identifiers require backtick escaping. Graph name parts with special characters may require additional escaping of those characters.\"",
+                graphName);
+        var gql = GqlHelper.get50N22(graphName);
+        return new InvalidArgumentException(gql, msg);
+    }
 }

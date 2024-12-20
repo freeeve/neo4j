@@ -181,7 +181,8 @@ trait StatementBuilder extends Cypher25ParserListener {
   final override def exitGraphReference(ctx: Cypher25Parser.GraphReferenceContext): Unit = {
     ctx.ast =
       if (ctx.graphReference() != null) ctx.graphReference().ast
-      else if (ctx.functionInvocation() != null) GraphFunctionReference(ctx.functionInvocation().ast())(pos(ctx))
+      else if (ctx.functionInvocation() != null)
+        GraphFunctionReference(ctx.functionInvocation().ast(), parseStringGraphReferences = true)(pos(ctx))
       else GraphDirectReference(CatalogName(true, ctx.symbolicAliasName().ast[ArraySeq[String]](): _*))(pos(ctx))
   }
 

@@ -49,6 +49,7 @@ import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.graphdb.QueryExecutionType;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.query.QueryRoutingMonitor;
+import org.neo4j.notifications.NotificationImplementation;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.IntegralValue;
@@ -186,13 +187,18 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
         PrepareResult prepareResult = prepare(innerFragment, argument);
 
         if (batchGraph == null) {
-            batchGraph = prepareResult.graph();
+            batchGraph = prepareResult.graphWithNotification().graph();
             batchTransactionMode = prepareResult.transactionMode();
         }
 
-        if (!batchGraph.equals(prepareResult.graph())) {
-            FragmentResult result = processBufferedInputRows();
-            batchGraph = prepareResult.graph();
+        List<NotificationImplementation> notifications = new ArrayList<>();
+        if (prepareResult.graphWithNotification().notification().isDefined()) {
+            notifications.add(
+                    prepareResult.graphWithNotification().notification().get());
+        }
+        if (!batchGraph.equals(prepareResult.graphWithNotification().graph())) {
+            FragmentResult result = processBufferedInputRows(notifications);
+            batchGraph = prepareResult.graphWithNotification().graph();
             batchTransactionMode = prepareResult.transactionMode();
             inputRowsBuffer.add(new BufferedInputRow(prepareResult.argumentValues(), argument));
             return result;
@@ -200,7 +206,7 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
 
         inputRowsBuffer.add(new BufferedInputRow(prepareResult.argumentValues(), argument));
         if (inputRowsBuffer.size() == batchSize) {
-            return processBufferedInputRows();
+            return processBufferedInputRows(notifications);
         }
 
         return StatementResults.emptyFragment();
@@ -227,7 +233,7 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
         return StatementResults.oneRecord(columns, record, resultExecutionType);
     }
 
-    private FragmentResult processBufferedInputRows() {
+    private FragmentResult processBufferedInputRows(List<NotificationImplementation> notifications) {
         if (inputRowsBuffer.isEmpty()) {
             return StatementResults.emptyFragment();
         }
@@ -241,7 +247,8 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
                 batchTransactionMode,
                 // Inner part of CALL IN TRANSACTIONS does not have a child plan node
                 // Unlike standard query execution with which most logic is shared
-                StatementResults::emptyFragment);
+                StatementResults::emptyFragment,
+                notifications);
         var inputRecords = new ArrayList<>(inputRowsBuffer);
         var adjustedResult = new DelegatingFragmentResult(result) {
 
@@ -404,7 +411,7 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
 
             Record inputRecord = input.next();
             if (inputRecord == null) {
-                currentBatch = processBufferedInputRows();
+                currentBatch = processBufferedInputRows(new ArrayList<>());
                 inputExhausted = true;
             } else {
                 currentBatch = processInputRecord(inputRecord);

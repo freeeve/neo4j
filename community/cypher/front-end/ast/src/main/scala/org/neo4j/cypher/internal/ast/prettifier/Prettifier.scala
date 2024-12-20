@@ -952,7 +952,7 @@ case class Prettifier(
     def asString(u: UseGraph): String = {
       u.graphReference match {
         case GraphDirectReference(catalogName) => s"${INDENT}USE ${catalogName.asCanonicalNameString}"
-        case GraphFunctionReference(functionInvocation: FunctionInvocation) =>
+        case GraphFunctionReference(functionInvocation: FunctionInvocation, _) =>
           s"${INDENT}USE ${expr(functionInvocation)}"
       }
     }

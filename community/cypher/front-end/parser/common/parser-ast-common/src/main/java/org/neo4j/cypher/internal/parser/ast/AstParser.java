@@ -20,12 +20,15 @@ import org.neo4j.cypher.internal.ast.Statement;
 import org.neo4j.cypher.internal.ast.Statements;
 import org.neo4j.cypher.internal.expressions.Expression;
 import org.neo4j.cypher.internal.util.InputPosition;
+import scala.collection.immutable.ArraySeq;
 
 /** Parses neo4j AST. */
 public interface AstParser {
     Statements statements();
 
     Expression expression();
+
+    ArraySeq<String> symbolicAliasName();
 
     default Statement singleStatement() {
         final var statements = statements();

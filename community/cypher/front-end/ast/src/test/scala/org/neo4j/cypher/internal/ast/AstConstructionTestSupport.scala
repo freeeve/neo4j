@@ -1233,8 +1233,8 @@ trait AstConstructionTestSupport {
     UseGraph(GraphDirectReference(CatalogName(names, resolveStrictly))(pos))(pos)
   }
 
-  def use(function: FunctionInvocation): UseGraph = {
-    UseGraph(GraphFunctionReference(function)(pos))(pos)
+  def use(function: FunctionInvocation, parseStringGraphReferences: Boolean): UseGraph = {
+    UseGraph(GraphFunctionReference(function, parseStringGraphReferences)(pos))(pos)
   }
 
   def use(graphReference: GraphReference): UseGraph = {

@@ -4063,6 +4063,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.GENERAL_PROCESSING_EXCEPTION,
             "no such schema descriptor",
             ErrorClassification.DATABASE_ERROR),
+    STATUS_50N22(
+            new GqlStatus("50N22"),
+            """
+                    Failed to parse { %s } as a graph name. Graph name parts that contain unsupported characters for unescaped identifiers require backtick escaping. Graph name parts with special characters may require additional escaping of those characters.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            emptyMap(),
+            Condition.GENERAL_PROCESSING_EXCEPTION,
+            "invalid graph name",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_50N42(
             new GqlStatus("50N42"),
             """

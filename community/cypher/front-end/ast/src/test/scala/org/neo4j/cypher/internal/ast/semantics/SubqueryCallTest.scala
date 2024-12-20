@@ -670,7 +670,7 @@ class SubqueryCallTest extends CypherFunSuite with AstConstructionTestSupport {
     singleQuery(
       with_(literal(1).as("x"), literal(2).as("y")),
       importingWithSubqueryCall(
-        use(function("graph.byName", varFor("x"), varFor("y"))),
+        use(function("graph.byName", varFor("x"), varFor("y")), parseStringGraphReferences = false),
         with_(varFor("x").aliased),
         return_(literal(1).as("z"))
       ),
@@ -692,7 +692,7 @@ class SubqueryCallTest extends CypherFunSuite with AstConstructionTestSupport {
       with_(literal(1).as("x"), literal(2).as("y")),
       importingWithSubqueryCall(
         with_(varFor("x").aliased),
-        use(function("graph.byName", varFor("x"), varFor("y"))),
+        use(function("graph.byName", varFor("x"), varFor("y")), parseStringGraphReferences = false),
         return_(literal(3).as("z"))
       ),
       return_(varFor("x").aliased, varFor("y").aliased)

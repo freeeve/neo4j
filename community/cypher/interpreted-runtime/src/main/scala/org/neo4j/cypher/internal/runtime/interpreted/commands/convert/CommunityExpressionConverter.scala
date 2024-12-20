@@ -490,12 +490,13 @@ case class CommunityExpressionConverter(
         commands.expressions.ElementIdToRelationshipIdFunction(self.toCommandExpression(id, rhs))
       case ElementIdToLongId(RELATIONSHIP_TYPE, ElementIdToLongId.Mode.Many, rhs) =>
         commands.expressions.ElementIdListToRelationshipIdListFunction(self.toCommandExpression(id, rhs))
-      case _: IsRepeatTrailUnique                    => predicates.True()
-      case _: NullCheckAssert                        => commands.expressions.Literal(NO_VALUE)
-      case _: NonCompilable                          => commands.expressions.Literal(NO_VALUE)
-      case GraphDirectReference(catalogName)         => ConstantGraphReference(catalogName)
-      case GraphFunctionReference(GraphByName(name)) => NameExpressionGraphReference(self.toCommandExpression(id, name))
-      case GraphFunctionReference(GraphByElementId(elementId)) =>
+      case _: IsRepeatTrailUnique            => predicates.True()
+      case _: NullCheckAssert                => commands.expressions.Literal(NO_VALUE)
+      case _: NonCompilable                  => commands.expressions.Literal(NO_VALUE)
+      case GraphDirectReference(catalogName) => ConstantGraphReference(catalogName)
+      case GraphFunctionReference(GraphByName(name), parseStringGraphReferences) =>
+        NameExpressionGraphReference(self.toCommandExpression(id, name), parseStringGraphReferences)
+      case GraphFunctionReference(GraphByElementId(elementId), _) =>
         IdExpressionGraphReference(self.toCommandExpression(id, elementId))
       case TraversalEndpoint(v, _) => variable(v)
       case _                       => null

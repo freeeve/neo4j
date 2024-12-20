@@ -55,8 +55,11 @@ case class ConstantGraphReference(name: CatalogName) extends NameGraphReference 
   protected def name(row: ReadableRow, state: QueryState): String = name.qualifiedNameString
 }
 
-case class NameExpressionGraphReference(name: Expression) extends NameGraphReference {
-  override def rewrite(f: Expression => Expression): Expression = f(NameExpressionGraphReference(f(name)))
+case class NameExpressionGraphReference(name: Expression, parseStringGraphReferences: Boolean)
+    extends NameGraphReference {
+
+  override def rewrite(f: Expression => Expression): Expression =
+    f(NameExpressionGraphReference(f(name), parseStringGraphReferences))
 
   override def children: collection.Seq[AstNode[_]] = Seq(name)
 
@@ -68,7 +71,9 @@ case class NameExpressionGraphReference(name: Expression) extends NameGraphRefer
 }
 
 case class IdExpressionGraphReference(id: Expression) extends GraphReference {
-  override def rewrite(f: Expression => Expression): Expression = f(NameExpressionGraphReference(f(id)))
+
+  override def rewrite(f: Expression => Expression): Expression =
+    f(NameExpressionGraphReference(f(id), parseStringGraphReferences = false))
 
   override def children: collection.Seq[AstNode[_]] = Seq(id)
 

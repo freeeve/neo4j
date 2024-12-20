@@ -742,6 +742,13 @@ public class GqlHelper {
         return builder.build();
     }
 
+    public static ErrorGqlStatusObject get50N22(String database) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N22)
+                .withClassification(ErrorClassification.CLIENT_ERROR)
+                .withParam(GqlParams.StringParam.db, database)
+                .build();
+    }
+
     public static ErrorGqlStatusObject get51N00() {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N00)
                 .withClassification(ErrorClassification.CLIENT_ERROR)

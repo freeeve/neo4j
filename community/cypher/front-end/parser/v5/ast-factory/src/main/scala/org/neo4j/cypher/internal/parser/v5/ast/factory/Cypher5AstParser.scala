@@ -31,6 +31,8 @@ import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
 
+import scala.collection.immutable.ArraySeq
+
 final class Cypher5AstParser(
   query: String,
   override val exceptionFactory: CypherExceptionFactory,
@@ -39,6 +41,8 @@ final class Cypher5AstParser(
 
   override def statements(): Statements = parse(_.statements())
   override def expression(): Expression = parse(_.expression())
+
+  override def symbolicAliasName(): ArraySeq[String] = parse(_.symbolicAliasName())
 
   override def syntaxException(message: String, position: InputPosition): RuntimeException = {
     exceptionFactory.syntaxException(message, position)

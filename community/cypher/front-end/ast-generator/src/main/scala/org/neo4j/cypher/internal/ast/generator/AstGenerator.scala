@@ -1605,10 +1605,10 @@ class AstGenerator(
   def _use: Gen[UseGraph] = for {
     names <- listOfN(1, _identifier)
     function <- _functionInvocation
-    resolveStrictly <- oneOf(true, false)
+    cypherVersionFlag <- oneOf(true, false)
     graphRef <- oneOf(
-      GraphDirectReference(CatalogName(names, resolveStrictly))(pos),
-      GraphFunctionReference(function)(pos)
+      GraphDirectReference(CatalogName(names, cypherVersionFlag))(pos),
+      GraphFunctionReference(function, cypherVersionFlag)(pos)
     )
   } yield UseGraph(graphRef)(pos)
 

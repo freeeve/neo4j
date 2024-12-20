@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.runtime.CypherRow
+import org.neo4j.fabric.eval.Catalog.GraphWithNotification
 import org.neo4j.fabric.util.Errors
 import org.neo4j.fabric.util.Rewritten.RewritingOps
 import org.neo4j.kernel.database.DatabaseReference
@@ -66,12 +67,11 @@ object UseEvaluation {
       parameters: MapValue,
       context: java.util.Map[String, AnyValue],
       sessionDb: DatabaseReference
-    ): Catalog.Graph = Errors.errorContext(query, graphSelection) {
+    ): Catalog.GraphWithNotification = Errors.errorContext(query, graphSelection) {
 
       graphSelection.graphReference match {
         case ref: GraphDirectReference =>
-          catalog.resolveGraph(ref.catalogName)
-
+          GraphWithNotification(catalog.resolveGraph(ref.catalogName), None)
         case f: GraphFunctionReference =>
           val ctx = CypherRow(context.asScala)
           val argValues = f.functionInvocation.args
@@ -79,7 +79,12 @@ object UseEvaluation {
             .map(expr => evaluator.evaluate(expr, parameters, ctx))
           val functionName: List[String] =
             f.functionInvocation.functionName.namespace.parts :+ f.functionInvocation.functionName.name
-          catalog.resolveView(CatalogName(functionName, true), argValues, sessionDb: DatabaseReference)
+          catalog.resolveView(
+            CatalogName(functionName, true),
+            argValues,
+            sessionDb: DatabaseReference,
+            Some(f.parseStringGraphReferences)
+          )
       }
     }
 
