@@ -42,6 +42,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.DatabaseConfig;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
@@ -177,7 +178,11 @@ class PhysicalLogicalTransactionStoreTest {
         life.add(logFiles);
 
         life.add(createTransactionAppender(
-                transactionIdStore, logFiles, Config.defaults(), jobScheduler, new TransactionMetadataCache()));
+                transactionIdStore,
+                logFiles,
+                new DatabaseConfig(Config.defaults()),
+                jobScheduler,
+                new TransactionMetadataCache()));
 
         try {
             // WHEN
@@ -228,7 +233,7 @@ class PhysicalLogicalTransactionStoreTest {
                 logFiles, positionCache, TestCommandReaderFactory.INSTANCE, monitors, true, config);
 
         life.add(createTransactionAppender(
-                transactionIdStore, logFiles, Config.defaults(), jobScheduler, positionCache));
+                transactionIdStore, logFiles, new DatabaseConfig(Config.defaults()), jobScheduler, positionCache));
         CorruptedLogsTruncator logPruner =
                 new CorruptedLogsTruncator(databaseDirectory, logFiles, fileSystem, INSTANCE);
         life.add(new TransactionLogsRecovery(
@@ -365,7 +370,7 @@ class PhysicalLogicalTransactionStoreTest {
             JobScheduler jobScheduler)
             throws Exception {
         TransactionAppender appender = life.add(createTransactionAppender(
-                transactionIdStore, logFiles, Config.defaults(), jobScheduler, positionCache));
+                transactionIdStore, logFiles, new DatabaseConfig(Config.defaults()), jobScheduler, positionCache));
         CompleteCommandBatch transaction = new CompleteCommandBatch(
                 singleTestCommand(),
                 consensusIndex,
@@ -416,14 +421,14 @@ class PhysicalLogicalTransactionStoreTest {
     private static TransactionAppender createTransactionAppender(
             TransactionIdStore transactionIdStore,
             LogFiles logFiles,
-            Config config,
+            DatabaseConfig databaseConfig,
             JobScheduler jobScheduler,
             TransactionMetadataCache positionCache) {
         return TransactionAppenderFactory.createTransactionAppender(
                 logFiles,
                 transactionIdStore,
                 appendIndexProvider,
-                config,
+                databaseConfig,
                 DATABASE_PANIC,
                 jobScheduler,
                 NullLogProvider.getInstance(),

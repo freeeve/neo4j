@@ -20,9 +20,9 @@
 package org.neo4j.kernel.impl.transaction.log;
 
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.dedicated_transaction_appender;
+import static org.neo4j.configuration.GraphDatabaseSettings.db_format;
 
-import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.configuration.DatabaseConfig;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.monitoring.Panic;
@@ -35,13 +35,13 @@ public class TransactionAppenderFactory {
             LogFiles logFiles,
             TransactionIdStore transactionIdStore,
             AppendIndexProvider appendIndexProvider,
-            Config config,
+            DatabaseConfig databaseConfig,
             Panic databasePanic,
             JobScheduler scheduler,
             InternalLogProvider logProvider,
             TransactionMetadataCache metadataCache) {
-        if (config.get(dedicated_transaction_appender)
-                || "multiversion".equals(config.get(GraphDatabaseSettings.db_format))) {
+        if (databaseConfig.get(dedicated_transaction_appender)
+                || "multiversion".equals(databaseConfig.get(db_format))) {
             var queue = new TransactionLogQueue(
                     logFiles,
                     transactionIdStore,

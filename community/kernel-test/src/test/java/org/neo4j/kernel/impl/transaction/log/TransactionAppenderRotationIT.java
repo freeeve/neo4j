@@ -35,6 +35,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.DatabaseConfig;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -132,7 +133,7 @@ class TransactionAppenderRotationIT {
                 logFiles,
                 transactionIdStore,
                 appendIndexProvider,
-                Config.defaults(),
+                new DatabaseConfig(Config.defaults()),
                 databasePanic,
                 scheduler,
                 NullLogProvider.getInstance(),

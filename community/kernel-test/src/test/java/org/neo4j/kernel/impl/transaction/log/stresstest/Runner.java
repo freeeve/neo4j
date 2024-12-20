@@ -25,11 +25,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.BooleanSupplier;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.DatabaseConfig;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -77,10 +77,13 @@ public class Runner implements Callable<Long> {
             LogFiles logFiles = life.add(createLogFiles(transactionIdStore, fileSystem));
 
             TransactionAppender transactionAppender = life.add(createBatchingTransactionAppender(
-                    logFiles, transactionIdStore, new SimpleAppendIndexProvider(), Config.defaults(), jobScheduler));
+                    logFiles,
+                    transactionIdStore,
+                    new SimpleAppendIndexProvider(),
+                    new DatabaseConfig(Config.defaults()),
+                    jobScheduler));
 
-            ExecutorService executorService = Executors.newFixedThreadPool(threads);
-            try {
+            try (var executorService = Executors.newFixedThreadPool(threads)) {
                 List<Future<?>> handlers = new ArrayList<>(threads);
                 for (int i = 0; i < threads; i++) {
                     TransactionRepresentationFactory factory = new TransactionRepresentationFactory();
@@ -90,8 +93,6 @@ public class Runner implements Callable<Long> {
 
                 // wait for all the workers to complete
                 Futures.getAll(handlers);
-            } finally {
-                executorService.shutdown();
             }
 
             lastCommittedTransactionId = transactionIdStore.getLastCommittedTransactionId();
@@ -104,7 +105,7 @@ public class Runner implements Callable<Long> {
             LogFiles logFiles,
             TransactionIdStore transactionIdStore,
             AppendIndexProvider appendIndexProvider,
-            Config config,
+            DatabaseConfig databaseConfig,
             JobScheduler jobScheduler) {
         InternalLog log = NullLog.getInstance();
         DatabaseHealth databaseHealth = new DatabaseHealth(HealthEventGenerator.NO_OP, log);
@@ -112,7 +113,7 @@ public class Runner implements Callable<Long> {
                 logFiles,
                 transactionIdStore,
                 appendIndexProvider,
-                config,
+                databaseConfig,
                 databaseHealth,
                 jobScheduler,
                 NullLogProvider.getInstance(),

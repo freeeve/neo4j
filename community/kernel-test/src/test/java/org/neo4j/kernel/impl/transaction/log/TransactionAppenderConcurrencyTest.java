@@ -53,6 +53,7 @@ import org.neo4j.adversaries.ClassGuardedAdversary;
 import org.neo4j.adversaries.CountingAdversary;
 import org.neo4j.adversaries.fs.AdversarialFileSystemAbstraction;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.DatabaseConfig;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.io.fs.DelegatingStoreChannel;
 import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
@@ -245,7 +246,7 @@ public class TransactionAppenderConcurrencyTest {
                 logFiles,
                 transactionIdStore,
                 appendIndexProvider,
-                Config.defaults(),
+                new DatabaseConfig(Config.defaults()),
                 databaseHealth,
                 scheduler,
                 NullLogProvider.getInstance(),

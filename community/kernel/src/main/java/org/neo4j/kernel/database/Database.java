@@ -890,7 +890,7 @@ public class Database extends AbstractDatabase {
 
     private DatabaseTransactionLogModule buildTransactionLogs(
             LogFiles logFiles,
-            Config config,
+            DatabaseConfig databaseConfig,
             InternalLogProvider logProvider,
             JobScheduler scheduler,
             CheckPointerImpl.ForceOperation forceOperation,
@@ -903,14 +903,14 @@ public class Database extends AbstractDatabase {
         databaseDependencies.satisfyDependencies(transactionMetadataCache);
 
         Lock pruneLock = new ReentrantLock();
-        final LogPruning logPruning =
-                new LogPruningImpl(fs, logFiles, logProvider, new LogPruneStrategyFactory(), clock, config, pruneLock);
+        final LogPruning logPruning = new LogPruningImpl(
+                fs, logFiles, logProvider, new LogPruneStrategyFactory(), clock, databaseConfig, pruneLock);
 
         var transactionAppender = createTransactionAppender(
                 logFiles,
                 metadataProvider,
                 metadataProvider,
-                config,
+                databaseConfig,
                 databaseHealth,
                 scheduler,
                 logProvider,
@@ -918,9 +918,10 @@ public class Database extends AbstractDatabase {
         life.add(transactionAppender);
 
         final LogicalTransactionStore logicalTransactionStore = new PhysicalLogicalTransactionStore(
-                logFiles, transactionMetadataCache, commandReaderFactory, monitors, true, config);
+                logFiles, transactionMetadataCache, commandReaderFactory, monitors, true, databaseConfig);
 
-        CheckPointThreshold threshold = CheckPointThreshold.createThreshold(config, clock, logPruning, logProvider);
+        CheckPointThreshold threshold =
+                CheckPointThreshold.createThreshold(databaseConfig, clock, logPruning, logProvider);
 
         var checkpointAppender = logFiles.getCheckpointFile().getCheckpointAppender();
         final CheckPointerImpl checkPointer = new CheckPointerImpl(

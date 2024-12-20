@@ -25,6 +25,7 @@ import static java.util.concurrent.locks.LockSupport.parkNanos;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
@@ -53,6 +54,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.DatabaseConfig;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.io.ByteUnit;
@@ -338,13 +340,13 @@ class TransactionLogAppendAndRotateIT {
         LogVersionRepository logVersionRepository = new SimpleLogVersionRepository();
         Monitors monitors = new Monitors();
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        Config config = Config.defaults(Map.of(
+        var databaseConfig = new DatabaseConfig(Config.defaults(Map.of(
                 GraphDatabaseInternalSettings.dedicated_transaction_appender,
                 useQueueAppender,
                 GraphDatabaseInternalSettings.latest_kernel_version,
                 GLORIOUS_FUTURE.version(),
                 GraphDatabaseInternalSettings.latest_runtime_version,
-                DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion()));
+                DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion())));
         SimpleAppendIndexProvider appendIndexProvider = new SimpleAppendIndexProvider();
         LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fileSystem, versionProvider)
                 .withLogVersionRepository(logVersionRepository)
@@ -354,7 +356,7 @@ class TransactionLogAppendAndRotateIT {
                 .withAppendIndexProvider(appendIndexProvider)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(storeId)
-                .withConfig(config)
+                .withConfig(databaseConfig)
                 .build();
         life.add(logFiles);
         final AtomicBoolean end = new AtomicBoolean();
@@ -365,7 +367,7 @@ class TransactionLogAppendAndRotateIT {
         Panic panic = new DatabaseHealth(mock(DatabaseHealthEventGenerator.class), NullLog.getInstance());
         TransactionMetadataCache metadataCache = new TransactionMetadataCache();
         final TransactionAppender appender = life.add(createBatchAppender(
-                logFiles, txIdStore, panic, jobScheduler, config, metadataCache, appendIndexProvider));
+                logFiles, txIdStore, panic, jobScheduler, databaseConfig, metadataCache, appendIndexProvider));
         return new Setup(end, monitoring, appender, logFiles, metadataCache, appendIndexProvider);
     }
 
@@ -382,14 +384,14 @@ class TransactionLogAppendAndRotateIT {
             TransactionIdStore txIdStore,
             Panic panic,
             JobScheduler jobScheduler,
-            Config config,
+            DatabaseConfig databaseConfig,
             TransactionMetadataCache metadataCache,
             SimpleAppendIndexProvider appendIndexProvider) {
         return createTransactionAppender(
                 logFiles,
                 txIdStore,
                 appendIndexProvider,
-                config,
+                databaseConfig,
                 panic,
                 jobScheduler,
                 NullLogProvider.getInstance(),
@@ -447,7 +449,7 @@ class TransactionLogAppendAndRotateIT {
             while ((entry = entryReader.readLogEntry(reader)) != null) {
                 if (!inTx) // Expects start entry
                 {
-                    assertTrue(entry instanceof LogEntryStart);
+                    assertInstanceOf(LogEntryStart.class, entry);
                     extraCheck.accept(((LogEntryStart) entry).kernelVersion());
                     inTx = true;
                 } else // Expects command/commit entry
