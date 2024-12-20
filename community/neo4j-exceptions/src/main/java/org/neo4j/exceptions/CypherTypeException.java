@@ -444,6 +444,16 @@ public class CypherTypeException extends Neo4jException {
                 String.format("%s can only handle numerical values or null, but received: %s", function, actualType));
     }
 
+    public static CypherTypeException onlyNumericalValuesOrNullAllowed(
+            String function, String value, String actualType, String actualTypeInLegacyMessage) {
+        var gql = GqlHelper.getGql22N38_22N01(function, value, List.of("INTEGER", "FLOAT", "NULL"), actualType);
+        return new CypherTypeException(
+                gql,
+                String.format(
+                        "%s can only handle numerical values or null, but received: %s",
+                        function, actualTypeInLegacyMessage));
+    }
+
     public static CypherTypeException onlyNumericalValuesDurationsOrNullAllowed(
             String function, String value, String actualType) {
         var gql = GqlHelper.getGql22N38_22N01(
