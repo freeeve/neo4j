@@ -47,6 +47,7 @@ import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
 import org.neo4j.kernel.api.KernelTransaction;
+import org.neo4j.kernel.api.exceptions.schema.RepeatedPropertyInSchemaException;
 import org.neo4j.kernel.api.exceptions.schema.RepeatedRelationshipTypeInSchemaException;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.values.storable.Values;
@@ -163,6 +164,35 @@ public class RelationshipConstraintTest extends ConstraintTestBase<WriteTestSupp
             assertThat(e.statusDescription())
                     .isEqualTo(
                             "error: data exception - constraint contains duplicated tokens. The constraint specified by '()-[:RELATIONSHIP0:RELATIONSHIP1:RELATIONSHIP2:RELATIONSHIP1:RELATIONSHIP3 {property}]-()' includes a label, relationship type, or property key with name 'RELATIONSHIP1' more than once.");
+        }
+    }
+
+    @Test
+    void shouldFailCreateConstraintWithDuplicateProperties() throws KernelException {
+        // given
+        int relTypeId, propId0, propId1, propId2, propId3;
+        try (KernelTransaction tx = beginTransaction()) {
+            relTypeId = tx.tokenWrite().relationshipTypeGetOrCreateForName("RELATIONSHIP");
+            propId0 = tx.tokenWrite().propertyKeyGetOrCreateForName("property0");
+            propId1 = tx.tokenWrite().propertyKeyGetOrCreateForName("property1");
+            propId2 = tx.tokenWrite().propertyKeyGetOrCreateForName("property2");
+            propId3 = tx.tokenWrite().propertyKeyGetOrCreateForName("property3");
+            tx.commit();
+        }
+
+        // when
+        final FulltextSchemaDescriptor descriptor =
+                SchemaDescriptors.fulltext(org.neo4j.common.EntityType.RELATIONSHIP, new int[] {relTypeId}, new int[] {
+                    propId0, propId1, propId2, propId1, propId3
+                });
+        // then
+        try (KernelTransaction tx = beginTransaction()) {
+            var e = assertThrows(RepeatedPropertyInSchemaException.class, () -> tx.schemaWrite()
+                    .uniquePropertyConstraintCreate(IndexPrototype.forSchema(descriptor)));
+            assertThat(e.gqlStatus()).isEqualTo("22N75");
+            assertThat(e.statusDescription())
+                    .isEqualTo(
+                            "error: data exception - constraint contains duplicated tokens. The constraint specified by '()-[:RELATIONSHIP {property0, property1, property2, property1, property3}]-()' includes a label, relationship type, or property key with name 'property1' more than once.");
         }
     }
 }

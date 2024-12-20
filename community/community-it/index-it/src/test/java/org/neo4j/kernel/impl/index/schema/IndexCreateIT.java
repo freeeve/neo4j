@@ -140,18 +140,27 @@ public class IndexCreateIT extends KernelIntegrationTest {
         // given
         TokenWrite tokenWrite = tokenWriteInNewTransaction();
         int labelId = tokenWrite.labelGetOrCreateForName("Label");
-        int propId = tokenWrite.propertyKeyGetOrCreateForName("property");
+        int propId0 = tokenWrite.propertyKeyGetOrCreateForName("property0");
+        int propId1 = tokenWrite.propertyKeyGetOrCreateForName("property1");
+        int propId2 = tokenWrite.propertyKeyGetOrCreateForName("property2");
+        int propId3 = tokenWrite.propertyKeyGetOrCreateForName("property3");
         commit();
 
         SchemaWrite schemaWrite = schemaWriteInNewTransaction();
 
         // when
-        final FulltextSchemaDescriptor descriptor = SchemaDescriptors.fulltext(
-                org.neo4j.common.EntityType.NODE, new int[] {labelId}, new int[] {propId, propId});
+        final FulltextSchemaDescriptor descriptor =
+                SchemaDescriptors.fulltext(org.neo4j.common.EntityType.NODE, new int[] {labelId}, new int[] {
+                    propId0, propId1, propId2, propId1, propId3
+                });
         // then
-        assertThrows(
+        var e = assertThrows(
                 RepeatedPropertyInSchemaException.class,
                 () -> schemaWrite.indexCreate(IndexPrototype.forSchema(descriptor)));
+        assertThat(e.gqlStatus()).isEqualTo("22N76");
+        assertThat(e.statusDescription())
+                .isEqualTo(
+                        "error: data exception - index contains duplicated tokens. The index specified by '(:Label {property0, property1, property2, property1, property3})' includes a label, relationship type, or property key with name 'property1' more than once.");
     }
 
     protected void shouldFailWithNonExistentProviderName(IndexCreator creator, EntityType entityType)

@@ -2706,15 +2706,18 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     private void assertValidDescriptor(SchemaDescriptor descriptor, SchemaKernelException.OperationContext context)
             throws RepeatedSchemaComponentException {
-        long numUniqueProp =
-                Arrays.stream(descriptor.getPropertyIds()).distinct().count();
-
-        if (numUniqueProp != descriptor.getPropertyIds().length) {
-            throw new RepeatedPropertyInSchemaException(descriptor, context, token);
+        var maybeDuplicateProperty = firstDuplicateEntry(descriptor.getPropertyIds());
+        if (maybeDuplicateProperty.isPresent()) {
+            var duplicateProperty = token.propertyKeyGetName(maybeDuplicateProperty.getAsInt());
+            switch (context) {
+                case CONSTRAINT_CREATION -> throw RepeatedPropertyInSchemaException.repeatedPropertyInConstraint(
+                        descriptor, token, duplicateProperty);
+                case INDEX_CREATION -> throw RepeatedPropertyInSchemaException.repeatedPropertyInIndex(
+                        descriptor, token, duplicateProperty);
+            }
         }
 
         var maybeDuplicateLabelOrRelType = firstDuplicateEntry(descriptor.getEntityTokenIds());
-
         if (maybeDuplicateLabelOrRelType.isPresent()) {
             var duplicateLabelOrRelType =
                     switch (descriptor.entityType()) {
