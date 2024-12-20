@@ -22,7 +22,6 @@ package org.neo4j.graphdb.factory.module.id;
 import static org.neo4j.configuration.GraphDatabaseSettings.db_format;
 
 import java.util.function.Function;
-import org.neo4j.configuration.Config;
 import org.neo4j.configuration.DatabaseConfig;
 import org.neo4j.internal.id.AbstractBufferingIdGeneratorFactory;
 import org.neo4j.internal.id.BufferedIdController;
@@ -78,7 +77,8 @@ public class DefaultIdContextFactory implements IdContextFactory {
             NamedDatabaseId namedDatabaseId,
             DatabaseConfig databaseConfig,
             boolean allocationInitiallyEnabled) {
-        var idGeneratorFactory = idGeneratorFactoryProvider.apply(namedDatabaseId, allocationInitiallyEnabled);
+        var idGeneratorFactory =
+                idGeneratorFactoryProvider.apply(databaseConfig, namedDatabaseId, allocationInitiallyEnabled);
         var bufferingIdGeneratorFactory = wrapWithBufferingFactory(idGeneratorFactory, databaseConfig);
         var bufferingController = createBufferedIdController(
                 bufferingIdGeneratorFactory,
@@ -105,7 +105,7 @@ public class DefaultIdContextFactory implements IdContextFactory {
                 idGeneratorFactory, scheduler, contextFactory, databaseConfig, databaseName, logService);
     }
 
-    protected static boolean isMultiVersion(Config databaseConfig) {
+    protected static boolean isMultiVersion(DatabaseConfig databaseConfig) {
         return "multiversion".equals(databaseConfig.get(db_format));
     }
 }

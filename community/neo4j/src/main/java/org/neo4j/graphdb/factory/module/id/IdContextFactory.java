@@ -32,6 +32,7 @@ public interface IdContextFactory {
             boolean allocationInitiallyEnabled);
 
     interface IdGeneratorFactoryCreator {
-        IdGeneratorFactory apply(NamedDatabaseId namedDatabaseId, boolean allocationInitiallyEnabled);
+        IdGeneratorFactory apply(
+                DatabaseConfig databaseConfig, NamedDatabaseId namedDatabaseId, boolean allocationInitiallyEnabled);
     }
 }

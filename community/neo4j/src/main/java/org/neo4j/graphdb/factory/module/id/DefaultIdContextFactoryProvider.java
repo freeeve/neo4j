@@ -29,7 +29,6 @@ public class DefaultIdContextFactoryProvider implements IdContextFactoryProvider
         return IdContextFactoryBuilder.of(
                         globalModule.getFileSystem(),
                         globalModule.getJobScheduler(),
-                        globalModule.getGlobalConfig(),
                         globalModule.getTracers().getPageCacheTracer())
                 .withLogService(globalModule.getLogService())
                 .build();
