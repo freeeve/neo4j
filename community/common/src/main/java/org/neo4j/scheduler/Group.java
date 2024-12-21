@@ -132,7 +132,7 @@ public enum Group {
     THROUGHPUT_MONITOR("ThroughputMonitor"),
     PANIC_SERVICE("PanicService"),
     CLUSTER_STATUS_CHECK_SERVICE("ClusterStatusService"),
-    TOPOLOGY_LOGGER("TopologyLogger"),
+    TOPOLOGY_NOTIFIER("TopologyNotifier"),
     TOPOLOGY_MAINTENANCE("TopologyMaintenance"),
     TOPOLOGY_GRAPH_DBMS_MODEL("TopologyGraphDbmsModel", ExecutorServiceFactory.singleThread()),
     CONNECTIVITY_CHECKS("ConnectivityChecks"),
