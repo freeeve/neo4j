@@ -43,6 +43,7 @@ public class TransactionVersionContext implements VersionContext {
     private long headChain;
     private boolean dirty;
     private boolean nonVisibleHead;
+    private int currentStamp = 0;
 
     public TransactionVersionContext(
             TransactionIdSnapshotFactory transactionIdSnapshotFactory, OldestTransactionIdFactory oldestIdFactory) {
@@ -101,6 +102,7 @@ public class TransactionVersionContext implements VersionContext {
     @Override
     public void refreshVisibilityBoundaries() {
         transactionIds = transactionIdSnapshotFactory.createSnapshot();
+        currentStamp++;
     }
 
     @Override
@@ -142,6 +144,16 @@ public class TransactionVersionContext implements VersionContext {
     @Override
     public boolean initializedForWrite() {
         return transactionId >= BASE_TX_ID;
+    }
+
+    @Override
+    public int stamp() {
+        return currentStamp;
+    }
+
+    @Override
+    public boolean validateStamp(int stamp) {
+        return currentStamp == stamp;
     }
 
     @Override

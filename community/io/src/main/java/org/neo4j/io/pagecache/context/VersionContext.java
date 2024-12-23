@@ -143,4 +143,18 @@ public interface VersionContext {
     long chainHeadVersion();
 
     boolean initializedForWrite();
+
+    /**
+     * @return a value to use in {@link #validateStamp(int)}
+     */
+    int stamp();
+
+    /**
+     * Method to validate if the context changed visibility since the previous usage.
+     * Consumers can remember stamp and later pass it to this method to check if visibility still the same.
+     *
+     * @param stamp returned be {@link #stamp()}
+     * @return true is context haven't changed since provided stamp was taken
+     */
+    boolean validateStamp(int stamp);
 }

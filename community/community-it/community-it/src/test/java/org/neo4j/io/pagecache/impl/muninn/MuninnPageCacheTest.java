@@ -2672,6 +2672,16 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
         public boolean initializedForWrite() {
             return committingTxId > 0;
         }
+
+        @Override
+        public int stamp() {
+            return 0;
+        }
+
+        @Override
+        public boolean validateStamp(int stamp) {
+            return true;
+        }
     }
 
     private static class InfoTracer extends DefaultPageCacheTracer {

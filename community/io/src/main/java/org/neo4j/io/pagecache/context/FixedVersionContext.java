@@ -104,4 +104,14 @@ public class FixedVersionContext implements VersionContext {
     public boolean initializedForWrite() {
         return committingTransactionId != INVALID_TRANSACTION_ID;
     }
+
+    @Override
+    public int stamp() {
+        return 0;
+    }
+
+    @Override
+    public boolean validateStamp(int stamp) {
+        return true;
+    }
 }

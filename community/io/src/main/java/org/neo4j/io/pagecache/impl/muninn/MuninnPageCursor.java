@@ -106,6 +106,7 @@ public abstract class MuninnPageCursor extends PageCursor {
     private boolean outOfBounds;
     private boolean markOutOfBounds;
     protected boolean closed;
+    protected int versionStamp;
 
     protected MuninnPageCursor linkedCursor;
     protected MuninnPageCursor backLinkedCursor;
@@ -184,7 +185,7 @@ public abstract class MuninnPageCursor extends PageCursor {
 
     @Override
     public final boolean next(long pageId) throws IOException {
-        if (loadPlainCurrentPageId() == pageId) {
+        if (loadPlainCurrentPageId() == pageId && versionContext.validateStamp(versionStamp)) {
             verifyContext();
             return true;
         }

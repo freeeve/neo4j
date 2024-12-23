@@ -78,6 +78,7 @@ final class MuninnReadPageCursor extends MuninnPageCursor {
     protected void pinCursorToPage(PinEvent pinEvent, long pageRef, long filePageId, PageSwapper swapper) {
         init(pinEvent, pageRef);
         if (multiVersioned) {
+            versionStamp = versionContext.stamp();
             long pagePointer = pointer;
             version = getLongAt(pagePointer, littleEndian);
             versionContext.observedChainHead(version);

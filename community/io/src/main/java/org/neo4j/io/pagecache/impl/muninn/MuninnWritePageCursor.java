@@ -194,6 +194,7 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
         // be closed and the page lock will be released.
         assertCursorOpenFileMappedAndGetIdOfLastPage();
         if (multiVersioned) {
+            versionStamp = versionContext.stamp();
             long pagePointer = pointer;
             long headVersion = getLongAt(pagePointer, littleEndian);
             if (isOldHead(versionContext, headVersion)) {
