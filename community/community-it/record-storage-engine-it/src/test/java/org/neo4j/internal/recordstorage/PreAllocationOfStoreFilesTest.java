@@ -123,7 +123,6 @@ class PreAllocationOfStoreFilesTest {
                 EmptyMemoryTracker.INSTANCE,
                 new EmptyLogTailMetadata(Config.defaults()),
                 mock(KernelVersionRepository.class),
-                LockVerificationFactory.NONE,
                 CursorContextFactory.NULL_CONTEXT_FACTORY,
                 PageCacheTracer.NULL,
                 VersionStorage.EMPTY_STORAGE,

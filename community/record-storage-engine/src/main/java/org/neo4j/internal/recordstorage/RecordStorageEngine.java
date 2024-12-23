@@ -203,7 +203,6 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
             MemoryTracker otherMemoryTracker,
             LogTailMetadata logTailMetadata,
             KernelVersionRepository kernelVersionRepository,
-            LockVerificationFactory lockVerificationFactory,
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
             VersionStorage versionStorage,
@@ -221,7 +220,6 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
         this.contextFactory = contextFactory;
         this.otherMemoryTracker = otherMemoryTracker;
         this.kernelVersionRepository = kernelVersionRepository;
-        this.lockVerificationFactory = lockVerificationFactory;
         this.pagePrefetcher = pagePrefetcher;
         this.neoStores = new StoreFactory(
                         databaseLayout,
@@ -235,6 +233,8 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                         false,
                         logTailMetadata)
                 .openAllNeoStores();
+        this.multiVersion = neoStores.getOpenOptions().contains(PageCacheOpenOptions.MULTI_VERSIONED);
+        this.lockVerificationFactory = LockVerificationFactory.select(config, multiVersion);
         this.idGeneratorWorkSyncs = new IdGeneratorUpdatesWorkSync(false);
         Stream.of(RecordIdType.values()).forEach(idType -> idGeneratorWorkSyncs.add(idGeneratorFactory.get(idType)));
         Stream.of(SchemaIdType.values()).forEach(idType -> idGeneratorWorkSyncs.add(idGeneratorFactory.get(idType)));
@@ -243,7 +243,6 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                 neoStores.getNodeStore().getRecordsPerPage(),
                 neoStores.getRelationshipStore().getRecordsPerPage());
         this.costCharacteristics = new RecordStorageCostCharacteristics();
-        this.multiVersion = neoStores.getOpenOptions().contains(PageCacheOpenOptions.MULTI_VERSIONED);
         txStateBehaviour = new RecordTransactionStateBehaviour(useIndexCommands());
         try {
             schemaRuleAccess = SchemaRuleAccess.getSchemaRuleAccess(neoStores.getSchemaStore(), tokenHolders);

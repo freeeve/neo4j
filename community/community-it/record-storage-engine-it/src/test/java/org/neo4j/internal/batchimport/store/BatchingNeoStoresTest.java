@@ -59,7 +59,6 @@ import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.counts.CountsBuilder;
 import org.neo4j.internal.counts.GBPTreeCountsStore;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
-import org.neo4j.internal.recordstorage.LockVerificationFactory;
 import org.neo4j.internal.recordstorage.RecordStorageEngine;
 import org.neo4j.internal.recordstorage.RecordStorageReader;
 import org.neo4j.internal.schema.IndexConfigCompleter;
@@ -643,7 +642,6 @@ class BatchingNeoStoresTest {
                     INSTANCE,
                     emptyLogTail,
                     versionRepository,
-                    LockVerificationFactory.NONE,
                     CONTEXT_FACTORY,
                     PageCacheTracer.NULL,
                     VersionStorage.EMPTY_STORAGE,

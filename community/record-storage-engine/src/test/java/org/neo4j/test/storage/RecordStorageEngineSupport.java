@@ -30,7 +30,6 @@ import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
 import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.internal.kernel.api.exceptions.schema.CreateConstraintFailureException;
-import org.neo4j.internal.recordstorage.LockVerificationFactory;
 import org.neo4j.internal.recordstorage.RecordStorageEngine;
 import org.neo4j.internal.recordstorage.TransactionApplierFactoryChain;
 import org.neo4j.internal.schema.ConstraintDescriptor;
@@ -284,7 +283,6 @@ public class RecordStorageEngineSupport {
                     EmptyMemoryTracker.INSTANCE,
                     emptyLogTailMetadata,
                     new MetadataCache(emptyLogTailMetadata),
-                    LockVerificationFactory.NONE,
                     new CursorContextFactory(PageCacheTracer.NULL, EMPTY_CONTEXT_SUPPLIER),
                     PageCacheTracer.NULL,
                     VersionStorage.EMPTY_STORAGE,

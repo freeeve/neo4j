@@ -304,7 +304,7 @@ public class Database extends AbstractDatabase {
         this.extensionFactories = context.getExtensionFactories();
         this.watcherServiceFactory = context.getWatcherServiceFactory();
         this.engineProvider = context.getEngineProvider();
-        this.lockService = createLockService(databaseConfig);
+        this.lockService = createLockService(databaseConfig, getNamedDatabaseId());
         this.commitProcessFactory = context.getCommitProcessFactory();
         this.globalPageCache = context.getPageCache();
         this.storageEngineFactorySupplier = context.getStorageEngineFactorySupplier();
@@ -331,7 +331,7 @@ public class Database extends AbstractDatabase {
     protected void specificInit() throws IOException {
         this.storageEngineFactory = storageEngineFactorySupplier.create();
         var storageLockManager = storageEngineFactory.createLockManager(databaseConfig, this.clock);
-        this.databaseLockManager = isNotMultiVersioned(databaseConfig)
+        this.databaseLockManager = isNotMultiVersioned(databaseConfig, namedDatabaseId)
                 ? storageLockManager
                 : new MultiVersionLockManager(storageLockManager);
         this.databaseLayout = storageEngineFactory.formatSpecificDatabaseLayout(databaseLayout);
@@ -500,8 +500,8 @@ public class Database extends AbstractDatabase {
         var metadataProvider = databaseDependencies.satisfyDependency(storageEngine.metadataProvider());
 
         initialiseContextFactory(
-                getTransactionIdSnapshotFactory(databaseConfig, metadataProvider),
-                getOldestTransactionIdFactory(databaseConfig, () -> kernelModule));
+                getTransactionIdSnapshotFactory(databaseConfig, metadataProvider, getNamedDatabaseId()),
+                getOldestTransactionIdFactory(databaseConfig, () -> kernelModule, getNamedDatabaseId()));
         elementIdMapper = new DefaultElementIdMapperV1(namedDatabaseId);
 
         // Recreate the logFiles after storage engine to get access to dependencies
@@ -1308,26 +1308,30 @@ public class Database extends AbstractDatabase {
         }
     }
 
-    private static LockService createLockService(DatabaseConfig databaseConfig) {
-        return isNotMultiVersioned(databaseConfig) ? new ReentrantLockService() : LockService.NO_LOCK_SERVICE;
+    private static LockService createLockService(DatabaseConfig databaseConfig, NamedDatabaseId namedDatabaseId) {
+        return isNotMultiVersioned(databaseConfig, namedDatabaseId)
+                ? new ReentrantLockService()
+                : LockService.NO_LOCK_SERVICE;
     }
 
     private static TransactionIdSnapshotFactory getTransactionIdSnapshotFactory(
-            DatabaseConfig databaseConfig, MetadataProvider metadataProvider) {
-        return isNotMultiVersioned(databaseConfig)
+            DatabaseConfig databaseConfig, MetadataProvider metadataProvider, NamedDatabaseId namedDatabaseId) {
+        return isNotMultiVersioned(databaseConfig, namedDatabaseId)
                 ? (() -> new TransactionIdSnapshot(metadataProvider.getLastClosedTransactionId()))
                 : metadataProvider::getClosedTransactionSnapshot;
     }
 
     private static OldestTransactionIdFactory getOldestTransactionIdFactory(
-            DatabaseConfig databaseConfig, Supplier<DatabaseKernelModule> kernelModule) {
-        return isNotMultiVersioned(databaseConfig)
+            DatabaseConfig databaseConfig,
+            Supplier<DatabaseKernelModule> kernelModule,
+            NamedDatabaseId namedDatabaseId) {
+        return isNotMultiVersioned(databaseConfig, namedDatabaseId)
                 ? OldestTransactionIdFactory.EMPTY_OLDEST_ID_FACTORY
                 : (() -> kernelModule.get().transactionMonitor().oldestVisibleClosedTransactionId());
     }
 
-    private static boolean isNotMultiVersioned(DatabaseConfig databaseConfig) {
-        return !"multiversion".equals(databaseConfig.get(db_format));
+    private static boolean isNotMultiVersioned(DatabaseConfig databaseConfig, NamedDatabaseId namedDatabaseId) {
+        return namedDatabaseId.isSystemDatabase() || !"multiversion".equals(databaseConfig.get(db_format));
     }
 
     private class KernelTransactionVisibilityProvider implements TransactionVisibilityProvider {

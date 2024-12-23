@@ -92,7 +92,6 @@ public class RecordStorageEngineTestUtils {
                 EmptyMemoryTracker.INSTANCE,
                 emptyLogTailMetadata,
                 new MetadataCache(emptyLogTailMetadata),
-                LockVerificationFactory.NONE,
                 new CursorContextFactory(cacheTracer, EMPTY_CONTEXT_SUPPLIER),
                 cacheTracer,
                 VersionStorage.EMPTY_STORAGE,

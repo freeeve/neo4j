@@ -284,7 +284,6 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 memoryTracker,
                 logTailMetadata,
                 kernelVersionRepository,
-                LockVerificationFactory.select(config),
                 contextFactory,
                 pageCacheTracer,
                 versionStorage,
