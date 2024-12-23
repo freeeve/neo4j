@@ -62,6 +62,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.NFA.PathLength
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Mapping
+import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Solveds
 import org.neo4j.cypher.internal.util.Cardinality
@@ -234,6 +235,9 @@ object expandSolverStep {
    * @param patternRelationship the [[PatternRelationship]] to plan
    * @param sourcePlan          the plan to plan on top of
    * @param node              the node to start the expansion from.
+   * @param alwaysTrailSemantics if the expand-plan should always be planned using trail-semantics.
+   *                             This is the case for expand-plans in the fallback plan of a legacy shortest path functions,
+   *                             because shortestPath()/allShortestPath() does not allow mixing with explicit match modes
    */
   def produceExpandLogicalPlan(
     qg: QueryGraph,
@@ -242,7 +246,8 @@ object expandSolverStep {
     sourcePlan: LogicalPlan,
     node: LogicalVariable,
     availableSymbols: Set[LogicalVariable],
-    context: LogicalPlanningContext
+    context: LogicalPlanningContext,
+    alwaysTrailSemantics: Boolean = false
   ): LogicalPlanWithIntoVsAllHeuristic = {
     val otherSide = patternRelationship.otherSide(node)
     val overlapping = availableSymbols.contains(otherSide)
@@ -275,6 +280,12 @@ object expandSolverStep {
             varLength = varLength
           )
 
+        val isTrailSemantics = alwaysTrailSemantics || solvedPredicates.exists {
+          case _: Unique => true
+          case _         => false
+        }
+        val traversalMatchMode = if (isTrailSemantics) TraversalMatchMode.Trail else TraversalMatchMode.Walk
+
         val plan =
           context.staticComponents.logicalPlanProducer.planVarExpand(
             source = sourcePlan,
@@ -285,6 +296,7 @@ object expandSolverStep {
             relationshipPredicates = relationshipPredicates,
             solvedPredicates = solvedPredicates,
             mode = mode,
+            matchMode = traversalMatchMode,
             context = context
           )
 

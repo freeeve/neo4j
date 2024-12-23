@@ -247,7 +247,9 @@ case object planShortestRelationships {
         rhsArgument,
         from,
         rhsArgument.availableSymbols,
-        context
+        context,
+        alwaysTrailSemantics =
+          true // Mixing shortestPath()/allShortestPath() with explicit match modes is not allowed, therefore we can always plan Trail-semantics which is the default match mode.
       )
 
     // Expressions solved in var expand

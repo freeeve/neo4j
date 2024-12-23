@@ -27,14 +27,18 @@ import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
+import org.neo4j.cypher.internal.expressions.Unique
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.ir.PatternLength
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.PlannerQuery
+import org.neo4j.cypher.internal.ir.Predicate
 import org.neo4j.cypher.internal.ir.QueryGraph
+import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddUniquenessPredicates
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
@@ -62,12 +66,12 @@ case object EmptyRelationshipListEndpointProjection extends PlannerQueryRewriter
                 if relationshipQualifies(qg, nodes, length) &&
                   // Where the relationship is an argument
                   qg.argumentIds.contains(name) =>
-                copyRelWithPredicate(from, rel, name)
+                copyRelWithPredicates(from, rel, name, qg.selections)
 
               // Cases where a legacy var-length relationship has the same name as a relationship group variable
               case (rel @ PatternRelationship(name, _, _, _, _: VarPatternLength), _)
                 if relGroupNames.contains(rel.variable) =>
-                copyRelWithPredicate(from, rel, name)
+                copyRelWithPredicates(from, rel, name, qg.selections)
 
               // Cases where the relationship is repeated in the same query graph.
               case (rel @ PatternRelationship(name, nodes, _, _, length), i)
@@ -77,7 +81,7 @@ case object EmptyRelationshipListEndpointProjection extends PlannerQueryRewriter
                 rels.drop(i + 1).find(_.variable == name) match {
                   // And where no node is shared between the 2 occurences of the relationships.
                   case Some(sameRel) if !atLeastOneSharedNode(rel.boundaryNodes, sameRel.boundaryNodes) =>
-                    copyRelWithPredicate(from, rel, name)
+                    copyRelWithPredicates(from, rel, name, qg.selections)
                   case _ => (rel, None)
                 }
 
@@ -120,24 +124,42 @@ case object EmptyRelationshipListEndpointProjection extends PlannerQueryRewriter
   /**
    * Return a copy of the var-length relationship with a new name.
    * Also return an Equals predicate asserting that the original relationship and the copy are equal.
+   * If the original relationship had a Unique predicate (i.e. it has Trail semantics),
+   * then a Unique predicate is also added for the new relationship copy.
    */
-  private def copyRelWithPredicate(
+  private def copyRelWithPredicates(
     from: LogicalPlanState,
     rel: PatternRelationship,
-    variable: LogicalVariable
-  ): (PatternRelationship, Some[Expression]) = {
-    val relCopy = rel.copy(variable = varFor(from.anonymousVariableNameGenerator.nextName))
-    val predicate = Equals(
+    variable: LogicalVariable,
+    queryGraphSelections: Selections
+  ): (PatternRelationship, Seq[Expression]) = {
+    val newVariable = varFor(from.anonymousVariableNameGenerator.nextName)
+    val relCopy = rel.copy(variable = newVariable)
+    val equalsPredicate = Equals(
       variable,
       relCopy.variable
     )(InputPosition.NONE)
-    (relCopy, Some(predicate))
+
+    // Get the Unique predicate for 'variable' if it is present in the query
+    val maybeUniquePred = queryGraphSelections.predicates.collectFirst {
+      case Predicate(_, uniqueExpr @ Unique(v)) if v == variable => Unique(newVariable)(uniqueExpr.position)
+    }
+
+    // If a Unique predicate was available, return it together with the equality predicate.
+    // Otherwise, return only the equality predicate.
+    (
+      relCopy,
+      maybeUniquePred
+        .map(uniqueExpr => Seq(equalsPredicate, uniqueExpr))
+        .getOrElse(Seq(equalsPredicate))
+    )
   }
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
     // This works on the IR
     CompilationContains[PlannerQuery](),
-    VarLengthQuantifierMerger.completed
+    VarLengthQuantifierMerger.completed,
+    AddUniquenessPredicates.completed
   )
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set.empty

@@ -20,17 +20,28 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.FilterScope
 import org.neo4j.cypher.internal.expressions.In
+import org.neo4j.cypher.internal.expressions.MultiRelationshipPathStep
+import org.neo4j.cypher.internal.expressions.NilPathStep
+import org.neo4j.cypher.internal.expressions.NodePathStep
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
 import org.neo4j.cypher.internal.expressions.Not
+import org.neo4j.cypher.internal.expressions.PathExpression
+import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.matchers.Matcher
 
@@ -501,6 +512,322 @@ class VarLengthPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("r")
         .expand("(a)-[r*1..]->(b)")
+        .allNodeScan("a")
+        .build()
+    )
+  }
+
+  test("should plan var-length relationships obeying REPEATABLE ELEMENTS MATCH MODE") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[]->()", 10000)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    planner.plan(
+      """MATCH REPEATABLE ELEMENTS ()-[r*3..5]-()
+        |RETURN r""".stripMargin
+    ) should equal(
+      planner.planBuilder()
+        .produceResults("r")
+        .expand("(anon_0)-[r*3..5]-(anon_1)", matchMode = TraversalMatchMode.Walk)
+        .allNodeScan("anon_0")
+        .build()
+    )
+  }
+
+  test("should plan var-length relationships obeying DIFFERENT RELATIONSHIPS MATCH MODE") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[]->()", 10000)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    planner.plan(
+      """MATCH ()-[r*3..5]-()
+        |RETURN r""".stripMargin
+    ) should equal(
+      planner.planBuilder()
+        .produceResults("r")
+        .expand("(anon_0)-[r*3..5]-(anon_1)", matchMode = TraversalMatchMode.Trail)
+        .allNodeScan("anon_0")
+        .build()
+    )
+  }
+
+  test("should plan pruning var-length relationships obeying REPEATABLE ELEMENTS MATCH MODE") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[]->()", 10000)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    planner.plan(
+      """MATCH REPEATABLE ELEMENTS (s)-[r*3..5]-()
+        |RETURN DISTINCT s""".stripMargin
+    ) should equal(
+      planner.planBuilder()
+        .produceResults("s")
+        .distinct("s AS s")
+        .pruningVarExpand("(s)-[r*3..5]-(anon_0)", matchMode = TraversalMatchMode.Walk)
+        .allNodeScan("s")
+        .build()
+    )
+  }
+
+  test("should plan pruning var-length relationships obeying DIFFERENT RELATIONSHIPS MATCH MODE") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[]->()", 10000)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    planner.plan(
+      """MATCH (s)-[r*3..5]-()
+        |RETURN DISTINCT s""".stripMargin
+    ) should equal(
+      planner.planBuilder()
+        .produceResults("s")
+        .distinct("s AS s")
+        .pruningVarExpand("(s)-[r*3..5]-(anon_0)", matchMode = TraversalMatchMode.Trail)
+        .allNodeScan("s")
+        .build()
+    )
+  }
+
+  test("should plan BFS pruning var-length relationships obeying REPEATABLE ELEMENTS MATCH MODE") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[]->()", 10000)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    planner.plan(
+      """MATCH REPEATABLE ELEMENTS (s)-[r*1..5]-()
+        |RETURN DISTINCT s""".stripMargin
+    ) should equal(
+      planner.planBuilder()
+        .produceResults("s")
+        .distinct("s AS s")
+        .bfsPruningVarExpand("(s)-[r*1..5]-(anon_0)", matchMode = TraversalMatchMode.Walk)
+        .allNodeScan("s")
+        .build()
+    )
+  }
+
+  test("should plan BFS pruning var-length relationships obeying DIFFERENT RELATIONSHIPS MATCH MODE") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[]->()", 10000)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    planner.plan(
+      """MATCH (s)-[r*1..5]-()
+        |RETURN DISTINCT s""".stripMargin
+    ) should equal(
+      planner.planBuilder()
+        .produceResults("s")
+        .distinct("s AS s")
+        .bfsPruningVarExpand("(s)-[r*1..5]-(anon_0)", matchMode = TraversalMatchMode.Trail)
+        .allNodeScan("s")
+        .build()
+    )
+  }
+
+  test("should plan varExpand with relationship equality using Trail semantics") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 10)
+      .setLabelCardinality("B", 5)
+      .setLabelCardinality("C", 12)
+      .setRelationshipCardinality("()-[]->()", 10000)
+      .setRelationshipCardinality("()-[:R]->()", 1000)
+      .setRelationshipCardinality("(:A)-[:R]->()", 100)
+      .setRelationshipCardinality("()-[:R]->(:B)", 100)
+      .setRelationshipCardinality("()-[:R]->(:C)", 102)
+      .setRelationshipCardinality("(:C)-[:R]->()", 102)
+      .setRelationshipCardinality("(:A)-[:R]->(:B)", 3)
+      .setRelationshipCardinality("(:A)-[:R]->(:C)", 10)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    planner.plan(
+      """MATCH (a:A)-[r:R]->{1,5}(b:B) MATCH (a:A)-[r:R*1..5]->(c:C)
+        |RETURN r""".stripMargin
+    ) should equal(
+      planner.planBuilder()
+        .produceResults("r")
+        .filter("r = anon_0")
+        .nodeHashJoin("a")
+        .|.filter("c:C")
+        .|.expand("(a)-[anon_0:R*1..5]->(c)", matchMode = TraversalMatchMode.Trail)
+        .|.nodeByLabelScan("a", "A", IndexOrderNone)
+        .filter("size(r) >= 1", "size(r) <= 5", "a:A")
+        .expand("(b)<-[r:R*1..5]-(a)", matchMode = TraversalMatchMode.Trail)
+        .nodeByLabelScan("b", "B", IndexOrderNone)
+        .build()
+    )
+  }
+
+  test("should plan varExpand with relationship equality using Walk semantics when REPEATABLE ELEMENTS is used") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 10)
+      .setLabelCardinality("B", 5)
+      .setLabelCardinality("C", 12)
+      .setRelationshipCardinality("()-[]->()", 10000)
+      .setRelationshipCardinality("()-[:R]->()", 1000)
+      .setRelationshipCardinality("(:A)-[:R]->()", 100)
+      .setRelationshipCardinality("()-[:R]->(:B)", 100)
+      .setRelationshipCardinality("()-[:R]->(:C)", 102)
+      .setRelationshipCardinality("(:C)-[:R]->()", 102)
+      .setRelationshipCardinality("(:A)-[:R]->(:B)", 3)
+      .setRelationshipCardinality("(:A)-[:R]->(:C)", 10)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    planner.plan(
+      """MATCH REPEATABLE ELEMENT (a:A)-[r:R]->{1,5}(b:B) MATCH REPEATABLE ELEMENT (a:A)-[r:R*1..5]->(c:C)
+        |RETURN r""".stripMargin
+    ) should equal(
+      planner.planBuilder()
+        .produceResults("r")
+        .filter("r = anon_2")
+        .nodeHashJoin("a")
+        .|.filter("c:C")
+        .|.expand("(a)-[anon_2:R*1..5]->(c)", matchMode = TraversalMatchMode.Walk)
+        .|.nodeByLabelScan("a", "A", IndexOrderNone)
+        .filter("size(r) >= 1", "size(r) <= 5", "a:A")
+        .repeatWalk(WalkParameters(
+          1,
+          Limited(5),
+          "b",
+          "a",
+          "anon_1",
+          "anon_0",
+          Set(),
+          Set(("r", "r")),
+          reverseGroupVariableProjections = true
+        ))
+        .|.expandAll("(anon_1)<-[r:R]-(anon_0)")
+        .|.argument("anon_1")
+        .nodeByLabelScan("b", "B", IndexOrderNone)
+        .build()
+    )
+  }
+
+  test(
+    "keep using Trail-semantics for varExpand when it has relationship equality to paths that cannot have repeated relationships - (REPEATABLE ELEMENTS on the quantified relationship)"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 10)
+      .setLabelCardinality("B", 5)
+      .setLabelCardinality("C", 12)
+      .setRelationshipCardinality("()-[]->()", 10000)
+      .setRelationshipCardinality("()-[:R]->()", 1000)
+      .setRelationshipCardinality("(:A)-[:R]->()", 100)
+      .setRelationshipCardinality("()-[:R]->(:B)", 100)
+      .setRelationshipCardinality("()-[:R]->(:C)", 102)
+      .setRelationshipCardinality("(:C)-[:R]->()", 102)
+      .setRelationshipCardinality("(:A)-[:R]->(:B)", 3)
+      .setRelationshipCardinality("(:A)-[:R]->(:C)", 10)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    planner.plan(
+      """MATCH REPEATABLE ELEMENT (a:A)-[r:R]->{1,5}(b:B) MATCH (a:A)-[r:R*1..5]->(c:C)
+        |RETURN r""".stripMargin
+    ) should equal(
+      planner.planBuilder()
+        .produceResults("r")
+        .filter("r = anon_0")
+        .nodeHashJoin("a")
+        .|.filter("c:C")
+        .|.expand("(a)-[anon_0:R*1..5]->(c)", matchMode = TraversalMatchMode.Trail)
+        .|.nodeByLabelScan("a", "A", IndexOrderNone)
+        .filter("size(r) >= 1", "size(r) <= 5", "a:A")
+        .expand("(b)<-[r:R*1..5]-(a)", matchMode = TraversalMatchMode.Trail)
+        .nodeByLabelScan("b", "B", IndexOrderNone)
+        .build()
+    )
+  }
+
+  test(
+    "keep using Trail-semantics for varExpand when it has relationship equality to paths that cannot have repeated relationships - (REPEATABLE ELEMENTS on the varLength relationship)"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 10)
+      .setLabelCardinality("B", 5)
+      .setLabelCardinality("C", 12)
+      .setRelationshipCardinality("()-[]->()", 10000)
+      .setRelationshipCardinality("()-[:R]->()", 1000)
+      .setRelationshipCardinality("(:A)-[:R]->()", 100)
+      .setRelationshipCardinality("()-[:R]->(:B)", 100)
+      .setRelationshipCardinality("()-[:R]->(:C)", 102)
+      .setRelationshipCardinality("(:C)-[:R]->()", 102)
+      .setRelationshipCardinality("(:A)-[:R]->(:B)", 3)
+      .setRelationshipCardinality("(:A)-[:R]->(:C)", 10)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    planner.plan(
+      """MATCH (a:A)-[r:R]->{1,5}(b:B) MATCH REPEATABLE ELEMENT (a:A)-[r:R*1..5]->(c:C)
+        |RETURN r""".stripMargin
+    ) should equal(
+      planner.planBuilder()
+        .produceResults("r")
+        .filter("r = anon_0")
+        .nodeHashJoin("a")
+        .|.filter("c:C")
+        .|.expand("(a)-[anon_0:R*1..5]->(c)", matchMode = TraversalMatchMode.Trail)
+        .|.nodeByLabelScan("a", "A", IndexOrderNone)
+        .filter("size(r) >= 1", "size(r) <= 5", "a:A")
+        .expand("(b)<-[r:R*1..5]-(a)", matchMode = TraversalMatchMode.Trail)
+        .nodeByLabelScan("b", "B", IndexOrderNone)
+        .build()
+    )
+  }
+
+  test(
+    "should plan varExpand in fallback for shortestPath function always using Trail-semantics - Explicit match modes with shortestPath are not allowed"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[]->()", 10000)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    planner.plan(
+      """MATCH p = shortestPath((a)-[r*1..5]-(b))
+        |WHERE length(p) >= 3
+        |RETURN p""".stripMargin
+    ) should equal(
+      planner.planBuilder()
+        .produceResults("p")
+        .antiConditionalApply("p")
+        .|.top(1, "anon_0 ASC")
+        .|.projection("length(p) AS anon_0")
+        .|.filter("length(p) >= 3")
+        .|.projection(Map("p" -> PathExpression(NodePathStep(
+          v"a",
+          MultiRelationshipPathStep(v"r", SemanticDirection.BOTH, Some(v"b"), NilPathStep()(pos))(pos)
+        )(pos))(pos)))
+        .|.expand("(a)-[r*1..5]-(b)", expandMode = ExpandInto, matchMode = TraversalMatchMode.Trail)
+        .|.argument("a", "b")
+        .apply()
+        .|.optional("a", "b")
+        .|.shortestPath(
+          "(a)-[r*1..5]-(b)",
+          pathName = Some("p"),
+          pathPredicates = Seq("length(p) >= 3"),
+          withFallback = true
+        )
+        .|.argument("a", "b")
+        .cartesianProduct()
+        .|.allNodeScan("b")
         .allNodeScan("a")
         .build()
     )

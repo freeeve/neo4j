@@ -1169,6 +1169,7 @@ case class LogicalPlanProducer(
     nodePredicates: ListSet[VariablePredicate],
     solvedPredicates: ListSet[Expression],
     mode: ExpansionMode,
+    matchMode: TraversalMatchMode,
     context: LogicalPlanningContext
   ): LogicalPlan = {
 
@@ -1205,7 +1206,8 @@ case class LogicalPlanProducer(
             length = l,
             mode = mode,
             nodePredicates = rewrittenNodePredicates.toSeq,
-            relationshipPredicates = rewrittenRelationshipPredicates.toSeq
+            relationshipPredicates = rewrittenRelationshipPredicates.toSeq,
+            matchMode = matchMode
           ),
           solved,
           ProvidedOrder.Left,

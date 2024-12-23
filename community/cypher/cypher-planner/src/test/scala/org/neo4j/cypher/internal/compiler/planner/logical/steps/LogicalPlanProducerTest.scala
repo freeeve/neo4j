@@ -76,6 +76,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.NFA.PathLength
 import org.neo4j.cypher.internal.logical.plans.NotDistinct
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Selector.Shortest
+import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
 import org.neo4j.cypher.internal.logical.plans.ordering.DefaultProvidedOrderFactory
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrderFactory
@@ -1733,6 +1734,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         ListSet.empty,
         ListSet.empty,
         ExpandAll,
+        TraversalMatchMode.Trail,
         ctx.context
       )
     )
