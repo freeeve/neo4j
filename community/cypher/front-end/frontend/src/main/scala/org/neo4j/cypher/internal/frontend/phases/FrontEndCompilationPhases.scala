@@ -51,9 +51,8 @@ trait FrontEndCompilationPhases {
     }
   }
 
-  def parsingBase(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] = {
-    Parse andThen
-      CollectSyntaxUsageMetrics andThen
+  def postParsingBase(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] = {
+    CollectSyntaxUsageMetrics andThen
       SyntaxDeprecationWarningsAndReplacements(Deprecations.SyntacticallyDeprecatedFeatures) andThen
       PreparatoryRewriting andThen
       If((_: BaseState) => config.obfuscateLiterals)(
@@ -65,6 +64,10 @@ trait FrontEndCompilationPhases {
       SyntaxDeprecationWarningsAndReplacements(Deprecations.SemanticallyDeprecatedFeatures) andThen
       IsolateSubqueriesInMutatingPatterns andThen
       SemanticAnalysis(warn = false, config.semanticFeatures: _*)
+  }
+
+  def parsingBase(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] = {
+    Parse andThen postParsingBase(config)
   }
 
   // Phase 1

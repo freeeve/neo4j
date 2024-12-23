@@ -36,7 +36,8 @@ import scala.collection.immutable.ArraySeq
 final class Cypher5AstParser(
   query: String,
   override val exceptionFactory: CypherExceptionFactory,
-  notificationLogger: Option[InternalNotificationLogger]
+  notificationLogger: Option[InternalNotificationLogger],
+  override val keepCst: Boolean = false
 ) extends AntlrAstParser[CypherAstBuildingAntlrParser] {
 
   override def statements(): Statements = parse(_.statements())
@@ -49,7 +50,7 @@ final class Cypher5AstParser(
   }
 
   override protected def newParser(tokens: TokenStream): CypherAstBuildingAntlrParser =
-    new CypherAstBuildingAntlrParser(tokens, exceptionFactory, notificationLogger)
+    new CypherAstBuildingAntlrParser(tokens, exceptionFactory, notificationLogger, keepCst)
 
   override protected def newLexer(fullTokens: Boolean): Lexer = Cypher5AstLexer.fromString(query, fullTokens)
   override protected def errorStrategyConf: CypherErrorStrategy.Conf = new Cypher5ErrorStrategyConf
@@ -61,7 +62,8 @@ final class Cypher5AstParser(
 final protected class CypherAstBuildingAntlrParser(
   input: TokenStream,
   exceptionFactory: CypherExceptionFactory,
-  notificationLogger: Option[InternalNotificationLogger]
+  notificationLogger: Option[InternalNotificationLogger],
+  keepCst: Boolean = false
 ) extends Cypher5Parser(input) with AstBuildingAntlrParser {
 
   removeErrorListeners() // Avoid printing errors to stdout
@@ -105,6 +107,6 @@ final protected class CypherAstBuildingAntlrParser(
     case Cypher5Parser.RULE_unescapedLabelSymbolicNameString  => false
     case Cypher5Parser.RULE_unescapedLabelSymbolicNameString_ => false
     case Cypher5Parser.RULE_unescapedSymbolicNameString       => false
-    case _                                                    => true
+    case _                                                    => !keepCst
   }
 }

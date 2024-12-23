@@ -38,7 +38,7 @@ case object Parse extends Phase[BaseContext, BaseState, BaseState]
   }
 
   @VisibleForTesting
-  def parse(in: BaseState, context: BaseContext): Statement = {
+  private def parse(in: BaseState, context: BaseContext): Statement = {
     val query = in.queryText
     val exceptionFactory = context.cypherExceptionFactory
     val notificationLogger = context.notificationLogger

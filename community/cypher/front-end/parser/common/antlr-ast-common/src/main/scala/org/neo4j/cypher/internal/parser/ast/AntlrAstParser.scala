@@ -35,12 +35,17 @@ import scala.util.control.NonFatal
 
 /** Helper trait for all antlr based [[AstParser]]s. */
 trait AntlrAstParser[P <: AstBuildingAntlrParser] extends AstParser {
+  protected def keepCst: Boolean
   protected def newParser(tokens: TokenStream): P
   protected def newLexer(fullTokens: Boolean): Lexer
   protected def exceptionFactory: CypherExceptionFactory
   protected def errorStrategyConf: CypherErrorStrategy.Conf
 
   final def parse[AST <: AnyRef](f: P => AstRuleCtx): AST = {
+    parseCst(f).ast[AST]()
+  }
+
+  final def parseCst(f: P => AstRuleCtx): AstRuleCtx = {
     val listener = new SyntaxErrorListener(exceptionFactory)
     val parser = newParser(preparsedTokens(listener, fullTokens = false))
 
@@ -72,11 +77,11 @@ trait AntlrAstParser[P <: AstBuildingAntlrParser] extends AstParser {
     }
   }
 
-  final private def doParse[CTX <: AstRuleCtx, AST <: AnyRef](
+  final private def doParse[CTX <: AstRuleCtx](
     parser: P,
     listener: SyntaxErrorListener,
     f: P => CTX
-  ): AST = {
+  ): CTX = {
     val result = f(parser)
 
     // Throw syntax checker errors
@@ -96,7 +101,7 @@ trait AntlrAstParser[P <: AstBuildingAntlrParser] extends AstParser {
       )
     }
 
-    result.ast[AST]()
+    result
   }
 
   final private def parseReachedEof(parser: P): Boolean =
