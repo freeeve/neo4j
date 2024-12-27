@@ -102,6 +102,8 @@ class IdRangeMarker implements IdGenerator.TransactionalMarker, IdGenerator.Cont
      */
     private final AtomicLong highestWrittenId;
 
+    private final AtomicLong highId;
+
     /**
      * Whether or not to bridge gaps between previously highest written id and id being written as updates comes in.
      */
@@ -147,6 +149,7 @@ class IdRangeMarker implements IdGenerator.TransactionalMarker, IdGenerator.Cont
             AtomicInteger freeIdsNotifier,
             long generation,
             AtomicLong highestWrittenId,
+            AtomicLong highId,
             boolean bridgeIdGaps,
             boolean deleteAlsoFrees,
             IndexedIdGenerator.Monitor monitor) {
@@ -161,6 +164,7 @@ class IdRangeMarker implements IdGenerator.TransactionalMarker, IdGenerator.Cont
         this.freeIdsNotifier = freeIdsNotifier;
         this.generation = generation;
         this.highestWrittenId = highestWrittenId;
+        this.highId = highId;
         this.bridgeIdGaps = bridgeIdGaps;
         this.deleteAlsoFrees = deleteAlsoFrees;
         this.monitor = monitor;
@@ -381,7 +385,9 @@ class IdRangeMarker implements IdGenerator.TransactionalMarker, IdGenerator.Cont
             // Well, we bridged the gap up and including id - 1, but we know that right after this the actual id
             // will be written so to try to isolate updates to highestWrittenId to this method we can might as well
             // do that right here.
-            this.highestWrittenId.set(id + numberOfIds - 1);
+            long highestWritten = id + numberOfIds - 1;
+            this.highestWrittenId.set(highestWritten);
+            this.highId.accumulateAndGet(highestWritten + 1, Math::max);
         }
     }
 }

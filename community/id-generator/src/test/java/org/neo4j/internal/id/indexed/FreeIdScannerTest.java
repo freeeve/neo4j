@@ -985,6 +985,7 @@ class FreeIdScannerTest {
                 freeIdsNotifier,
                 generation,
                 new AtomicLong(),
+                new AtomicLong(),
                 bridgeIdGaps,
                 false,
                 NO_MONITOR);
@@ -1068,6 +1069,7 @@ class FreeIdScannerTest {
                         freeIdsNotifier,
                         generation,
                         highestWrittenId,
+                        new AtomicLong(),
                         false,
                         false,
                         NO_MONITOR);

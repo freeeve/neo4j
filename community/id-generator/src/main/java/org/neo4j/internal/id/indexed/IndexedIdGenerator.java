@@ -691,6 +691,7 @@ public class IndexedIdGenerator implements IdGenerator {
                     freeIdsNotifier,
                     generation,
                     highestWrittenId,
+                    highId,
                     bridgeIdGaps,
                     deleteAlsoFrees,
                     monitor);

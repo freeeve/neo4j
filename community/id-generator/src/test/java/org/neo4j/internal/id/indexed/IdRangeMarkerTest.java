@@ -249,6 +249,7 @@ class IdRangeMarkerTest {
                 new AtomicInteger(),
                 1,
                 new AtomicLong(-1),
+                new AtomicLong(),
                 true,
                 false,
                 NO_MONITOR)) {
@@ -277,6 +278,7 @@ class IdRangeMarkerTest {
                 new AtomicInteger(),
                 1,
                 new AtomicLong(reservedId - 1),
+                new AtomicLong(reservedId),
                 true,
                 false,
                 NO_MONITOR)) {
@@ -310,6 +312,7 @@ class IdRangeMarkerTest {
                 new AtomicInteger(),
                 1,
                 new AtomicLong(reservedId - 1),
+                new AtomicLong(reservedId),
                 true,
                 false,
                 NO_MONITOR)) {
@@ -338,6 +341,7 @@ class IdRangeMarkerTest {
                 new AtomicInteger(),
                 1,
                 new AtomicLong(-1),
+                new AtomicLong(),
                 true,
                 false,
                 NO_MONITOR)) {
@@ -371,6 +375,7 @@ class IdRangeMarkerTest {
                 new AtomicInteger(),
                 1,
                 new AtomicLong(highestWrittenId),
+                new AtomicLong(highestWrittenId + 1),
                 true,
                 false,
                 NO_MONITOR)) {
@@ -406,6 +411,7 @@ class IdRangeMarkerTest {
                 freeIdsNotifier,
                 1,
                 new AtomicLong(-1),
+                new AtomicLong(),
                 true,
                 false,
                 NO_MONITOR)) {
@@ -435,6 +441,7 @@ class IdRangeMarkerTest {
                 new AtomicInteger(),
                 1,
                 new AtomicLong(-1),
+                new AtomicLong(),
                 true,
                 false,
                 NO_MONITOR)) {
@@ -453,6 +460,35 @@ class IdRangeMarkerTest {
                 }
             }
         }
+    }
+
+    @Test
+    void shouldBumpHighIdOnBridgingIdsDuringUnallocate() throws IOException {
+        // given
+        var highestWrittenId = new AtomicLong();
+        var highId = new AtomicLong();
+        try (var marker = new IdRangeMarker(
+                TestIdType.TEST,
+                idsPerEntry,
+                layout,
+                tree.writer(NULL_CONTEXT),
+                mock(Lock.class),
+                MERGER,
+                true,
+                new AtomicInteger(),
+                1,
+                highestWrittenId,
+                highId,
+                true,
+                false,
+                NO_MONITOR)) {
+            // when
+            marker.markUnallocated(10, 2);
+        }
+
+        // then
+        assertThat(highestWrittenId.longValue()).isEqualTo(11);
+        assertThat(highId.longValue()).isEqualTo(12);
     }
 
     private static ValueMerger realMergerMock() {
@@ -478,6 +514,7 @@ class IdRangeMarkerTest {
                 new AtomicInteger(),
                 1,
                 highestWritternId,
+                new AtomicLong(),
                 true,
                 false,
                 NO_MONITOR);
