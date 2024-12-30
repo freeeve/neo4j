@@ -565,7 +565,7 @@ class KernelTransactionsTest {
         assertThat(exception.gqlStatus()).isEqualTo("51N74");
         assertThat(exception.statusDescription())
                 .isEqualTo(
-                        "error: system configuration or operation exception - maximum number of transactions reached. Failed to start a new transaction. The limit of concurrent transactions is reached. Increase the number of concurrent transactions using db.transaction.concurrent.maximum in the neo4j configuration.");
+                        "error: system configuration or operation exception - maximum number of transactions reached. Failed to start a new transaction. The limit of concurrent transactions is reached. Increase the number of concurrent transactions using db.transaction.concurrent.maximum in the neo4j.conf file.");
     }
 
     @Test

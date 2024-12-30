@@ -89,7 +89,7 @@ class LocalMemoryTrackerTest {
         assertThat(exception.gqlStatus()).isEqualTo("51N73");
         assertThat(exception.statusDescription())
                 .isEqualTo(
-                        "error: system configuration or operation exception - transaction memory limit reached. The transaction used more memory than was allowed. The maximum allowed size for a transaction can be configured with settingName in the neo4j configuration.");
+                        "error: system configuration or operation exception - transaction memory limit reached. The transaction uses more memory than it is allowed. The maximum allowed size for a transaction can be configured with settingName in the neo4j.conf file.");
         assertThat(memoryTracker.estimatedHeapMemory()).isEqualTo(0);
     }
 
@@ -101,7 +101,7 @@ class LocalMemoryTrackerTest {
         assertThat(exception.gqlStatus()).isEqualTo("51N72");
         assertThat(exception.statusDescription())
                 .isEqualTo(
-                        "error: system configuration or operation exception - memory pool out of memory. Failed to allocate memory in a memory pool. See bolt_setting in the neo4j configuration.");
+                        "error: system configuration or operation exception - memory pool out of memory. Failed to allocate memory in a memory pool. See bolt_setting in the neo4j.conf file.");
         assertThat(memoryTracker.estimatedHeapMemory()).isEqualTo(0);
     }
 

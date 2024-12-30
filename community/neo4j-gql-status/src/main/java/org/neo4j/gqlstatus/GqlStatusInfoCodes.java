@@ -4742,7 +4742,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_51N72(
             new GqlStatus("51N72"),
             """
-                    Failed to allocate memory in a memory pool. See { %s } in the neo4j configuration.""",
+                    Failed to allocate memory in a memory pool. See { %s } in the neo4j.conf file.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cfgSetting},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4751,7 +4751,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_51N73(
             new GqlStatus("51N73"),
             """
-                    The transaction used more memory than was allowed. The maximum allowed size for a transaction can be configured with { %s } in the neo4j configuration.""",
+                    The transaction uses more memory than it is allowed. The maximum allowed size for a transaction can be configured with { %s } in the neo4j.conf file.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cfgSetting},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4760,7 +4760,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_51N74(
             new GqlStatus("51N74"),
             """
-                    Failed to start a new transaction. The limit of concurrent transactions is reached. Increase the number of concurrent transactions using { %s } in the neo4j configuration.""",
+                    Failed to start a new transaction. The limit of concurrent transactions is reached. Increase the number of concurrent transactions using { %s } in the neo4j.conf file.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cfgSetting},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
