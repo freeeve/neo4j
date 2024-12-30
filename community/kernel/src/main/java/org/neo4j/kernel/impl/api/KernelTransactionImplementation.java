@@ -1114,7 +1114,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
             }
             success = true;
         } catch (ConstraintValidationException | CreateConstraintFailureException e) {
-            exception = new ConstraintViolationTransactionFailureException(e.getUserMessage(tokenRead()), e);
+            exception = ConstraintViolationTransactionFailureException.create(e.getUserMessage(tokenRead()), e);
         } catch (Throwable e) {
             exception = e;
         } finally {

@@ -30,21 +30,38 @@ import org.neo4j.kernel.api.exceptions.Status;
  * violations to any constraints defined for the database.
  */
 public class ConstraintViolationTransactionFailureException extends TransactionFailureException {
-    public ConstraintViolationTransactionFailureException(String msg, KernelException cause) {
-        super(Status.Schema.ConstraintValidationFailed, cause, msg);
+
+    protected ConstraintViolationTransactionFailureException(String msg) {
+        super(Status.Schema.ConstraintValidationFailed, msg);
     }
 
-    public ConstraintViolationTransactionFailureException(String msg) {
-        this(msg, null);
+    private ConstraintViolationTransactionFailureException(String msg, KernelException cause) {
+        super(Status.Schema.ConstraintValidationFailed, cause, msg);
     }
 
     private ConstraintViolationTransactionFailureException(ErrorGqlStatusObject gqlStatusObject, String msg) {
         super(gqlStatusObject, Status.Schema.ConstraintValidationFailed, msg);
     }
 
+    private ConstraintViolationTransactionFailureException(
+            ErrorGqlStatusObject gqlStatusObject, KernelException cause, String msg) {
+        super(gqlStatusObject, Status.Schema.ConstraintValidationFailed, cause, msg);
+    }
+
+    public static ConstraintViolationTransactionFailureException create(String msg, KernelException cause) {
+        if (cause.gqlStatusObject() != null) {
+            // Except for the protected constructor and the genericViolationFailure method, the cause
+            // will always provide the correct GQL status object.
+            return new ConstraintViolationTransactionFailureException(cause.gqlStatusObject(), cause, msg);
+        }
+        // But some causes don't have the GQL status object implemented _yet_.
+        return new ConstraintViolationTransactionFailureException(msg, cause);
+    }
+
     // KNL-065
     public static ConstraintViolationTransactionFailureException genericViolationFailure(String msg) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N14).build();
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N14)
+                .build();
         return new ConstraintViolationTransactionFailureException(gql, msg);
     }
 }
