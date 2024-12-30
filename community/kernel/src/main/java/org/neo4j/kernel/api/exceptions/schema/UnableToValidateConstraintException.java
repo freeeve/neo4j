@@ -23,6 +23,9 @@ import static java.lang.String.format;
 
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 
@@ -31,17 +34,7 @@ import org.neo4j.internal.schema.ConstraintDescriptor;
  * this exception is thrown when an index required to implement a uniqueness constraint is not available.
  */
 public class UnableToValidateConstraintException extends ConstraintValidationException {
-    public UnableToValidateConstraintException(
-            ConstraintDescriptor constraint, Throwable cause, TokenNameLookup tokenNameLookup) {
-        super(
-                constraint,
-                Phase.VERIFICATION,
-                format("Unable to validate constraint %s", constraint.userDescription(tokenNameLookup)),
-                cause,
-                tokenNameLookup);
-    }
-
-    public UnableToValidateConstraintException(
+    private UnableToValidateConstraintException(
             ErrorGqlStatusObject gqlStatusObject,
             ConstraintDescriptor constraint,
             Throwable cause,
@@ -53,6 +46,15 @@ public class UnableToValidateConstraintException extends ConstraintValidationExc
                 format("Unable to validate constraint %s", constraint.userDescription(tokenNameLookup)),
                 cause,
                 tokenNameLookup);
+    }
+
+    // KNL-156
+    public static UnableToValidateConstraintException unableToValidateConstraintException(
+            ConstraintDescriptor constraint, Throwable cause, TokenNameLookup tokenNameLookup) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N13)
+                .withParam(GqlParams.StringParam.constrDescrOrName, constraint.userDescription(tokenNameLookup))
+                .build();
+        return new UnableToValidateConstraintException(gql, constraint, cause, tokenNameLookup);
     }
 
     @Override

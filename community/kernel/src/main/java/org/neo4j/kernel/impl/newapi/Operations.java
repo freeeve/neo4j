@@ -784,7 +784,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             }
 
         } catch (IndexNotFoundKernelException | IndexBrokenKernelException | IndexNotApplicableKernelException e) {
-            throw new UnableToValidateConstraintException(constraint, e, token);
+            throw UnableToValidateConstraintException.unableToValidateConstraintException(constraint, e, token);
         }
 
         if (existingNodeId != NO_SUCH_NODE) {
@@ -838,7 +838,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         SchemaDescriptor schema = index.schema();
         int[] entityTokenIds = schema.getEntityTokenIds();
         if (entityTokenIds.length != 1) {
-            throw new UnableToValidateConstraintException(
+            throw UnableToValidateConstraintException.unableToValidateConstraintException(
                     constraint,
                     new AssertionError(format(
                             "Constraint indexes are not expected to be multi-token indexes, "
@@ -885,7 +885,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             }
 
         } catch (IndexNotFoundKernelException | IndexBrokenKernelException | IndexNotApplicableKernelException e) {
-            throw new UnableToValidateConstraintException(constraint, e, token);
+            throw UnableToValidateConstraintException.unableToValidateConstraintException(constraint, e, token);
         }
 
         if (existingRelationshipId != NO_SUCH_RELATIONSHIP) {
