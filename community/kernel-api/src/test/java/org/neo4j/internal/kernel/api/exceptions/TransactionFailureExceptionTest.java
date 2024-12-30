@@ -29,7 +29,7 @@ class TransactionFailureExceptionTest {
     void testCannotRollbackCannotDropCreatedConstraintIndex() {
         var e = TransactionFailureException.cannotRollbackCannotDropCreatedConstraintIndex(
                 new IllegalStateException("boom"));
-        assertThat(e.getMessage()).isEqualTo("Could not drop created constraint indexes");
+        assertThat(e).hasMessageContaining("Could not drop created constraint indexes");
         assertThat(e.gqlStatus()).isEqualTo("40N01");
         assertThat(e.statusDescription())
                 .isEqualTo(

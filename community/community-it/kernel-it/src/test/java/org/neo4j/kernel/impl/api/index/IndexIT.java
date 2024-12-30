@@ -278,7 +278,7 @@ class IndexIT extends KernelIntegrationTest {
         // when
         SchemaWrite statement = schemaWriteInNewTransaction();
         SchemaKernelException e = assertThrows(DropIndexFailureException.class, () -> statement.indexDrop(indexName));
-        assertThat(e.getMessage()).isEqualTo("Unable to drop index called `My fancy index`. There is no such index.");
+        assertThat(e).hasMessageContaining("Unable to drop index called `My fancy index`. There is no such index.");
         assertThat(e.gqlStatus()).isEqualTo("50N10");
         assertThat(e.statusDescription())
                 .isEqualTo("error: general processing exception - index drop failed. Unable to drop 'My fancy index'.");

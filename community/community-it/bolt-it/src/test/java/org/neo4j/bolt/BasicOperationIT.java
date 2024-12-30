@@ -20,6 +20,8 @@
 package org.neo4j.bolt;
 
 import static org.assertj.core.api.InstanceOfAssertFactories.list;
+import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertErrorCause;
+import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord;
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertThat;
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.diagnosticRecordPosition;
 import static org.neo4j.values.storable.Values.longValue;
@@ -373,11 +375,17 @@ public class BasicOperationIT {
 
         // Then
         assertThat(connection)
-                .receivesFailure(
+                .receivesFailureWithCause(
                         Status.Schema.IndexDropFailed,
                         "Unable to drop index called `my_index`. There is no such index.",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.")
+                        GqlStatusInfoCodes.STATUS_50N10.getGqlStatus(),
+                        "error: general processing exception - index drop failed. Unable to drop 'my_index'.",
+                        assertErrorClassificationOnDiagnosticRecord("DATABASE_ERROR"),
+                        assertErrorCause(
+                                "22N69: The index specified by 'my_index' does not exist.",
+                                GqlStatusInfoCodes.STATUS_22N69.getGqlStatus(),
+                                "error: data exception - index does not exist. The index specified by 'my_index' does not exist.",
+                                assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")))
                 .receivesIgnored();
     }
 
