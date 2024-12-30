@@ -312,7 +312,7 @@ public class MultiIndexPopulationConcurrentUpdatesIT {
         labelsNameIdMap.remove(COLOR_LABEL);
         waitAndActivateIndexes(labelsNameIdMap, propertyId);
 
-        assertThrows(IndexNotFoundKernelException.class, () -> {
+        var e = assertThrows(IndexNotFoundKernelException.class, () -> {
             Iterator<IndexDescriptor> iterator =
                     schemaCache.indexesForSchema(SchemaDescriptors.forLabel(labelToDropId, propertyId));
             while (iterator.hasNext()) {
@@ -320,6 +320,10 @@ public class MultiIndexPopulationConcurrentUpdatesIT {
                 indexService.getIndexProxy(index);
             }
         });
+        assertThat(e).hasMessageContaining("Index does not exist");
+        assertThat(e.gqlStatus()).isEqualTo("22N69");
+        assertThat(e.statusDescription())
+                .contains("error: data exception - index does not exist. The index specified by", "does not exist.");
     }
 
     private void checkIndexIsOnline(int labelId) throws IndexNotFoundKernelException {

@@ -21,7 +21,7 @@ package org.neo4j.index;
 
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.index_usage_report_frequency;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unorderedValues;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.allEntries;
@@ -213,7 +213,31 @@ class IndexUsageStatsIT {
         dropIndex();
 
         // then
-        assertThatThrownBy(this::getIndexUsageStats).isInstanceOf(IndexNotFoundKernelException.class);
+        var e = assertThrows(IndexNotFoundKernelException.class, this::getIndexUsageStats);
+        assertThat(e.gqlStatus()).isEqualTo("22N69");
+        assertThat(e.statusDescription())
+                .isEqualTo(
+                        "error: data exception - index does not exist. The index specified by '$idxDescrOrName' does not exist.");
+    }
+
+    @Test
+    void shouldThrowWhenTryingToGetPopulationProgressFromIndexDroppedInSameTransaction() {
+        try (var tx = db.beginTransaction(EXPLICIT, AUTH_DISABLED)) {
+            var ktx = tx.kernelTransaction();
+            // Important: get index before dropping it.
+            // Otherwise, `KernelSchemaRead.assertValidIndex` will throw before
+            // `SchemaReadCoreSnapshot.checkIndexState`.
+            var index = ktx.schemaRead().indexGetForName(INDEX_NAME);
+            tx.schema().getIndexByName(INDEX_NAME).drop();
+
+            var e = assertThrows(
+                    IndexNotFoundKernelException.class, () -> ktx.schemaRead().indexGetPopulationProgress(index));
+            assertThat(e.gqlStatus()).isEqualTo("25N12");
+            assertThat(e.statusDescription())
+                    .isEqualTo(
+                            "error: invalid transaction state - index was dropped. Index `myIndex` was dropped in this transaction and cannot be used.");
+            tx.commit();
+        }
     }
 
     @Test

@@ -51,7 +51,7 @@ public class IndexMapReference implements IndexMapSnapshotProvider {
     public IndexProxy getIndexProxy(IndexDescriptor index) throws IndexNotFoundKernelException {
         IndexProxy proxy = indexMap.getIndexProxy(index);
         if (proxy == null) {
-            throw new IndexNotFoundKernelException("No index for index " + index + " exists.");
+            throw IndexNotFoundKernelException.indexNotFound(index);
         }
         return proxy;
     }

@@ -200,7 +200,7 @@ final class SchemaReadCoreSnapshot implements SchemaReadCore {
             return true;
         }
         if (diffSet.isRemoved(index)) {
-            throw new IndexNotFoundKernelException("Index has been dropped in this transaction: ", index);
+            throw IndexNotFoundKernelException.indexDroppedInThisTransaction(index);
         }
         return false;
     }

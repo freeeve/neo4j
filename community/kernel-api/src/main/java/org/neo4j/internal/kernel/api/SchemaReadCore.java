@@ -107,7 +107,7 @@ public interface SchemaReadCore {
     InternalIndexState indexGetStateNonLocking(IndexDescriptor index) throws IndexNotFoundKernelException;
 
     /**
-     * Retrives the population progress of the index
+     * Retrieves the population progress of the index
      *
      * @param index The index whose progress to retrieve
      * @return The population progress of the given index

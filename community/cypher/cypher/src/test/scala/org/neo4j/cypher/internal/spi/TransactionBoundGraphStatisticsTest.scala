@@ -93,7 +93,7 @@ class TransactionBoundGraphStatisticsTest extends CypherFunSuite {
   test("indexPropertyExistsSelectivity should log if index returned from schema read but size cannot get computed") {
     // given
     when(read.estimateCountsForNode(labelId)).thenReturn(20L)
-    val exception = new IndexNotFoundKernelException("wut")
+    val exception = IndexNotFoundKernelException.indexNotFound()
     when(schemaRead.indexSize(any[org.neo4j.internal.schema.IndexDescriptor])).thenThrow(exception)
     val theLog = mock[InternalLog]
 
@@ -108,7 +108,7 @@ class TransactionBoundGraphStatisticsTest extends CypherFunSuite {
   test("indexPropertyExistsSelectivity should not log if index was not found") {
     when(schemaRead.index(any[SchemaDescriptor], any[schema.IndexType])).thenReturn(schema.IndexDescriptor.NO_INDEX)
     when(read.estimateCountsForNode(labelId)).thenReturn(20L)
-    val exception = new IndexNotFoundKernelException("wut")
+    val exception = IndexNotFoundKernelException.indexNotFound()
     when(schemaRead.indexSize(any[org.neo4j.internal.schema.IndexDescriptor])).thenThrow(exception)
     val theLog = mock[InternalLog]
 
@@ -171,7 +171,7 @@ class TransactionBoundGraphStatisticsTest extends CypherFunSuite {
   test("uniqueValueSelectivity should log if index returned from schema read but size cannot get computed") {
     // given
     when(schemaRead.indexUniqueValuesSelectivity(descriptor)).thenReturn(0.0)
-    val exception = new IndexNotFoundKernelException("wut")
+    val exception = IndexNotFoundKernelException.indexNotFound()
     when(schemaRead.indexSize(any[org.neo4j.internal.schema.IndexDescriptor])).thenThrow(exception)
     val theLog = mock[InternalLog]
 
@@ -187,7 +187,7 @@ class TransactionBoundGraphStatisticsTest extends CypherFunSuite {
     // given
     when(schemaRead.index(any[SchemaDescriptor], any[schema.IndexType])).thenReturn(schema.IndexDescriptor.NO_INDEX)
     when(schemaRead.indexUniqueValuesSelectivity(descriptor)).thenReturn(0.0)
-    val exception = new IndexNotFoundKernelException("wut")
+    val exception = IndexNotFoundKernelException.indexNotFound()
     when(schemaRead.indexSize(any[org.neo4j.internal.schema.IndexDescriptor])).thenThrow(exception)
     val theLog = mock[InternalLog]
 

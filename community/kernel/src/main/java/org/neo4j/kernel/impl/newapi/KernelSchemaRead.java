@@ -81,7 +81,7 @@ public class KernelSchemaRead implements SchemaRead {
 
     static void assertValidIndex(IndexDescriptor index) throws IndexNotFoundKernelException {
         if (index == IndexDescriptor.NO_INDEX) {
-            throw new IndexNotFoundKernelException("No index was found");
+            throw IndexNotFoundKernelException.indexNotFound();
         }
     }
 
@@ -273,7 +273,7 @@ public class KernelSchemaRead implements SchemaRead {
 
     public void assertIndexExists(IndexDescriptor index) throws IndexNotFoundKernelException {
         if (indexNotExists(index)) {
-            throw new IndexNotFoundKernelException("Index does not exist: ", index);
+            throw IndexNotFoundKernelException.indexNotFound(index);
         }
     }
 
