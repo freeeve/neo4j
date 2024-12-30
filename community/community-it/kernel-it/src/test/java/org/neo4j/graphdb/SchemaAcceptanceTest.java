@@ -590,11 +590,6 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
     @ParameterizedTest()
     @EnumSource(SchemaTxStrategy.class)
     void droppingIndexThatBelongsToConstraintShouldGiveHelpfulException(SchemaTxStrategy txStrategy) {
-        // TODO comment: we have such a deep exception chain, with various non-GQL exceptions along the way.
-        //  DropIndexFailureException will be updated later on, but I haven't found anything on
-        //  ConstraintViolationException in the spreadsheet. And IllegalStateException obviously neither.
-        //  Does the user get the correct GQL status? I guess not.
-        //  Does it matter? This is Core API, and via Cypher (test below) it looks fine.
         final IllegalStateException exception = txStrategy.execute(
                 db,
                 schema -> schema.constraintFor(label)
