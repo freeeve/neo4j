@@ -34,18 +34,6 @@ public class RelationshipPropertyExistenceException extends ConstraintValidation
     private final RelationTypeSchemaDescriptor schema;
     private final long relationshipId;
 
-    @Deprecated
-    private RelationshipPropertyExistenceException(
-            RelationTypeSchemaDescriptor schema,
-            Function<RelationTypeSchemaDescriptor, ConstraintDescriptor> constraintFunc,
-            ConstraintValidationException.Phase phase,
-            long relationshipId,
-            TokenNameLookup tokenNameLookup) {
-        super(constraintFunc.apply(schema), phase, format("Relationship(%s)", relationshipId), tokenNameLookup);
-        this.schema = schema;
-        this.relationshipId = relationshipId;
-    }
-
     private RelationshipPropertyExistenceException(
             ErrorGqlStatusObject gqlStatusObject,
             RelationTypeSchemaDescriptor schema,
