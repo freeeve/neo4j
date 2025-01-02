@@ -48,12 +48,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.Set;
 import java.util.function.Function;
 import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.iterator.IntIterator;
@@ -2695,7 +2693,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     }
 
     private OptionalInt firstDuplicateEntry(int[] array) {
-        Set<Integer> seen = new HashSet<>();
+        final var seen = IntSets.mutable.withInitialCapacity(array.length);
         for (int i : array) {
             if (!seen.add(i)) {
                 return OptionalInt.of(i);
@@ -2709,12 +2707,12 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         var maybeDuplicateProperty = firstDuplicateEntry(descriptor.getPropertyIds());
         if (maybeDuplicateProperty.isPresent()) {
             var duplicateProperty = token.propertyKeyGetName(maybeDuplicateProperty.getAsInt());
-            switch (context) {
-                case CONSTRAINT_CREATION -> throw RepeatedPropertyInSchemaException.repeatedPropertyInConstraint(
+            throw switch (context) {
+                case CONSTRAINT_CREATION -> RepeatedPropertyInSchemaException.repeatedPropertyInConstraint(
                         descriptor, token, duplicateProperty);
-                case INDEX_CREATION -> throw RepeatedPropertyInSchemaException.repeatedPropertyInIndex(
+                case INDEX_CREATION -> RepeatedPropertyInSchemaException.repeatedPropertyInIndex(
                         descriptor, token, duplicateProperty);
-            }
+            };
         }
 
         var maybeDuplicateLabelOrRelType = firstDuplicateEntry(descriptor.getEntityTokenIds());
@@ -2725,19 +2723,19 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         case RELATIONSHIP -> token.relationshipTypeGetName(maybeDuplicateLabelOrRelType.getAsInt());
                     };
             if (descriptor.entityType() == NODE) {
-                switch (context) {
-                    case CONSTRAINT_CREATION -> throw RepeatedLabelInSchemaException.repeatedLabelInConstraint(
+                throw switch (context) {
+                    case CONSTRAINT_CREATION -> RepeatedLabelInSchemaException.repeatedLabelInConstraint(
                             descriptor, token, duplicateLabelOrRelType);
-                    case INDEX_CREATION -> throw RepeatedLabelInSchemaException.repeatedLabelInIndex(
+                    case INDEX_CREATION -> RepeatedLabelInSchemaException.repeatedLabelInIndex(
                             descriptor, token, duplicateLabelOrRelType);
-                }
+                };
             } else {
-                switch (context) {
-                    case CONSTRAINT_CREATION -> throw RepeatedRelationshipTypeInSchemaException
+                throw switch (context) {
+                    case CONSTRAINT_CREATION -> RepeatedRelationshipTypeInSchemaException
                             .repeatedRelationshipTypeInConstraint(descriptor, token, duplicateLabelOrRelType);
-                    case INDEX_CREATION -> throw RepeatedRelationshipTypeInSchemaException
-                            .repeatedRelationshipTypeInIndex(descriptor, token, duplicateLabelOrRelType);
-                }
+                    case INDEX_CREATION -> RepeatedRelationshipTypeInSchemaException.repeatedRelationshipTypeInIndex(
+                            descriptor, token, duplicateLabelOrRelType);
+                };
             }
         }
     }
