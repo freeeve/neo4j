@@ -62,16 +62,11 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
     protected final StandardConstraintRuleAccessor accessor = new StandardConstraintRuleAccessor();
 
     public StandardConstraintSemantics() {
-        this(1);
+        this(Integer.MAX_VALUE);
     }
 
     protected StandardConstraintSemantics(int priority) {
         super(priority);
-    }
-
-    @Override
-    public String getName() {
-        return "standardConstraints";
     }
 
     @Override

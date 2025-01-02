@@ -27,6 +27,7 @@ import static org.neo4j.util.Preconditions.checkArgument;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -122,8 +123,10 @@ public final class Services {
      */
     public static <T extends PrioritizedService> Optional<T> loadByPriority(Class<T> service) {
         final List<T> all = (List<T>) loadAll(service);
-        all.sort(Comparator.comparingInt(PrioritizedService::getPriority));
-        return all.isEmpty() ? Optional.empty() : Optional.of(all.get(0));
+        if (all.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(Collections.min(all, Comparator.comparingInt(PrioritizedService::getPriority)));
     }
 
     /**

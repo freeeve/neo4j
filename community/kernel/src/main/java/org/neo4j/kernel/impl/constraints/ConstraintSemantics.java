@@ -19,14 +19,8 @@
  */
 package org.neo4j.kernel.impl.constraints;
 
-import static java.lang.String.format;
-import static org.neo4j.util.Preconditions.checkState;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import org.neo4j.annotations.service.Service;
-import org.neo4j.service.NamedService;
+import org.neo4j.service.PrioritizedService;
 import org.neo4j.service.Services;
 import org.neo4j.storageengine.api.ConstraintRuleAccessor;
 
@@ -34,22 +28,29 @@ import org.neo4j.storageengine.api.ConstraintRuleAccessor;
  * Implements semantics of constraint creation and enforcement.
  */
 @Service
-public abstract class ConstraintSemantics implements NamedService, ConstraintValidator, ConstraintRuleAccessor {
+public abstract class ConstraintSemantics implements PrioritizedService, ConstraintValidator, ConstraintRuleAccessor {
     private final int priority;
 
     public static ConstraintSemantics getConstraintSemantics() {
-        final Collection<ConstraintSemantics> candidates = Services.loadAll(ConstraintSemantics.class);
-        checkState(
-                !candidates.isEmpty(),
-                format("At least one implementation of %s should be available.", ConstraintSemantics.class));
-        return Collections.max(candidates, Comparator.comparingInt(ConstraintSemantics::getPriority));
+        return ConstraintSemanticsProviderHolder.CONSTRAINT_SEMANTICS;
     }
 
     protected ConstraintSemantics(int priority) {
         this.priority = priority;
     }
 
+    @Override
     public int getPriority() {
         return priority;
+    }
+
+    static final class ConstraintSemanticsProviderHolder {
+        private static final ConstraintSemantics CONSTRAINT_SEMANTICS = loadConstraintProvider();
+
+        private static ConstraintSemantics loadConstraintProvider() {
+            return Services.loadByPriority(ConstraintSemantics.class)
+                    .orElseThrow(() ->
+                            new IllegalStateException("Failed to load any instance of " + ConstraintSemantics.class));
+        }
     }
 }
