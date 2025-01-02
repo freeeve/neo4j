@@ -57,6 +57,7 @@ import org.neo4j.kernel.impl.newapi.KernelProcedures.ForThreadExecutionContextSc
 import org.neo4j.kernel.impl.newapi.KernelRead;
 import org.neo4j.kernel.impl.newapi.KernelSchemaRead;
 import org.neo4j.lock.LockTracer;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.StorageLocks;
 import org.neo4j.storageengine.api.StorageReader;
@@ -123,7 +124,8 @@ public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
             Supplier<ClockContext> clockContextSupplier,
             List<AutoCloseable> otherResources,
             ProcedureView procedureView,
-            boolean multiVersioned) {
+            boolean multiVersioned,
+            LogProvider logProvider) {
         this.cursors = cursors;
         this.context = context;
         this.overridableSecurityContext = overridableSecurityContext;
@@ -172,7 +174,8 @@ public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
                 multiVersioned,
                 this.ktx,
                 accessModeProvider,
-                true);
+                true,
+                logProvider);
     }
 
     public Supplier<ClockContext> clockContextSupplier() {

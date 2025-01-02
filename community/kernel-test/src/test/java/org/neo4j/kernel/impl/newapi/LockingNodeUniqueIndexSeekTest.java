@@ -51,6 +51,7 @@ import org.neo4j.kernel.impl.api.index.IndexProxy;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.locking.LockManager;
 import org.neo4j.lock.LockTracer;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.StorageLocks;
 import org.neo4j.storageengine.api.StorageReader;
@@ -144,6 +145,7 @@ class LockingNodeUniqueIndexSeekTest {
                 false,
                 mock(AssertOpen.class),
                 () -> Static.FULL,
-                false);
+                false,
+                NullLogProvider.getInstance());
     }
 }

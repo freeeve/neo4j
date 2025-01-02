@@ -39,6 +39,7 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.state.TxState;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.Reference;
@@ -387,6 +388,7 @@ class DefaultRelationshipTraversalCursorTest {
                 false,
                 ktx,
                 () -> ktx.securityContext().mode(),
-                false);
+                false,
+                NullLogProvider.getInstance());
     }
 }

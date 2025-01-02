@@ -42,6 +42,7 @@ import org.neo4j.kernel.impl.locking.LockManager;
 import org.neo4j.kernel.impl.newapi.DefaultPooledCursors;
 import org.neo4j.kernel.impl.security.URIAccessRules;
 import org.neo4j.lock.LockTracer;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.StorageLocks;
 import org.neo4j.storageengine.api.StorageReader;
@@ -82,7 +83,8 @@ class ThreadExecutionContextTest {
                 mock(Supplier.class),
                 List.of(storageReader, lockClient),
                 mock(ProcedureView.class),
-                false)) {
+                false,
+                NullLogProvider.getInstance())) {
             executionContext.complete();
         }
 

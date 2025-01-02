@@ -421,7 +421,8 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                 multiVersioned,
                 this::assertOpenWithParallelAccessCheck,
                 accessModeProvider,
-                false);
+                false,
+                logProvider);
         this.executionContextFactory = createExecutionContextFactory(
                 contextFactory,
                 storageEngine,
@@ -436,7 +437,8 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                 dependencies,
                 securityAuthorizationHandler,
                 elementIdMapper,
-                multiVersioned);
+                multiVersioned,
+                logProvider);
         this.operations = new Operations(
                 kernelRead,
                 storageReader,
@@ -549,7 +551,8 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
             Dependencies dependencies,
             SecurityAuthorizationHandler securityAuthorizationHandler,
             ElementIdMapper elementIdMapper,
-            boolean multiVersioned) {
+            boolean multiVersioned,
+            LogProvider logProvider) {
         return (securityContext,
                 transactionId,
                 transactionCursorContext,
@@ -600,7 +603,8 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                     clockContextSupplier,
                     List.of(executionContextStorageReader, executionContextLockClient),
                     procedureView,
-                    multiVersioned);
+                    multiVersioned,
+                    logProvider);
         };
     }
 

@@ -37,13 +37,16 @@ import static org.neo4j.kernel.api.impl.fulltext.FulltextIndexSettingsKeys.EVENT
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexType;
 import org.neo4j.internal.kernel.api.IndexReadSession;
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
+import org.neo4j.internal.kernel.api.RelationshipValueIndexCursor;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.FulltextSchemaDescriptor;
 import org.neo4j.internal.schema.IndexBehaviour;
@@ -828,6 +831,90 @@ class FulltextIndexTest extends LuceneFulltextTestSupport {
                 LogAssertions.assertThat(logProvider)
                         .containsMessageWithException(
                                 "A fulltext schema index cannot answer EXISTS queries on UNKNOWN values", e);
+            }
+        }
+    }
+
+    @Test
+    void multiTokenIndexShouldThrowOnUnsupportedLockingNodeUniqueIndexSeek() {
+        // Create multi-token index
+        try (Transaction tx = db.beginTx()) {
+            tx.schema()
+                    .indexFor(LABEL, Label.label("ANOTHER_LABEL"))
+                    .on(PROP)
+                    .withIndexType(IndexType.FULLTEXT)
+                    .withName(NODE_INDEX_NAME)
+                    .create();
+            tx.commit();
+        }
+        // Wait for it to be online
+        try (Transaction tx = db.beginTx()) {
+            tx.schema().awaitIndexOnline(NODE_INDEX_NAME, 1, TimeUnit.MINUTES);
+        }
+
+        // Try a lockingNodeUniqueIndexSeek
+        try (Transaction tx = db.beginTx()) {
+            KernelTransaction ktx = kernelTransaction(tx);
+            IndexDescriptor index = ktx.schemaRead().indexGetForName(NODE_INDEX_NAME);
+            final var propertyKey = ktx.tokenRead().propertyKey(PROP);
+
+            try (NodeValueIndexCursor cursor =
+                    ktx.cursors().allocateNodeValueIndexCursor(ktx.cursorContext(), ktx.memoryTracker())) {
+                IndexNotApplicableKernelException e =
+                        assertThrows(IndexNotApplicableKernelException.class, () -> ktx.dataRead()
+                                .lockingNodeUniqueIndexSeek(
+                                        index, cursor, PropertyIndexQuery.exact(propertyKey, "does not matter")));
+                assertThat(e).hasMessageContaining("Multi-token index", "does not support uniqueness.");
+                assertThat(e.gqlStatus()).isEqualTo("50N15");
+                assertThat(e.statusDescription())
+                        .isEqualTo(String.format(
+                                "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information.",
+                                NODE_INDEX_NAME));
+                LogAssertions.assertThat(logProvider)
+                        .containsMessageWithAll("Multi-token index", "does not support uniqueness.")
+                        .containsException(e);
+            }
+        }
+    }
+
+    @Test
+    void multiTokenIndexShouldThrowOnUnsupportedLockingRelUniqueIndexSeek() {
+        // Create multi-token index
+        try (Transaction tx = db.beginTx()) {
+            tx.schema()
+                    .indexFor(RELTYPE, RelationshipType.withName("ANOTHER_RELTYPE"))
+                    .on(PROP)
+                    .withIndexType(IndexType.FULLTEXT)
+                    .withName(REL_INDEX_NAME)
+                    .create();
+            tx.commit();
+        }
+        // Wait for it to be online
+        try (Transaction tx = db.beginTx()) {
+            tx.schema().awaitIndexOnline(REL_INDEX_NAME, 1, TimeUnit.MINUTES);
+        }
+
+        // Try a lockingRelationshipUniqueIndexSeek
+        try (Transaction tx = db.beginTx()) {
+            KernelTransaction ktx = kernelTransaction(tx);
+            IndexDescriptor index = ktx.schemaRead().indexGetForName(REL_INDEX_NAME);
+            final var propertyKey = ktx.tokenRead().propertyKey(PROP);
+
+            try (RelationshipValueIndexCursor cursor =
+                    ktx.cursors().allocateRelationshipValueIndexCursor(ktx.cursorContext(), ktx.memoryTracker())) {
+                IndexNotApplicableKernelException e =
+                        assertThrows(IndexNotApplicableKernelException.class, () -> ktx.dataRead()
+                                .lockingRelationshipUniqueIndexSeek(
+                                        index, cursor, PropertyIndexQuery.exact(propertyKey, "does not matter")));
+                assertThat(e).hasMessageContaining("Multi-token index", "does not support uniqueness.");
+                assertThat(e.gqlStatus()).isEqualTo("50N15");
+                assertThat(e.statusDescription())
+                        .isEqualTo(String.format(
+                                "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information.",
+                                REL_INDEX_NAME));
+                LogAssertions.assertThat(logProvider)
+                        .containsMessageWithAll("Multi-token index", "does not support uniqueness.")
+                        .containsException(e);
             }
         }
     }

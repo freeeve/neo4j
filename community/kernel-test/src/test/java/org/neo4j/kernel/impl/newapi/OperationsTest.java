@@ -104,6 +104,7 @@ import org.neo4j.lock.LockTracer;
 import org.neo4j.lock.ResourceType;
 import org.neo4j.logging.FormattedLogFormat;
 import org.neo4j.logging.Level;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.logging.SecurityLogHelper;
 import org.neo4j.storageengine.api.CommandCreationContext;
 import org.neo4j.storageengine.api.PropertySelection;
@@ -212,7 +213,8 @@ abstract class OperationsTest {
                 false,
                 mock(AssertOpen.class),
                 () -> Static.FULL,
-                false);
+                false,
+                NullLogProvider.getInstance());
         constraintIndexCreator = mock(ConstraintIndexCreator.class);
         creationContext = mock(CommandCreationContext.class);
 

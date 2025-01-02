@@ -63,6 +63,8 @@ import org.neo4j.kernel.api.txstate.TxStateHolder;
 import org.neo4j.kernel.impl.api.IndexReaderCache;
 import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
 import org.neo4j.kernel.impl.api.index.IndexingService;
+import org.neo4j.logging.Log;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.Reference;
@@ -106,6 +108,7 @@ public final class KernelRead implements Read {
     private final AssertOpen assertOpen;
     private final AccessModeProvider accessModeProvider;
     private final boolean parallel;
+    private final Log log;
 
     public KernelRead(
             StorageReader storageReader,
@@ -121,7 +124,8 @@ public final class KernelRead implements Read {
             boolean multiVersioned,
             AssertOpen assertOpen,
             AccessModeProvider accessModeProvider,
-            boolean parallel) {
+            boolean parallel,
+            LogProvider logProvider) {
         this.storageReader = storageReader;
         this.tokenRead = tokenRead;
         this.cursors = cursors;
@@ -141,6 +145,7 @@ public final class KernelRead implements Read {
         this.assertOpen = assertOpen;
         this.accessModeProvider = accessModeProvider;
         this.parallel = parallel;
+        this.log = logProvider.getLog(getClass());
     }
 
     @Override
@@ -236,7 +241,8 @@ public final class KernelRead implements Read {
 
         int[] entityTokenIds = index.schema().getEntityTokenIds();
         if (entityTokenIds.length != 1) {
-            throw new IndexNotApplicableKernelException("Multi-token index " + index + " does not support uniqueness.");
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log, index.getName(), "Multi-token index " + index + " does not support uniqueness.");
         }
         long indexEntryId = indexEntryResourceId(entityTokenIds[0], predicates);
 
@@ -282,7 +288,8 @@ public final class KernelRead implements Read {
 
         int[] entityTokenIds = index.schema().getEntityTokenIds();
         if (entityTokenIds.length != 1) {
-            throw new IndexNotApplicableKernelException("Multi-token index " + index + " does not support uniqueness.");
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log, index.getName(), "Multi-token index " + index + " does not support uniqueness.");
         }
         long indexEntryId = indexEntryResourceId(entityTokenIds[0], predicates);
 
