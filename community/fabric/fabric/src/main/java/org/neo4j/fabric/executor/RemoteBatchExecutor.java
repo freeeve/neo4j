@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.neo4j.fabric.stream.FragmentResult;
@@ -67,41 +68,50 @@ public class RemoteBatchExecutor {
         AtomicBoolean streamingAborted = new AtomicBoolean(false);
         BlockingQueue<RemoteStreamEvent> queue = new ArrayBlockingQueue<>(bufferSize);
 
-        List<Future<FragmentResultWithInput>> futures = batchInput.stream()
+        List<Future<FragmentResult>> futures = batchInput.stream()
                 .map(record -> executor.submit(() -> {
-                    var fragmentResult = fragmentExecutor.apply(record);
-                    return new FragmentResultWithInput(fragmentResult, record);
+                    FragmentResult fragmentResult = fragmentExecutor.apply(record);
+                    startStreaming(queue, streamingAborted, fragmentResult, record, unitInner);
+                    return fragmentResult;
                 }))
                 .toList();
 
-        List<FragmentResultWithInput> allResults = getAllResults(futures);
-        allResults.forEach(fragmentResultWithInput -> startStreaming(
-                queue,
-                streamingAborted,
-                fragmentResultWithInput.fragmentResult,
-                fragmentResultWithInput.inputRecord,
-                unitInner));
-        return new RemoteBatch(
-                allResults.stream().map(FragmentResultWithInput::fragmentResult).toList(), queue, streamingAborted);
+        List<FragmentResult> allResults = getAllResults(futures, failure -> {
+            // Given that we can get errors in two places (1. when executing the query, 2. when streaming the result)
+            // And we need to select the best error, we postpone handling of non-conclusive errors encountered during
+            // the query execution to the streaming phase.
+            startStreaming(queue, streamingAborted, new FailureResult(failure), null, unitInner);
+        });
+
+        Supplier<PlanlessSummary> combinedSummaries = () -> allResults.stream()
+                .map(FragmentResult::consume)
+                .reduce(PlanlessSummary::merge)
+                .orElse(null);
+        return new RemoteBatch(batchInput.size(), combinedSummaries, queue, streamingAborted);
     }
 
-    private List<FragmentResultWithInput> getAllResults(List<Future<FragmentResultWithInput>> futures) {
-        List<FragmentResultWithInput> results = new ArrayList<>();
-        List<RuntimeException> failures = new ArrayList<>();
+    private List<FragmentResult> getAllResults(
+            List<Future<FragmentResult>> futures, Consumer<RuntimeException> delayedFailureHandler) {
+        List<FragmentResult> results = new ArrayList<>();
         for (var future : futures) {
             try {
                 results.add(future.get());
             } catch (ExecutionException e) {
                 // The code submitted to the executor does not throw checked exceptions,
                 // so the cast is safe
-                failures.add((RuntimeException) e.getCause());
+                var cause = (RuntimeException) e.getCause();
+                // If the error is good enough, there is no point postponing
+                // and we can throw it right away.
+                // In the case of a non-conclusive error, we delay the handing
+                // for later in case a better error is encountered later.
+                if (conclusiveException(cause)) {
+                    throw cause;
+                } else {
+                    delayedFailureHandler.accept(cause);
+                }
             } catch (InterruptedException e) {
-                failures.add(new RuntimeException(e));
+                throw new RuntimeException(e);
             }
-        }
-
-        if (!failures.isEmpty()) {
-            handleCollectedErrors(failures);
         }
 
         return results;
@@ -126,8 +136,11 @@ public class RemoteBatchExecutor {
         }
 
         // The reason why we collect all the errors instead of just throwing the first
-        // one is the following:
-        // Cypher runtime terminates a transaction when an exception is thrown.
+        // one are the following:
+        // 1. Cypher runtime terminates a transaction when an exception is thrown.
+        // 2. Error handling in driver transactions is sort of not query-scoped,
+        // but transaction-scoped. (Error in one query will cause TX terminated error
+        // in the other queries in the same driver TX)
         // This means that any other query executing in the same transaction will
         // throw 'transaction terminated' exception sooner or later.
         // That is a bit problematic, because those secondary 'transaction terminated' errors
@@ -136,10 +149,14 @@ public class RemoteBatchExecutor {
         // So the point of collecting all errors is to try to find the best one, which currently
         // means not 'transaction terminated' error if such exists.
         throw failures.stream()
-                .filter(e -> (e instanceof Status.HasStatus exceptionWithStatus
-                        && exceptionWithStatus.status() != Status.Transaction.Terminated))
+                .filter(RemoteBatchExecutor::conclusiveException)
                 .findAny()
                 .orElseGet(failures::getFirst);
+    }
+
+    private static boolean conclusiveException(Exception e) {
+        return (e instanceof Status.HasStatus exceptionWithStatus
+                && exceptionWithStatus.status() != Status.Transaction.Terminated);
     }
 
     /**
@@ -209,7 +226,6 @@ public class RemoteBatchExecutor {
 
         private final BlockingQueue<RemoteStreamEvent> queue;
         private final AtomicBoolean streamingAborted;
-        private final List<String> columns;
         // A concurrency note:
         // Since the results streams are consumed by worker threads,
         // calling this might cause concurrency issues. However,
@@ -221,20 +237,21 @@ public class RemoteBatchExecutor {
         private final List<RuntimeException> failures = new ArrayList<>();
 
         private RemoteBatch(
-                List<FragmentResult> results, BlockingQueue<RemoteStreamEvent> queue, AtomicBoolean streamingAborted) {
+                int activeRemoteStream,
+                Supplier<PlanlessSummary> combinedSummaries,
+                BlockingQueue<RemoteStreamEvent> queue,
+                AtomicBoolean streamingAborted) {
             this.queue = queue;
             this.streamingAborted = streamingAborted;
-            this.activeRemoteStreams = results.size();
-            columns = results.get(0).columns();
-            combinedSummaries = () -> results.stream()
-                    .map(FragmentResult::consume)
-                    .reduce(PlanlessSummary::merge)
-                    .get();
+            this.activeRemoteStreams = activeRemoteStream;
+            this.combinedSummaries = combinedSummaries;
         }
 
         @Override
         public List<String> columns() {
-            return columns;
+            // Apply executor determines the final columns from the plan,
+            // so we don't need to bother with columns here
+            return List.of();
         }
 
         @Override
@@ -314,5 +331,26 @@ public class RemoteBatchExecutor {
         record Failure(RuntimeException e) implements RemoteStreamEvent {}
     }
 
-    private record FragmentResultWithInput(FragmentResult fragmentResult, Record inputRecord) {}
+    private record FailureResult(RuntimeException failure) implements FragmentResult {
+
+        @Override
+        public List<String> columns() {
+            return List.of();
+        }
+
+        @Override
+        public Record next() {
+            throw failure;
+        }
+
+        @Override
+        public PlanlessSummary consume() {
+            return null;
+        }
+
+        @Override
+        public QueryExecutionType executionType() {
+            return null;
+        }
+    }
 }

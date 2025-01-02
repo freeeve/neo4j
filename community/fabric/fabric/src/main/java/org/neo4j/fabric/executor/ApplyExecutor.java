@@ -21,6 +21,7 @@ package org.neo4j.fabric.executor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.neo4j.fabric.stream.FragmentResult;
@@ -137,6 +138,7 @@ public class ApplyExecutor implements FragmentResult {
     public PlanlessSummary consume() {
         return summaries.stream()
                 .map(Supplier::get)
+                .filter(Objects::nonNull)
                 .reduce(PlanlessSummary::merge)
                 .orElse(null);
     }
