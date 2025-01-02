@@ -29,6 +29,7 @@ import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
 import java.util.Arrays;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.factory.primitive.LongSets;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -52,17 +53,22 @@ import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.coreapi.TransactionImpl;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.logging.AssertableLogProvider;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsController;
 import org.neo4j.test.extension.DbmsExtension;
+import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
 
-@DbmsExtension
+@DbmsExtension(configurationCallback = "configure")
 public class LuceneFulltextTestSupport {
     static final Label LABEL = Label.label("LABEL");
     static final RelationshipType RELTYPE = RelationshipType.withName("type");
     static final String PROP = "prop";
     static final String PROP2 = "prop2";
     static final String PROP3 = "prop3";
+
+    protected AssertableLogProvider logProvider = new AssertableLogProvider();
 
     @Inject
     DbmsController controller;
@@ -78,9 +84,19 @@ public class LuceneFulltextTestSupport {
 
     FulltextIndexProvider indexProvider;
 
+    @ExtensionCallback
+    protected void configure(TestDatabaseManagementServiceBuilder builder) {
+        builder.setInternalLogProvider(logProvider);
+    }
+
     @BeforeEach
     void setUp() {
         indexProvider = getAdapter();
+    }
+
+    @AfterEach
+    void tearDown() {
+        logProvider.clear();
     }
 
     void applySetting(Setting<String> setting, String value) {

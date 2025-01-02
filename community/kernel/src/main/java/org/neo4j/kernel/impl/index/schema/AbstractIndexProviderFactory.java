@@ -33,6 +33,7 @@ import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.index.LoggingMonitor;
 import org.neo4j.logging.InternalLog;
+import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.JobScheduler;
@@ -71,7 +72,7 @@ public abstract class AbstractIndexProviderFactory<T extends IndexProvider> {
                 readOnlyChecker,
                 recoveryCleanupWorkCollector,
                 databaseLayout,
-                log,
+                logService.getInternalLogProvider(),
                 tokenHolders,
                 scheduler,
                 contextFactory,
@@ -92,7 +93,7 @@ public abstract class AbstractIndexProviderFactory<T extends IndexProvider> {
             DatabaseReadOnlyChecker readOnlyDatabaseChecker,
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector,
             DatabaseLayout databaseLayout,
-            InternalLog log,
+            InternalLogProvider logProvider,
             TokenHolders tokenHolders,
             JobScheduler scheduler,
             CursorContextFactory contextFactory,

@@ -32,6 +32,7 @@ import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 import org.neo4j.kernel.api.impl.index.partition.IndexPartitionFactory;
 import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.token.api.TokenHolder;
 
 public class FulltextIndex extends AbstractLuceneIndex<FulltextIndexReader> implements Closeable {
@@ -40,6 +41,7 @@ public class FulltextIndex extends AbstractLuceneIndex<FulltextIndexReader> impl
     private final TokenHolder propertyKeyTokenHolder;
     private final String[] propertyNames;
     private final Path transactionsFolder;
+    private final LogProvider logProvider;
 
     FulltextIndex(
             PartitionedIndexStorage storage,
@@ -48,7 +50,8 @@ public class FulltextIndex extends AbstractLuceneIndex<FulltextIndexReader> impl
             TokenHolder propertyKeyTokenHolder,
             Config config,
             Analyzer analyzer,
-            String[] propertyNames) {
+            String[] propertyNames,
+            LogProvider logProvider) {
         super(storage, partitionFactory, descriptor, config);
         this.config = config;
         this.analyzer = analyzer;
@@ -56,6 +59,7 @@ public class FulltextIndex extends AbstractLuceneIndex<FulltextIndexReader> impl
         this.propertyKeyTokenHolder = propertyKeyTokenHolder;
         Path indexFolder = storage.getIndexFolder();
         transactionsFolder = indexFolder.resolve(indexFolder.getFileName() + ".tx");
+        this.logProvider = logProvider;
     }
 
     @Override
@@ -81,6 +85,13 @@ public class FulltextIndex extends AbstractLuceneIndex<FulltextIndexReader> impl
             List<AbstractIndexPartition> partitions, IndexUsageTracking usageTracker) throws IOException {
         List<SearcherReference> searchers = acquireSearchers(partitions);
         return new FulltextIndexReader(
-                searchers, propertyKeyTokenHolder, getDescriptor(), config, analyzer, propertyNames, usageTracker);
+                searchers,
+                propertyKeyTokenHolder,
+                getDescriptor(),
+                config,
+                analyzer,
+                propertyNames,
+                usageTracker,
+                logProvider);
     }
 }

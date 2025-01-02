@@ -29,6 +29,7 @@ import org.neo4j.kernel.api.impl.index.IndexWriterConfigModes;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigModes.FulltextModes;
 import org.neo4j.kernel.api.impl.index.builder.AbstractLuceneIndexBuilder;
 import org.neo4j.kernel.api.impl.index.partition.WritableIndexPartitionFactory;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.token.api.TokenHolder;
 
 public class FulltextIndexBuilder extends AbstractLuceneIndexBuilder<FulltextIndexBuilder> {
@@ -39,6 +40,7 @@ public class FulltextIndexBuilder extends AbstractLuceneIndexBuilder<FulltextInd
     private boolean populating;
     private IndexUpdateSink indexUpdateSink = NullIndexUpdateSink.INSTANCE;
     private final Config config;
+    private final LogProvider logProvider;
 
     private FulltextIndexBuilder(
             IndexDescriptor descriptor,
@@ -46,13 +48,15 @@ public class FulltextIndexBuilder extends AbstractLuceneIndexBuilder<FulltextInd
             DatabaseReadOnlyChecker readOnlyChecker,
             TokenHolder propertyKeyTokenHolder,
             Analyzer analyzer,
-            String[] propertyNames) {
+            String[] propertyNames,
+            LogProvider logProvider) {
         super(readOnlyChecker);
         this.config = config;
         this.descriptor = descriptor;
         this.analyzer = analyzer;
         this.propertyNames = propertyNames;
         this.propertyKeyTokenHolder = propertyKeyTokenHolder;
+        this.logProvider = logProvider;
     }
 
     /**
@@ -68,9 +72,10 @@ public class FulltextIndexBuilder extends AbstractLuceneIndexBuilder<FulltextInd
             DatabaseReadOnlyChecker readOnlyChecker,
             TokenHolder propertyKeyTokenHolder,
             Analyzer analyzer,
-            String[] propertyNames) {
+            String[] propertyNames,
+            LogProvider logProvider) {
         return new FulltextIndexBuilder(
-                descriptor, config, readOnlyChecker, propertyKeyTokenHolder, analyzer, propertyNames);
+                descriptor, config, readOnlyChecker, propertyKeyTokenHolder, analyzer, propertyNames, logProvider);
     }
 
     /**
@@ -108,7 +113,8 @@ public class FulltextIndexBuilder extends AbstractLuceneIndexBuilder<FulltextInd
                 propertyKeyTokenHolder,
                 config,
                 analyzer,
-                propertyNames);
+                propertyNames,
+                logProvider);
         return new WritableFulltextDatabaseIndex(indexUpdateSink, fulltextIndex, readOnlyChecker, permanentlyReadOnly);
     }
 }

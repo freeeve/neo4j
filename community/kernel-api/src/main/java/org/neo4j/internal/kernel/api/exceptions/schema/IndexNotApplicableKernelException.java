@@ -25,6 +25,7 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
+import org.neo4j.logging.Log;
 
 public class IndexNotApplicableKernelException extends KernelException {
     public IndexNotApplicableKernelException(String msg) {
@@ -35,12 +36,14 @@ public class IndexNotApplicableKernelException extends KernelException {
         super(gqlStatusObject, Status.Schema.IndexNotApplicable, msg);
     }
 
-    public static IndexNotApplicableKernelException indexNotApplicable(String indexName, String msg) {
+    public static IndexNotApplicableKernelException indexNotApplicable(Log log, String indexName, String msg) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N15)
                 .withParam(GqlParams.StringParam.idx, indexName)
                 .build();
 
-        return new IndexNotApplicableKernelException(gql, msg);
+        var e = new IndexNotApplicableKernelException(gql, msg);
+        log.error(msg, e);
+        return e;
     }
 
     public static IndexNotApplicableKernelException vectorIndexDimensionalityMismatch(

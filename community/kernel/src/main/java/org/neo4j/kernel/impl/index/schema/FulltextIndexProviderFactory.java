@@ -37,7 +37,7 @@ import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.impl.fulltext.FulltextIndexProvider;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
-import org.neo4j.logging.InternalLog;
+import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.token.TokenHolders;
@@ -64,7 +64,7 @@ public class FulltextIndexProviderFactory extends AbstractIndexProviderFactory<F
             DatabaseReadOnlyChecker readOnlyDatabaseChecker,
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector,
             DatabaseLayout databaseLayout,
-            InternalLog log,
+            InternalLogProvider logProvider,
             TokenHolders tokenHolders,
             JobScheduler scheduler,
             CursorContextFactory contextFactory,
@@ -82,7 +82,7 @@ public class FulltextIndexProviderFactory extends AbstractIndexProviderFactory<F
                 directoryFactory,
                 readOnlyDatabaseChecker,
                 scheduler,
-                log);
+                logProvider);
     }
 
     private static IndexDirectoryStructure.Factory subProviderDirectoryStructure(Path storeDir) {

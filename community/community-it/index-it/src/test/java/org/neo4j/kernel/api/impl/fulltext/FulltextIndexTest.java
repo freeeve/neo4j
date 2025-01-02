@@ -61,6 +61,7 @@ import org.neo4j.io.pagecache.tracing.cursor.DefaultPageCursorTracer;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
+import org.neo4j.logging.LogAssertions;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.util.Preconditions;
@@ -817,12 +818,16 @@ class FulltextIndexTest extends LuceneFulltextTestSupport {
                                         unconstrained(),
                                         PropertyIndexQuery.exists(0) // Unsupported
                                         ));
-                assertThat(e).hasMessageContaining("A fulltext schema index cannot answer", "queries on", "values");
+                assertThat(e)
+                        .hasMessageContaining("A fulltext schema index cannot answer EXISTS queries on UNKNOWN values");
                 assertThat(e.gqlStatus()).isEqualTo("50N15");
                 assertThat(e.statusDescription())
                         .isEqualTo(String.format(
                                 "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information.",
                                 NODE_INDEX_NAME));
+                LogAssertions.assertThat(logProvider)
+                        .containsMessageWithException(
+                                "A fulltext schema index cannot answer EXISTS queries on UNKNOWN values", e);
             }
         }
     }

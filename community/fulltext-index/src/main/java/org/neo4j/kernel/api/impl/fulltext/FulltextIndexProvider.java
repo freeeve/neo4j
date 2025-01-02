@@ -70,6 +70,8 @@ import org.neo4j.kernel.api.index.MinimalIndexAccessor;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.kernel.impl.index.schema.IndexUpdateIgnoreStrategy;
 import org.neo4j.logging.InternalLog;
+import org.neo4j.logging.InternalLogProvider;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.service.Services;
@@ -105,6 +107,7 @@ public class FulltextIndexProvider extends IndexProvider {
     private final boolean defaultEventuallyConsistentSetting;
     private final DatabaseReadOnlyChecker readOnlyChecker;
     private final JobScheduler scheduler;
+    private final LogProvider logProvider;
     private final InternalLog log;
     private final IndexUpdateSink indexUpdateSink;
     private final IndexStorageFactory indexStorageFactory;
@@ -118,14 +121,15 @@ public class FulltextIndexProvider extends IndexProvider {
             DirectoryFactory directoryFactory,
             DatabaseReadOnlyChecker readOnlyChecker,
             JobScheduler scheduler,
-            InternalLog log) {
+            InternalLogProvider logProvider) {
         super(KernelVersion.EARLIEST, descriptor, directoryStructureFactory);
         this.fileSystem = fileSystem;
         this.config = config;
         this.tokenHolders = tokenHolders;
         this.readOnlyChecker = readOnlyChecker;
         this.scheduler = scheduler;
-        this.log = log;
+        this.logProvider = logProvider;
+        this.log = logProvider.getLog(getClass());
 
         defaultAnalyzerName = config.get(FulltextSettings.fulltext_default_analyzer);
         defaultEventuallyConsistentSetting = config.get(FulltextSettings.eventually_consistent);
@@ -240,7 +244,8 @@ public class FulltextIndexProvider extends IndexProvider {
                             readOnlyChecker,
                             tokenHolders.propertyKeyTokens(),
                             analyzer,
-                            propertyNames)
+                            propertyNames,
+                            logProvider)
                     .withFileSystem(fileSystem)
                     .withIndexStorage(indexStorage)
                     .withPopulatingMode(true)
@@ -269,7 +274,13 @@ public class FulltextIndexProvider extends IndexProvider {
         Analyzer analyzer = FulltextIndexAnalyzerLoader.INSTANCE.createAnalyzer(index, tokenHolders);
         String[] propertyNames = createPropertyNames(index, tokenHolders);
         FulltextIndexBuilder fulltextIndexBuilder = FulltextIndexBuilder.create(
-                        index, config, readOnlyChecker, tokenHolders.propertyKeyTokens(), analyzer, propertyNames)
+                        index,
+                        config,
+                        readOnlyChecker,
+                        tokenHolders.propertyKeyTokens(),
+                        analyzer,
+                        propertyNames,
+                        logProvider)
                 .withFileSystem(fileSystem)
                 .withIndexStorage(indexStorage)
                 .withPopulatingMode(false);

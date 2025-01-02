@@ -56,6 +56,8 @@ import org.neo4j.kernel.api.index.IndexSampler;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
 import org.neo4j.kernel.impl.index.schema.PartitionedValueSeek;
+import org.neo4j.logging.Log;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.token.api.TokenHolder;
 import org.neo4j.token.api.TokenNotFoundException;
@@ -70,6 +72,7 @@ public class FulltextIndexReader implements ValueIndexReader {
     private final String[] propertyNames;
     private final FulltextIndexTransactionState transactionState;
     private final IndexUsageTracking usageTracker;
+    private final Log log;
 
     FulltextIndexReader(
             List<SearcherReference> searchers,
@@ -78,7 +81,8 @@ public class FulltextIndexReader implements ValueIndexReader {
             Config config,
             Analyzer analyzer,
             String[] propertyNames,
-            IndexUsageTracking usageTracker) {
+            IndexUsageTracking usageTracker,
+            LogProvider logProvider) {
         this.searchers = searchers;
         this.propertyKeyTokenHolder = propertyKeyTokenHolder;
         this.index = descriptor;
@@ -86,6 +90,7 @@ public class FulltextIndexReader implements ValueIndexReader {
         this.propertyNames = propertyNames;
         this.usageTracker = usageTracker;
         this.transactionState = new FulltextIndexTransactionState(descriptor, config, analyzer, propertyNames);
+        this.log = logProvider.getLog(getClass());
     }
 
     @Override
@@ -120,9 +125,8 @@ public class FulltextIndexReader implements ValueIndexReader {
 
         final var predicate = predicates[0];
         if (!index.getCapability().isQuerySupported(predicate.type(), predicate.valueCategory())) {
-            // TODO add logging here
             throw invalidQuery(
-                    msg -> IndexNotApplicableKernelException.indexNotApplicable(index.getName(), msg), predicate);
+                    msg -> IndexNotApplicableKernelException.indexNotApplicable(log, index.getName(), msg), predicate);
         }
 
         return predicate;
