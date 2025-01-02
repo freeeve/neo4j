@@ -120,7 +120,9 @@ public class FulltextIndexReader implements ValueIndexReader {
 
         final var predicate = predicates[0];
         if (!index.getCapability().isQuerySupported(predicate.type(), predicate.valueCategory())) {
-            throw invalidQuery(IndexNotApplicableKernelException::new, predicate);
+            // TODO add logging here
+            throw invalidQuery(
+                    msg -> IndexNotApplicableKernelException.indexNotApplicable(index.getName(), msg), predicate);
         }
 
         return predicate;

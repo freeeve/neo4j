@@ -25,9 +25,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.common.EntityType.NODE;
 import static org.neo4j.graphdb.Label.label;
+import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
 import static org.neo4j.internal.schema.IndexCapability.NO_CAPABILITY;
 import static org.neo4j.kernel.api.impl.fulltext.FulltextIndexSettingsKeys.ANALYZER;
 import static org.neo4j.kernel.api.impl.fulltext.FulltextIndexSettingsKeys.EVENTUALLY_CONSISTENT;
@@ -39,6 +41,10 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexType;
+import org.neo4j.internal.kernel.api.IndexReadSession;
+import org.neo4j.internal.kernel.api.NodeValueIndexCursor;
+import org.neo4j.internal.kernel.api.PropertyIndexQuery;
+import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.FulltextSchemaDescriptor;
 import org.neo4j.internal.schema.IndexBehaviour;
 import org.neo4j.internal.schema.IndexCapability;
@@ -788,6 +794,35 @@ class FulltextIndexTest extends LuceneFulltextTestSupport {
                 Node node = nodes.next();
                 assertThat(node.getId()).isEqualTo(nodeId);
                 assertFalse(nodes.hasNext());
+            }
+        }
+    }
+
+    @Test
+    void shouldThrowOnUnsupportedQuery() throws Exception {
+        prepareNodeLabelPropIndex();
+        try (Transaction tx = db.beginTx()) {
+            KernelTransaction ktx = kernelTransaction(tx);
+            IndexDescriptor index = ktx.schemaRead().indexGetForName(NODE_INDEX_NAME);
+            IndexReadSession indexSession = ktx.dataRead().indexReadSession(index);
+
+            try (NodeValueIndexCursor cursor =
+                    ktx.cursors().allocateNodeValueIndexCursor(ktx.cursorContext(), ktx.memoryTracker())) {
+                IndexNotApplicableKernelException e =
+                        assertThrows(IndexNotApplicableKernelException.class, () -> ktx.dataRead()
+                                .nodeIndexSeek(
+                                        ktx.queryContext(),
+                                        indexSession,
+                                        cursor,
+                                        unconstrained(),
+                                        PropertyIndexQuery.exists(0) // Unsupported
+                                        ));
+                assertThat(e).hasMessageContaining("A fulltext schema index cannot answer", "queries on", "values");
+                assertThat(e.gqlStatus()).isEqualTo("50N15");
+                assertThat(e.statusDescription())
+                        .isEqualTo(String.format(
+                                "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information.",
+                                NODE_INDEX_NAME));
             }
         }
     }

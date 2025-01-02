@@ -35,6 +35,14 @@ public class IndexNotApplicableKernelException extends KernelException {
         super(gqlStatusObject, Status.Schema.IndexNotApplicable, msg);
     }
 
+    public static IndexNotApplicableKernelException indexNotApplicable(String indexName, String msg) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N15)
+                .withParam(GqlParams.StringParam.idx, indexName)
+                .build();
+
+        return new IndexNotApplicableKernelException(gql, msg);
+    }
+
     public static IndexNotApplicableKernelException vectorIndexDimensionalityMismatch(
             String indexName, int indexDim, int vectorDim) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N65)
