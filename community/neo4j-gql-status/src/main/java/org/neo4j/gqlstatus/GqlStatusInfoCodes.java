@@ -4017,7 +4017,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_50N15(
             new GqlStatus("50N15"),
             """
-                    The system attemped to execute an unsupported operation on index { %s }. See debug.log for more information.""",
+                    The system attempted to execute an unsupported operation on index { %s }. See debug.log for more information.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idx},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
