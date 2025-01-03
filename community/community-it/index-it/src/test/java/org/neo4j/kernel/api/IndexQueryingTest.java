@@ -124,7 +124,7 @@ public class IndexQueryingTest extends KernelAPIReadTestBase<ReadTestSupport> {
         IndexReadSession indexReadSession = read.indexReadSession(index);
         try (RelationshipValueIndexCursor cursor =
                 cursors.allocateRelationshipValueIndexCursor(NULL_CONTEXT, EmptyMemoryTracker.INSTANCE)) {
-            assertThrows(
+            var e = assertThrows(
                     IndexNotApplicableKernelException.class,
                     () -> read.relationshipIndexSeek(
                             tx.queryContext(),
@@ -132,6 +132,34 @@ public class IndexQueryingTest extends KernelAPIReadTestBase<ReadTestSupport> {
                             cursor,
                             unconstrained(),
                             PropertyIndexQuery.fulltextSearch("search")));
+            assertThat(e).hasMessageContaining("Relationship index seek can not be performed on index");
+            assertThat(e.gqlStatus()).isEqualTo("50N15");
+            assertThat(e.statusDescription())
+                    .isEqualTo(
+                            "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information."
+                                    .formatted(NODE_INDEX_NAME));
+            LogAssertions.assertThat(logProvider)
+                    .containsMessageWithAll("Relationship index seek can not be performed on index")
+                    .containsException(e);
         }
+    }
+
+    @Test
+    void partitionedRelationshipIndexSeekMustThrowOnWrongIndexEntityType() throws IndexNotFoundKernelException {
+        IndexDescriptor index = schemaRead.indexGetForName(NODE_INDEX_NAME);
+        IndexReadSession indexReadSession = read.indexReadSession(index);
+        var e = assertThrows(
+                IndexNotApplicableKernelException.class,
+                () -> read.relationshipIndexSeek(
+                        indexReadSession, 10, tx.queryContext(), PropertyIndexQuery.fulltextSearch("search")));
+        assertThat(e).hasMessageContaining("Relationship index seek can not be performed on index");
+        assertThat(e.gqlStatus()).isEqualTo("50N15");
+        assertThat(e.statusDescription())
+                .isEqualTo(
+                        "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information."
+                                .formatted(NODE_INDEX_NAME));
+        LogAssertions.assertThat(logProvider)
+                .containsMessageWithAll("Relationship index seek can not be performed on index")
+                .containsException(e);
     }
 }
