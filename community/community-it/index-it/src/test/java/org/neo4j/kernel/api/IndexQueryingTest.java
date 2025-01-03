@@ -30,12 +30,17 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.IndexReadSession;
+import org.neo4j.internal.kernel.api.NodeLabelIndexCursor;
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
+import org.neo4j.internal.kernel.api.RelationshipTypeIndexCursor;
 import org.neo4j.internal.kernel.api.RelationshipValueIndexCursor;
+import org.neo4j.internal.kernel.api.TokenPredicate;
+import org.neo4j.internal.kernel.api.TokenReadSession;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.kernel.impl.newapi.KernelAPIReadTestBase;
 import org.neo4j.kernel.impl.newapi.ReadTestSupport;
 import org.neo4j.logging.AssertableLogProvider;
@@ -161,5 +166,90 @@ public class IndexQueryingTest extends KernelAPIReadTestBase<ReadTestSupport> {
         LogAssertions.assertThat(logProvider)
                 .containsMessageWithAll("Relationship index seek can not be performed on index")
                 .containsException(e);
+    }
+
+    @Test
+    void nodeIndexScanMustThrowOnWrongIndexEntityType() throws Exception {
+        IndexReadSession index = read.indexReadSession(schemaRead.indexGetForName(REL_INDEX_NAME));
+        try (NodeValueIndexCursor cursor =
+                cursors.allocateNodeValueIndexCursor(NULL_CONTEXT, EmptyMemoryTracker.INSTANCE)) {
+            var e = assertThrows(
+                    IndexNotApplicableKernelException.class, () -> read.nodeIndexScan(index, cursor, unconstrained()));
+            assertThat(e).hasMessageContaining("Node index scan can not be performed on index");
+            assertThat(e.gqlStatus()).isEqualTo("50N15");
+            assertThat(e.statusDescription())
+                    .isEqualTo(
+                            "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information."
+                                    .formatted(REL_INDEX_NAME));
+            LogAssertions.assertThat(logProvider)
+                    .containsMessageWithAll("Node index scan can not be performed on index")
+                    .containsException(e);
+        }
+    }
+
+    @Test
+    void relationshipIndexScanMustThrowOnWrongIndexEntityType() throws Exception {
+        IndexReadSession index = read.indexReadSession(schemaRead.indexGetForName(NODE_INDEX_NAME));
+        try (RelationshipValueIndexCursor cursor =
+                cursors.allocateRelationshipValueIndexCursor(NULL_CONTEXT, EmptyMemoryTracker.INSTANCE)) {
+            var e = assertThrows(
+                    IndexNotApplicableKernelException.class,
+                    () -> read.relationshipIndexScan(index, cursor, unconstrained()));
+            assertThat(e).hasMessageContaining("Relationship index scan can not be performed on index");
+            assertThat(e.gqlStatus()).isEqualTo("50N15");
+            assertThat(e.statusDescription())
+                    .isEqualTo(
+                            "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information."
+                                    .formatted(NODE_INDEX_NAME));
+            LogAssertions.assertThat(logProvider)
+                    .containsMessageWithAll("Relationship index scan can not be performed on index")
+                    .containsException(e);
+        }
+    }
+
+    @Test
+    void nodeLabelIndexScanMustThrowOnWrongIndexEntityType() throws Exception {
+        TokenReadSession tokenReadSession = read.tokenReadSession(schemaRead
+                .index(SchemaDescriptors.ANY_TOKEN_RELATIONSHIP_SCHEMA_DESCRIPTOR)
+                .next());
+        try (NodeLabelIndexCursor cursor =
+                cursors.allocateNodeLabelIndexCursor(NULL_CONTEXT, EmptyMemoryTracker.INSTANCE)) {
+            var e = assertThrows(
+                    IndexNotApplicableKernelException.class,
+                    () -> read.nodeLabelScan(
+                            tokenReadSession, cursor, unconstrained(), new TokenPredicate(1), tx.cursorContext()));
+            assertThat(e).hasMessageContaining("Node label index scan can not be performed on index");
+            assertThat(e.gqlStatus()).isEqualTo("50N15");
+            assertThat(e.statusDescription())
+                    .contains(
+                            "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index",
+                            "See debug.log for more information.");
+            LogAssertions.assertThat(logProvider)
+                    .containsMessageWithAll("Node label index scan can not be performed on index")
+                    .containsException(e);
+        }
+    }
+
+    @Test
+    void relationshipTypeIndexScanMustThrowOnWrongIndexEntityType() throws Exception {
+        TokenReadSession tokenReadSession = read.tokenReadSession(schemaRead
+                .index(SchemaDescriptors.ANY_TOKEN_NODE_SCHEMA_DESCRIPTOR)
+                .next());
+        try (RelationshipTypeIndexCursor cursor =
+                cursors.allocateRelationshipTypeIndexCursor(NULL_CONTEXT, EmptyMemoryTracker.INSTANCE)) {
+            var e = assertThrows(
+                    IndexNotApplicableKernelException.class,
+                    () -> read.relationshipTypeScan(
+                            tokenReadSession, cursor, unconstrained(), new TokenPredicate(1), tx.cursorContext()));
+            assertThat(e).hasMessageContaining("Relationship type index scan can not be performed on index");
+            assertThat(e.gqlStatus()).isEqualTo("50N15");
+            assertThat(e.statusDescription())
+                    .contains(
+                            "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index",
+                            "See debug.log for more information.");
+            LogAssertions.assertThat(logProvider)
+                    .containsMessageWithAll("Relationship type index scan can not be performed on index")
+                    .containsException(e);
+        }
     }
 }

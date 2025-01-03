@@ -357,8 +357,11 @@ public final class KernelRead implements Read {
         DefaultIndexReadSession indexSession = (DefaultIndexReadSession) index;
 
         if (indexSession.reference().schema().entityType() != EntityType.NODE) {
-            throw new IndexNotApplicableKernelException("Node index scan can not be performed on index: "
-                    + index.reference().userDescription(tokenRead));
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    index.reference().getName(),
+                    "Node index scan can not be performed on index: "
+                            + index.reference().userDescription(tokenRead));
         }
 
         scanIndex(indexSession, (EntityIndexSeekClient) cursor, constraints);
@@ -371,7 +374,9 @@ public final class KernelRead implements Read {
         performCheckBeforeOperation();
         final var descriptor = index.reference();
         if (descriptor.schema().entityType() != EntityType.NODE) {
-            throw new IndexNotApplicableKernelException(
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    index.reference().getName(),
                     "Node index scan can not be performed on index: " + descriptor.userDescription(tokenRead));
         }
 
@@ -386,8 +391,11 @@ public final class KernelRead implements Read {
         DefaultIndexReadSession indexSession = (DefaultIndexReadSession) index;
 
         if (indexSession.reference().schema().entityType() != EntityType.RELATIONSHIP) {
-            throw new IndexNotApplicableKernelException("Relationship index scan can not be performed on index: "
-                    + index.reference().userDescription(tokenRead));
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    index.reference().getName(),
+                    "Relationship index scan can not be performed on index: "
+                            + index.reference().userDescription(tokenRead));
         }
 
         scanIndex(indexSession, (EntityIndexSeekClient) cursor, constraints);
@@ -400,7 +408,9 @@ public final class KernelRead implements Read {
         performCheckBeforeOperation();
         final var descriptor = index.reference();
         if (descriptor.schema().entityType() != EntityType.RELATIONSHIP) {
-            throw new IndexNotApplicableKernelException(
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    index.reference().getName(),
                     "Relationship index scan can not be performed on index: " + descriptor.userDescription(tokenRead));
         }
 
@@ -429,8 +439,11 @@ public final class KernelRead implements Read {
             throws IndexNotApplicableKernelException {
         performCheckBeforeOperation();
         if (session.reference().schema().entityType() != EntityType.NODE) {
-            throw new IndexNotApplicableKernelException("Node label index scan can not be performed on index: "
-                    + session.reference().userDescription(tokenRead));
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    session.reference().userDescription(tokenRead),
+                    "Node label index scan can not be performed on index: "
+                            + session.reference().userDescription(tokenRead));
         }
         return tokenIndexScan(session, desiredNumberOfPartitions, cursorContext, query);
     }
@@ -441,8 +454,11 @@ public final class KernelRead implements Read {
             throws IndexNotApplicableKernelException {
         performCheckBeforeOperation();
         if (session.reference().schema().entityType() != EntityType.NODE) {
-            throw new IndexNotApplicableKernelException("Node label index scan can not be performed on index: "
-                    + session.reference().userDescription(tokenRead));
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    session.reference().userDescription(tokenRead),
+                    "Node label index scan can not be performed on index: "
+                            + session.reference().userDescription(tokenRead));
         }
         return tokenIndexScan(session, leadingPartitionScan, query);
     }
@@ -456,8 +472,11 @@ public final class KernelRead implements Read {
             throws IndexNotApplicableKernelException {
         performCheckBeforeOperation();
         if (session.reference().schema().entityType() != EntityType.NODE) {
-            throw new IndexNotApplicableKernelException("Node label index scan can not be performed on index: "
-                    + session.reference().userDescription(tokenRead));
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    session.reference().userDescription(tokenRead),
+                    "Node label index scan can not be performed on index: "
+                            + session.reference().userDescription(tokenRead));
         }
         return tokenIndexScan(session, desiredNumberOfPartitions, cursorContext, queries);
     }
@@ -473,8 +492,11 @@ public final class KernelRead implements Read {
         performCheckBeforeOperation();
 
         if (session.reference().schema().entityType() != EntityType.NODE) {
-            throw new IndexNotApplicableKernelException("Node label index scan can not be performed on index: "
-                    + session.reference().userDescription(tokenRead));
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    session.reference().userDescription(tokenRead),
+                    "Node label index scan can not be performed on index: "
+                            + session.reference().userDescription(tokenRead));
         }
 
         var tokenSession = (DefaultTokenReadSession) session;
@@ -549,8 +571,11 @@ public final class KernelRead implements Read {
             throws IndexNotApplicableKernelException {
         performCheckBeforeOperation();
         if (session.reference().schema().entityType() != EntityType.RELATIONSHIP) {
-            throw new IndexNotApplicableKernelException("Relationship type index scan can not be performed on index: "
-                    + session.reference().userDescription(tokenRead));
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    session.reference().userDescription(tokenRead),
+                    "Relationship type index scan can not be performed on index: "
+                            + session.reference().userDescription(tokenRead));
         }
         return tokenIndexScan(session, desiredNumberOfPartitions, cursorContext, query);
     }
@@ -563,8 +588,11 @@ public final class KernelRead implements Read {
             throws IndexNotApplicableKernelException {
         performCheckBeforeOperation();
         if (session.reference().schema().entityType() != EntityType.RELATIONSHIP) {
-            throw new IndexNotApplicableKernelException("Relationship type index scan can not be performed on index: "
-                    + session.reference().userDescription(tokenRead));
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    session.reference().userDescription(tokenRead),
+                    "Relationship type index scan can not be performed on index: "
+                            + session.reference().userDescription(tokenRead));
         }
         return tokenIndexScan(session, leadingPartitionScan, query);
     }
@@ -578,8 +606,11 @@ public final class KernelRead implements Read {
             throws IndexNotApplicableKernelException {
         performCheckBeforeOperation();
         if (session.reference().schema().entityType() != EntityType.RELATIONSHIP) {
-            throw new IndexNotApplicableKernelException("Relationship type index scan can not be performed on index: "
-                    + session.reference().userDescription(tokenRead));
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    session.reference().userDescription(tokenRead),
+                    "Relationship type index scan can not be performed on index: "
+                            + session.reference().userDescription(tokenRead));
         }
         return tokenIndexScan(session, desiredNumberOfPartitions, cursorContext, queries);
     }
@@ -595,8 +626,11 @@ public final class KernelRead implements Read {
         performCheckBeforeOperation();
 
         if (session.reference().schema().entityType() != EntityType.RELATIONSHIP) {
-            throw new IndexNotApplicableKernelException("Relationship type index scan can not be performed on index: "
-                    + session.reference().userDescription(tokenRead));
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    session.reference().userDescription(tokenRead),
+                    "Relationship type index scan can not be performed on index: "
+                            + session.reference().userDescription(tokenRead));
         }
 
         var tokenSession = (DefaultTokenReadSession) session;
