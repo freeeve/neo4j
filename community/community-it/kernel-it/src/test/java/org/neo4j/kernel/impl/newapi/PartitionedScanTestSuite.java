@@ -194,11 +194,20 @@ abstract class PartitionedScanTestSuite<QUERY extends Query<?>, SESSION, CURSOR 
                 // given  an invalid query
                 // when   partitioned scan constructed
                 // then   IndexNotApplicableKernelException should be thrown
-                softly.assertThatThrownBy(
-                                () -> factory.partitionedScan(tx, Integer.MAX_VALUE, query),
-                                "should throw with an invalid query")
-                        .isInstanceOf(IndexNotApplicableKernelException.class)
+                var e = assertThrows(
+                        IndexNotApplicableKernelException.class,
+                        () -> factory.partitionedScan(tx, Integer.MAX_VALUE, query),
+                        "should throw with an invalid query");
+                softly.assertThat(e)
                         .hasMessageContaining("This index does not support partitioned scan for this query");
+                softly.assertThat(e.gqlStatus()).isEqualTo("50N15");
+                softly.assertThat(e.statusDescription())
+                        .contains(
+                                "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index",
+                                "See debug.log for more information.");
+                softly.proxy(LogAssert.class, AssertableLogProvider.class, logProvider)
+                        .containsMessageWithAll("This index does not support partitioned scan for this query")
+                        .containsException(e);
             }
         }
     }

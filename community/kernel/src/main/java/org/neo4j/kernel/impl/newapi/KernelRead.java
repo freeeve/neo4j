@@ -689,8 +689,11 @@ public final class KernelRead implements Read {
         performCheckBeforeOperation();
         final var descriptor = index.reference();
         if (!descriptor.getCapability().supportPartitionedScan(query)) {
-            throw new IndexNotApplicableKernelException("This index does not support partitioned scan for this query: "
-                    + descriptor.userDescription(tokenRead));
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    index.reference().getName(),
+                    "This index does not support partitioned scan for this query: "
+                            + descriptor.userDescription(tokenRead));
         }
         if (txStateHolder.hasTxStateWithChanges()) {
             throw new IllegalStateException(
@@ -708,8 +711,11 @@ public final class KernelRead implements Read {
         performCheckBeforeOperation();
         final var descriptor = session.reference();
         if (!descriptor.getCapability().supportPartitionedScan(query)) {
-            throw new IndexNotApplicableKernelException("This index does not support partitioned scan for this query: "
-                    + descriptor.userDescription(tokenRead));
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    descriptor.userDescription(tokenRead),
+                    "This index does not support partitioned scan for this query: "
+                            + descriptor.userDescription(tokenRead));
         }
         if (txStateHolder.hasTxStateWithChanges()) {
             throw new IllegalStateException(
@@ -727,8 +733,11 @@ public final class KernelRead implements Read {
         performCheckBeforeOperation();
         final var descriptor = session.reference();
         if (!descriptor.getCapability().supportPartitionedScan(query)) {
-            throw new IndexNotApplicableKernelException("This index does not support partitioned scan for this query: "
-                    + descriptor.userDescription(tokenRead));
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    descriptor.userDescription(tokenRead),
+                    "This index does not support partitioned scan for this query: "
+                            + descriptor.userDescription(tokenRead));
         }
         if (txStateHolder.hasTxStateWithChanges()) {
             throw new IllegalStateException(
