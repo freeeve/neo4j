@@ -76,7 +76,9 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
     protected PropertyIndexQuery validateQuery(PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
         if (predicates.length > 1) {
-            throw invalidCompositeQuery(IndexNotApplicableKernelException::new, predicates);
+            throw invalidCompositeQuery(
+                    msg -> IndexNotApplicableKernelException.indexNotApplicable(log, descriptor.getName(), msg),
+                    predicates);
         }
 
         final var predicate = predicates[0];

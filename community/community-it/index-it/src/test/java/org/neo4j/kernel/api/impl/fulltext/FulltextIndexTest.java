@@ -836,6 +836,41 @@ class FulltextIndexTest extends LuceneFulltextTestSupport {
     }
 
     @Test
+    void shouldThrowOnUnsupportedCompositeQuery() throws Exception {
+        prepareNodeLabelPropIndex();
+        try (Transaction tx = db.beginTx()) {
+            KernelTransaction ktx = kernelTransaction(tx);
+            IndexDescriptor index = ktx.schemaRead().indexGetForName(NODE_INDEX_NAME);
+            IndexReadSession indexSession = ktx.dataRead().indexReadSession(index);
+
+            try (NodeValueIndexCursor cursor =
+                    ktx.cursors().allocateNodeValueIndexCursor(ktx.cursorContext(), ktx.memoryTracker())) {
+                IndexNotApplicableKernelException e =
+                        assertThrows(IndexNotApplicableKernelException.class, () -> ktx.dataRead()
+                                .nodeIndexSeek(
+                                        ktx.queryContext(),
+                                        indexSession,
+                                        cursor,
+                                        unconstrained(),
+                                        PropertyIndexQuery.fulltextSearch("a"),
+                                        PropertyIndexQuery.fulltextSearch("b")));
+                assertThat(e)
+                        .hasMessageContaining(
+                                "Tried to query a FULLTEXT index with a composite query. Composite queries are not supported by a FULLTEXT index. Query was");
+                assertThat(e.gqlStatus()).isEqualTo("50N15");
+                assertThat(e.statusDescription())
+                        .isEqualTo(String.format(
+                                "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information.",
+                                NODE_INDEX_NAME));
+                LogAssertions.assertThat(logProvider)
+                        .containsMessageWithException(
+                                "Tried to query a FULLTEXT index with a composite query. Composite queries are not supported by a FULLTEXT index. Query was",
+                                e);
+            }
+        }
+    }
+
+    @Test
     void multiTokenIndexShouldThrowOnUnsupportedLockingNodeUniqueIndexSeek() {
         // Create multi-token index
         try (Transaction tx = db.beginTx()) {

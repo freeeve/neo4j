@@ -28,6 +28,7 @@ import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.allEntries;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.exact;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.exists;
+import static org.neo4j.internal.kernel.api.PropertyIndexQuery.fulltextSearch;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.range;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.stringContains;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.stringPrefix;
@@ -328,6 +329,23 @@ public class TextIndexQueryTest extends KernelAPIReadTestBase<ReadTestSupport> {
                         "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information.",
                         NODE_INDEX_NAME));
         LogAssertions.assertThat(logProvider).containsMessageWithException("Index query not supported for", e);
+    }
+
+    @Test
+    void shouldUseCorrectGQLStatusCodeForUnsupportedCompositeQuery() {
+        var e = assertThrows(
+                IndexNotApplicableKernelException.class, () -> indexedNodes(fulltextSearch("a"), fulltextSearch("b")));
+        assertThat(e.gqlStatus()).isEqualTo("50N15");
+        assertThat(e.statusDescription())
+                .isEqualTo(String.format(
+                        "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information.",
+                        NODE_INDEX_NAME));
+        LogAssertions.assertThat(logProvider)
+                .containsMessageWithAll(
+                        "Tried to query a",
+                        "index with a composite query. Composite queries are not supported by a",
+                        "index. Query was")
+                .containsException(e);
     }
 
     protected IndexProviderDescriptor getIndexProviderDescriptor() {

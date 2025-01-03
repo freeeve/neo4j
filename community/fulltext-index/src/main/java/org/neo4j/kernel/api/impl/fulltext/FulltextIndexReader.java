@@ -120,7 +120,8 @@ public class FulltextIndexReader implements ValueIndexReader {
     private PropertyIndexQuery validateQuery(PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
         if (predicates.length > 1) {
-            throw invalidCompositeQuery(IndexNotApplicableKernelException::new, predicates);
+            throw invalidCompositeQuery(
+                    msg -> IndexNotApplicableKernelException.indexNotApplicable(log, index.getName(), msg), predicates);
         }
 
         final var predicate = predicates[0];
