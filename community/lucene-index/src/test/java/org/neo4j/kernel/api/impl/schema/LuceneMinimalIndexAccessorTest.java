@@ -33,6 +33,7 @@ import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.api.impl.index.LuceneMinimalIndexAccessor;
 import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -54,7 +55,8 @@ class LuceneMinimalIndexAccessorTest {
         var storage = new PartitionedIndexStorage(PERSISTENT, fs, directory.directory("root"));
 
         var readOnlyChecker = DatabaseReadOnlyChecker.writable();
-        try (var index = TextIndexBuilder.create(indexDescriptor, readOnlyChecker, Config.defaults())
+        try (var index = TextIndexBuilder.create(
+                        indexDescriptor, readOnlyChecker, Config.defaults(), NullLogProvider.getInstance())
                 .withIndexStorage(storage)
                 .withFileSystem(fs)
                 .build()) {
@@ -77,7 +79,8 @@ class LuceneMinimalIndexAccessorTest {
         var storage = new PartitionedIndexStorage(PERSISTENT, fs, directory.directory("root"));
 
         var readOnlyChecker = DatabaseReadOnlyChecker.writable();
-        try (var index = TextIndexBuilder.create(indexDescriptor, readOnlyChecker, Config.defaults())
+        try (var index = TextIndexBuilder.create(
+                        indexDescriptor, readOnlyChecker, Config.defaults(), NullLogProvider.getInstance())
                 .withIndexStorage(storage)
                 .withFileSystem(fs)
                 .build()) {

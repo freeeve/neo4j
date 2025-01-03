@@ -57,6 +57,7 @@ import org.neo4j.kernel.api.index.IndexReader;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.kernel.impl.index.schema.NodeValueIterator;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.values.storable.Values;
 
 class TextIndexReaderTest {
@@ -144,6 +145,12 @@ class TextIndexReaderTest {
                 .withName("a")
                 .materialise(0)
                 .withIndexCapability(TextIndexProvider.CAPABILITY);
-        return new TextIndexReader(partitionSearcher, index, samplingConfig, taskCoordinator, NO_USAGE_TRACKING);
+        return new TextIndexReader(
+                partitionSearcher,
+                index,
+                samplingConfig,
+                taskCoordinator,
+                NO_USAGE_TRACKING,
+                NullLogProvider.getInstance());
     }
 }

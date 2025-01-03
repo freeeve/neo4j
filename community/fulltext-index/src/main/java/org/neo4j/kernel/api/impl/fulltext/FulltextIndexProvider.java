@@ -201,7 +201,7 @@ public class FulltextIndexProvider extends IndexProvider {
         }
 
         try {
-            return AbstractLuceneIndexProvider.indexIsOnline(indexStorage, index, config)
+            return AbstractLuceneIndexProvider.indexIsOnline(indexStorage, index, config, logProvider)
                     ? InternalIndexState.ONLINE
                     : InternalIndexState.POPULATING;
         } catch (IOException e) {
@@ -212,7 +212,7 @@ public class FulltextIndexProvider extends IndexProvider {
     @Override
     public MinimalIndexAccessor getMinimalIndexAccessor(IndexDescriptor descriptor, boolean forRebuildDuringRecovery) {
         PartitionedIndexStorage indexStorage = getIndexStorage(descriptor.getId());
-        var index = new MinimalDatabaseIndex<>(indexStorage, descriptor, config);
+        var index = new MinimalDatabaseIndex<>(indexStorage, descriptor, config, logProvider);
         log.debug("Creating dropper for fulltext schema index: %s", descriptor);
         return new LuceneMinimalIndexAccessor<>(descriptor, index, isReadOnly());
     }
@@ -254,7 +254,7 @@ public class FulltextIndexProvider extends IndexProvider {
             return new FulltextIndexPopulator(descriptor, fulltextIndex, propertyNames, UPDATE_IGNORE_STRATEGY);
         } catch (Exception e) {
             PartitionedIndexStorage indexStorage = getIndexStorage(descriptor.getId());
-            var index = new MinimalDatabaseIndex<FulltextIndexReader>(indexStorage, descriptor, config);
+            var index = new MinimalDatabaseIndex<FulltextIndexReader>(indexStorage, descriptor, config, logProvider);
             log.debug("Creating failed index populator for fulltext schema index: %s", descriptor, e);
             return new FailedFulltextIndexPopulator(descriptor, index, e);
         }

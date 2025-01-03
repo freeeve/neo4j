@@ -32,6 +32,7 @@ import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -52,7 +53,8 @@ class TextIndexBuilderTest {
 
     @Test
     void readOnlyIndexCreation() throws Exception {
-        try (var index = TextIndexBuilder.create(descriptor, readOnly(), getDefaultConfig())
+        try (var index = TextIndexBuilder.create(
+                        descriptor, readOnly(), getDefaultConfig(), NullLogProvider.getInstance())
                 .withFileSystem(fileSystemRule)
                 .withIndexRootFolder(testDir.directory("a"))
                 .build()) {
@@ -62,7 +64,8 @@ class TextIndexBuilderTest {
 
     @Test
     void writableIndexCreation() throws Exception {
-        try (var index = TextIndexBuilder.create(descriptor, writable(), getDefaultConfig())
+        try (var index = TextIndexBuilder.create(
+                        descriptor, writable(), getDefaultConfig(), NullLogProvider.getInstance())
                 .withFileSystem(fileSystemRule)
                 .withIndexRootFolder(testDir.directory("b"))
                 .build()) {

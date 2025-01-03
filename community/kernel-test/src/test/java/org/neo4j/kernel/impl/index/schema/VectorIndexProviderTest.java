@@ -41,6 +41,7 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexProvider;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.kernel.api.schema.vector.VectorTestUtils.VectorIndexSettings;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
 
 class VectorIndexProviderTest {
@@ -218,7 +219,8 @@ class VectorIndexProviderTest {
                             .formatted(
                                     VectorIndexProviderTest.class.getSimpleName(),
                                     version,
-                                    THREAD_POOL_JOB_SCHEDULER_ID.getAndIncrement())));
+                                    THREAD_POOL_JOB_SCHEDULER_ID.getAndIncrement())),
+                    NullLogProvider.getInstance());
         }
     }
 }

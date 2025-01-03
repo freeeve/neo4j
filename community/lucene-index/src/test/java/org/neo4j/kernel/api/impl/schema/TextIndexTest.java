@@ -40,6 +40,7 @@ import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.index.ValueIndexReader;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -138,7 +139,8 @@ class TextIndexTest {
     }
 
     private DatabaseIndex<ValueIndexReader> newSchemaIndex() {
-        TextIndexBuilder builder = TextIndexBuilder.create(descriptor, writable(), Config.defaults());
+        TextIndexBuilder builder =
+                TextIndexBuilder.create(descriptor, writable(), Config.defaults(), NullLogProvider.getInstance());
         return builder.withIndexRootFolder(testDir.directory("index").resolve("testIndex"))
                 .withDirectoryFactory(dirFactory)
                 .withFileSystem(fs)

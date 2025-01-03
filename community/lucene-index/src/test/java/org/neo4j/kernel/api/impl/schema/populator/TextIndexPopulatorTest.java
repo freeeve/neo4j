@@ -54,6 +54,7 @@ import org.neo4j.kernel.api.impl.schema.TextIndexProvider;
 import org.neo4j.kernel.api.index.IndexSample;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.index.schema.NodeValueIterator;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -84,7 +85,7 @@ class TextIndexPopulatorTest {
                 .withIndexProvider(AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR)
                 .materialise(13)
                 .withIndexCapability(TextIndexProvider.CAPABILITY);
-        index = TextIndexBuilder.create(descriptor, writable(), Config.defaults())
+        index = TextIndexBuilder.create(descriptor, writable(), Config.defaults(), NullLogProvider.getInstance())
                 .withIndexStorage(indexStorage)
                 .build();
     }

@@ -28,6 +28,7 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.impl.index.schema.IndexUpdateIgnoreStrategy;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.values.storable.ValueCategory;
 
@@ -45,7 +46,8 @@ public abstract class AbstractTextIndexProvider extends AbstractLuceneIndexProvi
             IndexDirectoryStructure.Factory directoryStructureFactory,
             Monitors monitors,
             Config config,
-            DatabaseReadOnlyChecker readOnlyChecker) {
+            DatabaseReadOnlyChecker readOnlyChecker,
+            LogProvider logProvider) {
         super(
                 minimumRequiredVersion,
                 supportedIndexType,
@@ -55,6 +57,7 @@ public abstract class AbstractTextIndexProvider extends AbstractLuceneIndexProvi
                 directoryStructureFactory,
                 monitors,
                 config,
-                readOnlyChecker);
+                readOnlyChecker,
+                logProvider);
     }
 }

@@ -33,6 +33,7 @@ import org.neo4j.kernel.api.impl.index.WritableDatabaseIndex;
 import org.neo4j.kernel.api.impl.index.builder.AbstractLuceneIndexBuilder;
 import org.neo4j.kernel.api.impl.index.partition.WritableIndexPartitionFactory;
 import org.neo4j.kernel.api.impl.schema.vector.codec.VectorCodecV2;
+import org.neo4j.logging.LogProvider;
 
 class VectorIndexBuilder extends AbstractLuceneIndexBuilder<VectorIndexBuilder> {
     private final IndexDescriptor descriptor;
@@ -46,8 +47,9 @@ class VectorIndexBuilder extends AbstractLuceneIndexBuilder<VectorIndexBuilder> 
             VectorIndexConfig vectorIndexConfig,
             VectorDocumentStructure documentStructure,
             DatabaseReadOnlyChecker readOnlyChecker,
-            Config config) {
-        super(readOnlyChecker);
+            Config config,
+            LogProvider logProvider) {
+        super(readOnlyChecker, logProvider);
         this.descriptor = descriptor;
         this.vectorIndexConfig = vectorIndexConfig;
         this.documentStructure = documentStructure;
@@ -70,8 +72,10 @@ class VectorIndexBuilder extends AbstractLuceneIndexBuilder<VectorIndexBuilder> 
             VectorIndexConfig vectorIndexConfig,
             VectorDocumentStructure documentStructure,
             DatabaseReadOnlyChecker readOnlyChecker,
-            Config config) {
-        return new VectorIndexBuilder(descriptor, vectorIndexConfig, documentStructure, readOnlyChecker, config);
+            Config config,
+            LogProvider logProvider) {
+        return new VectorIndexBuilder(
+                descriptor, vectorIndexConfig, documentStructure, readOnlyChecker, config, logProvider);
     }
 
     /**
@@ -98,7 +102,8 @@ class VectorIndexBuilder extends AbstractLuceneIndexBuilder<VectorIndexBuilder> 
                 documentStructure,
                 descriptor,
                 vectorIndexConfig,
-                config);
+                config,
+                logProvider);
         return new WritableDatabaseIndex<>(index, readOnlyChecker, permanentlyReadOnly);
     }
 }

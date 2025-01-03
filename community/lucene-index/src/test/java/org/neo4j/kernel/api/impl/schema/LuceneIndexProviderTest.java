@@ -58,6 +58,7 @@ import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.test.Race;
 import org.neo4j.test.extension.Inject;
@@ -193,7 +194,13 @@ class LuceneIndexProviderTest {
         var directoryFactory = new DirectoryFactory.InMemoryDirectoryFactory();
         var directoryStructureFactory = directoriesByProvider(testDir.homePath());
         return new TextIndexProvider(
-                fileSystem, directoryFactory, directoryStructureFactory, new Monitors(), config, writable());
+                fileSystem,
+                directoryFactory,
+                directoryStructureFactory,
+                new Monitors(),
+                config,
+                writable(),
+                NullLogProvider.getInstance());
     }
 
     private void createEmptySchemaIndex(DirectoryFactory directoryFactory) throws IOException {
@@ -217,6 +224,12 @@ class LuceneIndexProviderTest {
     private static TextIndexProvider getLuceneIndexProvider(
             Config config, DirectoryFactory directoryFactory, FileSystemAbstraction fs, Path graphDbDir) {
         return new TextIndexProvider(
-                fs, directoryFactory, directoriesByProvider(graphDbDir), new Monitors(), config, readOnly());
+                fs,
+                directoryFactory,
+                directoriesByProvider(graphDbDir),
+                new Monitors(),
+                config,
+                readOnly(),
+                NullLogProvider.getInstance());
     }
 }

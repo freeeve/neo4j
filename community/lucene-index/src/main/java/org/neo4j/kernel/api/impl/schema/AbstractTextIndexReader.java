@@ -29,13 +29,17 @@ import org.neo4j.kernel.api.impl.schema.reader.IndexReaderCloseException;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.api.index.IndexProgressor.EntityValueClient;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
+import org.neo4j.logging.LogProvider;
 
 public abstract class AbstractTextIndexReader extends AbstractLuceneIndexReader {
     private final SearcherReference searcherReference;
 
     protected AbstractTextIndexReader(
-            IndexDescriptor descriptor, SearcherReference searcherReference, IndexUsageTracking usageTracker) {
-        super(descriptor, usageTracker);
+            IndexDescriptor descriptor,
+            SearcherReference searcherReference,
+            IndexUsageTracking usageTracker,
+            LogProvider logProvider) {
+        super(descriptor, usageTracker, logProvider);
         this.searcherReference = searcherReference;
     }
 

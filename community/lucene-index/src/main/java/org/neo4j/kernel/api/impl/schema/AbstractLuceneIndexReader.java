@@ -40,14 +40,19 @@ import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
 import org.neo4j.kernel.impl.index.schema.PartitionedValueSeek;
+import org.neo4j.logging.Log;
+import org.neo4j.logging.LogProvider;
 
 public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
     private final IndexDescriptor descriptor;
     private final IndexUsageTracking usageTracker;
+    protected final Log log;
 
-    public AbstractLuceneIndexReader(IndexDescriptor descriptor, IndexUsageTracking usageTracker) {
+    public AbstractLuceneIndexReader(
+            IndexDescriptor descriptor, IndexUsageTracking usageTracker, LogProvider logProvider) {
         this.descriptor = descriptor;
         this.usageTracker = usageTracker;
+        this.log = logProvider.getLog(getClass());
     }
 
     @Override
@@ -76,7 +81,9 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
 
         final var predicate = predicates[0];
         if (!descriptor.getCapability().isQuerySupported(predicate.type(), predicate.valueCategory())) {
-            throw invalidQuery(IndexNotApplicableKernelException::new, predicate);
+            throw invalidQuery(
+                    msg -> IndexNotApplicableKernelException.indexNotApplicable(log, descriptor.getName(), msg),
+                    predicate);
         }
 
         return predicate;

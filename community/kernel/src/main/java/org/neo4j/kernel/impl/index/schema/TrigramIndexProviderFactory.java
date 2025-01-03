@@ -70,6 +70,6 @@ public class TrigramIndexProviderFactory extends AbstractIndexProviderFactory<Tr
             DependencyResolver dependencyResolver) {
         IndexDirectoryStructure.Factory directoryStructure = directoriesByProvider(databaseLayout.databaseDirectory());
         return new TrigramIndexProvider(
-                fs, directoryFactory(fs), directoryStructure, monitors, config, readOnlyDatabaseChecker);
+                fs, directoryFactory(fs), directoryStructure, monitors, config, readOnlyDatabaseChecker, logProvider);
     }
 }

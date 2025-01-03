@@ -83,6 +83,7 @@ import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.index.schema.NodeValueIterator;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Threading;
@@ -117,7 +118,7 @@ public class TextIndexAccessorTest {
     public static Stream<Arguments> implementations() {
         final Path dir = Path.of("dir");
         return Stream.of(Arguments.of(GENERAL_INDEX, (IOFunction<DirectoryFactory, TextIndexAccessor>) dirFactory1 -> {
-            var index = TextIndexBuilder.create(GENERAL_INDEX, writable(), CONFIG)
+            var index = TextIndexBuilder.create(GENERAL_INDEX, writable(), CONFIG, NullLogProvider.getInstance())
                     .withFileSystem(fileSystem)
                     .withDirectoryFactory(dirFactory1)
                     .withIndexRootFolder(dir.resolve("1"))

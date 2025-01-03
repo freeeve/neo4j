@@ -61,6 +61,7 @@ import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexQueryHelper;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.test.extension.Inject;
@@ -97,7 +98,8 @@ class TextIndexPopulatorTest {
                 directoriesByProvider(testDir.directory("folder")),
                 new Monitors(),
                 Config.defaults(),
-                writable());
+                writable(),
+                NullLogProvider.getInstance());
         IndexSamplingConfig samplingConfig = new IndexSamplingConfig(Config.defaults());
         index = IndexPrototype.forSchema(forLabel(42, propertyKeyId), provider.getProviderDescriptor())
                 .withName("index")

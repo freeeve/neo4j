@@ -43,6 +43,7 @@ import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.values.ElementIdMapper;
@@ -58,7 +59,8 @@ public class TextIndexProvider extends AbstractTextIndexProvider {
             IndexDirectoryStructure.Factory directoryStructureFactory,
             Monitors monitors,
             Config config,
-            DatabaseReadOnlyChecker readOnlyChecker) {
+            DatabaseReadOnlyChecker readOnlyChecker,
+            LogProvider logProvider) {
         super(
                 KernelVersion.VERSION_RANGE_POINT_TEXT_INDEXES_ARE_INTRODUCED,
                 IndexType.TEXT,
@@ -68,7 +70,8 @@ public class TextIndexProvider extends AbstractTextIndexProvider {
                 directoryStructureFactory,
                 monitors,
                 config,
-                readOnlyChecker);
+                readOnlyChecker,
+                logProvider);
         this.fileSystem = fileSystem;
     }
 
@@ -89,7 +92,7 @@ public class TextIndexProvider extends AbstractTextIndexProvider {
             ImmutableSet<OpenOption> openOptions,
             StorageEngineIndexingBehaviour indexingBehaviour) {
         final var writerConfigBuilder = new IndexWriterConfigBuilder(TextModes.POPULATION, config);
-        final var index = TextIndexBuilder.create(descriptor, readOnlyChecker, config)
+        final var index = TextIndexBuilder.create(descriptor, readOnlyChecker, config, logProvider)
                 .withFileSystem(fileSystem)
                 .withSamplingConfig(samplingConfig)
                 .withIndexStorage(getIndexStorage(descriptor.getId()))
@@ -122,7 +125,7 @@ public class TextIndexProvider extends AbstractTextIndexProvider {
     }
 
     private TextIndexBuilder builder(IndexDescriptor descriptor, IndexSamplingConfig samplingConfig) {
-        return TextIndexBuilder.create(descriptor, readOnlyChecker, config)
+        return TextIndexBuilder.create(descriptor, readOnlyChecker, config, logProvider)
                 .withSamplingConfig(samplingConfig)
                 .withIndexStorage(getIndexStorage(descriptor.getId()));
     }

@@ -82,6 +82,7 @@ import org.neo4j.kernel.database.DatabaseIdRepository;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.lifecycle.LifeSupport;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.test.RandomSupport;
@@ -136,7 +137,8 @@ public class TextIndexAccessorIT {
                 directoriesByProvider(path),
                 new Monitors(),
                 config,
-                readOnlyChecker);
+                readOnlyChecker,
+                NullLogProvider.getInstance());
         life.add(listener);
         life.add(indexProvider);
         life.start();

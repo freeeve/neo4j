@@ -34,14 +34,19 @@ import org.neo4j.kernel.api.impl.index.builder.AbstractLuceneIndexBuilder;
 import org.neo4j.kernel.api.impl.index.partition.WritableIndexPartitionFactory;
 import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
 import org.neo4j.kernel.api.index.ValueIndexReader;
+import org.neo4j.logging.LogProvider;
 
 public class TrigramIndexBuilder extends AbstractLuceneIndexBuilder<TrigramIndexBuilder> {
     private final IndexDescriptor descriptor;
     private final Config config;
     private Supplier<IndexWriterConfig> writerConfigFactory;
 
-    private TrigramIndexBuilder(IndexDescriptor descriptor, DatabaseReadOnlyChecker readOnlyChecker, Config config) {
-        super(readOnlyChecker);
+    private TrigramIndexBuilder(
+            IndexDescriptor descriptor,
+            DatabaseReadOnlyChecker readOnlyChecker,
+            Config config,
+            LogProvider logProvider) {
+        super(readOnlyChecker, logProvider);
         this.descriptor = descriptor;
         this.config = config;
 
@@ -56,8 +61,11 @@ public class TrigramIndexBuilder extends AbstractLuceneIndexBuilder<TrigramIndex
      * @param descriptor The descriptor for this index
      */
     public static TrigramIndexBuilder create(
-            IndexDescriptor descriptor, DatabaseReadOnlyChecker readOnlyChecker, Config config) {
-        return new TrigramIndexBuilder(descriptor, readOnlyChecker, config);
+            IndexDescriptor descriptor,
+            DatabaseReadOnlyChecker readOnlyChecker,
+            Config config,
+            LogProvider logProvider) {
+        return new TrigramIndexBuilder(descriptor, readOnlyChecker, config, logProvider);
     }
 
     /**
@@ -78,8 +86,8 @@ public class TrigramIndexBuilder extends AbstractLuceneIndexBuilder<TrigramIndex
      */
     public DatabaseIndex<ValueIndexReader> build() {
         PartitionedIndexStorage storage = storageBuilder.build();
-        var index =
-                new TrigramIndex(storage, descriptor, new WritableIndexPartitionFactory(writerConfigFactory), config);
+        var index = new TrigramIndex(
+                storage, descriptor, new WritableIndexPartitionFactory(writerConfigFactory), config, logProvider);
         return new WritableDatabaseIndex<>(index, readOnlyChecker, permanentlyReadOnly);
     }
 }

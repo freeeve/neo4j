@@ -80,6 +80,7 @@ public class VectorIndexProviderFactory extends AbstractIndexProviderFactory<Vec
                 monitors,
                 config,
                 readOnlyDatabaseChecker,
-                scheduler);
+                scheduler,
+                logProvider);
     }
 }

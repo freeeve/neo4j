@@ -56,6 +56,7 @@ import org.neo4j.kernel.api.impl.index.LuceneAllDocumentsReader;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -116,7 +117,7 @@ class TextIndexIT {
 
     @Test
     void updateMultiplePartitionedIndex() throws IOException {
-        try (var index = TextIndexBuilder.create(descriptor, writable(), config)
+        try (var index = TextIndexBuilder.create(descriptor, writable(), config, NullLogProvider.getInstance())
                 .withFileSystem(fileSystem)
                 .withIndexRootFolder(testDir.directory("partitionedIndexForUpdates"))
                 .build()) {
@@ -138,7 +139,7 @@ class TextIndexIT {
     @Test
     void createPopulateDropIndex() throws Exception {
         Path crudOperation = testDir.directory("indexCRUDOperation");
-        try (var crudIndex = TextIndexBuilder.create(descriptor, writable(), config)
+        try (var crudIndex = TextIndexBuilder.create(descriptor, writable(), config, NullLogProvider.getInstance())
                 .withFileSystem(fileSystem)
                 .withIndexRootFolder(crudOperation.resolve("crudIndex"))
                 .build()) {
@@ -159,7 +160,7 @@ class TextIndexIT {
 
     @Test
     void createFailPartitionedIndex() throws Exception {
-        try (var failedIndex = TextIndexBuilder.create(descriptor, writable(), config)
+        try (var failedIndex = TextIndexBuilder.create(descriptor, writable(), config, NullLogProvider.getInstance())
                 .withFileSystem(fileSystem)
                 .withIndexRootFolder(testDir.directory("failedIndexFolder").resolve("failedIndex"))
                 .build()) {
@@ -179,7 +180,8 @@ class TextIndexIT {
     @Test
     void openClosePartitionedIndex() throws IOException {
         Path indexRootFolder = testDir.directory("reopenIndexFolder").resolve("reopenIndex");
-        TextIndexBuilder textIndexBuilder = TextIndexBuilder.create(descriptor, writable(), config)
+        TextIndexBuilder textIndexBuilder = TextIndexBuilder.create(
+                        descriptor, writable(), config, NullLogProvider.getInstance())
                 .withFileSystem(fileSystem)
                 .withIndexRootFolder(indexRootFolder);
         try (var reopenIndex = textIndexBuilder.build()) {
@@ -221,7 +223,7 @@ class TextIndexIT {
     }
 
     private TextIndexAccessor createDefaultIndexAccessor() throws IOException {
-        var index = TextIndexBuilder.create(descriptor, writable(), config)
+        var index = TextIndexBuilder.create(descriptor, writable(), config, NullLogProvider.getInstance())
                 .withFileSystem(fileSystem)
                 .withIndexRootFolder(testDir.directory("testIndex"))
                 .build();

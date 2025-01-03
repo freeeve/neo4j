@@ -50,6 +50,7 @@ import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.vector.VectorCandidate;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.kernel.impl.index.schema.IndexUpdateIgnoreStrategy;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.Group;
@@ -73,7 +74,8 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
             Monitors monitors,
             Config config,
             DatabaseReadOnlyChecker readOnlyChecker,
-            JobScheduler scheduler) {
+            JobScheduler scheduler,
+            LogProvider logProvider) {
         super(
                 version.minimumRequiredKernelVersion(),
                 IndexType.VECTOR,
@@ -83,7 +85,8 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
                 directoryStructureFactory,
                 monitors,
                 config,
-                readOnlyChecker);
+                readOnlyChecker,
+                logProvider);
         this.version = version;
         this.settingsValidator = version.indexSettingValidator();
         this.documentStructure = VectorDocumentStructures.documentStructureFor(version);
@@ -118,7 +121,7 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
         final var codec = new VectorCodecV2(vectorIndexConfig);
         final var writerConfigBuilder = new IndexWriterConfigBuilder(VectorModes.POPULATION, config).withCodec(codec);
         final var luceneIndex = VectorIndexBuilder.create(
-                        descriptor, vectorIndexConfig, documentStructure, readOnlyChecker, config)
+                        descriptor, vectorIndexConfig, documentStructure, readOnlyChecker, config, logProvider)
                 .withFileSystem(fileSystem)
                 .withIndexStorage(getIndexStorage(descriptor.getId()))
                 .withWriterConfig(writerConfigBuilder::build)
@@ -147,7 +150,7 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
                 settingsValidator.trustIsValidToVectorIndexConfig(new IndexConfigAccessor(descriptor.getIndexConfig()));
 
         var builder = VectorIndexBuilder.create(
-                        descriptor, vectorIndexConfig, documentStructure, readOnlyChecker, config)
+                        descriptor, vectorIndexConfig, documentStructure, readOnlyChecker, config, logProvider)
                 .withIndexStorage(getIndexStorage(descriptor.getId()));
         if (readOnly) {
             builder = builder.permanentlyReadOnly();

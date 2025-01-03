@@ -51,6 +51,7 @@ import org.neo4j.kernel.api.impl.schema.TextIndexProvider;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexSample;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.test.extension.Inject;
@@ -241,6 +242,12 @@ class TextIndexPopulatingUpdaterIT {
         var directoryFactory = new DirectoryFactory.InMemoryDirectoryFactory();
         var directoryStructureFactory = directoriesByProvider(testDir.homePath());
         return new TextIndexProvider(
-                fileSystem, directoryFactory, directoryStructureFactory, new Monitors(), Config.defaults(), writable());
+                fileSystem,
+                directoryFactory,
+                directoryStructureFactory,
+                new Monitors(),
+                Config.defaults(),
+                writable(),
+                NullLogProvider.getInstance());
     }
 }

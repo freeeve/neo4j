@@ -21,6 +21,7 @@ package org.neo4j.kernel.api.index;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.graphdb.Label.label;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.constrained;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
@@ -34,6 +35,7 @@ import static org.neo4j.internal.kernel.api.PropertyIndexQuery.stringSuffix;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.values.storable.Values.stringValue;
 
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,8 +69,11 @@ import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.kernel.impl.coreapi.TransactionImpl;
 import org.neo4j.kernel.impl.newapi.KernelAPIReadTestBase;
 import org.neo4j.kernel.impl.newapi.ReadTestSupport;
+import org.neo4j.logging.AssertableLogProvider;
+import org.neo4j.logging.LogAssertions;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.Monitors;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 public class TextIndexQueryTest extends KernelAPIReadTestBase<ReadTestSupport> {
     private static final Label PERSON = label("PERSON");
@@ -79,6 +84,8 @@ public class TextIndexQueryTest extends KernelAPIReadTestBase<ReadTestSupport> {
     static final String NAME = "name";
     private static final String ADDRESS = "address";
     private static final String SINCE = "since";
+
+    protected AssertableLogProvider logProvider = new AssertableLogProvider();
 
     long mikeNodeId;
     long noahNodeId;
@@ -310,6 +317,19 @@ public class TextIndexQueryTest extends KernelAPIReadTestBase<ReadTestSupport> {
                         since.toString());
     }
 
+    @Test
+    void shouldUseCorrectGQLStatusCodeForUnsupportedQuery() {
+        PropertyIndexQuery query = exists(token.propertyKey(SINCE));
+
+        var e = assertThrows(IndexNotApplicableKernelException.class, () -> indexedNodes(query));
+        assertThat(e.gqlStatus()).isEqualTo("50N15");
+        assertThat(e.statusDescription())
+                .isEqualTo(String.format(
+                        "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information.",
+                        NODE_INDEX_NAME));
+        LogAssertions.assertThat(logProvider).containsMessageWithException("Index query not supported for", e);
+    }
+
     protected IndexProviderDescriptor getIndexProviderDescriptor() {
         return AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR;
     }
@@ -403,7 +423,12 @@ public class TextIndexQueryTest extends KernelAPIReadTestBase<ReadTestSupport> {
     public ReadTestSupport newTestSupport() {
         Monitors monitors = new Monitors();
         monitors.addMonitorListener(MONITOR);
-        ReadTestSupport support = new ReadTestSupport();
+        ReadTestSupport support = new ReadTestSupport() {
+            @Override
+            protected TestDatabaseManagementServiceBuilder newManagementServiceBuilder(Path storeDir) {
+                return super.newManagementServiceBuilder(storeDir).setInternalLogProvider(logProvider);
+            }
+        };
         support.addSetting(GraphDatabaseInternalSettings.always_use_latest_index_provider, false);
         support.setMonitors(monitors);
         return support;

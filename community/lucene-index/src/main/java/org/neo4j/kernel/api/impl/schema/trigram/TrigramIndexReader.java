@@ -38,13 +38,17 @@ import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.schema.AbstractTextIndexReader;
 import org.neo4j.kernel.api.index.IndexSampler;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.Value;
 
 public class TrigramIndexReader extends AbstractTextIndexReader {
     TrigramIndexReader(
-            SearcherReference searcherReference, IndexDescriptor descriptor, IndexUsageTracking usageTracker) {
-        super(descriptor, searcherReference, usageTracker);
+            SearcherReference searcherReference,
+            IndexDescriptor descriptor,
+            IndexUsageTracking usageTracker,
+            LogProvider logProvider) {
+        super(descriptor, searcherReference, usageTracker, logProvider);
     }
 
     @Override

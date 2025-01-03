@@ -28,6 +28,7 @@ import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 import org.neo4j.kernel.api.impl.index.partition.IndexPartitionFactory;
 import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
+import org.neo4j.logging.LogProvider;
 
 class VectorIndex extends AbstractLuceneIndex<VectorIndexReader> {
     private final VectorIndexConfig vectorIndexConfig;
@@ -39,8 +40,9 @@ class VectorIndex extends AbstractLuceneIndex<VectorIndexReader> {
             VectorDocumentStructure documentStructure,
             IndexDescriptor descriptor,
             VectorIndexConfig vectorIndexConfig,
-            Config config) {
-        super(indexStorage, partitionFactory, descriptor, config);
+            Config config,
+            LogProvider logProvider) {
+        super(indexStorage, partitionFactory, descriptor, config, logProvider);
         this.vectorIndexConfig = vectorIndexConfig;
         this.documentStructure = documentStructure;
     }
@@ -55,6 +57,7 @@ class VectorIndex extends AbstractLuceneIndex<VectorIndexReader> {
     protected VectorIndexReader createPartitionedReader(
             List<AbstractIndexPartition> partitions, IndexUsageTracking usageTracker) throws IOException {
         final var searchers = acquireSearchers(partitions);
-        return new VectorIndexReader(descriptor, vectorIndexConfig, documentStructure, searchers, usageTracker);
+        return new VectorIndexReader(
+                descriptor, vectorIndexConfig, documentStructure, searchers, usageTracker, logProvider);
     }
 }

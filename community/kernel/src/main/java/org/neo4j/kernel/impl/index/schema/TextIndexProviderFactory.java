@@ -69,6 +69,6 @@ public class TextIndexProviderFactory extends AbstractIndexProviderFactory<TextI
             DependencyResolver dependencyResolver) {
         IndexDirectoryStructure.Factory directoryStructure = directoriesByProvider(databaseLayout.databaseDirectory());
         return new TextIndexProvider(
-                fs, directoryFactory(fs), directoryStructure, monitors, config, readOnlyDatabaseChecker);
+                fs, directoryFactory(fs), directoryStructure, monitors, config, readOnlyDatabaseChecker, logProvider);
     }
 }

@@ -40,7 +40,6 @@ public class FulltextIndexBuilder extends AbstractLuceneIndexBuilder<FulltextInd
     private boolean populating;
     private IndexUpdateSink indexUpdateSink = NullIndexUpdateSink.INSTANCE;
     private final Config config;
-    private final LogProvider logProvider;
 
     private FulltextIndexBuilder(
             IndexDescriptor descriptor,
@@ -50,13 +49,12 @@ public class FulltextIndexBuilder extends AbstractLuceneIndexBuilder<FulltextInd
             Analyzer analyzer,
             String[] propertyNames,
             LogProvider logProvider) {
-        super(readOnlyChecker);
+        super(readOnlyChecker, logProvider);
         this.config = config;
         this.descriptor = descriptor;
         this.analyzer = analyzer;
         this.propertyNames = propertyNames;
         this.propertyKeyTokenHolder = propertyKeyTokenHolder;
-        this.logProvider = logProvider;
     }
 
     /**

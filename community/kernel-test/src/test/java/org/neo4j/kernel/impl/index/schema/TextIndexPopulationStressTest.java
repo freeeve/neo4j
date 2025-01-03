@@ -31,6 +31,7 @@ import static org.neo4j.values.storable.ValueType.STRING_BMP;
 
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.kernel.api.impl.schema.TextIndexProvider;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
 
 class TextIndexPopulationStressTest extends IndexPopulationStressTest {
@@ -53,7 +54,8 @@ class TextIndexPopulationStressTest extends IndexPopulationStressTest {
                             test.directory(),
                             new Monitors(),
                             defaults(),
-                            writable());
+                            writable(),
+                            NullLogProvider.getInstance());
                 });
     }
 

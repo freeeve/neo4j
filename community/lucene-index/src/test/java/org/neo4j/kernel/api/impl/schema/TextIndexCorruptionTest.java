@@ -50,6 +50,7 @@ import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.index.LoggingMonitor;
 import org.neo4j.logging.AssertableLogProvider;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
@@ -129,7 +130,13 @@ class TextIndexCorruptionTest {
         Monitors monitors = new Monitors();
         monitors.addMonitorListener(monitor);
         return new TextIndexProvider(
-                fs, directoryFactory, directoriesByProvider(indexRootFolder), monitors, Config.defaults(), readOnly()) {
+                fs,
+                directoryFactory,
+                directoriesByProvider(indexRootFolder),
+                monitors,
+                Config.defaults(),
+                readOnly(),
+                NullLogProvider.getInstance()) {
             @Override
             protected IndexStorageFactory buildIndexStorageFactory(
                     FileSystemAbstraction fileSystem, DirectoryFactory directoryFactory) {

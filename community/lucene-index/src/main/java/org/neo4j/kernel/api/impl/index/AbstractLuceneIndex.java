@@ -52,6 +52,7 @@ import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.schema.writer.PartitionedIndexWriter;
 import org.neo4j.kernel.api.index.IndexReader;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
+import org.neo4j.logging.LogProvider;
 
 /**
  * Abstract implementation of a partitioned index.
@@ -70,6 +71,7 @@ public abstract class AbstractLuceneIndex<READER extends IndexReader> implements
     protected final IndexDescriptor descriptor;
     private final IndexPartitionFactory partitionFactory;
     private final Config config;
+    protected final LogProvider logProvider;
 
     // Note that we rely on the thread-safe internal snapshot feature of the CopyOnWriteArrayList
     // for the thread-safety of this and derived classes.
@@ -81,11 +83,13 @@ public abstract class AbstractLuceneIndex<READER extends IndexReader> implements
             PartitionedIndexStorage indexStorage,
             IndexPartitionFactory partitionFactory,
             IndexDescriptor descriptor,
-            Config config) {
+            Config config,
+            LogProvider logProvider) {
         this.indexStorage = indexStorage;
         this.partitionFactory = partitionFactory;
         this.descriptor = descriptor;
         this.config = config;
+        this.logProvider = logProvider;
     }
 
     /**

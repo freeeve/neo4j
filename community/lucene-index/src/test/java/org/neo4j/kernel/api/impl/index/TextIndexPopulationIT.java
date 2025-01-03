@@ -54,6 +54,7 @@ import org.neo4j.kernel.api.index.IndexSampler;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.index.schema.NodeValueIterator;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -82,7 +83,7 @@ class TextIndexPopulationIT {
     @ValueSource(ints = {7, 11, 14, 20, 35, 58})
     void partitionedIndexPopulation(int affectedNodes) throws Exception {
         Path rootFolder = testDir.directory("partitionIndex" + affectedNodes).resolve("uniqueIndex" + affectedNodes);
-        try (var index = TextIndexBuilder.create(descriptor, writable(), config)
+        try (var index = TextIndexBuilder.create(descriptor, writable(), config, NullLogProvider.getInstance())
                 .withFileSystem(fileSystem)
                 .withIndexRootFolder(rootFolder)
                 .build()) {

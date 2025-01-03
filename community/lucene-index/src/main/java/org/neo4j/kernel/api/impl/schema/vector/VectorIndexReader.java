@@ -44,6 +44,7 @@ import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.api.index.IndexProgressor.EntityValueClient;
 import org.neo4j.kernel.api.index.IndexSampler;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.values.storable.Value;
 
 class VectorIndexReader extends AbstractLuceneIndexReader {
@@ -56,8 +57,9 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
             VectorIndexConfig vectorIndexConfig,
             VectorDocumentStructure documentStructure,
             List<SearcherReference> searchers,
-            IndexUsageTracking usageTracker) {
-        super(descriptor, usageTracker);
+            IndexUsageTracking usageTracker,
+            LogProvider logProvider) {
+        super(descriptor, usageTracker, logProvider);
         this.documentStructure = documentStructure;
         this.dimensions = vectorIndexConfig.dimensions();
         this.searchers = searchers;

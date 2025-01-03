@@ -31,6 +31,7 @@ import org.neo4j.kernel.api.impl.index.partition.IndexPartitionFactory;
 import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
 import org.neo4j.kernel.api.index.IndexReader;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
+import org.neo4j.logging.LogProvider;
 
 /**
  * Used by {@link MinimalDatabaseIndex}
@@ -40,8 +41,9 @@ public class MinimalLuceneIndex<READER extends IndexReader> extends AbstractLuce
             PartitionedIndexStorage indexStorage,
             IndexPartitionFactory partitionFactory,
             IndexDescriptor descriptor,
-            Config config) {
-        super(indexStorage, partitionFactory, descriptor, config);
+            Config config,
+            LogProvider logProvider) {
+        super(indexStorage, partitionFactory, descriptor, config, logProvider);
     }
 
     @Override

@@ -47,6 +47,7 @@ import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.index.MinimalIndexAccessor;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
@@ -58,6 +59,7 @@ public abstract class AbstractLuceneIndexProvider extends IndexProvider {
     private final IndexType supportedIndexType;
     protected final Config config;
     protected final DatabaseReadOnlyChecker readOnlyChecker;
+    protected final LogProvider logProvider;
 
     public AbstractLuceneIndexProvider(
             KernelVersion minimumRequiredVersion,
@@ -68,13 +70,15 @@ public abstract class AbstractLuceneIndexProvider extends IndexProvider {
             IndexDirectoryStructure.Factory directoryStructureFactory,
             Monitors monitors,
             Config config,
-            DatabaseReadOnlyChecker readOnlyChecker) {
+            DatabaseReadOnlyChecker readOnlyChecker,
+            LogProvider logProvider) {
         super(minimumRequiredVersion, descriptor, directoryStructureFactory);
         this.supportedIndexType = supportedIndexType;
         this.readOnlyChecker = readOnlyChecker;
         this.monitor = monitors.newMonitor(Monitor.class, descriptor.toString());
         this.indexStorageFactory = buildIndexStorageFactory(fileSystem, directoryFactory);
         this.config = config;
+        this.logProvider = logProvider;
     }
 
     @VisibleForTesting
@@ -106,7 +110,7 @@ public abstract class AbstractLuceneIndexProvider extends IndexProvider {
     @Override
     public MinimalIndexAccessor getMinimalIndexAccessor(IndexDescriptor descriptor, boolean forRebuildDuringRecovery) {
         PartitionedIndexStorage indexStorage = indexStorageFactory.indexStorageOf(descriptor.getId());
-        final var index = new MinimalDatabaseIndex<>(indexStorage, descriptor, config);
+        final var index = new MinimalDatabaseIndex<>(indexStorage, descriptor, config, logProvider);
         return new LuceneMinimalIndexAccessor<>(descriptor, index, readOnlyChecker.isReadOnly());
     }
 
@@ -119,7 +123,7 @@ public abstract class AbstractLuceneIndexProvider extends IndexProvider {
             return InternalIndexState.FAILED;
         }
         try {
-            return indexIsOnline(indexStorage, descriptor, config)
+            return indexIsOnline(indexStorage, descriptor, config, logProvider)
                     ? InternalIndexState.ONLINE
                     : InternalIndexState.POPULATING;
         } catch (IOException e) {
@@ -163,9 +167,10 @@ public abstract class AbstractLuceneIndexProvider extends IndexProvider {
         indexStorageFactory.close();
     }
 
-    public static boolean indexIsOnline(PartitionedIndexStorage indexStorage, IndexDescriptor descriptor, Config config)
+    public static boolean indexIsOnline(
+            PartitionedIndexStorage indexStorage, IndexDescriptor descriptor, Config config, LogProvider logProvider)
             throws IOException {
-        try (var index = new MinimalDatabaseIndex<>(indexStorage, descriptor, config)) {
+        try (var index = new MinimalDatabaseIndex<>(indexStorage, descriptor, config, logProvider)) {
             if (index.exists()) {
                 index.open();
                 return index.isOnline();

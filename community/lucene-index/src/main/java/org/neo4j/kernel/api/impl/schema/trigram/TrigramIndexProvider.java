@@ -45,6 +45,7 @@ import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.impl.api.LuceneIndexValueValidator;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.values.ElementIdMapper;
@@ -60,7 +61,8 @@ public class TrigramIndexProvider extends AbstractTextIndexProvider {
             IndexDirectoryStructure.Factory directoryStructureFactory,
             Monitors monitors,
             Config config,
-            DatabaseReadOnlyChecker readOnlyChecker) {
+            DatabaseReadOnlyChecker readOnlyChecker,
+            LogProvider logProvider) {
         super(
                 KernelVersion.VERSION_TRIGRAM_INDEX_INTRODUCED,
                 IndexType.TEXT,
@@ -70,7 +72,8 @@ public class TrigramIndexProvider extends AbstractTextIndexProvider {
                 directoryStructureFactory,
                 monitors,
                 config,
-                readOnlyChecker);
+                readOnlyChecker,
+                logProvider);
         this.fileSystem = fileSystem;
     }
 
@@ -91,7 +94,7 @@ public class TrigramIndexProvider extends AbstractTextIndexProvider {
             ImmutableSet<OpenOption> openOptions,
             StorageEngineIndexingBehaviour indexingBehaviour) {
         final var writerConfigBuilder = new IndexWriterConfigBuilder(TextModes.POPULATION, config);
-        final var luceneIndex = TrigramIndexBuilder.create(descriptor, readOnlyChecker, config)
+        final var luceneIndex = TrigramIndexBuilder.create(descriptor, readOnlyChecker, config, logProvider)
                 .withFileSystem(fileSystem)
                 .withIndexStorage(getIndexStorage(descriptor.getId()))
                 .withWriterConfig(writerConfigBuilder::build)
@@ -125,7 +128,7 @@ public class TrigramIndexProvider extends AbstractTextIndexProvider {
     }
 
     private TrigramIndexBuilder builder(IndexDescriptor descriptor) {
-        return TrigramIndexBuilder.create(descriptor, readOnlyChecker, config)
+        return TrigramIndexBuilder.create(descriptor, readOnlyChecker, config, logProvider)
                 .withIndexStorage(getIndexStorage(descriptor.getId()));
     }
 

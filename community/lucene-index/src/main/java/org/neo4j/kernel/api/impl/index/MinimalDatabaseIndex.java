@@ -28,14 +28,17 @@ import org.neo4j.kernel.api.impl.index.partition.ReadOnlyIndexPartitionFactory;
 import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
 import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
 import org.neo4j.kernel.api.index.ValueIndexReader;
+import org.neo4j.logging.LogProvider;
 
 /**
  * A minimal index does not support reading or writing. It only supports dropping and checking online / failure status.
  */
 public class MinimalDatabaseIndex<READER extends ValueIndexReader>
         extends AbstractDatabaseIndex<MinimalLuceneIndex<READER>, READER> {
-    public MinimalDatabaseIndex(PartitionedIndexStorage indexStorage, IndexDescriptor descriptor, Config config) {
-        super(new MinimalLuceneIndex<>(indexStorage, new ReadOnlyIndexPartitionFactory(), descriptor, config));
+    public MinimalDatabaseIndex(
+            PartitionedIndexStorage indexStorage, IndexDescriptor descriptor, Config config, LogProvider logProvider) {
+        super(new MinimalLuceneIndex<>(
+                indexStorage, new ReadOnlyIndexPartitionFactory(), descriptor, config, logProvider));
     }
 
     @Override

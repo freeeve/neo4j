@@ -63,6 +63,7 @@ import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
 import org.neo4j.kernel.api.impl.schema.AbstractTextIndexReader;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -219,7 +220,7 @@ class DatabaseIndexIntegrationTest {
     private static class TestLuceneIndex extends AbstractLuceneIndex<AbstractTextIndexReader> {
 
         TestLuceneIndex(PartitionedIndexStorage indexStorage, IndexPartitionFactory partitionFactory) {
-            super(indexStorage, partitionFactory, null, Config.defaults());
+            super(indexStorage, partitionFactory, null, Config.defaults(), NullLogProvider.getInstance());
         }
 
         @Override

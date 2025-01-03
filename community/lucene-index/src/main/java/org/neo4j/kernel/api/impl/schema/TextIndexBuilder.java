@@ -35,6 +35,7 @@ import org.neo4j.kernel.api.impl.index.partition.WritableIndexPartitionFactory;
 import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
+import org.neo4j.logging.LogProvider;
 
 /**
  * Helper builder class to simplify construction and instantiation of lucene text indexes.
@@ -50,8 +51,12 @@ public class TextIndexBuilder extends AbstractLuceneIndexBuilder<TextIndexBuilde
     private IndexSamplingConfig samplingConfig;
     private Supplier<IndexWriterConfig> writerConfigFactory;
 
-    private TextIndexBuilder(IndexDescriptor descriptor, DatabaseReadOnlyChecker readOnlyChecker, Config config) {
-        super(readOnlyChecker);
+    private TextIndexBuilder(
+            IndexDescriptor descriptor,
+            DatabaseReadOnlyChecker readOnlyChecker,
+            Config config,
+            LogProvider logProvider) {
+        super(readOnlyChecker, logProvider);
         this.descriptor = descriptor;
         this.config = config;
         this.samplingConfig = new IndexSamplingConfig(config);
@@ -67,8 +72,11 @@ public class TextIndexBuilder extends AbstractLuceneIndexBuilder<TextIndexBuilde
      * @param descriptor The descriptor for this index
      */
     public static TextIndexBuilder create(
-            IndexDescriptor descriptor, DatabaseReadOnlyChecker readOnlyChecker, Config config) {
-        return new TextIndexBuilder(descriptor, readOnlyChecker, config);
+            IndexDescriptor descriptor,
+            DatabaseReadOnlyChecker readOnlyChecker,
+            Config config,
+            LogProvider logProvider) {
+        return new TextIndexBuilder(descriptor, readOnlyChecker, config, logProvider);
     }
 
     /**
@@ -101,7 +109,12 @@ public class TextIndexBuilder extends AbstractLuceneIndexBuilder<TextIndexBuilde
     public DatabaseIndex<ValueIndexReader> build() {
         PartitionedIndexStorage storage = storageBuilder.build();
         var index = new TextIndex(
-                storage, descriptor, samplingConfig, new WritableIndexPartitionFactory(writerConfigFactory), config);
+                storage,
+                descriptor,
+                samplingConfig,
+                new WritableIndexPartitionFactory(writerConfigFactory),
+                config,
+                logProvider);
         return new WritableDatabaseIndex<>(index, readOnlyChecker, permanentlyReadOnly);
     }
 }
