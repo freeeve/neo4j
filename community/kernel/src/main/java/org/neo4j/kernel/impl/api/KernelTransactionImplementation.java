@@ -220,7 +220,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     private final AccessCapabilityFactory accessCapabilityFactory;
     private final ConstraintSemantics constraintSemantics;
     private final TransactionMemoryPool transactionMemoryPool;
-    private final LogProvider logProvider;
+    protected final LogProvider logProvider;
     private final CursorContextFactory contextFactory;
     private final EntityLocks entityLocks;
     private final KernelProcedures.ForTransactionScope procedures;

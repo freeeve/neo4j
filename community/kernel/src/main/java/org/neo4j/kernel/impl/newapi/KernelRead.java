@@ -161,8 +161,11 @@ public final class KernelRead implements Read {
         validateConstraints(constraints, indexSession);
 
         if (indexSession.reference().schema().entityType() != EntityType.NODE) {
-            throw new IndexNotApplicableKernelException("Node index seek can not be performed on index: "
-                    + index.reference().userDescription(tokenRead));
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    index.reference().getName(),
+                    "Node index seek can not be performed on index: "
+                            + index.reference().userDescription(tokenRead));
         }
 
         EntityIndexSeekClient client = (EntityIndexSeekClient) cursor;
@@ -180,7 +183,9 @@ public final class KernelRead implements Read {
         performCheckBeforeOperation();
         final var descriptor = index.reference();
         if (descriptor.schema().entityType() != EntityType.NODE) {
-            throw new IndexNotApplicableKernelException(
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    index.reference().getName(),
                     "Node index seek can not be performed on index: " + descriptor.userDescription(tokenRead));
         }
         return propertyIndexSeek(index, desiredNumberOfPartitions, queryContext, query);
