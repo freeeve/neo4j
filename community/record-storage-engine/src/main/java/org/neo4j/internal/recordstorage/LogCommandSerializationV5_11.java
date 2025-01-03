@@ -129,7 +129,10 @@ class LogCommandSerializationV5_11 extends LogCommandSerializationV5_10 {
         var after = new PropertyRecord(before);
         for (PropertyBlock block : after.propertyBlocks()) {
             for (DynamicRecord valueRecord : block.getValueRecords()) {
-                assert valueRecord.inUse();
+                if (!valueRecord.inUse()) {
+                    throw new IllegalStateException(
+                            "Expect dynamic value record of property record " + id + " to be used.");
+                }
                 valueRecord.setInUse(false);
                 after.addDeletedRecord(valueRecord);
             }

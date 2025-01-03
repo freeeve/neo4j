@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log.files.checkpoint;
 
 import static org.neo4j.kernel.KernelVersion.VERSION_APPEND_INDEX_INTRODUCED;
+import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 
 import java.io.IOException;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
@@ -38,7 +39,6 @@ import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkEnd;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryRollback;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
-import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 
 public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoProvider {
@@ -66,55 +66,60 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
 
     @Override
     public AppendBatchInfo get() {
-        if (logPosition != null && logPosition != LogPosition.UNSPECIFIED) {
-            long logVersion = logPosition.getLogVersion();
-            boolean checkCommitEntries = kernelVersion.isLessThan(VERSION_APPEND_INDEX_INTRODUCED);
-            long appendIndex = startingAppendIndex;
-            LogPosition postLogPosition = logPosition;
-            try {
-                if (logFile.versionExists(logVersion)) {
-                    var lookupPosition = getLookupPosition(logFile, logPosition, logVersion);
-                    if (lookupPosition == LogPosition.UNSPECIFIED) {
-                        // position to start lookup is unknown since we reached the file without header
-                        return new AppendBatchInfo(appendIndex, postLogPosition);
-                    }
+        if (logPosition == null || logPosition == LogPosition.UNSPECIFIED) {
+            return new AppendBatchInfo(startingAppendIndex, LogPosition.UNSPECIFIED);
+        }
+        long logVersion = logPosition.getLogVersion();
+        boolean checkCommitEntries = kernelVersion.isLessThan(VERSION_APPEND_INDEX_INTRODUCED);
+        long appendIndex = startingAppendIndex;
+        LogPosition postLogPosition = logPosition;
+        try {
+            if (!logFile.versionExists(logVersion)) {
+                return new AppendBatchInfo(appendIndex, postLogPosition);
+            }
+            var lookupPosition = getLookupPosition(logFile, logPosition, logVersion);
+            if (lookupPosition == LogPosition.UNSPECIFIED) {
+                // position to start lookup is unknown since we reached the file without header
+                return new AppendBatchInfo(appendIndex, postLogPosition);
+            }
 
-                    var logEntryReader =
-                            new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions);
-                    try (var reader = logFile.getReader(lookupPosition, ReaderLogVersionBridge.forFile(logFile));
-                            var cursor = new LogEntryCursor(logEntryReader, reader)) {
-                        long currentAppendIndex = AppendIndexProvider.UNKNOWN_APPEND_INDEX;
-                        while (cursor.next()) {
-                            var entry = cursor.get();
-                            if (entry instanceof LogEntryStart startEntry) {
-                                currentAppendIndex = startEntry.getAppendIndex();
-                            } else if (entry instanceof LogEntryChunkStart chunkStart) {
-                                currentAppendIndex = chunkStart.getAppendIndex();
-                            } else if (entry instanceof LogEntryRollback rollback) {
-                                assert currentAppendIndex == AppendIndexProvider.UNKNOWN_APPEND_INDEX;
-                                appendIndex = rollback.getAppendIndex();
-                                postLogPosition = reader.getCurrentLogPosition();
-                            } else if (entry instanceof LogEntryChunkEnd || (entry instanceof LogEntryCommit)) {
-                                if (checkCommitEntries && entry instanceof LogEntryCommit commit) {
-                                    currentAppendIndex = commit.getTxId();
-                                }
-                                assert currentAppendIndex != AppendIndexProvider.UNKNOWN_APPEND_INDEX;
-                                appendIndex = currentAppendIndex;
-                                postLogPosition = reader.getCurrentLogPosition();
-                                currentAppendIndex = AppendIndexProvider.UNKNOWN_APPEND_INDEX;
-                            }
+            var logEntryReader = new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions);
+            try (var reader = logFile.getReader(lookupPosition, ReaderLogVersionBridge.forFile(logFile));
+                    var cursor = new LogEntryCursor(logEntryReader, reader)) {
+                long currentAppendIndex = UNKNOWN_APPEND_INDEX;
+                while (cursor.next()) {
+                    var entry = cursor.get();
+                    if (entry instanceof LogEntryStart startEntry) {
+                        currentAppendIndex = startEntry.getAppendIndex();
+                    } else if (entry instanceof LogEntryChunkStart chunkStart) {
+                        currentAppendIndex = chunkStart.getAppendIndex();
+                    } else if (entry instanceof LogEntryRollback rollback) {
+                        if (currentAppendIndex != UNKNOWN_APPEND_INDEX) {
+                            throw new IllegalStateException("Encountered append index: " + currentAppendIndex
+                                    + " instead of " + UNKNOWN_APPEND_INDEX + " for rollback entry.");
                         }
-                    } catch (IOException | IllegalStateException | UnsupportedLogVersionException e) {
-                        // error on reading log file returning last known existing
-                        return new AppendBatchInfo(appendIndex, postLogPosition);
+                        appendIndex = rollback.getAppendIndex();
+                        postLogPosition = reader.getCurrentLogPosition();
+                    } else if (entry instanceof LogEntryChunkEnd || (entry instanceof LogEntryCommit)) {
+                        if (checkCommitEntries && entry instanceof LogEntryCommit commit) {
+                            currentAppendIndex = commit.getTxId();
+                        }
+                        if (currentAppendIndex == UNKNOWN_APPEND_INDEX) {
+                            throw new IllegalStateException("Unknown append index encountered for entry:" + entry);
+                        }
+                        appendIndex = currentAppendIndex;
+                        postLogPosition = reader.getCurrentLogPosition();
+                        currentAppendIndex = UNKNOWN_APPEND_INDEX;
                     }
                 }
+            } catch (IOException | IllegalStateException | UnsupportedLogVersionException e) {
+                // error on reading log file returning last known existing
                 return new AppendBatchInfo(appendIndex, postLogPosition);
-            } catch (Throwable t) {
-                throw new RuntimeException("Unable to retrieve last append index", t);
             }
+            return new AppendBatchInfo(appendIndex, postLogPosition);
+        } catch (Throwable t) {
+            throw new RuntimeException("Unable to retrieve last append index", t);
         }
-        return new AppendBatchInfo(startingAppendIndex, LogPosition.UNSPECIFIED);
     }
 
     private static LogPosition getLookupPosition(LogFile logFile, LogPosition logPosition, long logVersion) {
