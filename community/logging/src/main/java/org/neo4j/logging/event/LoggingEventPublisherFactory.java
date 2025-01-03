@@ -29,8 +29,4 @@ public class LoggingEventPublisherFactory {
             InternalLogProvider debugLogProvider, ComponentNamespace component) {
         return new LoggingDebugEventPublisher(debugLogProvider, component);
     }
-
-    public static UserEventPublisher userLogEventPublisher(InternalLogProvider userLogProvider) {
-        return new LoggingUserEventPublisher(userLogProvider);
-    }
 }

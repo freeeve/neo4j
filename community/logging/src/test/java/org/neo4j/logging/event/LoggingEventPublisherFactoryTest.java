@@ -19,7 +19,6 @@
  */
 package org.neo4j.logging.event;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -60,12 +59,5 @@ class LoggingEventPublisherFactoryTest {
         verify(logProvider, times(2)).getLog(TEST_NAMESPACE.getName());
 
         verify(log, times(2)).info("[Event] %s %s", "hello", Parameters.of("param", TEST_NAMESPACE));
-    }
-
-    @Test
-    void shouldCreateUserLogPublisher() {
-        var eventPublisher1 = LoggingEventPublisherFactory.userLogEventPublisher(logProvider);
-        eventPublisher1.publish(TestEvents.START);
-        verify(log, times(1)).info(anyString(), any(Type.class), anyString(), anyString(), any());
     }
 }
