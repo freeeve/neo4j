@@ -3566,36 +3566,6 @@
   },
   {
     "admin": true,
-    "name": "dbms.setDatabaseAllocator",
-    "isDeprecated": true,
-    "deprecatedBy": "Functionality is removed",
-    "option": {
-      "deprecated": true
-    },
-    "signature": "dbms.setDatabaseAllocator(allocator :: STRING)",
-    "rolesBoostedExecution": [
-      "admin"
-    ],
-    "worksOnSystem": true,
-    "returnDescription": [],
-    "description": "With this method you can set the allocator that is responsible for selecting servers for hosting databases.",
-    "rolesExecution": [
-      "admin"
-    ],
-    "argumentDescription": [
-      {
-        "name": "allocator",
-        "description": "The name of the allocator.",
-        "type": "STRING",
-        "isDeprecated": false
-      }
-    ],
-    "mode": "WRITE",
-    "enterpriseOnly": true,
-    "removedInCypher25": false
-  },
-  {
-    "admin": true,
     "name": "dbms.setDefaultAllocationNumbers",
     "isDeprecated": false,
     "deprecatedBy": null,
