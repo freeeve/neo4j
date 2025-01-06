@@ -1970,7 +1970,7 @@
     ],
     "mode": "DBMS",
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "removedInCypher25": true
   },
   {
     "name": "dbms.cluster.routing.getRoutingTable",
@@ -2021,7 +2021,7 @@
       "deprecated": true
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "removedInCypher25": true
   },
   {
     "admin": true,

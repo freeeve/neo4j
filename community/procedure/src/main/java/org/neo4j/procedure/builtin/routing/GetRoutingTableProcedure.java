@@ -35,6 +35,7 @@ import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.Neo4jTypes;
 import org.neo4j.internal.kernel.api.procs.ProcedureSignature;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
+import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.kernel.api.ResourceMonitor;
 import org.neo4j.kernel.api.procedure.CallableProcedure;
 import org.neo4j.kernel.api.procedure.Context;
@@ -70,6 +71,7 @@ public final class GetRoutingTableProcedure implements CallableProcedure {
         var oldSignature = oldSignatureBuilder
                 .isDeprecated(true)
                 .deprecatedBy(currentProcedureFullName)
+                .supportedQueryLanguages(QueryLanguage.CYPHER_5)
                 .build();
         var oldProcedure = new GetRoutingTableProcedure(routingService, oldSignature, logProvider);
 
