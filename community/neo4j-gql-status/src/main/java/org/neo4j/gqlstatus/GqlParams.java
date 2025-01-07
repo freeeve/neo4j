@@ -65,6 +65,7 @@ public class GqlParams {
         db2(new IDENT()),
         db3(new IDENT()),
         edition(new VERBATIM()), // Freeform edition description
+        endpointType(new VERBATIM()), // One of 'start', 'end'
         entityType(new VERBATIM()), // One of 'node', 'relationship'
         expr(new STRLIT()), // Cypher expression | 1 + n.pro
         exprType(new VERBATIM()), // Freeform expression type
@@ -139,8 +140,12 @@ public class GqlParams {
         temporal(new TEMPORAL()), // Temporal value
         timeUnit(new VERBATIM()), // Common time unit name
         token(new STRLIT()), // Token name
+        token1(new STRLIT()),
+        token2(new STRLIT()),
         tokenId(new STRLIT()), // Token id
         tokenType(new VERBATIM()), // Token type
+        tokenType1(new VERBATIM()),
+        tokenType2(new VERBATIM()),
         transactionId(new STRLIT()), // Transaction id
         transactionId1(new STRLIT()),
         transactionId2(new STRLIT()),
@@ -171,6 +176,8 @@ public class GqlParams {
         dim1(new NONNEG()), // Number representing index dimensionality
         dim2(new NONNEG()),
         entityId(new NUM()), // Id of a node or relationship
+        entityId1(new NUM()),
+        entityId2(new NUM()),
         lower(new NUM()), // Lower bound
         pos(new NUM()), // A position (e.g., in a sequence)
         timeAmount(new NUM()), // Integral amount of some time unit

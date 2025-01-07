@@ -2101,6 +2101,37 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "incompatible graph type dependence",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NB3(
+            new GqlStatus("22NB3"),
+            """
+                    { %s } ({ %s }) with { %s } { %s } must have the { %s } { %s }.""",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.entityType,
+                GqlParams.NumberParam.entityId,
+                GqlParams.StringParam.tokenType1,
+                GqlParams.StringParam.token1,
+                GqlParams.StringParam.tokenType2,
+                GqlParams.StringParam.token2
+            },
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "token presence verification failed",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_22NB4(
+            new GqlStatus("22NB4"),
+            """
+                    Relationship ({ %s }) with type { %s } requires its { %s } node ({ %s }) to have the label { %s }.""",
+            new GqlParams.GqlParam[] {
+                GqlParams.NumberParam.entityId1,
+                GqlParams.StringParam.relType,
+                GqlParams.StringParam.endpointType,
+                GqlParams.NumberParam.entityId2,
+                GqlParams.StringParam.label
+            },
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "endpoint label presence verification failed",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_25000(
             new GqlStatus("25000"),
             """
