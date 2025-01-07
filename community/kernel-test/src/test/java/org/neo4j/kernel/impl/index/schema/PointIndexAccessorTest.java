@@ -20,7 +20,6 @@
 package org.neo4j.kernel.impl.index.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
@@ -131,19 +130,32 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
     @MethodSource("unsupportedPredicates")
     void readerShouldThrowOnUnsupportedPredicates(PropertyIndexQuery predicate) {
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
-            assertThatThrownBy(
-                            () -> reader.query(
-                                    new SimpleEntityValueClient(),
-                                    NULL_CONTEXT,
-                                    CursorContext.NULL_CONTEXT,
-                                    unorderedValues(),
-                                    predicate),
-                            "%s is an unsupported query",
-                            predicate)
-                    .isInstanceOf(IllegalArgumentException.class)
+            var e = assertThrows(
+                    IndexNotApplicableKernelException.class,
+                    () -> reader.query(
+                            new SimpleEntityValueClient(),
+                            NULL_CONTEXT,
+                            CursorContext.NULL_CONTEXT,
+                            unorderedValues(),
+                            predicate),
+                    "%s is an unsupported query".formatted(predicate));
+            assertThat(e)
                     .hasMessageContaining(
                             "Tried to query index with illegal query. Only %s, %s, and %s queries are supported by a point index",
                             IndexQueryType.ALL_ENTRIES, IndexQueryType.EXACT, IndexQueryType.BOUNDING_BOX);
+            assertThat(e.gqlStatus()).isEqualTo("50N15");
+            assertThat(e.statusDescription())
+                    .isEqualTo(String.format(
+                            "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information.",
+                            INDEX_DESCRIPTOR.getName()));
+            LogAssertions.assertThat(logProvider)
+                    .containsMessageWithAll(
+                            "Tried to query index with illegal query. Only %s, %s, and %s queries are supported by a point index"
+                                    .formatted(
+                                            IndexQueryType.ALL_ENTRIES,
+                                            IndexQueryType.EXACT,
+                                            IndexQueryType.BOUNDING_BOX))
+                    .containsException(e);
         }
     }
 

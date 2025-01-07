@@ -26,6 +26,7 @@ import static org.neo4j.kernel.impl.index.schema.NativeIndexKey.Inclusion.NEUTRA
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurve;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurveConfiguration;
 import org.neo4j.index.internal.gbptree.GBPTree;
@@ -85,14 +86,14 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
         validateSupportedPredicates(predicates[0]);
     }
 
-    private void validateSupportedPredicates(PropertyIndexQuery predicate) {
+    private void validateSupportedPredicates(PropertyIndexQuery predicate) throws IndexNotApplicableKernelException {
         switch (predicate.type()) {
             case ALL_ENTRIES, EXACT, BOUNDING_BOX:
                 return;
             default:
-                throw new IllegalArgumentException(format(
-                        "Tried to query index with illegal query. Only %s, %s, and %s queries are supported by a point index. Query was: %s",
-                        IndexQueryType.ALL_ENTRIES, IndexQueryType.EXACT, IndexQueryType.BOUNDING_BOX, predicate));
+                throw invalidPredicate(
+                        msg -> IndexNotApplicableKernelException.indexNotApplicable(log, descriptor.getName(), msg),
+                        predicate);
         }
     }
 
@@ -173,9 +174,15 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
                 treeKeyTo.initFromValue(-1, exactPredicate.value(), NEUTRAL);
             }
 
-            default -> validateSupportedPredicates(predicate); // throw, just in case
+            default -> throw invalidPredicate(IllegalArgumentException::new, predicate); // throw, just in case
         }
 
         return false;
+    }
+
+    private <E extends Exception> E invalidPredicate(Function<String, E> constructor, PropertyIndexQuery predicate) {
+        return constructor.apply(format(
+                "Tried to query index with illegal query. Only %s, %s, and %s queries are supported by a point index. Query was: %s",
+                IndexQueryType.ALL_ENTRIES, IndexQueryType.EXACT, IndexQueryType.BOUNDING_BOX, predicate));
     }
 }
