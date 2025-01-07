@@ -36,16 +36,7 @@ import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 public class UniquePropertyValueValidationException extends ConstraintValidationException {
     private final Set<IndexEntryConflictException> conflicts;
 
-    public UniquePropertyValueValidationException(
-            ErrorGqlStatusObject gqlStatusObject,
-            IndexBackedConstraintDescriptor constraint,
-            ConstraintValidationException.Phase phase,
-            IndexEntryConflictException conflict,
-            TokenNameLookup tokenNameLookup) {
-        this(gqlStatusObject, constraint, phase, Collections.singleton(conflict), tokenNameLookup);
-    }
-
-    public UniquePropertyValueValidationException(
+    private UniquePropertyValueValidationException(
             ErrorGqlStatusObject gqlStatusObject,
             IndexBackedConstraintDescriptor constraint,
             ConstraintValidationException.Phase phase,
