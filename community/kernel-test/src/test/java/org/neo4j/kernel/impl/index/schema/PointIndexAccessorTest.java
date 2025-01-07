@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.index.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.constrained;
@@ -36,12 +37,15 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import java.util.stream.Stream;
 import org.eclipse.collections.impl.factory.Sets;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.configuration.Config;
 import org.neo4j.gis.spatial.index.curves.StandardConfiguration;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
+import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
@@ -52,7 +56,8 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettings;
-import org.neo4j.logging.NullLogProvider;
+import org.neo4j.logging.AssertableLogProvider;
+import org.neo4j.logging.LogAssertions;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.values.storable.PointValue;
@@ -80,6 +85,13 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
             .filter(type -> type.valueGroup.category() != ValueCategory.GEOMETRY)
             .toArray(ValueType[]::new);
 
+    private final AssertableLogProvider logProvider = new AssertableLogProvider();
+
+    @AfterEach
+    void tearDown() {
+        logProvider.clear();
+    }
+
     @Override
     ValueCreatorUtil<PointKey> createValueCreatorUtil() {
         return new ValueCreatorUtil<>(INDEX_DESCRIPTOR, SUPPORTED_TYPES, FRACTION_DUPLICATE_NON_UNIQUE);
@@ -102,7 +114,7 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
                 CONFIGURATION,
                 Sets.immutable.empty(),
                 false,
-                NullLogProvider.getInstance());
+                logProvider);
     }
 
     @Override
@@ -132,6 +144,33 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
                     .hasMessageContaining(
                             "Tried to query index with illegal query. Only %s, %s, and %s queries are supported by a point index",
                             IndexQueryType.ALL_ENTRIES, IndexQueryType.EXACT, IndexQueryType.BOUNDING_BOX);
+        }
+    }
+
+    @Test
+    void readerShouldThrowOnUnsupportedCompositePredicates() {
+        try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
+            var e = assertThrows(
+                    IndexNotApplicableKernelException.class,
+                    () -> reader.query(
+                            new SimpleEntityValueClient(),
+                            NULL_CONTEXT,
+                            CursorContext.NULL_CONTEXT,
+                            unorderedValues(),
+                            PropertyIndexQuery.exact(0, Values.stringValue("myValue")),
+                            PropertyIndexQuery.exact(1, Values.stringValue("myValue"))));
+            assertThat(e)
+                    .hasMessageContaining(
+                            "Tried to query a point index with a composite query. Composite queries are not supported by a point index. Query was");
+            assertThat(e.gqlStatus()).isEqualTo("50N15");
+            assertThat(e.statusDescription())
+                    .isEqualTo(String.format(
+                            "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information.",
+                            INDEX_DESCRIPTOR.getName()));
+            LogAssertions.assertThat(logProvider)
+                    .containsMessageWithAll(
+                            "Tried to query a point index with a composite query. Composite queries are not supported by a point index. Query was")
+                    .containsException(e);
         }
     }
 

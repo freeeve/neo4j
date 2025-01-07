@@ -66,10 +66,13 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
     void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery[] predicates)
             throws IndexNotApplicableKernelException {
         if (predicates.length > 1) {
-            throw new IllegalArgumentException(format(
-                    "Tried to query a point index with a composite query. "
-                            + "Composite queries are not supported by a point index. Query was: %s ",
-                    Arrays.toString(predicates)));
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    descriptor.getName(),
+                    format(
+                            "Tried to query a point index with a composite query. "
+                                    + "Composite queries are not supported by a point index. Query was: %s ",
+                            Arrays.toString(predicates)));
         }
 
         if (constraints.order() != IndexOrder.NONE) {
