@@ -26,9 +26,11 @@ import static org.neo4j.kernel.impl.index.schema.NativeIndexKey.Inclusion.NEUTRA
 import static org.neo4j.kernel.impl.index.schema.RangeIndexProvider.CAPABILITY;
 
 import java.util.Arrays;
+import java.util.function.Function;
 import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
+import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
@@ -49,7 +51,8 @@ public class RangeIndexReader extends NativeIndexReader<RangeKey> {
     }
 
     @Override
-    void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... predicates) {
+    void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... predicates)
+            throws IndexNotApplicableKernelException {
         validateNoUnsupportedPredicates(predicates);
         validateOrder(constraints.order(), predicates);
         validateCompositeQuery(predicates);
@@ -88,8 +91,7 @@ public class RangeIndexReader extends NativeIndexReader<RangeKey> {
                     treeKeyTo.stateSlot(i).initAsPrefixHigh(prefixPredicate.prefix());
                 }
 
-                default -> throw new IllegalArgumentException(
-                        "IndexQuery of type " + predicate.type() + " is not supported.");
+                default -> throw invalidPredicate(IllegalArgumentException::new, predicate);
             }
         }
         return false;
@@ -138,7 +140,8 @@ public class RangeIndexReader extends NativeIndexReader<RangeKey> {
         return rangePredicate.toInclusive() ? HIGH : LOW;
     }
 
-    private static void validateNoUnsupportedPredicates(PropertyIndexQuery[] predicates) {
+    private void validateNoUnsupportedPredicates(PropertyIndexQuery[] predicates)
+            throws IndexNotApplicableKernelException {
         for (final var predicate : predicates) {
             final var type = predicate.type();
             switch (type) {
@@ -146,9 +149,9 @@ public class RangeIndexReader extends NativeIndexReader<RangeKey> {
                         BOUNDING_BOX,
                         STRING_CONTAINS,
                         STRING_SUFFIX,
-                        FULLTEXT_SEARCH -> throw new IllegalArgumentException(format(
-                        "Tried to query index with illegal query. A %s predicate is not allowed for a %s index. Query was :%s",
-                        type, IndexType.RANGE, Arrays.toString(predicates)));
+                        FULLTEXT_SEARCH -> throw invalidPredicate(
+                        msg -> IndexNotApplicableKernelException.indexNotApplicable(log, descriptor.getName(), msg),
+                        predicate);
                 default -> {}
             }
         }
@@ -233,5 +236,11 @@ public class RangeIndexReader extends NativeIndexReader<RangeKey> {
         throw new IllegalArgumentException(format(
                 "Tried to query index with illegal composite query. Composite query must have decreasing precision. Query was: %s ",
                 Arrays.toString(predicates)));
+    }
+
+    private <E extends Exception> E invalidPredicate(Function<String, E> constructor, PropertyIndexQuery predicate) {
+        return constructor.apply(format(
+                "Tried to query index with illegal query. A %s predicate is not allowed for a %s index. Query was :%s",
+                predicate.type(), IndexType.RANGE, predicate));
     }
 }

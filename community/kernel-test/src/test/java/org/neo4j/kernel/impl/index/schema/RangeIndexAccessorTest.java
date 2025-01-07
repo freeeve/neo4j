@@ -19,8 +19,9 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.constrained;
@@ -33,8 +34,12 @@ import static org.neo4j.kernel.impl.index.schema.ValueCreatorUtil.FRACTION_DUPLI
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.stream.Stream;
 import org.eclipse.collections.impl.factory.Sets;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
@@ -45,7 +50,8 @@ import org.neo4j.internal.schema.IndexType;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.index.ValueIndexReader;
-import org.neo4j.logging.NullLogProvider;
+import org.neo4j.logging.AssertableLogProvider;
+import org.neo4j.logging.LogAssertions;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.values.ElementIdMapper;
@@ -64,6 +70,13 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
     private static final ValueType[] SUPPORTED_TYPES = ValueType.values();
     private static final RangeLayout LAYOUT = new RangeLayout(1);
 
+    private final AssertableLogProvider logProvider = new AssertableLogProvider();
+
+    @AfterEach
+    void tearDown() {
+        logProvider.clear();
+    }
+
     @Override
     NativeIndexAccessor<RangeKey> createAccessor(PageCache pageCache) {
         RecoveryCleanupWorkCollector cleanup = RecoveryCleanupWorkCollector.immediate();
@@ -81,7 +94,7 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
                 ElementIdMapper.PLACEHOLDER,
                 Sets.immutable.empty(),
                 false,
-                NullLogProvider.getInstance());
+                logProvider);
     }
 
     @Override
@@ -99,62 +112,30 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
         return LAYOUT;
     }
 
-    @Test
-    void readerShouldThrowOnBoundingBoxQueries() {
-        PropertyIndexQuery.BoundingBoxPredicate boundingBoxPredicate = PropertyIndexQuery.boundingBox(
-                0,
-                Values.pointValue(CoordinateReferenceSystem.CARTESIAN, 1, 1),
-                Values.pointValue(CoordinateReferenceSystem.CARTESIAN, 2, 2));
-
+    @ParameterizedTest
+    @MethodSource("unsupportedPredicates")
+    void readerShouldThrowOnUnsupportedQuery(PropertyIndexQuery predicate) {
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
-            assertThatThrownBy(() -> reader.query(
+            var e = assertThrows(
+                    IndexNotApplicableKernelException.class,
+                    () -> reader.query(
                             new SimpleEntityValueClient(),
                             NULL_CONTEXT,
                             CursorContext.NULL_CONTEXT,
                             unorderedValues(),
-                            boundingBoxPredicate))
-                    .isInstanceOf(IllegalArgumentException.class)
+                            predicate));
+            assertThat(e)
                     .hasMessageContaining(
-                            "Tried to query index with illegal query. A %s predicate is not allowed",
-                            boundingBoxPredicate.type());
-        }
-    }
-
-    @Test
-    void readerShouldThrowOnStringSuffixQueries() {
-        PropertyIndexQuery.StringSuffixPredicate suffixPredicate =
-                PropertyIndexQuery.stringSuffix(0, Values.stringValue("myValue"));
-
-        try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
-            assertThatThrownBy(() -> reader.query(
-                            new SimpleEntityValueClient(),
-                            NULL_CONTEXT,
-                            CursorContext.NULL_CONTEXT,
-                            unorderedValues(),
-                            suffixPredicate))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining(
-                            "Tried to query index with illegal query. A %s predicate is not allowed",
-                            suffixPredicate.type());
-        }
-    }
-
-    @Test
-    void readerShouldThrowOnStringContainsQueries() {
-        PropertyIndexQuery.StringContainsPredicate containsPredicate =
-                PropertyIndexQuery.stringContains(0, Values.stringValue("myValue"));
-
-        try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
-            assertThatThrownBy(() -> reader.query(
-                            new SimpleEntityValueClient(),
-                            NULL_CONTEXT,
-                            CursorContext.NULL_CONTEXT,
-                            unorderedValues(),
-                            containsPredicate))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining(
-                            "Tried to query index with illegal query. A %s predicate is not allowed",
-                            containsPredicate.type());
+                            "Tried to query index with illegal query. A %s predicate is not allowed", predicate.type());
+            assertThat(e.gqlStatus()).isEqualTo("50N15");
+            assertThat(e.statusDescription())
+                    .isEqualTo(String.format(
+                            "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information.",
+                            INDEX_DESCRIPTOR.getName()));
+            LogAssertions.assertThat(logProvider)
+                    .containsMessageWithAll("Tried to query index with illegal query. A %s predicate is not allowed"
+                            .formatted(predicate.type()))
+                    .containsException(e);
         }
     }
 
@@ -208,5 +189,16 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
             case GEOMETRY, GEOMETRY_ARRAY -> false;
             default -> true;
         });
+    }
+
+    private static Stream<PropertyIndexQuery> unsupportedPredicates() {
+        return Stream.of(
+                PropertyIndexQuery.boundingBox(
+                        0,
+                        Values.pointValue(CoordinateReferenceSystem.CARTESIAN, 1, 1),
+                        Values.pointValue(CoordinateReferenceSystem.CARTESIAN, 2, 2)),
+                PropertyIndexQuery.stringSuffix(0, Values.stringValue("myValue")),
+                PropertyIndexQuery.stringContains(0, Values.stringValue("myValue")),
+                PropertyIndexQuery.fulltextSearch("myValue"));
     }
 }
