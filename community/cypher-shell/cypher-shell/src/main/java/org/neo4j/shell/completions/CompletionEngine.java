@@ -220,6 +220,21 @@ public class CompletionEngine {
         }
     }
 
+    private static String backtickDbNameIfNeeded(String e) {
+        if (e == null || e.isEmpty()) {
+            return e;
+        }
+        Pattern invalidStartPattern = Pattern.compile("^[^\\p{L}_]", Pattern.UNICODE_CHARACTER_CLASS);
+        Pattern invalidAnywherePattern = Pattern.compile("[^\\p{L}\\p{N}_.]", Pattern.UNICODE_CHARACTER_CLASS);
+        Matcher m1 = invalidStartPattern.matcher(String.valueOf(e.charAt(0)));
+        Matcher m2 = invalidAnywherePattern.matcher(e);
+        if (m1.find() || m2.find()) {
+            return "`" + e + "`";
+        } else {
+            return e;
+        }
+    }
+
     private Stream<Suggestion> labelCompletions() {
         return this.dbInfo.labels.stream().map(label -> Suggestion.labelOrRelType(backtickIfNeeded(label), label));
     }
@@ -509,13 +524,16 @@ public class CompletionEngine {
 
         if (rulesThatOnlyAcceptAlias.stream().anyMatch(ruleList::contains)) {
             return Stream.concat(
-                    parameterSuggestions, dbInfo.aliasNames.stream().map(Suggestion::value));
+                    parameterSuggestions,
+                    dbInfo.aliasNames.stream().map(name -> Suggestion.value(backtickDbNameIfNeeded(name), name)));
         }
 
         return Stream.concat(
                 Stream.concat(
-                        parameterSuggestions, dbInfo.databaseNames.stream().map(Suggestion::value)),
-                dbInfo.aliasNames.stream().map(Suggestion::value));
+                        parameterSuggestions,
+                        dbInfo.databaseNames.stream()
+                                .map(name -> Suggestion.value(backtickDbNameIfNeeded(name), name))),
+                dbInfo.aliasNames.stream().map(name -> Suggestion.value(backtickDbNameIfNeeded(name), name)));
     }
 
     private String calculateNamespacePrefix(int startTokenIndex, List<Token> tokens) {
@@ -637,7 +655,8 @@ public class CompletionEngine {
     private Stream<Suggestion> parameterCompletions(CompletionEngine.ParameterType expectedType) {
         var result = this.dbInfo.parameters().entrySet().stream()
                 .filter(entry -> expectedType == CompletionEngine.ParameterType.ANY || entry.getValue() == expectedType)
-                .map((parameter) -> Suggestion.parameter("$" + parameter.getKey()));
+                .map((parameter) ->
+                        Suggestion.parameter("$" + backtickIfNeeded(parameter.getKey()), "$" + parameter.getKey()));
         return result;
     }
 

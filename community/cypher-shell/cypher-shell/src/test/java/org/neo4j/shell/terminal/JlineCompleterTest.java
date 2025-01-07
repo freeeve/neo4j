@@ -89,6 +89,10 @@ class JlineCompleterTest {
         return new Completion(completion, completion, SuggestionType.PARAMETER.name, null);
     }
 
+    Completion parameter(String completion, String display) {
+        return new Completion(completion, display, SuggestionType.PARAMETER.name, null);
+    }
+
     Completion procedureNamespace(String completion) {
         return new Completion(completion, completion, SuggestionType.PROCEDURE.name, "namespace");
     }
@@ -129,6 +133,10 @@ class JlineCompleterTest {
         return new Completion(completion, completion, SuggestionType.VALUE.name, null);
     }
 
+    Completion value(String completion, String display) {
+        return new Completion(completion, display, SuggestionType.VALUE.name, null);
+    }
+
     void addDummyProcedure(Map<String, DbInfo.Neo4jProcedure> m, String name) {
         m.put(name, new DbInfo.Neo4jProcedure(List.of()));
     }
@@ -138,6 +146,8 @@ class JlineCompleterTest {
         parameters.setParameters(List.of(new Parameter("otherIntParam", Values.value(2L))));
         parameters.setParameters(List.of(new Parameter("mapParam", Values.value(Map.of("a", 1)))));
         parameters.setParameters(List.of(new Parameter("stringParam", Values.value("some name"))));
+        parameters.setParameters(List.of(new Parameter("split param", Values.value("a value"))));
+
         dbInfo = new StubDbInfo(parameters, true);
         String[] dummyProcedures = {"foo.bar", "dbms.info", "somethingElse", "foo.info", "db.info"};
         dbInfo.procedures = new HashMap<>();
@@ -166,8 +176,8 @@ class JlineCompleterTest {
                 "rating1",
                 "rating_x",
                 "rating score");
-        dbInfo.databaseNames = List.of("neo4j", "oskar", "system", "Restaurant", "Cafe");
-        dbInfo.aliasNames = List.of("alias2", "scoped.alias", "Bar", "Hotel", "Supermarket");
+        dbInfo.databaseNames = List.of("neo4j", "oskar", "system", "Restaurant", "Cafe", "my.neoDB", "neo db");
+        dbInfo.aliasNames = List.of("alias2", "scoped.alias", "Bar", "Hotel", "Supermarket", "very cool alias");
         dbInfo.userNames = List.of("oskar", "neo4j", "admin");
         dbInfo.roleNames = List.of("foo", "bar");
 
@@ -207,8 +217,10 @@ class JlineCompleterTest {
         var identifiers = Stream.of("myFirstNode", "rel", "mySecondNode")
                 .map(this::identifier)
                 .toList();
-        var parameters = Stream.of("$intParam", "$mapParam", "$stringParam", "$otherIntParam")
-                .map(this::parameter)
+        var parameters = Stream.concat(
+                        Stream.of("$intParam", "$mapParam", "$stringParam", "$otherIntParam")
+                                .map(this::parameter),
+                        Stream.of(parameter("$`split param`", "$split param")))
                 .toList();
 
         assertThat(complete(whereQuery))
@@ -235,14 +247,27 @@ class JlineCompleterTest {
 
     @Test
     void completeCypherParametersSanity() {
-        assertThat(complete("match (n) where n.p = ")).contains(parameter("$intParam"), parameter("$otherIntParam"));
-        assertThat(complete("match (n) where n.p = $intP")).contains(parameter("$intParam"));
+        assertThat(complete("match (n) where n.p = "))
+                .contains(
+                        parameter("$intParam"),
+                        parameter("$otherIntParam"),
+                        parameter("$`split param`", "$split param"));
+        assertThat(complete("match (n) where n.p = $intP"))
+                .contains(parameter("$intParam"), parameter("$`split param`", "$split param"));
 
-        assertThat(complete("match (n) where n.p = $")).contains(parameter("$intParam"), parameter("$otherIntParam"));
+        assertThat(complete("match (n) where n.p = $"))
+                .contains(
+                        parameter("$intParam"),
+                        parameter("$otherIntParam"),
+                        parameter("$`split param`", "$split param"));
 
         assertThat(complete("ALTER SERVER \"abc\" SET OPTIONS "))
                 .contains(parameter("$mapParam"))
-                .doesNotContain(parameter("$intParam"), parameter("$otherIntParam"), parameter("$stringParam"));
+                .doesNotContain(
+                        parameter("$intParam"),
+                        parameter("$otherIntParam"),
+                        parameter("$stringParam"),
+                        parameter("$`split param`", "$split param"));
     }
 
     @Test
@@ -382,15 +407,23 @@ class JlineCompleterTest {
                         value("neo4j"),
                         value("oskar"),
                         value("system"),
+                        value("my.neoDB"),
+                        value("`neo db`", "neo db"),
                         value("alias2"),
                         value("scoped.alias"),
-                        parameter("$stringParam"))
+                        value("`very cool alias`", "very cool alias"),
+                        parameter("$stringParam"),
+                        parameter("$`split param`", "$split param"))
                 .doesNotContain(parameter("$mapParam"));
 
         assertThat(complete("ALTER DATABASE sco")).contains(value("scoped.alias"));
 
         assertThat(complete("SHOW ALIAS "))
-                .contains(value("scoped.alias"), parameter("$stringParam"))
+                .contains(
+                        value("scoped.alias"),
+                        parameter("$stringParam"),
+                        value("`very cool alias`", "very cool alias"),
+                        parameter("$`split param`", "$split param"))
                 .doesNotContain(value("neo4j"), parameter("$mapParam"));
     }
 
