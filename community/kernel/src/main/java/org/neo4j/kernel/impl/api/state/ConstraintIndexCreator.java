@@ -224,10 +224,11 @@ public class ConstraintIndexCreator {
                 throw UniquePropertyValueValidationException.propertyUniquenessViolation(
                         constraint, VERIFICATION, exc, transaction.tokenRead());
             } else if (cause instanceof IllegalArgumentException exc) {
-                throw new UniquePropertyValueValidationException(
+                throw UniquePropertyValueValidationException.propertyUniquenessViolation(
                         constraint, VERIFICATION, exc, transaction.tokenRead());
             } else {
-                throw new UniquePropertyValueValidationException(constraint, VERIFICATION, e, transaction.tokenRead());
+                throw UniquePropertyValueValidationException.propertyUniquenessViolation(
+                        constraint, VERIFICATION, e, transaction.tokenRead());
             }
         }
     }

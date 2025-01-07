@@ -75,22 +75,6 @@ public abstract class ConstraintValidationException extends KernelException {
     }
 
     protected ConstraintValidationException(
-            ConstraintDescriptor constraint,
-            Phase phase,
-            String subject,
-            Throwable failure,
-            TokenNameLookup tokenNameLookup) {
-        super(
-                phase.getStatus(),
-                failure,
-                "%s does not satisfy %s: %s",
-                subject,
-                constraint.userDescription(tokenNameLookup),
-                failure.getMessage());
-        this.constraint = constraint;
-    }
-
-    protected ConstraintValidationException(
             ErrorGqlStatusObject gqlStatusObject,
             ConstraintDescriptor constraint,
             Phase phase,
