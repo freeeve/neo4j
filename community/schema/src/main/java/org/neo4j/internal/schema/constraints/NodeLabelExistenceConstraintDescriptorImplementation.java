@@ -270,6 +270,11 @@ final class NodeLabelExistenceConstraintDescriptorImplementation implements Node
     }
 
     @Override
+    public int schemaLabelId() {
+        return schema.getLabelId();
+    }
+
+    @Override
     public String toString() {
         return toString(Mask.NO);
     }

@@ -21,22 +21,46 @@ package org.neo4j.kernel.api.exceptions.schema;
 
 import static java.lang.String.format;
 
+import org.neo4j.common.EntityType;
 import org.neo4j.common.TokenNameLookup;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.internal.schema.constraints.NodeLabelExistenceConstraintDescriptor;
+import org.neo4j.token.api.TokenType;
 
 public final class NodeLabelExistenceMissingLabelException extends ConstraintValidationException {
     private final NodeLabelExistenceConstraintDescriptor descriptor;
     private final long nodeReference;
 
-    public NodeLabelExistenceMissingLabelException(
+    private NodeLabelExistenceMissingLabelException(
+            ErrorGqlStatusObject gqlStatusObject,
             NodeLabelExistenceConstraintDescriptor descriptor,
             Phase phase,
             long nodeReference,
             TokenNameLookup tokenNameLookup) {
-        super(descriptor, phase, format("Node(%d)", nodeReference), tokenNameLookup);
+        super(gqlStatusObject, descriptor, phase, format("Node(%d)", nodeReference), tokenNameLookup);
         this.descriptor = descriptor;
         this.nodeReference = nodeReference;
+    }
+
+    // KNL-193
+    public static NodeLabelExistenceMissingLabelException tokenPresenceVerificationFailed(
+            NodeLabelExistenceConstraintDescriptor descriptor,
+            Phase phase,
+            long nodeReference,
+            TokenNameLookup tokenNameLookup) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB3)
+                .withParam(GqlParams.StringParam.entityType, EntityType.NODE.name())
+                .withParam(GqlParams.NumberParam.entityId, nodeReference)
+                .withParam(GqlParams.StringParam.tokenType1, TokenType.LABEL.getName())
+                .withParam(GqlParams.StringParam.token1, tokenNameLookup.labelGetName(descriptor.schemaLabelId()))
+                .withParam(GqlParams.StringParam.tokenType2, TokenType.LABEL.getName())
+                .withParam(GqlParams.StringParam.token2, tokenNameLookup.labelGetName(descriptor.requiredLabelId()))
+                .build();
+        return new NodeLabelExistenceMissingLabelException(gql, descriptor, phase, nodeReference, tokenNameLookup);
     }
 
     @Override

@@ -30,6 +30,13 @@ public interface NodeLabelExistenceConstraintDescriptor extends ConstraintDescri
      */
     int requiredLabelId();
 
+    /**
+     * For a constraint that enforces that nodes with label `:A`
+     * should also have the label `:B`.
+     * @return the token id for label `:A`.
+     */
+    int schemaLabelId();
+
     @Override
     NodeLabelExistenceConstraintDescriptor withName(String name);
 

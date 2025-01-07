@@ -43,7 +43,7 @@ public final class NodeLabelExistenceMissingLabelExceptionTest {
 
         NodeLabelExistenceConstraintDescriptor constraintDescriptor =
                 ConstraintDescriptorFactory.nodeLabelExistenceForLabel(SCHEMA_LABEL_ID, REQUIRED_LABEL_ID);
-        var userMessage = new NodeLabelExistenceMissingLabelException(
+        var userMessage = NodeLabelExistenceMissingLabelException.tokenPresenceVerificationFailed(
                         constraintDescriptor,
                         ConstraintValidationException.Phase.VERIFICATION,
                         SCHEMA_LABEL_ID,
