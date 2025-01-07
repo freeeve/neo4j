@@ -46,6 +46,7 @@ import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelE
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
+import org.neo4j.internal.schema.IndexQuery;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
@@ -135,6 +136,35 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
             LogAssertions.assertThat(logProvider)
                     .containsMessageWithAll("Tried to query index with illegal query. A %s predicate is not allowed"
                             .formatted(predicate.type()))
+                    .containsException(e);
+        }
+    }
+
+    @Test
+    void readerShouldThrowOnUnsupportedCompositePredicates() {
+        try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
+            var e = assertThrows(
+                    IndexNotApplicableKernelException.class,
+                    () -> reader.query(
+                            new SimpleEntityValueClient(),
+                            NULL_CONTEXT,
+                            CursorContext.NULL_CONTEXT,
+                            unorderedValues(),
+                            PropertyIndexQuery.exact(0, Values.stringValue("myValue")),
+                            PropertyIndexQuery.allEntries()));
+            assertThat(e)
+                    .hasMessageContaining(
+                            "Tried to query index with illegal composite query. %s queries are not allowed in composite query. Query was:",
+                            IndexQuery.IndexQueryType.ALL_ENTRIES);
+            assertThat(e.gqlStatus()).isEqualTo("50N15");
+            assertThat(e.statusDescription())
+                    .isEqualTo(String.format(
+                            "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information.",
+                            INDEX_DESCRIPTOR.getName()));
+            LogAssertions.assertThat(logProvider)
+                    .containsMessageWithAll(
+                            "Tried to query index with illegal composite query. %s queries are not allowed in composite query. Query was:"
+                                    .formatted(IndexQuery.IndexQueryType.ALL_ENTRIES))
                     .containsException(e);
         }
     }

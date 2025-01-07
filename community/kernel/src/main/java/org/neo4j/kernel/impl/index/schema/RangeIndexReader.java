@@ -194,7 +194,7 @@ public class RangeIndexReader extends NativeIndexReader<RangeKey> {
      *
      * @param predicates The query for which we want to check the composite validity.
      */
-    static void validateCompositeQuery(PropertyIndexQuery... predicates) {
+    void validateCompositeQuery(PropertyIndexQuery... predicates) throws IndexNotApplicableKernelException {
         for (int i = 1; i < predicates.length; i++) {
             final var type = predicates[i].type();
             final var prevType = predicates[i - 1].type();
@@ -231,10 +231,14 @@ public class RangeIndexReader extends NativeIndexReader<RangeKey> {
                         indexOrder, Arrays.toString(predicates)));
     }
 
-    private static void invalidQueryInComposite(IndexQueryType type, PropertyIndexQuery... predicates) {
-        throw new IllegalArgumentException(format(
-                "Tried to query index with illegal composite query. %s queries are not allowed in composite query. Query was: %s ",
-                type, Arrays.toString(predicates)));
+    private void invalidQueryInComposite(IndexQueryType type, PropertyIndexQuery... predicates)
+            throws IndexNotApplicableKernelException {
+        throw IndexNotApplicableKernelException.indexNotApplicable(
+                log,
+                descriptor.getName(),
+                format(
+                        "Tried to query index with illegal composite query. %s queries are not allowed in composite query. Query was: %s",
+                        type, Arrays.toString(predicates)));
     }
 
     private static void invalidQueryPrecisionInComposite(PropertyIndexQuery... predicates) {
