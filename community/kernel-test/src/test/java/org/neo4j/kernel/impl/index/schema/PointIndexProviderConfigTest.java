@@ -39,6 +39,7 @@ import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.DoubleArray;
 import org.neo4j.values.storable.Value;
@@ -51,8 +52,8 @@ class PointIndexProviderConfigTest {
         DatabaseIndexContext context = DatabaseIndexContext.builder(
                         null, null, NULL_CONTEXT_FACTORY, PageCacheTracer.NULL, DEFAULT_DATABASE_NAME)
                 .build();
-        PointIndexProvider provider =
-                new PointIndexProvider(context, IndexDirectoryStructure.NONE, null, Config.defaults());
+        PointIndexProvider provider = new PointIndexProvider(
+                context, IndexDirectoryStructure.NONE, null, Config.defaults(), NullLogProvider.getInstance());
         LabelSchemaDescriptor incompleteSchema = SchemaDescriptors.forLabel(1, 1);
         IndexDescriptor incompleteDescriptor = IndexPrototype.forSchema(
                         incompleteSchema, AllIndexProviderDescriptors.UNDECIDED)
@@ -80,8 +81,8 @@ class PointIndexProviderConfigTest {
         DatabaseIndexContext context = DatabaseIndexContext.builder(
                         null, null, NULL_CONTEXT_FACTORY, PageCacheTracer.NULL, DEFAULT_DATABASE_NAME)
                 .build();
-        PointIndexProvider provider =
-                new PointIndexProvider(context, IndexDirectoryStructure.NONE, null, Config.defaults());
+        PointIndexProvider provider = new PointIndexProvider(
+                context, IndexDirectoryStructure.NONE, null, Config.defaults(), NullLogProvider.getInstance());
         Map<String, Value> existingSettings = new HashMap<>();
         CoordinateReferenceSystem existingCrs = CoordinateReferenceSystem.CARTESIAN;
         DoubleArray min = Values.doubleArray(new double[] {0, 0});

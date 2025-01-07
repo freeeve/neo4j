@@ -32,6 +32,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.api.schema.index.TestIndexDescriptorFactory;
+import org.neo4j.logging.NullLogProvider;
 
 class PointAccessorTilesTest extends BaseAccessorTilesTest<PointKey> {
     @Override
@@ -64,6 +65,7 @@ class PointAccessorTilesTest extends BaseAccessorTilesTest<PointKey> {
                 indexSettings,
                 configuration,
                 Sets.immutable.empty(),
-                false);
+                false,
+                NullLogProvider.getInstance());
     }
 }

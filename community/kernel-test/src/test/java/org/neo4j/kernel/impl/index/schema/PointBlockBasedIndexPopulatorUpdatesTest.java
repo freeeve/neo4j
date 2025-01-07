@@ -51,6 +51,7 @@ import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettings;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.test.RandomSupport;
@@ -96,7 +97,8 @@ public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPop
                 CONFIG,
                 EmptyMemoryTracker.INSTANCE,
                 BlockBasedIndexPopulator.NO_MONITOR,
-                Sets.immutable.empty());
+                Sets.immutable.empty(),
+                NullLogProvider.getInstance());
         populator.create();
         return populator;
     }
@@ -237,7 +239,8 @@ public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPop
                 SPATIAL_SETTINGS,
                 CONFIGURATION,
                 Sets.immutable.empty(),
-                false);
+                false,
+                NullLogProvider.getInstance());
     }
 
     private enum ScanUpdateOrder {

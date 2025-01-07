@@ -45,6 +45,7 @@ import org.neo4j.internal.schema.IndexType;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.index.ValueIndexReader;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.values.ElementIdMapper;
@@ -79,7 +80,8 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
                 tokenNameLookup,
                 ElementIdMapper.PLACEHOLDER,
                 Sets.immutable.empty(),
-                false);
+                false,
+                NullLogProvider.getInstance());
     }
 
     @Override

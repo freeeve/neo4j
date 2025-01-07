@@ -40,6 +40,7 @@ import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.api.index.IndexPopulator;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.util.Preconditions;
 import org.neo4j.values.ElementIdMapper;
@@ -111,13 +112,15 @@ public class RangeIndexProvider extends NativeIndexProvider<RangeKey, RangeLayou
             DatabaseIndexContext databaseIndexContext,
             IndexDirectoryStructure.Factory directoryStructureFactory,
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector,
-            Config config) {
+            Config config,
+            LogProvider logProvider) {
         super(
                 databaseIndexContext,
                 AllIndexProviderDescriptors.RANGE_DESCRIPTOR,
                 directoryStructureFactory,
                 recoveryCleanupWorkCollector,
-                config);
+                config,
+                logProvider);
     }
 
     @Override
@@ -154,7 +157,8 @@ public class RangeIndexProvider extends NativeIndexProvider<RangeKey, RangeLayou
                 tokenNameLookup,
                 elementIdMapper,
                 databaseIndexContext.monitors.newMonitor(BlockBasedIndexPopulator.Monitor.class),
-                openOptions);
+                openOptions,
+                logProvider);
     }
 
     @Override
@@ -175,7 +179,8 @@ public class RangeIndexProvider extends NativeIndexProvider<RangeKey, RangeLayou
                 tokenNameLookup,
                 elementIdMapper,
                 openOptions,
-                readOnly);
+                readOnly,
+                logProvider);
     }
 
     @Override

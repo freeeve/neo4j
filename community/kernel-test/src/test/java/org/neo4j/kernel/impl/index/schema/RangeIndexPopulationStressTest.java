@@ -24,6 +24,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 
 import org.neo4j.internal.schema.IndexType;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.values.storable.RandomValues;
 
 class RangeIndexPopulationStressTest extends IndexPopulationStressTest {
@@ -32,7 +33,8 @@ class RangeIndexPopulationStressTest extends IndexPopulationStressTest {
             DatabaseIndexContext context = DatabaseIndexContext.builder(
                             test.pageCache, test.fs, test.contextFactory, test.pageCacheTracer, DEFAULT_DATABASE_NAME)
                     .build();
-            return new RangeIndexProvider(context, test.directory(), immediate(), defaults());
+            return new RangeIndexProvider(
+                    context, test.directory(), immediate(), defaults(), NullLogProvider.getInstance());
         });
     }
 

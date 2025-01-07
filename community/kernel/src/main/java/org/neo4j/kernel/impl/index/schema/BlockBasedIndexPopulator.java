@@ -61,6 +61,7 @@ import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.IndexValueValidator;
 import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.api.index.updater.DelegatingIndexUpdater;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobHandle;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
@@ -125,6 +126,8 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
     private final AtomicLong numberOfAppliedScanUpdates = new AtomicLong();
     private final AtomicLong numberOfAppliedExternalUpdates = new AtomicLong();
 
+    protected final LogProvider logProvider;
+
     BlockBasedIndexPopulator(
             DatabaseIndexContext databaseIndexContext,
             IndexFiles indexFiles,
@@ -135,7 +138,8 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
             Config config,
             MemoryTracker memoryTracker,
             Monitor monitor,
-            ImmutableSet<OpenOption> openOptions) {
+            ImmutableSet<OpenOption> openOptions,
+            LogProvider logProvider) {
         super(databaseIndexContext, indexFiles, layout, descriptor, openOptions);
         this.archiveFailedIndex = archiveFailedIndex;
         this.memoryTracker = memoryTracker;
@@ -143,6 +147,7 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
         this.monitor = monitor;
         this.scanUpdates = ThreadLocal.withInitial(this::newThreadLocalBlockStorage);
         this.bufferFactory = bufferFactory;
+        this.logProvider = logProvider;
     }
 
     private synchronized ThreadLocalBlockStorage newThreadLocalBlockStorage() {

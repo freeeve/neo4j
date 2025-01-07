@@ -27,6 +27,7 @@ import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.index.IndexValueValidator;
 import org.neo4j.kernel.api.index.ValueIndexReader;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Value;
 
@@ -44,8 +45,9 @@ public class RangeIndexAccessor extends NativeIndexAccessor<RangeKey> {
             TokenNameLookup tokenNameLookup,
             ElementIdMapper elementIdMapper,
             ImmutableSet<OpenOption> openOptions,
-            boolean readOnly) {
-        super(databaseIndexContext, indexFiles, layout, descriptor, openOptions, readOnly);
+            boolean readOnly,
+            LogProvider logProvider) {
+        super(databaseIndexContext, indexFiles, layout, descriptor, openOptions, readOnly, logProvider);
         this.tokenNameLookup = tokenNameLookup;
         this.elementIdMapper = elementIdMapper;
         instantiateTree(recoveryCleanupWorkCollector);
@@ -60,7 +62,7 @@ public class RangeIndexAccessor extends NativeIndexAccessor<RangeKey> {
     @Override
     public ValueIndexReader newValueReader(IndexUsageTracking usageTracker) {
         assertOpen();
-        return new RangeIndexReader(tree, layout, descriptor, usageTracker);
+        return new RangeIndexReader(tree, layout, descriptor, usageTracker, logProvider);
     }
 
     @Override

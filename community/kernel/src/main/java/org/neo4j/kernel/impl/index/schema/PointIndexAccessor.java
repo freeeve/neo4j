@@ -30,6 +30,7 @@ import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettings;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.values.storable.Value;
 
 class PointIndexAccessor extends NativeIndexAccessor<PointKey> {
@@ -45,8 +46,9 @@ class PointIndexAccessor extends NativeIndexAccessor<PointKey> {
             IndexSpecificSpaceFillingCurveSettings spaceFillingCurveSettings,
             SpaceFillingCurveConfiguration configuration,
             ImmutableSet<OpenOption> openOptions,
-            boolean readOnly) {
-        super(databaseIndexContext, indexFiles, layout, descriptor, openOptions, readOnly);
+            boolean readOnly,
+            LogProvider logProvider) {
+        super(databaseIndexContext, indexFiles, layout, descriptor, openOptions, readOnly, logProvider);
         this.spaceFillingCurveSettings = spaceFillingCurveSettings;
         this.configuration = configuration;
         instantiateTree(recoveryCleanupWorkCollector);
@@ -55,7 +57,8 @@ class PointIndexAccessor extends NativeIndexAccessor<PointKey> {
     @Override
     public ValueIndexReader newValueReader(IndexUsageTracking usageTracker) {
         assertOpen();
-        return new PointIndexReader(tree, layout, descriptor, spaceFillingCurveSettings, configuration, usageTracker);
+        return new PointIndexReader(
+                tree, layout, descriptor, spaceFillingCurveSettings, configuration, usageTracker, logProvider);
     }
 
     @Override

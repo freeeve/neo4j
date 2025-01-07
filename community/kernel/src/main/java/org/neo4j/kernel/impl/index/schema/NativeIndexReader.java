@@ -43,6 +43,8 @@ import org.neo4j.io.pagecache.impl.FileIsNotMappedException;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.api.index.IndexSampler;
 import org.neo4j.kernel.api.index.ValueIndexReader;
+import org.neo4j.logging.Log;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.Value;
 
@@ -51,16 +53,19 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
     protected final IndexUsageTracking usageTracker;
     final IndexLayout<KEY> layout;
     final GBPTree<KEY, NullValue> tree;
+    protected final Log log;
 
     NativeIndexReader(
             GBPTree<KEY, NullValue> tree,
             IndexLayout<KEY> layout,
             IndexDescriptor descriptor,
-            IndexUsageTracking usageTracker) {
+            IndexUsageTracking usageTracker,
+            LogProvider logProvider) {
         this.tree = tree;
         this.layout = layout;
         this.descriptor = descriptor;
         this.usageTracker = usageTracker;
+        this.log = logProvider.getLog(getClass());
     }
 
     @Override

@@ -44,6 +44,7 @@ import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Value;
@@ -65,7 +66,8 @@ class RangeIndexProviderTest extends IndexProviderTests {
                         .withMonitors(monitors)
                         .withReadOnlyChecker(readOnlyChecker)
                         .build();
-                return new RangeIndexProvider(context, dir, collector, Config.defaults());
+                return new RangeIndexProvider(
+                        context, dir, collector, Config.defaults(), NullLogProvider.getInstance());
             };
 
     RangeIndexProviderTest() {

@@ -54,6 +54,7 @@ import org.neo4j.kernel.api.index.IndexEntriesReader;
 import org.neo4j.kernel.api.index.IndexEntryConflictHandler;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobHandle;
 import org.neo4j.scheduler.JobMonitoringParams;
@@ -64,6 +65,7 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
         implements IndexAccessor {
     private final NativeIndexUpdater<KEY> singleUpdater;
     private final NativeIndexHeaderWriter headerWriter;
+    protected final LogProvider logProvider;
 
     NativeIndexAccessor(
             DatabaseIndexContext databaseIndexContext,
@@ -71,13 +73,15 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
             IndexLayout<KEY> layout,
             IndexDescriptor descriptor,
             ImmutableSet<OpenOption> openOptions,
-            boolean readOnly) {
+            boolean readOnly,
+            LogProvider logProvider) {
         super(databaseIndexContext, layout, indexFiles, descriptor, openOptions, readOnly);
         singleUpdater = new NativeIndexUpdater<>(
                 layout.newKey(),
                 indexUpdateIgnoreStrategy(),
                 new ThrowingConflictDetector<>(true, descriptor.schema()));
         headerWriter = new NativeIndexHeaderWriter(BYTE_ONLINE);
+        this.logProvider = logProvider;
     }
 
     @Override

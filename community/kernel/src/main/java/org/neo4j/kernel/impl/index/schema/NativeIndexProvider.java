@@ -51,6 +51,7 @@ import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.index.MinimalIndexAccessor;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
@@ -69,13 +70,15 @@ abstract class NativeIndexProvider<KEY extends NativeIndexKey<KEY>, LAYOUT exten
     private final Monitor monitor;
     protected final Config config;
     protected final boolean archiveFailedIndex;
+    protected final LogProvider logProvider;
 
     protected NativeIndexProvider(
             DatabaseIndexContext databaseIndexContext,
             IndexProviderDescriptor descriptor,
             Factory directoryStructureFactory,
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector,
-            Config config) {
+            Config config,
+            LogProvider logProvider) {
         super(KernelVersion.VERSION_RANGE_POINT_TEXT_INDEXES_ARE_INTRODUCED, descriptor, directoryStructureFactory);
         this.databaseIndexContext = databaseIndexContext;
         this.recoveryCleanupWorkCollector = recoveryCleanupWorkCollector;
@@ -83,6 +86,7 @@ abstract class NativeIndexProvider<KEY extends NativeIndexKey<KEY>, LAYOUT exten
                 databaseIndexContext.monitors.newMonitor(IndexProvider.Monitor.class, databaseIndexContext.monitorTag);
         this.config = config;
         this.archiveFailedIndex = config.get(GraphDatabaseInternalSettings.archive_failed_index);
+        this.logProvider = logProvider;
     }
 
     /**

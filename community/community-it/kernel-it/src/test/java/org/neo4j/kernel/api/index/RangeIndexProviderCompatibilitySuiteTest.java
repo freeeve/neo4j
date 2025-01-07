@@ -41,6 +41,7 @@ import org.neo4j.kernel.database.DatabaseIdFactory;
 import org.neo4j.kernel.database.DatabaseIdRepository;
 import org.neo4j.kernel.impl.index.schema.ConsistencyCheckable;
 import org.neo4j.kernel.impl.index.schema.RangeIndexProviderFactory;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
 
 class RangeIndexProviderCompatibilitySuiteTest extends PropertyIndexProviderCompatibilityTestSuite {
@@ -65,6 +66,7 @@ class RangeIndexProviderCompatibilitySuiteTest extends PropertyIndexProviderComp
                 config,
                 readOnlyChecker,
                 recoveryCleanupWorkCollector,
+                NullLogProvider.getInstance(),
                 NULL_CONTEXT_FACTORY,
                 NULL,
                 DEFAULT_DATABASE_NAME,

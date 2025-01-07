@@ -27,6 +27,7 @@ import org.eclipse.collections.api.factory.Sets;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.values.ElementIdMapper;
 
 class NativeIndexPopulatorTestCases {
@@ -46,7 +47,8 @@ class NativeIndexPopulatorTestCases {
                         tokenNameLookup,
                         ElementIdMapper.PLACEHOLDER,
                         BlockBasedIndexPopulator.NO_MONITOR,
-                        Sets.immutable.empty());
+                        Sets.immutable.empty(),
+                        NullLogProvider.getInstance());
     }
 
     @FunctionalInterface

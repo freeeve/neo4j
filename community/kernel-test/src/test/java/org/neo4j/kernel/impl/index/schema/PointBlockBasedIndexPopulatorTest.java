@@ -45,6 +45,7 @@ import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettings;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.test.RandomSupport;
@@ -92,7 +93,8 @@ public class PointBlockBasedIndexPopulatorTest extends BlockBasedIndexPopulatorT
                 CONFIG,
                 memoryTracker,
                 monitor,
-                Sets.immutable.empty());
+                Sets.immutable.empty(),
+                NullLogProvider.getInstance());
         populator.create();
         return populator;
     }
@@ -161,6 +163,7 @@ public class PointBlockBasedIndexPopulatorTest extends BlockBasedIndexPopulatorT
                 SPATIAL_SETTINGS,
                 CONFIGURATION,
                 Sets.immutable.empty(),
-                false);
+                false,
+                NullLogProvider.getInstance());
     }
 }

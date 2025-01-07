@@ -45,6 +45,7 @@ import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.impl.index.schema.config.ConfiguredSpaceFillingCurveSettingsCache;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettings;
 import org.neo4j.kernel.impl.index.schema.config.SpaceFillingCurveSettings;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.util.Preconditions;
 import org.neo4j.values.ElementIdMapper;
@@ -75,13 +76,15 @@ public class PointIndexProvider extends NativeIndexProvider<PointKey, PointLayou
             DatabaseIndexContext databaseIndexContext,
             IndexDirectoryStructure.Factory directoryStructureFactory,
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector,
-            Config config) {
+            Config config,
+            LogProvider logProvider) {
         super(
                 databaseIndexContext,
                 AllIndexProviderDescriptors.POINT_DESCRIPTOR,
                 directoryStructureFactory,
                 recoveryCleanupWorkCollector,
-                config);
+                config,
+                logProvider);
         this.configuredSettings = new ConfiguredSpaceFillingCurveSettingsCache(config);
         this.configuration = getConfiguredSpaceFillingCurveConfiguration(config);
         this.archiveFailedIndex = config.get(GraphDatabaseInternalSettings.archive_failed_index);
@@ -119,7 +122,8 @@ public class PointIndexProvider extends NativeIndexProvider<PointKey, PointLayou
                 config,
                 memoryTracker,
                 BlockBasedIndexPopulator.NO_MONITOR,
-                openOptions);
+                openOptions,
+                logProvider);
     }
 
     @Override
@@ -140,7 +144,8 @@ public class PointIndexProvider extends NativeIndexProvider<PointKey, PointLayou
                 layout.getSpaceFillingCurveSettings(),
                 configuration,
                 openOptions,
-                readOnly);
+                readOnly,
+                logProvider);
     }
 
     @Override

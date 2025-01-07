@@ -42,6 +42,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.kernel.database.DatabaseIdFactory;
 import org.neo4j.kernel.database.DatabaseIdRepository;
 import org.neo4j.kernel.impl.index.schema.PointIndexProviderFactory;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
 
 class PointIndexProviderCompatibilitySuiteTest extends SpecialisedIndexProviderCompatibilityTestSuite {
@@ -78,6 +79,7 @@ class PointIndexProviderCompatibilitySuiteTest extends SpecialisedIndexProviderC
                 config,
                 readOnlyChecker,
                 recoveryCleanupWorkCollector,
+                NullLogProvider.getInstance(),
                 new CursorContextFactory(cacheTracer, EMPTY_CONTEXT_SUPPLIER),
                 cacheTracer,
                 DEFAULT_DATABASE_NAME,

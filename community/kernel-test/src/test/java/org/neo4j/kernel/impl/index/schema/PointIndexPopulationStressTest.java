@@ -28,6 +28,7 @@ import static org.neo4j.values.storable.ValueType.GEOGRAPHIC_POINT;
 import static org.neo4j.values.storable.ValueType.GEOGRAPHIC_POINT_3D;
 
 import org.neo4j.internal.schema.IndexType;
+import org.neo4j.logging.NullLogProvider;
 
 class PointIndexPopulationStressTest extends IndexPopulationStressTest {
 
@@ -44,7 +45,8 @@ class PointIndexPopulationStressTest extends IndexPopulationStressTest {
                                     test.pageCacheTracer,
                                     DEFAULT_DATABASE_NAME)
                             .build();
-                    return new PointIndexProvider(context, test.directory(), immediate(), defaults());
+                    return new PointIndexProvider(
+                            context, test.directory(), immediate(), defaults(), NullLogProvider.getInstance());
                 });
     }
 

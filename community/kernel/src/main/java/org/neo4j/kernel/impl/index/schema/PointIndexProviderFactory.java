@@ -35,6 +35,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.logging.InternalLogProvider;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.token.TokenHolders;
@@ -76,6 +77,7 @@ public class PointIndexProviderFactory extends AbstractIndexProviderFactory<Poin
                 config,
                 readOnlyChecker,
                 recoveryCleanupWorkCollector,
+                logProvider,
                 contextFactory,
                 pageCacheTracer,
                 databaseLayout.getDatabaseName(),
@@ -92,6 +94,7 @@ public class PointIndexProviderFactory extends AbstractIndexProviderFactory<Poin
             Config config,
             DatabaseReadOnlyChecker readOnlyChecker,
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector,
+            LogProvider logProvider,
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
             String databaseName,
@@ -104,6 +107,7 @@ public class PointIndexProviderFactory extends AbstractIndexProviderFactory<Poin
                 .withReadOnlyChecker(readOnlyChecker)
                 .withDependencyResolver(dependencyResolver)
                 .build();
-        return new PointIndexProvider(databaseIndexContext, directoryStructure, recoveryCleanupWorkCollector, config);
+        return new PointIndexProvider(
+                databaseIndexContext, directoryStructure, recoveryCleanupWorkCollector, config, logProvider);
     }
 }

@@ -52,6 +52,7 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettings;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.values.storable.PointValue;
@@ -100,7 +101,8 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
                 SPACE_FILLING_CURVE_SETTINGS,
                 CONFIGURATION,
                 Sets.immutable.empty(),
-                false);
+                false,
+                NullLogProvider.getInstance());
     }
 
     @Override

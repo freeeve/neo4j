@@ -33,6 +33,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
 import org.neo4j.internal.schema.IndexType;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 import org.neo4j.values.storable.Values;
@@ -42,8 +43,9 @@ public class RangeIndexReader extends NativeIndexReader<RangeKey> {
             GBPTree<RangeKey, NullValue> tree,
             IndexLayout<RangeKey> layout,
             IndexDescriptor descriptor,
-            IndexUsageTracking usageTracker) {
-        super(tree, layout, descriptor, usageTracker);
+            IndexUsageTracking usageTracker,
+            LogProvider logProvider) {
+        super(tree, layout, descriptor, usageTracker, logProvider);
     }
 
     @Override

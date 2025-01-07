@@ -25,6 +25,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.io.memory.ByteBufferFactory;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.values.ElementIdMapper;
 
@@ -52,7 +53,8 @@ class RangeBlockBasedIndexPopulatorTest extends GenericBlockBasedIndexPopulatorT
                 tokenNameLookup,
                 ElementIdMapper.PLACEHOLDER,
                 monitor,
-                Sets.immutable.empty());
+                Sets.immutable.empty(),
+                NullLogProvider.getInstance());
         populator.create();
         return populator;
     }

@@ -36,6 +36,7 @@ import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.logging.NullLogProvider;
 
 class PointIndexProviderTest extends IndexProviderTests {
     private static final ProviderFactory factory =
@@ -53,7 +54,8 @@ class PointIndexProviderTest extends IndexProviderTests {
                         .withMonitors(monitors)
                         .withReadOnlyChecker(readOnlyChecker)
                         .build();
-                return new PointIndexProvider(context, dir, collector, Config.defaults());
+                return new PointIndexProvider(
+                        context, dir, collector, Config.defaults(), NullLogProvider.getInstance());
             };
 
     PointIndexProviderTest() {

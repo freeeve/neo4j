@@ -40,6 +40,7 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.index.BridgingIndexProgressor;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettings;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.ValueGroup;
 
@@ -53,8 +54,9 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
             IndexDescriptor descriptor,
             IndexSpecificSpaceFillingCurveSettings spaceFillingCurveSettings,
             SpaceFillingCurveConfiguration configuration,
-            IndexUsageTracking usageTracker) {
-        super(tree, layout, descriptor, usageTracker);
+            IndexUsageTracking usageTracker,
+            LogProvider logProvider) {
+        super(tree, layout, descriptor, usageTracker, logProvider);
 
         this.spaceFillingCurveSettings = spaceFillingCurveSettings;
         this.configuration = configuration;
