@@ -157,7 +157,8 @@ public class RangeIndexReader extends NativeIndexReader<RangeKey> {
         }
     }
 
-    static void validateOrder(IndexOrder indexOrder, PropertyIndexQuery... predicates) {
+    void validateOrder(IndexOrder indexOrder, PropertyIndexQuery... predicates)
+            throws IndexNotApplicableKernelException {
         if (indexOrder == IndexOrder.NONE) {
             return;
         }
@@ -220,10 +221,14 @@ public class RangeIndexReader extends NativeIndexReader<RangeKey> {
         }
     }
 
-    private static void invalidOrder(IndexOrder indexOrder, PropertyIndexQuery... predicates) {
-        throw new UnsupportedOperationException(format(
-                "Tried to query index with unsupported order %s. For query %s supports ascending: false, supports descending: false.",
-                indexOrder, Arrays.toString(predicates)));
+    private void invalidOrder(IndexOrder indexOrder, PropertyIndexQuery... predicates)
+            throws IndexNotApplicableKernelException {
+        throw IndexNotApplicableKernelException.indexNotApplicable(
+                log,
+                descriptor.getName(),
+                format(
+                        "Tried to query index with unsupported order %s. For query %s supports ascending: false, supports descending: false.",
+                        indexOrder, Arrays.toString(predicates)));
     }
 
     private static void invalidQueryInComposite(IndexQueryType type, PropertyIndexQuery... predicates) {
