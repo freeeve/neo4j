@@ -179,17 +179,27 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
     void readerShouldThrowOnUnsupportedOrder(IndexOrder indexOrder) {
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
             PropertyIndexQuery.ExactPredicate query = PropertyIndexQuery.exact(0, PointValue.MAX_VALUE);
-            assertThatThrownBy(
-                            () -> reader.query(
-                                    new SimpleEntityValueClient(),
-                                    NULL_CONTEXT,
-                                    CursorContext.NULL_CONTEXT,
-                                    constrained(indexOrder, false),
-                                    query),
-                            "order is not supported with point index")
-                    .isInstanceOf(IllegalArgumentException.class)
+            var e = assertThrows(
+                    IndexNotApplicableKernelException.class,
+                    () -> reader.query(
+                            new SimpleEntityValueClient(),
+                            NULL_CONTEXT,
+                            CursorContext.NULL_CONTEXT,
+                            constrained(indexOrder, false),
+                            query),
+                    "order is not supported with point index");
+            assertThat(e)
                     .hasMessageContainingAll(
-                            "Tried to query a point index with order", "Order is not supported by a point index");
+                            "Tried to query a point index with order. Order is not supported by a point index.");
+            assertThat(e.gqlStatus()).isEqualTo("50N15");
+            assertThat(e.statusDescription())
+                    .isEqualTo(String.format(
+                            "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information.",
+                            INDEX_DESCRIPTOR.getName()));
+            LogAssertions.assertThat(logProvider)
+                    .containsMessageWithAll(
+                            "Tried to query a point index with order. Order is not supported by a point index.")
+                    .containsException(e);
         }
     }
 

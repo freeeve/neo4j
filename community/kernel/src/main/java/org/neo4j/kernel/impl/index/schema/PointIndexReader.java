@@ -76,7 +76,9 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
         }
 
         if (constraints.order() != IndexOrder.NONE) {
-            throw new IllegalArgumentException(
+            throw IndexNotApplicableKernelException.indexNotApplicable(
+                    log,
+                    descriptor.getName(),
                     "Tried to query a point index with order. Order is not supported by a point index.");
         }
 
