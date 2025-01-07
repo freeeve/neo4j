@@ -23,6 +23,10 @@ import static java.lang.String.format;
 
 import java.util.Locale;
 import org.neo4j.common.TokenNameLookup;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.internal.schema.constraints.RelationshipEndpointLabelConstraintDescriptor;
 
@@ -31,16 +35,40 @@ public final class RelationshipEndpointLabelMissingLabelException extends Constr
     private final RelationshipEndpointLabelConstraintDescriptor descriptor;
     private final long nodeReference;
 
-    public RelationshipEndpointLabelMissingLabelException(
+    private RelationshipEndpointLabelMissingLabelException(
+            ErrorGqlStatusObject gqlStatusObject,
             RelationshipEndpointLabelConstraintDescriptor descriptor,
             Phase phase,
             long relationshipReference,
             long nodeReference,
             TokenNameLookup tokenNameLookup) {
-        super(descriptor, phase, "Relationship(" + relationshipReference + ")", tokenNameLookup);
+        super(gqlStatusObject, descriptor, phase, "Relationship(" + relationshipReference + ")", tokenNameLookup);
         this.relationshipReference = relationshipReference;
         this.descriptor = descriptor;
         this.nodeReference = nodeReference;
+    }
+
+    // KNL-194
+    public static RelationshipEndpointLabelMissingLabelException endpointLabelPresenceVerificationFailed(
+            RelationshipEndpointLabelConstraintDescriptor descriptor,
+            Phase phase,
+            long relationshipReference,
+            long nodeReference,
+            TokenNameLookup tokenNameLookup) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB4)
+                .withParam(GqlParams.NumberParam.entityId1, relationshipReference)
+                .withParam(
+                        GqlParams.StringParam.relType,
+                        tokenNameLookup.relationshipTypeGetName(
+                                descriptor.schema().getRelTypeId()))
+                .withParam(
+                        GqlParams.StringParam.endpointType,
+                        descriptor.endpointType().name().toLowerCase(Locale.ROOT))
+                .withParam(GqlParams.NumberParam.entityId2, nodeReference)
+                .withParam(GqlParams.StringParam.label, tokenNameLookup.labelGetName(descriptor.endpointLabelId()))
+                .build();
+        return new RelationshipEndpointLabelMissingLabelException(
+                gql, descriptor, phase, relationshipReference, nodeReference, tokenNameLookup);
     }
 
     @Override

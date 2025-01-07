@@ -46,7 +46,7 @@ public final class RelationshipEndpointLabelMissingLabelExceptionTest {
         RelationshipEndpointLabelConstraintDescriptor relationshipEndpointLabelConstraintDescriptor =
                 ConstraintDescriptorFactory.relationshipEndpointLabelForRelType(
                         REL_TYPE_ID, LABEL_ID, EndpointType.START);
-        var userMessage = new RelationshipEndpointLabelMissingLabelException(
+        var userMessage = RelationshipEndpointLabelMissingLabelException.endpointLabelPresenceVerificationFailed(
                         relationshipEndpointLabelConstraintDescriptor,
                         ConstraintValidationException.Phase.VERIFICATION,
                         relationshipReference,
