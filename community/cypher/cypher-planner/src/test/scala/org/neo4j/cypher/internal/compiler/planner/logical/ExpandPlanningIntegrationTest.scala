@@ -24,6 +24,7 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings.PlanVarExpandInto
 import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.MultiRelationshipPathStep
 import org.neo4j.cypher.internal.expressions.NilPathStep
@@ -985,6 +986,48 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
         .filter("n2:A")
         .expand("(n1)-[r:R*1..]->(n2)", expandMode = ExpandAll, projectedDir = OUTGOING)
         .nodeByLabelScan("n1", "A")
+        .build()
+    )
+  }
+
+  test(
+    "Should not throw an error when hints are used on elements that have been removed by UnfulfillableQueryRewriter"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[]->()", 10000)
+      .setLabelCardinality("L", 100)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    planner.plan(
+      """MATCH (n:L)-[r]->(a), (b)-[r]->(c) USING SCAN n:L RETURN n,a,b,c""".stripMargin
+    ) should equal(
+      planner.planBuilder()
+        .produceResults("n", "a", "b", "c")
+        .projection("NULL AS r", "NULL AS a", "NULL AS c", "NULL AS b", "NULL AS n")
+        .limit(0)
+        .argument()
+        .build()
+    )
+  }
+
+  test("Should handle repeated relationship variables under REPEATABLE ELEMENTS - even with hint") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[]->()", 10000)
+      .setLabelCardinality("L", 100)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    planner.plan(
+      """MATCH REPEATABLE ELEMENTS (n:L)-[r]->(a), (b)-[r]->(c) USING SCAN n:L RETURN n,a,b,c""".stripMargin
+    ) should equal(
+      planner.planBuilder()
+        .produceResults("n", "a", "b", "c")
+        .projectEndpoints("(b)-[r]->(c)", startInScope = false, endInScope = false)
+        .expandAll("(n)-[r]->(a)")
+        .nodeByLabelScan("n", "L", IndexOrderNone)
         .build()
     )
   }

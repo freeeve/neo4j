@@ -54,6 +54,7 @@ import org.neo4j.cypher.internal.expressions.EndsWith
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Expression.SemanticContext
+import org.neo4j.cypher.internal.expressions.False
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.HasLabels
@@ -1004,29 +1005,46 @@ case class Match(
 
     val error: Option[SemanticErrorDef] = hints.collectFirst {
       case hint @ UsingIndexHint(Variable(variable), LabelOrRelTypeName(labelOrRelTypeName), _, _, _)
-        if !containsLabelOrRelTypePredicate(variable, labelOrRelTypeName) =>
+        if !containsLabelOrRelTypePredicate(variable, labelOrRelTypeName) && !isUnfulfillable(where) =>
         val prettyHint = hintPrettifier.asString(hint)
         val isNode = semanticState.isNode(variable)
         val entity = if (isNode) "NODE" else "RELATIONSHIP"
         val legacyMessage = getMissingEntityKindError(variable, labelOrRelTypeName, hint)
         SemanticError.missingHintPredicate(legacyMessage, prettyHint, entity, variable, hint.position)
       case hint @ UsingIndexHint(Variable(variable), LabelOrRelTypeName(_), properties, _, _)
-        if !containsPropertyPredicates(variable, properties) =>
+        if !containsPropertyPredicates(variable, properties) && !isUnfulfillable(where) =>
         val prettyHint = hintPrettifier.asString(hint)
         val isNode = semanticState.isNode(variable)
         val entity = if (isNode) "NODE" else "RELATIONSHIP"
         SemanticError.missingHintPredicate(getMissingPropertyError(hint), prettyHint, entity, variable, hint.position)
       case hint @ UsingScanHint(Variable(variable), LabelOrRelTypeName(labelOrRelTypeName))
-        if !containsLabelOrRelTypePredicate(variable, labelOrRelTypeName) =>
+        if !containsLabelOrRelTypePredicate(variable, labelOrRelTypeName) && !isUnfulfillable(where) =>
         val prettyHint = hintPrettifier.asString(hint)
         val isNode = semanticState.isNode(variable)
         val entity = if (isNode) "NODE" else "RELATIONSHIP"
         val legacyMessage = getMissingEntityKindError(variable, labelOrRelTypeName, hint)
         SemanticError.missingHintPredicate(legacyMessage, prettyHint, entity, variable, hint.position)
-      case hint @ UsingJoinHint(_) if pattern.length == 0 =>
+      case hint @ UsingJoinHint(_) if pattern.length == 0 && !isUnfulfillable(where) =>
         SemanticError.cannotUseJoinHint(hint, hintPrettifier.asString(hint))
     }
     SemanticCheckResult(semanticState, error.toSeq)
+  }
+
+  private def isUnfulfillable(maybeWhere: Option[Where]): Boolean = {
+    if (maybeWhere.isEmpty) {
+      false
+    } else {
+      isUnfulfillable(maybeWhere.get.expression)
+    }
+  }
+
+  private def isUnfulfillable(expr: Expression): Boolean = {
+    expr match {
+      case _: False => true
+      case a: And   => isUnfulfillable(a.lhs) || isUnfulfillable(a.rhs) // Is unfulfillable if a or b is False()
+      case o: Or    => isUnfulfillable(o.lhs) && isUnfulfillable(o.rhs) // Is unfulfillable if a and b are both False()
+      case _        => false // It might be fulfillable
+    }
   }
 
   private[ast] def containsPropertyPredicates(variable: String, propertiesInHint: Seq[PropertyKeyName]): Boolean = {
