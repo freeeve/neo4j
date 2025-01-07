@@ -241,10 +241,14 @@ public class RangeIndexReader extends NativeIndexReader<RangeKey> {
                         type, Arrays.toString(predicates)));
     }
 
-    private static void invalidQueryPrecisionInComposite(PropertyIndexQuery... predicates) {
-        throw new IllegalArgumentException(format(
-                "Tried to query index with illegal composite query. Composite query must have decreasing precision. Query was: %s ",
-                Arrays.toString(predicates)));
+    private void invalidQueryPrecisionInComposite(PropertyIndexQuery... predicates)
+            throws IndexNotApplicableKernelException {
+        throw IndexNotApplicableKernelException.indexNotApplicable(
+                log,
+                descriptor.getName(),
+                format(
+                        "Tried to query index with illegal composite query. Composite query must have decreasing precision. Query was: %s",
+                        Arrays.toString(predicates)));
     }
 
     private <E extends Exception> E invalidPredicate(Function<String, E> constructor, PropertyIndexQuery predicate) {

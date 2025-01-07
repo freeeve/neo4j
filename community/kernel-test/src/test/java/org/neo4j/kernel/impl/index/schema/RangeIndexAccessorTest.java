@@ -170,6 +170,33 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
     }
 
     @Test
+    void readerShouldThrowOnUnsupportedQueryPrecisionInCompositePredicates() {
+        try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
+            var e = assertThrows(
+                    IndexNotApplicableKernelException.class,
+                    () -> reader.query(
+                            new SimpleEntityValueClient(),
+                            NULL_CONTEXT,
+                            CursorContext.NULL_CONTEXT,
+                            unorderedValues(),
+                            PropertyIndexQuery.exists(0),
+                            PropertyIndexQuery.exact(0, Values.stringValue("myValue"))));
+            assertThat(e)
+                    .hasMessageContaining(
+                            "Tried to query index with illegal composite query. Composite query must have decreasing precision. Query was:");
+            assertThat(e.gqlStatus()).isEqualTo("50N15");
+            assertThat(e.statusDescription())
+                    .isEqualTo(String.format(
+                            "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information.",
+                            INDEX_DESCRIPTOR.getName()));
+            LogAssertions.assertThat(logProvider)
+                    .containsMessageWithAll(
+                            "Tried to query index with illegal composite query. Composite query must have decreasing precision. Query was:")
+                    .containsException(e);
+        }
+    }
+
+    @Test
     void shouldRespectIndexOrderForGeometryTypes() throws Exception {
         // given
         int nUpdates = 10000;
