@@ -44,6 +44,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.QueryContext;
+import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.IndexType;
@@ -132,7 +133,8 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
     }
 
     @Test
-    void shouldSeeExternalUpdateBothBeforeAndAfterScanCompleted() throws IndexEntryConflictException, IOException {
+    void shouldSeeExternalUpdateBothBeforeAndAfterScanCompleted()
+            throws IndexEntryConflictException, IOException, IndexNotApplicableKernelException {
         // given
         BlockBasedIndexPopulator<KEY> populator = instantiatePopulator(INDEX_DESCRIPTOR);
         try {
@@ -215,7 +217,8 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
     }
 
     @Test
-    void shouldNotThrowOnDuplicationsLaterFixedByExternalUpdates() throws IndexEntryConflictException, IOException {
+    void shouldNotThrowOnDuplicationsLaterFixedByExternalUpdates()
+            throws IndexEntryConflictException, IOException, IndexNotApplicableKernelException {
         // given
         BlockBasedIndexPopulator<KEY> populator = instantiatePopulator(UNIQUE_INDEX_DESCRIPTOR);
         try {
@@ -241,7 +244,8 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
         }
     }
 
-    void assertHasEntry(BlockBasedIndexPopulator<KEY> populator, Value entry, int expectedId) {
+    void assertHasEntry(BlockBasedIndexPopulator<KEY> populator, Value entry, int expectedId)
+            throws IndexNotApplicableKernelException {
         try (NativeIndexReader<KEY> reader = populator.newReader()) {
             SimpleEntityValueClient valueClient = new SimpleEntityValueClient();
             PropertyIndexQuery.ExactPredicate exact =
@@ -262,7 +266,8 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
         }
     }
 
-    private void assertMatch(BlockBasedIndexPopulator<KEY> populator, Value value, long id) {
+    private void assertMatch(BlockBasedIndexPopulator<KEY> populator, Value value, long id)
+            throws IndexNotApplicableKernelException {
         try (NativeIndexReader<KEY> reader = populator.newReader()) {
             SimpleEntityValueClient cursor = new SimpleEntityValueClient();
             reader.query(

@@ -32,6 +32,7 @@ import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.QueryContext;
+import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
@@ -60,7 +61,8 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
     }
 
     @Override
-    void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery[] predicates) {
+    void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery[] predicates)
+            throws IndexNotApplicableKernelException {
         if (predicates.length > 1) {
             throw new IllegalArgumentException(format(
                     "Tried to query a point index with a composite query. "
@@ -93,7 +95,8 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
             QueryContext context,
             CursorContext cursorContext,
             IndexQueryConstraints constraints,
-            PropertyIndexQuery... predicates) {
+            PropertyIndexQuery... predicates)
+            throws IndexNotApplicableKernelException {
         if (predicates.length == 0) {
             return;
         }

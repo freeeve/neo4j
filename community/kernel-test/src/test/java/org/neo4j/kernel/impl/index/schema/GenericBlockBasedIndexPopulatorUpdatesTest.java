@@ -30,6 +30,7 @@ import static org.neo4j.storageengine.api.IndexEntryUpdate.add;
 import java.io.IOException;
 import java.util.Collection;
 import org.junit.jupiter.api.Test;
+import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
@@ -39,7 +40,8 @@ import org.neo4j.values.storable.Values;
 abstract class GenericBlockBasedIndexPopulatorUpdatesTest<KEY extends GenericKey<KEY>>
         extends BlockBasedIndexPopulatorUpdatesTest<KEY> {
     @Test
-    void shouldHandleEntriesOfMaxSize() throws IndexEntryConflictException, IOException {
+    void shouldHandleEntriesOfMaxSize()
+            throws IndexEntryConflictException, IOException, IndexNotApplicableKernelException {
         // given
         BlockBasedIndexPopulator<KEY> populator = instantiatePopulator(INDEX_DESCRIPTOR);
         try {

@@ -158,7 +158,8 @@ public class IndexAccessorUsageStatsTest {
     @ParameterizedTest
     @MethodSource("propertyIndexAccessors")
     void propertyIndexShouldIncrementUsageCountOnIndexSeek(
-            IndexProviderDescriptor providerDescriptor, PropertyIndexQuery query) throws IOException {
+            IndexProviderDescriptor providerDescriptor, PropertyIndexQuery query)
+            throws IOException, IndexNotApplicableKernelException {
         var provider = providerMap.lookup(providerDescriptor);
         var completeDescriptor = provider.completeConfiguration(descriptor, indexingBehaviour);
         assumeThat(completeDescriptor.getCapability().supportPartitionedScan(query))
@@ -336,7 +337,8 @@ public class IndexAccessorUsageStatsTest {
         reader.entityTokenScan(leadingPartition, new TokenPredicate(2));
     }
 
-    private void partitionedPropertyQuery(ValueIndexReader reader, PropertyIndexQuery indexQuery) {
+    private void partitionedPropertyQuery(ValueIndexReader reader, PropertyIndexQuery indexQuery)
+            throws IndexNotApplicableKernelException {
         clock.forward(deltaMillis, MILLISECONDS);
         reader.valueSeek(1, QueryContext.NULL_CONTEXT, indexQuery);
     }

@@ -34,6 +34,7 @@ import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.IncomparableExactPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.IncomparableRangePredicate;
 import org.neo4j.internal.kernel.api.QueryContext;
+import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
@@ -119,7 +120,8 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
             QueryContext context,
             CursorContext cursorContext,
             IndexQueryConstraints constraints,
-            PropertyIndexQuery... predicates) {
+            PropertyIndexQuery... predicates)
+            throws IndexNotApplicableKernelException {
         validateQuery(constraints, predicates);
         context.monitor().queried(descriptor);
         usageTracker.queried();
@@ -138,7 +140,8 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
         treeKeyTo.initialize(Long.MAX_VALUE);
     }
 
-    abstract void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... predicates);
+    abstract void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... predicates)
+            throws IndexNotApplicableKernelException;
 
     /**
      * @return true if query results from seek will need to be filtered through the predicates, else false
@@ -202,7 +205,8 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
 
     @Override
     public PartitionedValueSeek valueSeek(
-            int desiredNumberOfPartitions, QueryContext queryContext, PropertyIndexQuery... query) {
+            int desiredNumberOfPartitions, QueryContext queryContext, PropertyIndexQuery... query)
+            throws IndexNotApplicableKernelException {
         try {
             return new NativePartitionedValueSeek(desiredNumberOfPartitions, queryContext, query);
         } catch (IOException e) {
@@ -218,7 +222,7 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
 
         NativePartitionedValueSeek(
                 int desiredNumberOfPartitions, QueryContext queryContext, PropertyIndexQuery... query)
-                throws IOException {
+                throws IOException, IndexNotApplicableKernelException {
             Preconditions.requirePositive(desiredNumberOfPartitions);
             validateQuery(IndexQueryConstraints.unorderedValues(), query);
             usageTracker.queried();

@@ -64,7 +64,8 @@ public interface ValueIndexReader extends IndexReader {
      * @return The {@link PartitionedValueSeek} from which partitions can be reserved.
      */
     PartitionedValueSeek valueSeek(
-            int desiredNumberOfPartitions, QueryContext queryContext, PropertyIndexQuery... query);
+            int desiredNumberOfPartitions, QueryContext queryContext, PropertyIndexQuery... query)
+            throws IndexNotApplicableKernelException;
 
     ValueIndexReader EMPTY = new ValueIndexReader() {
         // Used for checking index correctness
