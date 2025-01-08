@@ -921,4 +921,27 @@ public class ProcedureException extends KernelException {
                 Status.Procedure.ProcedureCallFailed,
                 "Graph properties not found for graph '%s'".formatted(graphName));
     }
+
+    public static ProcedureException failedToReloadProcedures(Throwable cause, String legacyMessage) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N24)
+                .build();
+        return new ProcedureException(gql, ProcedureCallFailed, cause, legacyMessage);
+    }
+
+    public static ProcedureException wrongParameter(
+            String providedInvalidArgument,
+            String argumentName,
+            String procedureName,
+            String expectedFormat,
+            String legacyMessage) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N16)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N22)
+                        .withParam(GqlParams.StringParam.field, providedInvalidArgument)
+                        .withParam(GqlParams.StringParam.procParam, argumentName)
+                        .withParam(GqlParams.StringParam.proc, procedureName)
+                        .withParam(GqlParams.StringParam.procParamFmt, expectedFormat)
+                        .build())
+                .build();
+        return new ProcedureException(gql, ProcedureCallFailed, legacyMessage);
+    }
 }
