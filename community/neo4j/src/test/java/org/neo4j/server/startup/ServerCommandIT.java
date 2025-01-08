@@ -254,12 +254,9 @@ abstract class ServerCommandIT extends ServerProcessTestBase {
     private void shouldBeAbleToStartAndStopRealServer(int initialHeapSize) {
         int startSig = execute(List.of("start"), Map.of());
         assertThat(startSig).isEqualTo(EXIT_CODE_OK);
-        assertEventually(
-                this::getDebugLogLines,
-                s -> s.contains(String.format("-Xms%dk, -Xmx%dk", initialHeapSize * 1024, MAX_HEAP_MB * 1024)),
-                5,
-                MINUTES);
-        assertEventually(this::getDebugLogLines, s -> s.contains("NeoWebServer] ========"), 5, MINUTES);
+        String format = String.format("-Xms%dk, -Xmx%dk", initialHeapSize * 1024, MAX_HEAP_MB * 1024);
+        assertEventually(this::getDebugLogLines, s -> s.contains(format), 5, MINUTES);
+        assertEventually(this::getDebugLogLines, s -> s.contains("Remote interface available at"), 5, MINUTES);
         assertEventually(this::getUserLogLines, s -> s.contains("Remote interface available at"), 5, MINUTES);
         assertThat(execute("stop")).isEqualTo(EXIT_CODE_OK);
     }

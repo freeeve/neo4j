@@ -23,8 +23,12 @@
 <!--
     This is a log4j 2 configuration file.
 
-    It is highly recommended to keep the original "debug.log" as is, to make sure enough data is captured in case
-    of errors in a format that neo4j developers can work with.
+    Please keep the original "debug.log" as is, to make sure enough data is captured in of case errors
+    in a format that neo4j support engineers and developers can work with. Changing the "debug.log" format
+    can interfere with neo4j's ability to offer customer support and invalidate your support warranty.
+
+    If you require the "debug.log" messages in a different format you can copy the Appender and change the
+    filename. See Neo4j documentation.
 
     All configuration values can be queried with the lookup prefix "config:". You can for example, resolve
     the path to your neo4j home directory with ${config:dbms.directories.neo4j_home}.
@@ -34,10 +38,15 @@
 -->
 <Configuration status="ERROR" monitorInterval="30" packages="org.neo4j.logging.log4j">
     <Appenders>
-        <!-- Default debug.log, please keep -->
+        <!-- Neo4j debug.log, do not change. Required by Neo4j customer support. -->
         <RollingRandomAccessFile name="DebugLog" fileName="${config:server.directories.logs}/debug.log"
                                  filePattern="$${config:server.directories.logs}/debug.log.%02i">
-            <Neo4jDebugLogLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSSZ}{GMT+0} %-5p [%c{1.}] %m%n"/>
+            <!-- JSON format -->
+            <JsonTemplateLayout eventTemplateUri="classpath:org/neo4j/logging/StructuredLayoutWithMessage.json"/>
+
+            <!-- Text format -->
+            <!-- <Neo4jDebugLogLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSSZ}{GMT+0} %-5p [%c{1.}] %m%n"/> -->
+
             <Policies>
                 <SizeBasedTriggeringPolicy size="20 MB"/>
             </Policies>
