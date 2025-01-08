@@ -4953,7 +4953,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             """
                     Invalid argument { %s } for { %s } on procedure { %s }. The expected format of { %s } is { %s }.""",
             new GqlParams.GqlParam[] {
-                GqlParams.NumberParam.value,
+                GqlParams.StringParam.field,
                 GqlParams.StringParam.procParam,
                 GqlParams.StringParam.proc,
                 GqlParams.StringParam.procParam,
