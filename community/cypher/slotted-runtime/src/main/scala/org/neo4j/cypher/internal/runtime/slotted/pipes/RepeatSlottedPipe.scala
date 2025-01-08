@@ -218,26 +218,6 @@ case class RepeatSlottedPipe(
         )
     }
 
-  private def filterRow(row: CypherRow, repeatState: SlottedRepeatState): Boolean =
-    repeatState match {
-      case trailState: SlottedTrailState =>
-        var relationshipsAreUnique = true
-        var i = 0
-        val innerRelationshipsSeen = collection.mutable.Set[Long]()
-        while (relationshipsAreUnique && i < trailState.constraint.innerRelationships.length) {
-          val rel = row.getLongAt(trailState.constraint.innerRelationships(i).offset)
-          if (trailState.relationshipsSeen.contains(rel)) {
-            relationshipsAreUnique = false
-          }
-          if (relationshipsAreUnique && !innerRelationshipsSeen.add(rel)) {
-            relationshipsAreUnique = false
-          }
-          i += 1
-        }
-        relationshipsAreUnique
-      case _: SlottedWalkState => true
-    }
-
   override protected def internalCreateResults(
     input: ClosingIterator[CypherRow],
     state: QueryState
@@ -337,7 +317,7 @@ case class RepeatSlottedPipe(
               }
 
               val innerState = state.withInitialContext(rhsInitialRow)
-              innerResult = inner.createResults(innerState).filter(filterRow(_, stackHead))
+              innerResult = inner.createResults(innerState)
               produceNext()
             } else {
               if (stackHead != null) {
