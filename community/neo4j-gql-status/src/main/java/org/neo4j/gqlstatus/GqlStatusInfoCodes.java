@@ -2578,7 +2578,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             """
                     Invalid input { %s }, expected: { %s }.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.ListParam.valueList},
-            emptyMap(),
+            Map.of(GqlParams.ListParam.valueList, GqlParams.JoinStyle.ORED),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "invalid input",
             ErrorClassification.CLIENT_ERROR),

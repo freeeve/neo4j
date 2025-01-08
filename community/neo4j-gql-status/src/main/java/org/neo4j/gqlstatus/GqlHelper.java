@@ -393,6 +393,14 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql42001_withCause(
+            ErrorGqlStatusObjectImplementation.Builder causeBuilder, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(causeBuilder.atPosition(offset, line, column).build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql42001_22N04(
             String input, String context, List<?> validTypes, int offset, int line, int column) {
         ErrorGqlStatusObjectImplementation.Builder main = ErrorGqlStatusObjectImplementation.from(

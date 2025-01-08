@@ -22,6 +22,7 @@ import org.antlr.v4.runtime.Recognizer
 import org.neo4j.cypher.internal.parser.lexer.CypherToken
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.gqlstatus.GqlHelper
 
 class SyntaxErrorListener(exceptionFactory: CypherExceptionFactory) extends BaseErrorListener {
   private[this] var _syntaxErrors = Seq.empty[Exception]
@@ -40,7 +41,13 @@ class SyntaxErrorListener(exceptionFactory: CypherExceptionFactory) extends Base
       case cypherToken: CypherToken => cypherToken.position()
       case _                        => InputPosition(recognizer.getInputStream.index(), line, charPositionInLine)
     }
-    _syntaxErrors = _syntaxErrors.appended(exceptionFactory.syntaxException(msg, position))
+    val syntaxException = e match {
+      case e: RecognitionExceptionWithGql =>
+        val gql = GqlHelper.getGql42001_withCause(e.getGqlCauseBuilder, position.offset, position.line, position.column)
+        exceptionFactory.syntaxException(gql, msg, position)
+      case _ => exceptionFactory.syntaxException(msg, position)
+    }
+    _syntaxErrors = _syntaxErrors.appended(syntaxException)
   }
 
   def reset(): Unit = _syntaxErrors = Seq.empty

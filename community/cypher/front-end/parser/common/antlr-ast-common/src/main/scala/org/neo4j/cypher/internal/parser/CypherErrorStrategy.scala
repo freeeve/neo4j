@@ -40,12 +40,16 @@ import org.neo4j.cypher.internal.parser.CypherErrorStrategy.ParameterRule
 import org.neo4j.cypher.internal.parser.CypherErrorStrategy.RelationshipPatternRule
 import org.neo4j.cypher.internal.parser.CypherErrorStrategy.StringLiteralRule
 import org.neo4j.cypher.internal.parser.CypherErrorStrategy.VariableRule
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
+import org.neo4j.gqlstatus.GqlParams
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 import java.util
 
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.jdk.CollectionConverters.SetHasAsJava
 import scala.math.Ordering.Implicits.seqOrdering
 import scala.util.control.NonFatal
@@ -65,7 +69,9 @@ final class CypherErrorStrategy(conf: CypherErrorStrategy.Conf) extends ANTLRErr
     if (!inErrorRecoveryMode(parser)) {
       beginErrorCondition()
       populateException(parser.getContext, e)
-      parser.notifyErrorListeners(e.getOffendingToken, message(parser, e), e)
+      val (legacyMessage, gql) = errorDetails(parser, e)
+      val exceptionWithGql = new RecognitionExceptionWithGql(e, gql)
+      parser.notifyErrorListeners(e.getOffendingToken, legacyMessage, exceptionWithGql)
     }
   }
 
@@ -73,12 +79,19 @@ final class CypherErrorStrategy(conf: CypherErrorStrategy.Conf) extends ANTLRErr
     inErrorMode = true
   }
 
-  private def message(parser: Parser, e: RecognitionException): String = {
+  private def errorDetails(
+    parser: Parser,
+    e: RecognitionException
+  ): (String, ErrorGqlStatusObjectImplementation.Builder) = {
     // println("Error at " + e.getCtx.getClass.getSimpleName)
     if (isUnclosedQuote(e.getOffendingToken)) {
-      CypherErrorStrategy.quoteMismatchErrorMessage
+      val legacyMessage = CypherErrorStrategy.quoteMismatchErrorMessage
+      val gqlCauseBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I19)
+      (legacyMessage, gqlCauseBuilder)
     } else if (isUnclosedComment(e.getOffendingToken, parser)) {
-      CypherErrorStrategy.commentMismatchErrorMessage
+      val legacyMessage = CypherErrorStrategy.commentMismatchErrorMessage
+      val gqlCauseBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I02)
+      (legacyMessage, gqlCauseBuilder)
     } else {
       val offender = Option(e.getOffendingToken)
         .filter(t => t.getType != Token.EOF && t.getType != Token.EPSILON && t.getType != Token.INVALID_TYPE)
@@ -90,7 +103,11 @@ final class CypherErrorStrategy(conf: CypherErrorStrategy.Conf) extends ANTLRErr
         case e if e.nonEmpty => e.dropRight(1).mkString(": expected ", ", ", "") + " or " + e.last
         case _               => ""
       }
-      s"Invalid input '$offender'$expected"
+      val legacyMessage = s"Invalid input '$offender'$expected"
+      val gqlCauseBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I06)
+        .withParam(GqlParams.StringParam.input, offender)
+        .withParam(GqlParams.ListParam.valueList, codeCompletion(parser, e).asJava)
+      (legacyMessage, gqlCauseBuilder)
     }
   }
 
