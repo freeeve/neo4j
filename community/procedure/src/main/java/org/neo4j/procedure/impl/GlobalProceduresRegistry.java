@@ -91,7 +91,8 @@ public class GlobalProceduresRegistry extends LifecycleAdapter implements Global
         // classes will be able to register in any namespace with the unrestricted compiler.
         var restrictedCompiler = compiler.withAdditionalProcedureRestrictions(
                 NamingRestrictions.rejectReservedNamespace(config.reservedProcedureNamespaces()));
-        this.loader = new ProcedureJarLoader(restrictedCompiler, log, config.procedureReloadEnabled());
+        this.loader =
+                new ProcedureJarLoader(restrictedCompiler, log, config.procedureReloadEnabled(), config.preload());
         this.isReservedNamespace = Globbing.compose(config.reservedProcedureNamespaces(), List.of());
     }
 

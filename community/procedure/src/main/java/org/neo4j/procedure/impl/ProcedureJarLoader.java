@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.function.Predicate;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.procedure.CallableProcedure;
@@ -49,14 +50,20 @@ class ProcedureJarLoader implements AutoCloseable {
     private final InternalLog log;
 
     private final boolean reloadProceduresFromDisk;
+    private final GraphDatabaseInternalSettings.ProcedureClassPreloading preload;
 
     private final Set<Closeable> closeables =
             Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
 
-    ProcedureJarLoader(ProcedureCompiler compiler, InternalLog log, boolean reloadProceduresFromDisk) {
+    ProcedureJarLoader(
+            ProcedureCompiler compiler,
+            InternalLog log,
+            boolean reloadProceduresFromDisk,
+            GraphDatabaseInternalSettings.ProcedureClassPreloading preload) {
         this.compiler = compiler;
         this.log = log;
         this.reloadProceduresFromDisk = reloadProceduresFromDisk;
+        this.preload = preload;
     }
 
     Callables loadProceduresFromDir(Path root) throws IOException, KernelException {
@@ -74,7 +81,7 @@ class ProcedureJarLoader implements AutoCloseable {
             return Callables.empty();
         }
 
-        var result = ProcedureClassLoader.setup(jarFiles, log, reloadProceduresFromDisk);
+        var result = ProcedureClassLoader.setup(jarFiles, log, reloadProceduresFromDisk, preload);
 
         // On Windows, it is not possible to modify files when they are used by a process.
         // To support our test infrastructure, we want to ensure that we properly close

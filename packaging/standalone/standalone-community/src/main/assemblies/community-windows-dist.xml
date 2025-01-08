@@ -79,7 +79,6 @@
       <useStrictFiltering>true</useStrictFiltering>
       <excludes>
         <exclude>org.neo4j:neo4j-genai-plugin</exclude>
-        <exclude>org.ow2.asm:*</exclude>
       </excludes>
     </dependencySet>
     <dependencySet>
