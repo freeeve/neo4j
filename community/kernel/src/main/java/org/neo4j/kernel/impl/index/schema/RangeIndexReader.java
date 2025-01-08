@@ -145,14 +145,10 @@ public class RangeIndexReader extends NativeIndexReader<RangeKey> {
         for (final var predicate : predicates) {
             final var type = predicate.type();
             switch (type) {
-                case TOKEN_LOOKUP,
-                        BOUNDING_BOX,
-                        STRING_CONTAINS,
-                        STRING_SUFFIX,
-                        FULLTEXT_SEARCH -> throw invalidPredicate(
+                case ALL_ENTRIES, EXISTS, EXACT, RANGE, STRING_PREFIX -> {}
+                default -> throw invalidPredicate(
                         msg -> IndexNotApplicableKernelException.indexNotApplicable(log, descriptor.getName(), msg),
                         predicate);
-                default -> {}
             }
         }
     }

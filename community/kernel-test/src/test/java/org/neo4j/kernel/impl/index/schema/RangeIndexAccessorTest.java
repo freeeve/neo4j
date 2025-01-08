@@ -256,6 +256,7 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
                         Values.pointValue(CoordinateReferenceSystem.CARTESIAN, 2, 2)),
                 PropertyIndexQuery.stringSuffix(0, Values.stringValue("myValue")),
                 PropertyIndexQuery.stringContains(0, Values.stringValue("myValue")),
-                PropertyIndexQuery.fulltextSearch("myValue"));
+                PropertyIndexQuery.fulltextSearch("myValue"),
+                PropertyIndexQuery.nearestNeighbors(10, new float[] {1, 2}));
     }
 }
