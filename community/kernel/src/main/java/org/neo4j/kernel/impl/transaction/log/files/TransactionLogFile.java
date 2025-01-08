@@ -19,9 +19,11 @@
  */
 package org.neo4j.kernel.impl.transaction.log.files;
 
+import static org.neo4j.kernel.impl.transaction.log.LogVersionBridge.NO_MORE_CHANNELS;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.writeLogHeader;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
 import static org.neo4j.kernel.impl.transaction.log.rotation.FileLogRotation.transactionLogRotation;
+import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.util.Preconditions.checkArgument;
 
@@ -51,6 +53,7 @@ import org.eclipse.collections.api.block.procedure.primitive.LongObjectProcedure
 import org.eclipse.collections.api.map.primitive.LongObjectMap;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.io.memory.NativeScopedBuffer;
@@ -73,6 +76,8 @@ import org.neo4j.kernel.impl.transaction.log.TransactionLogWriter;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
+import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
+import org.neo4j.kernel.impl.transaction.log.enveloped.InvalidEndOfFileReadException;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 import org.neo4j.kernel.impl.transaction.log.rotation.monitor.LogRotationMonitor;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
@@ -663,6 +668,85 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
                         .orElse(BASE_TX_CHECKSUM));
         writer.setChannel(channel, channelAllocator.readLogHeaderForVersion(channel.getLogVersion()));
         return channel.getPath();
+    }
+
+    /**
+     * This is really only for error handling with the rawTxPull protocol, used for finding a safe truncation point
+     * in enveloped logs.
+     * There is no good way of knowing if the latest file contains a start point of a tx/chunk.
+     * Instead of possibly reading more than one file, the latest file that is guaranteed to contain a starting point
+     * is the one searched.
+     * </p>
+     * With the enveloped log format it is not guaranteed that the start of a file is also the start of a
+     * new appended batch (tx or chunk). The protocol needs to find a safe truncation point, and it must be at the
+     * end of a completed appended batch to be able to continue writing following pulled transactions correctly to the
+     * log.
+     * This finds the last completed batch in a previous file.
+     * Falls back to the basePosition.
+     */
+    @Override
+    public PositionWithPrevAppendIndex findSafeTruncationPointInPreviousFile(PositionWithPrevAppendIndex basePosition) {
+        LogPosition baseLogPosition = basePosition.position();
+        checkArgument(baseLogPosition != LogPosition.UNSPECIFIED, "Base position must exist");
+        checkArgument(
+                basePosition.prevAppendIndexAtPosition() > UNKNOWN_APPEND_INDEX, "Base last append index must exist");
+        long highestLogVersion = getHighestLogVersion();
+        long startingLogVersion = baseLogPosition.getLogVersion();
+
+        LogPosition safePoint = baseLogPosition;
+        long knownAppendIndexAtSafePoint = basePosition.prevAppendIndexAtPosition();
+        if (highestLogVersion != startingLogVersion) {
+            try {
+                long lastAppendedLastFile = extractHeader(highestLogVersion).getLastAppendIndex();
+                // Find a previous file with a different lastAppendedIndex = definitely has the start of one tx
+                for (long i = highestLogVersion - 1; i >= startingLogVersion; i--) {
+                    LogHeader logHeader = extractHeader(i);
+                    if (lastAppendedLastFile != logHeader.getLastAppendIndex()) {
+                        if (!logHeader.getLogFormatVersion().usesSegments()) {
+                            // Looks like the format switch happened in this pull. We know that there is a
+                            // transaction boundary on the start of the next file.
+                            LogHeader nextFile = extractHeader(i + 1);
+                            safePoint = nextFile.getStartPosition();
+                            knownAppendIndexAtSafePoint = nextFile.getLastAppendIndex();
+                            break;
+                        }
+
+                        long seenStart = -1;
+                        try (ReadableLogChannel channel = getReader(logHeader.getStartPosition(), NO_MORE_CHANNELS)) {
+                            assert channel instanceof EnvelopeReadChannel;
+                            EnvelopeReadChannel readChannel = (EnvelopeReadChannel) channel;
+
+                            // Find the last start entry in this file - then we are
+                            // guaranteed a full transaction just before that point.
+                            long nextStart = readChannel.goToNextEntry();
+                            while (nextStart > seenStart) {
+                                knownAppendIndexAtSafePoint = readChannel.entryIndex() - 1;
+                                seenStart = nextStart;
+                                nextStart = readChannel.goToNextEntry();
+                            }
+                        } catch (ReadPastEndException | InvalidEndOfFileReadException e) {
+                            if (seenStart != -1) {
+                                safePoint = new LogPosition(i, seenStart);
+                            }
+                        }
+                        break;
+                    }
+                }
+            } catch (Exception ignore) {
+                // If anything except the expected ReadPastEnd or
+                // InvalidEndOfFileRead (read not ending with a full tx) goes wrong, let's just fall back to
+                // our starting point instead.
+            }
+        }
+
+        // Make sure it is after the basePosition
+        if (safePoint.getLogVersion() >= baseLogPosition.getLogVersion()
+                && (safePoint.getLogVersion() > baseLogPosition.getLogVersion()
+                        || safePoint.getByteOffset() >= baseLogPosition.getByteOffset())) {
+            return new PositionWithPrevAppendIndex(safePoint, knownAppendIndexAtSafePoint);
+        }
+
+        return basePosition;
     }
 
     /**

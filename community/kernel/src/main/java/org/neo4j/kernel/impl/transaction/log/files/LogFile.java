@@ -158,4 +158,11 @@ public interface LogFile extends VersionedFile, RotatableFile {
      * @throws IOException on I/O error.
      */
     void delete(Long version) throws IOException;
+
+    /**
+     * These two are really only for error handling with the rawTxPull protocol - see implementation for more details.
+     */
+    record PositionWithPrevAppendIndex(LogPosition position, long prevAppendIndexAtPosition) {}
+
+    PositionWithPrevAppendIndex findSafeTruncationPointInPreviousFile(PositionWithPrevAppendIndex basePosition);
 }
