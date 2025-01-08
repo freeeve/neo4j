@@ -25,7 +25,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.neo4j.internal.helpers.collection.Iterables.reverse;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -94,8 +93,8 @@ public final class GraphMock {
         when(path.relationships()).thenReturn(relationships);
         when(path.lastRelationship()).thenReturn(last);
         when(path.length()).thenReturn(links.length);
-        when(path.reverseNodes()).thenReturn(reverse(nodes));
-        when(path.reverseRelationships()).thenReturn(reverse(relationships));
+        when(path.reverseNodes()).thenReturn(nodes.reversed());
+        when(path.reverseRelationships()).thenReturn(relationships.reversed());
         return path;
     }
 

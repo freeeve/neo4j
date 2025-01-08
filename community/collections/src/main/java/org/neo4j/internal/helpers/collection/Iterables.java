@@ -98,12 +98,6 @@ public final class Iterables {
         return new FilterIterable<>(i, specification);
     }
 
-    public static <X> List<X> reverse(List<X> iterable) {
-        List<X> list = asList(iterable);
-        Collections.reverse(list);
-        return list;
-    }
-
     public static <FROM, TO> Iterable<TO> map(Function<? super FROM, ? extends TO> function, Iterable<FROM> from) {
         return new MapIterable<>(from, function);
     }

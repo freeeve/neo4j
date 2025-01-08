@@ -34,7 +34,6 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -229,8 +228,7 @@ public abstract class Bootloader implements AutoCloseable {
                     .set(GraphDatabaseSettings.configuration_directory, confDir())
                     .fromFile(mainConfFile, allowThrow, filter);
 
-            Collections.reverse(additionalConfigs);
-            additionalConfigs.forEach(additionalConfig -> builder.fromFile(additionalConfig, false, filter));
+            additionalConfigs.reversed().forEach(additionalConfig -> builder.fromFile(additionalConfig, false, filter));
 
             return new FilteredConfig(builder.build(), filter);
         } catch (RuntimeException e) {

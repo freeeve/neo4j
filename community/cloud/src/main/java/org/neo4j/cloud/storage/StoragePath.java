@@ -45,7 +45,6 @@ import java.util.Map;
 import java.util.Objects;
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.api.map.ImmutableMap;
-import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.util.Preconditions;
 
 public class StoragePath implements Path {
@@ -475,7 +474,7 @@ public class StoragePath implements Path {
 
     private static Iterator<String> split(PathRepresentation path, boolean reversed) {
         final var elements = path.elements();
-        return reversed ? Iterables.reverse(elements).iterator() : elements.iterator();
+        return reversed ? elements.reversed().iterator() : elements.iterator();
     }
 
     private static boolean checkPrefixedParts(Iterator<String> theMatches, Iterator<String> toMatch) {
@@ -488,7 +487,7 @@ public class StoragePath implements Path {
     }
 
     private static String last(List<String> items) {
-        return items.isEmpty() ? null : items.get(items.size() - 1);
+        return items.isEmpty() ? null : items.getLast();
     }
 
     private class StoragePathIterator implements Iterator<Path> {

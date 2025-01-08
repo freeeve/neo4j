@@ -20,7 +20,6 @@
 package org.neo4j.dbms.database;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import org.neo4j.graphdb.Transaction;
@@ -39,8 +38,8 @@ public class KnownSystemComponentVersions<T extends KnownSystemComponentVersion>
 
     public T detectCurrentComponentVersion(Transaction tx) {
         List<T> sortedVersions = new ArrayList<>(knownComponentVersions);
-        sortedVersions.sort(Comparator.comparingInt(v -> v.version));
-        Collections.reverse(sortedVersions); // Sort from most recent to oldest
+        sortedVersions.sort(Comparator.comparingInt(KnownSystemComponentVersion::binaryVersion)
+                .reversed());
         for (T version : sortedVersions) {
             if (version.detected(tx)) {
                 return version;

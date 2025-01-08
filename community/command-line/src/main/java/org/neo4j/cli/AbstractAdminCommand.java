@@ -29,7 +29,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -140,9 +139,8 @@ public abstract class AbstractAdminCommand extends AbstractCommand {
      */
     protected Config.Builder createPrefilledConfigBuilder() {
         List<Path> commandConfigs = getCommandConfigs();
-        Collections.reverse(commandConfigs);
         var configBuilder = Config.newBuilder().fromFileNoThrow(ctx.confDir().resolve(Config.DEFAULT_CONFIG_FILE_NAME));
-        commandConfigs.forEach(configBuilder::fromFileNoThrow);
+        commandConfigs.reversed().forEach(configBuilder::fromFileNoThrow);
         configBuilder.commandExpansion(allowCommandExpansion).set(GraphDatabaseSettings.neo4j_home, ctx.homeDir());
         configBuilder.set(BoltConnector.enabled, Boolean.FALSE);
         configBuilder.set(HttpConnector.enabled, Boolean.FALSE);
