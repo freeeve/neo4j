@@ -424,25 +424,6 @@ public class GqlHelper {
         return getGql42001_22N04(input, variable, validTypes, -1, -1, -1);
     }
 
-    public static ErrorGqlStatusObject getGql42001_42I06(
-            String input, List<String> valueList, int offset, int line, int column) {
-        return getGql42001_42I06_withCause(input, valueList, offset, line, column, null);
-    }
-
-    public static ErrorGqlStatusObject getGql42001_42I06_withCause(
-            String input, List<String> valueList, int offset, int line, int column, ErrorGqlStatusObject cause) {
-        var gqlBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I06)
-                .withClassification(ErrorClassification.CLIENT_ERROR)
-                .atPosition(offset, line, column)
-                .withParam(GqlParams.StringParam.input, input)
-                .withParam(GqlParams.ListParam.valueList, valueList);
-        var causeChain = cause != null ? gqlBuilder.withCause(cause).build() : gqlBuilder.build();
-        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .atPosition(offset, line, column)
-                .withCause(causeChain)
-                .build();
-    }
-
     public static ErrorGqlStatusObject getGql42001_42I20(
             String input, String labelExpr, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
