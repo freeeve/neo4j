@@ -27,13 +27,8 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Utility to create {@link Map}s.
@@ -180,33 +175,5 @@ public final class MapUtil {
         Properties properties = new Properties();
         properties.putAll(config);
         properties.store(writer, null);
-    }
-
-    /**
-     * Mutates the input map by removing entries which do not have keys in the new backing data, as extracted with
-     * the keyExtractor.
-     * @param map the map to mutate.
-     * @param newBackingData the backing data to retain.
-     * @param keyExtractor the function to extract keys from the backing data.
-     * @param <K> type of the key in the input map.
-     * @param <V> type of the values in the input map.
-     * @param <T> type of the keys in the new baking data.
-     */
-    public static <K, V, T> void trimToList(Map<K, V> map, List<T> newBackingData, Function<T, K> keyExtractor) {
-        Set<K> retainedKeys = newBackingData.stream().map(keyExtractor).collect(Collectors.toSet());
-        trimToList(map, retainedKeys);
-    }
-
-    /**
-     * Mutates the input map by removing entries which are not in the retained set of keys.
-     * @param map the map to mutate.
-     * @param retainedKeys the keys to retain.
-     * @param <K> type of the key.
-     * @param <V> type of the values.
-     */
-    public static <K, V> void trimToList(Map<K, V> map, Set<K> retainedKeys) {
-        Set<K> keysToRemove = new HashSet<>(map.keySet());
-        keysToRemove.removeAll(retainedKeys);
-        keysToRemove.forEach(map::remove);
     }
 }

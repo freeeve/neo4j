@@ -19,8 +19,6 @@
  */
 package org.neo4j.server.security.auth;
 
-import static org.neo4j.internal.helpers.collection.MapUtil.trimToList;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException;
@@ -133,4 +132,9 @@ public abstract class AbstractUserRepository extends LifecycleAdapter implements
      * @throws IOException
      */
     protected abstract ListSnapshot<User> readPersistedUsers() throws IOException;
+
+    private static <K, V, T> void trimToList(Map<K, V> map, List<T> newBackingData, Function<T, K> keyExtractor) {
+        Set<K> retainedKeys = newBackingData.stream().map(keyExtractor).collect(Collectors.toSet());
+        map.keySet().retainAll(retainedKeys);
+    }
 }
