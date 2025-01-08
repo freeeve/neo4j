@@ -23,23 +23,48 @@ import org.neo4j.kernel.api.exceptions.InvalidArgumentsException;
 
 public final class QueryId {
     public static final String PREFIX = "query-";
-    private static final String EXPECTED_FORMAT_MSG = "(expected format: query-<id>)";
+    private static final String EXPECTED_FORMAT = "query-<id>";
+    private static final String EXPECTED_FORMAT_MSG = "(expected format: %s)".formatted(EXPECTED_FORMAT);
 
     private QueryId() {}
 
-    public static long parse(String queryIdText) throws InvalidArgumentsException {
+    /**
+     * Parse a string that represents a query id.
+     *
+     * @param queryIdText the text to parse
+     * @param argumentName the name of the procedure argument that contains the query id text
+     * @param procedureName the name of the procedure calling in here
+     */
+    public static long parse(String queryIdText, String argumentName, String procedureName)
+            throws InvalidArgumentsException {
         try {
             if (!queryIdText.startsWith(PREFIX)) {
-                throw new InvalidArgumentsException("Expected prefix " + PREFIX);
+                throw InvalidArgumentsException.invalidProcedureArgument(
+                        queryIdText, argumentName, procedureName, EXPECTED_FORMAT, "Expected prefix " + PREFIX, null);
             }
             String qid = queryIdText.substring(PREFIX.length());
             var internalId = Long.parseLong(qid);
             if (internalId <= 0) {
-                throw new InvalidArgumentsException("Negative ids are not supported " + EXPECTED_FORMAT_MSG);
+                throw InvalidArgumentsException.invalidProcedureArgument(
+                        queryIdText,
+                        argumentName,
+                        procedureName,
+                        EXPECTED_FORMAT,
+                        "Negative ids are not supported " + EXPECTED_FORMAT_MSG,
+                        null);
             }
             return internalId;
         } catch (Exception e) {
-            throw new InvalidArgumentsException("Could not parse id " + queryIdText + " " + EXPECTED_FORMAT_MSG, e);
+            if (e instanceof InvalidArgumentsException iae) {
+                throw iae;
+            }
+            throw InvalidArgumentsException.invalidProcedureArgument(
+                    queryIdText,
+                    argumentName,
+                    procedureName,
+                    EXPECTED_FORMAT,
+                    "Could not parse id " + queryIdText + " " + EXPECTED_FORMAT_MSG,
+                    e);
         }
     }
 }

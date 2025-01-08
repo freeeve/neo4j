@@ -49,9 +49,28 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
         this.status = Status.General.InvalidArguments;
     }
 
-    public InvalidArgumentsException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+    private InvalidArgumentsException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
         this.status = Status.General.InvalidArguments;
+    }
+
+    public static InvalidArgumentsException invalidProcedureArgument(
+            String providedInvalidArgument,
+            String argumentName,
+            String procedureName,
+            String expectedFormat,
+            String legacyMessage,
+            Throwable cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N16)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N22)
+                        .withParam(GqlParams.StringParam.field, providedInvalidArgument)
+                        .withParam(GqlParams.StringParam.procParam, argumentName)
+                        .withParam(GqlParams.StringParam.proc, procedureName)
+                        .withParam(GqlParams.StringParam.procParam, argumentName)
+                        .withParam(GqlParams.StringParam.procParamFmt, expectedFormat)
+                        .build())
+                .build();
+        return new InvalidArgumentsException(gql, legacyMessage, cause);
     }
 
     public static InvalidArgumentsException requiresPositiveInteger(String option, int value) {
@@ -97,12 +116,12 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
         return GqlHelper.getGql42001_22N04(prettyVal.value(), "config options", validConfigSettingNames);
     }
 
-    protected static String invalidConfigValueString(PrettyPrinter pp, AnyValue value, String schemaType) {
+    private static String invalidConfigValueString(PrettyPrinter pp, AnyValue value, String schemaType) {
         value.writeTo(pp);
         return invalidConfigValueString(pp.value(), schemaType);
     }
 
-    protected static String invalidConfigValueString(String value, String schemaType) {
+    private static String invalidConfigValueString(String value, String schemaType) {
         return String.format("Could not create %s with specified index config '%s'", schemaType, value);
     }
 
