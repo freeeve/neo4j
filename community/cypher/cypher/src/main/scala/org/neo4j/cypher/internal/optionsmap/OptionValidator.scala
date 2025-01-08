@@ -163,6 +163,14 @@ object SeedURIOption extends StringOptionValidator {
   }
 }
 
+object SeedSourceDatabaseOption extends StringOptionValidator {
+  override val KEY: String = "seedSourceDatabase"
+
+  override protected def validateContent(value: String, config: Option[Config])(implicit operation: String): Unit = {
+    // no content validation, any string is accepted
+  }
+}
+
 object SeedCredentialsOption extends StringOptionValidator {
   override val KEY: String = "seedCredentials"
 
