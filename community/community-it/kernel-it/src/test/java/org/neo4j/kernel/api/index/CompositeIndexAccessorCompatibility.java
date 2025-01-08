@@ -24,8 +24,8 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.neo4j.internal.helpers.collection.Iterables.single;
 import static org.neo4j.internal.helpers.collection.Pair.of;
@@ -72,6 +72,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
+import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptor;
@@ -1155,18 +1156,13 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
 
                     // then should not throw
                 } else {
-                    try {
-                        // when
-                        reader.query(client, NULL_CONTEXT, CursorContext.NULL_CONTEXT, unconstrained(), theQuery);
-                        fail("Expected index reader to throw for illegal composite query. Query was, "
-                                + Arrays.toString(theQuery));
-                    } catch (IllegalArgumentException e) {
-                        // then
-                        if (!testSuite.supportsContainsAndEndsWithQueries() && hasContainsOrEndsWithQuery(theQuery)) {
-                            assertThat(e.getMessage()).contains("Tried to query index with illegal query.");
-                        } else {
-                            assertThat(e.getMessage()).contains("Tried to query index with illegal composite query.");
-                        }
+                    var exceptionAssert = assertThatThrownBy(() -> reader.query(
+                                    client, NULL_CONTEXT, CursorContext.NULL_CONTEXT, unconstrained(), theQuery))
+                            .isInstanceOf(IndexNotApplicableKernelException.class);
+                    if (!testSuite.supportsContainsAndEndsWithQueries() && hasContainsOrEndsWithQuery(theQuery)) {
+                        exceptionAssert.hasMessageContaining("Tried to query index with illegal query.");
+                    } else {
+                        exceptionAssert.hasMessageContaining("Tried to query index with illegal composite query.");
                     }
                 }
             }
