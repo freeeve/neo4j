@@ -36,7 +36,7 @@ public enum CommunityTopologyGraphVersion implements ComponentVersion {
      */
     COMMUNITY_TOPOLOGY_44(0, Neo4jVersions.VERSION_44),
     COMMUNITY_TOPOLOGY_50(1, Neo4jVersions.VERSION_50),
-    COMMUNITY_TOPOLOGY_58(1, Neo4jVersions.VERSION_58),
+    COMMUNITY_TOPOLOGY_58(2, Neo4jVersions.VERSION_58),
 
     COMMUNITY_TOPOLOGY_UNKNOWN_VERSION(
             UNKNOWN_VERSION, String.format("no '%s' found", COMMUNITY_TOPOLOGY_GRAPH_COMPONENT));
