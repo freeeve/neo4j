@@ -50,6 +50,10 @@ public class ConfigValidationIssue {
         return "%s%s: %s".formatted(severity, label, message);
     }
 
+    public String getLogMessage() {
+        return "%s - %s".formatted(file, getMessage());
+    }
+
     public Throwable getThrowable() {
         return cause;
     }

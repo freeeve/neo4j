@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.ObjectUtils;
+import org.neo4j.logging.Log;
 import org.neo4j.util.VisibleForTesting;
 
 public class ConfigValidationSummary {
@@ -73,6 +74,12 @@ public class ConfigValidationSummary {
         }
     }
 
+    public void log(Log log) {
+        for (var event : events) {
+            event.log(log);
+        }
+    }
+
     public enum ValidationResult {
         OK,
         WARNINGS,
@@ -92,6 +99,8 @@ public class ConfigValidationSummary {
         default Event treatErrorsAsWarnings() {
             return new NoBigDealEvent(this);
         }
+
+        void log(Log log);
     }
 
     private record NoBigDealEvent(Event delegate) implements Event {
@@ -112,6 +121,82 @@ public class ConfigValidationSummary {
         @Override
         public Event treatErrorsAsWarnings() {
             return this;
+        }
+
+        @Override
+        public void log(Log log) {
+            delegate.log(new NoBigDealLog(log));
+        }
+
+        private record NoBigDealLog(Log delegate) implements Log {
+
+            @Override
+            public boolean isDebugEnabled() {
+                return delegate.isDebugEnabled();
+            }
+
+            @Override
+            public void debug(String message) {
+                delegate.debug(message);
+            }
+
+            @Override
+            public void debug(String message, Throwable throwable) {
+                delegate.debug(message, throwable);
+            }
+
+            @Override
+            public void debug(String format, Object... arguments) {
+                delegate.debug(format, arguments);
+            }
+
+            @Override
+            public void info(String message) {
+                delegate.info(message);
+            }
+
+            @Override
+            public void info(String message, Throwable throwable) {
+                delegate.info(message, throwable);
+            }
+
+            @Override
+            public void info(String format, Object... arguments) {
+                delegate.info(format, arguments);
+            }
+
+            @Override
+            public void warn(String message) {
+                delegate.warn(message);
+            }
+
+            @Override
+            public void warn(String message, Throwable throwable) {
+                delegate.warn(message, throwable);
+            }
+
+            @Override
+            public void warn(String format, Object... arguments) {
+                delegate.warn(format, arguments);
+            }
+
+            @Override
+            public void error(String message) {
+                // reduce error logs down to warning
+                delegate.warn(message);
+            }
+
+            @Override
+            public void error(String message, Throwable throwable) {
+                // reduce error logs down to warning
+                delegate.warn(message, throwable);
+            }
+
+            @Override
+            public void error(String format, Object... arguments) {
+                // reduce error logs down to warning
+                delegate.warn(format, arguments);
+            }
         }
     }
 
@@ -166,6 +251,17 @@ public class ConfigValidationSummary {
                     this.issues.stream().map(ConfigValidationIssue::asWarning).collect(Collectors.toList());
             return new ResultEvent(label, issues);
         }
+
+        @Override
+        public void log(Log log) {
+            for (var issue : issues) {
+                if (issue.isError()) {
+                    log.error(issue.getLogMessage());
+                } else {
+                    log.warn(issue.getLogMessage());
+                }
+            }
+        }
     }
 
     public static class ErrorEvent implements Event {
@@ -189,6 +285,15 @@ public class ConfigValidationSummary {
         public ValidationResult result() {
             return ERRORS;
         }
+
+        private String message() {
+            return String.format("Error when validating %s: %s", label, exception.getMessage());
+        }
+
+        @Override
+        public void log(Log log) {
+            log.error(message());
+        }
     }
 
     public static class MessageEvent implements Event {
@@ -206,6 +311,11 @@ public class ConfigValidationSummary {
         @Override
         public ValidationResult result() {
             return OK;
+        }
+
+        @Override
+        public void log(Log log) {
+            // do not log
         }
     }
 }

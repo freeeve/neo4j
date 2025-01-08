@@ -30,16 +30,19 @@ import static org.neo4j.server.startup.validation.ConfigValidationSummary.Valida
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
+import org.neo4j.logging.AssertableLogProvider;
 
 class ConfigValidationHelperTest {
     private final ByteArrayOutputStream output = new ByteArrayOutputStream();
     private final PrintStream out = new PrintStream(output);
     private final TestConfigValidatorFactory factory = new TestConfigValidatorFactory();
+    private final AssertableLogProvider logProvider = new AssertableLogProvider(true);
 
     @Test
     void shouldReportNoIssues() {
@@ -157,6 +160,22 @@ class ConfigValidationHelperTest {
         assertThat(ERRORS.and(OK)).isEqualTo(ERRORS);
         assertThat(ERRORS.and(WARNINGS)).isEqualTo(ERRORS);
         assertThat(ERRORS.and(ERRORS)).isEqualTo(ERRORS);
+    }
+
+    @Test
+    void warningsShouldBeInLogs() {
+        factory.neo4jIssues.add(new ConfigValidationIssue(Path.of("file1"), "warning 1", false, null));
+        factory.log4jServerIssues.add(new ConfigValidationIssue(Path.of("file2"), "warning 2", false, null));
+        factory.log4jUserIssues.add(new ConfigValidationIssue(Path.of("file3"), "warning 3", false, null));
+
+        var helper = new ConfigValidationHelper(factory);
+        var summary = helper.validateAll(null);
+        logProvider.clear();
+        var log = logProvider.getLog("test");
+        summary.log(log);
+        assertThat(logProvider.serialize()).containsSubsequence("file1", "warning 1");
+        assertThat(logProvider.serialize()).containsSubsequence("file2", "warning 2");
+        assertThat(logProvider.serialize()).containsSubsequence("file3", "warning 3");
     }
 
     private static class TestConfigValidatorFactory implements ConfigValidator.Factory {

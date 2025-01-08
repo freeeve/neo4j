@@ -151,6 +151,12 @@ abstract class ServerCommandIT extends ServerProcessTestBase {
         assertThat(err.toString())
                 .contains(
                         "Warning at 1:18: The element type \"Configuration\" must be terminated by the matching end-tag \"</Configuration>\".");
+        Path neo4jLogFile = config.get(GraphDatabaseSettings.logs_directory).resolve("neo4j.log");
+        // Warnings should also be in the neo4j.log file
+        String neo4jLogText = FileSystemUtils.readString(fs, neo4jLogFile, EmptyMemoryTracker.INSTANCE);
+        assertThat(neo4jLogText)
+                .contains(
+                        "Warning at 1:18: The element type \"Configuration\" must be terminated by the matching end-tag \"</Configuration>\".");
     }
 
     @Test

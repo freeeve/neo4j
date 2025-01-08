@@ -24,6 +24,7 @@ import static org.neo4j.configuration.SettingValueParsers.INT;
 import static org.neo4j.configuration.SettingValueParsers.PATH;
 import static org.neo4j.function.Predicates.alwaysTrue;
 import static org.neo4j.function.Predicates.notNull;
+import static org.neo4j.logging.log4j.LogConfig.createLoggerFromXmlConfig;
 import static org.neo4j.server.startup.BootloaderOsAbstraction.UNKNOWN_PID;
 import static org.neo4j.server.startup.validation.ConfigValidationSummary.ValidationResult.ERRORS;
 import static org.neo4j.server.startup.validation.ConfigValidationSummary.ValidationResult.OK;
@@ -57,7 +58,12 @@ import org.neo4j.configuration.connectors.HttpsConnector;
 import org.neo4j.graphdb.config.Configuration;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.io.IOUtils;
+import org.neo4j.io.fs.DefaultFileSystemAbstraction;
+import org.neo4j.logging.log4j.Log4jLog;
+import org.neo4j.logging.log4j.Log4jLogProvider;
+import org.neo4j.logging.log4j.Neo4jLoggerContext;
 import org.neo4j.server.startup.validation.ConfigValidationHelper;
+import org.neo4j.server.startup.validation.ConfigValidationSummary;
 import org.neo4j.time.Stopwatch;
 import org.neo4j.util.VisibleForTesting;
 
@@ -169,6 +175,18 @@ public abstract class Bootloader implements AutoCloseable {
         return config(true, false);
     }
 
+    private void logConfigWarnings(ConfigValidationSummary summary) {
+        Path xmlConfig = config.get(GraphDatabaseSettings.user_logging_config_path);
+        boolean allowDefaultXmlConfig =
+                !config.getUnfiltered().isExplicitlySet(GraphDatabaseSettings.user_logging_config_path);
+        try (Neo4jLoggerContext ctx = createLoggerFromXmlConfig(
+                new DefaultFileSystemAbstraction(), xmlConfig, allowDefaultXmlConfig, config::configStringLookup)) {
+            Log4jLogProvider logProvider = new Log4jLogProvider(ctx);
+            Log4jLog log = logProvider.getLog(Bootloader.class);
+            summary.log(log);
+        }
+    }
+
     protected void validateConfigVerbose(boolean silentOnSuccess) {
         var helper = new ConfigValidationHelper(confFile());
         var summary = helper.validateAll(() -> fullConfig().getUnfiltered());
@@ -178,12 +196,14 @@ public abstract class Bootloader implements AutoCloseable {
             if (summary.result() == ERRORS) {
                 summary.print(environment.err(), verbose);
                 summary.printClosingStatement(environment.err());
+                logConfigWarnings(summary);
             }
         } else {
             // Don't print anything if all is well
             if (summary.result() != OK) {
                 summary.print(environment.err(), verbose);
                 summary.printClosingStatement(environment.out());
+                logConfigWarnings(summary);
             }
         }
 
@@ -289,6 +309,7 @@ public abstract class Bootloader implements AutoCloseable {
         return Set.of(
                 GraphDatabaseSettings.neo4j_home.name(),
                 GraphDatabaseSettings.configuration_directory.name(),
+                GraphDatabaseSettings.user_logging_config_path.name(),
                 GraphDatabaseSettings.logs_directory.name(),
                 GraphDatabaseSettings.plugin_dir.name(),
                 GraphDatabaseSettings.strict_config_validation.name(),
