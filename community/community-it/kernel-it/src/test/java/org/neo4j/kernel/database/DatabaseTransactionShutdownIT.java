@@ -27,7 +27,10 @@ import static org.neo4j.configuration.GraphDatabaseSettings.shutdown_transaction
 import static org.neo4j.logging.AssertableLogProvider.Level.WARN;
 
 import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.common.DependencyResolver;
@@ -46,6 +49,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.LogAssertions;
 import org.neo4j.test.OtherThreadExecutor;
+import org.neo4j.test.Race;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -56,6 +60,7 @@ import org.neo4j.time.SystemNanoClock;
 
 @TestDirectoryExtension
 class DatabaseTransactionShutdownIT {
+    private static final String UNCLEAN_SHUTDOWN_MSG = "Failed to close all transactions. Shutdown may be unclean.";
 
     @Inject
     TestDirectory directory;
@@ -171,7 +176,42 @@ class DatabaseTransactionShutdownIT {
             LogAssertions.assertThat(logProvider)
                     .forClass(Database.class)
                     .forLevel(WARN)
-                    .containsMessages("Failed to close all transactions. Shutdown may be unclean.");
+                    .containsMessages(UNCLEAN_SHUTDOWN_MSG);
+        }
+    }
+
+    @Test
+    void shouldNotLeakedTransactionsOnShutdownRace() throws Throwable {
+        setUp(Clocks.nanoClock());
+        DependencyResolver dep = db.getDependencyResolver();
+        KernelTransactions ktxs = dep.resolveDependency(KernelTransactions.class);
+        Race race = new Race();
+        int threads = 10;
+        CountDownLatch latch = new CountDownLatch(threads);
+        AtomicBoolean done = new AtomicBoolean(false);
+        race.addContestants(threads, () -> {
+            latch.countDown();
+            while (!done.get()) {
+                try (Transaction tx = db.beginTx()) {
+                } catch (DatabaseShutdownException ignored) {
+                }
+            }
+        });
+        Race.Async future = null;
+        try {
+            future = race.goAsync();
+            latch.await();
+            dbms.shutdown();
+            assertThat(ktxs.haveActiveTransaction()).isFalse();
+            LogAssertions.assertThat(logProvider)
+                    .forClass(Database.class)
+                    .forLevel(WARN)
+                    .doesNotContainMessage(UNCLEAN_SHUTDOWN_MSG);
+        } finally {
+            done.set(true);
+            if (future != null) {
+                future.await(1, TimeUnit.MINUTES);
+            }
         }
     }
 

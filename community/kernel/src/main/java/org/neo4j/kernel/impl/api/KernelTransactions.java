@@ -48,6 +48,7 @@ import org.neo4j.graphdb.DatabaseShutdownException;
 import org.neo4j.graphdb.TransactionFailureHelper;
 import org.neo4j.internal.id.IdController;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
+import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.internal.kernel.api.security.AbstractSecurityLog;
 import org.neo4j.internal.kernel.api.security.DatabaseAccessMode;
 import org.neo4j.internal.kernel.api.security.LoginContext;
@@ -312,9 +313,10 @@ public class KernelTransactions extends LifecycleAdapter
             while (!newTransactionsLock.readLock().tryLock(1, TimeUnit.SECONDS)) {
                 assertRunning();
             }
+            KernelTransactionImplementation tx = null;
             try {
                 TransactionId lastCommittedTransaction = transactionIdStore.getLastCommittedTransaction();
-                KernelTransactionImplementation tx = txPool.acquire();
+                tx = txPool.acquire();
                 tx.initialize(
                         lastCommittedTransaction.id(),
                         type,
@@ -325,6 +327,12 @@ public class KernelTransactions extends LifecycleAdapter
                         procedureView);
                 assertRunning();
                 return tx;
+            } catch (Throwable t) {
+                try (var close = tx) {
+                } catch (TransactionFailureException | RuntimeException e) {
+                    t.addSuppressed(e);
+                }
+                throw t;
             } finally {
                 newTransactionsLock.readLock().unlock();
             }

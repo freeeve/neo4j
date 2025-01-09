@@ -506,6 +506,23 @@ class KernelTransactionsTest {
     }
 
     @Test
+    void shouldNotLeakTransactionCreatedDuringShutdown() throws Throwable {
+        LockManager.Client client = mock(LockManager.Client.class);
+        when(locks.newClient()).thenAnswer(inv -> {
+            // This is called during tx.initialize, after the tx has been acquired for the pool
+            databaseAvailabilityGuard.shutdown();
+            return client;
+        });
+
+        KernelTransactions kernelTransactions = newKernelTransactions();
+
+        assertThrows(
+                DatabaseShutdownException.class,
+                () -> kernelTransactions.newInstance(EXPLICIT, AUTH_DISABLED, EMBEDDED_CONNECTION, NO_TIMEOUT));
+        assertThat(kernelTransactions.haveActiveTransaction()).isFalse();
+    }
+
+    @Test
     void exceptionWhenStartingNewTransactionOnUnavailableInstance() throws Throwable {
         KernelTransactions kernelTransactions = newKernelTransactions();
         databaseAvailabilityGuard.require(() -> "unavailable instance");
