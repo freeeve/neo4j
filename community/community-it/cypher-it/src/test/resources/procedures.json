@@ -3659,13 +3659,13 @@
     "argumentDescription": [
       {
         "name": "database",
-        "description": "database :: STRING",
+        "description": "The name of the database to recreate.",
         "type": "STRING",
         "isDeprecated": false
       },
       {
         "name": "options",
-        "description": "options = {} :: MAP",
+        "description": "The seeding and topology options to use for recreating the database.",
         "type": "MAP",
         "isDeprecated": false,
         "default": "DefaultParameterValue{value={}, type=MAP}"
