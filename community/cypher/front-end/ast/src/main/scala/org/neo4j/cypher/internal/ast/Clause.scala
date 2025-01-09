@@ -1003,29 +1003,44 @@ case class Match(
       )
     }
 
-    val error: Option[SemanticErrorDef] = hints.collectFirst {
-      case hint @ UsingIndexHint(Variable(variable), LabelOrRelTypeName(labelOrRelTypeName), _, _, _)
-        if !containsLabelOrRelTypePredicate(variable, labelOrRelTypeName) && !isUnfulfillable(where) =>
-        val prettyHint = hintPrettifier.asString(hint)
-        val isNode = semanticState.isNode(variable)
-        val entity = if (isNode) "NODE" else "RELATIONSHIP"
-        val legacyMessage = getMissingEntityKindError(variable, labelOrRelTypeName, hint)
-        SemanticError.missingHintPredicate(legacyMessage, prettyHint, entity, variable, hint.position)
-      case hint @ UsingIndexHint(Variable(variable), LabelOrRelTypeName(_), properties, _, _)
-        if !containsPropertyPredicates(variable, properties) && !isUnfulfillable(where) =>
-        val prettyHint = hintPrettifier.asString(hint)
-        val isNode = semanticState.isNode(variable)
-        val entity = if (isNode) "NODE" else "RELATIONSHIP"
-        SemanticError.missingHintPredicate(getMissingPropertyError(hint), prettyHint, entity, variable, hint.position)
-      case hint @ UsingScanHint(Variable(variable), LabelOrRelTypeName(labelOrRelTypeName))
-        if !containsLabelOrRelTypePredicate(variable, labelOrRelTypeName) && !isUnfulfillable(where) =>
-        val prettyHint = hintPrettifier.asString(hint)
-        val isNode = semanticState.isNode(variable)
-        val entity = if (isNode) "NODE" else "RELATIONSHIP"
-        val legacyMessage = getMissingEntityKindError(variable, labelOrRelTypeName, hint)
-        SemanticError.missingHintPredicate(legacyMessage, prettyHint, entity, variable, hint.position)
-      case hint @ UsingJoinHint(_) if pattern.length == 0 && !isUnfulfillable(where) =>
-        SemanticError.cannotUseJoinHint(hint, hintPrettifier.asString(hint))
+    val error: Option[SemanticErrorDef] = {
+      if (isUnfulfillable(where)) {
+        // If the query is unfulfillable, then it is rewritten in UnfulfillableQueryRewriter.
+        // The rewritten version might not have the element anymore where the hint is referring to, for example a label.
+        // In that case we should not throw an error based on this hint.
+        Option.empty
+      } else {
+        hints.collectFirst {
+          case hint @ UsingIndexHint(Variable(variable), LabelOrRelTypeName(labelOrRelTypeName), _, _, _)
+            if !containsLabelOrRelTypePredicate(variable, labelOrRelTypeName) =>
+            val prettyHint = hintPrettifier.asString(hint)
+            val isNode = semanticState.isNode(variable)
+            val entity = if (isNode) "NODE" else "RELATIONSHIP"
+            val legacyMessage = getMissingEntityKindError(variable, labelOrRelTypeName, hint)
+            SemanticError.missingHintPredicate(legacyMessage, prettyHint, entity, variable, hint.position)
+          case hint @ UsingIndexHint(Variable(variable), LabelOrRelTypeName(_), properties, _, _)
+            if !containsPropertyPredicates(variable, properties) =>
+            val prettyHint = hintPrettifier.asString(hint)
+            val isNode = semanticState.isNode(variable)
+            val entity = if (isNode) "NODE" else "RELATIONSHIP"
+            SemanticError.missingHintPredicate(
+              getMissingPropertyError(hint),
+              prettyHint,
+              entity,
+              variable,
+              hint.position
+            )
+          case hint @ UsingScanHint(Variable(variable), LabelOrRelTypeName(labelOrRelTypeName))
+            if !containsLabelOrRelTypePredicate(variable, labelOrRelTypeName) =>
+            val prettyHint = hintPrettifier.asString(hint)
+            val isNode = semanticState.isNode(variable)
+            val entity = if (isNode) "NODE" else "RELATIONSHIP"
+            val legacyMessage = getMissingEntityKindError(variable, labelOrRelTypeName, hint)
+            SemanticError.missingHintPredicate(legacyMessage, prettyHint, entity, variable, hint.position)
+          case hint @ UsingJoinHint(_) if pattern.length == 0 =>
+            SemanticError.cannotUseJoinHint(hint, hintPrettifier.asString(hint))
+        }
+      }
     }
     SemanticCheckResult(semanticState, error.toSeq)
   }
@@ -1040,9 +1055,7 @@ case class Match(
 
   private def isUnfulfillable(expr: Expression): Boolean = {
     expr match {
-      case _: False => true
-      case a: And   => isUnfulfillable(a.lhs) || isUnfulfillable(a.rhs) // Is unfulfillable if a or b is False()
-      case o: Or    => isUnfulfillable(o.lhs) && isUnfulfillable(o.rhs) // Is unfulfillable if a and b are both False()
+      case _: False => true // UnfulfillableQueryRewriter should have removed all expressions and created only False
       case _        => false // It might be fulfillable
     }
   }
