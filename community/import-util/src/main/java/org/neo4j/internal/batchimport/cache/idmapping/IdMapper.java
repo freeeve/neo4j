@@ -25,6 +25,7 @@ import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.InputEntityVisitor;
 import org.neo4j.internal.batchimport.cache.MemoryStatsVisitor;
+import org.neo4j.internal.batchimport.cache.idmapping.cuckoo.KeyCollisionException;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 
 /**
@@ -32,18 +33,6 @@ import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
  */
 public interface IdMapper extends MemoryStatsVisitor.Visitable, AutoCloseable {
     long ID_NOT_FOUND = -1;
-
-    /**
-     * Maps an {@code inputId} to an actual node id.
-     * @param inputId an id of an unknown type, coming from input.
-     * @param actualId the actual node id that the inputId will represent.
-     * @param group {@link Group} this input id will be added to. Used for handling input ids collisions
-     * where multiple equal input ids might be added, as long as all input ids within a single group is unique.
-     * Group ids are also passed into {@link Getter#get(Object, Group)}.
-     * It is required that all input ids belonging to a specific group are put in sequence before putting any
-     * input ids for another group.
-     */
-    void put(Object inputId, long actualId, Group group);
 
     /**
      * Removes an existing mapping from {@code inputId} to {@code actualId}.
@@ -55,13 +44,13 @@ public interface IdMapper extends MemoryStatsVisitor.Visitable, AutoCloseable {
 
     /**
      * @return whether a call to {@link #prepare(PropertyValueLookup, Collector, ProgressMonitorFactory)} needs to commence after all calls to
-     * {@link #put(Object, long, Group)} and before any call to {@link Getter#get(Object, Group)}. I.e. whether all ids
+     * {@link Setter#put(Object, long, Group)} and before any call to {@link Getter#get(Object, Group)}. I.e. whether all ids
      * need to be put before making any call to {@link Getter#get(Object, Group)}.
      */
     boolean needsPreparation();
 
     /**
-     * After all mappings have been {@link #put(Object, long, Group)} call this method to prepare for
+     * After all mappings have been {@link Setter#put(Object, long, Group)} call this method to prepare for
      * {@link Getter#get(Object, Group)}.
      * @param inputIdLookup can return input id of supplied node id. Used in the event of difficult collisions
      * so that more information have to be read from the input data again, data that normally isn't necessary
@@ -75,6 +64,8 @@ public interface IdMapper extends MemoryStatsVisitor.Visitable, AutoCloseable {
      * @return a {@link Getter} for the current thread to do lookups in.
      */
     Getter newGetter();
+
+    Setter newSetter();
 
     /**
      * Releases all resources used by this {@link IdMapper}.
@@ -96,17 +87,31 @@ public interface IdMapper extends MemoryStatsVisitor.Visitable, AutoCloseable {
         /**
          * Returns an actual node id representing {@code inputId}.
          * For this call to work {@link #prepare(PropertyValueLookup, Collector, ProgressMonitorFactory)} must have
-         * been called after all calls to {@link #put(Object, long, Group)} have been made,
+         * been called after all calls to {@link Setter#put(Object, long, Group)} have been made,
          * iff {@link #needsPreparation()} returns {@code true}. Otherwise ids can be retrieved right after
-         * {@link #put(Object, long, Group) being put}
+         * {@link Setter#put(Object, long, Group) being put}
          *
          * @param inputId the input id to get the actual node id for.
          * @param group {@link Group} the given {@code inputId} must exist in, i.e. have been put with.
-         * @return the actual node id previously specified by {@link #put(Object, long, Group)}, or {@code -1} if not found.
+         * @return the actual node id previously specified by {@link Setter#put(Object, long, Group)}, or {@code -1} if not found.
          */
         long get(Object inputId, Group group);
 
         @Override
         void close();
+    }
+
+    interface Setter {
+        /**
+         * Maps an {@code inputId} to an actual node id.
+         * @param inputId an id of an unknown type, coming from input.
+         * @param actualId the actual node id that the inputId will represent.
+         * @param group {@link Group} this input id will be added to. Used for handling input ids collisions
+         * where multiple equal input ids might be added, as long as all input ids within a single group is unique.
+         * Group ids are also passed into {@link Getter#get(Object, Group)}.
+         * It is required that all input ids belonging to a specific group are put in sequence before putting any
+         * input ids for another group.
+         */
+        void put(Object inputId, long actualId, Group group) throws KeyCollisionException;
     }
 }

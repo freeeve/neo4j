@@ -22,7 +22,7 @@ package org.neo4j.internal.batchimport.cache.idmapping.string;
 import java.util.function.IntSupplier;
 
 /**
- * Calculates the radix of {@link Long} values.
+ * Calculates the radix of {@link LongRadixCalculator} values.
  */
 public abstract class RadixCalculator {
     /**
@@ -40,7 +40,7 @@ public abstract class RadixCalculator {
     /**
      * Radix optimized for strings encoded into long by {@link StringEncoder}.
      */
-    public static class String extends RadixCalculator {
+    public static class StringRadixCalculator extends RadixCalculator {
         @Override
         public int radixOf(long value) {
             if (value == EncodingIdMapper.GAP_VALUE) {
@@ -56,10 +56,10 @@ public abstract class RadixCalculator {
     /**
      * Radix optimized for strings encoded into long by {@link LongEncoder}.
      */
-    public static class Long extends RadixCalculator {
+    public static class LongRadixCalculator extends RadixCalculator {
         private final IntSupplier radixShift;
 
-        public Long(IntSupplier radixShift) {
+        public LongRadixCalculator(IntSupplier radixShift) {
             this.radixShift = radixShift;
         }
 

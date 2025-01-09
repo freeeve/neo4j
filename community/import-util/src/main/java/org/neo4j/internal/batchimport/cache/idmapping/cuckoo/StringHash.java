@@ -17,18 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.batchimport.api;
-
-import org.neo4j.memory.MemoryTracker;
+package org.neo4j.internal.batchimport.cache.idmapping.cuckoo;
 
 @FunctionalInterface
-public interface PropertyValueLookup {
-    Lookup newLookup(boolean readOnly);
-
-    interface Lookup extends AutoCloseable {
-        Object lookupProperty(long nodeId, MemoryTracker memoryTracker);
-
-        @Override
-        void close();
-    }
+interface StringHash {
+    long hash(String key);
 }

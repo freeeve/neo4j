@@ -26,7 +26,9 @@ import java.util.function.Supplier;
 import org.neo4j.batchimport.api.PropertyValueLookup;
 import org.neo4j.internal.batchimport.cache.idmapping.string.EncodingIdMapper;
 import org.neo4j.internal.helpers.collection.Iterables;
+import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.kernel.impl.store.PropertyStore;
+import org.neo4j.kernel.impl.store.record.PropertyRecord;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 
@@ -38,7 +40,7 @@ import org.neo4j.storageengine.api.cursor.StoreCursors;
  * of the input id in memory. The input ids are stored as properties on the nodes to be able to retrieve
  * them for such an event. This class can look up those input id properties for arbitrary nodes.
  */
-class NodeInputIdPropertyLookup implements PropertyValueLookup {
+public class NodeInputIdPropertyLookup implements PropertyValueLookup {
     private final PropertyStore propertyStore;
     private final Supplier<StoreCursors> storeCursors;
 
@@ -48,14 +50,28 @@ class NodeInputIdPropertyLookup implements PropertyValueLookup {
     }
 
     @Override
-    public Lookup newLookup() {
+    public Lookup newLookup(boolean readOnly) {
         var cursors = storeCursors.get();
         var propertyRecord = propertyStore.newRecord();
         return new Lookup() {
             @Override
             public Object lookupProperty(long nodeId, MemoryTracker memoryTracker) {
-                propertyStore.getRecordByCursor(
-                        nodeId, propertyRecord, CHECK, cursors.readCursor(PROPERTY_CURSOR), memoryTracker);
+                if (readOnly) {
+                    return lookup(nodeId, propertyRecord, cursors.readCursor(PROPERTY_CURSOR), memoryTracker, cursors);
+                } else {
+                    try (PageCursor cursor = cursors.writeCursor(PROPERTY_CURSOR)) {
+                        return lookup(nodeId, propertyRecord, cursor, memoryTracker, cursors);
+                    }
+                }
+            }
+
+            private Object lookup(
+                    long nodeId,
+                    PropertyRecord propertyRecord,
+                    PageCursor cursor,
+                    MemoryTracker memoryTracker,
+                    StoreCursors cursors) {
+                propertyStore.getRecordByCursor(nodeId, propertyRecord, CHECK, cursor, memoryTracker);
                 if (!propertyRecord.inUse()) {
                     return null;
                 }

@@ -23,6 +23,7 @@ import static java.lang.Math.clamp;
 import static org.neo4j.internal.batchimport.cache.idmapping.string.EncodingIdMapper.NO_MONITOR;
 import static org.neo4j.internal.batchimport.cache.idmapping.string.TrackerFactories.dynamic;
 import static org.neo4j.io.ByteUnit.gibiBytes;
+import static org.neo4j.util.FeatureToggles.flag;
 
 import org.eclipse.collections.api.iterator.LongIterator;
 import org.eclipse.collections.impl.iterator.ImmutableEmptyLongIterator;
@@ -32,6 +33,8 @@ import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.ReadableGroups;
 import org.neo4j.internal.batchimport.cache.MemoryStatsVisitor;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactory;
+import org.neo4j.internal.batchimport.cache.idmapping.cuckoo.CuckooIdMapper;
+import org.neo4j.internal.batchimport.cache.idmapping.cuckoo.StringCuckooIdMapper;
 import org.neo4j.internal.batchimport.cache.idmapping.string.EncodingIdMapper;
 import org.neo4j.internal.batchimport.cache.idmapping.string.LongCollisionValues;
 import org.neo4j.internal.batchimport.cache.idmapping.string.LongEncoder;
@@ -46,10 +49,13 @@ import org.neo4j.memory.MemoryTracker;
 /**
  * Place to instantiate common {@link IdMapper} implementations.
  */
-public class IdMappers {
+public final class IdMappers {
+    public static final boolean USE_CUCKOO_MAPPER = flag(IdMappers.class, "use_cuckoo", false);
+
     private static class ActualIdMapper implements IdMapper, IdMapper.Getter {
         @Override
-        public void put(Object inputId, long actualId, Group group) { // No need to remember anything
+        public Setter newSetter() {
+            return (inputId, actualId, group) -> {};
         }
 
         @Override
@@ -127,7 +133,11 @@ public class IdMappers {
             ReadableGroups groups,
             boolean strictNodeCheck,
             MemoryTracker memoryTracker,
-            long estimatedNumberOfNodes) {
+            long estimatedNumberOfNodes,
+            PropertyValueLookup inputIdLookup) {
+        if (USE_CUCKOO_MAPPER) {
+            return new StringCuckooIdMapper(estimatedNumberOfNodes, cacheFactory, groups, memoryTracker, inputIdLookup);
+        }
         return new EncodingIdMapper(
                 cacheFactory,
                 new StringEncoder(),
@@ -156,6 +166,9 @@ public class IdMappers {
             ReadableGroups groups,
             MemoryTracker memoryTracker,
             long estimatedNumberOfNodes) {
+        if (USE_CUCKOO_MAPPER) {
+            return new CuckooIdMapper(estimatedNumberOfNodes, cacheFactory, groups, memoryTracker);
+        }
         return new EncodingIdMapper(
                 cacheFactory,
                 new LongEncoder(),

@@ -37,6 +37,7 @@ import org.neo4j.common.EntityType;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.batchimport.DataImporter.Monitor;
 import org.neo4j.internal.batchimport.cache.idmapping.IdMapper;
+import org.neo4j.internal.batchimport.cache.idmapping.cuckoo.KeyCollisionException;
 import org.neo4j.internal.batchimport.store.BatchingNeoStores;
 import org.neo4j.internal.id.IdSequence;
 import org.neo4j.io.pagecache.PageCursor;
@@ -63,6 +64,7 @@ public class NodeImporter extends EntityImporter {
     private final Collector badCollector;
     private final NodeRecord nodeRecord;
     private final IdMapper idMapper;
+    private final IdMapper.Setter idMapperSetter;
     private final BatchingIdGetter nodeIds;
     private final PropertyStore idPropertyStore;
     private final PropertyRecord idPropertyRecord;
@@ -91,6 +93,7 @@ public class NodeImporter extends EntityImporter {
         super(stores, monitor, contextFactory, memoryTracker, schemaMonitor);
         this.labelTokenRepository = stores.getTokenHolders().labelTokens();
         this.idMapper = idMapper;
+        this.idMapperSetter = idMapper.newSetter();
         this.nodeStore = stores.getNodeStore();
         this.badCollector = badCollector;
         this.nodeRecord = nodeStore.newRecord();
@@ -195,19 +198,29 @@ public class NodeImporter extends EntityImporter {
         }
 
         // Write data to stores
-        if (schemaMonitor.endOfEntity(
-                nodeRecord.getId(),
-                SchemaMonitor.NO_EXISTING_PROPERTY_KEYS_LOOKUP,
-                (entityId, tokens, properties, constraintDescription) -> badCollector.collectEntityViolatingConstraint(
-                        inputId, entityId, namedProperties(properties), constraintDescription, EntityType.NODE))) {
-            nodeRecord.setNextProp(createAndWritePropertyChain(cursorContext));
-            nodeRecord.setInUse(true);
-            nodeStore.updateRecord(nodeRecord, IGNORE, nodeUpdateCursor, cursorContext, storeCursors);
-            if (inputId != null) {
-                idMapper.put(inputId, nodeRecord.getId(), group);
+        try {
+            if (schemaMonitor.endOfEntity(
+                    nodeRecord.getId(),
+                    SchemaMonitor.NO_EXISTING_PROPERTY_KEYS_LOOKUP,
+                    (entityId, tokens, properties, constraintDescription) ->
+                            badCollector.collectEntityViolatingConstraint(
+                                    inputId,
+                                    entityId,
+                                    namedProperties(properties),
+                                    constraintDescription,
+                                    EntityType.NODE))) {
+                if (inputId != null) {
+                    idMapperSetter.put(inputId, nodeRecord.getId(), group);
+                }
+                nodeRecord.setNextProp(createAndWritePropertyChain(cursorContext));
+                nodeRecord.setInUse(true);
+                nodeStore.updateRecord(nodeRecord, IGNORE, nodeUpdateCursor, cursorContext, storeCursors);
+                nodeCount++;
+            } else {
+                freeUnusedId(nodeStore, nodeRecord.getId(), cursorContext);
             }
-            nodeCount++;
-        } else {
+        } catch (KeyCollisionException e) {
+            badCollector.collectDuplicateNode(inputId, NULL_REFERENCE.longValue(), group);
             freeUnusedId(nodeStore, nodeRecord.getId(), cursorContext);
         }
         reset();

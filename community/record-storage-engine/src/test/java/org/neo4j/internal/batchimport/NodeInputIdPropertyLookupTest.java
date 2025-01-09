@@ -106,7 +106,7 @@ class NodeInputIdPropertyLookupTest {
         race.addContestants(
                 4,
                 () -> {
-                    try (var threadLookup = lookup.newLookup()) {
+                    try (var threadLookup = lookup.newLookup(true)) {
                         var rng = ThreadLocalRandom.current();
                         for (var i = 0; i < 1_000; i++) {
                             var nodeId = rng.nextLong(numNodes);

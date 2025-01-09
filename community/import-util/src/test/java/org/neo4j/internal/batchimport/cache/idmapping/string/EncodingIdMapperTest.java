@@ -63,6 +63,7 @@ import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.function.Factory;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
 import org.neo4j.internal.batchimport.cache.idmapping.IdMapper;
+import org.neo4j.internal.batchimport.cache.idmapping.cuckoo.KeyCollisionException;
 import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
@@ -74,7 +75,7 @@ import org.neo4j.test.extension.RandomExtension;
 
 @ExtendWith(RandomExtension.class)
 public class EncodingIdMapperTest {
-    private static final PropertyValueLookup CONVERT_TO_STRING = () -> new PropertyValueLookup.Lookup() {
+    private static final PropertyValueLookup CONVERT_TO_STRING = r -> new PropertyValueLookup.Lookup() {
         @Override
         public Object lookupProperty(long nodeId, MemoryTracker memoryTracker) {
             return String.valueOf(nodeId);
@@ -83,7 +84,7 @@ public class EncodingIdMapperTest {
         @Override
         public void close() {}
     };
-    private static final PropertyValueLookup FAILING_LOOKUP = () -> new PropertyValueLookup.Lookup() {
+    private static final PropertyValueLookup FAILING_LOOKUP = r -> new PropertyValueLookup.Lookup() {
         @Override
         public Object lookupProperty(long nodeId, MemoryTracker memoryTracker) {
             throw new RuntimeException("Should not be called");
@@ -112,23 +113,24 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldHandleGreatAmountsOfStuff(int processors) {
+    public void shouldHandleGreatAmountsOfStuff(int processors) throws KeyCollisionException {
         // GIVEN
         IdMapper idMapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors);
+        IdMapper.Setter setter = idMapper.newSetter();
         PropertyValueLookup inputIdLookup = CONVERT_TO_STRING;
         int count = 300_000;
 
         // WHEN
-        try (var lookup = inputIdLookup.newLookup()) {
+        try (var lookup = inputIdLookup.newLookup(true)) {
             for (long nodeId = 0; nodeId < count; nodeId++) {
-                idMapper.put(lookup.lookupProperty(nodeId, INSTANCE), nodeId, globalGroup);
+                setter.put(lookup.lookupProperty(nodeId, INSTANCE), nodeId, globalGroup);
             }
         }
         idMapper.prepare(inputIdLookup, mock(Collector.class), NONE);
 
         // THEN
         try (var getter = idMapper.newGetter();
-                var lookup = inputIdLookup.newLookup()) {
+                var lookup = inputIdLookup.newLookup(true)) {
             for (long nodeId = 0; nodeId < count; nodeId++) {
                 // the UUIDs here will be generated in the same sequence as above because we reset the random
                 Object id = lookup.lookupProperty(nodeId, INSTANCE);
@@ -178,13 +180,14 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldEncodeShortStrings(int processors) {
+    public void shouldEncodeShortStrings(int processors) throws KeyCollisionException {
         // GIVEN
         IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors);
 
         // WHEN
-        mapper.put("123", 0, globalGroup);
-        mapper.put("456", 1, globalGroup);
+        IdMapper.Setter setter = mapper.newSetter();
+        setter.put("123", 0, globalGroup);
+        setter.put("456", 1, globalGroup);
         mapper.prepare(values("123", "456"), mock(Collector.class), NONE);
 
         // THEN
@@ -195,12 +198,12 @@ public class EncodingIdMapperTest {
     }
 
     @Test
-    public void shouldDiscardEmptyStringWhenEmptyNotMapped() {
+    public void shouldDiscardEmptyStringWhenEmptyNotMapped() throws KeyCollisionException {
         // GIVEN
         IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, 1);
 
         // WHEN
-        mapper.put("1", 1, globalGroup);
+        mapper.newSetter().put("1", 1, globalGroup);
         mapper.prepare(values(null, "1"), mock(Collector.class), NONE);
 
         // THEN
@@ -211,7 +214,7 @@ public class EncodingIdMapperTest {
     }
 
     @Test
-    public void shouldDetectUnknownInputIdWhenStrict() {
+    public void shouldDetectUnknownInputIdWhenStrict() throws KeyCollisionException {
         final var existingInputId = "A";
         final var nonExistingCollidingInputId = "B";
         StringEncoder encoder = mock(StringEncoder.class);
@@ -223,7 +226,7 @@ public class EncodingIdMapperTest {
         // Now the strict mapper should detect that these two are not the same by using the property value lookup
         var mapper = strictMapper(encoder, Radix.STRING, EncodingIdMapper.NO_MONITOR, 1);
         final var nodeId = 7L;
-        mapper.put(existingInputId, nodeId, globalGroup);
+        mapper.newSetter().put(existingInputId, nodeId, globalGroup);
         Collector collector = mock(Collector.class);
         mapper.prepare(alwaysReturn(existingInputId), collector, NONE);
 
@@ -234,15 +237,16 @@ public class EncodingIdMapperTest {
     }
 
     @Test
-    public void shouldFindEncodedShortStringsWithNonAscii() {
+    public void shouldFindEncodedShortStringsWithNonAscii() throws KeyCollisionException {
         // GIVEN
         IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, 1);
 
         // WHEN
         var v1 = "P_Évora";
         var v2 = "P_Setúbal";
-        mapper.put(v1, 0, globalGroup);
-        mapper.put(v2, 1, globalGroup);
+        IdMapper.Setter setter = mapper.newSetter();
+        setter.put(v1, 0, globalGroup);
+        setter.put(v2, 1, globalGroup);
         mapper.prepare(values(v1, v2), mock(Collector.class), NONE);
 
         // THEN
@@ -254,16 +258,17 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldEncodeSmallSetOfRandomData(int processors) {
+    public void shouldEncodeSmallSetOfRandomData(int processors) throws KeyCollisionException {
         // GIVEN
         int size = random.nextInt(10_000) + 2;
         ValueType type = ValueType.values()[random.nextInt(ValueType.values().length)];
         IdMapper mapper = mapper(type.encoder(), type.radix(), EncodingIdMapper.NO_MONITOR, processors);
 
         // WHEN
+        IdMapper.Setter setter = mapper.newSetter();
         ValueGenerator values = new ValueGenerator(type.data(random.random()));
         for (int nodeId = 0; nodeId < size; nodeId++) {
-            mapper.put(values.lookupProperty(nodeId, INSTANCE), nodeId, globalGroup);
+            setter.put(values.lookupProperty(nodeId, INSTANCE), nodeId, globalGroup);
         }
         mapper.prepare(values, mock(Collector.class), NONE);
 
@@ -278,13 +283,14 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldReportCollisionsForSameInputId(int processors) {
+    public void shouldReportCollisionsForSameInputId(int processors) throws KeyCollisionException {
         // GIVEN
         IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors);
+        IdMapper.Setter setter = mapper.newSetter();
         PropertyValueLookup values = values("10", "9", "10");
-        try (var lookup = values.newLookup()) {
+        try (var lookup = values.newLookup(true)) {
             for (int i = 0; i < 3; i++) {
-                mapper.put(lookup.lookupProperty(i, INSTANCE), i, globalGroup);
+                setter.put(lookup.lookupProperty(i, INSTANCE), i, globalGroup);
             }
         }
 
@@ -299,16 +305,17 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldCopeWithCollisionsBasedOnDifferentInputIds(int processors) {
+    public void shouldCopeWithCollisionsBasedOnDifferentInputIds(int processors) throws KeyCollisionException {
         // GIVEN
         EncodingIdMapper.Monitor monitor = mock(EncodingIdMapper.Monitor.class);
         Encoder encoder = mock(Encoder.class);
         when(encoder.encode(any())).thenReturn(12345L);
         IdMapper mapper = mapper(encoder, Radix.STRING, monitor, processors);
+        IdMapper.Setter setter = mapper.newSetter();
         PropertyValueLookup ids = values("10", "9");
-        try (var lookup = ids.newLookup()) {
+        try (var lookup = ids.newLookup(true)) {
             for (int i = 0; i < 2; i++) {
-                mapper.put(lookup.lookupProperty(i, INSTANCE), i, globalGroup);
+                setter.put(lookup.lookupProperty(i, INSTANCE), i, globalGroup);
             }
         }
 
@@ -327,7 +334,7 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldCopeWithMixedActualAndAccidentalCollisions(int processors) {
+    public void shouldCopeWithMixedActualAndAccidentalCollisions(int processors) throws KeyCollisionException {
         // GIVEN
         EncodingIdMapper.Monitor monitor = mock(EncodingIdMapper.Monitor.class);
         Encoder encoder = mock(Encoder.class);
@@ -347,6 +354,7 @@ public class EncodingIdMapperTest {
         Group groupA = groups.getOrCreate("A");
         Group groupB = groups.getOrCreate("B");
         IdMapper mapper = mapper(encoder, Radix.STRING, monitor, processors);
+        IdMapper.Setter setter = mapper.newSetter();
         PropertyValueLookup ids = values("a", "b", "c", "a", "e", "f");
         Group[] groups = new Group[] {groupA, groupA, groupA, groupB, groupB, groupB};
 
@@ -358,9 +366,9 @@ public class EncodingIdMapperTest {
         // f/B --> 1 accidental collision with a/A
 
         // WHEN
-        try (var lookup = ids.newLookup()) {
+        try (var lookup = ids.newLookup(true)) {
             for (int i = 0; i < 6; i++) {
-                mapper.put(lookup.lookupProperty(i, INSTANCE), i, groups[i]);
+                setter.put(lookup.lookupProperty(i, INSTANCE), i, groups[i]);
             }
         }
         Collector collector = mock(Collector.class);
@@ -380,20 +388,21 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldBeAbleToHaveDuplicateInputIdButInDifferentGroups(int processors) {
+    public void shouldBeAbleToHaveDuplicateInputIdButInDifferentGroups(int processors) throws KeyCollisionException {
         // GIVEN
         EncodingIdMapper.Monitor monitor = mock(EncodingIdMapper.Monitor.class);
         Group firstGroup = groups.getOrCreate("first");
         Group secondGroup = groups.getOrCreate("second");
         IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, monitor, processors);
+        IdMapper.Setter setter = mapper.newSetter();
         PropertyValueLookup ids = values("10", "9", "10");
         int id = 0;
         // group 0
-        try (var lookup = ids.newLookup()) {
-            mapper.put(lookup.lookupProperty(id, INSTANCE), id++, firstGroup);
-            mapper.put(lookup.lookupProperty(id, INSTANCE), id++, firstGroup);
+        try (var lookup = ids.newLookup(true)) {
+            setter.put(lookup.lookupProperty(id, INSTANCE), id++, firstGroup);
+            setter.put(lookup.lookupProperty(id, INSTANCE), id++, firstGroup);
             // group 1
-            mapper.put(lookup.lookupProperty(id, INSTANCE), id, secondGroup);
+            setter.put(lookup.lookupProperty(id, INSTANCE), id, secondGroup);
         }
         Collector collector = mock(Collector.class);
         mapper.prepare(ids, collector, NONE);
@@ -411,18 +420,19 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldOnlyFindInputIdsInSpecificGroup(int processors) {
+    public void shouldOnlyFindInputIdsInSpecificGroup(int processors) throws KeyCollisionException {
         // GIVEN
         Group firstGroup = groups.getOrCreate("first");
         Group secondGroup = groups.getOrCreate("second");
         Group thirdGroup = groups.getOrCreate("third");
         IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors);
+        IdMapper.Setter setter = mapper.newSetter();
         PropertyValueLookup ids = values("8", "9", "10");
         int id = 0;
-        try (var lookup = ids.newLookup()) {
-            mapper.put(lookup.lookupProperty(id, INSTANCE), id++, firstGroup);
-            mapper.put(lookup.lookupProperty(id, INSTANCE), id++, secondGroup);
-            mapper.put(lookup.lookupProperty(id, INSTANCE), id, thirdGroup);
+        try (var lookup = ids.newLookup(true)) {
+            setter.put(lookup.lookupProperty(id, INSTANCE), id++, firstGroup);
+            setter.put(lookup.lookupProperty(id, INSTANCE), id++, secondGroup);
+            setter.put(lookup.lookupProperty(id, INSTANCE), id, thirdGroup);
         }
         mapper.prepare(ids, mock(Collector.class), NONE);
 
@@ -444,19 +454,20 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldHandleManyGroups(int processors) {
+    public void shouldHandleManyGroups(int processors) throws KeyCollisionException {
         // GIVEN
         int size = 256; // which results in GLOBAL (0) + 1-256 = 257 groups, i.e. requiring two bytes
         for (int i = 0; i < size; i++) {
             groups.getOrCreate("" + i);
         }
         IdMapper mapper = mapper(new LongEncoder(), Radix.LONG, EncodingIdMapper.NO_MONITOR, processors);
+        IdMapper.Setter setter = mapper.newSetter();
 
         // WHEN
         Integer[] values = new Integer[size];
         for (int i = 0; i < size; i++) {
             values[i] = i;
-            mapper.put(i, i, groups.get("" + i));
+            setter.put(i, i, groups.get("" + i));
         }
         // null since this test should have been set up to not run into collisions
         mapper.prepare(values(values), mock(Collector.class), NONE);
@@ -471,7 +482,8 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldDetectCorrectDuplicateInputIdsWhereManyAccidentalInManyGroups(int processors) {
+    public void shouldDetectCorrectDuplicateInputIdsWhereManyAccidentalInManyGroups(int processors)
+            throws KeyCollisionException {
         // GIVEN
         final var encoder = new ControlledEncoder(new LongEncoder());
         final int idsPerGroup = 20;
@@ -486,8 +498,9 @@ public class EncodingIdMapperTest {
                 ParallelSort.DEFAULT,
                 numberOfCollisions -> new LongCollisionValues(NumberArrayFactories.HEAP, numberOfCollisions, INSTANCE),
                 processors);
+        IdMapper.Setter setter = mapper.newSetter();
         Function<Long, Integer> nodeIdToGroupId = nodeId -> toIntExact(nodeId / idsPerGroup);
-        PropertyValueLookup ids = () -> new PropertyValueLookup.Lookup() {
+        PropertyValueLookup ids = r -> new PropertyValueLookup.Lookup() {
             @Override
             public Object lookupProperty(long nodeId, MemoryTracker memoryTracker) {
                 int groupId = nodeIdToGroupId.apply(nodeId);
@@ -509,12 +522,12 @@ public class EncodingIdMapperTest {
         };
 
         // WHEN
-        var lookup = ids.newLookup();
+        var lookup = ids.newLookup(true);
         int count = idsPerGroup * groupCount;
         for (long nodeId = 0; nodeId < count; nodeId++) {
             var groupId = nodeIdToGroupId.apply(nodeId);
             var inputId = lookup.lookupProperty(nodeId, INSTANCE);
-            mapper.put(inputId, nodeId, groups.get(groupId));
+            setter.put(inputId, nodeId, groups.get(groupId));
         }
         Collector collector = mock(Collector.class);
 
@@ -537,15 +550,16 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldHandleHolesInIdSequence(int processors) {
+    public void shouldHandleHolesInIdSequence(int processors) throws KeyCollisionException {
         // GIVEN
         IdMapper mapper = mapper(new LongEncoder(), Radix.LONG, EncodingIdMapper.NO_MONITOR, processors);
+        IdMapper.Setter setter = mapper.newSetter();
         List<Object> ids = new ArrayList<>();
         for (int i = 0; i < 100; i++) {
             if (!random.nextBoolean()) {
                 Long id = (long) i;
                 ids.add(id);
-                mapper.put(id, i, globalGroup);
+                setter.put(id, i, globalGroup);
             }
         }
 
@@ -562,9 +576,10 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldHandleLargeAmountsOfDuplicateNodeIds(int processors) {
+    public void shouldHandleLargeAmountsOfDuplicateNodeIds(int processors) throws KeyCollisionException {
         // GIVEN
         IdMapper mapper = mapper(new LongEncoder(), Radix.LONG, EncodingIdMapper.NO_MONITOR, processors);
+        IdMapper.Setter setter = mapper.newSetter();
         long nodeId = 0;
         int high = 10;
         // a list of input ids
@@ -577,7 +592,7 @@ public class EncodingIdMapperTest {
         }
         // fed to the IdMapper
         for (Object inputId : ids) {
-            mapper.put(inputId, nodeId++, globalGroup);
+            setter.put(inputId, nodeId++, globalGroup);
         }
 
         // WHEN
@@ -591,9 +606,10 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldDetectLargeAmountsOfCollisions(int processors) {
+    public void shouldDetectLargeAmountsOfCollisions(int processors) throws KeyCollisionException {
         // GIVEN
         IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors);
+        IdMapper.Setter setter = mapper.newSetter();
         int count = 20_000;
         List<Object> ids = new ArrayList<>();
         long id = 0;
@@ -603,7 +619,7 @@ public class EncodingIdMapperTest {
             String inputId = UUID.randomUUID().toString();
             for (int i = 0; i < 2; i++) {
                 ids.add(inputId);
-                mapper.put(inputId, id++, globalGroup);
+                setter.put(inputId, id++, globalGroup);
             }
         }
 
@@ -633,9 +649,10 @@ public class EncodingIdMapperTest {
         PropertyValueLookup inputIdLookup = CONVERT_TO_STRING;
         int countPerThread = 30_000;
         race.addContestants(processors, () -> {
-            try (var lookup = inputIdLookup.newLookup()) {
+            try (var lookup = inputIdLookup.newLookup(true)) {
                 int cursor = batchSize;
                 long nextNodeId = 0;
+                IdMapper.Setter setter = idMapper.newSetter();
                 for (int j = 0; j < countPerThread; j++) {
                     if (cursor == batchSize) {
                         nextNodeId = highNodeId.getAndAdd(batchSize);
@@ -644,8 +661,10 @@ public class EncodingIdMapperTest {
                     long nodeId = nextNodeId++;
                     cursor++;
 
-                    idMapper.put(lookup.lookupProperty(nodeId, INSTANCE), nodeId, globalGroup);
+                    setter.put(lookup.lookupProperty(nodeId, INSTANCE), nodeId, globalGroup);
                 }
+            } catch (KeyCollisionException e) {
+                throw new RuntimeException(e);
             }
         });
 
@@ -658,7 +677,7 @@ public class EncodingIdMapperTest {
         int countWithGapsWorstCase = count + batchSize * processors;
         int correctHits = 0;
         try (var getter = idMapper.newGetter();
-                var lookup = inputIdLookup.newLookup()) {
+                var lookup = inputIdLookup.newLookup(true)) {
             for (long nodeId = 0; nodeId < countWithGapsWorstCase; nodeId++) {
                 long result = getter.get(lookup.lookupProperty(nodeId, INSTANCE), globalGroup);
                 if (result != -1) {
@@ -671,7 +690,7 @@ public class EncodingIdMapperTest {
     }
 
     @Test
-    void shouldSkipNullValues() {
+    void shouldSkipNullValues() throws KeyCollisionException {
         // GIVEN
         MutableLong highDataIndex = new MutableLong();
         MutableLong highTrackerIndex = new MutableLong();
@@ -683,10 +702,11 @@ public class EncodingIdMapperTest {
             }
         };
         IdMapper idMapper = mapper(new LongEncoder(), Radix.LONG, monitor, 4);
+        IdMapper.Setter setter = idMapper.newSetter();
         long count = 1_000;
         for (long id = 0; id < count; id++) {
             long nodeId = id * 2;
-            idMapper.put(id, nodeId, globalGroup);
+            setter.put(id, nodeId, globalGroup);
         }
 
         // WHEN
@@ -698,7 +718,7 @@ public class EncodingIdMapperTest {
     }
 
     @Test
-    void shouldCompleteQuicklyForMostlyGapValues() {
+    void shouldCompleteQuicklyForMostlyGapValues() throws KeyCollisionException {
         // given
         int nThreads = 4;
         var encoder = new LongEncoder();
@@ -722,10 +742,11 @@ public class EncodingIdMapperTest {
             }
         };
         IdMapper idMapper = mapper(encoder, Radix.LONG, NO_MONITOR, comparator, autoDetect(encoder), nThreads);
+        IdMapper.Setter setter = idMapper.newSetter();
         int count = nThreads * 1_000;
         MutableLong nextNodeId = new MutableLong();
         for (long id = 0; id < count; id++) {
-            idMapper.put(id, nextNodeId.getAndAdd(random.nextInt(50, 100)), globalGroup);
+            setter.put(id, nextNodeId.getAndAdd(random.nextInt(50, 100)), globalGroup);
         }
 
         // when
@@ -744,8 +765,15 @@ public class EncodingIdMapperTest {
         var idMapper = mapper(new StringEncoder(), Radix.STRING, NO_MONITOR, 1);
 
         // when
+        IdMapper.Setter setter = idMapper.newSetter();
         var data = Map.of(546L, "1", 0L, "1", 547L, "2", 1L, "2", 548L, "3", 2L, "3");
-        data.entrySet().forEach(e -> idMapper.put(e.getValue(), e.getKey(), e.getKey() > 100 ? actor : movie));
+        data.forEach((key, value) -> {
+            try {
+                setter.put(value, key, key > 100 ? actor : movie);
+            } catch (KeyCollisionException e) {
+                throw new RuntimeException(e);
+            }
+        });
         idMapper.prepare(mapValues(data), Collector.EMPTY, NONE);
 
         // then
@@ -760,7 +788,7 @@ public class EncodingIdMapperTest {
     }
 
     private PropertyValueLookup mapValues(Map<Long, String> data) {
-        return () -> new PropertyValueLookup.Lookup() {
+        return r -> new PropertyValueLookup.Lookup() {
             @Override
             public Object lookupProperty(long nodeId, MemoryTracker memoryTracker) {
                 return data.get(nodeId);
@@ -772,7 +800,7 @@ public class EncodingIdMapperTest {
     }
 
     private static PropertyValueLookup values(Object... values) {
-        return () -> new PropertyValueLookup.Lookup() {
+        return r -> new PropertyValueLookup.Lookup() {
             @Override
             public Object lookupProperty(long nodeId, MemoryTracker memoryTracker) {
                 return values[toIntExact(nodeId)];
@@ -842,7 +870,7 @@ public class EncodingIdMapperTest {
             : new BigIdTracker(arrayFactory.newByteArray(size, BigIdTracker.DEFAULT_VALUE, INSTANCE));
 
     private PropertyValueLookup alwaysReturn(Object id) {
-        return () -> new PropertyValueLookup.Lookup() {
+        return r -> new PropertyValueLookup.Lookup() {
             @Override
             public Object lookupProperty(long nodeId, MemoryTracker memoryTracker) {
                 return id;
@@ -863,7 +891,7 @@ public class EncodingIdMapperTest {
         }
 
         @Override
-        public Lookup newLookup() {
+        public Lookup newLookup(boolean readOnly) {
             return this;
         }
 

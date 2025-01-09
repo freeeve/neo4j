@@ -51,6 +51,7 @@ import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.batchimport.PopulationWorkJobScheduler;
+import org.neo4j.internal.batchimport.cache.idmapping.cuckoo.KeyCollisionException;
 import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -95,7 +96,7 @@ class IndexIdMapperIT {
     private static final int ID_THRESHOLD = 1_000;
     private static final LongToObjectFunction<Object> ID_FUNCTION =
             id -> id < ID_THRESHOLD ? String.valueOf(id) : String.valueOf(id - ID_THRESHOLD);
-    private static final PropertyValueLookup ID_LOOKUP = () -> new PropertyValueLookup.Lookup() {
+    private static final PropertyValueLookup ID_LOOKUP = r -> new PropertyValueLookup.Lookup() {
         @Override
         public Object lookupProperty(long nodeId, MemoryTracker memoryTracker) {
             return ID_FUNCTION.valueOf(nodeId);
@@ -246,15 +247,17 @@ class IndexIdMapperIT {
     }
 
     @Test
-    void shouldFindNodesThatAreDuplicatesInTheIncrement() throws IOException, IndexEntryConflictException {
+    void shouldFindNodesThatAreDuplicatesInTheIncrement()
+            throws IOException, IndexEntryConflictException, KeyCollisionException {
         // given
         var group = groups.getOrCreate("group");
         buildInitialIndex(group, 1L, 0, 1, sequentialNodes(0, 100));
         start();
 
         // when
-        idMapper.put("110", 101, group);
-        idMapper.put("110", 102, group);
+        IdMapper.Setter setter = idMapper.newSetter();
+        setter.put("110", 101, group);
+        setter.put("110", 102, group);
         var collector = mock(Collector.class);
         prepare(collector);
 
@@ -297,8 +300,8 @@ class IndexIdMapperIT {
         idMapper.prepare(ID_LOOKUP, collector, ProgressMonitorFactory.NONE);
     }
 
-    private void put(long nodeId, Group group) {
-        idMapper.put(ID_FUNCTION.valueOf(nodeId), nodeId, group);
+    private void put(long nodeId, Group group) throws KeyCollisionException {
+        idMapper.newSetter().put(ID_FUNCTION.valueOf(nodeId), nodeId, group);
     }
 
     private void assertId(long nodeId, Group group) {

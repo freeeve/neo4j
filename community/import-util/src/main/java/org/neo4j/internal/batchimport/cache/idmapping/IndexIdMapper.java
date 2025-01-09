@@ -148,16 +148,18 @@ public class IndexIdMapper implements IdMapper {
     }
 
     @Override
-    public void put(Object inputId, long actualId, Group group) {
-        var populator = populators.get(group.name());
-        var update = IndexEntryUpdate.add(actualId, populator.descriptor, Values.of(inputId));
-        try {
-            populator.populator.add(Collections.singleton(update), CursorContext.NULL_CONTEXT);
-            populator.populator.includeSample(update);
-            numAdded.increment();
-        } catch (IndexEntryConflictException e) {
-            throw new RuntimeException(e);
-        }
+    public Setter newSetter() {
+        return (inputId, actualId, group) -> {
+            var populator = populators.get(group.name());
+            var update = IndexEntryUpdate.add(actualId, populator.descriptor, Values.of(inputId));
+            try {
+                populator.populator.add(Collections.singleton(update), CursorContext.NULL_CONTEXT);
+                populator.populator.includeSample(update);
+                numAdded.increment();
+            } catch (IndexEntryConflictException e) {
+                throw new RuntimeException(e);
+            }
+        };
     }
 
     @Override
@@ -260,7 +262,9 @@ public class IndexIdMapper implements IdMapper {
 
     @Override
     public void prepare(
-            PropertyValueLookup inputIdLookup, Collector collector, ProgressMonitorFactory progressMonitorFactory) {
+            PropertyValueLookup propertyValueLookup,
+            Collector collector,
+            ProgressMonitorFactory progressMonitorFactory) {
         for (var entry : populators.entrySet()) {
             try {
                 var descriptor = entry.getValue().descriptor;

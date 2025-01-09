@@ -220,7 +220,7 @@ public class EncodingIdMapper implements IdMapper {
     }
 
     private class LocalGetter implements Getter {
-        private final PropertyValueLookup.Lookup lookup = inputIdLookup.newLookup();
+        private final PropertyValueLookup.Lookup lookup = inputIdLookup.newLookup(true);
 
         /**
          * Returns the data index (i.e. node id) if found, or {@code -1} if not found.
@@ -238,13 +238,15 @@ public class EncodingIdMapper implements IdMapper {
     }
 
     @Override
-    public void put(Object inputId, long nodeId, Group group) {
-        // Encode and add the input id
-        long eId = encode(inputId);
-        dataCache.set(nodeId, eId);
-        groupCache.set(nodeId, group.id());
-        candidateHighestSetIndex.offer(nodeId);
-        radix.preRegisterRadixOf(eId);
+    public Setter newSetter() {
+        return (inputId, nodeId, group) -> {
+            // Encode and add the input id
+            long eId = encode(inputId);
+            dataCache.set(nodeId, eId);
+            groupCache.set(nodeId, group.id());
+            candidateHighestSetIndex.offer(nodeId);
+            radix.preRegisterRadixOf(eId);
+        };
     }
 
     @Override
@@ -566,7 +568,7 @@ public class EncodingIdMapper implements IdMapper {
                 nextLocalCollisionId += numCollisionsPerWorker[i];
             }
             try (var localProgress = progress.threadLocalReporter();
-                    var lookup = inputIdLookup.newLookup()) {
+                    var lookup = inputIdLookup.newLookup(true)) {
                 for (long nodeId = partition.startInclusive(); nodeId < partition.endExclusive(); nodeId++) {
                     long eId = dataCache.get(nodeId);
                     if (isCollision(eId)) {

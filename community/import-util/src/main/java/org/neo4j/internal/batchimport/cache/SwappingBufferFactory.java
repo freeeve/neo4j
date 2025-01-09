@@ -51,15 +51,20 @@ class SwappingBufferFactory implements BufferFactory, AutoCloseable {
 
     private final AtomicLong currentEnd = new AtomicLong();
     private final StoreChannel channel;
+    private final FileSystemAbstraction fs;
+    private final Path file;
 
     SwappingBufferFactory(FileSystemAbstraction fs, Path workDirectory) throws IOException {
-        this.channel = fs.open(fs.createTempFile(workDirectory, ".swap", ".tmp"), OPEN_OPTIONS);
+        this.fs = fs;
+        this.file = fs.createTempFile(workDirectory, ".swap", ".tmp");
+        this.channel = fs.open(file, OPEN_OPTIONS);
     }
 
     @Override
     public void close() {
         try {
             channel.close();
+            fs.deleteFile(file);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

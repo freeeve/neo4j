@@ -131,6 +131,8 @@ public class ImportLogic implements Closeable {
     private IdMapper idMapper;
     private long peakMemoryUsage;
     private long availableMemoryForLinking;
+    private NodeInputIdPropertyLookup inputIdLookup;
+    private CursorContext cursorContext;
 
     /**
      * @param databaseLayout directory which the db will be created in.
@@ -179,7 +181,11 @@ public class ImportLogic implements Closeable {
         // Some temporary caches and indexes in the import
         Input.Estimates inputEstimates =
                 input.validateAndEstimate(neoStore.getPropertyStore().newValueEncodedSizeCalculator());
-        idMapper = instantiateIdMapper(input, inputEstimates);
+        cursorContext = contextFactory.create(ID_MAPPER_PREPARATION_TAG);
+        inputIdLookup = new NodeInputIdPropertyLookup(
+                neoStore.getTemporaryPropertyStore(),
+                () -> new CachedStoreCursors(neoStore.getTemporaryNeoStores(), cursorContext));
+        idMapper = instantiateIdMapper(input, inputEstimates, inputIdLookup);
         nodeRelationshipCache = new NodeRelationshipCache(
                 numberArrayFactory, dbConfig.get(GraphDatabaseSettings.dense_node_threshold), memoryTracker);
 
@@ -203,11 +209,17 @@ public class ImportLogic implements Closeable {
         executionMonitor.initialize(dependencies);
     }
 
-    protected IdMapper instantiateIdMapper(Input input, Input.Estimates inputEstimates) {
+    protected IdMapper instantiateIdMapper(
+            Input input, Input.Estimates inputEstimates, NodeInputIdPropertyLookup inputIdLookup) {
         var estimatedNumNodes = inputEstimates.numberOfNodes();
         return switch (input.idType()) {
             case STRING -> IdMappers.strings(
-                    numberArrayFactory, input.groups(), config.strictNodeCheck(), memoryTracker, estimatedNumNodes);
+                    numberArrayFactory,
+                    input.groups(),
+                    config.strictNodeCheck(),
+                    memoryTracker,
+                    estimatedNumNodes,
+                    inputIdLookup);
             case INTEGER -> IdMappers.longs(numberArrayFactory, input.groups(), memoryTracker, estimatedNumNodes);
             case ACTUAL -> IdMappers.actual();
         };
@@ -276,13 +288,7 @@ public class ImportLogic implements Closeable {
     public void prepareIdMapper() {
         if (idMapper.needsPreparation()) {
             MemoryUsageStatsProvider memoryUsageStats = new MemoryUsageStatsProvider(neoStore, idMapper);
-            try (var cursorContext = contextFactory.create(ID_MAPPER_PREPARATION_TAG)) {
-                var inputIdLookup = new NodeInputIdPropertyLookup(
-                        neoStore.getTemporaryPropertyStore(),
-                        () -> new CachedStoreCursors(neoStore.getTemporaryNeoStores(), cursorContext));
-                executeStage(
-                        new IdMapperPreparationStage(config, idMapper, inputIdLookup, badCollector, memoryUsageStats));
-            }
+            executeStage(new IdMapperPreparationStage(config, idMapper, inputIdLookup, badCollector, memoryUsageStats));
             final LongIterator duplicateNodeIds = idMapper.leftOverDuplicateNodesIds();
             if (duplicateNodeIds.hasNext()) {
                 executeStage(new DeleteDuplicateNodesStage(
@@ -659,7 +665,7 @@ public class ImportLogic implements Closeable {
                 format("%n%s%nPeak memory usage: %s", additionalInformation, bytesToString(peakMemoryUsage)));
         log.info("Import " + (successful ? "completed successfully" : "failed") + ", took " + duration(totalTimeMillis)
                 + ". " + additionalInformation);
-        closeAll(nodeRelationshipCache, nodeLabelsCache, idMapper, numberArrayFactory);
+        closeAll(nodeRelationshipCache, nodeLabelsCache, idMapper, cursorContext, numberArrayFactory);
         monitor.completed(successful);
     }
 

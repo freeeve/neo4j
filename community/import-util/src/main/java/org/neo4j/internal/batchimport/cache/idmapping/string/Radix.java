@@ -30,9 +30,9 @@ import org.neo4j.function.Factory;
  * from a long value.
  */
 public abstract class Radix {
-    public static final Factory<Radix> LONG = Long::new;
+    public static final Factory<Radix> LONG = LongRadix::new;
 
-    public static final Factory<Radix> STRING = String::new;
+    public static final Factory<Radix> STRING = StringRadix::new;
 
     private final LongAdder nullCount = new LongAdder();
     final AtomicLongArray radixIndexCount = new AtomicLongArray((int) pow(2, RadixCalculator.RADIX_BITS - 1));
@@ -70,15 +70,15 @@ public abstract class Radix {
     public abstract RadixCalculator calculator();
 
     @Override
-    public java.lang.String toString() {
+    public String toString() {
         return Radix.class.getSimpleName() + "." + getClass().getSimpleName();
     }
 
-    public static class String extends Radix {
+    public static class StringRadix extends Radix {
         private final RadixCalculator calculator;
 
-        public String() {
-            this.calculator = new RadixCalculator.String();
+        public StringRadix() {
+            this.calculator = new RadixCalculator.StringRadixCalculator();
         }
 
         @Override
@@ -87,12 +87,12 @@ public abstract class Radix {
         }
     }
 
-    public static class Long extends Radix {
+    public static class LongRadix extends Radix {
         private volatile int radixShift;
         private final RadixCalculator calculator;
 
-        public Long() {
-            this.calculator = new RadixCalculator.Long(() -> radixShift);
+        public LongRadix() {
+            this.calculator = new RadixCalculator.LongRadixCalculator(() -> radixShift);
         }
 
         @Override

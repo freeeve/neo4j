@@ -98,6 +98,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.cli.CommandFailedException;
 import org.neo4j.cli.CommandTestUtils;
+import org.neo4j.cli.ExecutionContext;
 import org.neo4j.common.Validator;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
@@ -3029,7 +3030,7 @@ class ImportCommandTest {
         runImport(capturingCtx(), arguments);
     }
 
-    private void runImport(CommandTestUtils.CapturingExecutionContext ctx, String... arguments) throws Exception {
+    private void runImport(ExecutionContext ctx, String... arguments) throws Exception {
         final var cmd = new ImportCommand.Full(ctx);
 
         var list = new ArrayList<>(Arrays.asList(arguments));
