@@ -39,7 +39,7 @@ import org.neo4j.fabric.stream.StatementResult;
 import org.neo4j.fabric.transaction.FabricTransactionInfo;
 import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.fabric.transaction.parent.CompoundTransaction;
-import org.neo4j.graphdb.TransactionFailureException;
+import org.neo4j.graphdb.TransactionFailureHelper;
 import org.neo4j.internal.kernel.api.connectioninfo.RoutingInfo;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -47,6 +47,7 @@ import org.neo4j.kernel.availability.UnavailableException;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.query.TransactionalContextFactory;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.logging.Log;
 import org.neo4j.values.virtual.MapValue;
 
 public class FabricLocalExecutor {
@@ -218,7 +219,7 @@ public class FabricLocalExecutor {
             return KernelTransaction.Type.EXPLICIT;
         }
 
-        private RuntimeException transformTerminalOperationError(Exception e) {
+        private RuntimeException transformTerminalOperationError(Exception e, Log log) {
             // The main purpose of this is mapping of checked exceptions
             // while preserving status codes
             if (e instanceof Status.HasStatus) {
@@ -232,7 +233,11 @@ public class FabricLocalExecutor {
             // so it is not possible to come up with a reasonable status code here.
             // The error is wrapped into a generic one
             // and a proper status code will be added later.
-            throw new TransactionFailureException("Unable to complete transaction.", e, Status.General.UnknownError);
+
+            // GQL status code 25N02 points to the debug log for more information, so let's make sure people will
+            // actually find more info there.
+            log.error(e.getMessage(), e);
+            throw TransactionFailureHelper.genericFailure(e);
         }
 
         private void reportTermination(Status status) {

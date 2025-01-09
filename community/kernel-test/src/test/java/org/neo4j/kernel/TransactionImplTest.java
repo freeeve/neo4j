@@ -62,6 +62,7 @@ import org.neo4j.kernel.impl.coreapi.DefaultTransactionExceptionMapper;
 import org.neo4j.kernel.impl.coreapi.TransactionImpl;
 import org.neo4j.kernel.impl.query.QueryExecutionEngine;
 import org.neo4j.kernel.impl.query.TransactionalContextFactory;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.values.ElementIdMapper;
 
@@ -360,6 +361,7 @@ class TransactionImplTest {
                 null,
                 DefaultTransactionExceptionMapper.INSTANCE,
                 mock(ElementIdMapper.class),
-                null);
+                null,
+                NullLogProvider.getInstance());
     }
 }

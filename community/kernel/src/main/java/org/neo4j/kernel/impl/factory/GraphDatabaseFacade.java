@@ -132,7 +132,8 @@ public class GraphDatabaseFacade extends GraphDatabaseTransactions implements Gr
                 terminationCallback,
                 transactionExceptionMapper,
                 database.getElementIdMapper(),
-                routingInfo);
+                routingInfo,
+                database.getInternalLogProvider());
     }
 
     @Override

@@ -29,10 +29,22 @@ import org.neo4j.kernel.api.exceptions.Status;
  */
 public class TransactionFailureHelper {
 
+    public static final String UNABLE_TO_COMPLETE_TRANSACTION = "Unable to complete transaction.";
+
     public static TransactionFailureException failToStartTransaction(Throwable e) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N06)
                 .build();
         return new TransactionFailureException(
                 gql, "Fail to start new transaction.", e, Status.Transaction.TransactionStartFailed);
+    }
+
+    /**
+     * All usages of this should log the error to the debug log.
+     * We cannot do this here without adding a dependency on the log package, which would be a circular dependency.
+     */
+    public static TransactionFailureException genericFailure(Throwable cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N02)
+                .build();
+        return new TransactionFailureException(gql, UNABLE_TO_COMPLETE_TRANSACTION, cause);
     }
 }

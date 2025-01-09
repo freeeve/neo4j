@@ -83,6 +83,9 @@ import org.neo4j.kernel.impl.query.TransactionalContextFactory;
 import org.neo4j.kernel.impl.traversal.BidirectionalTraversalDescriptionImpl;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.kernel.impl.util.ValueUtils;
+import org.neo4j.logging.Log;
+import org.neo4j.logging.LogProvider;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.token.api.TokenNotFoundException;
@@ -100,6 +103,7 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
     private final Consumer<Status> terminationCallback;
     private final TransactionExceptionMapper exceptionMapper;
     private final ElementIdMapper elementIdMapper;
+    private final Log log;
     /**
      * Tracker of resources in use by the Core API.
      * <p>
@@ -135,7 +139,8 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
                 null,
                 null,
                 elementIdMapper,
-                null);
+                null,
+                NullLogProvider.getInstance());
     }
 
     public TransactionImpl(
@@ -148,7 +153,8 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
             Consumer<Status> terminationCallback,
             TransactionExceptionMapper exceptionMapper,
             ElementIdMapper elementIdMapper,
-            RoutingInfo routingInfo) {
+            RoutingInfo routingInfo,
+            LogProvider logProvider) {
         this.tokenHolders = tokenHolders;
         this.contextFactory = contextFactory;
         this.availabilityGuard = availabilityGuard;
@@ -158,6 +164,7 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
         this.exceptionMapper = exceptionMapper;
         this.elementIdMapper = elementIdMapper;
         this.routingInfo = routingInfo;
+        this.log = logProvider.getLog(getClass());
         setTransaction(transaction);
     }
 
@@ -324,7 +331,7 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
     private void safeTerminalOperation(TransactionalOperation operation) {
         if (closed) {
             assert transaction == null : "Closed but still have reference to kernel transaction";
-            throw exceptionMapper.mapException(new NotInTransactionException("The transaction has been closed."));
+            throw exceptionMapper.mapException(new NotInTransactionException("The transaction has been closed."), log);
         }
         Exception exception = null;
         try {
@@ -345,7 +352,7 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
             transaction = null;
         }
         if (exception != null) {
-            throw exceptionMapper.mapException(exception);
+            throw exceptionMapper.mapException(exception, log);
         }
     }
 

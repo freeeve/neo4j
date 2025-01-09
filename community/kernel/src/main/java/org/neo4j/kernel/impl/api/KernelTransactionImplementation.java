@@ -1644,7 +1644,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
 
     private ChunkedTransactionSink createChunkWriter(boolean multiVersioned) {
         return multiVersioned
-                ? new ChunkSink(committer, transactionEventListeners, clocks, config)
+                ? new ChunkSink(committer, transactionEventListeners, clocks, config, logProvider)
                 : ChunkedTransactionSink.EMPTY;
     }
 

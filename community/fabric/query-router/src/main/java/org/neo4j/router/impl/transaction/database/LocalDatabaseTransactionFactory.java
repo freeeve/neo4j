@@ -29,7 +29,7 @@ import org.neo4j.dbms.database.DatabaseContextProvider;
 import org.neo4j.fabric.bookmark.LocalGraphTransactionIdTracker;
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
 import org.neo4j.fabric.executor.Location;
-import org.neo4j.graphdb.TransactionFailureException;
+import org.neo4j.graphdb.TransactionFailureHelper;
 import org.neo4j.internal.kernel.api.connectioninfo.RoutingInfo;
 import org.neo4j.kernel.GraphDatabaseQueryService;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -43,6 +43,7 @@ import org.neo4j.kernel.impl.query.QueryExecutionEngine;
 import org.neo4j.kernel.impl.query.TransactionalContext;
 import org.neo4j.kernel.impl.query.TransactionalContextFactory;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.logging.Log;
 import org.neo4j.router.QueryRouterException;
 import org.neo4j.router.transaction.DatabaseTransaction;
 import org.neo4j.router.transaction.DatabaseTransactionFactory;
@@ -132,7 +133,7 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
         return internalTransaction;
     }
 
-    private RuntimeException transformTerminalOperationError(Exception e) {
+    private RuntimeException transformTerminalOperationError(Exception e, Log log) {
         // The main purpose of this is mapping of checked exceptions
         // while preserving status codes
         if (e instanceof Status.HasStatus se) {
@@ -146,7 +147,11 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
         // so it is not possible to come up with a reasonable status code here.
         // The error is wrapped into a generic one
         // and a proper status code will be added later.
-        throw new TransactionFailureException("Unable to complete transaction.", e);
+
+        // GQL status code 25N02 points to the debug log for more information, so let's make sure people will actually
+        // find more info there.
+        log.error(e.getMessage(), e);
+        throw TransactionFailureHelper.genericFailure(e);
     }
 
     protected static Supplier<DatabaseNotFoundException> databaseNotFound(String databaseNameRaw) {

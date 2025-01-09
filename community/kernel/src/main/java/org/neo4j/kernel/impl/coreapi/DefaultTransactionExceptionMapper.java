@@ -19,24 +19,25 @@
  */
 package org.neo4j.kernel.impl.coreapi;
 
+import static org.neo4j.graphdb.TransactionFailureHelper.UNABLE_TO_COMPLETE_TRANSACTION;
+
 import org.neo4j.graphdb.ConstraintViolationException;
-import org.neo4j.graphdb.TransactionFailureException;
+import org.neo4j.graphdb.TransactionFailureHelper;
 import org.neo4j.graphdb.TransactionStatusFailureException;
 import org.neo4j.graphdb.TransientFailureException;
 import org.neo4j.graphdb.TransientTransactionFailureException;
 import org.neo4j.internal.kernel.api.exceptions.ConstraintViolationTransactionFailureException;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.exceptions.Status.Classification;
+import org.neo4j.logging.Log;
 
 public class DefaultTransactionExceptionMapper implements TransactionExceptionMapper {
-    private static final String UNABLE_TO_COMPLETE_TRANSACTION = "Unable to complete transaction.";
-
     public static final DefaultTransactionExceptionMapper INSTANCE = new DefaultTransactionExceptionMapper();
 
     private DefaultTransactionExceptionMapper() {}
 
     @Override
-    public RuntimeException mapException(Exception e) {
+    public RuntimeException mapException(Exception e, Log log) {
         if (e instanceof TransientFailureException tfe) {
             // We let transient exceptions pass through unchanged since they aren't really transaction failures
             // in the same sense as unexpected failures are. Such exception signals that the transaction
@@ -49,7 +50,10 @@ public class DefaultTransactionExceptionMapper implements TransactionExceptionMa
             return mapStatusException(
                     UNABLE_TO_COMPLETE_TRANSACTION + ": " + status.code().description(), status, e);
         } else {
-            return new TransactionFailureException(UNABLE_TO_COMPLETE_TRANSACTION, e, Status.Database.Unknown);
+            // GQL status code 25N02 points to the debug log for more information, so let's make sure people will
+            // actually find more info there.
+            log.error(e.getMessage(), e);
+            return TransactionFailureHelper.genericFailure(e);
         }
     }
 

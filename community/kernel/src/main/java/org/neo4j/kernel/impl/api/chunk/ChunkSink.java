@@ -33,6 +33,8 @@ import org.neo4j.kernel.impl.coreapi.DefaultTransactionExceptionMapper;
 import org.neo4j.kernel.impl.transaction.tracing.TransactionEvent;
 import org.neo4j.kernel.internal.event.TransactionEventListeners;
 import org.neo4j.lock.LockTracer;
+import org.neo4j.logging.Log;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 
@@ -48,16 +50,19 @@ public final class ChunkSink implements ChunkedTransactionSink {
     private long lastTransactionIdWhenStarted;
     private Supplier<LockTracer> lockTracerSupplier;
     private Supplier<TransactionApplicationMode> applicationModeSupplier;
+    private final Log log;
 
     public ChunkSink(
             TransactionCommitter committer,
             TransactionEventListeners eventListeners,
             TransactionClockContext clocks,
-            Config config) {
+            Config config,
+            LogProvider logProvider) {
         this.committer = committer;
         this.eventListeners = eventListeners;
         this.clocks = clocks;
         this.chunkSize = config.get(multi_version_transaction_chunk_size);
+        this.log = logProvider.getLog(getClass());
     }
 
     @Override
@@ -82,7 +87,7 @@ public final class ChunkSink implements ChunkedTransactionSink {
                         applicationModeSupplier.get());
                 txState.reset();
             } catch (Exception e) {
-                throw DefaultTransactionExceptionMapper.INSTANCE.mapException(e);
+                throw DefaultTransactionExceptionMapper.INSTANCE.mapException(e, log);
             }
         }
     }
