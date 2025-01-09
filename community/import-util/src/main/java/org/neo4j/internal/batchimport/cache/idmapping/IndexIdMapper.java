@@ -271,7 +271,6 @@ public class IndexIdMapper implements IdMapper {
             completeBuild(collector, scheduler);
         }
         validate(collector);
-        duplicateNodeIds.addAll(otherViolatingNodes);
         for (var entry : populators.entrySet()) {
             try {
                 var descriptor = entry.getValue().descriptor;

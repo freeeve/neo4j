@@ -25,6 +25,7 @@ import static java.lang.String.format;
 import static java.lang.System.currentTimeMillis;
 import static org.neo4j.function.Predicates.alwaysTrue;
 import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.auto;
+import static org.neo4j.internal.batchimport.cache.idmapping.IdMappers.combineSkipListSorted;
 import static org.neo4j.internal.helpers.Format.duration;
 import static org.neo4j.io.ByteUnit.bytesToString;
 import static org.neo4j.io.IOUtils.closeAll;
@@ -282,7 +283,8 @@ public class ImportLogic implements Closeable {
         // Compare notes with schema monitors
         var otherViolatingNodes = schemaMonitors.validate(badCollector);
         prepareIdMapper(otherViolatingNodes);
-        schemaMonitors.writeToTarget(idMapper.leftOverDuplicateNodesIdsPredicate());
+        schemaMonitors.writeToTarget(
+                IdMappers.combineSkipFilter(idMapper.leftOverDuplicateNodesIdsPredicate(), otherViolatingNodes));
     }
 
     /**
@@ -293,7 +295,8 @@ public class ImportLogic implements Closeable {
             MemoryUsageStatsProvider memoryUsageStats = new MemoryUsageStatsProvider(neoStore, idMapper);
             executeStage(new IdMapperPreparationStage(
                     config, idMapper, inputIdLookup, badCollector, otherViolatingNodes, memoryUsageStats));
-            final LongIterator duplicateNodeIds = idMapper.leftOverDuplicateNodesIds();
+            final LongIterator duplicateNodeIds =
+                    combineSkipListSorted(idMapper.leftOverDuplicateNodesIds(), otherViolatingNodes);
             if (duplicateNodeIds.hasNext()) {
                 executeStage(new DeleteDuplicateNodesStage(
                         config, duplicateNodeIds, neoStore.getNeoStores(), storeUpdateMonitor, contextFactory));

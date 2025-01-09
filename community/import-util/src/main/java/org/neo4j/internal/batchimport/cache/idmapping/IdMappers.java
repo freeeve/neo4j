@@ -33,6 +33,7 @@ import org.neo4j.batchimport.api.PropertyValueLookup;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.ReadableGroups;
+import org.neo4j.collection.PrimitiveLongCollections;
 import org.neo4j.internal.batchimport.cache.MemoryStatsVisitor;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactory;
 import org.neo4j.internal.batchimport.cache.idmapping.cuckoo.CuckooIdMapper;
@@ -195,5 +196,74 @@ public final class IdMappers {
     private static int goodChunkSize(long estimatedNumberOfNodes) {
         return (int) clamp(
                 estimatedNumberOfNodes / 100, EncodingIdMapper.DEFAULT_CACHE_CHUNK_SIZE, gibiBytes(1) / Long.BYTES);
+    }
+
+    public static LongPredicate combineSkipFilter(LongPredicate duplicateIds, LongSet otherViolatingIds) {
+        return duplicateIds == null
+                ? otherViolatingIds::contains
+                : (nodeId -> otherViolatingIds.contains(nodeId) || duplicateIds.test(nodeId));
+    }
+
+    public static LongIterator combineSkipListSorted(LongIterator duplicateIds, LongSet otherViolatingIds) {
+        if (otherViolatingIds.isEmpty()) {
+            return duplicateIds;
+        }
+        var sortedViolations = otherViolatingIds.toSortedList().longIterator();
+        if (!duplicateIds.hasNext()) {
+            return sortedViolations;
+        }
+        return new MergingLongIterator(duplicateIds, sortedViolations);
+    }
+
+    private static class MergingLongIterator extends PrimitiveLongCollections.AbstractPrimitiveLongBaseIterator {
+        private final LongIterator first;
+        private final LongIterator other;
+
+        private boolean hasFirst;
+        private boolean hasOther;
+        private long firstHead;
+        private long otherHead;
+
+        private MergingLongIterator(LongIterator first, LongIterator other) {
+            this.first = first;
+            this.other = other;
+            getAndAdvanceFirst();
+            getAndAdvanceOther();
+        }
+
+        private long getAndAdvanceFirst() {
+            long result = firstHead;
+            hasFirst = first.hasNext();
+            firstHead = hasFirst ? first.next() : 0;
+            return result;
+        }
+
+        private long getAndAdvanceOther() {
+            long result = otherHead;
+            hasOther = other.hasNext();
+            otherHead = hasOther ? other.next() : 0;
+            return result;
+        }
+
+        @Override
+        protected boolean fetchNext() {
+            if (hasFirst && hasOther) {
+                if (firstHead < otherHead) {
+                    return next(getAndAdvanceFirst());
+                } else if (otherHead < firstHead) {
+                    return next(getAndAdvanceOther());
+                } else {
+                    getAndAdvanceFirst();
+                    return next(getAndAdvanceOther());
+                }
+            }
+            if (hasFirst) {
+                return next(getAndAdvanceFirst());
+            }
+            if (hasOther) {
+                return next(getAndAdvanceOther());
+            }
+            return false;
+        }
     }
 }
