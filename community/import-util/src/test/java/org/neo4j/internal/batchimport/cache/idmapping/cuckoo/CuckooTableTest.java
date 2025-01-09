@@ -158,6 +158,23 @@ class CuckooTableTest {
         }
     }
 
+    @Test
+    void shouldRemoveInsertedEntry() throws KeyCollisionException {
+        // given
+        try (var table = new CuckooTable(100, getArrayFactory(), EmptyMemoryTracker.INSTANCE)) {
+            long key = 3;
+            long value = 5;
+            table.insert(key, value);
+
+            // when
+            boolean removed = table.remove(value);
+
+            // then
+            assertThat(removed).isTrue();
+            assertThat(table.remove(value)).isFalse();
+        }
+    }
+
     private static long[][] getRandomMatrixKeys(int t, int n) {
         Random rnd = new Random();
         long[][] keys = new long[t][];

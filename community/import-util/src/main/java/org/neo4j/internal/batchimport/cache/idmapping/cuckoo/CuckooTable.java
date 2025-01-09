@@ -143,9 +143,7 @@ public class CuckooTable implements AutoCloseable {
      * @param value value to associate with the key.
      */
     public void insert(final long key, final long value) throws KeyCollisionException {
-        checkArgument(
-                (value & VALUE_MASK) == value,
-                "Value must be in the range: 0 <= value <= " + VALUE_MASK + " but was " + (value & VALUE_MASK));
+        checkValue(value);
 
         if (key == 0) {
             if (zeroValue.compareAndSet(ID_NOT_FOUND, value)) {
@@ -172,6 +170,34 @@ public class CuckooTable implements AutoCloseable {
                 expand(numberOfTables);
             }
         }
+    }
+
+    /**
+     * Removes a previously inserted value from the table.
+     * This method isn't thread safe, in that it isn't safe to run concurrently with other calls
+     * to {@link #insert(long, long)}.
+     *
+     * @param value value previously inserted.
+     * @return whether the value was removed, i.e. if it existed in the table.
+     */
+    public boolean remove(final long value) {
+        checkValue(value);
+
+        long key = keys.get(value);
+        if (key == 0) {
+            zeroValue.set(ID_NOT_FOUND);
+            return false;
+        }
+
+        keys.set(value, 0);
+        deleteValue(key, value, currentNumberOfTables.getPlain());
+        return true;
+    }
+
+    private static void checkValue(long value) {
+        checkArgument(
+                (value & VALUE_MASK) == value,
+                "Value must be in the range: 0 <= value <= " + VALUE_MASK + " but was " + (value & VALUE_MASK));
     }
 
     private boolean insertToEmptySlot(final long key, final long value, final int partial, int numberOfTables)

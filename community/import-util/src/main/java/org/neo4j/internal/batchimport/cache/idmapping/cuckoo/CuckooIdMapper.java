@@ -19,7 +19,9 @@
  */
 package org.neo4j.internal.batchimport.cache.idmapping.cuckoo;
 
+import java.util.function.LongPredicate;
 import org.eclipse.collections.api.iterator.LongIterator;
+import org.eclipse.collections.api.set.primitive.LongSet;
 import org.eclipse.collections.impl.iterator.ImmutableEmptyLongIterator;
 import org.neo4j.batchimport.api.PropertyValueLookup;
 import org.neo4j.batchimport.api.input.Collector;
@@ -32,7 +34,6 @@ import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.memory.MemoryTracker;
 
 public class CuckooIdMapper implements IdMapper {
-
     final CuckooTable cuckooTable;
     final int groupShift;
     final long longValueMask;
@@ -67,7 +68,7 @@ public class CuckooIdMapper implements IdMapper {
 
     @Override
     public void remove(Object inputId, long actualId, Group group) {
-        throw new UnsupportedOperationException();
+        cuckooTable.remove(actualId);
     }
 
     @Override
@@ -79,7 +80,10 @@ public class CuckooIdMapper implements IdMapper {
     public void prepare(
             PropertyValueLookup propertyValueLookup,
             Collector collector,
-            ProgressMonitorFactory progressMonitorFactory) {}
+            ProgressMonitorFactory progressMonitorFactory,
+            LongSet otherViolatingNodes) {
+        otherViolatingNodes.forEach(cuckooTable::remove);
+    }
 
     @Override
     public void close() {
@@ -100,6 +104,11 @@ public class CuckooIdMapper implements IdMapper {
     @Override
     public LongIterator leftOverDuplicateNodesIds() {
         return ImmutableEmptyLongIterator.INSTANCE;
+    }
+
+    @Override
+    public LongPredicate leftOverDuplicateNodesIdsPredicate() {
+        return null;
     }
 
     @Override
