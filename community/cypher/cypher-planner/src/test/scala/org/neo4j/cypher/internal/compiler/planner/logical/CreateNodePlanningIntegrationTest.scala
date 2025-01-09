@@ -319,6 +319,7 @@ class CreateNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlann
       .setLabelCardinality("Project", 100)
       .setRelationshipCardinality("()-[:VERSION_OF]->()", 40)
       .setRelationshipCardinality("(:BenchmarkToolVersion)-[:VERSION_OF]->()", 40)
+      .setRelationshipCardinality("()-[:VERSION_OF]->(:BenchmarkToolVersion)", 0)
       .build()
 
     val query =

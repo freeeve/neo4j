@@ -86,9 +86,11 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .setLabelCardinality("A", 10)
       .setLabelCardinality("B", 10)
       .setRelationshipCardinality("()-[:R]->()", 100)
-      .setRelationshipCardinality("(:A)-[:R]->()", 100)
-      .setRelationshipCardinality("()-[:R]->(:B)", 100)
-      .setRelationshipCardinality("(:A)-[:R]->(:B)", 100)
+      .setRelationshipCardinality("(:A)-[:R]->()", 99)
+      .setRelationshipCardinality("()-[:R]->(:A)", 99)
+      .setRelationshipCardinality("()-[:R]->(:B)", 99)
+      .setRelationshipCardinality("(:B)-[:R]->()", 99)
+      .setRelationshipCardinality("(:A)-[:R]->(:B)", 99)
       .defaultRelationshipCardinalityTo0(false)
 
   private val defaultConfig =
@@ -106,6 +108,8 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     .setRelationshipCardinality("(:Person)-[:READ]->(:Book)", 50)
     .setRelationshipCardinality("(:Person)-[:READ]->()", 50)
     .setRelationshipCardinality("()-[:READ]->(:Book)", 50)
+    .setRelationshipCardinality("(:Book)-[:READ]->()", 0)
+    .setRelationshipCardinality("()-[:READ]->(:Person)", 0)
     .build()
 
   private val sortLateConfig = plannerBuilder()
@@ -120,6 +124,8 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     .setRelationshipCardinality("(:Person)-[:READ]->(:Book)", 10)
     .setRelationshipCardinality("(:Person)-[:READ]->()", 10)
     .setRelationshipCardinality("()-[:READ]->(:Book)", 10)
+    .setRelationshipCardinality("(:Book)-[:READ]->()", 0)
+    .setRelationshipCardinality("()-[:READ]->(:Person)", 0)
     .addNodeIndex("Person", Seq("name"), 1.0, 0.1)
     .build()
 
@@ -1049,7 +1055,10 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .setRelationshipCardinality("()-[:READ]->()", 50)
       .setRelationshipCardinality("(:Person)-[:READ]->(:Book)", 50)
       .setRelationshipCardinality("(:Person)-[:READ]->()", 50)
-      .setRelationshipCardinality("()-[:READ]->(:Book)", 50).build()
+      .setRelationshipCardinality("()-[:READ]->(:Book)", 50)
+      .setRelationshipCardinality("(:Book)-[:READ]->()", 0)
+      .setRelationshipCardinality("()-[:READ]->(:Person)", 0)
+      .build()
     val plan = planner.plan(query).stripProduceResults
 
     plan should equal(planner.subPlanBuilder()
@@ -3008,7 +3017,9 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .setRelationshipCardinality("()-[:REL]->()", 200)
       .setRelationshipCardinality("()-[:OTHER_REL]->()", 500)
       .setRelationshipCardinality("(:A)-[:REL]->()", 150)
+      .setRelationshipCardinality("()-[:REL]->(:A)", 100)
       .setRelationshipCardinality("(:A)-[:OTHER_REL]->()", 400)
+      .setRelationshipCardinality("()-[:OTHER_REL]->(:A)", 200)
       .setExecutionModel(ExecutionModel.BatchedSingleThreaded(1, 2))
       .build()
 
@@ -3049,6 +3060,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .setAllRelationshipsCardinality(1000)
       .setRelationshipCardinality("()-[:REL]->()", 200)
       .setRelationshipCardinality("(:A)-[:REL]->()", 150)
+      .setRelationshipCardinality("()-[:REL]->(:A)", 150)
       .build()
 
     val plan = planner.plan(query).stripProduceResults
@@ -3088,7 +3100,9 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .setRelationshipCardinality("()-[:REL]->()", 200)
       .setRelationshipCardinality("()-[:OTHER_REL]->()", 500)
       .setRelationshipCardinality("(:A)-[:REL]->()", 150)
+      .setRelationshipCardinality("()-[:REL]->(:A)", 150)
       .setRelationshipCardinality("(:A)-[:OTHER_REL]->()", 400)
+      .setRelationshipCardinality("()-[:OTHER_REL]->(:A)", 400)
       .setExecutionModel(ExecutionModel.BatchedSingleThreaded(1, 2))
       .build()
 

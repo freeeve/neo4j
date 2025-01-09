@@ -514,6 +514,11 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
         .setRelationshipCardinality("(:B)-[:R3]->()", 1477)
         .setRelationshipCardinality("(:B)-[:R3]->(:C)", 1477)
         .setRelationshipCardinality("()-[:R3]->(:C)", 113740)
+        .setRelationshipCardinality("()-[:R1]->(:A)", 0)
+        .setRelationshipCardinality("(:D)-[:R1]->()", 0)
+        .setRelationshipCardinality("(:B)-[:R2]->()", 0)
+        .setRelationshipCardinality("()-[:R2]->(:D)", 0)
+        .setRelationshipCardinality("(:C)-[:R3]->()", 0)
         .build()
 
     val query = """MATCH (a:A)

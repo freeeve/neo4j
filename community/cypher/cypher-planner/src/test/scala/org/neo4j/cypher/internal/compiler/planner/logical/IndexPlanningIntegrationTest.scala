@@ -1422,6 +1422,7 @@ class IndexPlanningIntegrationTest
       .setRelationshipCardinality("(:A)-[]->()", 500)
       .setRelationshipCardinality("(:A)-[:REL]->()", 500)
       .setRelationshipCardinality("()-[:REL]->()", 500)
+      .setRelationshipCardinality("()-[:REL]->(:A)", 0)
       .setLabelCardinality("A", 500)
       .addRelationshipIndex(
         "REL",
@@ -1447,6 +1448,7 @@ class IndexPlanningIntegrationTest
       .setRelationshipCardinality("(:A)-[]->()", 500)
       .setRelationshipCardinality("(:A)-[:REL]->()", 500)
       .setRelationshipCardinality("()-[:REL]->()", 500)
+      .setRelationshipCardinality("()-[:REL]->(:A)", 0)
       .setLabelCardinality("A", 500)
       .addRelationshipIndex(
         "REL",
@@ -1473,6 +1475,7 @@ class IndexPlanningIntegrationTest
       .setRelationshipCardinality("(:A)-[]->()", 500)
       .setRelationshipCardinality("(:A)-[:REL]->()", 500)
       .setRelationshipCardinality("()-[:REL]->()", 500)
+      .setRelationshipCardinality("()-[:REL]->(:A)", 0)
       .setLabelCardinality("A", 500)
       .addRelationshipIndex(
         "REL",

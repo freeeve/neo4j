@@ -103,9 +103,9 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     .setLabelCardinality("N", 6)
     .setLabelCardinality("NN", 5)
     .setLabelCardinality("NNN", 100)
-    .setRelationshipCardinality("()-[:R]->()", 10)
-    .setRelationshipCardinality("()-[:S]->()", 10)
-    .setRelationshipCardinality("()-[:T]->()", 10)
+    .setRelationshipCardinality("()-[:R]->()", 11)
+    .setRelationshipCardinality("()-[:S]->()", 11)
+    .setRelationshipCardinality("()-[:T]->()", 11)
     .setRelationshipCardinality("(:N)-[]->()", 10)
     .setRelationshipCardinality("(:N)-[]->(:N)", 10)
     .setRelationshipCardinality("(:N)-[]->(:NN)", 10)
@@ -119,10 +119,17 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     .setRelationshipCardinality("(:User)-[]->(:NN)", 10)
     .setRelationshipCardinality("()-[]->(:User)", 10)
     .setRelationshipCardinality("(:User)-[:R]->()", 10)
+    .setRelationshipCardinality("()-[:R]->(:User)", 10)
     .setRelationshipCardinality("(:User)-[]->(:User)", 10)
+    .setRelationshipCardinality("(:User)-[:R]->(:User)", 10)
+    .setRelationshipCardinality("()-[:R]->(:User)", 0)
+    .setRelationshipCardinality("()-[:S]->(:User)", 0)
+    .setRelationshipCardinality("(:User)-[:S]->()", 0)
     .setRelationshipCardinality("(:N)-[:R]->()", 10)
+    .setRelationshipCardinality("()-[:R]->(:N)", 10)
     .setRelationshipCardinality("()-[]->(:NNN)", 10)
     .setRelationshipCardinality("(:N)-[]->(:NNN)", 10)
+    .setRelationshipCardinality("()-[:R]->(:N)", 0)
     .addSemanticFeature(MatchModes)
 
   protected def planner: StatisticsBackedLogicalPlanningConfiguration = plannerBase
@@ -1283,6 +1290,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .setLabelCardinality("A", 10)
       .setRelationshipCardinality("()-[:REL]->()", 5000)
       .setRelationshipCardinality("(:A)-[:REL]->()", 10)
+      .setRelationshipCardinality("()-[:REL]->(:A)", 10)
       .addNodeIndex("A", Seq("prop"), 0.5, 0.5)
       .build()
 
@@ -1400,7 +1408,10 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .setRelationshipCardinality("(:B)-[:R]->(:C)", 2)
       .setRelationshipCardinality("(:B)-[:R]->()", 2)
       .setRelationshipCardinality("()-[:R]->(:C)", 500)
-      .setRelationshipCardinality("()-[:R]->()", 500)
+      .setRelationshipCardinality("(:C)-[:R]->()", 500)
+      .setRelationshipCardinality("()-[:R]->()", 501)
+      .setRelationshipCardinality("()-[:R]->(:B)", 0)
+      .setRelationshipCardinality("(:C)-[:R]->(:C)", 498)
       .build()
 
     val query = "MATCH (b:B) ( (x)-[r:R]->(y) ){3} (c:C) RETURN *"
@@ -1446,6 +1457,8 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .setRelationshipCardinality("()-[:REL]->()", 10000)
       .setRelationshipCardinality("(:N)-[:REL]->()", 500)
       .setRelationshipCardinality("()-[:REL]->(:M)", 500)
+      .setRelationshipCardinality("(:M)-[:REL]->()", 500)
+      .setRelationshipCardinality("()-[:REL]->(:N)", 500)
       .setRelationshipCardinality("(:A)-[:REL]->(:M)", 500)
       .setRelationshipCardinality("(:A)-[:REL]->(:N)", 500)
       .setRelationshipCardinality("(:N)-[:REL]->(:M)", 500)
@@ -1467,6 +1480,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .setRelationshipCardinality("(:X)-[:REL]->(:Q)", 10)
       .setRelationshipCardinality("(:X)-[:REL]->(:P)", 10)
       .setRelationshipCardinality("(:M)-[:REL]->(:Q)", 10)
+      .setRelationshipCardinality("(:M)-[:REL]->()", 2010)
       .build()
 
     val query =
@@ -2641,6 +2655,8 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .setRelationshipCardinality("()-[]->()", 10000)
       .setRelationshipCardinality("()-[:TO_PLACE]->()", toPlaceCount)
       .setRelationshipCardinality("()-[:TO_PLACE]->(:Place)", toPlaceCount)
+      .setRelationshipCardinality("(:Place)-[:TO_PLACE]->()", toPlaceCount)
+      .setRelationshipCardinality("(:Place)-[:TO_PLACE]->(:Place)", toPlaceCount)
       .build()
 
     val query =

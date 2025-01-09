@@ -659,6 +659,7 @@ class OrLeafPlanningIntegrationTest
   test("should handle same relationship type disjunction") {
     val planner = plannerConfig()
       .setRelationshipCardinality("(:L)-[:REL1]->()", 4)
+      .setRelationshipCardinality("()-[:REL1]->(:L)", 0)
       .build()
 
     val plan = planner.plan(

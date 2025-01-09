@@ -19,8 +19,6 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 
-import org.neo4j.configuration.GraphDatabaseSettings
-import org.neo4j.configuration.GraphDatabaseSettings.InferSchemaPartsStrategy
 import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.RepetitionCardinalityModel
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -58,6 +56,7 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       .setRelationshipCardinality("()-[:R]->()", 40)
       .setRelationshipCardinality("(:A)-[:R]->(:B)", 10)
       .setRelationshipCardinality("(:A)-[:R]->()", 35)
+      .setRelationshipCardinality("()-[:R]->(:A)", 37)
       .setRelationshipCardinality("()-[:R]->(:B)", 25)
       .setRelationshipCardinality("()-[:S]->()", 48)
       .setRelationshipCardinality("(:B)-[:S]->()", 12)
@@ -87,6 +86,8 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       .setAllRelationshipsCardinality(relCount + rel2Count)
       .setRelationshipCardinality("()-[:REL]->()", relCount)
       .setRelationshipCardinality("(:Person)-[:REL]->()", relCount)
+      .setRelationshipCardinality("()-[:REL]->(:Person)", relCount)
+      .setRelationshipCardinality("(:Person)-[:REL]->(:Person)", relCount)
       .build()
     queryShouldHaveCardinality(
       config,
@@ -103,6 +104,8 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       .setAllRelationshipsCardinality(relCount + rel2Count)
       .setRelationshipCardinality("()-[:REL]->()", relCount)
       .setRelationshipCardinality("(:Person)-[:REL]->()", relCount)
+      .setRelationshipCardinality("()-[:REL]->(:Person)", relCount)
+      .setRelationshipCardinality("(:Person)-[:REL]->(:Person)", relCount)
       .build()
     queryShouldHaveCardinality(
       config,
@@ -119,6 +122,8 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       .setAllRelationshipsCardinality(relCount + rel2Count)
       .setRelationshipCardinality("()-[:REL]->()", relCount)
       .setRelationshipCardinality("(:Person)-[:REL]->()", relCount)
+      .setRelationshipCardinality("()-[:REL]->(:Person)", relCount)
+      .setRelationshipCardinality("(:Person)-[:REL]->(:Person)", relCount)
       .build()
     queryShouldHaveCardinality(
       config,
@@ -141,8 +146,12 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       .setAllRelationshipsCardinality(relCount + rel2Count)
       .setRelationshipCardinality("()-[:REL]->()", relCount)
       .setRelationshipCardinality("(:Person)-[:REL]->()", relCount)
+      .setRelationshipCardinality("()-[:REL]->(:Person)", relCount)
+      .setRelationshipCardinality("(:Person)-[:REL]->(:Person)", relCount)
       .setRelationshipCardinality("()-[:REL2]->()", rel2Count)
       .setRelationshipCardinality("(:Person)-[:REL2]->()", rel2Count)
+      .setRelationshipCardinality("()-[:REL2]->(:Person)", rel2Count)
+      .setRelationshipCardinality("(:Person)-[:REL2]->(:Person)", rel2Count)
       .build()
     queryShouldHaveCardinality(
       config,
@@ -451,6 +460,9 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       .setRelationshipCardinality("()-[:TYPE]->()", relCount)
       .setRelationshipCardinality("(:FOO)-[:TYPE]->()", relCount)
       .setRelationshipCardinality("()-[:TYPE]->(:BAR)", relCount)
+      .setRelationshipCardinality("(:BAR)-[:TYPE]->()", relCount)
+      .setRelationshipCardinality("()-[:TYPE]->(:FOO)", relCount)
+      .setRelationshipCardinality("(:FOO)-[:TYPE]->(:FOO)", relCount)
       .setRelationshipCardinality("(:FOO)-[:TYPE]->(:BAR)", relCount)
       .build()
 
@@ -511,9 +523,10 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val config = plannerBuilder()
       .setAllNodesCardinality(500)
       .setLabelCardinality("A", inboundCardinality)
-      .setRelationshipCardinality("(:A)-[:R]->()", inboundCardinality)
       .setRelationshipCardinality("()-[:R]->()", inboundCardinality)
-      .setAllRelationshipsCardinality(10)
+      .setRelationshipCardinality("(:A)-[:R]->()", inboundCardinality)
+      .setRelationshipCardinality("()-[:R]->(:A)", inboundCardinality)
+      .setRelationshipCardinality("(:A)-[:R]->(:A)", inboundCardinality)
       .addRelationshipIndex("R", Seq("prop"), whereSelectivity, whereSelectivity)
       .build()
 
@@ -530,9 +543,10 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val config = plannerBuilder()
       .setAllNodesCardinality(500)
       .setLabelCardinality("A", inboundCardinality)
-      .setRelationshipCardinality("(:A)-[:R]->()", inboundCardinality)
       .setRelationshipCardinality("()-[:R]->()", inboundCardinality)
-      .setAllRelationshipsCardinality(10)
+      .setRelationshipCardinality("(:A)-[:R]->()", inboundCardinality)
+      .setRelationshipCardinality("()-[:R]->(:A)", inboundCardinality)
+      .setRelationshipCardinality("(:A)-[:R]->(:A)", inboundCardinality)
       .addRelationshipIndex("R", Seq("prop"), whereSelectivity, whereSelectivity)
       .build()
 
@@ -612,6 +626,8 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       .setAllRelationshipsCardinality(rCardinality)
       .setRelationshipCardinality("()-[:R]->()", rCardinality)
       .setRelationshipCardinality("(:A)-[:R]->()", arCardinality)
+      .setRelationshipCardinality("()-[:R]->(:A)", arCardinality)
+      .setRelationshipCardinality("(:A)-[:R]->(:A)", arCardinality)
       .build()
 
     val query =
@@ -645,6 +661,7 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       .setLabelCardinality("A", aCardinality)
       .setAllRelationshipsCardinality(rCardinality)
       .setRelationshipCardinality("()-[:R]->()", rCardinality)
+      .setRelationshipCardinality("()-[:R]->(:A)", araCardinality)
       .setRelationshipCardinality("(:A)-[:R]->(:A)", araCardinality)
       .setRelationshipCardinality("(:A)-[:R]->()", araCardinality * 5)
       .build()
@@ -674,6 +691,7 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       .setAllRelationshipsCardinality(rCardinality)
       .setRelationshipCardinality("()-[:R]->()", rCardinality)
       .setRelationshipCardinality("(:A)-[:R]->()", arCardinality)
+      .setRelationshipCardinality("()-[:R]->(:A)", arCardinality)
       .build()
 
     val query =
@@ -708,6 +726,7 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       .setAllRelationshipsCardinality(rCardinality)
       .setRelationshipCardinality("()-[:R]->()", rCardinality)
       .setRelationshipCardinality("(:A)-[:R]->()", arCardinality)
+      .setRelationshipCardinality("()-[:R]->(:A)", arCardinality)
       .build()
 
     val query = "MATCH (a)-[r:R]->(a) WHERE id(r) = 5"
@@ -775,10 +794,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val hasMemberRelationships: Double = 25
 
     val config = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .enableMinimumGraphStatistics()
       .setAllNodesCardinality(allNodes)
       .setLabelCardinality("Person", personNodes)
@@ -804,10 +819,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val hasMemberRelationships: Double = 25
 
     val config = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .enableMinimumGraphStatistics()
       .setAllNodesCardinality(allNodes)
       .setLabelCardinality("Person", personNodes)
@@ -833,10 +844,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val hasMemberRelationships: Double = 25
 
     val config = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .enableMinimumGraphStatistics()
       .setAllNodesCardinality(allNodes)
       .setLabelCardinality("Person", personNodes)
@@ -863,10 +870,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val hasMemberRelationships: Double = 25
 
     val config = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .enableMinimumGraphStatistics()
       .setAllNodesCardinality(allNodes)
       .setLabelCardinality("Person", personNodes)
@@ -898,10 +901,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val hasMemberRelationships: Double = 25
 
     val config = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .enableMinimumGraphStatistics()
       .setAllNodesCardinality(allNodes)
       .setLabelCardinality("Person", personNodes)
@@ -932,10 +931,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val knowsRelationships: Double = 300
 
     val config = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .enableMinimumGraphStatistics()
       .setAllNodesCardinality(allNodes)
       .setLabelCardinality("Person", personNodes)
@@ -977,10 +972,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val knowsRelationships: Double = 300
 
     val config = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .enableMinimumGraphStatistics()
       .setAllNodesCardinality(allNodes)
       .setLabelCardinality("Person", personNodes)
@@ -1021,10 +1012,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val r2Relationships: Double = 2000
 
     val config = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .enableMinimumGraphStatistics()
       .setAllNodesCardinality(allNodes)
       .setLabelCardinality("A", aNodes)
@@ -1061,10 +1048,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val knowsRelationships: Double = 300
 
     val config = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .enableMinimumGraphStatistics()
       .setAllNodesCardinality(allNodes)
       .setLabelCardinality("Person", personNodes)
@@ -1124,10 +1107,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val knowsRelationships: Double = 300
 
     val config = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .enableMinimumGraphStatistics()
       .setAllNodesCardinality(allNodes)
       .setLabelCardinality("Person", personNodes)
@@ -1184,10 +1163,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val knowsRelationships: Double = 300
 
     val config = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .enableMinimumGraphStatistics()
       .setAllNodesCardinality(allNodes)
       .setLabelCardinality("Person", personNodes)
@@ -1244,10 +1219,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val knowsRelationships: Double = 300
 
     val config = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .enableMinimumGraphStatistics()
       .setAllNodesCardinality(allNodes)
       .setLabelCardinality("Person", personNodes)
@@ -1309,10 +1280,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val allPersonToPersonRelationships: Double = knowsRelationships * 2
 
     val config = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .defaultRelationshipCardinalityTo0(enable = false)
       .setAllNodesCardinality(allNodes)
       .setAllRelationshipsCardinality(allRels)
@@ -1373,10 +1340,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       .setRelationshipCardinality("()-[:R1]->(:A)", r1)
       .setRelationshipCardinality("(:A)-[:R1]->()", r1)
       .setRelationshipCardinality("(:A)-[:R1]->(:A)", r1)
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
 
     val query = "MATCH (nOuterLeft:A)(()-[:R1]->()-[:R1]->()){1}(nOuterRight:A)"
     planShouldHaveCardinality(
@@ -1407,10 +1370,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       .setRelationshipCardinality("(:A)-[:R1]->(:A)", r1)
       .setRelationshipCardinality("(:A)-[]->()", r1)
       .setRelationshipCardinality("()-[]->(:A)", r1)
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
 
     val query = "MATCH ()-[:R1]->(nOuterLeft)((testNode)-[]->()-[]->(:A)){1}(nOuterRight)"
 
@@ -1430,10 +1389,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val S = 44
     val A = 30
     val builder = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .setAllNodesCardinality(N)
       .setLabelCardinality("A", A)
       .setAllRelationshipsCardinality(R)
@@ -1468,10 +1423,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val S = 44
     val A = 30
     val builder = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .setAllNodesCardinality(N)
       .setLabelCardinality("A", A)
       .setAllRelationshipsCardinality(R)
@@ -1507,10 +1458,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val R4 = 8
 
     val builder = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .setAllNodesCardinality(N)
       .setLabelCardinality("A", A)
       .setAllRelationshipsCardinality(R)
@@ -1557,10 +1504,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val R4 = 8
 
     val builder = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .setAllNodesCardinality(N)
       .setLabelCardinality("A", A)
       .setAllRelationshipsCardinality(R)
@@ -1606,10 +1549,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val R3 = 10
 
     val builder = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .setAllNodesCardinality(N)
       .setLabelCardinality("A", A)
       .setAllRelationshipsCardinality(R)
@@ -1660,10 +1599,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val B_R1_A: Double = R1 - 20
 
     val builder = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .setAllNodesCardinality(N)
       .setLabelCardinality("A", A)
       .setLabelCardinality("B", B)
@@ -1722,10 +1657,6 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     // ()-[:R2]->() implies (:A)-[:R2]->(:A)
 
     val builder = plannerBuilder()
-      .withSetting(
-        GraphDatabaseSettings.cypher_infer_schema_parts_strategy,
-        GraphDatabaseSettings.InferSchemaPartsStrategy.MOST_SELECTIVE_LABEL
-      )
       .setAllNodesCardinality(nodes)
       .setAllRelationshipsCardinality(relationships)
       .setLabelCardinality("A", A)
@@ -1823,6 +1754,7 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       .setRelationshipCardinality("()-[]->()", 1000)
       .setRelationshipCardinality("()-[:R]->()", 800)
       .setRelationshipCardinality("(:A)-[:R]->()", 500)
+      .setRelationshipCardinality("()-[:R]->(:A)", 500)
       .build()
 
     val query = "MATCH (a:A) WITH a as b WITH b as c MATCH (c)-[:R]->(d)"

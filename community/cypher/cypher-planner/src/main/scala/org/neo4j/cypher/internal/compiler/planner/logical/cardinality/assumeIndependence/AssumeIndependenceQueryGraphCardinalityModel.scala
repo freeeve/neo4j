@@ -34,8 +34,6 @@ import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Cardinality.NumericCardinality
 import org.neo4j.cypher.internal.util.Multiplier.NumericMultiplier
 
-import scala.util.chaining.scalaUtilChainingOps
-
 final class AssumeIndependenceQueryGraphCardinalityModel(
   planContext: PlanContext,
   selectivityCalculator: SelectivityCalculator,
@@ -89,23 +87,10 @@ final class AssumeIndependenceQueryGraphCardinalityModel(
   ): (LabelInfo, Cardinality) = {
     val predicates =
       QueryGraphPredicates.partitionSelections(previousLabelInfo, queryGraph.patternNodeLabels, queryGraph.selections)
-
-    val inferLabels: (QueryGraphCardinalityContext, LabelInfo) => (LabelInfo, QueryGraphCardinalityContext) =
-      context.labelInferenceStrategy.inferLabels(_, _, queryGraph.nodeConnections.toSeq)
-
-    inferLabels(context, predicates.allLabelInfo) pipe {
-      case (allLabelInfo, context) =>
-        (allLabelInfo, inferLabels(context, predicates.localLabelInfo))
-    } pipe {
-      case (allLabelInfo, (localLabelInfo, context)) =>
-        (predicates.copy(allLabelInfo = allLabelInfo, localLabelInfo = localLabelInfo), context)
-    } pipe {
-      case (predicates, context) =>
-        // Note that the new context is not propagated further than this method.
-        // This means that any newly resolved label names will not be known
-        // to any later query graphs.
-        getBaseQueryGraphCardinalityWithInferredLabelContext(queryGraph, predicates, context)
-    }
+    val (inferredLabelInfo, newContext) =
+      context.labelInferenceStrategy.inferLabels(context, predicates.allLabelInfo, queryGraph.nodeConnections.toSeq)
+    val newPredicates = predicates.copy(allLabelInfo = inferredLabelInfo)
+    getBaseQueryGraphCardinalityWithInferredLabelContext(queryGraph, newPredicates, newContext)
   }
 
   /**

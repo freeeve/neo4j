@@ -733,6 +733,7 @@ class SubqueryCallPlanningIntegrationTest
       .setLabelCardinality("M", 100)
       .setRelationshipCardinality("()-[:REL]->()", 200)
       .setRelationshipCardinality("()-[:REL]->(:M)", 100)
+      .setRelationshipCardinality("(:M)-[:REL]->()", 100)
       .build()
 
     val query =
@@ -2051,6 +2052,7 @@ class SubqueryCallPlanningIntegrationTest
       .setLabelCardinality("M", 100)
       .setRelationshipCardinality("()-[:REL]->()", 200)
       .setRelationshipCardinality("()-[:REL]->(:M)", 100)
+      .setRelationshipCardinality("(:M)-[:REL]->()", 0)
       .build()
 
     val query =

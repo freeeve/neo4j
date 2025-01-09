@@ -337,10 +337,11 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
       DEFAULT_RANGE_SELECTIVITY
 
     case x: ExistsIRExpression =>
+      val dependencies = x.computedScopeDependencies.getOrElse(Set.empty)
       val subqueryCardinality = cardinalityModel.apply(
         x.query,
-        labelInfo,
-        relTypeInfo,
+        labelInfo.filter { case (variable, _) => dependencies.contains(variable) },
+        relTypeInfo.filter { case (variable, _) => dependencies.contains(variable) },
         semanticTable,
         indexPredicateProviderContext,
         cardinalityModel

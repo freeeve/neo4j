@@ -51,6 +51,8 @@ class MergeRelationshipPlanningIntegrationTest
       .setLabelCardinality("A", 50)
       .setRelationshipCardinality("(:A)-[:R]->()", 100)
       .setRelationshipCardinality("()-[:R]->()", 100)
+      .setRelationshipCardinality("()-[:R]->(:A)", 100)
+      .setRelationshipCardinality("(:A)-[:R]->(:A)", 100)
       .build()
 
   test("should plan simple expand") {
@@ -98,6 +100,9 @@ class MergeRelationshipPlanningIntegrationTest
       .addNodeIndex("Y", Seq("prop"), existsSelectivity = 1.0, uniqueSelectivity = 1.0, isUnique = true)
       .setRelationshipCardinality("(:X)-[:T]->()", 100)
       .setRelationshipCardinality("(:Y)-[:T]->()", 100)
+      .setRelationshipCardinality("()-[:T]->()", 100)
+      .setRelationshipCardinality("()-[:T]->(:X)", 0)
+      .setRelationshipCardinality("()-[:T]->(:Y)", 0)
       .build()
 
     val plan = cfg.plan("MERGE (a:X:Y {prop: 42})-[:T]->(b)").stripProduceResults
@@ -297,6 +302,8 @@ class MergeRelationshipPlanningIntegrationTest
       .setRelationshipCardinality("(:Role)-[:GRANTED]->(:Privilege)", 100)
       .setRelationshipCardinality("(:Role)-[:GRANTED]->()", 100)
       .setRelationshipCardinality("()-[:GRANTED]->(:Privilege)", 100)
+      .setRelationshipCardinality("(:Privilege)-[:GRANTED]->()", 0)
+      .setRelationshipCardinality("()-[:GRANTED]->(:Role)", 0)
       .build()
 
     val query =
@@ -348,6 +355,7 @@ class MergeRelationshipPlanningIntegrationTest
         .setLabelCardinality("Copy", 1)
         .setRelationshipCardinality("()-[:COPY_OF]->()", 1)
         .setRelationshipCardinality("(:Copy)-[:COPY_OF]->()", 1)
+        .setRelationshipCardinality("()-[:COPY_OF]->(:Copy)", 0)
         .build()
 
     val query =

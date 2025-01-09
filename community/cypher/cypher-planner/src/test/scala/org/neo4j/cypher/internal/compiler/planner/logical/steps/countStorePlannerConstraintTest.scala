@@ -612,6 +612,7 @@ class countStorePlannerConstraintTest extends CypherFunSuite with LogicalPlannin
       .setAllRelationshipsCardinality(100)
       .setRelationshipCardinality("()-[:T]->()", 30)
       .setRelationshipCardinality("(:A)-[:T]->()", 20)
+      .setRelationshipCardinality("()-[:T]->(:A)", 20)
       .addRelationshipExistenceConstraint("T", "prop")
       .addNodeExistenceConstraint("A", "prop2")
       .build()

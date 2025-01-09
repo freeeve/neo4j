@@ -20,7 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence
 
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
-import org.neo4j.cypher.internal.compiler.helpers.SeqSupport.RichSeq
+import org.neo4j.cypher.internal.compiler.helpers.IterableHelper.RichIterableOnce
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.expressions.LabelName
@@ -28,19 +28,21 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.ir.NodeConnection
 import org.neo4j.cypher.internal.ir.PatternRelationship
+import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
+import org.neo4j.cypher.internal.ir.SelectivePathPattern
 import org.neo4j.cypher.internal.ir.helpers.CachedFunction
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
-import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.RelTypeId
 
+import scala.annotation.tailrec
+
 trait LabelInferenceStrategy {
 
   def inferLabels(
     semanticTable: SemanticTable,
-    graphStatistics: GraphStatistics,
     labelInfo: LabelInfo,
     nodeConnections: Seq[NodeConnection]
   ): (LabelInfo, SemanticTable)
@@ -77,7 +79,6 @@ object LabelInferenceStrategy {
 
     override def inferLabels(
       semanticTable: SemanticTable,
-      graphStatistics: GraphStatistics,
       labelInfo: LabelInfo,
       nodeConnections: Seq[NodeConnection]
     ): (LabelInfo, SemanticTable) = {
@@ -99,174 +100,228 @@ object LabelInferenceStrategy {
     ): (LabelInfo, QueryGraphCardinalityContext) = (labelInfo, context)
   }
 
-  private class InferOnlyIfNoOtherLabel(planContext: PlanContext) extends LabelInferenceStrategy {
+  final private class InferOnlyIfNoOtherLabel(planContext: PlanContext) extends LabelInferenceStrategy {
 
-    private val cachedMostCommonLabelGivenRelationshipType: RelTypeId => Seq[Int] = CachedFunction {
-      relTypeId => planContext.statistics.mostCommonLabelGivenRelationshipType(relTypeId.id)
-    }
+    private val cachedLabelName: Int => String = CachedFunction(planContext.getLabelName)
 
-    private def inferLabelsForNodeConnection(
-      nodeConnection: NodeConnection,
-      semanticTable: SemanticTable
-    ): Seq[SimpleRelationship.InferredLabel] = {
-      val simpleRelationships = SimpleRelationship.fromNodeConnection(nodeConnection, semanticTable)
-      simpleRelationships.size match {
-        case 0 => Seq.empty
-        case 1 => simpleRelationships.head.inferLabels(planContext, cachedMostCommonLabelGivenRelationshipType)
-        case _ =>
-          // Populate intersectionInferredLabels with the inferred labels from the first simpleRelationship
-          var intersectionInferredLabels =
-            simpleRelationships.head.inferLabels(planContext, cachedMostCommonLabelGivenRelationshipType)
-          // Continue with the other simpleRelationships
-          // Stop when the intersection is empty, or when all simpleRelationships have been processed
-          (1 until simpleRelationships.size).foreach(i => {
-            if (intersectionInferredLabels.nonEmpty) {
-              val inferredLabelsForSimpleRelationship =
-                simpleRelationships(i).inferLabels(planContext, cachedMostCommonLabelGivenRelationshipType)
-              intersectionInferredLabels = intersectionInferredLabels intersect inferredLabelsForSimpleRelationship
+    private val cachedInferRelationshipLabels: RelTypeId => Option[RelationshipLabels] =
+      CachedFunction { relationshipTypeId =>
+        val mostCommonLabels = planContext.statistics.mostCommonLabelGivenRelationshipType(relationshipTypeId.id)
+        if (mostCommonLabels.nonEmpty) {
+          // first retrieve the cardinality of the relationship type with any node labels, e.g.: |()-[:R]->()|
+          val baselineCardinality =
+            planContext.statistics.patternStepCardinality(None, Some(relationshipTypeId), None).amount
+          val labelsOnStartNode = Set.newBuilder[LabelId]
+          val labelsOnEndNode = Set.newBuilder[LabelId]
+          // then, for each potentially inferable node label
+          mostCommonLabels.foreach { unwrappedLabelId =>
+            val labelId = LabelId(unwrappedLabelId)
+            // retrieve the cardinality of the same relationship with the label on the start node, e.g.: |(:A)-[:R]->()|
+            val withStartNodeCardinality =
+              planContext.statistics.patternStepCardinality(Some(labelId), Some(relationshipTypeId), None).amount
+            // if it is equal to the baseline cardinality, in our example: if |(:A)-[:R]->()| = |()-[:R]->()|
+            if (withStartNodeCardinality == baselineCardinality) {
+              // then all relationships with type `relationshipTypeId` will have label `labelId` on their start node:
+              // ()-[:R]->() implies (:A)-[:R]->()
+              labelsOnStartNode.addOne(labelId)
             }
-          })
-          intersectionInferredLabels
+            // same logic for the end node, note that the same label may be inferred on both the start and the end node
+            val withEndNodeCardinality =
+              planContext.statistics.patternStepCardinality(None, Some(relationshipTypeId), Some(labelId)).amount
+            if (withEndNodeCardinality == baselineCardinality) {
+              labelsOnEndNode.addOne(labelId)
+            }
+          }
+          RelationshipLabels.nonEmpty(onStartNode = labelsOnStartNode.result(), onEndNode = labelsOnEndNode.result())
+        } else {
+          None
+        }
       }
-    }
 
-    def inferLabels(
+    override def inferLabels(
       semanticTable: SemanticTable,
-      graphStatistics: GraphStatistics,
       labelInfo: LabelInfo,
       nodeConnections: Seq[NodeConnection]
-    ): (LabelInfo, SemanticTable) = {
+    ): (LabelInfo, SemanticTable) =
+      nodeConnections
+        .view
+        .flatMap(inferLabelsForNodeConnection(semanticTable, labelInfo, _))
+        .reduceLeftOption(_ union _)
+        .map(resolveInferredLabels(semanticTable, labelInfo, _))
+        .getOrElse((labelInfo, semanticTable))
 
-      val allInferredLabels = nodeConnections.flatMap(inferLabelsForNodeConnection(_, semanticTable))
-
-      val inferredLabels: Seq[SimpleRelationship.InferredLabel] = allInferredLabels
-        .sequentiallyGroupBy(_.node)
-        .map { case (_, inferredLabels) =>
-          inferredLabels.minBy(x => graphStatistics.nodesWithLabelCardinality(Some(x.labelId)))
-        }
-
-      // Update the semantic table with newly resolved label names.
-      val updatedSemanticTable = semanticTable.addResolvedLabelNames(
-        inferredLabels.map(il => il.labelName -> il.labelId)
-      )
-
-      def addInferredLabelOnlyIfNoOtherLabel(labelInfo: LabelInfo): LabelInfo = {
-        inferredLabels.foldLeft(labelInfo) {
-          case (labelInfo, inferredLabel) =>
-            labelInfo.updatedWith(inferredLabel.node) {
-              case x @ Some(labels) if labels.nonEmpty => x
-              case _ =>
-                val label = LabelName(inferredLabel.labelName)(InputPosition.NONE)
-                Some(Set(label))
-            }
-        }
-      }
-
-      (addInferredLabelOnlyIfNoOtherLabel(labelInfo), updatedSemanticTable)
-    }
-
-    def inferLabels(
+    override def inferLabels(
       context: QueryGraphCardinalityContext,
       labelInfo: LabelInfo,
       nodeConnections: Seq[NodeConnection]
     ): (LabelInfo, QueryGraphCardinalityContext) = {
-      val (updatedLabelInfo, updatedSemanticTable) =
-        inferLabels(context.semanticTable, context.graphStatistics, labelInfo, nodeConnections)
+      val (updatedLabelInfo, updatedSemanticTable) = inferLabels(context.semanticTable, labelInfo, nodeConnections)
       (updatedLabelInfo, context.copy(semanticTable = updatedSemanticTable))
     }
 
-    def inferLabels(
+    override def inferLabels(
       context: LogicalPlanningContext,
       labelInfo: LabelInfo,
       nodeConnections: Seq[NodeConnection]
     ): (LabelInfo, LogicalPlanningContext) = {
-      val (updatedLabelInfo, updatedSemanticTable) =
-        inferLabels(context.semanticTable, context.statistics, labelInfo, nodeConnections)
+      val (updatedLabelInfo, updatedSemanticTable) = inferLabels(context.semanticTable, labelInfo, nodeConnections)
       (updatedLabelInfo, context.withUpdatedSemanticTable(updatedSemanticTable))
     }
-  }
 
-  private case class SimpleRelationship(
-    startNode: LogicalVariable,
-    endNode: LogicalVariable,
-    relationshipType: RelTypeId,
-    isDirected: Boolean
-  ) {
-
-    private def nodesWithSameCardinalityWhenAddingLabel(
-      planContext: PlanContext,
-      labelId: LabelId
-    ): List[LogicalVariable] = {
-      val relationshipCardinality = planContext.statistics.patternStepCardinality(None, Some(relationshipType), None)
-
-      def hasSameCardinalityWhenAddingLabel(fromLabel: Option[LabelId], toLabel: Option[LabelId]): Boolean = {
-        planContext.statistics.patternStepCardinality(
-          fromLabel,
-          Some(relationshipType),
-          toLabel
-        ).amount == relationshipCardinality.amount
-      }
-
-      List(
-        Option.when(hasSameCardinalityWhenAddingLabel(Some(labelId), None))(startNode),
-        Option.when(hasSameCardinalityWhenAddingLabel(None, Some(labelId)))(endNode)
-      ).flatten
-    }
-
-    def inferLabels(
-      planContext: PlanContext,
-      mostCommonLabelGivenRelationshipType: RelTypeId => Seq[Int]
-    ): Seq[SimpleRelationship.InferredLabel] = {
-      for {
-        mostCommonLabelId <- mostCommonLabelGivenRelationshipType(this.relationshipType)
-
-        // Get the nodes where adding the label does not restrict the cardinality
-        // (this could be the start node, end node, both or none)
-        nodesWithSameCardinality = this.nodesWithSameCardinalityWhenAddingLabel(planContext, LabelId(mostCommonLabelId))
-
-        // For undirected relationships: both start and end nodes should infer the label,
-        // otherwise nothing can be inferred w.r.t. this relationship type and 'mostCommonLabelId'
-        if isDirected || nodesWithSameCardinality.size == 2
-
-        labelName = planContext.getLabelName(mostCommonLabelId)
-        // We can infer the label 'labelName' (id: 'mostCommonLabelId') for all nodes in 'nodesWithSameCardinality'
-        nodeName <- nodesWithSameCardinality
-      } yield SimpleRelationship.InferredLabel(
-        nodeName,
-        labelName,
-        LabelId(mostCommonLabelId)
-      )
-    }
-  }
-
-  private object SimpleRelationship {
-    case class InferredLabel(node: LogicalVariable, labelName: String, labelId: LabelId)
-
-    /**
-     * Create simple relationships from a nodeConnection
-     * A simple relationship consists of a start node, end node and one type
-     * In case the nodeConnection is a PatternRelationship with a disjunction of multiple types, i.e. ()-[:R1|R2|R3]->(),
-     * then a single simple relationship will be created for each disjunction: [()-[:R1]->(), ()-[:R2]->(), ()-[:R3]->()]
-     * @param nodeConnection the node connection to create simple relationships from
-     * @param semanticTable using to obtain the relationship type id from the relationship type name
-     * @return a sequence of simple relationships obtained from the nodeConnection
-     */
-    def fromNodeConnection(nodeConnection: NodeConnection, semanticTable: SemanticTable): Seq[SimpleRelationship] =
+    private def inferLabelsForNodeConnection(
+      semanticTable: SemanticTable,
+      labelInfo: LabelInfo,
+      nodeConnection: NodeConnection
+    ): Option[LabelsPerNode] =
       nodeConnection match {
-        case relationship @ PatternRelationship(_, _, dir, relationshipTypeNames, _)
-          if relationshipTypeNames.size <= REL_TYPE_LIMIT =>
-          // relationshipTypeNames contains possibly a disjunction of multiple relationship types
-          val (startNode, endNode) = relationship.inOrder
-          relationshipTypeNames
-            .flatMap(semanticTable.id)
-            .map(SimpleRelationship(
-              startNode,
-              endNode,
-              _,
-              dir == SemanticDirection.OUTGOING || dir == SemanticDirection.INCOMING
-            ))
-        case _ => Seq.empty
+        case relationship: PatternRelationship =>
+          lazy val noLabelsOnLeft = labelInfo.get(relationship.left).forall(_.isEmpty)
+          lazy val noLabelsOnRight = labelInfo.get(relationship.right).forall(_.isEmpty)
+          if (
+            relationship.types.nonEmpty &&
+            relationship.types.size <= REL_TYPE_LIMIT &&
+            (noLabelsOnLeft || noLabelsOnRight)
+          )
+            inferLabelsForRelationship(semanticTable, relationship)
+          else
+            None
+        case _: QuantifiedPathPattern => None
+        case _: SelectivePathPattern  => None
       }
+
+    private def inferLabelsForRelationship(
+      semanticTable: SemanticTable,
+      relationship: PatternRelationship
+    ): Option[LabelsPerNode] =
+      relationship.types
+        .traverse(semanticTable.id)
+        .flatMap(inferRelationshipLabelsIntersection)
+        .map(attachLabelsToNodes(relationship.left, relationship.right, relationship.dir, _))
+
+    private def inferRelationshipLabelsIntersection(relationshipTypes: Seq[RelTypeId]): Option[RelationshipLabels] = {
+      @tailrec
+      def recursively(
+        remainingRelationshipTypes: Seq[RelTypeId],
+        intersection: RelationshipLabels
+      ): Option[RelationshipLabels] = {
+        if (remainingRelationshipTypes.isEmpty) {
+          // if there aren't any other types to process, return the intersection
+          Some(intersection)
+        } else {
+          val head = remainingRelationshipTypes.head
+          val tail = remainingRelationshipTypes.tail
+          cachedInferRelationshipLabels(head).flatMap(intersection.intersect) match {
+            case Some(newIntersection) =>
+              // if the intersection between the labels inferred so far and the ones inferred on the first remaining relationship is defined, keep recursing
+              recursively(tail, newIntersection)
+            case None =>
+              None // otherwise stop here, ε ∩ _ = ε
+          }
+        }
+      }
+
+      if (relationshipTypes.isEmpty) {
+        None // no types, no labels, simple
+      } else {
+        val head = relationshipTypes.head
+        val tail = relationshipTypes.tail
+        cachedInferRelationshipLabels(head) match {
+          case Some(inferredLabelsOnHead) =>
+            // if labels can be inferred on the first relationship, calculate the intersection with the other types
+            recursively(tail, inferredLabelsOnHead)
+          case None =>
+            None // otherwise stop here, ε ∩ _ = ε
+        }
+      }
+    }
+
+    private def attachLabelsToNodes(
+      leftNode: LogicalVariable,
+      rightNode: LogicalVariable,
+      direction: SemanticDirection,
+      relationshipLabels: RelationshipLabels
+    ): LabelsPerNode =
+      direction match {
+        case SemanticDirection.OUTGOING =>
+          LabelsPerNode.union(
+            leftNode -> relationshipLabels.onStartNode,
+            rightNode -> relationshipLabels.onEndNode
+          )
+        case SemanticDirection.INCOMING =>
+          LabelsPerNode.union(
+            leftNode -> relationshipLabels.onEndNode,
+            rightNode -> relationshipLabels.onStartNode
+          )
+        case SemanticDirection.BOTH =>
+          val intersection = relationshipLabels.onStartNode.intersect(relationshipLabels.onEndNode)
+          LabelsPerNode.union(
+            leftNode -> intersection,
+            rightNode -> intersection
+          )
+      }
+
+    private def resolveInferredLabels(
+      semanticTable: SemanticTable,
+      labelInfo: LabelInfo,
+      inferredLabels: LabelsPerNode
+    ): (LabelInfo, SemanticTable) = {
+      val inferredLabelInfoAndResolvedLabelNames = for {
+        (node, labelIds) <- inferredLabels.values.view
+        if labelInfo.get(node).forall(_.isEmpty)
+        inferredLabelId <- labelIds.minByOption { labelId =>
+          planContext.statistics.nodesWithLabelCardinality(Some(labelId))
+        }
+        labelName = cachedLabelName(inferredLabelId)
+        labelInfoEntry = (node, Set(LabelName(labelName)(InputPosition.NONE)))
+        resolvedLabelName = (labelName, inferredLabelId)
+      } yield (labelInfoEntry, resolvedLabelName)
+
+      val (inferredLabelInfo, resolvedLabelNames) = inferredLabelInfoAndResolvedLabelNames.unzip
+
+      val newLabelInfo = labelInfo ++ inferredLabelInfo
+
+      val newlyResolvedLabelNames = resolvedLabelNames.filterNot { case (labelName, _) =>
+        semanticTable.resolvedLabelNames.contains(labelName)
+      }
+
+      // calculating the hashcode of a semantic table is expensive, we want to create a new instance only if necessary
+      val newSemanticTable =
+        if (newlyResolvedLabelNames.nonEmpty)
+          semanticTable.addResolvedLabelNames(newlyResolvedLabelNames)
+        else
+          semanticTable
+
+      (newLabelInfo, newSemanticTable)
+    }
   }
 
+  final private case class LabelsPerNode(values: Map[LogicalVariable, Set[LabelId]]) extends AnyVal {
+
+    def union(other: LabelsPerNode): LabelsPerNode =
+      LabelsPerNode.buildUnion(values.view ++ other.values)
+  }
+
+  private object LabelsPerNode {
+
+    def union(elems: (LogicalVariable, Set[LabelId])*): LabelsPerNode =
+      buildUnion(elems.view.filter(_._2.nonEmpty))
+
+    private def buildUnion(elems: Iterable[(LogicalVariable, Set[LabelId])]): LabelsPerNode =
+      LabelsPerNode(elems.groupMapReduce(_._1)(_._2)(_ union _))
+  }
+
+  final private case class RelationshipLabels(onStartNode: Set[LabelId], onEndNode: Set[LabelId]) {
+
+    def intersect(other: RelationshipLabels): Option[RelationshipLabels] =
+      RelationshipLabels.nonEmpty(
+        onStartNode = onStartNode.intersect(other.onStartNode),
+        onEndNode = onEndNode.intersect(other.onEndNode)
+      )
+  }
+
+  private object RelationshipLabels {
+
+    def nonEmpty(onStartNode: Set[LabelId], onEndNode: Set[LabelId]): Option[RelationshipLabels] =
+      Option.when(onStartNode.nonEmpty || onEndNode.nonEmpty)(RelationshipLabels(onStartNode, onEndNode))
+  }
 }

@@ -509,6 +509,8 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .setRelationshipCardinality("(:A)-[:BAR]->()", 10)
       .setRelationshipCardinality("()-[:BAR]->(:B)", 10)
       .setRelationshipCardinality("(:A)-[:BAR]->(:B)", 10)
+      .setRelationshipCardinality("()-[:BAR]->(:A)", 0)
+      .setRelationshipCardinality("(:B)-[:BAR]->()", 0)
       .build()
 
     val query =
@@ -553,6 +555,8 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .setRelationshipCardinality("(:A)-[:BAR]->()", 10)
       .setRelationshipCardinality("()-[:BAR]->(:B)", 10)
       .setRelationshipCardinality("(:A)-[:BAR]->(:B)", 10)
+      .setRelationshipCardinality("()-[:BAR]->(:A)", 0)
+      .setRelationshipCardinality("(:B)-[:BAR]->()", 0)
       .build()
 
     val query =

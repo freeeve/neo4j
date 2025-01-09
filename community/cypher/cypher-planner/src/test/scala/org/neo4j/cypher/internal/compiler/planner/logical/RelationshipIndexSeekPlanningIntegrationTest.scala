@@ -158,6 +158,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
       val planner = plannerBuilderWithIndexUniqueness(isUnique)
         .setLabelCardinality("A", 10)
         .setRelationshipCardinality("(:A)-[:REL]-()", 10)
+        .setRelationshipCardinality("(:A)-[:REL]->(:A)", 10)
         .build()
 
       planner.plan(s"MATCH (a:A)-[r:REL]-(b) USING INDEX r:REL(prop) WHERE $pred RETURN r") should equal(

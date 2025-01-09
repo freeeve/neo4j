@@ -23,12 +23,14 @@ import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.SemanticDirection
+import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.planner.spi.MinimumGraphStatistics
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Cardinality.NumericCardinality
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.Multiplier
 import org.neo4j.cypher.internal.util.Selectivity
@@ -73,24 +75,17 @@ trait PatternRelationshipCardinalityModel extends NodeCardinalityModel {
               if (context.allNodesCardinality > Cardinality.EMPTY) {
                 // Prior to this call (in getBaseQueryGraphCardinality()), labels on the start and end nodes are already inferred
                 // Here, we want to find the labels that can be inferred on the middle nodes.
-                // Each middle node acts as the left boundary node of one of the unrolled relationships and
-                //                       as the right boundary node of another one of the unrolled relationships
-                // Therefore, the inferred labels on the middle nodes are those that can be implied on the left boundary node and those on the right boundary node (union)
-
-                // First, we remove the labels on both sides of the relationship (since label inference won't override specified labels).
-                // Second, we obtain the labels that the relationship can infer on the left node and the right node.
-                // Last, take the union of the labels that can be inferred on the left node and the labels that can be inferred on the right node.
-                // Those are the labels that can be inferred on the middle nodes of this varPattern.
-                val labelInfoTemp =
-                  labelInfo.updated(relationship.left, Set.empty).updated(relationship.right, Set.empty)
-                val (inferredLabelMapForMiddleNodes, updatedContext) = context.labelInferenceStrategy.inferLabels(
-                  context,
-                  labelInfoTemp,
-                  Seq(relationship)
+                val a = Variable("a")(InputPosition.NONE, isIsolated = false)
+                val r = PatternRelationship(
+                  Variable("r")(InputPosition.NONE, isIsolated = false),
+                  (a, a),
+                  relationship.dir,
+                  relationship.types,
+                  SimplePatternLength
                 )
-                val inferredLabelsForMiddleNodes =
-                  inferredLabelMapForMiddleNodes.getOrElse(relationship.left, Set.empty) union
-                    inferredLabelMapForMiddleNodes.getOrElse(relationship.right, Set.empty)
+                val (inferredLabels, updatedContext) =
+                  context.labelInferenceStrategy.inferLabels(context, Map.empty, List(r))
+                val inferredLabelsForMiddleNodes = inferredLabels.getOrElse(a, Set.empty)
 
                 // Goes from the left boundary node to a middle node
                 // Use labelInfo, but set the inferred labels of relationship.right (middle node) to inferredLabelsForMiddleNodes
@@ -109,11 +104,11 @@ trait PatternRelationshipCardinalityModel extends NodeCardinalityModel {
                 val intermediateRelationshipMultiplier =
                   getIntermediateRelationshipMultiplier(
                     context = updatedContext,
-                    labelInfo = labelInfo.updated(relationship.left, inferredLabelsForMiddleNodes).updated(
-                      relationship.right,
-                      inferredLabelsForMiddleNodes
-                    ),
-                    relationship
+                    labelInfo =
+                      labelInfo
+                        .updated(relationship.left, inferredLabelsForMiddleNodes)
+                        .updated(relationship.right, inferredLabelsForMiddleNodes),
+                    relationship = relationship
                   )
 
                 // Goes from a middle node to the right boundary node

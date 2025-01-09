@@ -69,7 +69,6 @@ class LabelInferenceStrategyTest extends CypherFunSuite with AstConstructionTest
       )
       val (inferredLabelInfo, _) = labelInference.inferLabels(
         semanticTable,
-        planContext.statistics,
         LabelInfo.empty,
         Seq(patternRel)
       )

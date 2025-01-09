@@ -1120,18 +1120,15 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
       }
 
       override def mostCommonLabelGivenRelationshipType(typ: Int): Seq[Int] = {
-        val labelRelTypeCardinalities = cardinalities.labels.keys.flatMap { label =>
-          val labelId = resolver.getLabelId(label)
-          Seq(
-            (labelId, patternStepCardinality(Some(LabelId(labelId)), Some(RelTypeId(typ)), None)),
-            (labelId, patternStepCardinality(None, Some(RelTypeId(typ)), Some(LabelId(labelId))))
-          )
-        }.groupBy(_._2)
-        if (labelRelTypeCardinalities.nonEmpty) {
-          labelRelTypeCardinalities.maxBy(_._1.amount)._2.map(_._1).toSeq
-        } else {
-          Seq.empty
-        }
+        val givenRelationshipTypeName = resolver.getRelTypeName(typ)
+        cardinalities.relationships.view.collect {
+          case (RelDef(Some(fromLabelName), Some(relationshipTypeName), None), cardinality)
+            if relationshipTypeName == givenRelationshipTypeName =>
+            (cardinality, resolver.getLabelId(fromLabelName))
+          case (RelDef(None, Some(relationshipTypeName), Some(toLabelName)), cardinality)
+            if relationshipTypeName == givenRelationshipTypeName =>
+            (cardinality, resolver.getLabelId(toLabelName))
+        }.groupMap(_._1)(_._2).maxByOption(_._1).map(_._2.toSeq).getOrElse(Seq.empty)
       }
     }
 

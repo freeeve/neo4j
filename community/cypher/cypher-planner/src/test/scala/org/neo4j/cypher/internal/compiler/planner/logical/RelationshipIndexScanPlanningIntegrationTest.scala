@@ -270,6 +270,8 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
     val planner = plannerBuilder()
       .setLabelCardinality("A", 10)
       .setRelationshipCardinality("(:A)-[:REL]-()", 10)
+      .setRelationshipCardinality("(:A)-[:REL]->(:A)", 10)
+      .setRelationshipCardinality("()-[:REL]->(:A)", 10)
       .build()
 
     planner.plan("MATCH (a:A)-[r:REL]-(b) USING INDEX r:REL(prop) WHERE r.prop IS NOT NULL RETURN r") should equal(
@@ -480,6 +482,8 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
     val planner = plannerBuilder()
       .setLabelCardinality("A", 10)
       .setRelationshipCardinality("(:A)-[:REL]-()", 10)
+      .setRelationshipCardinality("(:A)-[:REL]->(:A)", 10)
+      .setRelationshipCardinality("()-[:REL]->(:A)", 10)
       .addRelationshipIndex("REL", Seq("prop"), 1.0, 0.01)
       .build()
     planner.plan("MATCH (a:A)-[r:REL]-() WHERE r.prop IS NOT NULL RETURN r").leaves should beLike {
@@ -491,6 +495,8 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
     val planner = plannerBuilder()
       .setLabelCardinality("A", 100)
       .setRelationshipCardinality("(:A)-[:REL]-()", 10)
+      .setRelationshipCardinality("(:A)-[:REL]->(:A)", 10)
+      .setRelationshipCardinality("()-[:REL]->(:A)", 10)
       .build()
     planner.plan("MATCH (a:A)-[r:REL]-() WHERE r.prop IS NOT NULL RETURN r").leaves should beLike {
       case Seq(_: UndirectedRelationshipIndexScan) => ()
@@ -512,6 +518,8 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
       .setRelationshipCardinality("(:B)-[:REL2]-()", 50)
       .setRelationshipCardinality("()-[:REL2]-(:C)", 50)
       .setRelationshipCardinality("(:B)-[:REL2]-(:C)", 50)
+      .setRelationshipCardinality("(:C)-[:REL2]->(:C)", 0)
+      .setRelationshipCardinality("(:A)-[:REL]->(:A)", 0)
       .addRelationshipIndex("REL", Seq("prop"), 0.25, 0.01, indexType = IndexType.RANGE)
       .addRelationshipIndex("REL2", Seq("prop"), 0.5, 0.01, indexType = IndexType.RANGE)
       .build()
@@ -554,6 +562,8 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
       .setRelationshipCardinality("(:B)-[:REL2]-()", 5000)
       .setRelationshipCardinality("()-[:REL2]-(:C)", 5000)
       .setRelationshipCardinality("(:B)-[:REL2]-(:C)", 5000)
+      .setRelationshipCardinality("(:C)-[:REL2]->(:C)", 0)
+      .setRelationshipCardinality("(:A)-[:REL]->(:A)", 0)
       .addRelationshipIndex("REL", Seq("prop"), 0.02, 0.01, indexType = IndexType.RANGE)
       .addRelationshipIndex("REL2", Seq("prop"), 0.1, 0.01, indexType = IndexType.RANGE)
       .build()

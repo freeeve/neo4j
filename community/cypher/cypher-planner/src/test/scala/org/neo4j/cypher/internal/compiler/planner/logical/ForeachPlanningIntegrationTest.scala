@@ -42,6 +42,8 @@ class ForeachPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .setRelationshipCardinality("(:PROFILES)-[:RELATION]->()", 100)
       .setRelationshipCardinality("()-[:KNOWS]->()", 100)
       .setRelationshipCardinality("()-[:KNOWS]->(:PROFILES)", 100)
+      .setRelationshipCardinality("()-[:RELATION]->(:PROFILES)", 0)
+      .setRelationshipCardinality("(:PROFILES)-[:KNOWS]->()", 0)
       .build()
 
     val query =
@@ -76,6 +78,8 @@ class ForeachPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .setRelationshipCardinality("(:PROFILES)-[:RELATION]->()", 100)
       .setRelationshipCardinality("()-[:KNOWS]->()", 100)
       .setRelationshipCardinality("()-[:KNOWS]->(:PROFILES)", 100)
+      .setRelationshipCardinality("()-[:RELATION]->(:PROFILES)", 0)
+      .setRelationshipCardinality("(:PROFILES)-[:KNOWS]->()", 0)
       .build()
 
     val query =

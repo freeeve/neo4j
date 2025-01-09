@@ -975,6 +975,8 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
         .setAllRelationshipsCardinality(100000)
         .setRelationshipCardinality("()-[:R]->()", 100000)
         .setRelationshipCardinality("()-[:R]->(:B)", 100000)
+        .setRelationshipCardinality("(:B)-[:R]->()", 100000)
+        .setRelationshipCardinality("(:B)-[:R]->(:B)", 100000)
         .setLabelCardinality("B", 9)
 
     def query(hint: String): String =
@@ -2039,6 +2041,8 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
       .setRelationshipCardinality("()-[R1]->()", 4000)
       .setRelationshipCardinality("()-[R1]->(:A)", 400)
       .setRelationshipCardinality("()-[R1]->(:B)", 400)
+      .setRelationshipCardinality("(:A)-[:R1]->()", 400)
+      .setRelationshipCardinality("(:B)-[:R1]->()", 400)
       .build()
 
     val q = "MATCH (a)-[r:R1]->(b:!A&B) USING SCAN r:R1 RETURN r"
@@ -2063,6 +2067,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
       .setRelationshipCardinality("()-[R1]->(:A)", 400)
       .setRelationshipCardinality("(:A)-[R1]->()", 400)
       .setRelationshipCardinality("()-[R1]->(:B)", 400)
+      .setRelationshipCardinality("(:B)-[:R1]->()", 400)
       .setRelationshipCardinality("(:A)-[R1]->(:B)", 4)
       .addNodeIndex("A", Seq("id"), 0.2, 0.01)
       .build()
@@ -2091,6 +2096,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
       .setRelationshipCardinality("()-[R1]->(:A)", 400)
       .setRelationshipCardinality("(:A)-[R1]->()", 400)
       .setRelationshipCardinality("()-[R1]->(:B)", 400)
+      .setRelationshipCardinality("(:B)-[:R1]->()", 400)
       .setRelationshipCardinality("(:A)-[R1]->(:B)", 4)
       .build()
 

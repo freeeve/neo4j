@@ -1509,6 +1509,7 @@ class ConnectComponentsPlanningIntegrationTest extends CypherFunSuite with Logic
       .setRelationshipCardinality("(:B)-[:REL]->()", 1000)
       .setRelationshipCardinality("(:B)-[:REL]->(:C)", 1000)
       .setRelationshipCardinality("()-[:REL]->(:C)", 1500)
+      .setRelationshipCardinality("(:C)-[:REL]->()", 0)
       .addNodeIndex("B", Seq("prop"), existsSelectivity = 0.5, uniqueSelectivity = 1 / 5000.0, isUnique = true)
       .build()
 

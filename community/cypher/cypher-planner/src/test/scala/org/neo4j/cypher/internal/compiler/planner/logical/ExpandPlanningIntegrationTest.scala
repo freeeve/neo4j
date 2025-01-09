@@ -969,7 +969,7 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
       .setAllNodesCardinality(nodes)
       .setLabelCardinality("A", a)
       .setAllRelationshipsCardinality(relationships)
-      .setRelationshipCardinality("()-[R]->()", r)
+      .setRelationshipCardinality("()-[R]->()", r + 1)
       .setRelationshipCardinality("(:A)-[R]->()", r)
       .setRelationshipCardinality("()-[R]->(:A)", r)
       .setRelationshipCardinality("(:A)-[R]->(:A)", r)

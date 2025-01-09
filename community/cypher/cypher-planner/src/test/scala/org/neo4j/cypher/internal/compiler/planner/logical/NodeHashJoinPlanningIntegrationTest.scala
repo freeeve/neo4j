@@ -67,6 +67,8 @@ class NodeHashJoinPlanningIntegrationTest extends CypherFunSuite with LogicalPla
       .setRelationshipCardinality("()-[:X]->()", 200)
       .setRelationshipCardinality("()-[:X]->(:C)", 100)
       .setRelationshipCardinality("()-[]->()", Double.MaxValue)
+      .setRelationshipCardinality("()-[:X]->(:A)", 0)
+      .setRelationshipCardinality("(:C)-[:X]->()", 0)
       .build()
 
     val plan = cfg.plan(cypherQuery).stripProduceResults
