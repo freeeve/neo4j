@@ -119,6 +119,14 @@ public class IndexPopulationJob implements Runnable {
      */
     @Override
     public void run() {
+        doRun(true);
+    }
+
+    public void runOnEmptyStore() {
+        doRun(false);
+    }
+
+    private void doRun(boolean nonEmptyStore) {
         try (var cursorContext = contextFactory.create(INDEX_POPULATION_TAG)) {
             var indexDescriptors = multiPopulator.indexDescriptors();
             monitor.indexPopulationJobStarting(indexDescriptors);
@@ -141,7 +149,7 @@ public class IndexPopulationJob implements Runnable {
                     // We remain in POPULATING state
                     return;
                 }
-                multiPopulator.flipAfterStoreScan(cursorContext);
+                multiPopulator.flipAfterStoreScan(cursorContext, nonEmptyStore);
             } catch (Throwable t) {
                 multiPopulator.cancel(t, cursorContext);
             }
@@ -179,6 +187,7 @@ public class IndexPopulationJob implements Runnable {
      */
     public void stop() {
         stopped = true;
+        multiPopulator.notifyPopulationJobStopped();
         // Stop the population
         if (storeScan != null) {
             storeScan.stop();

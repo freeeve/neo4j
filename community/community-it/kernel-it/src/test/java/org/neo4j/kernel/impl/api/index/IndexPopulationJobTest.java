@@ -41,6 +41,7 @@ import static org.neo4j.io.memory.ByteBufferFactory.heapBufferFactory;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.kernel.api.KernelTransaction.Type.IMPLICIT;
 import static org.neo4j.kernel.api.schema.SchemaTestUtil.SIMPLE_NAME_LOOKUP;
+import static org.neo4j.kernel.impl.api.TransactionVisibilityProvider.EMPTY_VISIBILITY_PROVIDER;
 import static org.neo4j.kernel.impl.api.index.TestIndexProviderDescriptor.PROVIDER_DESCRIPTOR;
 import static org.neo4j.logging.AssertableLogProvider.Level.DEBUG;
 import static org.neo4j.logging.AssertableLogProvider.Level.ERROR;
@@ -907,7 +908,8 @@ class IndexPopulationJobTest {
                 INSTANCE,
                 "",
                 AUTH_DISABLED,
-                Config.defaults());
+                Config.defaults(),
+                EMPTY_VISIBILITY_PROVIDER);
         IndexPopulationJob job = new IndexPopulationJob(
                 multiPopulator,
                 NO_MONITOR,
@@ -990,7 +992,8 @@ class IndexPopulationJobTest {
                     INSTANCE,
                     "",
                     AUTH_DISABLED,
-                    Config.defaults());
+                    Config.defaults(),
+                    EMPTY_VISIBILITY_PROVIDER);
         }
 
         @Override

@@ -29,6 +29,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.neo4j.common.Subject.AUTH_DISABLED;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
+import static org.neo4j.kernel.impl.api.TransactionVisibilityProvider.EMPTY_VISIBILITY_PROVIDER;
 import static org.neo4j.kernel.impl.api.index.StoreScan.NO_EXTERNAL_UPDATES;
 
 import java.util.Collection;
@@ -104,7 +105,8 @@ class TokenIndexPopulationTest {
                 EmptyMemoryTracker.INSTANCE,
                 "",
                 AUTH_DISABLED,
-                Config.defaults());
+                Config.defaults(),
+                EMPTY_VISIBILITY_PROVIDER);
     }
 
     @Test

@@ -206,6 +206,11 @@ public class ConstraintIndexCreator {
         try {
             boolean stillGoing;
             do {
+                // Transaction version reset also resets highest gap free for this transaction, which allows global
+                // visibility horizon to move forward
+                // Which, in turn, allows index population to complete in multiversion database, because it waits for
+                // horizon being above certain threshold
+                transaction.schemaTransactionVersionReset();
                 stillGoing = proxy.awaitStoreScanCompleted(1, TimeUnit.SECONDS);
                 if (transaction.isTerminated()) {
                     Optional<Status> reasonIfTerminated = transaction.getReasonIfTerminated();

@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 import static org.neo4j.common.Subject.AUTH_DISABLED;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.kernel.api.index.IndexQueryHelper.add;
+import static org.neo4j.kernel.impl.api.TransactionVisibilityProvider.EMPTY_VISIBILITY_PROVIDER;
 import static org.neo4j.kernel.impl.api.index.IndexPopulationFailure.failure;
 import static org.neo4j.kernel.impl.api.index.StoreScan.NO_EXTERNAL_UPDATES;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
@@ -104,7 +105,8 @@ public class BatchingMultipleIndexPopulatorTest {
                 INSTANCE,
                 "",
                 AUTH_DISABLED,
-                Config.defaults(GraphDatabaseInternalSettings.index_population_queue_threshold, 5));
+                Config.defaults(GraphDatabaseInternalSettings.index_population_queue_threshold, 5),
+                EMPTY_VISIBILITY_PROVIDER);
 
         IndexPopulator populator = addPopulator(batchingPopulator, index1);
         IndexUpdater updater = mock(IndexUpdater.class);
@@ -143,7 +145,8 @@ public class BatchingMultipleIndexPopulatorTest {
                 INSTANCE,
                 "",
                 AUTH_DISABLED,
-                Config.defaults(GraphDatabaseInternalSettings.index_population_queue_threshold, 2));
+                Config.defaults(GraphDatabaseInternalSettings.index_population_queue_threshold, 2),
+                EMPTY_VISIBILITY_PROVIDER);
 
         IndexPopulator populator1 = addPopulator(batchingPopulator, index1);
         IndexUpdater updater1 = mock(IndexUpdater.class);
@@ -187,7 +190,8 @@ public class BatchingMultipleIndexPopulatorTest {
                 INSTANCE,
                 "",
                 AUTH_DISABLED,
-                Config.defaults());
+                Config.defaults(),
+                EMPTY_VISIBILITY_PROVIDER);
 
         IndexPopulator populator1 = addPopulator(batchingPopulator, index1);
         IndexPopulator populator42 = addPopulator(batchingPopulator, index42);
@@ -221,7 +225,8 @@ public class BatchingMultipleIndexPopulatorTest {
                     INSTANCE,
                     "",
                     AUTH_DISABLED,
-                    Config.defaults(GraphDatabaseInternalSettings.index_population_batch_max_byte_size, 1L));
+                    Config.defaults(GraphDatabaseInternalSettings.index_population_batch_max_byte_size, 1L),
+                    EMPTY_VISIBILITY_PROVIDER);
 
             populator = addPopulator(batchingPopulator, index1);
             List<IndexEntryUpdate<IndexDescriptor>> expected = forUpdates(index1, update1, update2);

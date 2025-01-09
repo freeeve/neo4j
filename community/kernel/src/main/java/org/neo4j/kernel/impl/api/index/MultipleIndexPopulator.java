@@ -24,6 +24,7 @@ import static java.util.stream.Collectors.joining;
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_INT_ARRAY;
 import static org.neo4j.internal.schema.IndexType.LOOKUP;
 import static org.neo4j.io.IOUtils.closeAllUnchecked;
+import static org.neo4j.kernel.impl.api.TransactionVisibilityProvider.EMPTY_VISIBILITY_PROVIDER;
 import static org.neo4j.kernel.impl.api.index.IndexPopulationFailure.failure;
 
 import java.io.IOException;
@@ -36,7 +37,9 @@ import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.IntStream;
 import org.neo4j.common.EntityType;
@@ -44,6 +47,7 @@ import org.neo4j.common.Subject;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.PopulationProgress;
@@ -61,6 +65,7 @@ import org.neo4j.kernel.api.exceptions.index.IndexProxyAlreadyClosedKernelExcept
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexSample;
 import org.neo4j.kernel.api.index.IndexUpdater;
+import org.neo4j.kernel.impl.api.TransactionVisibilityProvider;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
@@ -73,6 +78,7 @@ import org.neo4j.storageengine.api.EntityUpdates;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
+import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.storable.Value;
 
@@ -137,10 +143,13 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
     private final JobScheduler jobScheduler;
     private final CursorContext cursorContext;
     private final MemoryTracker memoryTracker;
+    private final long horizonPollIntervalNanos;
     private volatile StoreScan storeScan;
     private final TokenNameLookup tokenNameLookup;
     private final String databaseName;
     private final Subject subject;
+    private final TransactionVisibilityProvider transactionVisibilityProvider;
+    private final AtomicBoolean populationJobStopped = new AtomicBoolean(false);
 
     public MultipleIndexPopulator(
             IndexStoreView storeView,
@@ -153,7 +162,8 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
             MemoryTracker memoryTracker,
             String databaseName,
             Subject subject,
-            Config config) {
+            Config config,
+            TransactionVisibilityProvider transactionVisibilityProvider) {
         this.storeView = storeView;
         this.contextFactory = contextFactory;
         this.cursorContext = contextFactory.create(MULTIPLE_INDEX_POPULATOR_TAG);
@@ -172,6 +182,9 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
         this.queueThreshold = config.get(GraphDatabaseInternalSettings.index_population_queue_threshold);
         this.batchMaxByteSizeScan = config.get(GraphDatabaseInternalSettings.index_population_batch_max_byte_size)
                 .intValue();
+        this.horizonPollIntervalNanos = config.get(GraphDatabaseSettings.transaction_monitor_check_interval)
+                .toNanos();
+        this.transactionVisibilityProvider = transactionVisibilityProvider;
     }
 
     IndexPopulation addPopulator(
@@ -194,7 +207,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
         forEachPopulation(
                 population -> {
                     log.info("Index population started: [%s]", population.userDescription(tokenNameLookup));
-                    population.create();
+                    population.create(cursorContext);
                 },
                 cursorContext);
     }
@@ -343,11 +356,11 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
      * to {@link OnlineIndexProxy online}, given that nothing goes wrong.
      *
      */
-    void flipAfterStoreScan(CursorContext cursorContext) {
+    void flipAfterStoreScan(CursorContext cursorContext, boolean nonEmptyStore) {
         for (IndexPopulation population : populations) {
             try {
                 population.scanCompleted(cursorContext);
-                population.flip(cursorContext);
+                population.flip(cursorContext, nonEmptyStore);
             } catch (Throwable t) {
                 cancel(population, t, cursorContext);
             }
@@ -419,32 +432,33 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
     }
 
     @Override
-    public void applyExternalUpdates(long currentlyIndexedNodeId) {
+    public void applyExternalUpdates(long currentlyIndexedEntityId) {
         if (concurrentUpdateQueue.isEmpty()) {
             return;
         }
 
         if (printDebug) {
-            log.info("Populating from queue at %d", currentlyIndexedNodeId);
+            log.info("Populating from queue at %d", currentlyIndexedEntityId);
         }
 
         long updateByteSizeDrained = 0;
-        try (MultipleIndexUpdater updater = newPopulatingUpdater(cursorContext)) {
+        try (var updater = newPopulatingUpdater(cursorContext)) {
             do {
-                // no need to check for null as nobody else is emptying this queue
                 IndexEntryUpdate<?> update = concurrentUpdateQueue.poll();
-                // Since updates can be added concurrently with us draining the queue simply setting the value to 0
-                // after drained will not be 100% synchronized with the queue contents and could potentially cause a
-                // large
-                // drift over time. Therefore each update polled from the queue will subtract its size instead.
-                updateByteSizeDrained += update != null ? update.roughSizeOfUpdate() : 0;
-                if (update != null && update.getEntityId() <= currentlyIndexedNodeId) {
-                    updater.process(update);
-                    if (printDebug) {
-                        log.info("Applied %s from queue", update.describe(tokenNameLookup));
+                if (update != null) {
+                    // Since updates can be added concurrently with us draining the queue simply setting the value to 0
+                    // after drained will not be 100% synchronized with the queue contents and could potentially cause a
+                    // large
+                    // drift over time. Therefore each update polled from the queue will subtract its size instead.
+                    updateByteSizeDrained += update.roughSizeOfUpdate();
+                    if (update.getEntityId() <= currentlyIndexedEntityId) {
+                        updater.process(update);
+                        if (printDebug) {
+                            log.info("Applied %s from queue", update.describe(tokenNameLookup));
+                        }
+                    } else if (printDebug) {
+                        log.info("Skipped %s from queue", update.describe(tokenNameLookup));
                     }
-                } else if (printDebug) {
-                    log.info("Skipped %s from queue", update == null ? null : update.describe(tokenNameLookup));
                 }
             } while (!concurrentUpdateQueue.isEmpty());
             concurrentUpdateQueueByteSize.addAndGet(-updateByteSizeDrained);
@@ -496,6 +510,10 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
         return populations.stream()
                 .map(p -> p.indexProxyStrategy.getIndexDescriptor())
                 .toArray(IndexDescriptor[]::new);
+    }
+
+    public void notifyPopulationJobStopped() {
+        populationJobStopped.setRelease(true);
     }
 
     public static class MultipleIndexUpdater implements IndexUpdater {
@@ -557,6 +575,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
         private final IndexProxyStrategy indexProxyStrategy;
         private boolean populationOngoing = true;
         private final ReentrantLock populatorLock = new ReentrantLock();
+        private long highestClosedTxAtPopulationStart = TransactionIdStore.BASE_TX_ID;
 
         IndexPopulation(IndexPopulator populator, IndexProxyStrategy indexProxyStrategy, FlippableIndexProxy flipper) {
             this.populator = populator;
@@ -568,11 +587,13 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
             flipper.flipTo(new FailedIndexProxy(indexProxyStrategy, populator, failure, logProvider));
         }
 
-        void create() throws IOException {
+        void create(CursorContext cursorContext) throws IOException {
             populatorLock.lock();
             try {
                 if (populationOngoing) {
                     populator.create();
+                    highestClosedTxAtPopulationStart =
+                            cursorContext.getVersionContext().highestClosed();
                 }
             } finally {
                 populatorLock.unlock();
@@ -613,9 +634,16 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
             }
         }
 
-        void flip(CursorContext cursorContext)
+        void flip(CursorContext cursorContext, boolean nonEmptyStore)
                 throws IndexProxyAlreadyClosedKernelException, ExceptionDuringFlipKernelException {
             phaseTracker.enterPhase(PhaseTracker.Phase.FLIP);
+            if (nonEmptyStore && populationOngoing) {
+                // In multiversion database index must remain pouplating until everything that was added into index
+                // through the store scan is visible by any current and future transactions.
+                // To achieve this we remember highestEverSeen transaction at population start and don't flip until
+                // horizon reaches that transaction
+                blockUntilHorizonReached(highestClosedTxAtPopulationStart);
+            }
             flipper.flip(() -> {
                 populatorLock.lock();
                 try {
@@ -673,6 +701,16 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
 
         PopulationProgress progress(PopulationProgress storeScanProgress) {
             return populator.progress(storeScanProgress);
+        }
+    }
+
+    private void blockUntilHorizonReached(long highestEverSeenAtPopulationStart) {
+        if (EMPTY_VISIBILITY_PROVIDER.equals(transactionVisibilityProvider)) {
+            return;
+        }
+        while (!populationJobStopped.getAcquire()
+                && transactionVisibilityProvider.oldestObservableHorizon() < highestEverSeenAtPopulationStart) {
+            LockSupport.parkNanos(horizonPollIntervalNanos);
         }
     }
 

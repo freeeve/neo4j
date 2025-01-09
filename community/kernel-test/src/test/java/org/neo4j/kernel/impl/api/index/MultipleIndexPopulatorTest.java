@@ -41,6 +41,7 @@ import static org.neo4j.common.Subject.AUTH_DISABLED;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.kernel.api.index.IndexQueryHelper.add;
+import static org.neo4j.kernel.impl.api.TransactionVisibilityProvider.EMPTY_VISIBILITY_PROVIDER;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.values.storable.Values.intValue;
 
@@ -121,7 +122,8 @@ class MultipleIndexPopulatorTest {
                 INSTANCE,
                 "",
                 AUTH_DISABLED,
-                Config.defaults());
+                Config.defaults(),
+                EMPTY_VISIBILITY_PROVIDER);
     }
 
     @Test
@@ -143,7 +145,7 @@ class MultipleIndexPopulatorTest {
 
         indexPopulation.disconnectAndStop(NULL_CONTEXT);
 
-        indexPopulation.flip(NULL_CONTEXT);
+        indexPopulation.flip(NULL_CONTEXT, true);
 
         verify(indexPopulation.populator, never()).sample(NULL_CONTEXT);
     }
@@ -153,7 +155,7 @@ class MultipleIndexPopulatorTest {
         IndexPopulator populator = createIndexPopulator();
         IndexPopulation indexPopulation = addPopulator(populator, 1);
 
-        indexPopulation.flip(NULL_CONTEXT);
+        indexPopulation.flip(NULL_CONTEXT, true);
 
         indexPopulation.disconnectAndStop(NULL_CONTEXT);
 
@@ -230,7 +232,7 @@ class MultipleIndexPopulatorTest {
 
         assertTrue(multipleIndexPopulator.hasPopulators());
 
-        multipleIndexPopulator.flipAfterStoreScan(NULL_CONTEXT);
+        multipleIndexPopulator.flipAfterStoreScan(NULL_CONTEXT, true);
 
         verify(populationToKeepActive.flipper).flip(any(Callable.class));
     }
@@ -251,7 +253,7 @@ class MultipleIndexPopulatorTest {
 
         assertTrue(multipleIndexPopulator.hasPopulators());
 
-        multipleIndexPopulator.flipAfterStoreScan(NULL_CONTEXT);
+        multipleIndexPopulator.flipAfterStoreScan(NULL_CONTEXT, true);
 
         verify(populationToCancel.flipper, never()).flip(any(Callable.class));
     }
@@ -343,7 +345,7 @@ class MultipleIndexPopulatorTest {
         FlippableIndexProxy flipper1 = addPopulator(indexPopulator1, 1).flipper;
         FlippableIndexProxy flipper2 = addPopulator(indexPopulator2, 2).flipper;
 
-        multipleIndexPopulator.flipAfterStoreScan(NULL_CONTEXT);
+        multipleIndexPopulator.flipAfterStoreScan(NULL_CONTEXT, true);
 
         verify(flipper1).flip(any(Callable.class));
         verify(flipper2).flip(any(Callable.class));
@@ -359,7 +361,7 @@ class MultipleIndexPopulatorTest {
 
         assertTrue(multipleIndexPopulator.hasPopulators());
 
-        multipleIndexPopulator.flipAfterStoreScan(NULL_CONTEXT);
+        multipleIndexPopulator.flipAfterStoreScan(NULL_CONTEXT, true);
 
         assertFalse(multipleIndexPopulator.hasPopulators());
     }
@@ -393,7 +395,7 @@ class MultipleIndexPopulatorTest {
         when(indexPopulator1.sample(any(CursorContext.class))).thenThrow(getSampleError());
 
         multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY);
-        multipleIndexPopulator.flipAfterStoreScan(NULL_CONTEXT);
+        multipleIndexPopulator.flipAfterStoreScan(NULL_CONTEXT, true);
 
         verify(indexPopulator1).close(false, NULL_CONTEXT);
 
@@ -494,7 +496,7 @@ class MultipleIndexPopulatorTest {
         when(indexPopulator.sample(any(CursorContext.class))).thenReturn(sample);
 
         multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY);
-        multipleIndexPopulator.flipAfterStoreScan(NULL_CONTEXT);
+        multipleIndexPopulator.flipAfterStoreScan(NULL_CONTEXT, true);
 
         verify(indexPopulator).close(true, NULL_CONTEXT);
 

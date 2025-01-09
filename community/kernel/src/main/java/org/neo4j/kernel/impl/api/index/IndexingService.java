@@ -139,6 +139,7 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
     private final DatabaseReadOnlyChecker readOnlyChecker;
     private final Config config;
     private final ImmutableSet<OpenOption> openOptions;
+    private final TransactionVisibilityProvider transactionVisibilityProvider;
     private final TokenNameLookup tokenNameLookup;
     private final JobScheduler jobScheduler;
     private final InternalLogProvider internalLogProvider;
@@ -205,6 +206,8 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
         this.readOnlyChecker = readOnlyChecker;
         this.config = config;
         this.openOptions = storageEngine.getOpenOptions();
+        this.transactionVisibilityProvider =
+                openOptions.contains(MULTI_VERSIONED) ? transactionVisibilityProvider : EMPTY_VISIBILITY_PROVIDER;
         this.storeView = indexStoreViewFactory.createTokenIndexStoreView(indexMapRef::getIndexProxy);
         this.kernelVersionProvider = kernelVersionProvider;
         this.indexDropController = createIndexDropController(internalLogProvider, transactionVisibilityProvider, fs);
@@ -829,7 +832,8 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
                 memoryTracker,
                 databaseName,
                 subject,
-                config);
+                config,
+                transactionVisibilityProvider);
         return new IndexPopulationJob(
                 multiPopulator, monitor, contextFactory, memoryTracker, databaseName, subject, NODE, config);
     }
@@ -839,7 +843,7 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
             // Creating indexes and constraints on an empty database, before ingesting data doesn't need to do
             // unnecessary scheduling juggling,
             // instead just run it on the caller thread.
-            job.run();
+            job.runOnEmptyStore();
         } else {
             populationJobController.startIndexPopulation(job);
         }

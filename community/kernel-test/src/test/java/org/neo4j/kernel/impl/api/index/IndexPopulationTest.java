@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.neo4j.common.Subject.AUTH_DISABLED;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
+import static org.neo4j.kernel.impl.api.TransactionVisibilityProvider.EMPTY_VISIBILITY_PROVIDER;
 import static org.neo4j.kernel.impl.index.schema.IndexUsageTracking.NO_USAGE_TRACKING;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
@@ -81,13 +82,14 @@ class IndexPopulationTest {
                         INSTANCE,
                         "",
                         AUTH_DISABLED,
-                        Config.defaults())) {
+                        Config.defaults(),
+                        EMPTY_VISIBILITY_PROVIDER)) {
             multipleIndexPopulator.queueConcurrentUpdate(someUpdate());
             multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY).run(StoreScan.NO_EXTERNAL_UPDATES);
             multipleIndexPopulator.addPopulator(emptyPopulatorWithThrowingUpdater(), dummyIndex(), flipper);
 
             // when
-            multipleIndexPopulator.flipAfterStoreScan(CursorContext.NULL_CONTEXT);
+            multipleIndexPopulator.flipAfterStoreScan(CursorContext.NULL_CONTEXT, true);
 
             // then
             assertSame(InternalIndexState.FAILED, flipper.getState(), "flipper should have flipped to failing proxy");
