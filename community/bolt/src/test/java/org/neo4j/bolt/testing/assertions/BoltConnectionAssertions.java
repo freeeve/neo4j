@@ -556,6 +556,14 @@ public final class BoltConnectionAssertions
                 .containsEntry("_classification", classification);
     }
 
+    public static Consumer<Map<String, Object>> assertErrorClassificationAndPositionOnDiagnosticRecord(
+            String classification, Map<String, Long> position) {
+        return diagnosticRecord -> Assertions.assertThat(diagnosticRecord)
+                .containsOnlyKeys("_classification", "_position")
+                .containsEntry("_classification", classification)
+                .containsEntry("_position", position);
+    }
+
     public static Consumer<Map<String, Object>> assertErrorCause(
             String message,
             GqlStatus gqlstatus,

@@ -21,6 +21,7 @@ package org.neo4j.bolt;
 
 import static org.assertj.core.api.InstanceOfAssertFactories.list;
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertErrorCause;
+import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertErrorClassificationAndPositionOnDiagnosticRecord;
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord;
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertThat;
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.diagnosticRecordPosition;
@@ -134,11 +135,19 @@ public class BasicOperationIT {
         connection.send(wire.run("QINVALID")).send(wire.pull());
 
         assertThat(connection)
-                .receivesFailureFuzzy(
+                .receivesFailureFuzzyWithCause(
                         Status.Statement.SyntaxError,
                         "line 1, column 1",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.")
+                        GqlStatusInfoCodes.STATUS_42001.getGqlStatus(),
+                        "error: syntax error or access rule violation - invalid syntax",
+                        assertErrorClassificationAndPositionOnDiagnosticRecord(
+                                "CLIENT_ERROR", diagnosticRecordPosition(1L, 1L, 0L)),
+                        assertErrorCause(
+                                "42I06: Invalid input 'QINVALID', expected:",
+                                GqlStatusInfoCodes.STATUS_42I06.getGqlStatus(),
+                                "error: syntax error or access rule violation - invalid input. Invalid input 'QINVALID', expected:",
+                                assertErrorClassificationAndPositionOnDiagnosticRecord(
+                                        "CLIENT_ERROR", diagnosticRecordPosition(1L, 1L, 0L))))
                 .receivesIgnored();
 
         // When
@@ -405,10 +414,18 @@ public class BasicOperationIT {
         connection.send(wire.run("MATCH (:Movie{title:'"));
 
         assertThat(connection)
-                .receivesFailureFuzzy(
+                .receivesFailureFuzzyWithCause(
                         Status.Statement.SyntaxError,
                         "Failed to parse string literal",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.");
+                        GqlStatusInfoCodes.STATUS_42001.getGqlStatus(),
+                        "error: syntax error or access rule violation - invalid syntax",
+                        assertErrorClassificationAndPositionOnDiagnosticRecord(
+                                "CLIENT_ERROR", diagnosticRecordPosition(21L, 1L, 20L)),
+                        assertErrorCause(
+                                "42I19: Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
+                                GqlStatusInfoCodes.STATUS_42I19.getGqlStatus(),
+                                "error: syntax error or access rule violation - invalid string literal. Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
+                                assertErrorClassificationAndPositionOnDiagnosticRecord(
+                                        "CLIENT_ERROR", diagnosticRecordPosition(21L, 1L, 20L))));
     }
 }
