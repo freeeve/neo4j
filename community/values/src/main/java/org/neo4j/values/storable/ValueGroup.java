@@ -52,6 +52,7 @@ public enum ValueGroup {
     TEXT(ValueCategory.TEXT),
     BOOLEAN(ValueCategory.BOOLEAN),
     NUMBER(ValueCategory.NUMBER),
+    VECTOR(ValueCategory.VECTOR),
     NO_VALUE(ValueCategory.NO_CATEGORY);
 
     private final ValueCategory category;

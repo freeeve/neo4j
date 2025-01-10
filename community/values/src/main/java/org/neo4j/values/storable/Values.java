@@ -357,6 +357,38 @@ public final class Values {
         return new DurationArray(durations);
     }
 
+    public static Value vectorValue(Vector vector) {
+        return switch (vector) {
+            case VectorValue value -> value;
+            case null -> NO_VALUE;
+            default -> throw new UnsupportedOperationException("Unsupported type of Vector " + vector);
+        };
+    }
+
+    public static Int64Vector int64Vector(long... coordinates) {
+        return new Int64Vector(coordinates);
+    }
+
+    public static Int32Vector int32Vector(int... coordinates) {
+        return new Int32Vector(coordinates);
+    }
+
+    public static Int16Vector int16Vector(short... coordinates) {
+        return new Int16Vector(coordinates);
+    }
+
+    public static Int8Vector int8Vector(byte... coordinates) {
+        return new Int8Vector(coordinates);
+    }
+
+    public static Float64Vector int64Vector(double... coordinates) {
+        return new Float64Vector(coordinates);
+    }
+
+    public static Float32Vector int32Vector(float... coordinates) {
+        return new Float32Vector(coordinates);
+    }
+
     // BOXED FACTORY METHODS
 
     /**
@@ -410,6 +442,7 @@ public final class Values {
             case char[] charArray -> charArray(Arrays.copyOf(charArray, charArray.length));
             case short[] shortArray -> shortArray(Arrays.copyOf(shortArray, shortArray.length));
             case Point point -> point(point);
+            case Vector vector -> vectorValue(vector);
             case Value ignored -> throw new UnsupportedOperationException(
                     "Converting a Value to a Value using Values.of() is not supported.");
             default -> null; // otherwise fail

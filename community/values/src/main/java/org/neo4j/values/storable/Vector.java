@@ -19,19 +19,8 @@
  */
 package org.neo4j.values.storable;
 
-public enum ValueCategory {
-    NUMBER,
-    NUMBER_ARRAY,
-    TEXT,
-    TEXT_ARRAY,
-    GEOMETRY,
-    GEOMETRY_ARRAY,
-    TEMPORAL,
-    TEMPORAL_ARRAY,
-    BOOLEAN,
-    BOOLEAN_ARRAY,
-    VECTOR,
-    UNKNOWN,
-    NO_CATEGORY,
-    ANYTHING
+// TODO: @PublicApi?
+//       org.neo4j.graphdb(.vector?)
+public interface Vector {
+    int dimensions();
 }

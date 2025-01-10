@@ -19,19 +19,19 @@
  */
 package org.neo4j.values.storable;
 
-public enum ValueCategory {
-    NUMBER,
-    NUMBER_ARRAY,
-    TEXT,
-    TEXT_ARRAY,
-    GEOMETRY,
-    GEOMETRY_ARRAY,
-    TEMPORAL,
-    TEMPORAL_ARRAY,
-    BOOLEAN,
-    BOOLEAN_ARRAY,
-    VECTOR,
-    UNKNOWN,
-    NO_CATEGORY,
-    ANYTHING
+import org.neo4j.values.utils.PrettyPrinter;
+
+public abstract sealed class VectorValue extends HashMemoizingScalarValue implements Vector
+        permits IntegralVector, FloatingPointVector {
+    @Override
+    public NumberType numberType() {
+        return NumberType.NO_NUMBER;
+    }
+
+    @Override
+    public String prettyPrint() {
+        final var pp = new PrettyPrinter();
+        writeTo(pp);
+        return pp.toString();
+    }
 }
