@@ -906,10 +906,7 @@ public class ImportCommand {
 
         @Override
         protected ReaderConfig schemaCommandsReaderConfig(VectorIndexVersion latestVectorIndexVersion) {
-            // This will be the config setting when schema commands are available for incremental
-            // return new ReaderConfig(allowEnterpriseFeatures(), true, true, latestVectorIndexVersion);
-            throw new UnsupportedOperationException(
-                    "Applying schema commands during incremental import is not currently supported");
+            return new ReaderConfig(allowEnterpriseFeatures(), true, true, latestVectorIndexVersion);
         }
 
         @Override
