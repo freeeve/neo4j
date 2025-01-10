@@ -154,8 +154,8 @@ class QuantifiedPathPatternParserTest extends AstParsingTestBase with LegacyAstP
               )
             )(pos),
             IntervalQuantifier(
-              Some(UnsignedDecimalIntegerLiteral("1")(pos)),
-              Some(UnsignedDecimalIntegerLiteral("3")(pos))
+              Some(UnsignedDecimalIntegerLiteral.safeLiteral("1")(pos)),
+              Some(UnsignedDecimalIntegerLiteral.safeLiteral("3")(pos))
             )(
               pos
             ),
@@ -558,8 +558,8 @@ class QuantifiedPathPatternsQuantifierParserTest extends AstParsingTestBase with
   test("{1_000, 1_000_000}") {
     parses[GraphPatternQuantifier].toAstPositioned {
       IntervalQuantifier(
-        Some(UnsignedDecimalIntegerLiteral("1_000")((1, 2, 1))),
-        Some(UnsignedDecimalIntegerLiteral("1_000_000")((1, 9, 8)))
+        Some(UnsignedDecimalIntegerLiteral.safeLiteral("1_000")((1, 2, 1))),
+        Some(UnsignedDecimalIntegerLiteral.safeLiteral("1_000_000")((1, 9, 8)))
       )((1, 1, 0))
     }
   }

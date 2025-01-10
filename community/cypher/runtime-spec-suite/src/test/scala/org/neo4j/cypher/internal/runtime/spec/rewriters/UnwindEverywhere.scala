@@ -52,7 +52,7 @@ case class UnwindEverywhere(
     ctx,
     config,
     (plan: LogicalPlan) => {
-      val one = UnsignedDecimalIntegerLiteral("1")(pos)
+      val one = UnsignedDecimalIntegerLiteral.safeLiteral("1")(pos)
       val range =
         FunctionInvocation(FunctionName(Range.name)(pos), distinct = false, args = IndexedSeq(one, one, one))(pos)
       UnwindCollection(plan, varFor(ctx.anonymousVariableNameGenerator.nextName), range)(ctx.idGen)

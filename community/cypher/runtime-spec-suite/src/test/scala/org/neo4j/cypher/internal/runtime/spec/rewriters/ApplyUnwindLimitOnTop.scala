@@ -63,8 +63,8 @@ case class ApplyUnwindLimitOnTop(
       case pr @ ProduceResult(source, columns)
         if isLeftmostLeafOkToMove(source) && randomShouldApply(config) =>
         val argument = Argument()(ctx.idGen)
-        val one = UnsignedDecimalIntegerLiteral("1")(pos)
-        val many = UnsignedDecimalIntegerLiteral("100")(pos)
+        val one = UnsignedDecimalIntegerLiteral.safeLiteral("1")(pos)
+        val many = UnsignedDecimalIntegerLiteral.safeLiteral("100")(pos)
         val range =
           FunctionInvocation(FunctionName(Range.name)(pos), distinct = false, args = IndexedSeq(one, many, one))(pos)
         val unwind = UnwindCollection(argument, varFor(ctx.anonymousVariableNameGenerator.nextName), range)(ctx.idGen)

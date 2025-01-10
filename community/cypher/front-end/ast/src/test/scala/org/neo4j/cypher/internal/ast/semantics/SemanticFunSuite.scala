@@ -55,7 +55,7 @@ trait SemanticFunSuite extends CypherFunSuite with SemanticAnalysisTooling with 
   def literal(x: Double) = DecimalDoubleLiteral(x.toString)(pos)
   def literal(x: Int) = SignedDecimalIntegerLiteral(x.toString)(pos)
 
-  def unsignedDecimal(str: String) = UnsignedDecimalIntegerLiteral(str)(pos)
+  def unsignedDecimal(str: String) = UnsignedDecimalIntegerLiteral.unsafeLiteral(str)(pos)
   def signedDecimal(str: String) = SignedDecimalIntegerLiteral(str)(pos)
   def decimalDouble(str: String) = DecimalDoubleLiteral(str)(pos)
   def signedOctal(str: String) = SignedOctalIntegerLiteral(str)(pos)

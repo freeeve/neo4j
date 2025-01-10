@@ -181,7 +181,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   override def exitNonNegativeIntegerSpecification(ctx: Cypher25Parser.NonNegativeIntegerSpecificationContext): Unit = {
     val integer = ctx.UNSIGNED_DECIMAL_INTEGER()
     ctx.ast = if (integer != null) {
-      Left(UnsignedDecimalIntegerLiteral(ctx.getText)(pos(ctx)))
+      Left(UnsignedDecimalIntegerLiteral.safeLiteral(ctx.getText)(pos(ctx)))
     } else {
       val count = ctx.parameter().ast[Parameter]()
       Right(ExplicitParameter(count.name, CTInteger)(count.position))
@@ -193,9 +193,12 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     ctx.ast = firstToken.getType match {
       case Cypher25Parser.LCURLY =>
         if (ctx.from != null || ctx.to != null || ctx.COMMA() != null) {
-          IntervalQuantifier(optUnsignedDecimalInt(ctx.from), optUnsignedDecimalInt(ctx.to))(pos(ctx))
+          IntervalQuantifier(
+            optUnsignedDecimalInt(ctx.from, maybeSensitive = false),
+            optUnsignedDecimalInt(ctx.to, maybeSensitive = false)
+          )(pos(ctx))
         } else {
-          FixedQuantifier(unsignedDecimalInt(nodeChild(ctx, 1).getSymbol))(pos(firstToken))
+          FixedQuantifier(unsignedDecimalInt(nodeChild(ctx, 1).getSymbol, maybeSensitive = false))(pos(firstToken))
         }
       case Cypher25Parser.PLUS  => PlusQuantifier()(pos(firstToken))
       case Cypher25Parser.TIMES => StarQuantifier()(pos(firstToken))
@@ -262,7 +265,10 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     ctx: Cypher25Parser.NonNegativeIntegerSpecificationContext,
     p: InputPosition
   ): Either[UnsignedDecimalIntegerLiteral, Parameter] =
-    astOpt[Either[UnsignedDecimalIntegerLiteral, Parameter]](ctx, Left(UnsignedDecimalIntegerLiteral("1")(p)))
+    astOpt[Either[UnsignedDecimalIntegerLiteral, Parameter]](
+      ctx,
+      Left(UnsignedDecimalIntegerLiteral.safeLiteral("1")(p))
+    )
 
   final override def exitSelector(ctx: Cypher25Parser.SelectorContext): Unit = {
     val p = pos(ctx)
@@ -308,11 +314,11 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   ): Unit = {
     // This is weird, we should refactor range to be more sensible and not use nested options
     ctx.ast = if (ctx.DOTDOT() != null) {
-      val from = optUnsignedDecimalInt(ctx.from)
-      val to = optUnsignedDecimalInt(ctx.to)
+      val from = optUnsignedDecimalInt(ctx.from, maybeSensitive = false)
+      val to = optUnsignedDecimalInt(ctx.to, maybeSensitive = false)
       Some(org.neo4j.cypher.internal.expressions.Range(from, to)(from.map(_.position).getOrElse(pos(ctx))))
     } else if (ctx.single != null) {
-      val single = Some(UnsignedDecimalIntegerLiteral(ctx.single.getText)(pos(ctx.single)))
+      val single = Some(UnsignedDecimalIntegerLiteral.safeLiteral(ctx.single.getText)(pos(ctx.single)))
       Some(org.neo4j.cypher.internal.expressions.Range(single, single)(pos(ctx)))
     } else None
   }

@@ -248,7 +248,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
         _ => SkipChildren(false)
     }) {
       val fixedZeroQuantifier =
-        FixedQuantifier(UnsignedDecimalIntegerLiteral("0")(InputPosition.NONE))(InputPosition.NONE)
+        FixedQuantifier(UnsignedDecimalIntegerLiteral.safeLiteral("0")(InputPosition.NONE))(InputPosition.NONE)
       val minimalPatternPart = x.element.endoRewrite {
         topDown(Rewriter.lift {
           case q: QuantifiedPath => q.copy(quantifier = fixedZeroQuantifier)(InputPosition.NONE)
@@ -424,7 +424,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
   private def checkQuantifier(quantifier: GraphPatternQuantifier): SemanticCheck =
     checkQuantifierValue(quantifier) ifOkChain {
       quantifier match {
-        case FixedQuantifier(UnsignedDecimalIntegerLiteral("0")) =>
+        case FixedQuantifier(UnsignedDecimalIntegerLiteral("0", _)) =>
           SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
             "quantifier for a path pattern",
             "INTEGER",
@@ -440,7 +440,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
                |In this case, the lower bound ${lower.value} is greater than the upper bound ${upper.value}.""".stripMargin,
             quantifier.position
           )
-        case IntervalQuantifier(_, Some(UnsignedDecimalIntegerLiteral("0"))) =>
+        case IntervalQuantifier(_, Some(UnsignedDecimalIntegerLiteral("0", _))) =>
           SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
             "quantifier upperbound for a path pattern",
             "INTEGER",

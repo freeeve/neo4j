@@ -186,8 +186,8 @@ object Deprecations {
           variable,
           labelExpression,
           Some(Some(Range(
-            Some(UnsignedDecimalIntegerLiteral("1")(relPat.position)),
-            Some(UnsignedDecimalIntegerLiteral("1")(relPat.position))
+            Some(UnsignedDecimalIntegerLiteral.safeLiteral("1")(relPat.position)),
+            Some(UnsignedDecimalIntegerLiteral.safeLiteral("1")(relPat.position))
           )(relPat.position))),
           properties,
           predicate,

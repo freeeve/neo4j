@@ -18,12 +18,17 @@ package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.expressions.Literal
+import org.neo4j.cypher.internal.expressions.SensitiveLiteral
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.FoldConstants
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class extractSensitiveLiteralsTest extends CypherFunSuite with AstConstructionTestSupport with RewritePhaseTest {
+abstract class extractSensitiveLiteralsTest extends CypherFunSuite with AstConstructionTestSupport
+    with RewritePhaseTest {
 
-  override def rewriterPhaseUnderTest: Phase[BaseContext, BaseState, BaseState] = ExtractSensitiveLiterals
+  override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
+    ExtractSensitiveLiterals(obfuscateSensitiveLiteralsOnly)
+  protected def obfuscateSensitiveLiteralsOnly: Boolean
 
   val queries = Seq(
     "MATCH (n) WHERE n.salary = 10000000.76 RETURN n",
@@ -44,9 +49,11 @@ class extractSensitiveLiteralsTest extends CypherFunSuite with AstConstructionTe
     "MATCH (p)-[:IS_PARENT*1..2]->() RETURN p.name, p.age"
   )
 
+  // NOTE: this test relies on sensitive literals being equal to their non-sensitive counter part. The point
+  // of the test is just so that we don't mess up the statement in the rewriter such as rewriting TRUE to FALSE (sic).
   for (q <- queries) {
     test(q) {
-      assertRewritten(q, q)
+      assertNotRewritten(q)
     }
   }
 
@@ -58,6 +65,25 @@ class extractSensitiveLiteralsTest extends CypherFunSuite with AstConstructionTe
     assertSensitiveNotRewritten("MATCH (n) WHERE 2<1 RETURN n AS r")
   }
 
+  test("should obfuscate quantifiers") {
+    val queries = Seq("MATCH (a)-[r*1..1000]->(b) RETURN b", "MATCH (a) ( ()-->() ){1,1000} (b) RETURN b")
+
+    queries.foreach(q => {
+      rewriteAndAssert(
+        q,
+        statement => {
+          statement.folder.findAllByClass[Literal].foreach(l => {
+            if (obfuscateSensitiveLiteralsOnly) {
+              l shouldNot be(a[SensitiveLiteral])
+            } else {
+              l shouldBe a[SensitiveLiteral]
+            }
+          })
+        }
+      )
+    })
+  }
+
   def assertSensitiveNotRewritten(query: String): Unit = {
     CypherVersion.values().foreach { version =>
       val unfolded = prepareFrom(version, query, rewriterPhaseUnderTest)
@@ -65,4 +91,12 @@ class extractSensitiveLiteralsTest extends CypherFunSuite with AstConstructionTe
       unfolded.statement() should equal(folded)
     }
   }
+}
+
+class extractAllSensitiveLiteralsTest extends extractSensitiveLiteralsTest {
+  override protected def obfuscateSensitiveLiteralsOnly: Boolean = false
+}
+
+class extractOnlyUnsafeSensitiveLiteralsTest extends extractSensitiveLiteralsTest {
+  override protected def obfuscateSensitiveLiteralsOnly: Boolean = true
 }

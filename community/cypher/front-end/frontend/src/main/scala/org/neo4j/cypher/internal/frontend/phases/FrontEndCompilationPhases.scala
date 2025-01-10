@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
+import org.neo4j.configuration.helpers.LogObfuscationLevel
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
@@ -50,7 +51,7 @@ trait FrontEndCompilationPhases {
     /* TODO: This is not part of configuration - Move to BaseState */
     parameterTypeMapping: Map[String, ParameterTypeInfo] = Map.empty,
     semanticFeatures: Seq[SemanticFeature] = defaultSemanticFeatures,
-    obfuscateLiterals: Boolean = false
+    obfuscateLiterals: LogObfuscationLevel = LogObfuscationLevel.NONE
   ) {
 
     def literalExtractionStrategy: LiteralExtractionStrategy = extractLiterals match {
@@ -65,8 +66,8 @@ trait FrontEndCompilationPhases {
     CollectSyntaxUsageMetrics andThen
       SyntaxDeprecationWarningsAndReplacements(Deprecations.SyntacticallyDeprecatedFeatures) andThen
       PreparatoryRewriting andThen
-      If((_: BaseState) => config.obfuscateLiterals)(
-        ExtractSensitiveLiterals
+      If((_: BaseState) => config.obfuscateLiterals.obfuscateLiterals())(
+        ExtractSensitiveLiterals(config.obfuscateLiterals.obfuscateOnlyUnsafeLiterals())
       ) andThen
       SemanticAnalysis(warn = true, config.semanticFeatures: _*) andThen
       UnwrapTopLevelBraces andThen

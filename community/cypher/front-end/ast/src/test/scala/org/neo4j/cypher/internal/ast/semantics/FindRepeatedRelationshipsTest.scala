@@ -150,7 +150,7 @@ class FindRepeatedRelationshipsTest extends CypherFunSuite {
     RelationshipPattern(Some(id), None, None, None, None, SemanticDirection.OUTGOING)(pos)
 
   private def variableLengthRelPattern(id: Variable) = {
-    val range = expressions.Range(Some(UnsignedDecimalIntegerLiteral("2")(pos)), None)(pos)
+    val range = expressions.Range(Some(UnsignedDecimalIntegerLiteral.safeLiteral("2")(pos)), None)(pos)
     RelationshipPattern(Some(id), None, Some(Some(range)), None, None, SemanticDirection.OUTGOING)(pos)
   }
 }

@@ -34,7 +34,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class QuantifiedPathPatternConvertersTest extends CypherFunSuite {
 
   final private val position: InputPosition = InputPosition.NONE
-  final private val literal123: UnsignedIntegerLiteral = UnsignedDecimalIntegerLiteral("123")(position)
+  final private val literal123: UnsignedIntegerLiteral = UnsignedDecimalIntegerLiteral.safeLiteral("123")(position)
 
   test("should convert * quantifier to 0 or more repetitions") {
     val quantifier = StarQuantifier()(position)

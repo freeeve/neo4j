@@ -1320,7 +1320,7 @@ case class LogicalPlan2PlanDescription(
       case SimulatedNodeScan(idName, numberOfRows) =>
         val details = Details(Seq(
           asPrettyString(idName),
-          asPrettyString(UnsignedDecimalIntegerLiteral(numberOfRows.toString)(InputPosition.NONE))
+          asPrettyString(UnsignedDecimalIntegerLiteral.safeLiteral(numberOfRows.toString)(InputPosition.NONE))
         ))
         PlanDescriptionImpl(
           id,

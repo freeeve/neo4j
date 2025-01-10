@@ -693,7 +693,7 @@ class AstGenerator(
   } yield List(sig, str).mkString
 
   def _unsignedDecIntLit: Gen[UnsignedDecimalIntegerLiteral] =
-    _unsignedIntString("", 10).map(UnsignedDecimalIntegerLiteral(_)(pos))
+    _unsignedIntString("", 10).map(UnsignedDecimalIntegerLiteral.unsafeLiteral(_)(pos))
 
   def _signedDecIntLit: Gen[SignedDecimalIntegerLiteral] =
     _signedIntString("", 10).map(SignedDecimalIntegerLiteral(_)(pos))

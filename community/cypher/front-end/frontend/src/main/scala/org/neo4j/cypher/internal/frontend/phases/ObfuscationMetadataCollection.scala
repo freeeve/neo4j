@@ -70,7 +70,10 @@ case object ObfuscationMetadataCollection extends Phase[BaseContext, BaseState, 
           extractedParameters.get(p) match {
             case Some(originalExp) =>
               val literalOffsets = originalExp.folder.findAllByClass[Literal]
-                .map(_.asSensitiveLiteral)
+                .map(_.sensitivize)
+                .collect {
+                  case s: SensitiveLiteral => s
+                }
                 .map(l => LiteralOffset(l.position.offset, l.position.line, Some(l.literalLength)))
               SkipChildren(acc ++ literalOffsets)
             case None =>

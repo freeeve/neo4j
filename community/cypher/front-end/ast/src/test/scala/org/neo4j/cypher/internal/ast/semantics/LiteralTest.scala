@@ -35,8 +35,8 @@ class LiteralTest extends SemanticFunSuite {
   }
 
   test("correctly parses unsigned decimal numbers") {
-    assert(UnsignedDecimalIntegerLiteral("22")(pos).value === 22)
-    assert(UnsignedDecimalIntegerLiteral("0")(pos).value === 0)
+    assert(UnsignedDecimalIntegerLiteral.unsafeLiteral("22")(pos).value === 22)
+    assert(UnsignedDecimalIntegerLiteral.unsafeLiteral("0")(pos).value === 0)
   }
 
   test("throws error for invalid unsigned decimal numbers") {

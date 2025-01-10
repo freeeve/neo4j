@@ -148,8 +148,8 @@ case class StatefulShortestToFindShortestRewriter(
     pr.length match {
       case SimplePatternLength => None
       case VarPatternLength(min, max) => Some(Some(Range(
-          Some(UnsignedDecimalIntegerLiteral(min.toString)(pos)),
-          max.map(i => UnsignedDecimalIntegerLiteral(i.toString)(pos))
+          Some(UnsignedDecimalIntegerLiteral.safeLiteral(min.toString)(pos)),
+          max.map(i => UnsignedDecimalIntegerLiteral.safeLiteral(i.toString)(pos))
         )(pos)))
     }
   }
@@ -221,8 +221,8 @@ case class StatefulShortestToFindShortestRewriter(
   private def getRange(qpp: QuantifiedPathPattern): Option[Some[Range]] = {
     val pos = InputPosition.NONE
     Some(Some(Range(
-      Some(UnsignedDecimalIntegerLiteral(qpp.repetition.min.toString)(pos)),
-      qpp.repetition.max.limit.map(i => UnsignedDecimalIntegerLiteral(i.toString)(pos))
+      Some(UnsignedDecimalIntegerLiteral.safeLiteral(qpp.repetition.min.toString)(pos)),
+      qpp.repetition.max.limit.map(i => UnsignedDecimalIntegerLiteral.safeLiteral(i.toString)(pos))
     )(pos)))
   }
 

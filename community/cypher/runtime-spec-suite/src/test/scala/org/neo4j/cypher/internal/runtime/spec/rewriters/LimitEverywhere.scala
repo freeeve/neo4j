@@ -48,7 +48,7 @@ case class LimitEverywhere(
     ctx,
     config,
     (plan: LogicalPlan) => {
-      Limit(plan, UnsignedDecimalIntegerLiteral(Long.MaxValue.toString)(pos))(ctx.idGen)
+      Limit(plan, UnsignedDecimalIntegerLiteral.safeLiteral(Long.MaxValue.toString)(pos))(ctx.idGen)
     }
   )
 

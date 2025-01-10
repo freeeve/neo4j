@@ -42,7 +42,7 @@ object RewriteShortestPathWithFixedLengthRel extends Rewriter {
         r @ RelationshipChain(_: NodePattern, relPat @ RelationshipPattern(_, _, None, _, _, _), _),
         _
       ) =>
-      val one = Some(UnsignedDecimalIntegerLiteral("1")(InputPosition.NONE))
+      val one = Some(UnsignedDecimalIntegerLiteral.safeLiteral("1")(InputPosition.NONE))
       val range = Some(Some(Range(one, one)(InputPosition.NONE)))
 
       s.copy(element = r.copy(relationship = relPat.copy(length = range)(relPat.position))(r.position))(s.position)

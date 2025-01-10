@@ -351,7 +351,7 @@ trait AstConstructionTestSupport {
     SignedDecimalIntegerLiteral(value.toString)(position)
 
   def literalUnsignedInt(intValue: Int): UnsignedDecimalIntegerLiteral =
-    UnsignedDecimalIntegerLiteral(intValue.toString)(pos)
+    UnsignedDecimalIntegerLiteral.safeLiteral(intValue.toString)(pos)
 
   def literalFloat(floatValue: Double): DecimalDoubleLiteral =
     DecimalDoubleLiteral(floatValue.toString)(pos)
@@ -877,13 +877,13 @@ trait AstConstructionTestSupport {
     PatternPart.AllPaths()(pos)
 
   def anyPathSelector(count: Int): PatternPart.AnyPath =
-    PatternPart.AnyPath(Left(UnsignedDecimalIntegerLiteral(count.toString)(pos)))(pos)
+    PatternPart.AnyPath(Left(UnsignedDecimalIntegerLiteral.safeLiteral(count.toString)(pos)))(pos)
 
   def anyPathSelector(count: String): PatternPart.AnyPath =
     PatternPart.AnyPath(Right(parameter(count, CTInteger)))(pos)
 
   def anyShortestPathSelector(count: Int): PatternPart.AnyShortestPath =
-    PatternPart.AnyShortestPath(Left(UnsignedDecimalIntegerLiteral(count.toString)(pos)))(pos)
+    PatternPart.AnyShortestPath(Left(UnsignedDecimalIntegerLiteral.safeLiteral(count.toString)(pos)))(pos)
 
   def anyShortestPathSelector(count: String): PatternPart.AnyShortestPath =
     PatternPart.AnyShortestPath(Right(parameter(count, CTInteger)))(pos)
@@ -892,7 +892,7 @@ trait AstConstructionTestSupport {
     PatternPart.AllShortestPaths()(pos)
 
   def shortestGroups(count: Int): PatternPart.ShortestGroups =
-    PatternPart.ShortestGroups(Left(UnsignedDecimalIntegerLiteral(count.toString)(pos)))(pos)
+    PatternPart.ShortestGroups(Left(UnsignedDecimalIntegerLiteral.safeLiteral(count.toString)(pos)))(pos)
 
   def shortestGroups(count: String): PatternPart.ShortestGroups =
     PatternPart.ShortestGroups(Right(parameter(count, CTInteger)))(pos)

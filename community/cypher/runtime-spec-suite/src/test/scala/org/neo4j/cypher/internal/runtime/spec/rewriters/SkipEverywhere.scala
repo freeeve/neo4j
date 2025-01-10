@@ -48,7 +48,7 @@ case class SkipEverywhere(
     ctx,
     config,
     (plan: LogicalPlan) => {
-      Skip(plan, UnsignedDecimalIntegerLiteral("0")(pos))(ctx.idGen)
+      Skip(plan, UnsignedDecimalIntegerLiteral.safeLiteral("0")(pos))(ctx.idGen)
     }
   )
 

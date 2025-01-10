@@ -752,8 +752,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     val length = p.length match {
       case SimplePatternLength => None
       case VarPatternLength(min, max) => Some(Some(Range(
-          Some(UnsignedDecimalIntegerLiteral(min.toString)(pos)),
-          max.map(i => UnsignedDecimalIntegerLiteral(i.toString)(pos))
+          Some(UnsignedDecimalIntegerLiteral.safeLiteral(min.toString)(pos)),
+          max.map(i => UnsignedDecimalIntegerLiteral.safeLiteral(i.toString)(pos))
         )(pos)))
     }
 

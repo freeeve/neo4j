@@ -51,7 +51,7 @@ case class LimitOnTop(
   private val instance: Rewriter = topDown(
     Rewriter.lift {
       case pr @ ProduceResult(source, columns) if randomShouldApply(config) =>
-        val limit = Limit(source, UnsignedDecimalIntegerLiteral(Long.MaxValue.toString)(pos))(ctx.idGen)
+        val limit = Limit(source, UnsignedDecimalIntegerLiteral.safeLiteral(Long.MaxValue.toString)(pos))(ctx.idGen)
         ProduceResult(limit, columns)(SameId(pr.id))
     },
     onlyRewriteLogicalPlansStopper

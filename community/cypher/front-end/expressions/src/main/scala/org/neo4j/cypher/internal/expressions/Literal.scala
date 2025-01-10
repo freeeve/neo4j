@@ -26,6 +26,8 @@ import scala.util.matching.Regex
 sealed trait Literal extends Expression {
   def value: AnyRef
   def asCanonicalStringVal: String
+  def maybeSensitive: Boolean = true
+  def sensitivize: Literal = if (maybeSensitive) asSensitiveLiteral else this
   def asSensitiveLiteral: Literal with SensitiveLiteral
   override def isConstantForQuery: Boolean = true
 }
@@ -61,13 +63,26 @@ case class SignedDecimalIntegerLiteral(stringVal: String)(val position: InputPos
     }
 }
 
-case class UnsignedDecimalIntegerLiteral(stringVal: String)(val position: InputPosition)
+case class UnsignedDecimalIntegerLiteral(
+  stringVal: String,
+  override val maybeSensitive: Boolean
+)(val position: InputPosition)
     extends DecimalIntegerLiteral(stringVal) with UnsignedIntegerLiteral {
 
   override def asSensitiveLiteral: Literal with SensitiveLiteral =
-    new UnsignedDecimalIntegerLiteral(stringVal)(position) with SensitiveLiteral {
+    new UnsignedDecimalIntegerLiteral(stringVal, maybeSensitive)(position) with SensitiveLiteral {
       override def literalLength: Int = stringVal.length
     }
+}
+
+object UnsignedDecimalIntegerLiteral {
+
+  def safeLiteral(stringVal: String)(position: InputPosition): UnsignedDecimalIntegerLiteral =
+    UnsignedDecimalIntegerLiteral(stringVal, maybeSensitive = false)(position)
+
+  def unsafeLiteral(stringVal: String)(position: InputPosition): UnsignedDecimalIntegerLiteral =
+    UnsignedDecimalIntegerLiteral(stringVal, maybeSensitive = true)(position)
+
 }
 
 sealed abstract class OctalIntegerLiteral(stringVal: String) extends IntegerLiteral {

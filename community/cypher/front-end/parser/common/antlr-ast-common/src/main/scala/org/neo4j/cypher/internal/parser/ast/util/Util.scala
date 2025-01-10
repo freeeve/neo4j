@@ -53,12 +53,12 @@ object Util {
     else throw new IllegalArgumentException(s"Unexpected size $size")
   }
 
-  def optUnsignedDecimalInt(token: Token): Option[UnsignedDecimalIntegerLiteral] = {
-    if (token != null) Some(unsignedDecimalInt(token)) else None
+  def optUnsignedDecimalInt(token: Token, maybeSensitive: Boolean): Option[UnsignedDecimalIntegerLiteral] = {
+    if (token != null) Some(unsignedDecimalInt(token, maybeSensitive)) else None
   }
 
-  def unsignedDecimalInt(token: Token): UnsignedDecimalIntegerLiteral = {
-    UnsignedDecimalIntegerLiteral(token.getText)(pos(token))
+  def unsignedDecimalInt(token: Token, maybeSensitive: Boolean): UnsignedDecimalIntegerLiteral = {
+    UnsignedDecimalIntegerLiteral(token.getText, maybeSensitive)(pos(token))
   }
 
   @inline def ctxChild(ctx: AstRuleCtx, index: Int): AstRuleCtx = ctx.getChild(index).asInstanceOf[AstRuleCtx]
