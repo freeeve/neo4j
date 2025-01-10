@@ -46,6 +46,7 @@ import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.availability.DatabaseAvailabilityGuard;
 import org.neo4j.kernel.database.DatabaseCreationContext;
+import org.neo4j.kernel.database.DatabaseMonitorsFactory;
 import org.neo4j.kernel.database.DatabaseStartupController;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.database.NamedDatabaseId;
@@ -76,7 +77,6 @@ import org.neo4j.logging.internal.DatabaseLogService;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.GlobalMemoryGroupTracker;
 import org.neo4j.monitoring.DatabaseHealth;
-import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.time.SystemNanoClock;
 import org.neo4j.token.TokenHolders;
@@ -99,7 +99,6 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     private final TransactionalProcessFactory commitProcessFactory;
     private final PageCache pageCache;
     private final ConstraintSemantics constraintSemantics;
-    private final Monitors parentMonitors;
     private final DatabaseTracers tracers;
     private final GlobalProcedures globalProcedures;
     private final IOControllerService ioControllerService;
@@ -124,6 +123,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     private final DatabaseStartupController startupController;
     private final GlobalMemoryGroupTracker transactionsMemoryPool;
     private final GlobalMemoryGroupTracker otherMemoryPool;
+    private final DatabaseMonitorsFactory databaseMonitorsFactory;
     private final ReadOnlyDatabases readOnlyDatabases;
     private final CommandCommitListeners commandCommitListeners;
     private final TransactionsFactory transactionsFactory;
@@ -139,7 +139,6 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
             DeviceMapper deviceMapper,
             VersionStorageFactory versionStorageFactory,
             DatabaseConfig databaseConfig,
-            Monitors parentMonitors,
             LeaseService leaseService,
             StorageEngineFactorySupplier storageEngineFactorySupplier,
             ConstraintSemantics constraintSemantics,
@@ -157,7 +156,8 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
             IOControllerService ioControllerService,
             DatabaseTracers tracers,
             CommandCommitListeners commandCommitListeners,
-            TransactionsFactory transactionsFactory) {
+            TransactionsFactory transactionsFactory,
+            DatabaseMonitorsFactory databaseMonitorsFactory) {
         this.serverIdentity = serverIdentity;
         this.namedDatabaseId = namedDatabaseId;
         this.databaseConfig = databaseConfig;
@@ -170,12 +170,12 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
         this.idController = databaseIdContext.getIdController();
         this.transactionsMemoryPool = globalModule.getTransactionsMemoryPool();
         this.otherMemoryPool = globalModule.getOtherMemoryPool();
+        this.databaseMonitorsFactory = databaseMonitorsFactory;
         this.databaseLogService = new DatabaseLogService(namedDatabaseId, globalModule.getLogService());
         this.scheduler = globalModule.getJobScheduler();
         this.globalDependencies = globalDependencies;
         this.tokenHolders = tokenHolders;
         this.transactionEventListeners = globalModule.getTransactionEventListeners();
-        this.parentMonitors = parentMonitors;
         this.fs = globalModule.getFileSystem();
         this.transactionStats = transactionStats;
         this.indexStats = indexStats;
@@ -294,11 +294,6 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     @Override
     public ConstraintSemantics getConstraintSemantics() {
         return constraintSemantics;
-    }
-
-    @Override
-    public Monitors getMonitors() {
-        return parentMonitors;
     }
 
     @Override
@@ -434,6 +429,11 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     @Override
     public PagePrefetcher getPagePrefetcher() {
         return pagePrefetcher;
+    }
+
+    @Override
+    public DatabaseMonitorsFactory getDatabaseMonitorsFactory() {
+        return databaseMonitorsFactory;
     }
 
     @Override

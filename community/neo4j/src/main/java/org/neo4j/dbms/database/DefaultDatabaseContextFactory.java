@@ -31,7 +31,10 @@ import org.neo4j.io.device.DeviceMapper;
 import org.neo4j.kernel.api.Kernel;
 import org.neo4j.kernel.database.Database;
 import org.neo4j.kernel.database.DatabaseCreationContext;
+import org.neo4j.kernel.database.DatabaseMonitors;
+import org.neo4j.kernel.database.DatabaseMonitorsFactory;
 import org.neo4j.kernel.database.DatabaseTracers;
+import org.neo4j.kernel.database.DefaultDatabaseMonitorsFactory;
 import org.neo4j.kernel.database.GlobalAvailabilityGuardController;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.impl.api.ExternalIdReuseConditionProvider;
@@ -44,6 +47,7 @@ import org.neo4j.kernel.impl.index.DatabaseIndexStats;
 import org.neo4j.kernel.impl.pagecache.CommunityVersionStorageFactory;
 import org.neo4j.kernel.impl.pagecache.IOControllerService;
 import org.neo4j.kernel.impl.transaction.stats.DatabaseTransactionStats;
+import org.neo4j.logging.internal.DatabaseLogProvider;
 
 public class DefaultDatabaseContextFactory
         extends AbstractDatabaseContextFactory<StandaloneDatabaseContext, Optional<?>> {
@@ -97,7 +101,6 @@ public class DefaultDatabaseContextFactory
                     deviceMapper,
                     new CommunityVersionStorageFactory(),
                     databaseConfig,
-                    globalModule.getGlobalMonitors(),
                     LeaseService.NO_LEASES,
                     () -> DatabaseCreationContext.selectStorageEngine(
                             globalModule.getFileSystem(),
@@ -119,9 +122,17 @@ public class DefaultDatabaseContextFactory
                     controllerService,
                     new DatabaseTracers(globalModule.getTracers(), namedDatabaseId),
                     globalModule.getDefaultCommandCommitListeners(),
-                    TransactionsFactory.DEFAULT);
+                    TransactionsFactory.DEFAULT,
+                    databaseMonitorsFactory(namedDatabaseId));
             kernelDatabase = new Database(creationContext);
             context = new StandaloneDatabaseContext(kernelDatabase);
+        }
+
+        private DatabaseMonitorsFactory databaseMonitorsFactory(NamedDatabaseId namedDatabaseId) {
+            return new DefaultDatabaseMonitorsFactory(new DatabaseMonitors(
+                    globalModule.getGlobalMonitors(),
+                    new DatabaseLogProvider(
+                            namedDatabaseId, globalModule.getLogService().getInternalLogProvider())));
         }
 
         private StandaloneDatabaseContext context() {

@@ -140,4 +140,10 @@ public class Dependencies implements DependencyResolver, DependencySatisfier {
             satisfyDependency(dependency);
         }
     }
+
+    public <T> void satisfyDependencyIfAbsent(T dependency) {
+        if (!containsDependency(dependency.getClass())) {
+            satisfyDependency(dependency);
+        }
+    }
 }

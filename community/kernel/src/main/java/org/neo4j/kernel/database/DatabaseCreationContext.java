@@ -61,7 +61,6 @@ import org.neo4j.kernel.monitoring.DatabaseEventListeners;
 import org.neo4j.logging.internal.DatabaseLogService;
 import org.neo4j.memory.GlobalMemoryGroupTracker;
 import org.neo4j.monitoring.DatabaseHealth;
-import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.time.SystemNanoClock;
@@ -101,8 +100,6 @@ public interface DatabaseCreationContext {
     PageCache getPageCache();
 
     ConstraintSemantics getConstraintSemantics();
-
-    Monitors getMonitors();
 
     DatabaseTracers getTracers();
 
@@ -164,4 +161,6 @@ public interface DatabaseCreationContext {
     CommandCommitListeners getCommandCommitListeners();
 
     PagePrefetcher getPagePrefetcher();
+
+    DatabaseMonitorsFactory getDatabaseMonitorsFactory();
 }

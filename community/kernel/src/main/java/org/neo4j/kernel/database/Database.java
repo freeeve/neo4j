@@ -274,7 +274,7 @@ public class Database extends AbstractDatabase {
                 context.getNamedDatabaseId(),
                 context.getDatabaseConfig(),
                 context.getDatabaseEventListeners(),
-                context.getMonitors(),
+                context.getDatabaseMonitorsFactory(),
                 context.getDatabaseLogService(),
                 context.getScheduler(),
                 context.getDatabaseAvailabilityGuardFactory(),
@@ -380,7 +380,7 @@ public class Database extends AbstractDatabase {
         databaseDependencies.satisfyDependency(tracers.getDatabaseTracer());
         databaseDependencies.satisfyDependency(tracers.getPageCacheTracer());
         databaseDependencies.satisfyDependency(storageEngineFactory);
-        databaseDependencies.satisfyDependencies(mode);
+        databaseDependencies.satisfyDependencyIfAbsent(mode);
         databaseDependencies.satisfyDependencies(commandCommitListeners);
 
         recoveryCleanupWorkCollector = life.add(new GroupingRecoveryCleanupWorkCollector(

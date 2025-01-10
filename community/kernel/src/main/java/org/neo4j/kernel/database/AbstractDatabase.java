@@ -71,7 +71,7 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
     protected final NamedDatabaseId namedDatabaseId;
     protected final DatabaseConfig databaseConfig;
     protected final DatabaseEventListeners eventListeners;
-    protected final Monitors parentMonitors;
+    protected final DatabaseMonitorsFactory monitorsFactory;
     protected final DatabaseLogService databaseLogService;
     protected final DatabaseLogProvider internalLogProvider;
     protected final SystemNanoClock clock;
@@ -91,7 +91,7 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
             NamedDatabaseId namedDatabaseId,
             DatabaseConfig databaseConfig,
             DatabaseEventListeners eventListeners,
-            Monitors monitors,
+            DatabaseMonitorsFactory monitorsFactory,
             DatabaseLogService databaseLogService,
             JobScheduler scheduler,
             LongFunction<DatabaseAvailabilityGuard> databaseAvailabilityGuardFactory,
@@ -101,7 +101,7 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
         this.namedDatabaseId = namedDatabaseId;
         this.databaseConfig = databaseConfig;
         this.eventListeners = eventListeners;
-        this.parentMonitors = monitors;
+        this.monitorsFactory = monitorsFactory;
         this.databaseLogService = databaseLogService;
         this.internalLogProvider = databaseLogService.getInternalLogProvider();
         this.clock = clock;
@@ -128,14 +128,13 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
         try {
             databaseDependencies = new Dependencies(globalDependencies);
             life = new LifeSupport();
-            databaseMonitors = new DatabaseMonitors(parentMonitors, internalLogProvider);
-            life.add(databaseMonitors);
+            databaseMonitors = monitorsFactory.create(life);
             databaseHealth = databaseHealthFactory.newInstance();
 
             databaseDependencies.satisfyDependency(this);
-            databaseDependencies.satisfyDependency(databaseMonitors);
             databaseDependencies.satisfyDependency(databaseHealth);
-            databaseDependencies.satisfyDependency(namedDatabaseId);
+            databaseDependencies.satisfyDependencyIfAbsent(databaseMonitors);
+            databaseDependencies.satisfyDependencyIfAbsent(namedDatabaseId);
             databaseDependencies.satisfyDependency(databaseConfig);
             databaseDependencies.satisfyDependency(databaseLogService);
             databaseDependencies.satisfyDependency(databaseAvailabilityGuard);
