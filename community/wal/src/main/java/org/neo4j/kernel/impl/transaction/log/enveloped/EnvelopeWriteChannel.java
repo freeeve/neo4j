@@ -214,7 +214,8 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
     @Override
     public long position() throws IOException {
         checkState(
-                buffer.position() == currentEnvelopeStart + LogEnvelopeHeader.HEADER_SIZE,
+                (buffer.position() == currentEnvelopeStart + LogEnvelopeHeader.HEADER_SIZE)
+                        || /* or after a directPutAll */ buffer.position() == currentEnvelopeStart,
                 "position() must be called right after endCurrentEntry()");
 
         long bufferViewStart = channel.position() - lastWrittenPosition;
@@ -376,14 +377,9 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
             int offsetIntoSegment =
                     (int) (offset & (segmentBlockSize - 1)); // segmentBlockSize is guaranteed power of 2
             // Should write a start offset envelope if there is not already data up to the offset
-            if (offsetIntoSegment != 0 && ((buffer.position() - HEADER_SIZE) % segmentBlockSize != offsetIntoSegment)) {
+            if (offsetIntoSegment != 0 && (currentEnvelopeStart % segmentBlockSize != offsetIntoSegment)) {
                 insertStartOffset(offsetIntoSegment);
             }
-            buffer.position(nextSegmentOffset - segmentBlockSize + offsetIntoSegment);
-        } else {
-            // The position is always one header in, but direct writes should be directly after
-            // previous data if no offset specified.
-            buffer.position(buffer.position() - HEADER_SIZE);
         }
 
         int length = src.remaining();
@@ -404,11 +400,6 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
         appendedBytes += length;
         // Update envelope start so that everything we have written will be flushed on next flush call
         currentEnvelopeStart = buffer.position();
-        // TODO MERGELOG - preparing for a new envelope so getPosition will be happy in truncate in
-        // RemoteStore/TxLogCatchupSession.
-        // Some chance that it will push us to the next segment even though it shouldn't.
-        // Switch to something better here later
-        prepareNextEnvelope();
         return this;
     }
 

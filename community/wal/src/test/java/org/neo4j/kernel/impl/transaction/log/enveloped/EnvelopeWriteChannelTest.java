@@ -1293,8 +1293,8 @@ class EnvelopeWriteChannelTest {
             // Asking for segment size offset - should be turned into offset into current envelope
             channel.directPutAll(inData, segmentSize);
 
-            // Should have positioned one header in again
-            assertThat(realBuffer.position()).isEqualTo(chunkSize * 2 + HEADER_SIZE);
+            // Should have positioned directly after
+            assertThat(realBuffer.position()).isEqualTo(chunkSize * 2);
             channel.prepareForFlush();
 
             assertEnvelopeContents(
@@ -1340,8 +1340,8 @@ class EnvelopeWriteChannelTest {
 
             // Asking a bit in and don't have data written up to that point
             channel.directPutAll(inData, 33);
-            // Should have positioned one header in again
-            assertThat(realBuffer.position()).isEqualTo(33 + chunkSize * 2 + HEADER_SIZE);
+            // Should have positioned directly after
+            assertThat(realBuffer.position()).isEqualTo(33 + chunkSize * 2);
             channel.prepareForFlush();
 
             assertEnvelopeContents(
@@ -1389,8 +1389,8 @@ class EnvelopeWriteChannelTest {
             channel.directPutAll(inData.limit(chunkSize), 0);
             channel.directPutAll(inData.position(chunkSize).limit(chunkSize * 2), -1);
 
-            // Should have positioned one header in again
-            assertThat(realBuffer.position()).isEqualTo(chunkSize * 2 + HEADER_SIZE);
+            // Should have positioned directly after
+            assertThat(realBuffer.position()).isEqualTo(chunkSize * 2);
             channel.prepareForFlush();
 
             assertEnvelopeContents(
@@ -1437,8 +1437,8 @@ class EnvelopeWriteChannelTest {
             channel.directPutAll(inData.limit(chunkSize), 0);
             channel.directPutAll(inData.position(chunkSize).limit(chunkSize * 2), chunkSize);
 
-            // Should have positioned one header in again
-            assertThat(realBuffer.position()).isEqualTo(chunkSize * 2 + HEADER_SIZE);
+            // Should have positioned directly after
+            assertThat(realBuffer.position()).isEqualTo(chunkSize * 2);
             channel.prepareForFlush();
 
             assertEnvelopeContents(
@@ -1485,8 +1485,8 @@ class EnvelopeWriteChannelTest {
             // Asking for segment size offset - should be turned into offset into current envelope
             channel.directPutAll(inData, segmentSize);
 
-            // Should have positioned one header in again (header and data in end envelope plus another header)
-            assertThat(realBuffer.position()).isEqualTo(HEADER_SIZE + 10 + HEADER_SIZE);
+            // Should have positioned directly after (header and data in end envelope)
+            assertThat(realBuffer.position()).isEqualTo(HEADER_SIZE + 10);
             channel.prepareForFlush();
 
             assertEnvelopeContents(
@@ -1498,6 +1498,60 @@ class EnvelopeWriteChannelTest {
                             FIRST_INDEX + 1,
                             Arrays.copyOfRange(byteData, 28, byteData.length),
                             checksums[2]));
+        }
+    }
+
+    @Test
+    void twoConsecutiveDirectPutAllGetsCorrectPosition() throws IOException {
+        int segmentSize = 128;
+        final var byteData = bytes(random, 4);
+        final var checksums = new int[] {0x80715BD2, 0xFF3B2A15};
+
+        // Create some real envelopes to write as a chunk to an EnvelopeWriteChannel
+        var fileChannel = storeChannel(0);
+        HeapScopedBuffer buffer1 = buffer(384);
+        ByteBuffer inData;
+        ByteBuffer inDataCopy;
+        try (var channel = writeChannel(fileChannel, segmentSize, buffer1)) {
+            channel.putVersion(KERNEL_VERSION);
+            channel.putTerm(TERM);
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(byteData, byteData.length);
+            assertChecksum(channel.putChecksum(), checksums[0]);
+
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(byteData, byteData.length);
+            assertChecksum(channel.putChecksum(), checksums[1]);
+            inData = slice(buffer1).position(segmentSize);
+            inData.limit(buffer1.getBuffer().position() - HEADER_SIZE);
+            inDataCopy = slice(buffer1).position(segmentSize);
+            inDataCopy.limit(buffer1.getBuffer().position() - HEADER_SIZE);
+        }
+
+        fileChannel = storeChannel();
+        final var buffer = buffer(segmentSize);
+        try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
+            ByteBuffer realBuffer = buffer.getBuffer();
+            assertThat(realBuffer.position())
+                    .as("buffer is already positioned one header in")
+                    .isEqualTo(HEADER_SIZE);
+
+            int dataLimit = inData.limit();
+            int splitPoint = inData.position() + 50;
+            channel.directPutAll(inData.limit(splitPoint), -1);
+            // Should have positioned directly after
+            assertThat(realBuffer.position()).isEqualTo(50);
+
+            // Do another directPut and see that it manages to put the bytes directly after the first put
+            channel.directPutAll(inData.limit(dataLimit).position(splitPoint), -1);
+            assertThat(realBuffer.position()).isEqualTo(dataLimit % segmentSize);
+
+            channel.prepareForFlush();
+
+            assertEnvelopeContents(
+                    channelData(fileChannel, segmentSize),
+                    envelope(EnvelopeType.FULL, FIRST_INDEX, byteData, checksums[0]),
+                    envelope(EnvelopeType.FULL, FIRST_INDEX + 1, byteData, checksums[1]));
         }
     }
 
