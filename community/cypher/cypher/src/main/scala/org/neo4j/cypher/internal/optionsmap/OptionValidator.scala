@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.MapValueOps.Ops
 import org.neo4j.dbms.systemgraph.SeedRestoreUntil
 import org.neo4j.dbms.systemgraph.allocation.DatabaseAllocationHints
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException
+import org.neo4j.kernel.database.NormalizedDatabaseName
 import org.neo4j.storageengine.api.StorageEngineFactory
 import org.neo4j.storageengine.api.StorageEngineFactory.allAvailableStorageEngines
 import org.neo4j.values.AnyValue
@@ -163,12 +164,11 @@ object SeedURIOption extends StringOptionValidator {
   }
 }
 
-object SeedSourceDatabaseOption extends StringOptionValidator {
+object SeedSourceDatabaseOption extends OptionValidator[NormalizedDatabaseName] {
   override val KEY: String = "seedSourceDatabase"
 
-  override protected def validateContent(value: String, config: Option[Config])(implicit operation: String): Unit = {
-    // no content validation, any string is accepted
-  }
+  override protected def validate(value: AnyValue, config: Option[Config])(implicit
+    operation: String): NormalizedDatabaseName = ???
 }
 
 object SeedCredentialsOption extends StringOptionValidator {
