@@ -46,5 +46,6 @@
         <module>layout-test-utils</module>
         <module>test-proxy</module>
         <module>random-values</module>
+        <module>gql-error-test-utils</module>
     </modules>
 </project>

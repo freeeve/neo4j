@@ -37,6 +37,8 @@ import static org.neo4j.kernel.api.impl.fulltext.FulltextIndexSettingsKeys.EVENT
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.RelationshipType;
@@ -812,25 +814,24 @@ class FulltextIndexTest extends LuceneFulltextTestSupport {
 
             try (NodeValueIndexCursor cursor =
                     ktx.cursors().allocateNodeValueIndexCursor(ktx.cursorContext(), ktx.memoryTracker())) {
-                IndexNotApplicableKernelException e =
-                        assertThrows(IndexNotApplicableKernelException.class, () -> ktx.dataRead()
+                var eAssert = ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> ktx.dataRead()
                                 .nodeIndexSeek(
                                         ktx.queryContext(),
                                         indexSession,
                                         cursor,
                                         unconstrained(),
                                         PropertyIndexQuery.exists(0) // Unsupported
-                                        ));
-                assertThat(e)
-                        .hasMessageContaining("A fulltext schema index cannot answer EXISTS queries on UNKNOWN values");
-                assertThat(e.gqlStatus()).isEqualTo("50N15");
-                assertThat(e.statusDescription())
-                        .isEqualTo(String.format(
+                                        ))
+                        .isInstanceOf(IndexNotApplicableKernelException.class)
+                        .hasMessageContaining("A fulltext schema index cannot answer EXISTS queries on UNKNOWN values")
+                        .hasGqlStatus(GqlStatusInfoCodes.STATUS_50N15)
+                        .hasStatusDescription(
                                 "error: general processing exception - unsupported index operation. The system attempted to execute an unsupported operation on index `%s`. See debug.log for more information.",
-                                NODE_INDEX_NAME));
+                                NODE_INDEX_NAME);
                 LogAssertions.assertThat(logProvider)
                         .containsMessageWithException(
-                                "A fulltext schema index cannot answer EXISTS queries on UNKNOWN values", e);
+                                "A fulltext schema index cannot answer EXISTS queries on UNKNOWN values",
+                                eAssert.getActual());
             }
         }
     }
