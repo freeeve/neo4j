@@ -23,8 +23,6 @@ import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.MapValueOps.Ops
 import org.neo4j.cypher.internal.runtime.IndexProviderContext
-import org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27
-import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
@@ -60,21 +58,6 @@ case class CreatePointIndexOptionsConverter(context: IndexProviderContext)
   ): IndexConfig = {
     // current keys: spatial.* (cartesian.|cartesian-3d.|wgs-84.|wgs-84-3d.) + (min|max)
     // current values: Double[]
-
-    def exceptionWrongType(suppliedValue: AnyValue): InvalidArgumentsException = {
-      val pp = new PrettyPrinter()
-      suppliedValue.writeTo(pp)
-      val gql = getGql22G03_22N27(
-        pp.value,
-        GqlParams.StringParam.cmd.process("indexConfig"),
-        java.util.List.of("MAP<STRING, LIST<FLOAT>>")
-      )
-      new InvalidArgumentsException(
-        gql,
-        s"Could not create $schemaType with specified index config '${pp.value()}'. Expected a map from String to Double[]."
-      )
-    }
-
     config match {
       case itemsMap: MapValue if itemsMap.isEmpty => IndexConfig.empty
       case itemsMap: MapValue =>
@@ -87,15 +70,16 @@ case class CreatePointIndexOptionsConverter(context: IndexProviderContext)
             val configValue: Array[Double] = e.iterator().asScala.map {
               // Allow all numbers, and convert them to double
               case d: NumberValue => d.doubleValue()
-              case _              => throw exceptionWrongType(itemsMap)
+              case _ =>
+                throw InvalidArgumentsException.invalidIndexConfigExpectedMapWithDoubleArray(schemaType, itemsMap)
             }.toArray
             m + (p -> configValue)
-          case _ => throw exceptionWrongType(itemsMap)
+          case _ => throw InvalidArgumentsException.invalidIndexConfigExpectedMapWithDoubleArray(schemaType, itemsMap)
         }.asJava
 
         toIndexConfig(map)
       case unknown =>
-        throw exceptionWrongType(unknown)
+        throw InvalidArgumentsException.invalidIndexConfigExpectedMapWithDoubleArray(schemaType, unknown)
     }
   }
 

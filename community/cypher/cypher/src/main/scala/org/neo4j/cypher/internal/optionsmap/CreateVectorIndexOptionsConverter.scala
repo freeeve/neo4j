@@ -23,8 +23,6 @@ import org.eclipse.collections.api.PrimitiveIterable
 import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.runtime.IndexProviderContext
-import org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27
-import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexConfigValidationRecords
 import org.neo4j.internal.schema.IndexConfigValidationRecords.IncorrectType
@@ -112,20 +110,6 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
       }
     }
 
-    def exceptionWrongType(suppliedValue: AnyValue): InvalidArgumentsException = {
-      val pp = new PrettyPrinter
-      suppliedValue.writeTo(pp)
-      val gql = getGql22G03_22N27(
-        pp.value,
-        GqlParams.StringParam.cmd.process("indexConfig"),
-        java.util.List.of("MAP<STRING, BOOLEAN | STRING | INTEGER>")
-      )
-      new InvalidArgumentsException(
-        gql,
-        s"${invalidConfigValueString(new PrettyPrinter(), suppliedValue, schemaType)}. Expected a map from String to Strings, Integers and Booleans."
-      )
-    }
-
     def assertConfigSettingsCorrectTypes(validationRecords: IndexConfigValidationRecords, itemsMap: MapValue): Unit = {
       // note: in cypher 25 probably should refer to these as INTEGER and STRING respectively
       val validTypes: Map[Class[_], String] =
@@ -146,17 +130,15 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
         case incorrectType: IncorrectType if validTypes.exists { case (cls, _) =>
             cls.isAssignableFrom(incorrectType.providedType)
           } =>
-          val gql = getGql22G03_22N27(
-            "type " + incorrectType.providedType,
-            GqlParams.StringParam.cmd.process(incorrectType.settingName),
-            java.util.List.of(validCypherTypes(incorrectType.targetType()))
-          )
-          throw new InvalidArgumentsException(
-            gql,
-            s"${invalidConfigValueString(incorrectType.settingName, schemaType)}. Expected ${validTypes(incorrectType.targetType)}."
+          throw InvalidArgumentsException.invalidVectorIndexConfigSetting(
+            schemaType,
+            incorrectType.settingName,
+            String.valueOf(incorrectType.providedType),
+            validTypes(incorrectType.targetType),
+            validCypherTypes(incorrectType.targetType())
           )
         // invalid type for valid type for vector index config
-        case _ => throw exceptionWrongType(itemsMap)
+        case _ => throw InvalidArgumentsException.invalidVectorIndexConfig(schemaType, itemsMap)
       }
     }
 
@@ -204,7 +186,7 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
         assertValidConfigValues(new PrettyPrinter(), validationRecords)
         validator.trustIsValidToVectorIndexConfig(validationRecords).config
       case unknown =>
-        throw exceptionWrongType(unknown)
+        throw InvalidArgumentsException.invalidVectorIndexConfig(schemaType, unknown)
     }
   }
 

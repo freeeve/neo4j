@@ -24,8 +24,6 @@ import org.neo4j.cypher.internal.MapValueOps.Ops
 import org.neo4j.cypher.internal.runtime.IndexProviderContext
 import org.neo4j.cypher.internal.util.DeprecatedIndexProviderOption
 import org.neo4j.cypher.internal.util.InternalNotification
-import org.neo4j.gqlstatus.GqlHelper
-import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.graphdb.schema.IndexSetting
 import org.neo4j.graphdb.schema.IndexSettingImpl.FULLTEXT_ANALYZER
 import org.neo4j.graphdb.schema.IndexSettingImpl.FULLTEXT_EVENTUALLY_CONSISTENT
@@ -108,18 +106,7 @@ trait IndexOptionsConverter[T] extends OptionsConverter[T] {
   ): IndexProviderDescriptor = indexProvider match {
     case indexProviderValue: TextValue =>
       context.validateIndexProvider(schemaType, indexProviderValue.stringValue(), indexType, version)
-    case _ =>
-      val pp = new PrettyPrinter
-      indexProvider.writeTo(pp)
-      val gql = GqlHelper.getGql22G03_22N27(
-        pp.value,
-        GqlParams.StringParam.cmd.process("indexProvider"),
-        java.util.List.of("STRING")
-      )
-      throw new InvalidArgumentsException(
-        gql,
-        s"Could not create $schemaType with specified index provider '$indexProvider'. Expected String value."
-      )
+    case _ => throw InvalidArgumentsException.invalidIndexProvider(schemaType, indexProvider)
   }
 
   protected val validPointConfigSettingNames: SortedSet[String] = indexSettingsToCaseInsensitiveNames(
@@ -261,17 +248,7 @@ trait IndexOptionsConverter[T] extends OptionsConverter[T] {
         itemsMap.writeTo(pp)
         throw InvalidArgumentsException.invalidIndexConfig(schemaType, pp.value(), indexString)
       case _: MapValue => IndexConfig.empty
-      case unknown =>
-        unknown.writeTo(pp)
-        val gql = GqlHelper.getGql22G03_22N27(
-          pp.value,
-          GqlParams.StringParam.cmd.process("indexConfig"),
-          java.util.List.of("MAP")
-        )
-        throw new InvalidArgumentsException(
-          gql,
-          s"Could not create $schemaType with specified index config '${pp.value()}'. Expected a map."
-        )
+      case unknown     => throw InvalidArgumentsException.invalidIndexConfigExpectedMap(schemaType, unknown)
     }
   }
 

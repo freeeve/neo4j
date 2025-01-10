@@ -20,6 +20,8 @@
 package org.neo4j.exceptions;
 
 import static java.lang.String.format;
+import static org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27;
+import static org.neo4j.gqlstatus.GqlHelper.getGql42N51;
 
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
@@ -849,7 +851,7 @@ public class InvalidArgumentException extends Neo4jException {
     }
 
     public static InvalidArgumentException entityShouldBeNodeOrRel(String entity, String resolvedEntity) {
-        var gql = GqlHelper.getGql22G03_22N27(entity, resolvedEntity, List.of("NODE", "RELATIONSHIP"));
+        var gql = getGql22G03_22N27(entity, resolvedEntity, List.of("NODE", "RELATIONSHIP"));
         return new InvalidArgumentException(
                 gql,
                 String.format(
@@ -879,5 +881,18 @@ public class InvalidArgumentException extends Neo4jException {
                 graphName);
         var gql = GqlHelper.get50N22(graphName);
         return new InvalidArgumentException(gql, msg);
+    }
+
+    public static InvalidArgumentException invalidOptionTypeForAlterUser(String parameter, String actualType) {
+        var gql = getGql42N51(
+                parameter,
+                getGql22G03_22N27(
+                        actualType, GqlParams.StringParam.cmd.process("ALTER USER"), List.of("BOOLEAN", "STRING")));
+
+        return new InvalidArgumentException(
+                gql,
+                String.format(
+                        "Invalid option type for ALTER USER, expected PasswordExpression, Boolean, String or Parameter but got: %s",
+                        actualType));
     }
 }

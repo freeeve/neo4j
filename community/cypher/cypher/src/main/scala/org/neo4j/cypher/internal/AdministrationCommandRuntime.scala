@@ -69,8 +69,6 @@ import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.ParameterNotFoundException
 import org.neo4j.exceptions.ParameterWrongTypeException
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
-import org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27
-import org.neo4j.gqlstatus.GqlHelper.getGql42N51
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.graphdb.Direction
@@ -220,21 +218,7 @@ object AdministrationCommandRuntime {
       case Values.NO_VALUE =>
         throw ParameterNotFoundException.expectedParam(passwordParameter, params.keySet())
       case other =>
-        val pp = new PrettyPrinter
-        other.writeTo(pp)
-        val gql =
-          getGql42N51(
-            passwordParameter,
-            getGql22G03_22N27(
-              "******", // Obfuscate the wrongly formatted password to not leak sensitive information
-              GqlParams.StringParam.param.process(passwordParameter),
-              java.util.List.of("STRING")
-            )
-          )
-        throw new ParameterWrongTypeException(
-          gql,
-          s"Expected password parameter $$$passwordParameter to have type String but was ${other.getTypeName}"
-        )
+        throw ParameterWrongTypeException.expectedPasswordToBeString(passwordParameter, other.getTypeName)
     }
   }
 
@@ -252,18 +236,10 @@ object AdministrationCommandRuntime {
     param.parameterType match {
       case _: StringType =>
       case _ =>
-        val gql =
-          getGql42N51(
-            param.name,
-            getGql22G03_22N27(
-              "type " + String.valueOf(param.parameterType),
-              "password",
-              java.util.List.of("STRING")
-            )
-          )
-        throw new ParameterWrongTypeException(
-          gql,
-          s"Only $CTString values are accepted as password, got: " + param.parameterType
+        throw ParameterWrongTypeException.onlyStringValuesAsPassword(
+          param.name,
+          String.valueOf(CTString),
+          String.valueOf(param.parameterType)
         )
     }
   }
@@ -440,19 +416,9 @@ object AdministrationCommandRuntime {
         case Some(nameFields: NameFields) => Seq((param._2, nameFields.nameKey, nameFields.nameValue))
         case Some(p)                      =>
           // The $input (...getSimpleName) is a bit strange, but it's fine as this error should not happen as we only give the expected values in the loop
-          val gql = {
-            getGql42N51(
-              String.valueOf(p),
-              getGql22G03_22N27(
-                String.valueOf(p.getClass.getSimpleName),
-                GqlParams.StringParam.cmd.process("ALTER USER"),
-                java.util.List.of("BOOLEAN", "STRING")
-              )
-            )
-          }
-          throw new InvalidArgumentException(
-            gql,
-            s"Invalid option type for ALTER USER, expected PasswordExpression, Boolean, String or Parameter but got: ${p.getClass.getSimpleName}"
+          throw InvalidArgumentException.invalidOptionTypeForAlterUser(
+            String.valueOf(p),
+            String.valueOf(p.getClass.getSimpleName)
           )
       }
     }
@@ -856,27 +822,14 @@ object AdministrationCommandRuntime {
       case Right(param) => params.get(param.name) match {
           case i: IntValue => i.value()
           case invalidType =>
-            throw parameterWrongTypeException(
-              param,
-              invalidType,
-              java.util.List.of(CTInteger.toCypherTypeString),
-              component
+            throw ParameterWrongTypeException.parameterWrongType(
+              param.name,
+              invalidType.prettify(),
+              component,
+              CTInteger.toCypherTypeString
             )
         }
     }
-  }
-
-  private def parameterWrongTypeException(
-    parameter: Parameter,
-    value: AnyValue,
-    expected: java.util.List[String],
-    component: String
-  ): ParameterWrongTypeException = {
-    val gql = getGql42N51(
-      parameter.name,
-      getGql22G03_22N27(value.toString, component, expected)
-    )
-    new ParameterWrongTypeException(gql, gql.getMessage)
   }
 
   private def parameterOutOfNumericRangeException(
@@ -920,23 +873,12 @@ object AdministrationCommandRuntime {
     value match {
       case tv: TextValue => tv.stringValue()
       case _ =>
-        val (p, v) = if (prettyPrint) {
-          val pp = new PrettyPrinter()
-          value.writeTo(pp)
-          (s"`$$$parameter`", s"`${pp.value()}`.")
-        } else (s"$$$parameter", value.toString)
-        val prettyParam = new PrettyPrinter()
-        value.writeTo(prettyParam)
-        val gql =
-          getGql42N51(
-            p,
-            getGql22G03_22N27(
-              prettyParam.value,
-              GqlParams.StringParam.param.process(parameter),
-              java.util.List.of("STRING")
-            )
-          )
-        throw new ParameterWrongTypeException(gql, s"Expected parameter $p to have type String but was $v")
+        throw ParameterWrongTypeException.expectedParameterToBeString42N51(
+          prettyPrint,
+          parameter,
+          String.valueOf(value),
+          value.prettify()
+        )
     }
   }
 
@@ -992,13 +934,10 @@ object AdministrationCommandRuntime {
       val paramValue = params.get(parameter)
       // Check the parameter is actually the expected type
       if (!paramValue.isInstanceOf[TextValue]) {
-        val pp = new PrettyPrinter
-        paramValue.writeTo(pp)
-        val gql =
-          getGql22G03_22N27(pp.value, GqlParams.StringParam.param.process(parameter), java.util.List.of("STRING"))
-        throw new ParameterWrongTypeException(
-          gql,
-          s"Expected parameter $$$parameter to have type String but was $paramValue"
+        throw ParameterWrongTypeException.expectedParameterToBeString(
+          parameter,
+          String.valueOf(paramValue),
+          paramValue.prettify()
         )
       } else params.updatedWith(name, valueMapper(params.get(parameter).asInstanceOf[TextValue]))
     }

@@ -90,8 +90,6 @@ import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.ParameterWrongTypeException
-import org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27
-import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.graphdb.schema.IndexType.POINT
 import org.neo4j.graphdb.schema.IndexType.RANGE
 import org.neo4j.graphdb.schema.IndexType.TEXT
@@ -111,7 +109,6 @@ import org.neo4j.kernel.KernelVersion
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion
 import org.neo4j.kernel.impl.query.TransactionalContext.DatabaseMode
 import org.neo4j.values.storable.StringValue
-import org.neo4j.values.utils.PrettyPrinter
 import org.neo4j.values.virtual.MapValue
 
 import scala.language.implicitConversions
@@ -709,15 +706,11 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
       params.get(paramName.name) match {
         case s: StringValue => s.stringValue()
         case x =>
-          val pp = new PrettyPrinter
-          x.writeTo(pp)
-          val gql =
-            getGql22G03_22N27(
-              pp.value,
-              GqlParams.StringParam.param.process(paramName.name),
-              java.util.List.of("STRING")
-            )
-          throw new ParameterWrongTypeException(gql, s"Expected String, but got: ${x.getTypeName}")
+          throw ParameterWrongTypeException.expectedStringButGotType(
+            paramName.name,
+            x.getTypeName,
+            x.prettify()
+          )
       }
   }
 

@@ -25,7 +25,6 @@ import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.MapValueOps.Ops
 import org.neo4j.dbms.systemgraph.SeedRestoreUntil
 import org.neo4j.dbms.systemgraph.allocation.DatabaseAllocationHints
-import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException
 import org.neo4j.storageengine.api.StorageEngineFactory
 import org.neo4j.storageengine.api.StorageEngineFactory.allAvailableStorageEngines
@@ -34,7 +33,6 @@ import org.neo4j.values.storable.DateTimeValue
 import org.neo4j.values.storable.NoValue
 import org.neo4j.values.storable.NumberValue
 import org.neo4j.values.storable.TextValue
-import org.neo4j.values.utils.PrettyPrinter
 import org.neo4j.values.virtual.MapValue
 
 import java.lang.Boolean.FALSE
@@ -85,11 +83,7 @@ trait StringOptionValidator extends OptionValidator[String] {
       case textValue: TextValue =>
         validateContent(textValue.stringValue(), config)
         textValue.stringValue()
-      case _ =>
-        val pp = new PrettyPrinter
-        value.writeTo(pp)
-        val gql = GqlHelper.getGql22G03_22N27(pp.value, KEY, java.util.List.of("STRING"))
-        throw new InvalidArgumentsException(gql, s"Could not $operation with specified $KEY '$value', String expected.")
+      case _ => throw InvalidArgumentsException.invalidStringOption(operation, KEY, value)
     }
   }
 }
@@ -104,14 +98,7 @@ object SeedRestoreUntilOption extends OptionValidator[SeedRestoreUntil] {
         SeedRestoreUntil.txId(numberValue.asObject().longValue())
       case dateTimeValue: DateTimeValue =>
         SeedRestoreUntil.datetime(dateTimeValue.asObjectCopy())
-      case _ =>
-        val pp = new PrettyPrinter
-        value.writeTo(pp)
-        val gql = GqlHelper.getGql22G03_22N27(pp.value, KEY, java.util.List.of("INTEGER", "DATETIME"))
-        throw new InvalidArgumentsException(
-          gql,
-          s"Could not $operation with specified $KEY '$value', Integer or datetime expected."
-        )
+      case _ => throw InvalidArgumentsException.invalidSeedRestoreOption(operation, KEY, value)
     }
   }
 }

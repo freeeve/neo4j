@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.api.exceptions;
 
+import static org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27;
+
 import java.util.List;
 import java.util.stream.Collectors;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
@@ -123,6 +125,135 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
 
     private static String invalidConfigValueString(String value, String schemaType) {
         return String.format("Could not create %s with specified index config '%s'", schemaType, value);
+    }
+
+    public static InvalidArgumentsException invalidIndexConfigExpectedMap(String schemaType, AnyValue input) {
+        var oldMsg = String.format(
+                "Could not create %s with specified index config '%s'. Expected a map.", schemaType, input.prettify());
+        return invalidInput(input, GqlParams.StringParam.cmd.process("indexConfig"), List.of("MAP"), oldMsg);
+    }
+
+    public static InvalidArgumentsException invalidIndexConfig(
+            String schemaType, String indexConfigOptions, String indexType) {
+        var gql = GqlHelper.getGql42001_22N04("indexConfig", "config option", List.of("indexProvider"));
+        return new InvalidArgumentsException(
+                gql,
+                String.format(
+                        "Could not create %s with specified index config '%s': %s indexes have no valid config values.",
+                        schemaType, indexConfigOptions, indexType));
+    }
+
+    public static InvalidArgumentsException invalidIndexConfigExpectedMapWithDoubleArray(
+            String schemaType, AnyValue input) {
+        var oldMsg = String.format(
+                "Could not create %s with specified index config '%s'. Expected a map from String to Double[].",
+                schemaType, input.prettify());
+
+        return invalidInput(
+                input, GqlParams.StringParam.cmd.process("indexConfig"), List.of("MAP<STRING, LIST<FLOAT>>"), oldMsg);
+    }
+
+    public static InvalidArgumentsException invalidIndexConfigExpectedMapToStringAndBoolean(
+            String schemaType, AnyValue input) {
+        var oldMsg = String.format(
+                "Could not create %s with specified index config '%s'. Expected a map from String to Strings and Booleans.",
+                schemaType, input.prettify());
+
+        return invalidInput(
+                input,
+                GqlParams.StringParam.cmd.process("indexConfig"),
+                List.of("MAP<STRING, BOOLEAN | STRING>"),
+                oldMsg);
+    }
+
+    public static InvalidArgumentsException invalidIndexOptionValue(String providedOption, String schemaType) {
+        var validOptions = List.of("indexProvider", "indexConfig");
+        var gql = GqlHelper.getGql42001_22N04(
+                providedOption, GqlParams.StringParam.input.process("OPTIONS"), validOptions);
+        return new InvalidArgumentsException(
+                gql,
+                String.format(
+                        "Failed to create %s: Invalid option provided, valid options are `indexProvider` and `indexConfig`.",
+                        schemaType));
+    }
+
+    public static InvalidArgumentsException invalidIndexProviderSuggestIndex(
+            String schemaDescription,
+            String providerString,
+            String indexDescription,
+            String providerIndexType,
+            List<String> indexProviders) {
+        var indexProvidersString =
+                "[" + indexProviders.stream().map(format -> "'" + format + "'").collect(Collectors.joining(", ")) + "]";
+        var gql = GqlHelper.getGql42001_22N04(providerString, "index provider type", indexProviders);
+        return new InvalidArgumentsException(
+                gql,
+                String.format(
+                        "Could not create %s with specified index provider '%s'.\n"
+                                + "To create %s index, please use 'CREATE %s INDEX ...'.\n"
+                                + "The available index providers for the given type: %s.",
+                        schemaDescription, providerString, indexDescription, providerIndexType, indexProvidersString));
+    }
+
+    public static InvalidArgumentsException invalidIndexProvider(String schemaType, AnyValue input) {
+        var oldMsg = String.format(
+                "Could not create %s with specified index provider '%s'. Expected String value.", schemaType, input);
+        return invalidInput(input, GqlParams.StringParam.cmd.process("indexProvider"), List.of("STRING"), oldMsg);
+    }
+
+    public static InvalidArgumentsException invalidIndexProvider(
+            Boolean correctCypherVersion,
+            String schemaDescription,
+            String providerString,
+            List<String> indexProviders) {
+        var indexProvidersString =
+                "[" + indexProviders.stream().map(format -> "'" + format + "'").collect(Collectors.joining(", ")) + "]";
+        var gql = GqlHelper.getGql42001_22N04(providerString, "index provider type", indexProviders);
+        var message = correctCypherVersion
+                        && (providerString.equalsIgnoreCase("native-btree-1.0")
+                                || providerString.equalsIgnoreCase("lucene+native-3.0"))
+                ? String.format(
+                        "Could not create %s with specified index provider '%s'.\n"
+                                + "Invalid index type b-tree, use range, point or text index instead.\n"
+                                + "The available index providers for the given type: %s.",
+                        schemaDescription, providerString, indexProvidersString)
+                : String.format(
+                        "Could not create %s with specified index provider '%s'.\n"
+                                + "The available index providers for the given type: %s.",
+                        schemaDescription, providerString, indexProvidersString);
+        return new InvalidArgumentsException(gql, message);
+    }
+
+    public static InvalidArgumentsException invalidVectorIndexConfig(String schemaType, AnyValue input) {
+        var oldMsg = String.format(
+                "Could not create %s with specified index config '%s'. Expected a map from String to Strings, Integers and Booleans.",
+                schemaType, input.prettify());
+        return invalidInput(
+                input,
+                GqlParams.StringParam.cmd.process("indexConfig"),
+                List.of("MAP<STRING, BOOLEAN | STRING | INTEGER>"),
+                oldMsg);
+    }
+
+    public static InvalidArgumentsException invalidVectorIndexConfigSetting(
+            String schemaType, String settingName, String providedType, String validTypes, String validCypherTypes) {
+        var oldMsg = String.format(
+                "Could not create %s with specified index config '%s'. Expected %s.",
+                schemaType, settingName, validTypes);
+        var gql = getGql22G03_22N27(
+                "type " + providedType, GqlParams.StringParam.cmd.process(settingName), List.of(validCypherTypes));
+        return new InvalidArgumentsException(gql, oldMsg);
+    }
+
+    public static InvalidArgumentsException invalidSeedRestoreOption(String operation, String key, AnyValue input) {
+        var oldMsg = String.format(
+                "Could not %s with specified %s '%s', Integer or datetime expected.", operation, key, input);
+        return invalidInput(input, key, List.of("INTEGER", "DATETIME"), oldMsg);
+    }
+
+    public static InvalidArgumentsException invalidStringOption(String operation, String key, AnyValue input) {
+        var oldMsg = String.format("Could not %s with specified %s '%s', String expected.", operation, key, input);
+        return invalidInput(input, key, List.of("STRING"), oldMsg);
     }
 
     public static InvalidArgumentsException pointOptionsInConfig(
@@ -231,6 +362,21 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
                         operation, invalidKeys, validKeysString));
     }
 
+    public static InvalidArgumentsException invalidDriverSettingsValue(
+            String operation, String key, String expectedType, String expectedCypherType, AnyValue input) {
+        var oldMsg = String.format(
+                "Failed to %s: Invalid driver settings value for '%s'. Expected %s value.",
+                operation, key, expectedType);
+
+        return invalidInput(input, key, List.of(expectedCypherType), oldMsg);
+    }
+
+    public static InvalidArgumentsException invalidDriverSettingsExpectedMap(String operation, AnyValue input) {
+        var oldMsg =
+                String.format("Failed to %s: Invalid driver settings '%s'. Expected a map value.", operation, input);
+        return invalidInput(input, GqlParams.StringParam.cmd.process("DRIVER"), List.of("MAP"), oldMsg);
+    }
+
     public static InvalidArgumentsException unexpectedDriverSettingValue(
             String operation, String value, String settingKey, List<String> validValues) {
         var validValuesString = String.join(", ", validValues);
@@ -254,66 +400,9 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
                         operation, key, value, validFormatsString));
     }
 
-    public static InvalidArgumentsException invalidIndexOptionValue(String providedOption, String schemaType) {
-        var validOptions = java.util.List.of("indexProvider", "indexConfig");
-        var gql = GqlHelper.getGql42001_22N04(
-                providedOption, GqlParams.StringParam.input.process("OPTIONS"), validOptions);
-        return new InvalidArgumentsException(
-                gql,
-                String.format(
-                        "Failed to create %s: Invalid option provided, valid options are `indexProvider` and `indexConfig`.",
-                        schemaType));
-    }
-
-    public static InvalidArgumentsException invalidIndexConfig(
-            String schemaType, String indexConfigOptions, String indexType) {
-        var gql = GqlHelper.getGql42001_22N04("indexConfig", "config option", java.util.List.of("indexProvider"));
-        return new InvalidArgumentsException(
-                gql,
-                String.format(
-                        "Could not create %s with specified index config '%s': %s indexes have no valid config values.",
-                        schemaType, indexConfigOptions, indexType));
-    }
-
-    public static InvalidArgumentsException invalidIndexProviderSuggestIndex(
-            String schemaDescription,
-            String providerString,
-            String indexDescription,
-            String providerIndexType,
-            List<String> indexProviders) {
-        var indexProvidersString =
-                "[" + indexProviders.stream().map(format -> "'" + format + "'").collect(Collectors.joining(", ")) + "]";
-        var gql = GqlHelper.getGql42001_22N04(providerString, "index provider type", indexProviders);
-        return new InvalidArgumentsException(
-                gql,
-                String.format(
-                        "Could not create %s with specified index provider '%s'.\n"
-                                + "To create %s index, please use 'CREATE %s INDEX ...'.\n"
-                                + "The available index providers for the given type: %s.",
-                        schemaDescription, providerString, indexDescription, providerIndexType, indexProvidersString));
-    }
-
-    public static InvalidArgumentsException invalidIndexProvider(
-            Boolean correctCypherVersion,
-            String schemaDescription,
-            String providerString,
-            List<String> indexProviders) {
-        var indexProvidersString =
-                "[" + indexProviders.stream().map(format -> "'" + format + "'").collect(Collectors.joining(", ")) + "]";
-        var gql = GqlHelper.getGql42001_22N04(providerString, "index provider type", indexProviders);
-        var message = correctCypherVersion
-                        && (providerString.equalsIgnoreCase("native-btree-1.0")
-                                || providerString.equalsIgnoreCase("lucene+native-3.0"))
-                ? String.format(
-                        "Could not create %s with specified index provider '%s'.\n"
-                                + "Invalid index type b-tree, use range, point or text index instead.\n"
-                                + "The available index providers for the given type: %s.",
-                        schemaDescription, providerString, indexProvidersString)
-                : String.format(
-                        "Could not create %s with specified index provider '%s'.\n"
-                                + "The available index providers for the given type: %s.",
-                        schemaDescription, providerString, indexProvidersString);
-        return new InvalidArgumentsException(gql, message);
+    public static InvalidArgumentsException invalidOptionsExpectedMap(String operation, AnyValue input) {
+        var oldMsg = String.format("Could not %s with options '%s'. Expected a map value.", operation, input);
+        return invalidInput(input, GqlParams.StringParam.cmd.process("OPTIONS"), List.of("MAP"), oldMsg);
     }
 
     public static InvalidArgumentsException compositeUsingOptions(String operation) {
@@ -350,7 +439,7 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
     }
 
     public static InvalidArgumentsException optionRequiresInteger(String option, Object value) {
-        var gql = GqlHelper.getGql22G03_22N27(option, value.getClass().getTypeName(), List.of("INTEGER"));
+        var gql = getGql22G03_22N27(option, value.getClass().getTypeName(), List.of("INTEGER"));
         return new InvalidArgumentsException(
                 gql, String.format("Option `%s` requires integer argument, got `%s`", option, value));
     }
@@ -383,5 +472,31 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
                 gql,
                 String.format(
                         "Failed to alter the specified database '%s': Composite databases cannot be altered.", dbName));
+    }
+
+    public static InvalidArgumentsException dbNameIsNotWellDefined(AnyValue input) {
+        var oldMsg = "Could not create database - name is not well defined";
+        return invalidInput(input, "database name", List.of("STRING"), oldMsg);
+    }
+
+    public static InvalidArgumentsException expectedListOfTags(String key, AnyValue input, String listString) {
+        var oldMsg = String.format("%s expects a list of tags but got '%s'.", key, listString);
+        return invalidInput(input, key, List.of("LIST<STRING>"), oldMsg);
+    }
+
+    public static InvalidArgumentsException expectedListOfTagsNames(String key, AnyValue input) {
+        var oldMsg = String.format("%s expects a list of tags names but got '%s'.", key, input);
+        return invalidInput(input, key, List.of("LIST<STRING>"), oldMsg);
+    }
+
+    public static InvalidArgumentsException expectedListOfDatabaseNames(String action, String list, AnyValue input) {
+        var oldMsg = String.format("%s expects a list of database names but got '%s'.", action, list);
+        return invalidInput(input, action, List.of("LIST<STRING>"), oldMsg);
+    }
+
+    private static InvalidArgumentsException invalidInput(
+            AnyValue input, String context, List<String> validTypes, String oldMessage) {
+        var gql = GqlHelper.getGql22G03_22N27(input.prettify(), context, validTypes);
+        return new InvalidArgumentsException(gql, oldMessage);
     }
 }

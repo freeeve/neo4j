@@ -22,8 +22,6 @@ package org.neo4j.cypher.internal.optionsmap
 import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.runtime.IndexProviderContext
-import org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27
-import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
@@ -57,20 +55,6 @@ case class CreateFulltextIndexOptionsConverter(context: IndexProviderContext)
     indexProvider: Option[IndexProviderDescriptor]
   ): IndexConfig = {
 
-    def exceptionWrongType(suppliedValue: AnyValue): InvalidArgumentsException = {
-      val pp = new PrettyPrinter()
-      suppliedValue.writeTo(pp)
-      val gql = getGql22G03_22N27(
-        pp.value,
-        GqlParams.StringParam.cmd.process("indexConfig"),
-        java.util.List.of("MAP<STRING, BOOLEAN | STRING>")
-      )
-      new InvalidArgumentsException(
-        gql,
-        s"Could not create $schemaType with specified index config '${pp.value()}'. Expected a map from String to Strings and Booleans."
-      )
-    }
-
     config match {
       case itemsMap: MapValue if itemsMap.isEmpty => IndexConfig.empty
       case itemsMap: MapValue =>
@@ -83,12 +67,13 @@ case class CreateFulltextIndexOptionsConverter(context: IndexProviderContext)
             hm.put(p, e.stringValue())
           case (p: String, e: BooleanValue) =>
             hm.put(p, java.lang.Boolean.valueOf(e.booleanValue()))
-          case _ => throw exceptionWrongType(itemsMap)
+          case _ =>
+            throw InvalidArgumentsException.invalidIndexConfigExpectedMapToStringAndBoolean(schemaType, itemsMap)
         }
 
         toIndexConfig(hm)
       case unknown =>
-        throw exceptionWrongType(unknown)
+        throw InvalidArgumentsException.invalidIndexConfigExpectedMapToStringAndBoolean(schemaType, unknown)
     }
   }
 
