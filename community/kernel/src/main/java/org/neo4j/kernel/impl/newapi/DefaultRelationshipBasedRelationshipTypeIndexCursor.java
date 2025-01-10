@@ -41,7 +41,6 @@ public class DefaultRelationshipBasedRelationshipTypeIndexCursor
         implements InternalRelationshipTypeIndexCursor {
 
     private final DefaultRelationshipScanCursor relationshipScanCursor;
-    private final boolean applyAccessModeToTxState;
 
     DefaultRelationshipBasedRelationshipTypeIndexCursor(
             CursorPool<DefaultRelationshipBasedRelationshipTypeIndexCursor> pool,
@@ -49,7 +48,6 @@ public class DefaultRelationshipBasedRelationshipTypeIndexCursor
             boolean applyAccessModeToTxState) {
         super(pool, applyAccessModeToTxState);
         this.relationshipScanCursor = relationshipScanCursor;
-        this.applyAccessModeToTxState = applyAccessModeToTxState;
     }
 
     @Override

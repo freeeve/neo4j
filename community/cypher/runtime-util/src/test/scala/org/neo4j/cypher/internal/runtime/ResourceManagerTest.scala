@@ -25,8 +25,8 @@ import org.neo4j.cypher.internal.runtime.DummyResource.verifyClose
 import org.neo4j.cypher.internal.runtime.DummyResource.verifyMonitorClose
 import org.neo4j.cypher.internal.runtime.DummyResource.verifyTrace
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.neo4j.internal.kernel.api.AutoCloseablePlus.UNTRACKED
 import org.neo4j.internal.kernel.api.DefaultCloseListenable
+import org.neo4j.lang.AutoCloseablePlus.UNTRACKED
 import org.neo4j.memory.EmptyMemoryTracker
 import org.neo4j.memory.MemoryTracker
 

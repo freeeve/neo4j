@@ -31,7 +31,7 @@ import org.neo4j.counts.CountsVisitor;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.Read;
-import org.neo4j.internal.kernel.api.RelationshipDataAccessor;
+import org.neo4j.internal.kernel.api.RelationshipCursor;
 import org.neo4j.internal.kernel.api.RelationshipIndexCursor;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.internal.kernel.api.SchemaRead;
@@ -278,7 +278,7 @@ final class EntityCounter {
     }
 
     private static boolean matchesLabels(
-            RelationshipDataAccessor relationship,
+            RelationshipCursor relationship,
             DefaultNodeCursor sourceNode,
             DefaultNodeCursor targetNode,
             int startLabelId,

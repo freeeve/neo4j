@@ -39,7 +39,7 @@ import org.neo4j.internal.kernel.api.EntityCursor;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.Read;
-import org.neo4j.internal.kernel.api.RelationshipDataAccessor;
+import org.neo4j.internal.kernel.api.RelationshipCursor;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.kernel.api.exceptions.PropertyKeyIdNotFoundKernelException;
@@ -505,7 +505,7 @@ public final class CursorUtils {
      * @return the value of the property, otherwise {@link Values#NO_VALUE} if not found.
      */
     public static Value relationshipGetProperty(
-            RelationshipDataAccessor relationshipCursor, PropertyCursor propertyCursor, int prop) {
+            RelationshipCursor relationshipCursor, PropertyCursor propertyCursor, int prop) {
         if (prop == NO_SUCH_PROPERTY_KEY) {
             return NO_VALUE;
         }
@@ -565,7 +565,7 @@ public final class CursorUtils {
      */
     @CalledFromGeneratedCode
     public static boolean relationshipHasProperty(
-            RelationshipDataAccessor relationshipCursor, PropertyCursor propertyCursor, int prop) {
+            RelationshipCursor relationshipCursor, PropertyCursor propertyCursor, int prop) {
         if (prop == NO_SUCH_PROPERTY_KEY) {
             return false;
         }
@@ -736,7 +736,7 @@ public final class CursorUtils {
         return result;
     }
 
-    public static VirtualRelationshipValue relationshipById(RelationshipDataAccessor cursor) {
+    public static VirtualRelationshipValue relationshipById(RelationshipCursor cursor) {
         return VirtualValues.relationship(
                 cursor.relationshipReference(),
                 cursor.sourceNodeReference(),

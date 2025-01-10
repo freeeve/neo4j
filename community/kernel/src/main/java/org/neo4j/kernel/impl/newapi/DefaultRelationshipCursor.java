@@ -22,7 +22,7 @@ package org.neo4j.kernel.impl.newapi;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.Read;
-import org.neo4j.internal.kernel.api.RelationshipDataAccessor;
+import org.neo4j.internal.kernel.api.RelationshipCursor;
 import org.neo4j.kernel.api.AccessModeProvider;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
 import org.neo4j.storageengine.api.LongReference;
@@ -32,7 +32,7 @@ import org.neo4j.storageengine.api.RelationshipVisitor;
 import org.neo4j.storageengine.api.StorageRelationshipCursor;
 
 abstract class DefaultRelationshipCursor<SELF extends DefaultRelationshipCursor> extends TraceableCursorImpl<SELF>
-        implements RelationshipDataAccessor {
+        implements RelationshipCursor {
     protected boolean hasChanges;
     boolean checkHasChanges;
     Read read;

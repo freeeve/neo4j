@@ -36,7 +36,7 @@ import org.neo4j.graphdb.StringSearchMode;
 import org.neo4j.graphdb.schema.Schema;
 import org.neo4j.graphdb.traversal.BidirectionalTraversalDescription;
 import org.neo4j.graphdb.traversal.TraversalDescription;
-import org.neo4j.internal.kernel.api.RelationshipDataAccessor;
+import org.neo4j.internal.kernel.api.RelationshipCursor;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
 import org.neo4j.internal.kernel.api.connectioninfo.RoutingInfo;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
@@ -360,7 +360,7 @@ public class ProcedureTransactionImpl implements InternalTransaction {
     }
 
     @Override
-    public Relationship newRelationshipEntity(RelationshipDataAccessor cursor) {
+    public Relationship newRelationshipEntity(RelationshipCursor cursor) {
         return transaction.newRelationshipEntity(cursor);
     }
 

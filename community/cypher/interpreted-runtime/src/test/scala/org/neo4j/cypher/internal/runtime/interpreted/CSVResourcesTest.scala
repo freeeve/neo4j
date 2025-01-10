@@ -33,8 +33,8 @@ import org.neo4j.cypher.internal.runtime.ResourceManager
 import org.neo4j.cypher.internal.runtime.interpreted.CSVResources.DEFAULT_BUFFER_SIZE
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.neo4j.internal.kernel.api.AutoCloseablePlus
 import org.neo4j.io.fs.FileUtils
+import org.neo4j.lang.AutoCloseablePlus
 import org.neo4j.values.storable.TextValue
 
 import java.net.URI

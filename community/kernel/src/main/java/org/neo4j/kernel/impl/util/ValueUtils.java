@@ -32,7 +32,7 @@ import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.spatial.Geometry;
 import org.neo4j.graphdb.spatial.Point;
-import org.neo4j.internal.kernel.api.RelationshipDataAccessor;
+import org.neo4j.internal.kernel.api.RelationshipCursor;
 import org.neo4j.internal.kernel.api.RelationshipTraversalEntities;
 import org.neo4j.kernel.impl.api.parallel.ExecutionContextNode;
 import org.neo4j.kernel.impl.api.parallel.ExecutionContextRelationship;
@@ -320,7 +320,7 @@ public final class ValueUtils {
                 cursor.type());
     }
 
-    public static VirtualRelationshipValue fromRelationshipCursor(RelationshipDataAccessor cursor) {
+    public static VirtualRelationshipValue fromRelationshipCursor(RelationshipCursor cursor) {
         return VirtualValues.relationship(
                 cursor.relationshipReference(),
                 cursor.sourceNodeReference(),

@@ -44,7 +44,7 @@ import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.QueryContext;
 import org.neo4j.internal.kernel.api.Read;
-import org.neo4j.internal.kernel.api.RelationshipDataAccessor;
+import org.neo4j.internal.kernel.api.RelationshipCursor;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.internal.kernel.api.SchemaRead;
 import org.neo4j.internal.kernel.api.TokenRead;
@@ -244,7 +244,7 @@ public class ExecutionContextProcedureTransaction extends DataLookup implements 
     }
 
     @Override
-    public Relationship newRelationshipEntity(RelationshipDataAccessor cursor) {
+    public Relationship newRelationshipEntity(RelationshipCursor cursor) {
         return newRelationshipEntity(cursor.relationshipReference());
     }
 

@@ -19,6 +19,8 @@
  */
 package org.neo4j.internal.kernel.api;
 
+import org.neo4j.lang.AutoCloseablePlus;
+
 /**
  * This interface should not be used generically in hot paths, but instead these use cases should use the explicit cursor
  * types.

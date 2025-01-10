@@ -42,7 +42,7 @@ import org.neo4j.graphdb.NotInTransactionException;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.internal.kernel.api.PropertyCursor;
-import org.neo4j.internal.kernel.api.RelationshipDataAccessor;
+import org.neo4j.internal.kernel.api.RelationshipCursor;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.kernel.api.exceptions.EntityNotFoundException;
@@ -63,13 +63,13 @@ public class RelationshipEntity implements Relationship, RelationshipVisitor<Run
     public static final long SHALLOW_SIZE = shallowSizeOfInstance(RelationshipEntity.class);
 
     private final InternalTransaction internalTransaction;
-    private final RelationshipDataAccessor cursor;
+    private final RelationshipCursor cursor;
     private long id = LongReference.NULL;
     private long startNode = LongReference.NULL;
     private long endNode = LongReference.NULL;
     private int type;
 
-    public RelationshipEntity(InternalTransaction internalTransaction, RelationshipDataAccessor cursor) {
+    public RelationshipEntity(InternalTransaction internalTransaction, RelationshipCursor cursor) {
         this.internalTransaction = internalTransaction;
         this.cursor = cursor;
         visit(

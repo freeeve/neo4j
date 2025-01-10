@@ -36,7 +36,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.ProjectEndpoints.vali
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
-import org.neo4j.internal.kernel.api.RelationshipDataAccessor
+import org.neo4j.internal.kernel.api.RelationshipCursor
 import org.neo4j.internal.kernel.api.RelationshipScanCursor
 import org.neo4j.kernel.api.StatementConstants
 import org.neo4j.storageengine.api.LongReference.NULL
@@ -168,15 +168,15 @@ case class ProjectEndpointsPipe(
 case object ProjectEndpoints {
 
   abstract class RelationshipScanCursorPredicate {
-    def test(rc: RelationshipDataAccessor): Boolean
+    def test(rc: RelationshipCursor): Boolean
   }
 
   def genTypeCheck(typesToCheck: Array[Int]): RelationshipScanCursorPredicate = {
 
     if (typesToCheck == null) {
-      (_: RelationshipDataAccessor) => true
+      (_: RelationshipCursor) => true
     } else {
-      (t: RelationshipDataAccessor) =>
+      (t: RelationshipCursor) =>
         {
           typesToCheck.contains(t.`type`())
         }
@@ -215,7 +215,7 @@ case object ProjectEndpoints {
     direction: SemanticDirection,
     startIfInScope: Option[Long],
     endIfInScope: Option[Long],
-    scanCursor: RelationshipDataAccessor,
+    scanCursor: RelationshipCursor,
     typeCheck: RelationshipScanCursorPredicate
   ): Option[EndNodes] = {
 
@@ -355,7 +355,7 @@ case object ProjectEndpoints {
    * have produced correctly positioned cursors
    */
   def validateRelUndirectedNothingInScope(
-    scanCursor: RelationshipDataAccessor,
+    scanCursor: RelationshipCursor,
     typeCheck: RelationshipScanCursorPredicate
   ): Seq[EndNodes] = {
 
@@ -467,7 +467,7 @@ case object ProjectEndpoints {
     direction: SemanticDirection,
     startIfInScope: Option[Long],
     endIfInScope: Option[Long],
-    scanCursor: RelationshipDataAccessor,
+    scanCursor: RelationshipCursor,
     typeCheck: RelationshipScanCursorPredicate
   ): EndNodes = {
     if (relId == NULL) null

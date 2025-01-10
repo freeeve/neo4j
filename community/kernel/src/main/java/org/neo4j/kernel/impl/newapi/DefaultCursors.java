@@ -28,7 +28,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
-import org.neo4j.internal.kernel.api.AutoCloseablePlus;
+import org.neo4j.lang.AutoCloseablePlus;
 
 abstract class DefaultCursors {
     private final Collection<CloseableStacktrace> closeables;

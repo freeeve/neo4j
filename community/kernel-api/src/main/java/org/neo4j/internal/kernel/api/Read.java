@@ -271,8 +271,8 @@ public interface Read {
 
     /**
      * @param reference a reference from {@link NodeCursor#nodeReference()}, {@link
-     * RelationshipDataAccessor#sourceNodeReference()},
-     * {@link RelationshipDataAccessor#targetNodeReference()}, {@link NodeIndexCursor#nodeReference()},
+     * RelationshipCursor#sourceNodeReference()},
+     * {@link RelationshipCursor#targetNodeReference()}, {@link NodeIndexCursor#nodeReference()},
      * {@link RelationshipIndexCursor#sourceNodeReference()}, or {@link RelationshipIndexCursor#targetNodeReference()}.
      * @param cursor the cursor to use for consuming the results.
      */
@@ -388,7 +388,7 @@ public interface Read {
 
     /**
      * @param reference
-     *         a reference from {@link RelationshipDataAccessor#relationshipReference()}.
+     *         a reference from {@link RelationshipCursor#relationshipReference()}.
      * @param cursor
      *         the cursor to use for consuming the results.
      */
@@ -521,7 +521,7 @@ public interface Read {
     /**
      * @param relationshipReference the owner of the properties.
      * @param startNodeReference    start node of the owner of the properties
-     * @param reference             a reference from {@link RelationshipDataAccessor#propertiesReference()}.
+     * @param reference             a reference from {@link RelationshipCursor#propertiesReference()}.
      * @param selection
      * @param cursor
      */

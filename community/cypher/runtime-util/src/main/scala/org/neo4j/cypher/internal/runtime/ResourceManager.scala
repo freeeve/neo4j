@@ -22,12 +22,12 @@ package org.neo4j.cypher.internal.runtime
 import org.neo4j.cypher.internal.runtime.ResourceManager.INITIAL_CAPACITY
 import org.neo4j.cypher.internal.runtime.SingleThreadedResourcePool.SHALLOW_SIZE
 import org.neo4j.internal.helpers.Exceptions
-import org.neo4j.internal.kernel.api.AutoCloseablePlus
-import org.neo4j.internal.kernel.api.AutoCloseablePlus.UNTRACKED
-import org.neo4j.internal.kernel.api.CloseListener
 import org.neo4j.internal.kernel.api.CursorFactory
 import org.neo4j.internal.kernel.api.DefaultCloseListenable
 import org.neo4j.io.pagecache.context.CursorContext
+import org.neo4j.lang.AutoCloseablePlus
+import org.neo4j.lang.AutoCloseablePlus.UNTRACKED
+import org.neo4j.lang.CloseListener
 import org.neo4j.memory.EmptyMemoryTracker
 import org.neo4j.memory.HeapEstimator.shallowSizeOfInstance
 import org.neo4j.memory.HeapEstimator.shallowSizeOfObjectArray

@@ -33,8 +33,8 @@ import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.LoadExternalResourceException
 import org.neo4j.graphdb.security.AuthorizationViolationException
 import org.neo4j.graphdb.security.URLAccessValidationError
-import org.neo4j.internal.kernel.api.AutoCloseablePlus
 import org.neo4j.internal.kernel.api.DefaultCloseListenable
+import org.neo4j.lang.AutoCloseablePlus
 import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
 

@@ -39,7 +39,7 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
-import org.neo4j.internal.kernel.api.RelationshipDataAccessor;
+import org.neo4j.internal.kernel.api.RelationshipCursor;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -539,7 +539,7 @@ public abstract class PropertyCursorTestBase<G extends KernelAPIReadTestSupport>
         return props.next();
     }
 
-    private static boolean hasProperties(RelationshipDataAccessor relationship, PropertyCursor props) {
+    private static boolean hasProperties(RelationshipCursor relationship, PropertyCursor props) {
         relationship.properties(props);
         return props.next();
     }

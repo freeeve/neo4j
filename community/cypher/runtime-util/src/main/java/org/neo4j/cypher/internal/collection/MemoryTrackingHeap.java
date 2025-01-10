@@ -29,9 +29,9 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import org.neo4j.internal.helpers.collection.Iterators;
-import org.neo4j.internal.kernel.api.AutoCloseablePlus;
 import org.neo4j.internal.kernel.api.DefaultCloseListenable;
 import org.neo4j.io.IOUtils;
+import org.neo4j.lang.AutoCloseablePlus;
 import org.neo4j.memory.MemoryTracker;
 
 /**

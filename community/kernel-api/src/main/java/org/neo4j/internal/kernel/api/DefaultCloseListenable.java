@@ -19,6 +19,9 @@
  */
 package org.neo4j.internal.kernel.api;
 
+import org.neo4j.lang.AutoCloseablePlus;
+import org.neo4j.lang.CloseListener;
+
 public abstract class DefaultCloseListenable implements AutoCloseablePlus {
     protected CloseListener closeListener;
     private int token = UNTRACKED;

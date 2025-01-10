@@ -22,7 +22,7 @@ package org.neo4j.kernel.impl.core;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.internal.kernel.api.RelationshipDataAccessor;
+import org.neo4j.internal.kernel.api.RelationshipCursor;
 
 public interface TransactionalEntityFactory {
     Relationship newRelationshipEntity(long id);
@@ -31,7 +31,7 @@ public interface TransactionalEntityFactory {
 
     Relationship newRelationshipEntity(long id, long startNodeId, int typeId, long endNodeId);
 
-    Relationship newRelationshipEntity(RelationshipDataAccessor cursor);
+    Relationship newRelationshipEntity(RelationshipCursor cursor);
 
     Node newNodeEntity(long nodeId);
 

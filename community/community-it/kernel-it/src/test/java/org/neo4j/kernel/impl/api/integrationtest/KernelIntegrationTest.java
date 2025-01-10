@@ -40,7 +40,7 @@ import org.neo4j.graphdb.Resource;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.Procedures;
 import org.neo4j.internal.kernel.api.PropertyCursor;
-import org.neo4j.internal.kernel.api.RelationshipDataAccessor;
+import org.neo4j.internal.kernel.api.RelationshipCursor;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.internal.kernel.api.SchemaWrite;
 import org.neo4j.internal.kernel.api.TokenWrite;
@@ -230,19 +230,19 @@ public abstract class KernelIntegrationTest {
                         transaction.cursors(),
                         cursor,
                         types,
-                        RelationshipDataAccessor::relationshipReference,
+                        RelationshipCursor::relationshipReference,
                         transaction.cursorContext());
                 case INCOMING -> incomingIterator(
                         transaction.cursors(),
                         cursor,
                         types,
-                        RelationshipDataAccessor::relationshipReference,
+                        RelationshipCursor::relationshipReference,
                         transaction.cursorContext());
                 case BOTH -> allIterator(
                         transaction.cursors(),
                         cursor,
                         types,
-                        RelationshipDataAccessor::relationshipReference,
+                        RelationshipCursor::relationshipReference,
                         transaction.cursorContext());
             };
         }

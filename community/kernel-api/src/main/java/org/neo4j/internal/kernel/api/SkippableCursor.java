@@ -20,6 +20,7 @@
 package org.neo4j.internal.kernel.api;
 
 import org.neo4j.kernel.api.StatementConstants;
+import org.neo4j.lang.CloseListener;
 
 public interface SkippableCursor extends ReferenceCursor {
     /**

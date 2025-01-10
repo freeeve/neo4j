@@ -22,7 +22,7 @@ package org.neo4j.internal.kernel.api;
 /**
  * Cursor for traversing the relationships of a single node.
  */
-public interface RelationshipTraversalCursor extends RelationshipTraversalEntities, RelationshipDataAccessor, Cursor {
+public interface RelationshipTraversalCursor extends RelationshipTraversalEntities, RelationshipCursor {
     /**
      * Get the other node, the one that this cursor was not initialized from.
      * <p>

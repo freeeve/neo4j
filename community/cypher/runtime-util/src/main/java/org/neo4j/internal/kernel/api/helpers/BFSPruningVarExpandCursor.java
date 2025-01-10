@@ -31,13 +31,13 @@ import org.neo4j.collection.trackable.HeapTrackingArrayDeque;
 import org.neo4j.collection.trackable.HeapTrackingCollections;
 import org.neo4j.collection.trackable.HeapTrackingLongHashSet;
 import org.neo4j.collection.trackable.HeapTrackingLongLongHashMap;
-import org.neo4j.internal.kernel.api.Cursor;
 import org.neo4j.internal.kernel.api.DefaultCloseListenable;
 import org.neo4j.internal.kernel.api.KernelReadTracer;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.RelationshipTraversalCursor;
 import org.neo4j.internal.kernel.api.RelationshipTraversalEntities;
+import org.neo4j.lang.AutoCloseablePlus;
 import org.neo4j.memory.MemoryTracker;
 
 /**
@@ -67,7 +67,7 @@ import org.neo4j.memory.MemoryTracker;
  * }
  * </pre>
  */
-public abstract class BFSPruningVarExpandCursor extends DefaultCloseListenable implements Cursor {
+public abstract class BFSPruningVarExpandCursor extends DefaultCloseListenable implements AutoCloseablePlus {
     final int[] types;
     final Read read;
     final int maxDepth;
@@ -77,6 +77,8 @@ public abstract class BFSPruningVarExpandCursor extends DefaultCloseListenable i
     final LongPredicate nodeFilter;
     final Predicate<RelationshipTraversalEntities> relFilter;
     final long soughtEndNode;
+
+    public abstract boolean next();
 
     public static BFSPruningVarExpandCursor outgoingExpander(
             long startNode,
@@ -227,13 +229,11 @@ public abstract class BFSPruningVarExpandCursor extends DefaultCloseListenable i
 
     public abstract int currentDepth();
 
-    @Override
     public void setTracer(KernelReadTracer tracer) {
         nodeCursor.setTracer(tracer);
         relCursor.setTracer(tracer);
     }
 
-    @Override
     public void removeTracer() {
         nodeCursor.removeTracer();
         relCursor.removeTracer();
@@ -296,7 +296,6 @@ public abstract class BFSPruningVarExpandCursor extends DefaultCloseListenable i
                     : EmitState.NO;
         }
 
-        @Override
         public final boolean next() {
             if (done) {
                 return false;
@@ -499,7 +498,6 @@ public abstract class BFSPruningVarExpandCursor extends DefaultCloseListenable i
             currentDepth = 1;
         }
 
-        @Override
         public final boolean next() {
             if (done) {
                 return false;
@@ -698,7 +696,6 @@ public abstract class BFSPruningVarExpandCursor extends DefaultCloseListenable i
             this.lastSuccessfulDepth = -1;
         }
 
-        @Override
         public final boolean next() {
             if (done) {
                 return false;

@@ -42,7 +42,6 @@ import org.neo4j.cypher.internal.runtime.memory.NoOpQueryMemoryTracker
 import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.Relationship
 import org.neo4j.graphdb.spatial.Point
-import org.neo4j.internal.kernel.api.AutoCloseablePlus
 import org.neo4j.internal.kernel.api.CursorFactory
 import org.neo4j.internal.kernel.api.IndexReadSession
 import org.neo4j.internal.kernel.api.NodeCursor
@@ -56,6 +55,7 @@ import org.neo4j.kernel.impl.query.Neo4jTransactionalContextFactory
 import org.neo4j.kernel.impl.query.QueryExecutionConfiguration
 import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.kernel.impl.util.BaseToObjectValueWriter
+import org.neo4j.lang.AutoCloseablePlus
 import org.neo4j.memory.EmptyMemoryTracker
 import org.neo4j.monitoring.Monitors
 import org.neo4j.values.AnyValue
