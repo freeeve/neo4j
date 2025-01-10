@@ -125,11 +125,11 @@ class CartesianProductsOrValueJoinsTest extends CypherFunSuite with LogicalPlann
         Set(
           PlannedComponent(
             QueryGraph(patternNodes = Set(v"a")),
-            BestResults(allNodesScan("a", planningAttributes), None)
+            BestResults(allNodesScan("a", planningAttributes), None, None)
           ),
           PlannedComponent(
             QueryGraph(patternNodes = Set(v"b")),
-            BestResults(allNodesScan("b", planningAttributes), None)
+            BestResults(allNodesScan("b", planningAttributes), None, None)
           )
         ),
       expectedPlans = expectedPlans
@@ -143,15 +143,15 @@ class CartesianProductsOrValueJoinsTest extends CypherFunSuite with LogicalPlann
         Set(
           PlannedComponent(
             QueryGraph(patternNodes = Set(v"a")),
-            BestResults(allNodesScan("a", planningAttributes), None)
+            BestResults(allNodesScan("a", planningAttributes), None, None)
           ),
           PlannedComponent(
             QueryGraph(patternNodes = Set(v"b")),
-            BestResults(allNodesScan("b", planningAttributes), None)
+            BestResults(allNodesScan("b", planningAttributes), None, None)
           ),
           PlannedComponent(
             QueryGraph(patternNodes = Set(v"c")),
-            BestResults(allNodesScan("c", planningAttributes), None)
+            BestResults(allNodesScan("c", planningAttributes), None, None)
           )
         ),
       expectedPlans = List(planA, planB, planC).permutations.map { l =>
@@ -175,7 +175,7 @@ class CartesianProductsOrValueJoinsTest extends CypherFunSuite with LogicalPlann
         (chars map { x =>
           PlannedComponent(
             QueryGraph(patternNodes = Set(varFor(x.toString))),
-            BestResults(allNodesScan(x.toString, planningAttributes), None)
+            BestResults(allNodesScan(x.toString, planningAttributes), None, None)
           )
         }).toSet,
       assertion = (x: LogicalPlan) => {
@@ -204,13 +204,14 @@ class CartesianProductsOrValueJoinsTest extends CypherFunSuite with LogicalPlann
         QueryGraph(patternNodes = Set(orderedNode)),
         BestResults(
           nodeByLabelScan(orderedNode.name, "MANY", 10000.0, context.staticComponents.planningAttributes),
-          Some(nodeIndexScanPlan)
+          Some(nodeIndexScanPlan),
+          None
         )
       )
       val bestPlanComponents = nodesWithCardinality
         .map { case (n, c) => nodeByLabelScan(n, "FEW", c, context.staticComponents.planningAttributes) }
         .map(plan =>
-          PlannedComponent(QueryGraph(patternNodes = plan.availableSymbols), BestResults(plan, None))
+          PlannedComponent(QueryGraph(patternNodes = plan.availableSymbols), BestResults(plan, None, None))
         )
       val plans: Set[PlannedComponent] = bestPlanComponents + bestSortedPlanComponent
 
@@ -232,7 +233,7 @@ class CartesianProductsOrValueJoinsTest extends CypherFunSuite with LogicalPlann
       )
 
       // n3 needs to be on left, so that its sort order is kept. The rest should still be sorted by cost.
-      result.plan.bestResultFulfillingReq.get.folder.findAllByClass[NodeLogicalLeafPlan].map(
+      result.plan.bestSortedResult.get.folder.findAllByClass[NodeLogicalLeafPlan].map(
         _.idName.name
       ) shouldEqual Seq(
         "n3",
@@ -253,11 +254,11 @@ class CartesianProductsOrValueJoinsTest extends CypherFunSuite with LogicalPlann
         Set(
           PlannedComponent(
             QueryGraph(patternNodes = Set(v"a")),
-            BestResults(allNodesScan("a", planningAttributes), None)
+            BestResults(allNodesScan("a", planningAttributes), None, None)
           ),
           PlannedComponent(
             QueryGraph(patternNodes = Set(v"b")),
-            BestResults(allNodesScan("b", planningAttributes), None)
+            BestResults(allNodesScan("b", planningAttributes), None, None)
           )
         ),
       expectedPlans =
@@ -282,15 +283,15 @@ class CartesianProductsOrValueJoinsTest extends CypherFunSuite with LogicalPlann
         Set(
           PlannedComponent(
             QueryGraph(patternNodes = Set(v"a")),
-            BestResults(allNodesScan("a", planningAttributes), None)
+            BestResults(allNodesScan("a", planningAttributes), None, None)
           ),
           PlannedComponent(
             QueryGraph(patternNodes = Set(v"b")),
-            BestResults(allNodesScan("b", planningAttributes), None)
+            BestResults(allNodesScan("b", planningAttributes), None, None)
           ),
           PlannedComponent(
             QueryGraph(patternNodes = Set(v"c")),
-            BestResults(allNodesScan("c", planningAttributes), None)
+            BestResults(allNodesScan("c", planningAttributes), None, None)
           )
         ),
       expectedPlans =

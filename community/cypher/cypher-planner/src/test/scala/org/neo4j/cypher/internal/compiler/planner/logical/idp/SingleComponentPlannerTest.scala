@@ -19,15 +19,25 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
+import org.neo4j.cypher.internal.ast.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.Hint
 import org.neo4j.cypher.internal.ast.UsingIndexHint
 import org.neo4j.cypher.internal.ast.UsingJoinHint
+import org.neo4j.cypher.internal.ast.semantics.ExpressionTypeInfo
+import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
+import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.ContextualPropertyAccess
+import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
+import org.neo4j.cypher.internal.compiler.planner.logical.RemoteBatchingStrategy.InPlannerRemoteBatching
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
+import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
+import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QueryGraph
@@ -37,6 +47,10 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Solveds
+import org.neo4j.cypher.internal.util.LabelId
+import org.neo4j.cypher.internal.util.PropertyKeyId
+import org.neo4j.cypher.internal.util.RelTypeId
+import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport {
@@ -52,6 +66,12 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
 
   private val `a-r1->b`: LogicalPlan = planBuilder()
     .expand("(a)-[r1]->(b)")
+    .fakeLeafPlan("a")
+    .build()
+
+  private val `expandAll(a-r1->b, remoteBatchProperties(a.prop1))`: LogicalPlan = planBuilder()
+    .expand("(a)-[r1]->(b)")
+    .remoteBatchProperties("cacheNFromStore[a.prop1]")
     .fakeLeafPlan("a")
     .build()
 
@@ -168,6 +188,20 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
     newMockedLogicalPlanningContext(planContext = planContext)
   }
 
+  private def mockedSemanticTableWithNodes = {
+    val m = mock[SemanticTable]
+    when(m.resolvedLabelNames).thenReturn(Map.empty[String, LabelId])
+    when(m.resolvedPropertyKeyNames).thenReturn(Map.empty[String, PropertyKeyId])
+    when(m.resolvedRelTypeNames).thenReturn(Map.empty[String, RelTypeId])
+    when(m.id(any[PropertyKeyName]())).thenReturn(None)
+    when(m.id(any[LabelName])).thenReturn(None)
+    when(m.id(any[RelTypeName])).thenReturn(None)
+    when(m.types).thenReturn(ASTAnnotationMap.empty[Expression, ExpressionTypeInfo])
+    when(m.typeFor(any[Expression])).thenReturn(SemanticTable.TypeGetter(Some(CTNode)))
+    when(m.typeFor(any[String])).thenReturn(SemanticTable.TypeGetter(Some(CTNode)))
+    m
+  }
+
   test("plans expands for queries with single pattern rel") {
     val pattern = PatternRelationship(v"r1", (v"a", v"b"), SemanticDirection.OUTGOING, Seq.empty, SimplePatternLength)
     val qg = QueryGraph(patternRelationships = Set(pattern), patternNodes = Set(v"a", v"b"))
@@ -183,14 +217,56 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
         kit,
         pattern,
         Map(
-          aPlan.availableSymbols -> BestResults(aPlan, None),
-          bPlan.availableSymbols -> BestResults(bPlan, None)
+          aPlan.availableSymbols -> BestResults(aPlan, None, None),
+          bPlan.availableSymbols -> BestResults(bPlan, None, None)
         ),
         noQPPInnerPlans,
         context
       )
 
     logicalPlans.toSet should equal(Set(`a-r1->b`, `b<-r1-a`, `expandInto(a X b)`, `expandInto(b X a)`))
+  }
+
+  test("plans expands with remote batch properties for queries with single pattern rel") {
+    val pattern = PatternRelationship(v"r1", (v"a", v"b"), SemanticDirection.OUTGOING, Seq.empty, SimplePatternLength)
+    val qg = QueryGraph(patternRelationships = Set(pattern), patternNodes = Set(v"a", v"b"))
+    val context = mockContext()
+    val contextWithSPD = context.copy(
+      settings = context.settings.copy(remoteBatchPropertiesStrategy = InPlannerRemoteBatching),
+      plannerState = context.plannerState.copy(contextualPropertyAccess =
+        ContextualPropertyAccess(
+          horizon = Set(PropertyAccess(v"a", "prop1")),
+          queryGraph = Set.empty,
+          interestingOrder = Set.empty
+        )
+      ),
+      staticComponents = context.staticComponents.copy(semanticTable = mockedSemanticTableWithNodes)
+    )
+    val kit = contextWithSPD.plannerState.config.toKit(InterestingOrderConfig.empty, contextWithSPD)
+    val aPlan = newMockedLogicalPlan(contextWithSPD.staticComponents.planningAttributes, "a")
+    val bPlan = newMockedLogicalPlan(contextWithSPD.staticComponents.planningAttributes, "b")
+
+    // when
+    val logicalPlans =
+      SingleComponentPlanner.planSinglePattern(
+        qg,
+        kit,
+        pattern,
+        Map(
+          aPlan.availableSymbols -> BestResults(aPlan, None, None),
+          bPlan.availableSymbols -> BestResults(bPlan, None, None)
+        ),
+        noQPPInnerPlans,
+        contextWithSPD
+      )
+
+    logicalPlans.toSet should equal(Set(
+      `a-r1->b`,
+      `b<-r1-a`,
+      `expandInto(a X b)`,
+      `expandInto(b X a)`,
+      `expandAll(a-r1->b, remoteBatchProperties(a.prop1))`
+    ))
   }
 
   test("plans expands with filter for queries with single pattern rel") {
@@ -212,8 +288,8 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
         kit,
         pattern,
         Map(
-          aPlan.availableSymbols -> BestResults(aPlan, None),
-          bPlan.availableSymbols -> BestResults(bPlan, None)
+          aPlan.availableSymbols -> BestResults(aPlan, None, None),
+          bPlan.availableSymbols -> BestResults(bPlan, None, None)
         ),
         noQPPInnerPlans,
         context
@@ -251,8 +327,8 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
       kit,
       rel1,
       Map(
-        r1Plan.availableSymbols -> BestResults(r1Plan, None),
-        r2Plan.availableSymbols -> BestResults(r2Plan, None)
+        r1Plan.availableSymbols -> BestResults(r1Plan, None, None),
+        r2Plan.availableSymbols -> BestResults(r2Plan, None, None)
       ),
       noQPPInnerPlans,
       context
@@ -281,8 +357,8 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
         kit,
         pattern,
         Map(
-          aPlan.availableSymbols -> BestResults(aPlan, None),
-          bPlan.availableSymbols -> BestResults(bPlan, None)
+          aPlan.availableSymbols -> BestResults(aPlan, None, None),
+          bPlan.availableSymbols -> BestResults(bPlan, None, None)
         ),
         noQPPInnerPlans,
         context
@@ -317,8 +393,8 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
         kit,
         pattern,
         Map(
-          aPlan.availableSymbols -> BestResults(aPlan, None),
-          bPlan.availableSymbols -> BestResults(bPlan, None)
+          aPlan.availableSymbols -> BestResults(aPlan, None, None),
+          bPlan.availableSymbols -> BestResults(bPlan, None, None)
         ),
         noQPPInnerPlans,
         context
@@ -353,7 +429,7 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
       qg,
       kit,
       pattern,
-      Map(aPlan.availableSymbols -> BestResults(aPlan, None)),
+      Map(aPlan.availableSymbols -> BestResults(aPlan, None, None)),
       noQPPInnerPlans,
       context
     )
@@ -378,8 +454,8 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
         kit,
         pattern,
         Map(
-          aPlan.availableSymbols -> BestResults(aPlan, None),
-          bPlan.availableSymbols -> BestResults(bPlan, None)
+          aPlan.availableSymbols -> BestResults(aPlan, None, None),
+          bPlan.availableSymbols -> BestResults(bPlan, None, None)
         ),
         noQPPInnerPlans,
         context
@@ -430,8 +506,8 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
         kit,
         pattern,
         Map(
-          aPlan.availableSymbols -> BestResults(aPlan, Some(aPlanSort)),
-          bPlan.availableSymbols -> BestResults(bPlan, Some(bPlanSort))
+          aPlan.availableSymbols -> BestResults(aPlan, Some(aPlanSort), None),
+          bPlan.availableSymbols -> BestResults(bPlan, Some(bPlanSort), None)
         ),
         noQPPInnerPlans,
         context
@@ -480,8 +556,8 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
         kit,
         pattern,
         Map(
-          aPlan.availableSymbols -> BestResults(aPlan, Some(aPlanSort)),
-          bPlan.availableSymbols -> BestResults(bPlan, Some(bPlanSort))
+          aPlan.availableSymbols -> BestResults(aPlan, Some(aPlanSort), None),
+          bPlan.availableSymbols -> BestResults(bPlan, Some(bPlanSort), None)
         ),
         noQPPInnerPlans,
         context

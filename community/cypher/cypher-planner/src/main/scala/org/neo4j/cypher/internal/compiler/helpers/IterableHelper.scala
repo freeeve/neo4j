@@ -66,7 +66,7 @@ object IterableHelper {
      *
      * @param f the function
      * @tparam CC the type of the collection being returned.
-     * @tparam B the type of elements returned by `f`
+     * @tparam B  the type of elements returned by `f`
      */
     def traverseInto[CC[_], B](f: T => Option[B])(implicit factory: Factory[B, CC[B]]): Option[CC[B]] = {
       val builder = factory.newBuilder

@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.HasDegreeGreaterThan
+import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
@@ -105,7 +106,6 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest
         "cacheN[friendOfFriend.lastName] AS `friendOfFriend.lastName`"
       )
       .remoteBatchProperties(
-        "cacheNFromStore[n.lastName]",
         "cacheNFromStore[friendOfFriend.firstName]",
         "cacheNFromStore[friendOfFriend.lastName]"
       )
@@ -115,6 +115,7 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest
       .|.argument("friend", "anon_0")
       .filter("friend:Person")
       .expandAll("(n)-[anon_0:KNOWS]-(friend)")
+      .remoteBatchProperties("cacheNFromStore[n.lastName]")
       .nodeIndexOperator("n:Person(firstName = 'Dave')", getValue = Map("firstName" -> GetValue))
       .build())
   }
@@ -141,6 +142,10 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
     .setLabelCardinality("Message", 3055774)
     .setLabelCardinality("Post", 1003605)
     .setLabelCardinality("Comment", 2052169)
+    .setLabelCardinality("Country", 111)
+    .setLabelCardinality("City", 1343)
+    .setLabelCardinality("Tag", 16080)
+    .setLabelCardinality("TagClass", 71)
     .setRelationshipCardinality("()-[:KNOWS]->()", 180623)
     .setRelationshipCardinality("(:Person)-[:KNOWS]->()", 180623)
     .setRelationshipCardinality("()-[:KNOWS]->(:Person)", 180623)
@@ -158,19 +163,55 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
     .setRelationshipCardinality("()-[:COMMENT_HAS_CREATOR]->()", 2052169)
     .setRelationshipCardinality("(:Message)-[:COMMENT_HAS_CREATOR]->()", 2052169)
     .setRelationshipCardinality("(:Comment)-[:COMMENT_HAS_CREATOR]->()", 2052169)
+    .setRelationshipCardinality("()-[:REPLY_OF]->()", 2052169)
+    .setRelationshipCardinality("()-[:REPLY_OF]->(:Message)", 2052169)
+    .setRelationshipCardinality("(:Message)-[:REPLY_OF]->()", 0)
+    .setRelationshipCardinality("(:Message)-[:REPLY_OF]->(:Message)", 0)
     .setRelationshipCardinality("()-[:COMMENT_HAS_CREATOR]->(:Person)", 2052169)
     .setRelationshipCardinality("(:Message)-[:COMMENT_HAS_CREATOR]->(:Person)", 2052169)
     .setRelationshipCardinality("(:Comment)-[:COMMENT_HAS_CREATOR]->(:Person)", 2052169)
     .setRelationshipCardinality("(:Person)-[:COMMENT_HAS_CREATOR]->()", 0)
     .setRelationshipCardinality("()-[:COMMENT_HAS_CREATOR]->(:Message)", 0)
     .setRelationshipCardinality("()-[:COMMENT_HAS_CREATOR]->(:Comment)", 0)
+    .setRelationshipCardinality("()-[:MESSAGE_HAS_TAG]->()", 2928064)
+    .setRelationshipCardinality("(:Message)-[:MESSAGE_HAS_TAG]->(:Tag)", 2928064)
+    .setRelationshipCardinality("(:Message)-[:MESSAGE_HAS_TAG]->()", 2928064)
+    .setRelationshipCardinality("()-[:MESSAGE_HAS_TAG]->(:Tag)", 2928064)
+    .setRelationshipCardinality("(:Tag)-[:MESSAGE_HAS_TAG]->()", 0)
+    .setRelationshipCardinality("(:Tag)-[:MESSAGE_HAS_TAG]->(:Message)", 0)
+    .setRelationshipCardinality("()-[:MESSAGE_HAS_TAG]->(:Message)", 0)
+    .setRelationshipCardinality("(:Post)-[:MESSAGE_HAS_TAG]->(:Tag)", 0)
+    .setRelationshipCardinality("()-[:IS_LOCATED_IN]->()", 9892)
+    .setRelationshipCardinality("(:Person)-[:IS_LOCATED_IN]->()", 9892)
+    .setRelationshipCardinality("()-[:IS_LOCATED_IN]->(:City)", 9892)
+    .setRelationshipCardinality("()-[:IS_LOCATED_IN]->(:Person)", 0)
+    .setRelationshipCardinality("(:City)-[:IS_LOCATED_IN]->()", 0)
+    .setRelationshipCardinality("(:Person)-[:IS_LOCATED_IN]->(:City)", 9892)
+    .setRelationshipCardinality("()-[:IS_PART_OF]->()", 1454)
+    .setRelationshipCardinality("(:City)-[:IS_PART_OF]->()", 1454)
+    .setRelationshipCardinality("()-[:IS_PART_OF]->(:Country)", 1454)
+    .setRelationshipCardinality("(:City)-[:IS_PART_OF]->(:Country)", 1454)
+    .setRelationshipCardinality("()-[:IS_PART_OF]->(:City)", 0)
+    .setRelationshipCardinality("(:Country)-[:IS_PART_OF]->()", 0)
+    .setRelationshipCardinality("()-[:HAS_TYPE]->()", 16080)
+    .setRelationshipCardinality("(:Tag)-[:HAS_TYPE]->(:TagClass)", 16080)
+    .setRelationshipCardinality("(:Tag)-[:HAS_TYPE]->()", 16080)
+    .setRelationshipCardinality("()-[:HAS_TYPE]->(:TagClass)", 16080)
+    .setRelationshipCardinality("()-[:HAS_TYPE]->(:Tag)", 0)
+    .setRelationshipCardinality("(:TagClass)-[:HAS_TYPE]->()", 0)
     .setRelationshipCardinality("(:Message)-[]->(:Person)", 2052169 + 1003605)
     .setRelationshipCardinality("(:Message)-[]->()", 2052169 + 1003605)
     .setRelationshipCardinality("()-[]->()", 2052169 + 1003605 + 180623)
     .setRelationshipCardinality("()-[]->(:Person)", 2052169 + 1003605 + 180623)
     .addNodeIndex("Person", List("id"), existsSelectivity = 1.0, uniqueSelectivity = 1.0 / 9892.0, isUnique = true)
     .addNodeIndex("Person", List("firstName"), existsSelectivity = 1.0, uniqueSelectivity = 1 / 1323.0)
-    .addNodeIndex("Message", List("creationDate"), existsSelectivity = 1.0, uniqueSelectivity = 3033542.0 / 3055774.0)
+    .addNodeIndex("Message", List("creationDate"), existsSelectivity = 1.0, uniqueSelectivity = 10 / 3055774.0)
+    .addNodeIndex("City", List("name"), existsSelectivity = 1.0, uniqueSelectivity = 1.0 / 1343.0)
+    .addNodeIndex("Country", List("name"), existsSelectivity = 1.0, uniqueSelectivity = 1.0 / 111.0)
+    .addNodeIndex("Country", List("id"), existsSelectivity = 1.0, uniqueSelectivity = 1.0 / 111.0)
+    .addNodeIndex("Tag", List("id"), existsSelectivity = 1.0, uniqueSelectivity = 1.0 / 16080.0)
+    .addNodeIndex("Tag", List("name"), existsSelectivity = 1.0, uniqueSelectivity = 1.0 / 16080.0)
+    .addNodeIndex("TagClass", List("name"), existsSelectivity = 1.0, uniqueSelectivity = 1.0 / 71.0)
     .addRelationshipIndex("COMMENT_HAS_CREATOR", List("location"), existsSelectivity = 1.0, uniqueSelectivity = 0.1)
     .addRelationshipIndex(
       "COMMENT_HAS_CREATOR",
@@ -347,13 +388,12 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
         "person:Person"
       )
       .remoteBatchProperties(
-        "cacheNFromStore[person.firstName]",
-        "cacheNFromStore[friend.firstName]",
-        "cacheRFromStore[knows.creationDate]",
         "cacheNFromStore[person.lastName]",
-        "cacheNFromStore[friend.lastName]"
+        "cacheNFromStore[person.firstName]",
+        "cacheRFromStore[knows.creationDate]"
       )
       .expandAll("(friend)<-[knows:KNOWS]-(person)")
+      .remoteBatchProperties("cacheNFromStore[friend.lastName]", "cacheNFromStore[friend.firstName]")
       .nodeByLabelScan("friend", "Person")
       .build()
   }
@@ -453,12 +493,9 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
         .|.expandAll("(friend)<-[has_creator:POST_HAS_CREATOR|COMMENT_HAS_CREATOR]-(message)")
         .|.argument("friend", "person", "knows")
         .filter("cacheN[person.firstName] = cacheN[friend.firstName]")
-        .remoteBatchProperties(
-          "cacheNFromStore[person.firstName]",
-          "cacheNFromStore[friend.firstName]",
-          "cacheNFromStore[friend.lastName]"
-        )
-        .expand("(person)-[knows:KNOWS*1..2]-(friend)")
+        .remoteBatchProperties("cacheNFromStore[friend.lastName]", "cacheNFromStore[friend.firstName]")
+        .expand("(person)-[knows:KNOWS*1..2]-(friend)", expandMode = ExpandAll, projectedDir = OUTGOING)
+        .remoteBatchProperties("cacheNFromStore[person.firstName]")
         .nodeIndexOperator(
           "person:Person(id = ???)",
           paramExpr = Some(parameter("Person", CTAny)),
@@ -484,11 +521,11 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
         .planBuilder()
         .produceResults("firstName", "lastName")
         .projection("cacheN[person.firstName] AS firstName", "cacheN[person.lastName] AS lastName")
+        .expand("(person)-[knows:KNOWS*1..2]-(friend)")
         .remoteBatchProperties(
           "cacheNFromStore[person.firstName]",
           "cacheNFromStore[person.lastName]"
         ) // note how we retrieve firstName once again
-        .expand("(person)-[knows:KNOWS*1..2]-(friend)")
         .distinct("person AS person")
         .union()
         .|.nodeIndexOperator(
@@ -670,20 +707,67 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       .projection("cacheN[message.creationDate] AS `message.creationDate`", "cacheN[message.id] AS `message.id`")
       .filter("cacheN[message.creationDate] < $Date0")
       .remoteBatchProperties(
-        "cacheNFromStore[message.content]",
+        "cacheNFromStore[message.imageFile]",
         "cacheNFromStore[message.creationDate]",
-        "cacheNFromStore[message.id]",
-        "cacheNFromStore[message.imageFile]"
+        "cacheNFromStore[message.content]",
+        "cacheNFromStore[message.id]"
       )
       .expandAll("(friend)<-[anon_0:POST_HAS_CREATOR|COMMENT_HAS_CREATOR]-(message)")
       .projection("friend AS friend")
       .filter("NOT person = friend")
-      .bfsPruningVarExpand("(person)-[:KNOWS*1..2]-(friend)")
+      .bfsPruningVarExpand(
+        "(person)-[:KNOWS*1..2]-(friend)"
+      )
       .nodeIndexOperator(
         "person:Person(id = ???)",
         paramExpr = Some(parameter("Person", CTAny)),
         getValue = Map("id" -> DoNotGetValue),
         unique = true
+      )
+      .build()
+  }
+
+  test("should not batch properties if the index determines that values are not required - LDBC BI SF001-Read_9") {
+    val query =
+      """
+        |MATCH (person:Person)<-[:POST_HAS_CREATOR]-(post:Message)<-[:REPLY_OF*0..]-(reply)
+        |WHERE post.creationDate <= $endDate AND
+        |      reply.creationDate <= $endDate
+        |WITH person, count(post) AS threadCount, count(reply) AS messageCount
+        |RETURN
+        |  person.id,
+        |  person.firstName,
+        |  person.lastName,
+        |  threadCount,
+        |  messageCount
+        |ORDER BY messageCount DESC, person.id ASC
+        |LIMIT 100
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults("`person.id`", "`person.firstName`", "`person.lastName`", "threadCount", "messageCount")
+      .projection(
+        "cacheN[person.firstName] AS `person.firstName`",
+        "cacheN[person.lastName] AS `person.lastName`",
+        "cacheN[person.id] AS `person.id`"
+      )
+      .remoteBatchProperties("cacheNFromStore[person.firstName]", "cacheNFromStore[person.lastName]")
+      .top(100, "messageCount DESC", "`person.id` ASC")
+      .projection("cacheN[person.id] AS `person.id`")
+      .remoteBatchProperties("cacheNFromStore[person.id]")
+      .aggregation(Seq("person AS person"), Seq("count(post) AS threadCount", "count(reply) AS messageCount"))
+      .filter("cacheN[reply.creationDate] <= $endDate")
+      .remoteBatchProperties("cacheNFromStore[reply.creationDate]")
+      .expand("(post)<-[anon_1:REPLY_OF*0..]-(reply)", expandMode = ExpandAll, projectedDir = INCOMING)
+      .filter("person:Person")
+      .expandAll("(post)-[anon_0:POST_HAS_CREATOR]->(person)")
+      .nodeIndexOperator(
+        "post:Message(creationDate <= ???)",
+        paramExpr = Some(parameter("endDate", CTAny)),
+        getValue = Map("creationDate" -> DoNotGetValue)
       )
       .build()
   }
@@ -966,8 +1050,9 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       .apply()
       .|.optional("p")
       .|.filter("NOT cacheN[s.firstName] = cacheN[p.firstName]", "s:Person")
-      .|.remoteBatchProperties("cacheNFromStore[s.firstName]", "cacheNFromStore[p.firstName]")
+      .|.remoteBatchProperties("cacheNFromStore[s.firstName]")
       .|.expandAll("(p)-[anon_0:KNOWS]-(s)")
+      .|.remoteBatchProperties("cacheNFromStore[p.firstName]")
       .|.argument("p")
       .nodeIndexOperator("p:Person(firstName = 'foo')", getValue = Map("firstName" -> GetValue))
       .build())
@@ -1127,8 +1212,9 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
         |LIMIT 100
         |""".stripMargin
 
-    planner.plan(query).stripProduceResults should equal(planner
-      .subPlanBuilder()
+    planner.plan(query) should equal(planner
+      .planBuilder()
+      .produceResults("`a.lastName`", "`b.name`")
       .projection("cacheN[a.lastName] AS `a.lastName`", "cacheN[b.name] AS `b.name`")
       .remoteBatchProperties("cacheNFromStore[a.lastName]")
       .top(100, "`b.name` ASC")
@@ -1137,8 +1223,9 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       .|.top(1, "`b.name` ASC")
       .|.projection("cacheN[b.name] AS `b.name`")
       .|.filter("cacheN[b.name] = cacheN[a.firstName]")
-      .|.remoteBatchProperties("cacheNFromStore[b.name]", "cacheNFromStore[a.firstName]")
+      .|.remoteBatchProperties("cacheNFromStore[b.name]")
       .|.expandAll("(a)-[anon_0:KNOWS]->(b)")
+      .|.remoteBatchProperties("cacheNFromStore[a.firstName]")
       .|.argument("a")
       .nodeByLabelScan("a", "Person")
       .build())
@@ -1313,5 +1400,162 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       )
       .nodeIndexOperator("b:PROFILES(children STARTS WITH 'x')", getValue = Map("children" -> GetValue))
       .build()
+  }
+
+  test("should fetch batched properties before an expandAll") {
+    val query =
+      """
+        |  MATCH (p)-[:KNOWS]-(s:Person) WHERE s.lastName <> p.lastName
+        |  RETURN p.firstName,s.firstName
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan should equal(planner.subPlanBuilder()
+      .projection("cacheN[p.firstName] AS `p.firstName`", "cacheN[s.firstName] AS `s.firstName`")
+      .filter("NOT cacheN[s.lastName] = cacheN[p.lastName]")
+      .remoteBatchProperties("cacheNFromStore[p.lastName]", "cacheNFromStore[p.firstName]")
+      .expandAll("(s)-[anon_0:KNOWS]-(p)")
+      .remoteBatchProperties("cacheNFromStore[s.lastName]", "cacheNFromStore[s.firstName]")
+      .nodeByLabelScan("s", "Person")
+      .build())
+  }
+
+  test(
+    "should plan node hashjoin and pruning var expands: ldbc_bi_sf001: Read_10a"
+  ) { // Test to ensure that cost estimate for remote batch properties helps
+    val query =
+      """
+        |MATCH path=(startPerson:Person {id: $personId})-[:KNOWS*1..4]-(expertCandidatePerson:Person)
+        |MATCH (expertCandidatePerson)-[:IS_LOCATED_IN]->(:City)-[:IS_PART_OF]->(:Country {name: $country})
+        |WITH expertCandidatePerson, min(length(path)) AS shortestPathDistance
+        |WHERE shortestPathDistance >=3
+        |MATCH (expertCandidatePerson)<-[:POST_HAS_CREATOR]-(message:Message)
+        |WHERE (message)-[:MESSAGE_HAS_TAG]->(:Tag)-[:HAS_TYPE]->(:TagClass {name: $tagClass})
+        |MATCH (message)-[:MESSAGE_HAS_TAG]-(tag:Tag)
+        |RETURN expertCandidatePerson.id, tag.name, count(DISTINCT message) AS messageCount
+        |ORDER BY messageCount DESC, tag.name ASC, expertCandidatePerson.id ASC
+        |LIMIT 100
+        |""".stripMargin
+
+    planner.plan(query).stripProduceResults shouldEqual planner.subPlanBuilder()
+      .top(100, "messageCount DESC", "`tag.name` ASC", "`expertCandidatePerson.id` ASC")
+      .aggregation(
+        Seq("cacheN[expertCandidatePerson.id] AS `expertCandidatePerson.id`", "cacheN[tag.name] AS `tag.name`"),
+        Seq("count(DISTINCT message) AS messageCount")
+      )
+      .remoteBatchProperties("cacheNFromStore[expertCandidatePerson.id]", "cacheNFromStore[tag.name]")
+      .filter("tag:Tag")
+      .expandAll("(message)-[anon_9:MESSAGE_HAS_TAG]-(tag)")
+      .filter("message:Message")
+      .semiApply()
+      .|.filter("cacheN[anon_8.name] = $tagClass", "anon_8:TagClass")
+      .|.remoteBatchProperties("cacheNFromStore[anon_8.name]")
+      .|.expandAll("(anon_6)-[anon_7:HAS_TYPE]->(anon_8)")
+      .|.filter("anon_6:Tag")
+      .|.expandAll("(message)-[anon_5:MESSAGE_HAS_TAG]->(anon_6)")
+      .|.argument("message")
+      .expandAll("(expertCandidatePerson)<-[anon_4:POST_HAS_CREATOR]-(message)")
+      .filter("shortestPathDistance >= 3")
+      .aggregation(Seq("expertCandidatePerson AS expertCandidatePerson"), Seq("min(anon_10) AS shortestPathDistance"))
+      .nodeHashJoin("expertCandidatePerson")
+      // we are testing that we run this operator
+      .|.bfsPruningVarExpand(
+        "(startPerson)-[:KNOWS*1..4]-(expertCandidatePerson)",
+        depthName = Some("anon_10"),
+        mode = ExpandAll
+      ) // we are testing that we run this operator
+      .|.nodeIndexOperator(
+        "startPerson:Person(id = ???)",
+        paramExpr = Some(parameter("personId", CTAny)),
+        getValue = Map("id" -> DoNotGetValue),
+        unique = true
+      )
+      .filter("expertCandidatePerson:Person")
+      .expandAll("(anon_1)<-[anon_0:IS_LOCATED_IN]-(expertCandidatePerson)")
+      .filter("anon_1:City")
+      .expandAll("(anon_3)<-[anon_2:IS_PART_OF]-(anon_1)")
+      .nodeIndexOperator(
+        "anon_3:Country(name = ???)",
+        paramExpr = Some(parameter("country", CTAny)),
+        getValue = Map("name" -> DoNotGetValue)
+      )
+      .build()
+  }
+
+  test("should plan join when using join hints") { // simplified ldbc_bi_sf001: Read_2a_join_hint to only test joins
+    val query =
+      """
+        |MATCH (tag:Tag)-[:HAS_TYPE]->(:TagClass {name: $tagClass})
+        |OPTIONAL MATCH (message:Message)-[:MESSAGE_HAS_TAG]->(tag)
+        |
+        |// makes 100-1000x faster
+        |USING JOIN ON tag
+        |
+        |WHERE $date <= message.creationDate
+        |WITH tag, message.creationDate < $date /*secondWindowStart*/ AS isInFirstWindow
+        |RETURN tag.name
+        |""".stripMargin
+
+    planner.plan(query).stripProduceResults shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[tag.name] AS `tag.name`")
+      .remoteBatchProperties("cacheNFromStore[tag.name]")
+      .projection("cacheN[message.creationDate] < $date AS isInFirstWindow")
+      .remoteBatchProperties("cacheNFromStore[message.creationDate]")
+      .leftOuterHashJoin("tag")
+      .|.expandAll("(message)-[anon_2:MESSAGE_HAS_TAG]->(tag)")
+      .|.nodeIndexOperator(
+        "message:Message(creationDate >= ???)",
+        paramExpr = Some(parameter("date", CTAny)),
+        getValue = Map("creationDate" -> GetValue)
+      )
+      .filter("tag:Tag")
+      .expandAll("(anon_1)<-[anon_0:HAS_TYPE]-(tag)")
+      .nodeIndexOperator(
+        "anon_1:TagClass(name = ???)",
+        paramExpr = Some(parameter("tagClass", CTAny)),
+        getValue = Map("name" -> DoNotGetValue)
+      )
+      .build()
+  }
+
+  test("should plan use plans with pre-fetched properties even when planning multiple cartesian products") {
+    val query =
+      """
+        |MATCH (tag:Tag)-[:HAS_TYPE]->(:TagClass {name: $tagClass})
+        |MATCH (message:Message)-[:MESSAGE_HAS_TAG]->(:Tag {name: $tagClass})
+        |MATCH (person: Person {name: $tagClass})
+        |WHERE $date <= message.creationDate
+        |WITH tag, message.creationDate < $date /*secondWindowStart*/ AS isInFirstWindow, message.title AS messageTitle, person.name AS matchingPersonTag
+        |RETURN tag.name, messageTitle, matchingPersonTag
+        |""".stripMargin
+    planner.plan(query).stripProduceResults should equal(planner.subPlanBuilder()
+      .projection("cacheN[tag.name] AS `tag.name`")
+      .projection(
+        "cacheN[message.creationDate] < $date AS isInFirstWindow",
+        "cacheN[message.title] AS messageTitle",
+        "cacheN[person.name] AS matchingPersonTag"
+      )
+      .cartesianProduct()
+      .|.cartesianProduct()
+      .|.|.remoteBatchProperties("cacheNFromStore[tag.name]")
+      .|.|.filter("tag:Tag")
+      .|.|.expandAll("(anon_1)<-[anon_0:HAS_TYPE]-(tag)")
+      .|.|.nodeIndexOperator(
+        "anon_1:TagClass(name = ???)",
+        paramExpr = Some(parameter("tagClass", CTAny)),
+        getValue = Map("name" -> DoNotGetValue)
+      )
+      .|.filter("cacheN[message.creationDate] >= $date", "message:Message")
+      .|.remoteBatchProperties("cacheNFromStore[message.creationDate]", "cacheNFromStore[message.title]")
+      .|.expandAll("(anon_3)<-[anon_2:MESSAGE_HAS_TAG]-(message)")
+      .|.nodeIndexOperator(
+        "anon_3:Tag(name = ???)",
+        paramExpr = Some(parameter("tagClass", CTAny)),
+        getValue = Map("name" -> DoNotGetValue)
+      )
+      .filter("cacheN[person.name] = $tagClass")
+      .remoteBatchProperties("cacheNFromStore[person.name]")
+      .nodeByLabelScan("person", "Person")
+      .build())(SymmetricalLogicalPlanEquality)
   }
 }

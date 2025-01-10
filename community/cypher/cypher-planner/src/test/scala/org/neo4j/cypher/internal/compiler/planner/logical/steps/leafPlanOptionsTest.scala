@@ -114,7 +114,7 @@ class leafPlanOptionsTest extends CypherFunSuite with LogicalPlanningTestSupport
         ctx
       )
 
-      options.shouldEqual(Map(Set(v"a") -> BestResults(AllNodesScan(v"a", Set.empty), None)))
+      options.shouldEqual(Map(Set(v"a") -> BestResults(AllNodesScan(v"a", Set.empty), None, None)))
     }
   }
 
@@ -131,7 +131,8 @@ class leafPlanOptionsTest extends CypherFunSuite with LogicalPlanningTestSupport
 
       options.shouldEqual(Map(Set(v"a") -> BestResults(
         AllNodesScan(v"a", Set.empty),
-        Some(Sort(AllNodesScan(v"a", Set.empty), List(Ascending(v"a"))))
+        Some(Sort(AllNodesScan(v"a", Set.empty), List(Ascending(v"a")))),
+        None
       )))
     }
   }
@@ -145,7 +146,7 @@ class leafPlanOptionsTest extends CypherFunSuite with LogicalPlanningTestSupport
         ctx
       )
 
-      options.shouldEqual(Map(Set(v"a") -> BestResults(AllNodesScan(v"a", Set.empty), None)))
+      options.shouldEqual(Map(Set(v"a") -> BestResults(AllNodesScan(v"a", Set.empty), None, None)))
     }
   }
 
@@ -163,7 +164,8 @@ class leafPlanOptionsTest extends CypherFunSuite with LogicalPlanningTestSupport
       options.shouldEqual(Map(Set(v"a") ->
         BestResults(
           AllNodesScan(v"a", Set.empty),
-          Some(NodeByLabelScan(v"a", LabelName("A")(pos), Set.empty, IndexOrderAscending))
+          Some(NodeByLabelScan(v"a", LabelName("A")(pos), Set.empty, IndexOrderAscending)),
+          None
         )))
     }
   }
@@ -178,8 +180,8 @@ class leafPlanOptionsTest extends CypherFunSuite with LogicalPlanningTestSupport
       )
 
       options.shouldEqual(Map(
-        Set(v"a") -> BestResults(AllNodesScan(v"a", Set.empty), None),
-        Set(v"b") -> BestResults(AllNodesScan(v"b", Set.empty), None)
+        Set(v"a") -> BestResults(AllNodesScan(v"a", Set.empty), None, None),
+        Set(v"b") -> BestResults(AllNodesScan(v"b", Set.empty), None, None)
       ))
     }
   }
@@ -198,9 +200,10 @@ class leafPlanOptionsTest extends CypherFunSuite with LogicalPlanningTestSupport
       options.shouldEqual(Map(
         Set(v"a") -> BestResults(
           AllNodesScan(v"a", Set.empty),
-          Some(NodeByLabelScan(v"a", LabelName("A")(pos), Set.empty, IndexOrderAscending))
+          Some(NodeByLabelScan(v"a", LabelName("A")(pos), Set.empty, IndexOrderAscending)),
+          None
         ),
-        Set(v"b") -> BestResults(AllNodesScan(v"b", Set.empty), None)
+        Set(v"b") -> BestResults(AllNodesScan(v"b", Set.empty), None, None)
       ))
     }
   }
@@ -233,7 +236,7 @@ class leafPlanOptionsTest extends CypherFunSuite with LogicalPlanningTestSupport
       )
 
       options.shouldEqual(Map(
-        Set(v"a") -> BestResults(plan, None)
+        Set(v"a") -> BestResults(plan, None, None)
       ))
     }
   }
@@ -272,7 +275,7 @@ class leafPlanOptionsTest extends CypherFunSuite with LogicalPlanningTestSupport
       )
 
       options.shouldEqual(Map(
-        Set(v"a") -> BestResults(plans.head, None)
+        Set(v"a") -> BestResults(plans.head, None, None)
       ))
     }
   }
@@ -313,7 +316,7 @@ class leafPlanOptionsTest extends CypherFunSuite with LogicalPlanningTestSupport
       )
 
       options should contain theSameElementsAs plans.map(p =>
-        p.availableSymbols -> BestResults(p, None)
+        p.availableSymbols -> BestResults(p, None, None)
       ).toMap
     }
   }

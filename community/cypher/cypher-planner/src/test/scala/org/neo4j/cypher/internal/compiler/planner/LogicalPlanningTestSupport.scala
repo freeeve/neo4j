@@ -304,7 +304,7 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
         solveds.set(plan.id, SinglePlannerQuery.empty)
         cardinalities.set(plan.id, 0.0)
         providedOrders.set(plan.id, ProvidedOrder.empty)
-        BestResults(plan, None)
+        BestResults(plan, None, None)
       }
     })
     strategy
@@ -323,7 +323,7 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
           cardinalities.set(p.id, 0.0)
           providedOrders.set(p.id, ProvidedOrder.empty)
         }
-        BestResults(plan, Some(sortedPlan))
+        BestResults(plan, Some(sortedPlan), None)
       }
     })
     strategy

@@ -171,7 +171,7 @@ case object outerHashJoin extends OptionalSolver {
       }
       val rhsQG = optionalQg.removeArguments().removeHints(solvedHints.map(_.asInstanceOf[Hint]))
 
-      val BestResults(side2Plan, side2SortedPlan) =
+      val BestResults(side2Plan, side2SortedPlan, side2ExtraPropertiesPlan) =
         context.staticComponents.queryGraphSolver.plan(rhsQG, interestingOrderConfig, context)
 
       (side1Plan: LogicalPlan) => {
@@ -179,7 +179,14 @@ case object outerHashJoin extends OptionalSolver {
           Iterator(
             leftOuterJoin(context, joinNodes, side1Plan, side2Plan, solvedHints),
             rightOuterJoin(context, joinNodes, side1Plan, side2Plan, solvedHints)
-          ) ++ side2SortedPlan.map(leftOuterJoin(context, joinNodes, side1Plan, _, solvedHints))
+          ) ++
+            side2ExtraPropertiesPlan.map { side2PlanWithExtraProps =>
+              Iterator(
+                leftOuterJoin(context, joinNodes, side1Plan, side2PlanWithExtraProps, solvedHints),
+                rightOuterJoin(context, joinNodes, side1Plan, side2PlanWithExtraProps, solvedHints)
+              )
+            }.getOrElse(Iterator.empty[LogicalPlan]) ++
+            side2SortedPlan.map(leftOuterJoin(context, joinNodes, side1Plan, _, solvedHints))
         } else {
           Iterator.empty
         }

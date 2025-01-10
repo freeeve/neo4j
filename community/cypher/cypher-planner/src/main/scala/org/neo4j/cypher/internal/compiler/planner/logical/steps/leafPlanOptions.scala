@@ -42,6 +42,7 @@ import org.neo4j.cypher.internal.logical.plans.RelationshipIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.RelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexContainsScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexEndsWithScan
+import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor.IndexType
 
@@ -67,7 +68,8 @@ object leafPlanOptions extends LeafPlanFinder {
   ): Map[Set[LogicalVariable], BestPlans] = {
     val queryPlannerKit = config.toKit(interestingOrderConfig, context)
     val pickBest = config.pickBestCandidate(context)
-
+    val extraPropertiesRequirement =
+      context.settings.remoteBatchPropertiesStrategy.interestingPropertiesAsIDPExtraRequirement(queryGraph, context)
     val leafPlanCandidatesWithSelections = queryPlannerKit.select(leafPlanCandidates, queryGraph)
 
     leafPlanCandidatesWithSelections
@@ -80,6 +82,19 @@ object leafPlanOptions extends LeafPlanFinder {
           s"leaf plan with available symbols ${bucket.head.availableSymbols.map(s => s"'${s.name}'").mkString(", ")}"
         ).get
 
+        val bestPlanWithExtraProperties =
+          if (context.staticComponents.planContext.databaseMode == DatabaseMode.SHARDED) {
+            pickBest(
+              bucket.filter(extraPropertiesRequirement.fulfils),
+              leafPlanHeuristic(context),
+              s"leaf plan with extra properties for available symbols ${bucket.head.availableSymbols.map(s =>
+                  s"'${s.name}'"
+                ).mkString(", ")}"
+            )
+          } else {
+            None
+          }
+
         if (interestingOrderConfig.orderToSolve.requiredOrderCandidate.nonEmpty) {
           val sortedLeaves =
             bucket.flatMap(plan => SortPlanner.planIfAsSortedAsPossible(plan, interestingOrderConfig, context))
@@ -87,9 +102,9 @@ object leafPlanOptions extends LeafPlanFinder {
             sortedLeaves,
             s"sorted leaf plan with available symbols ${bucket.head.availableSymbols.map(s => s"'${s.name}'").mkString(", ")}"
           )
-          availableSymbols -> BestResults(bestPlan, bestSortedPlan)
+          availableSymbols -> BestResults(bestPlan, bestSortedPlan, bestPlanWithExtraProperties)
         } else {
-          availableSymbols -> BestResults(bestPlan, None)
+          availableSymbols -> BestResults(bestPlan, None, bestPlanWithExtraProperties)
         }
       }
       .toMap

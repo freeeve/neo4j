@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryPlannerKit
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.GoalBitAllocation.startComponents
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPQueryGraphSolver.extraRequirementForInterestingOrder
-import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPTable.SORTED_BIT
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.cartesianProductsOrValueJoins.COMPONENT_THRESHOLD_FOR_CARTESIAN_PRODUCT
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.cartesianProductsOrValueJoins.planLotsOfCartesianProducts
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
@@ -146,7 +145,9 @@ case class ComponentConnectorPlanner(singleComponentPlanner: SingleComponentPlan
       projectingSelector = kit.pickBest,
       maxTableSize = config.maxTableSize,
       iterationDurationLimit = config.iterationDurationLimit,
-      extraRequirement = orderRequirement,
+      extraOrderRequirement = orderRequirement,
+      extraPropertyRequirement =
+        context.settings.remoteBatchPropertiesStrategy.interestingPropertiesAsIDPExtraRequirement(queryGraph, context),
       monitor = monitor,
       stopWatchFactory = () => Stopwatch.start(),
       cancellationChecker = context.staticComponents.cancellationChecker,
@@ -155,9 +156,20 @@ case class ComponentConnectorPlanner(singleComponentPlanner: SingleComponentPlan
 
     val seed: Seed[QueryGraph, LogicalPlan] = components.flatMap {
       case PlannedComponent(queryGraph, plan) => Set(
-          ((Set(queryGraph), false), plan.bestResult)
-        ) ++ plan.bestResultFulfillingReq.map { bestSortedResult =>
-          ((Set(queryGraph), true), bestSortedResult)
+          (
+            SolvableItemWithExtraRequirements(Set(queryGraph), isSorted = false, hasPrefetchedProperties = false),
+            plan.bestResult
+          )
+        ) ++ plan.bestSortedResult.map { bestSortedResult =>
+          (
+            SolvableItemWithExtraRequirements(Set(queryGraph), isSorted = true, hasPrefetchedProperties = false),
+            bestSortedResult
+          )
+        } ++ plan.bestExtraPropertiesResult.map { bestExtraPropertiesResult =>
+          (
+            SolvableItemWithExtraRequirements(Set(queryGraph), isSorted = false, hasPrefetchedProperties = true),
+            bestExtraPropertiesResult
+          )
         }
     }
     solver(seed, initialTodo, context)
@@ -176,9 +188,7 @@ trait ComponentConnector {
 }
 
 object GoalBitAllocation {
-  private val numSorted = 1
-  private val startSorted = SORTED_BIT
-  private val startComponents = startSorted + numSorted
+  private val startComponents = 1 // we start at 1, since 0 used to be a reserved bit.
 
   /**
    * Given the components and the overall query graph, return a [[GoalBitAllocation]] and the initialTodo for the [[IDPSolver]].

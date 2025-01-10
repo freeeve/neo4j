@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.Contextua
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.compiler.helpers.predicatesPushedDownToRemote
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.ExtraRequirement
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexLeafPlanner.IndexCompatiblePredicate
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicateWithValueBehavior
 import org.neo4j.cypher.internal.expressions.CachedProperty
@@ -36,11 +37,11 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
+import org.neo4j.cypher.internal.logical.plans.CachedProperties
 import org.neo4j.cypher.internal.logical.plans.CanGetValue
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString
 import org.neo4j.cypher.internal.logical.plans.RewrittenExpressions
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.SHARDED
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
@@ -87,6 +88,17 @@ sealed trait RemoteBatchingStrategy {
     context: LogicalPlanningContext,
     expression: Expression
   ): (Expression, LogicalPlan)
+
+  def interestingPropertiesAsIDPExtraRequirement(
+    queryGraph: QueryGraph,
+    context: LogicalPlanningContext
+  ): ExtraRequirement[LogicalPlan]
+
+  def planPrefetchRemoteBatchPropertiesIfRequired(
+    queryGraph: QueryGraph,
+    plans: Iterable[LogicalPlan],
+    context: LogicalPlanningContext
+  ): Iterable[LogicalPlan]
 }
 
 case class RemoteBatchingResult(
@@ -115,7 +127,7 @@ object RemoteBatchingStrategy {
 
   def defaultValue(): RemoteBatchingStrategy = SkipRemoteBatching
 
-  private case object InPlannerRemoteBatching extends RemoteBatchingStrategy {
+  case object InPlannerRemoteBatching extends RemoteBatchingStrategy {
 
     override def planBatchPropertiesForSelections(
       queryGraph: QueryGraph,
@@ -186,14 +198,48 @@ object RemoteBatchingStrategy {
       context: LogicalPlanningContext,
       expression: Expression
     ): (Expression, LogicalPlan) = {
-      val accessedProperties = accessedPropertiesForPredicates(queryGraph, input, context) ++
-        context.plannerState.contextualPropertyAccess.interestingOrder ++
-        context.plannerState.contextualPropertyAccess.horizon ++
-        context.plannerState.contextualPropertyAccess.propertyAccessInOtherComponents
+      val accessedProperties = remainingPropertyAccesses(queryGraph, input, context)
 
       val rewriter = cachedPropertiesRewriter(input, context)
       val rewrittenExpr = expression.endoRewrite(rewriter)
       (rewrittenExpr, planBatchProperties(input, context, accessedProperties, Seq(rewrittenExpr)))
+    }
+
+    private def remainingPropertyAccesses(
+      queryGraph: QueryGraph,
+      input: LogicalPlan,
+      context: LogicalPlanningContext
+    ) = {
+      accessedPropertiesForPredicates(queryGraph, input, context) ++
+        context.plannerState.contextualPropertyAccess.interestingOrder ++
+        context.plannerState.contextualPropertyAccess.horizon ++
+        context.plannerState.contextualPropertyAccess.propertyAccessInOtherComponents
+    }
+
+    override def interestingPropertiesAsIDPExtraRequirement(
+      queryGraph: QueryGraph,
+      context: LogicalPlanningContext
+    ): ExtraRequirement[LogicalPlan] = {
+      new ExtraRequirement[LogicalPlan]() {
+        override def fulfils(plan: LogicalPlan): Boolean = {
+          val availableSymbols = plan.availableSymbols
+          val cachedProperties = context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(plan.id)
+          val interestingPropertyAccesses = remainingPropertyAccesses(
+            queryGraph,
+            plan,
+            context
+          ).filter(propertyAccess => availableSymbols.contains(propertyAccess.variable))
+          if (interestingPropertyAccesses.nonEmpty)
+            interestingPropertyAccesses.forall(propertyAccess =>
+              cachedProperties.contains(
+                propertyAccess.variable,
+                PropertyKeyName(propertyAccess.propertyName)(InputPosition.NONE)
+              )
+            )
+          else
+            false // we will force this to false since it makes IDP cheaper and let sorted plans take precedence.
+        }
+      }
     }
 
     private def shouldGetPropertyValue(
@@ -201,6 +247,7 @@ object RemoteBatchingStrategy {
       propsAccessForPredsMap: PropertyAccessInPredicates,
       contextualPropertyAccess: ContextualPropertyAccess
     ): Boolean = {
+      val allHorizonAcceses = contextualPropertyAccess.horizon
       val propertyAccess = PropertyAccess(
         propertyPredicate.variable,
         propertyPredicate.propertyKeyName.name
@@ -208,9 +255,64 @@ object RemoteBatchingStrategy {
 
       propsAccessForPredsMap
         .propertyAccessInPredicatesOtherThat(propertyAccess, propertyPredicate.predicate) ||
-      contextualPropertyAccess.horizon.contains(propertyAccess) ||
+      allHorizonAcceses.contains(propertyAccess) ||
       contextualPropertyAccess.propertyAccessInOtherComponents.contains(propertyAccess)
     }
+
+    override def planPrefetchRemoteBatchPropertiesIfRequired(
+      queryGraph: QueryGraph,
+      plans: Iterable[LogicalPlan],
+      context: LogicalPlanningContext
+    ): Iterable[LogicalPlan] = {
+      val extraRequirement = interestingPropertiesAsIDPExtraRequirement(queryGraph, context)
+      plans.flatMap { plan =>
+        if (extraRequirement.fulfils(plan)) Iterator(plan)
+        else planRemoteBatchPropertiesWithLookahead(queryGraph, plan, context)
+      }.toVector
+    }
+
+    private def planRemoteBatchPropertiesWithLookahead(
+      queryGraph: QueryGraph,
+      input: LogicalPlan,
+      context: LogicalPlanningContext
+    ): Iterator[LogicalPlan] = {
+      val accessedProperties = remainingPropertyAccesses(queryGraph, input, context)
+      val alreadyCachedProperties =
+        context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(input.id)
+      val availableSymbols = input.availableSymbols
+      val cachedPropertiesForHeadPlan =
+        cachedPropertiesFromPropAccesses(accessedProperties, alreadyCachedProperties, availableSymbols, context)
+
+      if (cachedPropertiesForHeadPlan.nonEmpty)
+        Iterator(context.staticComponents.logicalPlanProducer.planRemoteBatchProperties(
+          input,
+          cachedPropertiesForHeadPlan,
+          context
+        ))
+      else Iterator.empty
+    }
+
+    private def cachedPropertiesFromPropAccesses(
+      accessedProperties: Set[PropertyAccess],
+      alreadyCachedProperties: CachedProperties,
+      availableSymbols: Set[LogicalVariable],
+      context: LogicalPlanningContext
+    ): Set[CachedProperty] =
+      accessedProperties.collect {
+        case PropertyAccess(variable, propertyName)
+          if availableSymbols.contains(variable) && !alreadyCachedProperties.contains(
+            variable,
+            PropertyKeyName(propertyName)(InputPosition.NONE)
+          ) =>
+          toCachedProperty(
+            context,
+            alreadyCachedProperties,
+            variable,
+            PropertyKeyName(propertyName)(InputPosition.NONE),
+            InputPosition.NONE,
+            knownToCacheStore = true
+          )
+      }.flatten
 
     override def getValueFromIndexBehaviors(
       indexDescriptor: IndexDescriptor,
@@ -287,8 +389,7 @@ object RemoteBatchingStrategy {
 
     private def cachedPropertiesRewriter(
       inputPlan: LogicalPlan,
-      context: LogicalPlanningContext,
-      failIfNotCached: Boolean = false
+      context: LogicalPlanningContext
     ) = {
       val alreadyCachedProperties =
         context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(inputPlan.id)
@@ -296,37 +397,54 @@ object RemoteBatchingStrategy {
         rewriter = Rewriter.lift {
           case property @ Property(logicalVariable: LogicalVariable, propertyKeyName)
             if inputPlan.availableSymbols.contains(logicalVariable) =>
-            alreadyCachedProperties.entries.get(logicalVariable) match {
-              case Some(entry) =>
-                CachedProperty(
-                  entry.originalEntity,
-                  logicalVariable,
-                  propertyKeyName,
-                  entry.entityType
-                )(
-                  property.position
-                )
-              case None if failIfNotCached =>
-                throw new IllegalStateException(
-                  s"Failed to find the property($logicalVariable, ${propertyKeyName.name}) in the cached properties. This is a bug.\n${LogicalPlanToPlanBuilderString(inputPlan)}"
-                )
-              case None =>
-                val entityType = context.semanticTable.typeFor(logicalVariable)
-                if (entityType.is(CTNode))
-                  CachedProperty(logicalVariable, logicalVariable, propertyKeyName, NODE_TYPE)(property.position)
-                else if (entityType.is(CTRelationship))
-                  CachedProperty(
-                    logicalVariable,
-                    logicalVariable,
-                    propertyKeyName,
-                    RELATIONSHIP_TYPE
-                  )(property.position)
-                else
-                  property
-            }
+            toCachedProperty(
+              context,
+              alreadyCachedProperties,
+              logicalVariable,
+              propertyKeyName,
+              property.position
+            ).getOrElse(property)
         },
         cancellation = context.staticComponents.cancellationChecker
       )
+    }
+
+    private def toCachedProperty(
+      context: LogicalPlanningContext,
+      alreadyCachedProperties: CachedProperties,
+      logicalVariable: LogicalVariable,
+      propertyKeyName: PropertyKeyName,
+      position: InputPosition,
+      knownToCacheStore: Boolean = false
+    ): Option[CachedProperty] = {
+      alreadyCachedProperties.entries.get(logicalVariable) match {
+        case Some(entry) =>
+          Some(CachedProperty(
+            entry.originalEntity,
+            logicalVariable,
+            propertyKeyName,
+            entry.entityType,
+            knownToCacheStore
+          )(
+            position
+          ))
+        case None =>
+          val entityType = context.semanticTable.typeFor(logicalVariable)
+          if (entityType.is(CTNode))
+            Some(
+              CachedProperty(logicalVariable, logicalVariable, propertyKeyName, NODE_TYPE, knownToCacheStore)(position)
+            )
+          else if (entityType.is(CTRelationship))
+            Some(CachedProperty(
+              logicalVariable,
+              logicalVariable,
+              propertyKeyName,
+              RELATIONSHIP_TYPE,
+              knownToCacheStore
+            )(position))
+          else
+            None
+      }
     }
 
     private def planBatchProperties(
@@ -475,5 +593,16 @@ object RemoteBatchingStrategy {
       expressions: Iterable[Expression]
     ): (RewrittenExpressions, LogicalPlan) =
       (RewrittenExpressions.withNoRewrittenExprs(expressions), inputPlan)
+
+    override def interestingPropertiesAsIDPExtraRequirement(
+      queryGraph: QueryGraph,
+      context: LogicalPlanningContext
+    ): ExtraRequirement[LogicalPlan] = ExtraRequirement.empty
+
+    override def planPrefetchRemoteBatchPropertiesIfRequired(
+      queryGraph: QueryGraph,
+      plans: Iterable[LogicalPlan],
+      context: LogicalPlanningContext
+    ): Iterable[LogicalPlan] = Iterable.empty
   }
 }

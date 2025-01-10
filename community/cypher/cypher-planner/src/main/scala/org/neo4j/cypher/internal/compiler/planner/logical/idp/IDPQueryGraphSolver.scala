@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.planShortestRela
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.ast.ExistsIRExpression
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 
 trait IDPQueryGraphSolverMonitor extends IDPSolverMonitor {
   def noIDPIterationFor(graph: QueryGraph, result: LogicalPlan): Unit
@@ -56,7 +57,13 @@ object IDPQueryGraphSolver {
     generators: Seq[IDPSolverStep[Solvable, LogicalPlan, LogicalPlanningContext]]
   ): IDPSolverStep[Solvable, LogicalPlan, LogicalPlanningContext] = {
     val combinedSolverSteps =
-      generators.map(selectingAndSortingSolverStep(queryGraph, interestingOrderConfig, kit, context, _))
+      generators
+        .map(solverStep => {
+          val selectingAndSortingSolver =
+            selectingAndSortingSolverStep(queryGraph, interestingOrderConfig, kit, context, solverStep)
+          prefetchingPropertiesSolverStep(queryGraph, context, selectingAndSortingSolver)
+        })
+
     combinedSolverSteps.foldLeft(IDPSolverStep.empty[Solvable, LogicalPlan, LogicalPlanningContext])(_ ++ _)
   }
 
@@ -81,6 +88,25 @@ object IDPQueryGraphSolver {
         ).filterNot(_ == plan)
       )
       selectingSolverStep ++ sortingSolverStep
+    }
+  }
+
+  private def prefetchingPropertiesSolverStep[Solvable](
+    queryGraph: QueryGraph,
+    context: LogicalPlanningContext,
+    solverStep: IDPSolverStep[Solvable, LogicalPlan, LogicalPlanningContext]
+  ): IDPSolverStep[Solvable, LogicalPlan, LogicalPlanningContext] = {
+    if (context.staticComponents.planContext.databaseMode == DatabaseMode.SHARDED) {
+      val prefetchedPropertiesSolverStep = solverStep.flatMap(plan =>
+        context.settings.remoteBatchPropertiesStrategy.planPrefetchRemoteBatchPropertiesIfRequired(
+          queryGraph,
+          Iterable(plan),
+          context
+        )
+      )
+      solverStep ++ prefetchedPropertiesSolverStep
+    } else {
+      solverStep
     }
   }
 
@@ -195,7 +221,7 @@ case class IDPQueryGraphSolver(
     val plan = context.staticComponents.logicalPlanProducer.planQueryArgument(queryGraph, context)
     val result: LogicalPlan = kit.select(plan, queryGraph)
     monitor.emptyComponentPlanned(queryGraph, result)
-    Seq(PlannedComponent(queryGraph, BestResults(result, None)))
+    Seq(PlannedComponent(queryGraph, BestResults(result, None, None)))
   }
 
   private def connectComponentsAndSolveOptionalMatch(

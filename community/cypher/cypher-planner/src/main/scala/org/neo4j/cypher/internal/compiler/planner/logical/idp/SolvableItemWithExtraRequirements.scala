@@ -17,12 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher.internal.compiler.planner.logical
+package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
-import org.neo4j.cypher.internal.ir.QueryGraph
-import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-
-package object idp {
-  type Seed[SolvableItem, Result] = Iterable[(SolvableItemWithExtraRequirements[SolvableItem], Result)]
-  type ComponentConnectorSolverStep = IDPSolverStep[QueryGraph, LogicalPlan, LogicalPlanningContext]
-}
+case class SolvableItemWithExtraRequirements[SolvableItem](
+  goal: Set[SolvableItem],
+  isSorted: Boolean,
+  hasPrefetchedProperties: Boolean
+)

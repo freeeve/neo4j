@@ -53,9 +53,14 @@ trait ProjectingSelector[P] {
     resolvedPerPan: LogicalPlan => String
   ): Option[BestResults[P]] = {
     val best = applyWithResolvedPerPlan(plans.map(_.bestResult), s"overall $resolved", resolvedPerPan)
-    val bestFulfillingReq =
-      applyWithResolvedPerPlan(plans.flatMap(_.bestResultFulfillingReq), s"sorted $resolved", resolvedPerPan)
-    best.map(BestResults(_, bestFulfillingReq))
+    val bestSorted =
+      applyWithResolvedPerPlan(plans.flatMap(_.bestSortedResult), s"sorted $resolved", resolvedPerPan)
+    val bestWithExtraProperties = applyWithResolvedPerPlan(
+      plans.flatMap(_.bestExtraPropertiesResult),
+      s"with extra properties $resolved",
+      resolvedPerPan
+    )
+    best.map(BestResults(_, bestSorted, bestWithExtraProperties))
   }
 }
 

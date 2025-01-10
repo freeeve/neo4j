@@ -20,10 +20,12 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.BestResults
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.BestPlans
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 
 /*
 This class ties together disparate query graphs through their event horizons. It does so by using Apply,
@@ -34,6 +36,42 @@ case class PlanWithTail(
   matchPlanner: MatchPlanner = planMatch,
   updatesPlanner: UpdatesPlanner = PlanUpdates
 ) extends TailPlanner {
+
+  private val defaultPlannerWithTail = DefaultPlanWithTail(eventHorizonPlanner, matchPlanner, updatesPlanner)
+  private val spdPlannerWithTail = SPDPlanWithTailStrategy(eventHorizonPlanner, matchPlanner, updatesPlanner)
+
+  /**
+   * @param previousInterestingOrder The previous interesting order, if it exists, and only if the tailQuery has an empty query graph.
+   */
+  override def plan(
+    lhsPlans: BestPlans,
+    tailQuery: SinglePlannerQuery,
+    previousInterestingOrder: Option[InterestingOrder],
+    context: LogicalPlanningContext
+  ): (BestPlans, LogicalPlanningContext) = {
+    if (context.staticComponents.planContext.databaseMode == DatabaseMode.SHARDED) {
+      spdPlannerWithTail.plan(lhsPlans, tailQuery, previousInterestingOrder, context)
+    } else {
+      defaultPlannerWithTail.plan(lhsPlans, tailQuery, previousInterestingOrder, context)
+    }
+  }
+}
+
+sealed private trait PlanWithTailStrategy {
+
+  def plan(
+    lhsPlans: BestPlans,
+    tailQuery: SinglePlannerQuery,
+    previousInterestingOrder: Option[InterestingOrder],
+    context: LogicalPlanningContext
+  ): (BestPlans, LogicalPlanningContext)
+}
+
+private case class DefaultPlanWithTail(
+  eventHorizonPlanner: EventHorizonPlanner = PlanEventHorizon,
+  matchPlanner: MatchPlanner = planMatch,
+  updatesPlanner: UpdatesPlanner = PlanUpdates
+) extends PlanWithTailStrategy {
 
   override def plan(
     lhsPlans: BestPlans,
@@ -80,5 +118,93 @@ case class PlanWithTail(
       applyPlans.map(p => updatesPlanner.plan(tailQuery, p, firstPlannerQuery = false, context))
 
     eventHorizonPlanner.planHorizon(tailQuery, plansWithUpdates, previousInterestingOrder, context)
+  }
+}
+
+private case class SPDPlanWithTailStrategy(
+  eventHorizonPlanner: EventHorizonPlanner = PlanEventHorizon,
+  matchPlanner: MatchPlanner = planMatch,
+  updatesPlanner: UpdatesPlanner = PlanUpdates
+) extends PlanWithTailStrategy {
+
+  override def plan(
+    lhsPlans: BestPlans,
+    tailQuery: SinglePlannerQuery,
+    previousInterestingOrder: Option[InterestingOrder],
+    context: LogicalPlanningContext
+  ): (BestPlans, LogicalPlanningContext) = {
+    (planApply(lhsPlans, previousInterestingOrder, tailQuery, context), context)
+  }
+
+  private def planRhs(
+    tailQuery: SinglePlannerQuery,
+    context: LogicalPlanningContext,
+    lhsPlan: LogicalPlan
+  ): BestPlans = {
+    val updatedContext = context.withModifiedPlannerState(_
+      .withAccessedProperties(PropertyAccessHelper.findLocalPropertyAccesses(tailQuery))
+      .withContextualPropertyAccess(PropertyAccessHelper.findGlobalPropertyAccessesWithContext(tailQuery))
+      .withOuterPlan(lhsPlan)
+      .withPreviouslyCachedProperties(
+        context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(lhsPlan.id)
+      )
+      .withUpdatedLabelInfo(lhsPlan, context.staticComponents.planningAttributes.solveds))
+    matchPlanner.plan(tailQuery, updatedContext, rhsPart = true).map(
+      context.staticComponents.logicalPlanProducer.addMissingStandaloneArgumentPatternNodes(
+        _,
+        tailQuery,
+        context
+      )
+    )
+  }
+
+  private def planApply(
+    lhsPlans: BestPlans,
+    previousInterestingOrder: Option[InterestingOrder],
+    tailQuery: SinglePlannerQuery,
+    context: LogicalPlanningContext
+  ): BestPlans = {
+    val plansOnLHSBestOverall = planRhs(tailQuery, context, lhsPlans.bestResult).allResults.map(
+      context.staticComponents.logicalPlanProducer.planTailApply(
+        lhsPlans.bestResult,
+        _,
+        context
+      )
+    ).map(p => updatesPlanner.plan(tailQuery, p, firstPlannerQuery = false, context))
+    val plansOnLHSBestSorted = lhsPlans.bestSortedResult.map(lhsPlan => {
+      val rhsPlan = planRhs(tailQuery, context, lhsPlan).result
+      val applyPlan = context.staticComponents.logicalPlanProducer.planTailApply(lhsPlan, rhsPlan, context)
+      updatesPlanner.plan(tailQuery, applyPlan, firstPlannerQuery = false, context)
+    })
+    val plansOnLHSWithBestProperties = lhsPlans.bestExtraPropertiesResult.map(lhsPlan =>
+      planRhs(tailQuery, context, lhsPlan).allResults.map(context.staticComponents.logicalPlanProducer.planTailApply(
+        lhsPlan,
+        _,
+        context
+      )).map(p =>
+        updatesPlanner.plan(tailQuery, p, firstPlannerQuery = false, context)
+      )
+    ).getOrElse(List.empty)
+
+    val pickBest: CandidateSelector = context.plannerState.config.pickBestCandidate(context)
+    val extraPropertyRequirements =
+      context.settings.remoteBatchPropertiesStrategy.interestingPropertiesAsIDPExtraRequirement(
+        tailQuery.queryGraph,
+        context
+      )
+    val bestPlansWithApplyAndUpdates = BestResults(
+      bestResult = pickBest(
+        plansOnLHSBestOverall.toSet ++ plansOnLHSWithBestProperties ++ plansOnLHSBestSorted,
+        "best overall plan with applies and updates"
+      ).getOrElse(
+        throw new IllegalStateException("Planner returned no best overall plan")
+      ),
+      bestSortedResult = plansOnLHSBestSorted,
+      bestExtraPropertiesResult = pickBest(
+        plansOnLHSWithBestProperties.filter(extraPropertyRequirements.fulfils),
+        "best plan with prefetched properties for applies and updates"
+      )
+    )
+    eventHorizonPlanner.planHorizon(tailQuery, bestPlansWithApplyAndUpdates, previousInterestingOrder, context)
   }
 }

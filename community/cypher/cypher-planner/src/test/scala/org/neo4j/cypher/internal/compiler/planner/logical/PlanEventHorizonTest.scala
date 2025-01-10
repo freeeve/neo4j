@@ -21,14 +21,19 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.ProcedureResultItem
+import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.ContextualPropertyAccess
+import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.ProcedureCallProjection
+import org.neo4j.cypher.internal.compiler.planner.logical.RemoteBatchingStrategy.InPlannerRemoteBatching
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.BestResults
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.ProcedureName
+import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
@@ -49,6 +54,8 @@ import org.neo4j.cypher.internal.logical.plans.AllNodesScan
 import org.neo4j.cypher.internal.logical.plans.Apply
 import org.neo4j.cypher.internal.logical.plans.Argument
 import org.neo4j.cypher.internal.logical.plans.Ascending
+import org.neo4j.cypher.internal.logical.plans.CachedProperties
+import org.neo4j.cypher.internal.logical.plans.CachedProperties.Entry
 import org.neo4j.cypher.internal.logical.plans.CartesianProduct
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.Limit
@@ -58,6 +65,7 @@ import org.neo4j.cypher.internal.logical.plans.Skip
 import org.neo4j.cypher.internal.logical.plans.Sort
 import org.neo4j.cypher.internal.logical.plans.ordering.DefaultProvidedOrderFactory
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNode
@@ -318,6 +326,16 @@ class PlanEventHorizonTest extends CypherFunSuite with LogicalPlanningTestSuppor
     result
   }
 
+  private def fakePlanWithAdditionalProperties(planningAttributes: PlanningAttributes, variable: String) = {
+    val result = fakeLogicalPlanFor(planningAttributes, variable, "__additionalProperties")
+    // Fake sort the plan
+    planningAttributes.cachedPropertiesPerPlan.set(
+      result.id,
+      CachedProperties(Map(v"x" -> Entry(v"x", NODE_TYPE, Set(PropertyKeyName("prop1")(InputPosition.NONE)))))
+    )
+    result
+  }
+
   test("planHorizon, only self required order, cheapest to maintain sorted plan") {
     // Given
     new givenConfig {
@@ -336,10 +354,10 @@ class PlanEventHorizonTest extends CypherFunSuite with LogicalPlanningTestSuppor
 
       // When
       val result =
-        PlanEventHorizon.planHorizon(pq, BestResults(bestInputPlan, Some(bestSortedInputPlan)), None, context)
+        PlanEventHorizon.planHorizon(pq, BestResults(bestInputPlan, Some(bestSortedInputPlan), None), None, context)
 
       // Then
-      result shouldBe BestResults(bestSortedInputPlan, None)
+      result shouldBe BestResults(bestSortedInputPlan, None, None)
     }
   }
 
@@ -361,10 +379,10 @@ class PlanEventHorizonTest extends CypherFunSuite with LogicalPlanningTestSuppor
 
       // When
       val result =
-        PlanEventHorizon.planHorizon(pq, BestResults(bestInputPlan, Some(bestSortedInputPlan)), None, context)
+        PlanEventHorizon.planHorizon(pq, BestResults(bestInputPlan, Some(bestSortedInputPlan), None), None, context)
 
       // Then
-      result shouldBe BestResults(Sort(bestInputPlan, Seq(Ascending(v"x"))), None)
+      result shouldBe BestResults(Sort(bestInputPlan, Seq(Ascending(v"x"))), None, None)
     }
   }
 
@@ -390,10 +408,10 @@ class PlanEventHorizonTest extends CypherFunSuite with LogicalPlanningTestSuppor
 
       // When
       val result =
-        PlanEventHorizon.planHorizon(pq, BestResults(bestInputPlan, Some(bestSortedInputPlan)), None, context)
+        PlanEventHorizon.planHorizon(pq, BestResults(bestInputPlan, Some(bestSortedInputPlan), None), None, context)
 
       // Then
-      result shouldBe BestResults(bestInputPlan, Some(bestSortedInputPlan))
+      result shouldBe BestResults(bestInputPlan, Some(bestSortedInputPlan), None)
     }
   }
 
@@ -419,10 +437,79 @@ class PlanEventHorizonTest extends CypherFunSuite with LogicalPlanningTestSuppor
 
       // When
       val result =
-        PlanEventHorizon.planHorizon(pq, BestResults(bestInputPlan, Some(bestSortedInputPlan)), None, context)
+        PlanEventHorizon.planHorizon(pq, BestResults(bestInputPlan, Some(bestSortedInputPlan), None), None, context)
 
       // Then
-      result shouldBe BestResults(bestInputPlan, Some(Sort(bestInputPlan, Seq(Ascending(v"x")))))
+      result shouldBe BestResults(bestInputPlan, Some(Sort(bestInputPlan, Seq(Ascending(v"x")))), None)
+    }
+  }
+
+  test("planHorizon, with cheapest plans with additional properties fetched") {
+    new givenConfig().withLogicalPlanningContext { (_, context) =>
+      // given
+      val horizon = RegularQueryProjection(Map(v"x" -> v"x"))
+      val pq = RegularSinglePlannerQuery(
+        interestingOrder = InterestingOrder.empty,
+        horizon = horizon,
+        tail = Some(RegularSinglePlannerQuery(interestingOrder = InterestingOrder.empty))
+      )
+      val contextWithAdditionalProperties = context.copy(
+        plannerState = context.plannerState.copy(contextualPropertyAccess =
+          ContextualPropertyAccess(Set.empty, Set(PropertyAccess(v"x", "prop1")), Set.empty)
+        ),
+        settings = context.settings.copy(remoteBatchPropertiesStrategy = InPlannerRemoteBatching)
+      )
+      val bestInputPlan = fakeLogicalPlanFor(context.staticComponents.planningAttributes, "x")
+      val bestPlanWithAdditionalProperties =
+        fakePlanWithAdditionalProperties(context.staticComponents.planningAttributes, "x")
+      // When
+      val result =
+        PlanEventHorizon.planHorizon(
+          pq,
+          BestResults(bestInputPlan, None, Some(bestPlanWithAdditionalProperties)),
+          None,
+          contextWithAdditionalProperties
+        )
+
+      // then
+      result shouldBe BestResults(bestInputPlan, None, Some(bestPlanWithAdditionalProperties))
+    }
+  }
+
+  test("planHorizon, when the additional properties plan is cheaper than the base plan") {
+    new givenConfig {
+      cost = {
+        case (lp, _, _, _) if lp.availableSymbols.contains(v"__additionalProperties") => 1.0
+        case _                                                                        => 10.0
+      }
+    }.withLogicalPlanningContext { (_, context) =>
+      // given
+      val horizon = RegularQueryProjection(Map(v"x" -> v"x"))
+      val pq = RegularSinglePlannerQuery(
+        interestingOrder = InterestingOrder.empty,
+        horizon = horizon,
+        tail = Some(RegularSinglePlannerQuery(interestingOrder = InterestingOrder.empty))
+      )
+      val contextWithAdditionalProperties = context.copy(
+        plannerState = context.plannerState.copy(contextualPropertyAccess =
+          ContextualPropertyAccess(Set.empty, Set(PropertyAccess(v"x", "prop1")), Set.empty)
+        ),
+        settings = context.settings.copy(remoteBatchPropertiesStrategy = InPlannerRemoteBatching)
+      )
+      val bestInputPlan = fakeLogicalPlanFor(context.staticComponents.planningAttributes, "x")
+      val bestPlanWithAdditionalProperties =
+        fakePlanWithAdditionalProperties(context.staticComponents.planningAttributes, "x")
+      // When
+      val result =
+        PlanEventHorizon.planHorizon(
+          pq,
+          BestResults(bestInputPlan, None, Some(bestPlanWithAdditionalProperties)),
+          None,
+          contextWithAdditionalProperties
+        )
+
+      // then
+      result shouldBe BestResults(bestPlanWithAdditionalProperties, None, Some(bestPlanWithAdditionalProperties))
     }
   }
 
@@ -439,10 +526,10 @@ class PlanEventHorizonTest extends CypherFunSuite with LogicalPlanningTestSuppor
       val bestInputPlan = fakeLogicalPlanFor(context.staticComponents.planningAttributes, "x")
 
       // When
-      val result = PlanEventHorizon.planHorizon(pq, BestResults(bestInputPlan, None), None, context)
+      val result = PlanEventHorizon.planHorizon(pq, BestResults(bestInputPlan, None, None), None, context)
 
       // Then
-      result shouldBe BestResults(bestInputPlan, None)
+      result shouldBe BestResults(bestInputPlan, None, None)
     }
   }
 }

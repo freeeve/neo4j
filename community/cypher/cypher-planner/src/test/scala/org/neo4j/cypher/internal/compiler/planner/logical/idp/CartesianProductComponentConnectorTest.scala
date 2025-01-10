@@ -44,8 +44,8 @@ class CartesianProductComponentConnectorTest extends CypherFunSuite with Logical
 
       val nPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "n")
       val mPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "m")
-      table.put(register(registry, nQg), sorted = false, nPlan)
-      table.put(register(registry, mQg), sorted = false, mPlan)
+      table.put(register(registry, nQg), sorted = false, hasExtraProperties = false, nPlan)
+      table.put(register(registry, mQg), sorted = false, hasExtraProperties = false, mPlan)
       val goal = register(registry, nQg, mQg)
 
       val step =
@@ -72,10 +72,10 @@ class CartesianProductComponentConnectorTest extends CypherFunSuite with Logical
       val mPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "m")
       val mPlanSort = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "m", "extra-symbol")
 
-      table.put(register(registry, nQg), sorted = false, nPlan)
-      table.put(register(registry, nQg), sorted = true, nPlanSort)
-      table.put(register(registry, mQg), sorted = false, mPlan)
-      table.put(register(registry, mQg), sorted = true, mPlanSort)
+      table.put(register(registry, nQg), sorted = false, hasExtraProperties = false, nPlan)
+      table.put(register(registry, nQg), sorted = true, hasExtraProperties = false, nPlanSort)
+      table.put(register(registry, mQg), sorted = false, hasExtraProperties = false, mPlan)
+      table.put(register(registry, mQg), sorted = true, hasExtraProperties = false, mPlanSort)
       val goal = register(registry, nQg, mQg)
 
       val step =

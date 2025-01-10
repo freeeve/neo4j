@@ -20,38 +20,55 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPCache.Results
-import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPTable.SORTED_BIT
-import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPTable.SortedGoal
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPCache.SatisfiedExtraRequirements
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPTable.ExtraRequirementGoal
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPTable.asGoal
-import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPTable.extractSort
-import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPTable.incorporateSort
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPTable.extractExtraRequirements
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPTable.incorporateExtraRequirements
 
 import scala.collection.immutable.BitSet
 import scala.collection.mutable
 
 // Table used by IDPSolver to record optimal plans found so far
 //
-class IDPTable[Result] private (private val map: mutable.Map[SortedGoal, Result] =
-  mutable.Map.empty[SortedGoal, Result]) extends IDPCache[Result] {
+class IDPTable[Result] private (private val map: mutable.Map[ExtraRequirementGoal, Result] =
+  mutable.Map.empty[ExtraRequirementGoal, Result]) extends IDPCache[Result] {
 
   def size: Int = map.size
 
-  def put(goal: Goal, sorted: Boolean, result: Result): Unit = {
-    map.put(incorporateSort(goal, sorted), result)
+  def put(goal: Goal, sorted: Boolean, hasExtraProperties: Boolean, result: Result): Unit = {
+    map.put(incorporateExtraRequirements(goal, sorted, hasExtraProperties), result)
   }
 
   def apply(goal: Goal): Results[Result] = {
-    Results(map.get(SortedGoal(goal.bitSet)), map.get(SortedGoal(goal.bitSet + SORTED_BIT)))
+    lazy val sortedWithExtraProperties =
+      map.get(ExtraRequirementGoal(goal.bitSet, isSorted = true, containsExtraProperties = true))
+    Results(
+      map.get(ExtraRequirementGoal(goal.bitSet, isSorted = false, containsExtraProperties = false)),
+      map.get(ExtraRequirementGoal(
+        goal.bitSet,
+        isSorted = true,
+        containsExtraProperties = false
+      )).orElse(sortedWithExtraProperties),
+      map.get(ExtraRequirementGoal(
+        goal.bitSet,
+        isSorted = false,
+        containsExtraProperties = true
+      )).orElse(sortedWithExtraProperties)
+    )
   }
 
-  def contains(goal: Goal, sorted: Boolean): Boolean = map.contains(incorporateSort(goal, sorted))
+  def contains(goal: Goal, sorted: Boolean, extraProperties: Boolean): Boolean =
+    map.contains(incorporateExtraRequirements(goal, sorted, extraProperties))
 
   def unsortedPlansOfSize(k: Int): Iterator[(Goal, Result)] = map.iterator.collect {
-    case (sortedGoal, result) if !sortedGoal.isSorted && sortedGoal.bitSet.size == k => (asGoal(sortedGoal), result)
+    case (goal, result)
+      if !goal.isSorted && (goal.bitSet.size == k) =>
+      (asGoal(goal), result)
   }
 
-  def plans: Iterator[((Goal, Boolean), Result)] = map.iterator.map {
-    case (sortedGoal, result) => (extractSort(sortedGoal), result)
+  def plans: Iterator[((Goal, SatisfiedExtraRequirements), Result)] = map.iterator.map {
+    case (sortedGoal, result) => (extractExtraRequirements(sortedGoal), result)
   }
 
   def removeAllTracesOf(goal: Goal): Unit = {
@@ -67,42 +84,52 @@ class IDPTable[Result] private (private val map: mutable.Map[SortedGoal, Result]
 }
 
 object IDPTable {
-  val SORTED_BIT = 0
 
-  private case class SortedGoal(bitSet: BitSet) {
-    def isSorted: Boolean = bitSet(SORTED_BIT)
+  private case class ExtraRequirementGoal(bitSet: BitSet, isSorted: Boolean, containsExtraProperties: Boolean) {
 
     override def equals(obj: Any): Boolean = {
       obj match {
-        case that: SortedGoal => BitSetEquality.equalBitSets(this.bitSet, that.bitSet)
-        case _                => false
+        case that: ExtraRequirementGoal => BitSetEquality.equalBitSets(
+            this.bitSet,
+            that.bitSet
+          ) && this.isSorted == that.isSorted && this.containsExtraProperties == that.containsExtraProperties
+        case _ => false
       }
     }
-    override def hashCode(): Int = BitSetEquality.hashCode(this.bitSet)
+
+    override def hashCode(): Int = {
+      var result = BitSetEquality.hashCode(this.bitSet)
+      result = 31 * result + isSorted.##
+      31 * result + containsExtraProperties.##
+    }
   }
 
   def apply[Solvable, Result](registry: IdRegistry[Solvable], seed: Seed[Solvable, Result]): IDPTable[Result] = {
-    val builder = mutable.Map.newBuilder[SortedGoal, Result]
+    val builder = mutable.Map.newBuilder[ExtraRequirementGoal, Result]
     if (seed.hasDefiniteSize)
       builder.sizeHint(seed.size)
-    seed.foreach { case ((goal, sorted), product) =>
-      builder += incorporateSort(Goal(registry.registerAll(goal)), sorted) -> product
+    seed.foreach { case (SolvableItemWithExtraRequirements(goal, sorted, hasExtraProperties), product) =>
+      builder += incorporateExtraRequirements(Goal(registry.registerAll(goal)), sorted, hasExtraProperties) -> product
     }
     new IDPTable[Result](builder.result())
   }
 
   def empty[Result]: IDPTable[Result] = new IDPTable[Result]()
 
-  private def incorporateSort(goal: Goal, sorted: Boolean): SortedGoal = {
-    if (sorted) SortedGoal(goal.bitSet + SORTED_BIT) else SortedGoal(goal.bitSet)
+  private def incorporateExtraRequirements(
+    goal: Goal,
+    sorted: Boolean,
+    hasExtraProperties: Boolean
+  ): ExtraRequirementGoal = {
+    ExtraRequirementGoal(goal.bitSet, isSorted = sorted, hasExtraProperties)
   }
 
-  private def extractSort(goal: SortedGoal): (Goal, Boolean) = {
-    (asGoal(goal), goal.isSorted)
+  private def extractExtraRequirements(goal: ExtraRequirementGoal): (Goal, SatisfiedExtraRequirements) = {
+    (asGoal(goal), SatisfiedExtraRequirements(goal.isSorted, goal.containsExtraProperties))
   }
 
-  private def asGoal(goal: SortedGoal): Goal = {
-    Goal(goal.bitSet - SORTED_BIT)
+  private def asGoal(goal: ExtraRequirementGoal): Goal = {
+    Goal(goal.bitSet)
   }
 }
 

@@ -44,6 +44,7 @@ object PropertyAccessHelper {
       Set.empty // keeps property accesses from parts of the query graphs that are not in the connected component.
   ) {
     def allPropertyAccesses: Set[PropertyAccess] = queryGraph ++ horizon ++ interestingOrder
+    def isEmpty: Boolean = queryGraph.isEmpty && horizon.isEmpty && interestingOrder.isEmpty
   }
 
   object ContextualPropertyAccess {

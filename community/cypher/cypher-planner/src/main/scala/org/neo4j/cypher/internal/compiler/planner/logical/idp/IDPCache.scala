@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPCache.Results
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPCache.SatisfiedExtraRequirements
 
 // Read-only interface to IDPTable
 trait IDPCache[Result] {
@@ -30,23 +31,29 @@ trait IDPCache[Result] {
    */
   def apply(goal: Goal): Results[Result]
 
-  def contains(goal: Goal, sorted: Boolean): Boolean
+  def contains(goal: Goal, sorted: Boolean, extraProperties: Boolean): Boolean
 
   /**
    * All plans of size k, which do not have the SORTED_BIT set
    */
   def unsortedPlansOfSize(k: Int): Iterator[(Goal, Result)]
 
-  def plans: Iterator[((Goal, Boolean), Result)]
+  def plans: Iterator[((Goal, SatisfiedExtraRequirements), Result)]
 }
 
 object IDPCache {
 
-  case class Results[Result](result: Option[Result], sortedResult: Option[Result]) {
+  case class Results[Result](
+    result: Option[Result],
+    sortedResult: Option[Result],
+    extraPropertiesResult: Option[Result]
+  ) {
 
     /**
      * Returns iterator over all unique results
      */
-    def iterator: Iterator[Result] = (result.toSet ++ sortedResult).iterator
+    def iterator: Iterator[Result] = (result.toSet ++ sortedResult ++ extraPropertiesResult).iterator
   }
+
+  case class SatisfiedExtraRequirements(sorted: Boolean, hasExtraProperties: Boolean)
 }

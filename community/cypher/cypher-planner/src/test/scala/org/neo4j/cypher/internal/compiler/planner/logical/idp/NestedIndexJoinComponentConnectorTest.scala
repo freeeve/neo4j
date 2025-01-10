@@ -69,8 +69,8 @@ class NestedIndexJoinComponentConnectorTest extends CypherFunSuite with LogicalP
       val mPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "m")
       ctx.staticComponents.planningAttributes.solveds.set(nPlan.id, RegularSinglePlannerQuery(nQg))
       ctx.staticComponents.planningAttributes.solveds.set(mPlan.id, RegularSinglePlannerQuery(mQg))
-      table.put(register(registry, nQg), sorted = false, nPlan)
-      table.put(register(registry, mQg), sorted = false, mPlan)
+      table.put(register(registry, nQg), sorted = false, hasExtraProperties = false, nPlan)
+      table.put(register(registry, mQg), sorted = false, hasExtraProperties = false, mPlan)
       val goal = register(registry, nQg, mQg)
 
       val step = NestedIndexJoinComponentConnector(singleComponentPlanner).solverStep(
@@ -133,8 +133,8 @@ class NestedIndexJoinComponentConnectorTest extends CypherFunSuite with LogicalP
       val mPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "m", "c", "d")
       ctx.staticComponents.planningAttributes.solveds.set(nPlan.id, RegularSinglePlannerQuery(nQg))
       ctx.staticComponents.planningAttributes.solveds.set(mPlan.id, RegularSinglePlannerQuery(mQg))
-      table.put(register(registry, nQg), sorted = false, nPlan)
-      table.put(register(registry, mQg), sorted = false, mPlan)
+      table.put(register(registry, nQg), sorted = false, hasExtraProperties = false, nPlan)
+      table.put(register(registry, mQg), sorted = false, hasExtraProperties = false, mPlan)
       val goal = register(registry, nQg, mQg)
 
       val step = NestedIndexJoinComponentConnector(singleComponentPlanner).solverStep(
@@ -214,9 +214,9 @@ class NestedIndexJoinComponentConnectorTest extends CypherFunSuite with LogicalP
 
       // Compact no and mp
       val noId = registry.compact(BitSet(nId, oId))
-      table.put(Goal(BitSet(noId)), sorted = false, noPlan)
+      table.put(Goal(BitSet(noId)), sorted = false, hasExtraProperties = false, noPlan)
       val mpId = registry.compact(BitSet(mId, pId))
-      table.put(Goal(BitSet(mpId)), sorted = false, mpPlan)
+      table.put(Goal(BitSet(mpId)), sorted = false, hasExtraProperties = false, mpPlan)
 
       val goal = Goal(BitSet(noId, mpId))
 
@@ -260,8 +260,8 @@ class NestedIndexJoinComponentConnectorTest extends CypherFunSuite with LogicalP
       val mPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "m")
       ctx.staticComponents.planningAttributes.solveds.set(nPlan.id, RegularSinglePlannerQuery(nQg))
       ctx.staticComponents.planningAttributes.solveds.set(mPlan.id, RegularSinglePlannerQuery(mQg))
-      table.put(register(registry, nQg), sorted = false, nPlan)
-      table.put(register(registry, mQg), sorted = false, mPlan)
+      table.put(register(registry, nQg), sorted = false, hasExtraProperties = false, nPlan)
+      table.put(register(registry, mQg), sorted = false, hasExtraProperties = false, mPlan)
       val goal = register(registry, nQg, mQg)
 
       val step = NestedIndexJoinComponentConnector(singleComponentPlanner).solverStep(

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
 import org.neo4j.cypher.internal.compiler.planner.logical.idp
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPCache.SatisfiedExtraRequirements
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -40,12 +41,15 @@ class IDPTableTest extends CypherFunSuite {
 
     table.removeAllTracesOf(Goal(BitSet(1, 2)))
 
-    table.plans.map(_._1).toSet should equal(Set((Goal(BitSet(3)), true), (Goal(BitSet(3)), false)))
+    table.plans.map(_._1).toSet should equal(Set(
+      (Goal(BitSet(3)), SatisfiedExtraRequirements(sorted = true, hasExtraProperties = false)),
+      (Goal(BitSet(3)), SatisfiedExtraRequirements(sorted = false, hasExtraProperties = false))
+    ))
   }
 
   private def addTo(table: IDPTable[LogicalPlan], goal: idp.Goal): Unit = {
-    table.put(goal, sorted = false, mock[LogicalPlan])
-    table.put(goal, sorted = true, mock[LogicalPlan])
+    table.put(goal, sorted = false, hasExtraProperties = false, mock[LogicalPlan])
+    table.put(goal, sorted = true, hasExtraProperties = false, mock[LogicalPlan])
   }
 
   test("goal coveringSplits empty") {

@@ -105,6 +105,8 @@ case class SingleComponentPlanner(
 
     val bestPlans =
       if (qg.nodeConnections.nonEmpty) {
+        val propertyRequirement =
+          context.settings.remoteBatchPropertiesStrategy.interestingPropertiesAsIDPExtraRequirement(qg, context)
         val orderRequirement = extraRequirementForInterestingOrder(context, componentInterestingOrderConfig)
         val generators = solverConfig.solvers(qppInnerPlanner).map(_(qg))
         val generator =
@@ -115,7 +117,8 @@ case class SingleComponentPlanner(
           projectingSelector = kit.pickBest,
           maxTableSize = solverConfig.maxTableSize,
           iterationDurationLimit = solverConfig.iterationDurationLimit,
-          extraRequirement = orderRequirement,
+          extraOrderRequirement = orderRequirement,
+          extraPropertyRequirement = propertyRequirement,
           monitor = monitor,
           stopWatchFactory = () => Stopwatch.start(),
           cancellationChecker = context.staticComponents.cancellationChecker,
@@ -136,7 +139,7 @@ case class SingleComponentPlanner(
         val result = solver(seed, qg.nodeConnections.toSeq, context)
         monitor.endIDPIterationFor(qg, result.bestResult)
 
-        BestResults(result.bestResult, result.bestResultFulfillingReq)
+        BestResults(result.bestResult, result.bestSortedResult, result.bestExtraPropertiesResult)
       } else {
         val solutionPlans =
           if (qg.shortestRelationshipPatterns.isEmpty) {
@@ -163,8 +166,13 @@ case class SingleComponentPlanner(
       println(
         s"Result (picked best plan):\n\tPlan #${bestPlans.bestResult.debugId}\n\t${bestPlans.bestResult.toString}"
       )
-      bestPlans.bestResultFulfillingReq.foreach { bSP =>
+      bestPlans.bestSortedResult.foreach { bSP =>
         println(s"Result (picked best sorted plan):\n\tPlan #${bSP.debugId}\n\t${bSP.toString}")
+      }
+      bestPlans.bestExtraPropertiesResult.foreach { bestExtraPropPlan =>
+        println(
+          s"Result (picked best plan with extra properties):\n\tPlan #${bestExtraPropPlan.debugId}\n\t${bestExtraPropPlan.toString}"
+        )
       }
       println("\n")
     }
@@ -199,23 +207,38 @@ case class SingleComponentPlanner(
       yield {
         val plans = planSinglePattern(qg, kit, pattern, bestLeafPlansPerAvailableSymbol, qppInnerPlanner, context)
           .map(plan => kit.select(plan, qg))
+        val plansWithPrefetchedProperties =
+          context.settings.remoteBatchPropertiesStrategy.planPrefetchRemoteBatchPropertiesIfRequired(qg, plans, context)
         // From _all_ plans (even if they are sorted), put the best into the seed
         // with `false`. We don't want to compare just the ones that are unsorted
         // in isolation, because it could be that the best overall plan is sorted.
-        val best =
+        val bestWithoutPrefetchedProperties =
           kit.pickBest(plans, s"best overall plan for $pattern")
-            .map(p => ((Set(pattern), /* ordered = */ false), p))
-
-        val result: Iterable[((Set[NodeConnection], Boolean), LogicalPlan)] =
+            .map(p =>
+              (SolvableItemWithExtraRequirements(Set(pattern), isSorted = false, hasPrefetchedProperties = false), p)
+            )
+        val bestWithPrefetchedProperties =
+          kit.pickBest(plansWithPrefetchedProperties, s"best plan with additional properties for $pattern")
+            .map(p =>
+              (SolvableItemWithExtraRequirements(Set(pattern), isSorted = false, hasPrefetchedProperties = true), p)
+            )
+        val result: Iterable[(SolvableItemWithExtraRequirements[NodeConnection], LogicalPlan)] =
           if (interestingOrderConfig.orderToSolve.isEmpty) {
-            best
+            bestWithoutPrefetchedProperties ++ bestWithPrefetchedProperties
           } else {
-            val ordered =
-              plans.flatMap(plan => SortPlanner.planIfAsSortedAsPossible(plan, interestingOrderConfig, context))
+            val orderedForAllPlans =
+              plans.flatMap(plan =>
+                SortPlanner.planIfAsSortedAsPossible(plan, interestingOrderConfig, context)
+              )
+
             // Also add the best sorted plan into the seed with `true`.
-            val bestWithSort = kit.pickBest(ordered, s"best sorted plan for $pattern")
-              .map(p => ((Set(pattern), /* ordered = */ true), p))
-            best ++ bestWithSort
+            val bestOverallSorted =
+              kit.pickBest(orderedForAllPlans, s"best sorted plan for $pattern")
+                .map(p =>
+                  (SolvableItemWithExtraRequirements(Set(pattern), isSorted = true, hasPrefetchedProperties = false), p)
+                )
+
+            bestWithoutPrefetchedProperties ++ bestWithPrefetchedProperties ++ bestOverallSorted
           }
 
         if (result.isEmpty)
@@ -279,10 +302,13 @@ object SingleComponentPlanner {
     context: LogicalPlanningContext
   ): Iterable[LogicalPlan] = {
     val solveds = context.staticComponents.planningAttributes.solveds
-
-    val leaves = bestLeafPlansPerAvailableSymbol
-      .values
-      .flatMap(_.allResults)
+    val allLeafPlans = bestLeafPlansPerAvailableSymbol.values.flatMap(_.allResults)
+    val leaves =
+      allLeafPlans ++ context.settings.remoteBatchPropertiesStrategy.planPrefetchRemoteBatchPropertiesIfRequired(
+        qg,
+        allLeafPlans,
+        context
+      )
 
     val perLeafSolutions: Map[LogicalPlan, SinglePatternSolutions] = leaves.map { leaf =>
       val solvedQg = solveds.get(leaf.id).asSinglePlannerQuery.lastQueryGraph

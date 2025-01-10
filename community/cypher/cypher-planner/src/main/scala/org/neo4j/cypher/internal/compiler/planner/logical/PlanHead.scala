@@ -49,7 +49,7 @@ case class PlanHead(
 
     val plans = countStorePlanner(headQuery, updatedContext) match {
       case Some(plan) =>
-        BestResults(plan, None)
+        BestResults(plan, None, None)
       case None =>
         val matchPlans = matchPlanner.plan(headQuery, updatedContext)
         // We take all plans solving the MATCH part. This could be two, if we have a required order.

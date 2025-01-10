@@ -71,8 +71,8 @@ class JoinSolverStepTest extends CypherFunSuite with LogicalPlanningTestSupport2
 
       val qg = QueryGraph.empty.addPatternNodes(v"a", v"b", v"c")
 
-      table.put(register[NodeConnection](pattern1), sorted = false, plan1)
-      table.put(register[NodeConnection](pattern2), sorted = false, plan2)
+      table.put(register[NodeConnection](pattern1), sorted = false, hasExtraProperties = false, plan1)
+      table.put(register[NodeConnection](pattern2), sorted = false, hasExtraProperties = false, plan2)
 
       joinSolverStep(qg)(registry, register[NodeConnection](pattern1, pattern2), table, ctx).toSet should equal(Set(
         NodeHashJoin(Set(v"b"), plan1, plan2),
@@ -105,10 +105,10 @@ class JoinSolverStepTest extends CypherFunSuite with LogicalPlanningTestSupport2
 
       val qg = QueryGraph.empty.addPatternNodes(v"a", v"b", v"c")
 
-      table.put(register[NodeConnection](pattern1), sorted = false, plan1)
-      table.put(register[NodeConnection](pattern1), sorted = true, plan1Sort)
-      table.put(register[NodeConnection](pattern2), sorted = false, plan2)
-      table.put(register[NodeConnection](pattern2), sorted = true, plan2Sort)
+      table.put(register[NodeConnection](pattern1), sorted = false, hasExtraProperties = false, plan1)
+      table.put(register[NodeConnection](pattern1), sorted = true, hasExtraProperties = false, plan1Sort)
+      table.put(register[NodeConnection](pattern2), sorted = false, hasExtraProperties = false, plan2)
+      table.put(register[NodeConnection](pattern2), sorted = true, hasExtraProperties = false, plan2Sort)
 
       joinSolverStep(qg)(registry, register[NodeConnection](pattern1, pattern2), table, ctx).toSet should equal(Set(
         NodeHashJoin(Set(v"b"), plan1, plan2),
@@ -136,8 +136,8 @@ class JoinSolverStepTest extends CypherFunSuite with LogicalPlanningTestSupport2
 
       val qg = QueryGraph.empty.addPatternNodes(v"a", v"b")
 
-      table.put(register[NodeConnection](pattern1), sorted = false, plan1)
-      table.put(register[NodeConnection](pattern2), sorted = false, plan2)
+      table.put(register[NodeConnection](pattern1), sorted = false, hasExtraProperties = false, plan1)
+      table.put(register[NodeConnection](pattern2), sorted = false, hasExtraProperties = false, plan2)
 
       joinSolverStep(qg)(registry, register[NodeConnection](pattern1, pattern2), table, ctx).toSet should equal(Set(
         NodeHashJoin(Set(v"b"), plan1, plan2),
@@ -163,8 +163,8 @@ class JoinSolverStepTest extends CypherFunSuite with LogicalPlanningTestSupport2
 
       val qg = QueryGraph.empty.addPatternNodes(v"a", v"b", v"c", v"d")
 
-      table.put(register[NodeConnection](pattern1), sorted = false, plan1)
-      table.put(register[NodeConnection](pattern2), sorted = false, plan2)
+      table.put(register[NodeConnection](pattern1), sorted = false, hasExtraProperties = false, plan1)
+      table.put(register[NodeConnection](pattern2), sorted = false, hasExtraProperties = false, plan2)
 
       joinSolverStep(qg)(registry, register[NodeConnection](pattern1, pattern2), table, ctx) should be(empty)
     }
@@ -196,8 +196,8 @@ class JoinSolverStepTest extends CypherFunSuite with LogicalPlanningTestSupport2
 
       val qg = QueryGraph.empty.addPatternNodes(v"a", v"b", v"c")
 
-      table.put(register[NodeConnection](pattern1), sorted = false, plan1)
-      table.put(register[NodeConnection](pattern2), sorted = false, plan2)
+      table.put(register[NodeConnection](pattern1), sorted = false, hasExtraProperties = false, plan1)
+      table.put(register[NodeConnection](pattern2), sorted = false, hasExtraProperties = false, plan2)
 
       joinSolverStep(qg, IGNORE_EXPAND_SOLUTIONS_FOR_TEST = true)(
         registry,
@@ -229,8 +229,8 @@ class JoinSolverStepTest extends CypherFunSuite with LogicalPlanningTestSupport2
 
       val qg = QueryGraph.empty.addPatternNodes(v"a", v"b", v"c", v"d")
 
-      table.put(register[NodeConnection](pattern1), sorted = false, plan1)
-      table.put(register[NodeConnection](pattern2), sorted = false, plan2)
+      table.put(register[NodeConnection](pattern1), sorted = false, hasExtraProperties = false, plan1)
+      table.put(register[NodeConnection](pattern2), sorted = false, hasExtraProperties = false, plan2)
 
       joinSolverStep(qg)(registry, register[NodeConnection](pattern1, pattern2), table, ctx) should be(empty)
     }
@@ -253,8 +253,8 @@ class JoinSolverStepTest extends CypherFunSuite with LogicalPlanningTestSupport2
 
       val qg = QueryGraph.empty.addPatternNodes(v"a", v"b", v"c", v"d").addArgumentIds(Seq(v"x"))
 
-      table.put(register[NodeConnection](pattern1), sorted = false, plan1)
-      table.put(register[NodeConnection](pattern2), sorted = false, plan2)
+      table.put(register[NodeConnection](pattern1), sorted = false, hasExtraProperties = false, plan1)
+      table.put(register[NodeConnection](pattern2), sorted = false, hasExtraProperties = false, plan2)
 
       joinSolverStep(qg)(registry, register[NodeConnection](pattern1, pattern2), table, ctx) should be(empty)
     }
@@ -286,9 +286,9 @@ class JoinSolverStepTest extends CypherFunSuite with LogicalPlanningTestSupport2
       table.removeAllTracesOf(id1)
 
       // Table is not completely compacted
-      table.put(id2, sorted = false, plan2)
-      table.put(compactedId1, sorted = false, plan1)
-      table.put(compactedId2, sorted = false, plan2)
+      table.put(id2, sorted = false, hasExtraProperties = false, plan2)
+      table.put(compactedId1, sorted = false, hasExtraProperties = false, plan1)
+      table.put(compactedId2, sorted = false, hasExtraProperties = false, plan2)
 
       // Goal is completely compacted - should result in expandStillPossible == false
       joinSolverStep(qg)(registry, Goal(compactedId1.bitSet ++ compactedId2.bitSet), table, ctx).toSet should equal(Set(

@@ -47,8 +47,8 @@ class ValueHashJoinComponentConnectorTest extends CypherFunSuite with LogicalPla
 
       val nPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "n")
       val mPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "m")
-      table.put(register(registry, nQg), sorted = false, nPlan)
-      table.put(register(registry, mQg), sorted = false, mPlan)
+      table.put(register(registry, nQg), sorted = false, hasExtraProperties = false, nPlan)
+      table.put(register(registry, mQg), sorted = false, hasExtraProperties = false, mPlan)
       val goal = register(registry, nQg, mQg)
 
       val step = ValueHashJoinComponentConnector.solverStep(GoalBitAllocation(2, 0, Seq.empty), fullQg, order, kit, ctx)
@@ -80,10 +80,10 @@ class ValueHashJoinComponentConnectorTest extends CypherFunSuite with LogicalPla
       val mPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "m")
       val mPlanSort = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "m", "extra-symbol")
 
-      table.put(register(registry, nQg), sorted = false, nPlan)
-      table.put(register(registry, nQg), sorted = true, nPlanSort)
-      table.put(register(registry, mQg), sorted = false, mPlan)
-      table.put(register(registry, mQg), sorted = true, mPlanSort)
+      table.put(register(registry, nQg), sorted = false, hasExtraProperties = false, nPlan)
+      table.put(register(registry, nQg), sorted = true, hasExtraProperties = false, nPlanSort)
+      table.put(register(registry, mQg), sorted = false, hasExtraProperties = false, mPlan)
+      table.put(register(registry, mQg), sorted = true, hasExtraProperties = false, mPlanSort)
       val goal = register(registry, nQg, mQg)
 
       val step = ValueHashJoinComponentConnector.solverStep(GoalBitAllocation(2, 0, Seq.empty), fullQg, order, kit, ctx)
@@ -122,12 +122,12 @@ class ValueHashJoinComponentConnectorTest extends CypherFunSuite with LogicalPla
       val nmPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "n", "m")
       val moPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "m", "o")
       val noPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "n", "o")
-      table.put(register(registry, nQg), sorted = false, nPlan)
-      table.put(register(registry, mQg), sorted = false, mPlan)
-      table.put(register(registry, oQg), sorted = false, oPlan)
-      table.put(register(registry, nQg, mQg), sorted = false, nmPlan)
-      table.put(register(registry, mQg, oQg), sorted = false, moPlan)
-      table.put(register(registry, nQg, oQg), sorted = false, noPlan)
+      table.put(register(registry, nQg), sorted = false, hasExtraProperties = false, nPlan)
+      table.put(register(registry, mQg), sorted = false, hasExtraProperties = false, mPlan)
+      table.put(register(registry, oQg), sorted = false, hasExtraProperties = false, oPlan)
+      table.put(register(registry, nQg, mQg), sorted = false, hasExtraProperties = false, nmPlan)
+      table.put(register(registry, mQg, oQg), sorted = false, hasExtraProperties = false, moPlan)
+      table.put(register(registry, nQg, oQg), sorted = false, hasExtraProperties = false, noPlan)
       val goal = register(registry, nQg, mQg, oQg)
 
       val step = ValueHashJoinComponentConnector.solverStep(GoalBitAllocation(3, 0, Seq.empty), fullQg, order, kit, ctx)
@@ -162,8 +162,8 @@ class ValueHashJoinComponentConnectorTest extends CypherFunSuite with LogicalPla
 
       val nPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "n")
       val mPlan = fakeLogicalPlanFor(ctx.staticComponents.planningAttributes, "m")
-      table.put(register(registry, nQg), sorted = false, nPlan)
-      table.put(register(registry, mQg), sorted = false, mPlan)
+      table.put(register(registry, nQg), sorted = false, hasExtraProperties = false, nPlan)
+      table.put(register(registry, mQg), sorted = false, hasExtraProperties = false, mPlan)
       val goal = register(registry, nQg, mQg)
 
       val step = ValueHashJoinComponentConnector.solverStep(GoalBitAllocation(2, 0, Seq.empty), fullQg, order, kit, ctx)

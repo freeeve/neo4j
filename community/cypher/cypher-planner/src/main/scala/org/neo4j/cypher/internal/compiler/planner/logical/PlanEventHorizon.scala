@@ -71,6 +71,12 @@ case object PlanEventHorizon extends EventHorizonPlanner {
       isHorizon = true
     )
 
+    val extraPropertiesRequirement =
+      context.settings.remoteBatchPropertiesStrategy.interestingPropertiesAsIDPExtraRequirement(
+        plannerQuery.queryGraph,
+        context
+      )
+
     // Plans horizon on top of the current best-overall plan, ensuring ordering only if required by the current query part.
     def planSortIfSelfRequired = planHorizonForPlan(
       plannerQuery,
@@ -88,7 +94,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
       sortIfTailOrSelfRequiredConfig
     )
     // Plans horizon on top of the current best-sorted plan
-    def maintainSort = incomingPlans.bestResultFulfillingReq.map(planHorizonForPlan(
+    def maintainSort = incomingPlans.bestSortedResult.map(planHorizonForPlan(
       plannerQuery,
       _,
       prevInterestingOrder,
@@ -96,27 +102,64 @@ case object PlanEventHorizon extends EventHorizonPlanner {
       sortIfTailOrSelfRequiredConfig
     ))
 
+    // maintain properties and plan sort if required
+    lazy val maintainPropertiesAndSortOnSelfRequired = incomingPlans.bestExtraPropertiesResult.map(planHorizonForPlan(
+      plannerQuery,
+      _,
+      prevInterestingOrder,
+      context,
+      sortIfSelfRequiredConfig
+    ))
+
+    // maintain properties and plan sort on tail if required
+    lazy val maintainPropertiesAndSortOnTailOrSelfIfRequired =
+      incomingPlans.bestExtraPropertiesResult.map(planHorizonForPlan(
+        plannerQuery,
+        _,
+        prevInterestingOrder,
+        context,
+        sortIfTailOrSelfRequiredConfig
+      ))
+
     val currentPartHasRequiredOrder = plannerQuery.interestingOrder.requiredOrderCandidate.nonEmpty
     val tailHasRequiredOrder = sortIfSelfRequiredConfig != sortIfTailOrSelfRequiredConfig
 
     if (currentPartHasRequiredOrder) {
       // Both best-overall and best-sorted plans must fulfill the required order, so at this point we can pick one of them
       val bestOverall = pickBest(
-        Seq(planSortIfSelfRequired) ++ maintainSort,
+        Seq(planSortIfSelfRequired) ++ maintainSort ++ maintainPropertiesAndSortOnSelfRequired,
         "best overall plan with horizon"
       ).getOrElse(throw new IllegalStateException("Planner returned no best overall plan"))
-      BestResults(bestOverall, None)
+      BestResults(
+        bestOverall,
+        None,
+        maintainPropertiesAndSortOnTailOrSelfIfRequired.filter(extraPropertiesRequirement.fulfils)
+      )
     } else if (tailHasRequiredOrder) {
       // For best-overall keep the current best-overall plan
       val bestOverall = planSortIfSelfRequired
       // For best-sorted we can choose between the current best-sorted and the current best-overall with sorting planned on top
       val bestSorted =
-        pickBest(Seq(planSortIfTailOrSelfRequired) ++ maintainSort, "best sorted plan with horizon")
-      BestResults(bestOverall, bestSorted)
+        pickBest(
+          Seq(planSortIfTailOrSelfRequired) ++ maintainSort ++ maintainPropertiesAndSortOnTailOrSelfIfRequired,
+          "best sorted plan with horizon"
+        )
+      BestResults(
+        bestOverall,
+        bestSorted,
+        maintainPropertiesAndSortOnTailOrSelfIfRequired.filter(extraPropertiesRequirement.fulfils)
+      )
     } else {
       // No ordering requirements, only keep the best-overall plan
-      val bestOverall = planSortIfSelfRequired
-      BestResults(bestOverall, None)
+      val bestOverall = pickBest(
+        Seq(planSortIfSelfRequired) ++ maintainPropertiesAndSortOnSelfRequired,
+        "best overall plan with horizon"
+      ).getOrElse(throw new IllegalStateException("Planner returned no best overall plan"))
+      BestResults(
+        bestOverall,
+        None,
+        maintainPropertiesAndSortOnSelfRequired.filter(extraPropertiesRequirement.fulfils)
+      )
     }
   }
 
