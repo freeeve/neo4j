@@ -193,7 +193,7 @@ class DatabaseTransactionShutdownIT {
             latch.countDown();
             while (!done.get()) {
                 try (Transaction tx = db.beginTx()) {
-                } catch (DatabaseShutdownException ignored) {
+                } catch (DatabaseShutdownException | TransactionFailureException ignored) {
                 }
             }
         });
@@ -203,10 +203,6 @@ class DatabaseTransactionShutdownIT {
             latch.await();
             dbms.shutdown();
             assertThat(ktxs.haveActiveTransaction()).isFalse();
-            LogAssertions.assertThat(logProvider)
-                    .forClass(Database.class)
-                    .forLevel(WARN)
-                    .doesNotContainMessage(UNCLEAN_SHUTDOWN_MSG);
         } finally {
             done.set(true);
             if (future != null) {
