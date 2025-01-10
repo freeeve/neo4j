@@ -127,6 +127,15 @@ public class InvalidSemanticsException extends Neo4jException {
                         value, key, startVarPart, stringifiedRelType, key, value, endVarPart));
     }
 
+    public static InvalidSemanticsException invalidShardTarget(String action, String db1, String db2) {
+        var gql = GqlHelper.getGql42001_42N0A(action, db1, db2);
+        return new InvalidSemanticsException(
+                gql,
+                String.format(
+                        "%s is not allowed with a shard target. Connect to `%s` in order to read or write data from `%s`.",
+                        action, db1, db2));
+    }
+
     @Override
     public Status status() {
         return Status.Statement.SemanticError;

@@ -3050,6 +3050,16 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "no such user",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42N0A(
+            new GqlStatus("42N0A"),
+            """
+                    { %s } is not allowed with a shard target. Connect to { %s } in order to read or write data from { %s }.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.action, GqlParams.StringParam.db1, GqlParams.StringParam.db2
+            },
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "invalid shard target",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42N10(
             new GqlStatus("42N10"),
             """

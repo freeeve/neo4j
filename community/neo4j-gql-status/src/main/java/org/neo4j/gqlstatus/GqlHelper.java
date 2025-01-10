@@ -527,6 +527,16 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql42001_42N0A(String action, String db1, String db2) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N0A)
+                        .withParam(GqlParams.StringParam.action, action)
+                        .withParam(GqlParams.StringParam.db1, db1)
+                        .withParam(GqlParams.StringParam.db2, db2)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql42001_42N14(String clause, String cmd, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .atPosition(offset, line, column)
