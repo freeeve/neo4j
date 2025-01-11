@@ -35,9 +35,9 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.params.provider.Arguments;
-import org.openapitools.control.client.model.DeletionProtection;
-import org.openapitools.control.client.model.IndexModel;
-import org.openapitools.control.client.model.IndexModelStatus;
+import org.openapitools.db_control.client.model.DeletionProtection;
+import org.openapitools.db_control.client.model.IndexModel;
+import org.openapitools.db_control.client.model.IndexModelStatus;
 
 /**
  * This test is by a good chance flaky as hell due to the eventual consistent API and the weird blocking but still
