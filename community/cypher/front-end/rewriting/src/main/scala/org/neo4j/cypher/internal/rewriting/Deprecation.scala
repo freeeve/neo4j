@@ -48,6 +48,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
+import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.Range
 import org.neo4j.cypher.internal.expressions.RelationshipChain
@@ -55,7 +56,6 @@ import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.Subtract
-import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonDisjunction
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
@@ -186,8 +186,8 @@ object Deprecations {
           variable,
           labelExpression,
           Some(Some(Range(
-            Some(UnsignedDecimalIntegerLiteral.safeLiteral("1")(relPat.position)),
-            Some(UnsignedDecimalIntegerLiteral.safeLiteral("1")(relPat.position))
+            Some(NonSensitiveUnsignedDecimalIntegerLiteral("1")(relPat.position)),
+            Some(NonSensitiveUnsignedDecimalIntegerLiteral("1")(relPat.position))
           )(relPat.position))),
           properties,
           predicate,

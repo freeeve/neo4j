@@ -17,11 +17,11 @@
 package org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters
 
 import org.neo4j.cypher.internal.expressions.NodePattern
+import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Range
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
-import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.PreparatoryRewritingRewriterFactory
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
@@ -42,7 +42,7 @@ object RewriteShortestPathWithFixedLengthRel extends Rewriter {
         r @ RelationshipChain(_: NodePattern, relPat @ RelationshipPattern(_, _, None, _, _, _), _),
         _
       ) =>
-      val one = Some(UnsignedDecimalIntegerLiteral.safeLiteral("1")(InputPosition.NONE))
+      val one = Some(NonSensitiveUnsignedDecimalIntegerLiteral("1")(InputPosition.NONE))
       val range = Some(Some(Range(one, one)(InputPosition.NONE)))
 
       s.copy(element = r.copy(relationship = relPat.copy(length = range)(relPat.position))(r.position))(s.position)

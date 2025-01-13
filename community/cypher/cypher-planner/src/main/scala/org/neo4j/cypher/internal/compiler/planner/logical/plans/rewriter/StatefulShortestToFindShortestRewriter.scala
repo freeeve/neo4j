@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQppPredicat
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NodePattern
+import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.Range
 import org.neo4j.cypher.internal.expressions.RelTypeName
@@ -36,7 +37,6 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
-import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.VarLengthBound
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
@@ -148,8 +148,8 @@ case class StatefulShortestToFindShortestRewriter(
     pr.length match {
       case SimplePatternLength => None
       case VarPatternLength(min, max) => Some(Some(Range(
-          Some(UnsignedDecimalIntegerLiteral.safeLiteral(min.toString)(pos)),
-          max.map(i => UnsignedDecimalIntegerLiteral.safeLiteral(i.toString)(pos))
+          Some(NonSensitiveUnsignedDecimalIntegerLiteral(min.toString)(pos)),
+          max.map(i => NonSensitiveUnsignedDecimalIntegerLiteral(i.toString)(pos))
         )(pos)))
     }
   }
@@ -221,8 +221,8 @@ case class StatefulShortestToFindShortestRewriter(
   private def getRange(qpp: QuantifiedPathPattern): Option[Some[Range]] = {
     val pos = InputPosition.NONE
     Some(Some(Range(
-      Some(UnsignedDecimalIntegerLiteral.safeLiteral(qpp.repetition.min.toString)(pos)),
-      qpp.repetition.max.limit.map(i => UnsignedDecimalIntegerLiteral.safeLiteral(i.toString)(pos))
+      Some(NonSensitiveUnsignedDecimalIntegerLiteral(qpp.repetition.min.toString)(pos)),
+      qpp.repetition.max.limit.map(i => NonSensitiveUnsignedDecimalIntegerLiteral(i.toString)(pos))
     )(pos)))
   }
 

@@ -25,8 +25,8 @@ import org.neo4j.cypher.internal.ast.IfExistsDoNothing
 import org.neo4j.cypher.internal.ast.IfExistsInvalidSyntax
 import org.neo4j.cypher.internal.ast.IfExistsReplace
 import org.neo4j.cypher.internal.ast.IfExistsThrowError
+import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.SemanticDirection
-import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.parser.AstRuleCtx
 import org.neo4j.cypher.internal.parser.lexer.CypherQueryAccess
 import org.neo4j.cypher.internal.parser.lexer.CypherToken
@@ -53,12 +53,12 @@ object Util {
     else throw new IllegalArgumentException(s"Unexpected size $size")
   }
 
-  def optUnsignedDecimalInt(token: Token, maybeSensitive: Boolean): Option[UnsignedDecimalIntegerLiteral] = {
-    if (token != null) Some(unsignedDecimalInt(token, maybeSensitive)) else None
+  def optSafeUnsignedDecimalInt(token: Token): Option[NonSensitiveUnsignedDecimalIntegerLiteral] = {
+    if (token != null) Some(safeUnsignedDecimalInt(token)) else None
   }
 
-  def unsignedDecimalInt(token: Token, maybeSensitive: Boolean): UnsignedDecimalIntegerLiteral = {
-    UnsignedDecimalIntegerLiteral(token.getText, maybeSensitive)(pos(token))
+  def safeUnsignedDecimalInt(token: Token): NonSensitiveUnsignedDecimalIntegerLiteral = {
+    NonSensitiveUnsignedDecimalIntegerLiteral(token.getText)(pos(token))
   }
 
   @inline def ctxChild(ctx: AstRuleCtx, index: Int): AstRuleCtx = ctx.getChild(index).asInstanceOf[AstRuleCtx]

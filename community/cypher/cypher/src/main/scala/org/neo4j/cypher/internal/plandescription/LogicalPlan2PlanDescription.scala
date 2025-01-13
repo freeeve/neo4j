@@ -49,6 +49,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapExpression
 import org.neo4j.cypher.internal.expressions.NameToken
 import org.neo4j.cypher.internal.expressions.Namespace
+import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -57,7 +58,6 @@ import org.neo4j.cypher.internal.expressions.RelTypeExpression
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.expressions.SemanticDirection
-import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.functions.Labels
 import org.neo4j.cypher.internal.expressions.functions.Point
 import org.neo4j.cypher.internal.expressions.functions.Type
@@ -1320,7 +1320,7 @@ case class LogicalPlan2PlanDescription(
       case SimulatedNodeScan(idName, numberOfRows) =>
         val details = Details(Seq(
           asPrettyString(idName),
-          asPrettyString(UnsignedDecimalIntegerLiteral.safeLiteral(numberOfRows.toString)(InputPosition.NONE))
+          asPrettyString(NonSensitiveUnsignedDecimalIntegerLiteral(numberOfRows.toString)(InputPosition.NONE))
         ))
         PlanDescriptionImpl(
           id,

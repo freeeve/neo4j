@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.expressions.GraphPatternQuantifier
 import org.neo4j.cypher.internal.expressions.IntervalQuantifier
 import org.neo4j.cypher.internal.expressions.MatchMode
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
+import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.PathConcatenation
 import org.neo4j.cypher.internal.expressions.PathPatternPart
@@ -38,7 +39,6 @@ import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.StarQuantifier
-import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 
 class QuantifiedPathPatternParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport {
 
@@ -154,8 +154,8 @@ class QuantifiedPathPatternParserTest extends AstParsingTestBase with LegacyAstP
               )
             )(pos),
             IntervalQuantifier(
-              Some(UnsignedDecimalIntegerLiteral.safeLiteral("1")(pos)),
-              Some(UnsignedDecimalIntegerLiteral.safeLiteral("3")(pos))
+              Some(NonSensitiveUnsignedDecimalIntegerLiteral("1")(pos)),
+              Some(NonSensitiveUnsignedDecimalIntegerLiteral("3")(pos))
             )(
               pos
             ),
@@ -558,8 +558,8 @@ class QuantifiedPathPatternsQuantifierParserTest extends AstParsingTestBase with
   test("{1_000, 1_000_000}") {
     parses[GraphPatternQuantifier].toAstPositioned {
       IntervalQuantifier(
-        Some(UnsignedDecimalIntegerLiteral.safeLiteral("1_000")((1, 2, 1))),
-        Some(UnsignedDecimalIntegerLiteral.safeLiteral("1_000_000")((1, 9, 8)))
+        Some(NonSensitiveUnsignedDecimalIntegerLiteral("1_000")((1, 2, 1))),
+        Some(NonSensitiveUnsignedDecimalIntegerLiteral("1_000_000")((1, 9, 8)))
       )((1, 1, 0))
     }
   }

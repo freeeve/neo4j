@@ -75,6 +75,7 @@ import org.neo4j.cypher.internal.expressions.NFKDNormalForm
 import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
+import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
 import org.neo4j.cypher.internal.expressions.NormalForm
 import org.neo4j.cypher.internal.expressions.Not
@@ -112,7 +113,6 @@ import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.Subtract
 import org.neo4j.cypher.internal.expressions.UnaryAdd
 import org.neo4j.cypher.internal.expressions.UnarySubtract
-import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableSelector
 import org.neo4j.cypher.internal.expressions.Xor
@@ -131,9 +131,9 @@ import org.neo4j.cypher.internal.parser.ast.util.Util.ctxChild
 import org.neo4j.cypher.internal.parser.ast.util.Util.lastChild
 import org.neo4j.cypher.internal.parser.ast.util.Util.nodeChild
 import org.neo4j.cypher.internal.parser.ast.util.Util.nodeChildType
-import org.neo4j.cypher.internal.parser.ast.util.Util.optUnsignedDecimalInt
+import org.neo4j.cypher.internal.parser.ast.util.Util.optSafeUnsignedDecimalInt
 import org.neo4j.cypher.internal.parser.ast.util.Util.pos
-import org.neo4j.cypher.internal.parser.ast.util.Util.unsignedDecimalInt
+import org.neo4j.cypher.internal.parser.ast.util.Util.safeUnsignedDecimalInt
 import org.neo4j.cypher.internal.parser.common.ast.factory.ParserTrimSpecification
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser
 import org.neo4j.cypher.internal.parser.v25.Cypher25ParserListener
@@ -181,7 +181,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   override def exitNonNegativeIntegerSpecification(ctx: Cypher25Parser.NonNegativeIntegerSpecificationContext): Unit = {
     val integer = ctx.UNSIGNED_DECIMAL_INTEGER()
     ctx.ast = if (integer != null) {
-      Left(UnsignedDecimalIntegerLiteral.safeLiteral(ctx.getText)(pos(ctx)))
+      Left(NonSensitiveUnsignedDecimalIntegerLiteral(ctx.getText)(pos(ctx)))
     } else {
       val count = ctx.parameter().ast[Parameter]()
       Right(ExplicitParameter(count.name, CTInteger)(count.position))
@@ -194,11 +194,11 @@ trait ExpressionBuilder extends Cypher25ParserListener {
       case Cypher25Parser.LCURLY =>
         if (ctx.from != null || ctx.to != null || ctx.COMMA() != null) {
           IntervalQuantifier(
-            optUnsignedDecimalInt(ctx.from, maybeSensitive = false),
-            optUnsignedDecimalInt(ctx.to, maybeSensitive = false)
+            optSafeUnsignedDecimalInt(ctx.from),
+            optSafeUnsignedDecimalInt(ctx.to)
           )(pos(ctx))
         } else {
-          FixedQuantifier(unsignedDecimalInt(nodeChild(ctx, 1).getSymbol, maybeSensitive = false))(pos(firstToken))
+          FixedQuantifier(safeUnsignedDecimalInt(nodeChild(ctx, 1).getSymbol))(pos(firstToken))
         }
       case Cypher25Parser.PLUS  => PlusQuantifier()(pos(firstToken))
       case Cypher25Parser.TIMES => StarQuantifier()(pos(firstToken))
@@ -264,10 +264,10 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   private def selectorCount(
     ctx: Cypher25Parser.NonNegativeIntegerSpecificationContext,
     p: InputPosition
-  ): Either[UnsignedDecimalIntegerLiteral, Parameter] =
-    astOpt[Either[UnsignedDecimalIntegerLiteral, Parameter]](
+  ): Either[NonSensitiveUnsignedDecimalIntegerLiteral, Parameter] =
+    astOpt[Either[NonSensitiveUnsignedDecimalIntegerLiteral, Parameter]](
       ctx,
-      Left(UnsignedDecimalIntegerLiteral.safeLiteral("1")(p))
+      Left(NonSensitiveUnsignedDecimalIntegerLiteral("1")(p))
     )
 
   final override def exitSelector(ctx: Cypher25Parser.SelectorContext): Unit = {
@@ -314,11 +314,11 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   ): Unit = {
     // This is weird, we should refactor range to be more sensible and not use nested options
     ctx.ast = if (ctx.DOTDOT() != null) {
-      val from = optUnsignedDecimalInt(ctx.from, maybeSensitive = false)
-      val to = optUnsignedDecimalInt(ctx.to, maybeSensitive = false)
+      val from = optSafeUnsignedDecimalInt(ctx.from)
+      val to = optSafeUnsignedDecimalInt(ctx.to)
       Some(org.neo4j.cypher.internal.expressions.Range(from, to)(from.map(_.position).getOrElse(pos(ctx))))
     } else if (ctx.single != null) {
-      val single = Some(UnsignedDecimalIntegerLiteral.safeLiteral(ctx.single.getText)(pos(ctx.single)))
+      val single = Some(NonSensitiveUnsignedDecimalIntegerLiteral(ctx.single.getText)(pos(ctx.single)))
       Some(org.neo4j.cypher.internal.expressions.Range(single, single)(pos(ctx)))
     } else None
   }

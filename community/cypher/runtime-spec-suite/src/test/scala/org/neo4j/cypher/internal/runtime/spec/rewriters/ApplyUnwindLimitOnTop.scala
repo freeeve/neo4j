@@ -21,8 +21,8 @@ package org.neo4j.cypher.internal.runtime.spec.rewriters
 
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionName
+import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
-import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.functions.Range
 import org.neo4j.cypher.internal.logical.plans.Apply
 import org.neo4j.cypher.internal.logical.plans.Argument
@@ -63,8 +63,8 @@ case class ApplyUnwindLimitOnTop(
       case pr @ ProduceResult(source, columns)
         if isLeftmostLeafOkToMove(source) && randomShouldApply(config) =>
         val argument = Argument()(ctx.idGen)
-        val one = UnsignedDecimalIntegerLiteral.safeLiteral("1")(pos)
-        val many = UnsignedDecimalIntegerLiteral.safeLiteral("100")(pos)
+        val one = NonSensitiveUnsignedDecimalIntegerLiteral("1")(pos)
+        val many = NonSensitiveUnsignedDecimalIntegerLiteral("100")(pos)
         val range =
           FunctionInvocation(FunctionName(Range.name)(pos), distinct = false, args = IndexedSeq(one, many, one))(pos)
         val unwind = UnwindCollection(argument, varFor(ctx.anonymousVariableNameGenerator.nextName), range)(ctx.idGen)

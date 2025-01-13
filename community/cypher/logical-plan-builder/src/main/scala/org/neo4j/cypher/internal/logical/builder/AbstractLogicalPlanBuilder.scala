@@ -45,6 +45,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapExpression
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.NodePattern
+import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertyKeyToken
@@ -61,7 +62,6 @@ import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
-import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
@@ -752,8 +752,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     val length = p.length match {
       case SimplePatternLength => None
       case VarPatternLength(min, max) => Some(Some(Range(
-          Some(UnsignedDecimalIntegerLiteral.safeLiteral(min.toString)(pos)),
-          max.map(i => UnsignedDecimalIntegerLiteral.safeLiteral(i.toString)(pos))
+          Some(NonSensitiveUnsignedDecimalIntegerLiteral(min.toString)(pos)),
+          max.map(i => NonSensitiveUnsignedDecimalIntegerLiteral(i.toString)(pos))
         )(pos)))
     }
 

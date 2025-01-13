@@ -426,6 +426,7 @@ import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
+import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
 import org.neo4j.cypher.internal.expressions.NormalForm
 import org.neo4j.cypher.internal.expressions.Not
@@ -483,7 +484,6 @@ import org.neo4j.cypher.internal.expressions.Subtract
 import org.neo4j.cypher.internal.expressions.True
 import org.neo4j.cypher.internal.expressions.UnaryAdd
 import org.neo4j.cypher.internal.expressions.UnarySubtract
-import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableSelector
 import org.neo4j.cypher.internal.expressions.Xor
@@ -692,8 +692,8 @@ class AstGenerator(
     sig = if (neg) "-" else ""
   } yield List(sig, str).mkString
 
-  def _unsignedDecIntLit: Gen[UnsignedDecimalIntegerLiteral] =
-    _unsignedIntString("", 10).map(UnsignedDecimalIntegerLiteral.unsafeLiteral(_)(pos))
+  def _unsignedDecIntLit: Gen[NonSensitiveUnsignedDecimalIntegerLiteral] =
+    _unsignedIntString("", 10).map(NonSensitiveUnsignedDecimalIntegerLiteral(_)(pos))
 
   def _signedDecIntLit: Gen[SignedDecimalIntegerLiteral] =
     _signedIntString("", 10).map(SignedDecimalIntegerLiteral(_)(pos))
@@ -1274,7 +1274,7 @@ class AstGenerator(
     lzy(_pathConcatenation(dynamicLabelsAllowed))
   )
 
-  private def literalIntOrParam: Gen[Either[UnsignedDecimalIntegerLiteral, Parameter]] = for {
+  private def literalIntOrParam: Gen[Either[NonSensitiveUnsignedDecimalIntegerLiteral, Parameter]] = for {
     int <- lzy(_unsignedDecIntLit)
     param <- lzy(_parameter)
     count <- oneOf(Left(int), Right(param))
@@ -1282,7 +1282,7 @@ class AstGenerator(
     count
   }
 
-  private def literalIntOnly: Gen[Either[UnsignedDecimalIntegerLiteral, Parameter]] = for {
+  private def literalIntOnly: Gen[Either[NonSensitiveUnsignedDecimalIntegerLiteral, Parameter]] = for {
     int <- lzy(_unsignedDecIntLit)
   } yield {
     Left(int)

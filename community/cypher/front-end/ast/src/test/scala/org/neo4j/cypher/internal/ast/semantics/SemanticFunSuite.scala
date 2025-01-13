@@ -20,13 +20,13 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
 import org.neo4j.cypher.internal.expressions.DummyExpression
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.SignedHexIntegerLiteral
 import org.neo4j.cypher.internal.expressions.SignedOctalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.StringLiteral
-import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -55,7 +55,7 @@ trait SemanticFunSuite extends CypherFunSuite with SemanticAnalysisTooling with 
   def literal(x: Double) = DecimalDoubleLiteral(x.toString)(pos)
   def literal(x: Int) = SignedDecimalIntegerLiteral(x.toString)(pos)
 
-  def unsignedDecimal(str: String) = UnsignedDecimalIntegerLiteral.unsafeLiteral(str)(pos)
+  def unsignedDecimal(str: String) = NonSensitiveUnsignedDecimalIntegerLiteral(str)(pos)
   def signedDecimal(str: String) = SignedDecimalIntegerLiteral(str)(pos)
   def decimalDouble(str: String) = DecimalDoubleLiteral(str)(pos)
   def signedOctal(str: String) = SignedOctalIntegerLiteral(str)(pos)

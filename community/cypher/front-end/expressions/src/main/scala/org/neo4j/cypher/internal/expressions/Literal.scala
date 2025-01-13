@@ -62,26 +62,17 @@ case class SignedDecimalIntegerLiteral(stringVal: String)(val position: InputPos
     }
 }
 
-case class UnsignedDecimalIntegerLiteral(
-  stringVal: String,
-  override val maybeSensitive: Boolean
+case class NonSensitiveUnsignedDecimalIntegerLiteral(
+  stringVal: String
 )(val position: InputPosition)
     extends DecimalIntegerLiteral(stringVal) with UnsignedIntegerLiteral {
 
+  override def maybeSensitive: Boolean = false
+
   override def asSensitiveLiteral: Literal with SensitiveLiteral =
-    new UnsignedDecimalIntegerLiteral(stringVal, maybeSensitive)(position) with SensitiveLiteral {
+    new NonSensitiveUnsignedDecimalIntegerLiteral(stringVal)(position) with SensitiveLiteral {
       override def literalLength: Int = stringVal.length
     }
-}
-
-object UnsignedDecimalIntegerLiteral {
-
-  def safeLiteral(stringVal: String)(position: InputPosition): UnsignedDecimalIntegerLiteral =
-    UnsignedDecimalIntegerLiteral(stringVal, maybeSensitive = false)(position)
-
-  def unsafeLiteral(stringVal: String)(position: InputPosition): UnsignedDecimalIntegerLiteral =
-    UnsignedDecimalIntegerLiteral(stringVal, maybeSensitive = true)(position)
-
 }
 
 sealed abstract class OctalIntegerLiteral(stringVal: String) extends IntegerLiteral {

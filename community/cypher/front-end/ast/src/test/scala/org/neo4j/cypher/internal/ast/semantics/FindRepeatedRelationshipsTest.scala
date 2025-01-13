@@ -19,11 +19,11 @@ package org.neo4j.cypher.internal.ast.semantics
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.patternForMatch
 import org.neo4j.cypher.internal.expressions
 import org.neo4j.cypher.internal.expressions.NodePattern
+import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SimplePattern
-import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.DummyPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -150,7 +150,7 @@ class FindRepeatedRelationshipsTest extends CypherFunSuite {
     RelationshipPattern(Some(id), None, None, None, None, SemanticDirection.OUTGOING)(pos)
 
   private def variableLengthRelPattern(id: Variable) = {
-    val range = expressions.Range(Some(UnsignedDecimalIntegerLiteral.safeLiteral("2")(pos)), None)(pos)
+    val range = expressions.Range(Some(NonSensitiveUnsignedDecimalIntegerLiteral("2")(pos)), None)(pos)
     RelationshipPattern(Some(id), None, Some(Some(range)), None, None, SemanticDirection.OUTGOING)(pos)
   }
 }
