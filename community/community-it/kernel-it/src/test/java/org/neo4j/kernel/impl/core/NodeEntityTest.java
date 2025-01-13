@@ -39,6 +39,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Label;
@@ -49,7 +51,9 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.TransientTransactionFailureException;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.exceptions.EntityNotFoundException;
+import org.neo4j.internal.kernel.api.exceptions.schema.TokenCapacityExceededKernelException;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
+import org.neo4j.logging.LogAssertions;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
@@ -284,17 +288,30 @@ public class NodeEntityTest extends EntityTest {
     @Test
     void shouldThrowCorrectExceptionOnLabelTokensExceeded() throws KernelException {
         // given
-        var transaction = mockedTransactionWithDepletedTokens();
+        var transaction = mockedTransactionWithDepletedTokens(logProvider);
         NodeEntity nodeEntity = new NodeEntity(transaction, 5);
 
         // when
-        assertThrows(ConstraintViolationException.class, () -> nodeEntity.addLabel(Label.label("Label")));
+        var exceptionAssert = ErrorGqlStatusObjectAssertions.assertThatNonGqlThrownBy(
+                        () -> nodeEntity.addLabel(Label.label("Label")))
+                .isInstanceOf(ConstraintViolationException.class)
+                .causeWithGqlStatus()
+                .isInstanceOf(TokenCapacityExceededKernelException.class)
+                .hasMessageContaining(
+                        "The maximum number of Labels available has been reached, no more can be created.")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_51N59)
+                .hasStatusDescription(
+                        "error: system configuration or operation exception - internal resource exhaustion. The DBMS is unable to handle the request, please retry later or contact the system operator. More information is present in the logs.");
+        LogAssertions.assertThat(logProvider)
+                .containsMessageWithException(
+                        "The maximum number of Labels available has been reached, no more can be created.",
+                        exceptionAssert.getActual());
     }
 
     @Test
     void shouldThrowCorrectExceptionOnPropertyKeyTokensExceeded() throws KernelException {
         // given
-        NodeEntity nodeEntity = new NodeEntity(mockedTransactionWithDepletedTokens(), 5);
+        NodeEntity nodeEntity = new NodeEntity(mockedTransactionWithDepletedTokens(logProvider), 5);
 
         // when
         assertThrows(ConstraintViolationException.class, () -> nodeEntity.setProperty("key", "value"));
@@ -303,7 +320,7 @@ public class NodeEntityTest extends EntityTest {
     @Test
     void shouldThrowCorrectExceptionOnRelationshipTypeTokensExceeded() throws KernelException {
         // given
-        InternalTransaction transaction = mockedTransactionWithDepletedTokens();
+        InternalTransaction transaction = mockedTransactionWithDepletedTokens(logProvider);
         NodeEntity nodeEntity = new NodeEntity(transaction, 5);
 
         // when

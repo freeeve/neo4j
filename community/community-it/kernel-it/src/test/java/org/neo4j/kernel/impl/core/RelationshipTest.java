@@ -236,7 +236,7 @@ public class RelationshipTest extends EntityTest {
     @Test
     void shouldThrowCorrectExceptionOnPropertyKeyTokensExceeded() throws KernelException {
         // given
-        var transaction = mockedTransactionWithDepletedTokens();
+        var transaction = mockedTransactionWithDepletedTokens(logProvider);
         RelationshipEntity relationshipEntity = new RelationshipEntity(transaction, 5);
 
         // when

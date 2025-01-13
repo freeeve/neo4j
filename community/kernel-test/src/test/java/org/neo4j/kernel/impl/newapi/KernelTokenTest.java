@@ -38,6 +38,7 @@ import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.storageengine.api.CommandCreationContext;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.token.TokenHolders;
@@ -68,7 +69,8 @@ class KernelTokenTest {
         when(ktx.securityAuthorizationHandler()).thenReturn(authorizationHandler);
         when(ktx.securityContext()).thenReturn(SecurityContext.AUTH_DISABLED);
         when(ktx.txState()).thenReturn(transactionState);
-        kernelToken = new KernelToken(storageReader, commandCreationContext, ktx, tokenHolders);
+        kernelToken = new KernelToken(
+                storageReader, commandCreationContext, ktx, tokenHolders, NullLogProvider.getInstance());
     }
 
     @Test

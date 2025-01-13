@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.neo4j.exceptions.KernelException;
@@ -44,6 +45,9 @@ import org.neo4j.kernel.impl.coreapi.TransactionImpl;
 import org.neo4j.kernel.impl.query.QueryExecutionEngine;
 import org.neo4j.kernel.impl.query.TransactionalContextFactory;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.logging.AssertableLogProvider;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.token.TokenHolders;
@@ -51,14 +55,26 @@ import org.neo4j.token.api.TokenHolder;
 import org.neo4j.values.ElementIdMapper;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@ImpermanentDbmsExtension
+@ImpermanentDbmsExtension(configurationCallback = "configure")
 public abstract class EntityTest {
     @Inject
     static GraphDatabaseAPI db;
 
+    protected AssertableLogProvider logProvider = new AssertableLogProvider();
+
     protected abstract long createEntity(Transaction tx);
 
     protected abstract Entity lookupEntity(Transaction transaction, long id);
+
+    @AfterEach
+    void tearDown() {
+        logProvider.clear();
+    }
+
+    @ExtensionCallback
+    protected void configure(TestDatabaseManagementServiceBuilder builder) {
+        builder.setInternalLogProvider(logProvider);
+    }
 
     @Test
     void shouldListAllProperties() {
@@ -113,20 +129,23 @@ public abstract class EntityTest {
         }
     }
 
-    static InternalTransaction mockedTransactionWithDepletedTokens() throws KernelException {
+    static InternalTransaction mockedTransactionWithDepletedTokens(AssertableLogProvider logProvider)
+            throws KernelException {
         var internalTransaction = mock(InternalTransaction.class);
         var ktx = mock(KernelTransaction.class);
         var tokenWrite = mock(TokenWrite.class);
         when(ktx.tokenWrite()).thenReturn(tokenWrite);
         when(tokenWrite.labelGetOrCreateForName(any()))
-                .thenThrow(new TokenCapacityExceededKernelException(
-                        new Exception("Just some cause"), TokenHolder.TYPE_LABEL));
+                .thenThrow(TokenCapacityExceededKernelException.tokenCapacityExceeded(
+                        new Exception("Just some cause"), TokenHolder.TYPE_LABEL, logProvider.getLog("test")));
         when(tokenWrite.propertyKeyGetOrCreateForName(any()))
-                .thenThrow(new TokenCapacityExceededKernelException(
-                        new Exception("Just some cause"), TokenHolder.TYPE_PROPERTY_KEY));
+                .thenThrow(TokenCapacityExceededKernelException.tokenCapacityExceeded(
+                        new Exception("Just some cause"), TokenHolder.TYPE_PROPERTY_KEY, logProvider.getLog("test")));
         when(tokenWrite.relationshipTypeGetOrCreateForName(any()))
-                .thenThrow(new TokenCapacityExceededKernelException(
-                        new Exception("Just some cause"), TokenHolder.TYPE_RELATIONSHIP_TYPE));
+                .thenThrow(TokenCapacityExceededKernelException.tokenCapacityExceeded(
+                        new Exception("Just some cause"),
+                        TokenHolder.TYPE_RELATIONSHIP_TYPE,
+                        logProvider.getLog("test")));
         when(internalTransaction.kernelTransaction()).thenReturn(ktx);
         return internalTransaction;
     }

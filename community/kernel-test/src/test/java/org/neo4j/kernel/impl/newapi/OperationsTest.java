@@ -188,7 +188,8 @@ abstract class OperationsTest {
         indexingService = mock(IndexingService.class);
         storageLocks = mock(StorageLocks.class);
         tokenHolders = mockedTokenHolders();
-        var kernelToken = new KernelToken(storageReader, creationContext, transaction, tokenHolders);
+        var kernelToken = new KernelToken(
+                storageReader, creationContext, transaction, tokenHolders, NullLogProvider.getInstance());
         EntityLocks entityLocks = new EntityLocks(storageLocks, singleton(NONE), locks, () -> {});
         kernelSchemaRead = new KernelSchemaRead(
                 mock(SchemaState.class),

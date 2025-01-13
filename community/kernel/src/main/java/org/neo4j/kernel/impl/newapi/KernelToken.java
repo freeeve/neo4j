@@ -30,6 +30,8 @@ import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.PrivilegeAction;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
+import org.neo4j.logging.Log;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.storageengine.api.CommandCreationContext;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.token.TokenHolders;
@@ -45,17 +47,20 @@ public class KernelToken extends KernelTokenRead implements Token {
     private final CommandCreationContext commandCreationContext;
     private final KernelTransactionImplementation ktx;
     private final TokenHolders tokenHolders;
+    private final Log log;
 
     public KernelToken(
             StorageReader store,
             CommandCreationContext commandCreationContext,
             KernelTransactionImplementation ktx,
-            TokenHolders tokenHolders) {
+            TokenHolders tokenHolders,
+            LogProvider logProvider) {
         super(store, tokenHolders);
         this.store = store;
         this.commandCreationContext = commandCreationContext;
         this.ktx = ktx;
         this.tokenHolders = tokenHolders;
+        this.log = logProvider.getLog(getClass());
     }
 
     @Override
@@ -73,8 +78,8 @@ public class KernelToken extends KernelTokenRead implements Token {
     public int labelCreateForName(String labelName, boolean internal) throws KernelException {
         ktx.assertOpen();
         TransactionState txState = ktx.txState();
-        int id =
-                reserveTokenId(() -> commandCreationContext.reserveLabelTokenId(labelName), tokenHolders.labelTokens());
+        int id = reserveTokenId(
+                () -> commandCreationContext.reserveLabelTokenId(labelName), tokenHolders.labelTokens(), log);
         txState.labelDoCreateForName(labelName, internal, id);
         return id;
     }
@@ -85,7 +90,8 @@ public class KernelToken extends KernelTokenRead implements Token {
         TransactionState txState = ktx.txState();
         int id = reserveTokenId(
                 () -> commandCreationContext.reserveRelationshipTypeTokenId(relationshipTypeName),
-                tokenHolders.relationshipTypeTokens());
+                tokenHolders.relationshipTypeTokens(),
+                log);
         txState.relationshipTypeDoCreateForName(relationshipTypeName, internal, id);
         return id;
     }
@@ -125,7 +131,8 @@ public class KernelToken extends KernelTokenRead implements Token {
         TransactionState txState = ktx.txState();
         int id = reserveTokenId(
                 () -> commandCreationContext.reservePropertyKeyTokenId(propertyKeyName),
-                tokenHolders.propertyKeyTokens());
+                tokenHolders.propertyKeyTokens(),
+                log);
         txState.propertyKeyDoCreateForName(propertyKeyName, internal, id);
         return id;
     }
@@ -226,7 +233,7 @@ public class KernelToken extends KernelTokenRead implements Token {
         }
     }
 
-    private static int reserveTokenId(IntSupplier generator, TokenHolder holder) throws KernelException {
+    private static int reserveTokenId(IntSupplier generator, TokenHolder holder, Log log) throws KernelException {
         try {
             int id;
             do {
@@ -234,7 +241,7 @@ public class KernelToken extends KernelTokenRead implements Token {
             } while (holder.hasToken(id)); // Retry if id is already taken.
             return id;
         } catch (IdCapacityExceededException e) {
-            throw new TokenCapacityExceededKernelException(e, holder.getTokenType());
+            throw TokenCapacityExceededKernelException.tokenCapacityExceeded(e, holder.getTokenType(), log);
         }
     }
 }

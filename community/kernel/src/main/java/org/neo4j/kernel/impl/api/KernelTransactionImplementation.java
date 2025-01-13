@@ -395,7 +395,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         DefaultPooledCursors cursors = new DefaultPooledCursors(
                 storageReader, transactionalCursors, config, storageEngine.indexingBehaviour(), multiVersioned);
         this.securityAuthorizationHandler = new SecurityAuthorizationHandler(securityLog);
-        var kernelToken = new KernelToken(storageReader, commandCreationContext, this, tokenHolders);
+        var kernelToken = new KernelToken(storageReader, commandCreationContext, this, tokenHolders, logProvider);
         this.queryContext = new TransactionQueryContext(
                 this::dataRead, cursors, this, this::cursorContext, memoryTracker, indexingService.getMonitor());
         this.entityLocks = new EntityLocks(
