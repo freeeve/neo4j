@@ -65,7 +65,9 @@ final class PineconeIT extends IntegrationTestBase {
 
     @Override
     Stream<Arguments> providers() {
-        return Stream.of(Arguments.of("pinecone", PINECONE_HOST, false), Arguments.of("pinecone", PINECONE_HOST, true));
+        return Stream.of(
+                Arguments.argumentSet("pinecone no token", "pinecone", PINECONE_HOST, false),
+                Arguments.argumentSet("pinecone use token", PINECONE_HOST, true));
     }
 
     @Override

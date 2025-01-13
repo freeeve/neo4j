@@ -450,8 +450,9 @@ final class ProvidersIT extends IntegrationTestBase {
                         new ProviderAndUrl("qdrant", QDRANT_BASE_URL),
                         new ProviderAndUrl("chromadb", CHROMA_BASE_URL),
                         new ProviderAndUrl("milvus", MILVUS_BASE_URL))
-                .flatMap(pu ->
-                        Stream.of(Arguments.of(pu.provider, pu.url, false), Arguments.of(pu.provider, pu.url, true)));
+                .flatMap(pu -> Stream.of(
+                        Arguments.argumentSet(pu.provider + " no token", pu.provider, pu.url, false),
+                        Arguments.argumentSet(pu.provider + " use token", pu.provider, pu.url, true)));
     }
 
     @Override
@@ -837,12 +838,28 @@ final class ProvidersIT extends IntegrationTestBase {
                                             "collectionName",
                                             COLLECTION_NAME,
                                             "filter",
-                                            "id == %s || id == %s".formatted(LONG_ID_5, LONG_ID_6)))))
+                                            "id == %s".formatted(LONG_ID_5)))))
                             .build();
 
                     var response = client.send(deleteVectorRequest, HttpResponse.BodyHandlers.ofString());
                     assertThat(response.statusCode()).isEqualTo(200);
-                    assertThat(response.body()).doesNotContain("\"payload\":"); // assert nothing found
+                } catch (Exception | AssertionError e) {
+                    return true;
+                }
+                return false;
+            });
+            spinWait(() -> {
+                try {
+                    var verifyCollectionRequest = HttpRequest.newBuilder(
+                                    URI.create(MILVUS_BASE_URL + "/v2/vectordb/entities/get"))
+                            .header("Authorization", "Bearer " + ADMIN_KEY)
+                            .POST(HttpRequest.BodyPublishers.ofString(JsonUtils.getObjectMapper()
+                                    .writeValueAsString(
+                                            Map.of("id", List.of(LONG_ID_5), "collectionName", COLLECTION_NAME))))
+                            .build();
+                    var vectorResponse = client.send(verifyCollectionRequest, HttpResponse.BodyHandlers.ofString());
+                    assertThat(vectorResponse.body()).doesNotContain("\"payload\":"); // assert nothing found
+                    assertThat(vectorResponse.statusCode()).isEqualTo(200);
                 } catch (Exception | AssertionError e) {
                     return true;
                 }
