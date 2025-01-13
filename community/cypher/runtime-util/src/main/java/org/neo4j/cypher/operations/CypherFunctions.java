@@ -98,6 +98,7 @@ import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 import org.neo4j.kernel.impl.util.NodeEntityWrappingNodeValue;
 import org.neo4j.storageengine.api.LongReference;
 import org.neo4j.token.api.TokenConstants;
+import org.neo4j.token.api.TokenType;
 import org.neo4j.util.CalledFromGeneratedCode;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.ElementIdMapper;
@@ -1160,7 +1161,7 @@ public final class CypherFunctions {
     private static boolean hasLabel(
             VirtualNodeValue node, TextValue textLabel, NodeCursor nodeCursor, QueryContext queryContext)
             throws IllegalTokenNameException {
-        var validName = TokenWrite.checkValidTokenName(textLabel.stringValue());
+        var validName = TokenWrite.checkValidTokenName(textLabel.stringValue(), TokenType.LABEL);
         var tokenId = queryContext.nodeLabel(validName);
         if (tokenId == TokenConstants.NO_TOKEN) {
             return false;
@@ -1400,7 +1401,7 @@ public final class CypherFunctions {
             RelationshipScanCursor relCursor,
             DbAccess queryContext)
             throws IllegalTokenNameException {
-        var validName = TokenWrite.checkValidTokenName(textValue.stringValue());
+        var validName = TokenWrite.checkValidTokenName(textValue.stringValue(), TokenType.RELATIONSHIP_TYPE);
         var tokenId = queryContext.relationshipType(validName);
         return queryContext.isTypeSetOnRelationship(tokenId, relationship.id(), relCursor);
     }

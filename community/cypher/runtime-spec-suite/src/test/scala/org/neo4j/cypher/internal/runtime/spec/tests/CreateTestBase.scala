@@ -133,7 +133,15 @@ abstract class CreateTestBase[CONTEXT <: RuntimeContext](
     the[CypherTypeException] thrownBy theDynamicLabel(
       null
     ) should have message "Expected node label to be a string or list of strings."
-    a[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel(""))
+    val emptyStringException = the[IllegalTokenNameException] thrownBy theDynamicLabel("")
+    emptyStringException.getMessage should equal(
+      "'' is not a valid token name. Token names cannot be empty or contain any null-bytes."
+    )
+    emptyStringException.gqlStatus() should equal("42I11")
+    emptyStringException.statusDescription() should equal(
+      "error: syntax error or access rule violation - invalid name. A label name cannot be empty or contain any null-bytes: ''."
+    )
+
     a[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel("\u0000"))
   }
 
@@ -434,6 +442,14 @@ abstract class CreateTestBase[CONTEXT <: RuntimeContext](
       null
     ) should have message "Expected relationship type to be a string or list of strings."
     a[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(""))
+    val emptyStringException = the[IllegalTokenNameException] thrownBy theDynamicType("")
+    emptyStringException.getMessage should equal(
+      "'' is not a valid token name. Token names cannot be empty or contain any null-bytes."
+    )
+    emptyStringException.gqlStatus() should equal("42I11")
+    emptyStringException.statusDescription() should equal(
+      "error: syntax error or access rule violation - invalid name. A relationship type name cannot be empty or contain any null-bytes: ''."
+    )
     a[IllegalTokenNameException] shouldBe thrownBy(theDynamicType("\u0000"))
   }
 

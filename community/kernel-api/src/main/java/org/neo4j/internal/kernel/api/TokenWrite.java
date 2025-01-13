@@ -23,6 +23,7 @@ import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.kernel.api.exceptions.schema.IllegalTokenNameException;
 import org.neo4j.internal.kernel.api.exceptions.schema.TokenCapacityExceededKernelException;
 import org.neo4j.token.api.NonUniqueTokenException;
+import org.neo4j.token.api.TokenType;
 
 public interface TokenWrite {
     /**
@@ -140,12 +141,13 @@ public interface TokenWrite {
     /**
      * Checks that the provided token name is a valid one.
      * @param name the token name to check.
+     * @param typ the type of the token.
      * @return the token name, for convenience.
      * @throws IllegalTokenNameException if the token name is not valid.
      */
-    static String checkValidTokenName(String name) throws IllegalTokenNameException {
+    static String checkValidTokenName(String name, TokenType typ) throws IllegalTokenNameException {
         if (name == null || name.isEmpty() || name.contains("\0")) {
-            throw new IllegalTokenNameException(name);
+            throw IllegalTokenNameException.invalidTokenName(name, typ);
         }
         return name;
     }
