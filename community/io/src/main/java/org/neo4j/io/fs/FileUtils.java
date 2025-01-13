@@ -267,7 +267,7 @@ public final class FileUtils {
         requireNonNull(to);
         checkArgument(from.isAbsolute(), "From directory must be absolute");
         checkArgument(to.isAbsolute(), "To directory must be absolute");
-        checkArgument(isDirectory(from), "From is not a directory");
+        checkArgument(isDirectory(from), "From is not a directory, From:" + from);
         checkArgument(!from.normalize().equals(to.normalize()), "From and to directories are the same");
 
         if (notExists(to.getParent())) {
