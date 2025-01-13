@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
+import org.neo4j.cypher.internal.logical.plans.IndexOrderDescending
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.util.InputPosition
@@ -118,6 +119,50 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest
       .remoteBatchProperties("cacheNFromStore[n.lastName]")
       .nodeIndexOperator("n:Person(firstName = 'Dave')", getValue = Map("firstName" -> GetValue))
       .build())
+  }
+
+  test("should leverage order for max queries instead of using aggregation") { // index_backed_order_by:q23
+    val query =
+      """
+        |MATCH (msg:Message)
+        |WHERE msg.creationDate > $min_creation_date
+        |RETURN max(msg.creationDate)
+        |""".stripMargin
+
+    planner.plan(query).stripProduceResults shouldEqual planner
+      .subPlanBuilder()
+      .optional()
+      .limit(1)
+      .projection("cacheN[msg.creationDate] AS `max(msg.creationDate)`")
+      .nodeIndexOperator(
+        "msg:Message(creationDate > ???)",
+        paramExpr = Some(parameter("min_creation_date", CTAny)),
+        getValue = Map("creationDate" -> GetValue),
+        indexOrder = IndexOrderDescending
+      )
+      .build()
+  }
+
+  test("should leverage order for min queries instead of using aggregation") {
+    val query =
+      """
+        |MATCH (msg:Message)
+        |WHERE msg.creationDate > $min_creation_date
+        |RETURN min(msg.creationDate)
+        |""".stripMargin
+
+    planner.plan(query).stripProduceResults shouldEqual planner
+      .subPlanBuilder()
+      .optional()
+      .limit(1)
+      .projection("cacheN[msg.creationDate] AS `min(msg.creationDate)`")
+      .nodeIndexOperator(
+        "msg:Message(creationDate > ???)",
+        paramExpr = Some(parameter("min_creation_date", CTAny)),
+        getValue = Map("creationDate" -> GetValue),
+        indexOrder = IndexOrderAscending
+      )
+      .build()
   }
 }
 

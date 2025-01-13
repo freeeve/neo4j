@@ -58,8 +58,8 @@ object aggregation {
     val rewrittenAggregationExprs = toSolved(aggregationsToReport)
 
     val projectionMapForLimit: Map[LogicalVariable, Expression] =
-      if (AggregationHelper.isOnlyMinOrMaxAggregation(rewrittenGroupingExprs, rewrittenAggregationExprs)) {
-        val (key, value) = rewrittenAggregationExprs.head // just checked that there is only one key
+      if (AggregationHelper.isOnlyMinOrMaxAggregation(groupingExpressionsToReport, aggregationsToReport)) {
+        val (key, value) = aggregationsToReport.head // just checked that there is only one key
         val providedOrder = context.staticComponents.planningAttributes.providedOrders.get(plan.id)
 
         def minFunc(expr: Expression) = {
@@ -78,7 +78,7 @@ object aggregation {
 
         if (shouldPlanLimit)
           // .head works since min and max always have only one argument
-          Map(key -> value.arguments.head)
+          Map(key -> rewrittenExpressions.rewrittenExpressionOrSelf(value).arguments.head)
         else
           Map.empty
       } else {
