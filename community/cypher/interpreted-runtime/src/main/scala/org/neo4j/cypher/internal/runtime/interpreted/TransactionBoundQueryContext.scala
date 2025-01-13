@@ -634,7 +634,7 @@ private[internal] class TransactionBoundReadQueryContext(
     } else {
       // NOTE: always returning false would be nicer but is not correct according to TCK
       if (reads().nodeDeletedInTransaction(node)) {
-        throw new EntityNotFoundException(s"Node with id $node has been deleted in this transaction")
+        throw EntityNotFoundException.nodeDeletedInThisTransaction(node)
       } else {
         false
       }
@@ -648,7 +648,7 @@ private[internal] class TransactionBoundReadQueryContext(
     } else {
       // NOTE: always returning TokenSet.NONE would be nicer here but is not correct according to TCK
       if (reads().nodeDeletedInTransaction(node)) {
-        throw new EntityNotFoundException(s"Node with id $node has been deleted in this transaction")
+        throw EntityNotFoundException.nodeDeletedInThisTransaction(node)
       } else {
         TokenSet.NONE
       }
@@ -671,7 +671,7 @@ private[internal] class TransactionBoundReadQueryContext(
         Values.stringValue(tokenRead.relationshipTypeName(cursor.`type`()))
       } catch {
         case _: RelationshipTypeIdNotFoundKernelException =>
-          throw new EntityNotFoundException(s"Relationship with id $id has been deleted in this transaction")
+          throw EntityNotFoundException.relationshipDeletedInThisTransaction(id)
         case e: Throwable => throw e
       }
 
@@ -1241,9 +1241,7 @@ private[internal] class TransactionBoundReadQueryContext(
     if (nodeId != -1L) {
       val ops = reads()
       if (ops.nodeDeletedInTransaction(nodeId)) {
-        throw new EntityNotFoundException(
-          s"Node with id $nodeId has been deleted in this transaction"
-        )
+        throw EntityNotFoundException.nodeDeletedInThisTransaction(nodeId)
       }
 
       ops.nodePropertyChangeInBatchOrNull(nodeId, propertyKey)
@@ -1256,9 +1254,7 @@ private[internal] class TransactionBoundReadQueryContext(
     if (relId != -1L) {
       val ops = reads()
       if (ops.relationshipDeletedInTransaction(relId)) {
-        throw new EntityNotFoundException(
-          s"Relationship with id $relId has been deleted in this transaction"
-        )
+        throw EntityNotFoundException.relationshipDeletedInThisTransaction(relId)
       }
 
       ops.relationshipPropertyChangeInBatchOrNull(relId, propertyKey)

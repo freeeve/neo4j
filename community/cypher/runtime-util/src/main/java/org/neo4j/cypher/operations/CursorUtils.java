@@ -120,8 +120,7 @@ public final class CursorUtils {
         read.singleNode(node, nodeCursor);
         if (!nodeCursor.next()) {
             if (throwOnDeleted && read.nodeDeletedInTransaction(node)) {
-                throw new EntityNotFoundException(
-                        String.format("Node with id %d has been deleted in this transaction", node));
+                throw EntityNotFoundException.nodeDeletedInThisTransaction(node);
             } else {
                 return NO_VALUE;
             }
@@ -454,8 +453,7 @@ public final class CursorUtils {
         read.singleRelationship(relationship, relationshipCursor);
         if (!relationshipCursor.next()) {
             if (throwOnDeleted && read.relationshipDeletedInTransaction(relationship)) {
-                throw new EntityNotFoundException(
-                        String.format("Relationship with id %d has been deleted in this transaction", relationship));
+                throw EntityNotFoundException.relationshipDeletedInThisTransaction(relationship);
             } else {
                 return NO_VALUE;
             }
@@ -667,8 +665,7 @@ public final class CursorUtils {
         if (nodeCursor.next()) {
             return entityGetProperties(nodeCursor, propertyCursor, keys);
         } else if (read.nodeDeletedInTransaction(node)) {
-            throw new EntityNotFoundException(
-                    String.format("Node with id %d has been deleted in this transaction", node));
+            throw EntityNotFoundException.nodeDeletedInThisTransaction(node);
         } else {
             return emptyPropertyArray(keys.length);
         }
@@ -680,8 +677,7 @@ public final class CursorUtils {
         if (relCursor.next()) {
             return entityGetProperties(relCursor, propertyCursor, keys);
         } else if (read.relationshipDeletedInTransaction(rel)) {
-            throw new EntityNotFoundException(
-                    String.format("Relationship with id %d has been deleted in this transaction", rel));
+            throw EntityNotFoundException.relationshipDeletedInThisTransaction(rel);
         } else {
             return emptyPropertyArray(keys.length);
         }
@@ -800,8 +796,7 @@ public final class CursorUtils {
                 read.singleRelationship(relationship.id(), start, type, end, cursor);
                 if (!cursor.next()) {
                     if (throwOnDeleted && read.relationshipDeletedInTransaction(relationship.id())) {
-                        throw new EntityNotFoundException(String.format(
-                                "Relationship with id %d has been deleted in this transaction", relationship.id()));
+                        throw EntityNotFoundException.relationshipDeletedInThisTransaction(relationship.id());
                     } else {
                         return false;
                     }

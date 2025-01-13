@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.operations.CursorUtils.nodeGetProperty
 import org.neo4j.cypher.operations.CursorUtils.nodeHasLabel
 import org.neo4j.cypher.operations.CursorUtils.relationshipGetProperty
+import org.neo4j.exceptions.EntityNotFoundException
 import org.neo4j.internal.kernel.api.NodeCursor
 import org.neo4j.internal.kernel.api.PropertyCursor
 import org.neo4j.internal.kernel.api.Read
@@ -68,6 +69,21 @@ class CursorUtilsTest extends CypherFunSuite {
 
     // Expect
     nodeGetProperty(read, nodeCursor, 42L, mock[PropertyCursor], 1337) shouldBe NO_VALUE
+  }
+
+  test("should throw if node has been deleted in this TX when querying for property") {
+    // Given
+    val read = mock[Read]
+    when(read.nodeDeletedInTransaction(42L)).thenReturn(true)
+
+    // Expect
+    val e =
+      the[EntityNotFoundException] thrownBy nodeGetProperty(read, mock[NodeCursor], 42L, mock[PropertyCursor], 1337)
+    e.getMessage should equal("Node with id 42 has been deleted in this transaction")
+    e.gqlStatus() should equal("25N13")
+    e.statusDescription() should equal(
+      "error: invalid transaction state - cannot access entity after removal. A node was accessed after being deleted in this transaction. Verify the transaction statements."
+    )
   }
 
   test("should find a property from a loaded node cursor") {
@@ -130,6 +146,26 @@ class CursorUtilsTest extends CypherFunSuite {
 
     // Expect
     relationshipGetProperty(read, relationshipCursor, 42L, mock[PropertyCursor], 1337) shouldBe NO_VALUE
+  }
+
+  test("should throw if relationship has been deleted in this TX when querying for property") {
+    // Given
+    val read = mock[Read]
+    when(read.relationshipDeletedInTransaction(42L)).thenReturn(true)
+
+    // Expect
+    val e = the[EntityNotFoundException] thrownBy relationshipGetProperty(
+      read,
+      mock[RelationshipScanCursor],
+      42L,
+      mock[PropertyCursor],
+      1337
+    )
+    e.getMessage should equal("Relationship with id 42 has been deleted in this transaction")
+    e.gqlStatus() should equal("25N13")
+    e.statusDescription() should equal(
+      "error: invalid transaction state - cannot access entity after removal. A relationship was accessed after being deleted in this transaction. Verify the transaction statements."
+    )
   }
 
   test("should find a property from a loaded relationship cursor") {

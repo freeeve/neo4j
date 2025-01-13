@@ -62,6 +62,22 @@ public class EntityNotFoundException extends Neo4jException {
         return new EntityNotFoundException(gql, "Node " + nodeId + " was unexpectedly deleted");
     }
 
+    public static EntityNotFoundException nodeDeletedInThisTransaction(long nodeId) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N13)
+                .withParam(GqlParams.StringParam.entityType, "node")
+                .build();
+        return new EntityNotFoundException(
+                gql, "Node with id %s has been deleted in this transaction".formatted(nodeId));
+    }
+
+    public static EntityNotFoundException relationshipDeletedInThisTransaction(long relId) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N13)
+                .withParam(GqlParams.StringParam.entityType, "relationship")
+                .build();
+        return new EntityNotFoundException(
+                gql, "Relationship with id %s has been deleted in this transaction".formatted(relId));
+    }
+
     @Override
     public Status status() {
         return Status.Statement.EntityNotFound;
