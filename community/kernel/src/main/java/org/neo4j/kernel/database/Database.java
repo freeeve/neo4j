@@ -610,10 +610,11 @@ public class Database extends AbstractDatabase {
         life.add(onStop(() -> this.executionEngine.clearQueryCaches()));
         life.add(onStart(this::registerUpgradeListener));
         life.add(databaseHealth);
-        life.add(databaseAvailabilityGuard);
         life.add(onStop(this::awaitAllClosingTransactions));
-        life.add(databaseAvailability);
-        life.setLast(checkpointerLifecycle);
+
+        life.add(checkpointerLifecycle);
+        life.add(databaseAvailabilityGuard);
+        life.setLast(databaseAvailability);
 
         databaseDependencies.resolveDependency(DbmsDiagnosticsManager.class).dumpDatabaseDiagnostics(this);
 

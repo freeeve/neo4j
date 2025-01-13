@@ -20,7 +20,7 @@
 package org.neo4j.graphdb;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.neo4j.kernel.lifecycle.LifecycleAdapter.onShutdown;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.util.concurrent.Future;
@@ -33,8 +33,10 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.database.Database;
+import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointerLifecycle;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.lifecycle.LifeSupport;
+import org.neo4j.kernel.lifecycle.LifecycleStatus;
 import org.neo4j.test.OtherThreadExecutor;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
@@ -67,11 +69,14 @@ class IdRollbackOnShutdownIT {
                 db.getDependencyResolver().resolveDependency(Database.class).getLife();
 
         // When
-        life.add(onShutdown(() -> {
-            // The checkpoint is the first thing that runs on shutdown. This will run after
-            waitShutdown.release();
-            continueShutdown.await();
-        }));
+        life.addLifecycleListener((instance, from, to) -> {
+            if (instance instanceof CheckpointerLifecycle
+                    && LifecycleStatus.SHUTTING_DOWN == from
+                    && LifecycleStatus.SHUTDOWN == to) {
+                waitShutdown.release();
+                continueShutdown.await();
+            }
+        });
 
         try (OtherThreadExecutor executor = new OtherThreadExecutor("test")) {
             Future<Object> future = executor.executeDontWait(() -> {
@@ -102,12 +107,8 @@ class IdRollbackOnShutdownIT {
                     .with(directory.homePath())
                     .runFullConsistencyCheck();
 
-            // TODO We do not want this behavior and ideally we should never write to the id-generators after shutdown.
-            // This tests just validates the current behavior and we should assert on successful consistency check when
-            // the behavior is fixed.
-            //            assertThat(result.isSuccessful()).as(result.summary().toString()).isTrue(); <-- Like this!
-            assertThat(result.isSuccessful()).as(result.summary().toString()).isFalse();
-            future.get();
+            assertThat(result.isSuccessful()).as(result.summary().toString()).isTrue();
+            assertThatThrownBy(future::get).rootCause().isInstanceOfAny(DatabaseShutdownException.class);
         }
     }
 }

@@ -52,6 +52,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.procedure.ProcedureView;
+import org.neo4j.kernel.availability.AvailabilityGuard;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
@@ -154,7 +155,8 @@ public final class KernelTransactionFactory {
                 TransactionValidatorFactory.EMPTY_VALIDATOR_FACTORY,
                 EMPTY_GUARD,
                 storageEngine.getOpenOptions().contains(MULTI_VERSIONED),
-                TopologyGraphDbmsModel.HostedOnMode.SINGLE);
+                TopologyGraphDbmsModel.HostedOnMode.SINGLE,
+                mock(AvailabilityGuard.class));
 
         DatabaseReference defaultSessionDb = Mockito.mock(DatabaseReference.class);
         Mockito.when(defaultSessionDb.fullName()).thenReturn(new NormalizedDatabaseName(DEFAULT_DATABASE_NAME));

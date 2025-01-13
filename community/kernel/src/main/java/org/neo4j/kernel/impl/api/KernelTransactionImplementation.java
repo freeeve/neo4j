@@ -59,6 +59,7 @@ import org.neo4j.dbms.identity.ServerIdentity;
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.exceptions.UnspecifiedKernelException;
+import org.neo4j.graphdb.DatabaseShutdownException;
 import org.neo4j.graphdb.NotInTransactionException;
 import org.neo4j.graphdb.TransactionTerminatedException;
 import org.neo4j.internal.helpers.Exceptions;
@@ -110,6 +111,7 @@ import org.neo4j.kernel.api.procedure.ProcedureView;
 import org.neo4j.kernel.api.query.ExecutingQuery;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
+import org.neo4j.kernel.availability.AvailabilityGuard;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.impl.api.chunk.ChunkSink;
@@ -288,6 +290,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
 
     private KernelTransactionMonitor kernelTransactionMonitor;
     private final StoreCursors transactionalCursors;
+    private final AvailabilityGuard availabilityGuard;
 
     private final KernelTransactions kernelTransactions;
     /**
@@ -345,8 +348,10 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
             TransactionValidatorFactory transactionValidatorFactory,
             DatabaseSerialGuard databaseSerialGuard,
             boolean multiVersioned,
-            TopologyGraphDbmsModel.HostedOnMode mode) {
+            TopologyGraphDbmsModel.HostedOnMode mode,
+            AvailabilityGuard availabilityGuard) {
         this.logProvider = logProvider;
+        this.availabilityGuard = availabilityGuard;
         this.closed = true;
         this.timeout = TransactionTimeout.NO_TIMEOUT;
         this.config = new LocalConfig(externalConfig);
@@ -1215,6 +1220,9 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
 
     private void rollbackTransaction() throws KernelException {
         try {
+            if (availabilityGuard.isShutdown()) {
+                throw DatabaseShutdownException.databaseUnavailable(namedDatabaseId.name());
+            }
             if (hasTxStateWithChanges()) {
                 try (var rollbackEvent = transactionEvent.beginRollback()) {
                     committer.rollback(rollbackEvent);
@@ -1473,6 +1481,11 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     }
 
     private void releaseStorageEngineResources() {
+        if (availabilityGuard.isShutdown()) {
+            // Database is shutdown now and we can't do any writes anymore.
+            // Recovery will be triggered and should mark properly all the non released resources.
+            throw DatabaseShutdownException.databaseUnavailable(namedDatabaseId.name());
+        }
         if (txState != null) {
             storageEngine.release(txState, cursorContext, commandCreationContext, !commit);
         }

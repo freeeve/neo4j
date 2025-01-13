@@ -128,9 +128,9 @@ public class GraphDatabaseShutdownTest {
         // start waiting when the trap has been triggered
         assertThatThrownBy(() -> secondTxResult.get(60, SECONDS))
                 .rootCause()
-                .isInstanceOf(TransactionTerminatedException.class);
+                .isInstanceOfAny(TransactionTerminatedException.class, DatabaseShutdownException.class);
 
-        assertThatThrownBy(shutdownFuture::get).rootCause().isInstanceOf(TransactionTerminatedException.class);
+        assertThatThrownBy(shutdownFuture::get).rootCause().isInstanceOf(DatabaseShutdownException.class);
     }
 
     private static int lockCount(LockManager locks) {

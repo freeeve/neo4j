@@ -306,7 +306,8 @@ class KernelTransactionTestBase {
                 validatorFactory,
                 EMPTY_GUARD,
                 storageEngine.getOpenOptions().contains(MULTI_VERSIONED),
-                TopologyGraphDbmsModel.HostedOnMode.SINGLE);
+                TopologyGraphDbmsModel.HostedOnMode.SINGLE,
+                availabilityGuard);
     }
 
     KernelTransactionImplementation newNotInitializedTransaction(LeaseService leaseService) {

@@ -38,8 +38,8 @@ import org.neo4j.configuration.Config;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.DatabaseShutdownException;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.graphdb.TransactionTerminatedException;
+import org.neo4j.graphdb.TransientTransactionFailureException;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.availability.AvailabilityGuard;
 import org.neo4j.kernel.availability.AvailabilityListener;
@@ -112,7 +112,9 @@ class DatabaseTransactionShutdownIT {
             shutdownFuture.get();
 
             // Close throws as dbms is shut down
-            assertThatThrownBy(tx::close).isInstanceOf(TransactionFailureException.class);
+            assertThatThrownBy(tx::close)
+                    .isInstanceOf(TransientTransactionFailureException.class)
+                    .hasMessageContaining("The database is not currently available to serve your request");
         }
     }
 
@@ -169,6 +171,24 @@ class DatabaseTransactionShutdownIT {
     }
 
     @Test
+    void transactionCloseReleaseIdsOnShutdown() {
+        setUp(Clocks.nanoClock());
+
+        try (Transaction transaction = db.beginTx()) {
+            transaction.createNode();
+            transaction.createNode();
+            transaction.createNode();
+
+            shutdownDbms();
+            assertThatThrownBy(transaction::close)
+                    .isInstanceOf(TransientTransactionFailureException.class)
+                    .hasMessageContaining("The database is not currently available to serve your request")
+                    .rootCause()
+                    .isInstanceOf(DatabaseShutdownException.class);
+        }
+    }
+
+    @Test
     void shouldLogUncleanShutdownOnLeakedTransaction() {
         setUp(Clocks.nanoClock());
         try (Transaction leakedTx = db.beginTx()) {
@@ -177,6 +197,9 @@ class DatabaseTransactionShutdownIT {
                     .forClass(Database.class)
                     .forLevel(WARN)
                     .containsMessages(UNCLEAN_SHUTDOWN_MSG);
+            assertThatThrownBy(leakedTx::close)
+                    .isInstanceOf(TransientTransactionFailureException.class)
+                    .hasMessageContaining("The database is not currently available to serve your request");
         }
     }
 

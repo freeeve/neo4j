@@ -67,6 +67,7 @@ import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.procedure.ProcedureView;
+import org.neo4j.kernel.availability.AvailabilityGuard;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
@@ -311,7 +312,8 @@ class KernelTransactionTerminationTest {
                     TransactionValidatorFactory.EMPTY_VALIDATOR_FACTORY,
                     EMPTY_GUARD,
                     false,
-                    TopologyGraphDbmsModel.HostedOnMode.SINGLE);
+                    TopologyGraphDbmsModel.HostedOnMode.SINGLE,
+                    mock(AvailabilityGuard.class));
 
             this.monitor = monitor;
         }

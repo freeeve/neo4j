@@ -588,7 +588,8 @@ public class KernelTransactions extends LifecycleAdapter
                             transactionValidatorFactory,
                             databaseSerialGuard,
                             multiVersioned,
-                            mode);
+                            mode,
+                            databaseAvailabilityGuard);
             this.transactions.add(tx);
             return tx;
         }
@@ -708,6 +709,7 @@ public class KernelTransactions extends LifecycleAdapter
                 TransactionValidatorFactory transactionValidatorFactory,
                 DatabaseSerialGuard databaseSerialGuard,
                 boolean multiVersioned,
-                TopologyGraphDbmsModel.HostedOnMode mode);
+                TopologyGraphDbmsModel.HostedOnMode mode,
+                AvailabilityGuard availabilityGuard);
     }
 }
