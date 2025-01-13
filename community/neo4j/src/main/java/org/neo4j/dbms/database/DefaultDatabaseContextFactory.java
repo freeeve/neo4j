@@ -48,6 +48,7 @@ import org.neo4j.kernel.impl.pagecache.CommunityVersionStorageFactory;
 import org.neo4j.kernel.impl.pagecache.IOControllerService;
 import org.neo4j.kernel.impl.transaction.stats.DatabaseTransactionStats;
 import org.neo4j.logging.internal.DatabaseLogProvider;
+import org.neo4j.storageengine.StoreIdGenerator;
 
 public class DefaultDatabaseContextFactory
         extends AbstractDatabaseContextFactory<StandaloneDatabaseContext, Optional<?>> {
@@ -123,7 +124,8 @@ public class DefaultDatabaseContextFactory
                     new DatabaseTracers(globalModule.getTracers(), namedDatabaseId),
                     globalModule.getDefaultCommandCommitListeners(),
                     TransactionsFactory.DEFAULT,
-                    databaseMonitorsFactory(namedDatabaseId));
+                    databaseMonitorsFactory(namedDatabaseId),
+                    StoreIdGenerator.UNIQUE_ID);
             kernelDatabase = new Database(creationContext);
             context = new StandaloneDatabaseContext(kernelDatabase);
         }

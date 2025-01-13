@@ -20,7 +20,6 @@
 package org.neo4j.internal.recordstorage;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.collections.api.factory.Sets.immutable;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -142,6 +141,7 @@ import org.neo4j.lock.ResourceLocker;
 import org.neo4j.lock.ResourceType;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandReader;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.RelationshipDirection;
@@ -226,7 +226,7 @@ class TransactionRecordStateTest {
                 new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER),
                 false,
                 logTailMetadata,
-                immutable.empty());
+                StoreIdGenerator.UNIQUE_ID);
         neoStores = storeFactory.openAllNeoStores();
         allocatorProvider = DynamicAllocatorProviders.nonTransactionalAllocator(neoStores);
 

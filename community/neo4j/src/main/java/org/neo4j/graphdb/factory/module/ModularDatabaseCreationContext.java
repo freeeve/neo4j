@@ -78,6 +78,7 @@ import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.GlobalMemoryGroupTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.time.SystemNanoClock;
 import org.neo4j.token.TokenHolders;
 
@@ -124,6 +125,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     private final GlobalMemoryGroupTracker transactionsMemoryPool;
     private final GlobalMemoryGroupTracker otherMemoryPool;
     private final DatabaseMonitorsFactory databaseMonitorsFactory;
+    private final StoreIdGenerator storeIdGenerator;
     private final ReadOnlyDatabases readOnlyDatabases;
     private final CommandCommitListeners commandCommitListeners;
     private final TransactionsFactory transactionsFactory;
@@ -157,7 +159,8 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
             DatabaseTracers tracers,
             CommandCommitListeners commandCommitListeners,
             TransactionsFactory transactionsFactory,
-            DatabaseMonitorsFactory databaseMonitorsFactory) {
+            DatabaseMonitorsFactory databaseMonitorsFactory,
+            StoreIdGenerator storeIdGenerator) {
         this.serverIdentity = serverIdentity;
         this.namedDatabaseId = namedDatabaseId;
         this.databaseConfig = databaseConfig;
@@ -171,6 +174,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
         this.transactionsMemoryPool = globalModule.getTransactionsMemoryPool();
         this.otherMemoryPool = globalModule.getOtherMemoryPool();
         this.databaseMonitorsFactory = databaseMonitorsFactory;
+        this.storeIdGenerator = storeIdGenerator;
         this.databaseLogService = new DatabaseLogService(namedDatabaseId, globalModule.getLogService());
         this.scheduler = globalModule.getJobScheduler();
         this.globalDependencies = globalDependencies;
@@ -434,6 +438,11 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     @Override
     public DatabaseMonitorsFactory getDatabaseMonitorsFactory() {
         return databaseMonitorsFactory;
+    }
+
+    @Override
+    public StoreIdGenerator storeIdGenerator() {
+        return storeIdGenerator;
     }
 
     @Override

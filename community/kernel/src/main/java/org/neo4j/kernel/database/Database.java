@@ -188,6 +188,7 @@ import org.neo4j.memory.ScopedMemoryPool;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.DeprecatedFormatWarning;
 import org.neo4j.storageengine.api.MetadataProvider;
@@ -229,6 +230,7 @@ public class Database extends AbstractDatabase {
     private final StorageEngineFactorySupplier storageEngineFactorySupplier;
     private final KernelTransactionsFactory kernelTransactionsFactory;
     private final PagePrefetcher pagePrefetcher;
+    private final StoreIdGenerator storeIdGenerator;
 
     private TransactionIdSequence transactionIdSequence;
     private IndexProviderMap indexProviderMap;
@@ -321,6 +323,7 @@ public class Database extends AbstractDatabase {
         this.commandCommitListeners = context.getCommandCommitListeners();
         this.kernelTransactionsFactory = transactionsFactory.kernelTransactionsFactory();
         this.pagePrefetcher = context.getPagePrefetcher();
+        this.storeIdGenerator = context.storeIdGenerator();
     }
 
     /**
@@ -495,7 +498,8 @@ public class Database extends AbstractDatabase {
                 cursorContextFactory,
                 tracers.getPageCacheTracer(),
                 versionStorage,
-                pagePrefetcher);
+                pagePrefetcher,
+                storeIdGenerator);
 
         var metadataProvider = databaseDependencies.satisfyDependency(storageEngine.metadataProvider());
 

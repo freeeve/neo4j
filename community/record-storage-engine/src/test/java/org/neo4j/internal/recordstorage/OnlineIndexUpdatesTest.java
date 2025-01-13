@@ -83,6 +83,7 @@ import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.StandardConstraintRuleAccessor;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
@@ -140,7 +141,8 @@ class OnlineIndexUpdatesTest {
                 nullLogProvider,
                 contextFactory,
                 false,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL);
+                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                StoreIdGenerator.UNIQUE_ID);
 
         neoStores = storeFactory.openAllNeoStores();
         allocatorProvider = DynamicAllocatorProviders.nonTransactionalAllocator(neoStores);

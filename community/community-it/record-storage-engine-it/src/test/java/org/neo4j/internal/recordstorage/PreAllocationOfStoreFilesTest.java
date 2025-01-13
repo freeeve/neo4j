@@ -66,6 +66,7 @@ import org.neo4j.lock.LockService;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.ConstraintRuleAccessor;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
@@ -126,7 +127,8 @@ class PreAllocationOfStoreFilesTest {
                 CursorContextFactory.NULL_CONTEXT_FACTORY,
                 PageCacheTracer.NULL,
                 VersionStorage.EMPTY_STORAGE,
-                PagePrefetcher.DISABLED);
+                PagePrefetcher.DISABLED,
+                StoreIdGenerator.UNIQUE_ID);
     }
 
     @AfterEach

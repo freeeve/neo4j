@@ -119,6 +119,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.util.IdUpdateListener;
 import org.neo4j.test.extension.DbmsController;
@@ -557,7 +558,8 @@ class FulltextIndexProviderTest {
                         NullLogProvider.getInstance(),
                         contextFactory,
                         false,
-                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL);
+                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                        StoreIdGenerator.UNIQUE_ID);
                 var cursorContext = CursorContext.NULL_CONTEXT;
                 try (NeoStores neoStores = factory.openAllNeoStores();
                         var storeCursors = new CachedStoreCursors(neoStores, cursorContext)) {

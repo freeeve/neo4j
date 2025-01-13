@@ -58,6 +58,7 @@ import org.neo4j.kernel.impl.store.record.Record;
 import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
@@ -96,7 +97,8 @@ class RecordNodeCursorIT {
                         NullLogProvider.getInstance(),
                         new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER),
                         false,
-                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL)
+                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                        StoreIdGenerator.UNIQUE_ID)
                 .openAllNeoStores();
         allocatorProvider = DynamicAllocatorProviders.nonTransactionalAllocator(neoStores);
 

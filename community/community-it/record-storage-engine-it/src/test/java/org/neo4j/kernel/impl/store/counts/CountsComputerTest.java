@@ -81,6 +81,7 @@ import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
@@ -594,7 +595,8 @@ class CountsComputerTest {
                 LOG_PROVIDER,
                 CONTEXT_FACTORY,
                 false,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL);
+                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                StoreIdGenerator.UNIQUE_ID);
 
         try (NeoStores neoStores = storeFactory.openAllNeoStores()) {
             NodeStore nodeStore = neoStores.getNodeStore();

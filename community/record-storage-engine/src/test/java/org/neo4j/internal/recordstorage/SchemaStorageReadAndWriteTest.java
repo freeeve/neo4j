@@ -48,6 +48,7 @@ import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
 import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.util.IdUpdateListener;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
@@ -100,7 +101,8 @@ class SchemaStorageReadAndWriteTest {
                 NullLogProvider.getInstance(),
                 new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER),
                 false,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL);
+                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                StoreIdGenerator.UNIQUE_ID);
         neoStores = storeFactory.openNeoStores(
                 StoreType.SCHEMA,
                 StoreType.PROPERTY_KEY_TOKEN,

@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.stream.Stream;
-import org.eclipse.collections.api.factory.Sets;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -54,6 +53,7 @@ import org.neo4j.kernel.impl.store.record.DynamicRecord;
 import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.string.UTF8;
 import org.neo4j.test.extension.Inject;
@@ -99,7 +99,7 @@ public class TestArrayStore {
                 CursorContextFactory.NULL_CONTEXT_FACTORY,
                 false,
                 LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
-                Sets.immutable.empty());
+                StoreIdGenerator.UNIQUE_ID);
 
         neoStores = factory.openAllNeoStores();
         allocatorProvider = DynamicAllocatorProviders.nonTransactionalAllocator(neoStores);

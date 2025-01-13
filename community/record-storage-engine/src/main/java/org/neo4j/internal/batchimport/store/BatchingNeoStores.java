@@ -105,6 +105,7 @@ import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.token.TokenHolders;
 
 /**
@@ -257,7 +258,7 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
             return false;
         }
 
-        try (NeoStores stores = newStoreFactory(databaseLayout, idGeneratorFactory, contextFactory, immutable.empty())
+        try (NeoStores stores = newStoreFactory(databaseLayout, idGeneratorFactory, contextFactory)
                 .openNeoStores(StoreType.NODE, StoreType.RELATIONSHIP)) {
             return stores.getNodeStore().getIdGenerator().getHighId() > 0
                     || stores.getRelationshipStore().getIdGenerator().getHighId() > 0;
@@ -288,7 +289,7 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
     }
 
     private void instantiateStores() throws IOException {
-        neoStores = newStoreFactory(databaseLayout, idGeneratorFactory, contextFactory, immutable.empty())
+        neoStores = newStoreFactory(databaseLayout, idGeneratorFactory, contextFactory)
                 .openAllNeoStores();
         DynamicAllocatorProvider allocatorProvider = DynamicAllocatorProviders.nonTransactionalAllocator(neoStores);
         tokenHolders = StoreTokens.directTokenHolders(neoStores, allocatorProvider, contextFactory, memoryTracker);
@@ -314,7 +315,7 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
     }
 
     private NeoStores instantiateTempStores() {
-        return newStoreFactory(temporaryDatabaseLayout, tempIdGeneratorFactory, contextFactory, immutable.empty())
+        return newStoreFactory(temporaryDatabaseLayout, tempIdGeneratorFactory, contextFactory)
                 .openNeoStores(TEMP_STORE_TYPES);
     }
 
@@ -434,8 +435,7 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
     private StoreFactory newStoreFactory(
             RecordDatabaseLayout databaseLayout,
             IdGeneratorFactory idGeneratorFactory,
-            CursorContextFactory contextFactory,
-            ImmutableSet<OpenOption> openOptions) {
+            CursorContextFactory contextFactory) {
         return new StoreFactory(
                 databaseLayout,
                 neo4jConfig,
@@ -448,7 +448,7 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
                 contextFactory,
                 false,
                 logTailMetadata,
-                openOptions);
+                StoreIdGenerator.UNIQUE_ID);
     }
 
     /**

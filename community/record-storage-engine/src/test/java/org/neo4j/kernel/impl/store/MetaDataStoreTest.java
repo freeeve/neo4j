@@ -44,7 +44,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
-import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -78,6 +77,7 @@ import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.storageengine.StoreFileClosedException;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.ClosedTransactionMetadata;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionId;
@@ -693,7 +693,8 @@ public class MetaDataStoreTest {
                 logProvider,
                 contextFactory,
                 false,
-                logTail);
+                logTail,
+                StoreIdGenerator.UNIQUE_ID);
         return storeFactory.openNeoStores(StoreType.META_DATA).getMetaDataStore();
     }
 
@@ -712,7 +713,7 @@ public class MetaDataStoreTest {
                 contextFactory,
                 false,
                 LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
-                Sets.immutable.empty());
+                StoreIdGenerator.UNIQUE_ID);
         return storeFactory.openNeoStores(StoreType.META_DATA).getMetaDataStore();
     }
 }

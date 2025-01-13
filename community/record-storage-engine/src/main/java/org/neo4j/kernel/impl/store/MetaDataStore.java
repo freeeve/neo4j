@@ -57,6 +57,7 @@ import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.storageengine.StoreFileClosedException;
+import org.neo4j.storageengine.StoreIdGenerator.StoreIds;
 import org.neo4j.storageengine.api.ClosedBatchMetadata;
 import org.neo4j.storageengine.api.ClosedTransactionMetadata;
 import org.neo4j.storageengine.api.ExternalStoreId;
@@ -116,7 +117,7 @@ public class MetaDataStore extends CommonAbstractStore<MetaDataRecord, NoStoreHe
     private final AtomicLong logVersion;
     private final AtomicLong checkpointLogVersion;
     private final AtomicLong lastCommittingTx;
-    private final Supplier<StoreId> storeIdFactory;
+    private final Supplier<StoreIds> storeIdFactory;
 
     private final HighestTransactionId highestCommittedTransaction;
     private final HighestTransactionId highestClosedTransaction;
@@ -141,7 +142,7 @@ public class MetaDataStore extends CommonAbstractStore<MetaDataRecord, NoStoreHe
             LogTailLogVersionsMetadata logTailMetadata,
             String databaseName,
             ImmutableSet<OpenOption> openOptions,
-            Supplier<StoreId> storeIdFactory) {
+            Supplier<StoreIds> storeIdFactory) {
         super(
                 fileSystem,
                 file,
@@ -199,8 +200,8 @@ public class MetaDataStore extends CommonAbstractStore<MetaDataRecord, NoStoreHe
     @Override
     protected void initialiseNewStoreFile(FileFlushEvent flushEvent, CursorContext cursorContext) throws IOException {
         super.initialiseNewStoreFile(flushEvent, cursorContext);
-        StoreId storeId = storeIdFactory.get();
-        generateMetadataFile(storeId, UUID.randomUUID(), null, cursorContext);
+        var storeIds = storeIdFactory.get();
+        generateMetadataFile(storeIds.storeId(), storeIds.externalStoreId().id(), null, cursorContext);
     }
 
     @Override

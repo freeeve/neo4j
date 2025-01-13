@@ -72,6 +72,7 @@ import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.migration.SchemaRuleMigrationAccessExtended;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
 import org.neo4j.time.SystemNanoClock;
@@ -163,7 +164,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
             VersionStorage versionStorage,
-            PagePrefetcher pagePrefetcher)
+            PagePrefetcher pagePrefetcher,
+            StoreIdGenerator storeIdGenerator)
             throws IOException {
         return delegate.instantiate(
                 fs,
@@ -187,7 +189,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 contextFactory,
                 pageCacheTracer,
                 versionStorage,
-                pagePrefetcher);
+                pagePrefetcher,
+                storeIdGenerator);
     }
 
     @Override
@@ -263,21 +266,6 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 contextFactory,
                 logTailMetadata,
                 pageCacheTracer);
-    }
-
-    @Override
-    public void resetMetadata(
-            FileSystemAbstraction fs,
-            DatabaseLayout databaseLayout,
-            Config config,
-            PageCache pageCache,
-            CursorContextFactory contextFactory,
-            PageCacheTracer pageCacheTracer,
-            StoreId storeId,
-            UUID externalStoreId)
-            throws IOException {
-        delegate.resetMetadata(
-                fs, databaseLayout, config, pageCache, contextFactory, pageCacheTracer, storeId, externalStoreId);
     }
 
     @Override

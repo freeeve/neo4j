@@ -20,8 +20,6 @@
 package org.neo4j.internal.recordstorage;
 
 import static java.util.function.Predicate.not;
-import static org.eclipse.collections.api.factory.Sets.immutable;
-import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.internal.recordstorage.RecordCursorTypes.DYNAMIC_LABEL_TOKEN_CURSOR;
 import static org.neo4j.internal.recordstorage.RecordCursorTypes.DYNAMIC_PROPERTY_KEY_TOKEN_CURSOR;
@@ -34,8 +32,6 @@ import static org.neo4j.kernel.impl.store.StoreType.LABEL_TOKEN_NAME;
 import static org.neo4j.kernel.impl.store.StoreType.META_DATA;
 import static org.neo4j.kernel.impl.store.StoreType.PROPERTY_KEY_TOKEN_NAME;
 import static org.neo4j.kernel.impl.store.StoreType.RELATIONSHIP_TYPE_TOKEN_NAME;
-import static org.neo4j.kernel.impl.store.format.RecordFormatSelector.selectForStore;
-import static org.neo4j.kernel.impl.store.format.RecordFormatSelector.selectForStoreOrConfigForNewDbs;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -139,6 +135,7 @@ import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.ConstraintRuleAccessor;
 import org.neo4j.storageengine.api.LogFilesInitializer;
@@ -265,7 +262,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
             VersionStorage versionStorage,
-            PagePrefetcher pagePrefetcher) {
+            PagePrefetcher pagePrefetcher,
+            StoreIdGenerator storeIdGenerator) {
         return new RecordStorageEngine(
                 formatSpecificDatabaseLayout(databaseLayout),
                 config,
@@ -287,7 +285,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 contextFactory,
                 pageCacheTracer,
                 versionStorage,
-                pagePrefetcher);
+                pagePrefetcher,
+                storeIdGenerator);
     }
 
     @Override
@@ -350,8 +349,6 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             LogTailLogVersionsMetadata logTailMetadata,
             PageCacheTracer pageCacheTracer) {
         RecordDatabaseLayout databaseLayout = formatSpecificDatabaseLayout(layout);
-        RecordFormats recordFormats = selectForStoreOrConfigForNewDbs(
-                config, databaseLayout, fs, pageCache, NullLogProvider.getInstance(), contextFactory);
         var idGeneratorFactory = readOnlyChecker.isReadOnly()
                 ? new ScanOnOpenReadOnlyIdGeneratorFactory()
                 : new DefaultIdGeneratorFactory(fs, immediate(), pageCacheTracer, databaseLayout.getDatabaseName());
@@ -362,39 +359,13 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                         pageCache,
                         pageCacheTracer,
                         fs,
-                        recordFormats,
                         NullLogProvider.getInstance(),
                         contextFactory,
                         readOnlyChecker.isReadOnly(),
                         logTailMetadata,
-                        immutable.empty())
+                        StoreIdGenerator.UNIQUE_ID)
                 .openNeoStores(META_DATA)
                 .getMetaDataStore();
-    }
-
-    @Override
-    public void resetMetadata(
-            FileSystemAbstraction fs,
-            DatabaseLayout databaseLayout,
-            Config config,
-            PageCache pageCache,
-            CursorContextFactory contextFactory,
-            PageCacheTracer pageCacheTracer,
-            StoreId storeId,
-            UUID externalStoreId)
-            throws IOException {
-        try (var metadataProvider = transactionMetaDataStore(
-                        fs,
-                        databaseLayout,
-                        config,
-                        pageCache,
-                        writable(),
-                        contextFactory,
-                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
-                        pageCacheTracer);
-                var cursorContext = contextFactory.create("resetMetadata")) {
-            metadataProvider.regenerateMetadata(storeId, externalStoreId, cursorContext);
-        }
     }
 
     @Override
@@ -444,7 +415,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 NullLogProvider.getInstance(),
                 contextFactory,
                 true,
-                logTailMetadata);
+                logTailMetadata,
+                StoreIdGenerator.UNIQUE_ID);
         try (var cursorContext = contextFactory.create("loadSchemaRules");
                 var stores = factory.openNeoStores(
                         StoreType.SCHEMA,
@@ -509,7 +481,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 NullLogProvider.getInstance(),
                 contextFactory,
                 true,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL);
+                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                StoreIdGenerator.UNIQUE_ID);
         try (var cursorContext = contextFactory.create("loadSchemaRules");
                 var stores = factory.openAllNeoStores();
                 var storeCursors = new CachedStoreCursors(stores, cursorContext)) {
@@ -550,7 +523,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 NullLogProvider.getInstance(),
                 contextFactory,
                 true,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL);
+                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                StoreIdGenerator.UNIQUE_ID);
         try (NeoStores stores = factory.openNeoStores(
                 StoreType.PROPERTY_KEY_TOKEN,
                 StoreType.PROPERTY_KEY_TOKEN_NAME,
@@ -585,7 +559,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 NullLogProvider.getInstance(),
                 contextFactory,
                 false,
-                logTail);
+                logTail,
+                StoreIdGenerator.UNIQUE_ID);
 
         CursorContext cursorContext = contextFactory.create("schemaStoreMigration");
         NeoStores dstStore = dstFactory.openNeoStores(
@@ -795,7 +770,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                         NullLogProvider.getInstance(),
                         contextFactory,
                         true,
-                        logTailMetadata)
+                        logTailMetadata,
+                        StoreIdGenerator.UNIQUE_ID)
                 .openNeoStores(storesToOpen);
         return new LenientStoreInput(
                 neoStores,
@@ -858,8 +834,6 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             FileSystemAbstraction fs, DatabaseLayout layout, Config config, PageCache pageCache) {
         RecordDatabaseLayout databaseLayout = formatSpecificDatabaseLayout(layout);
         CursorContextFactory contextFactory = NULL_CONTEXT_FACTORY;
-        RecordFormats recordFormats =
-                selectForStore(databaseLayout, fs, pageCache, NullLogProvider.getInstance(), contextFactory);
         var idGeneratorFactory = new DefaultIdGeneratorFactory(
                 fs, immediate(), false, PageCacheTracer.NULL, layout.getDatabaseName(), true, true);
         try (NeoStores neoStores = new StoreFactory(
@@ -869,12 +843,11 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                         pageCache,
                         PageCacheTracer.NULL,
                         fs,
-                        recordFormats,
                         NullLogProvider.getInstance(),
                         contextFactory,
                         true,
                         LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
-                        immutable.empty())
+                        StoreIdGenerator.UNIQUE_ID)
                 .openNeoStores(StoreType.NODE_LABEL, StoreType.NODE, StoreType.RELATIONSHIP)) {
             var highId = Math.max(
                     neoStores.getNodeStore().getIdGenerator().getHighId(),
@@ -915,7 +888,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                         NullLogProvider.getInstance(),
                         contextFactory,
                         true,
-                        logTailMetadata)
+                        logTailMetadata,
+                        StoreIdGenerator.UNIQUE_ID)
                 .openAllNeoStores()) {
             neoStores.start(CursorContext.NULL_CONTEXT);
             ProgressMonitorFactory progressMonitorFactory = progressOutput != null

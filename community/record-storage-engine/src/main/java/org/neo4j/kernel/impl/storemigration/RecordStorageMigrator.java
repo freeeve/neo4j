@@ -21,7 +21,6 @@ package org.neo4j.kernel.impl.storemigration;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
-import static org.eclipse.collections.impl.factory.Sets.immutable;
 import static org.neo4j.batchimport.api.Configuration.defaultConfiguration;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
@@ -42,7 +41,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.UUID;
 import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.batchimport.api.AdditionalInitialIds;
 import org.neo4j.batchimport.api.BatchImporter;
@@ -116,6 +114,7 @@ import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.LogFilesInitializer;
 import org.neo4j.storageengine.api.SchemaRule44;
 import org.neo4j.storageengine.api.StorageRelationshipScanCursor;
@@ -447,7 +446,7 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
                         contextFactory,
                         true,
                         LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
-                        Sets.immutable.empty())
+                        StoreIdGenerator.UNIQUE_ID)
                 .openNeoStores(storesToOpen);
     }
 
@@ -546,7 +545,7 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
                 contextFactory,
                 false,
                 LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
-                immutable.empty());
+                StoreIdGenerator.UNIQUE_ID);
     }
 
     private static AdditionalInitialIds readAdditionalIds(

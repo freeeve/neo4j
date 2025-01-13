@@ -53,6 +53,7 @@ import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.lock.LockService;
 import org.neo4j.lock.LockType;
 import org.neo4j.logging.NullLogProvider;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.util.IdGeneratorUpdatesWorkSync;
 import org.neo4j.test.LatestVersions;
@@ -94,7 +95,8 @@ class ApplyRecoveredTransactionsTest {
                 NullLogProvider.getInstance(),
                 new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER),
                 false,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL);
+                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                StoreIdGenerator.UNIQUE_ID);
         neoStores = storeFactory.openAllNeoStores();
         storeCursors = new CachedStoreCursors(neoStores, NULL_CONTEXT);
     }

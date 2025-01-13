@@ -59,6 +59,7 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.HealthEventGenerator;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.ConstraintRuleAccessor;
 import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
@@ -286,7 +287,8 @@ public class RecordStorageEngineSupport {
                     new CursorContextFactory(PageCacheTracer.NULL, EMPTY_CONTEXT_SUPPLIER),
                     PageCacheTracer.NULL,
                     VersionStorage.EMPTY_STORAGE,
-                    PagePrefetcher.DISABLED);
+                    PagePrefetcher.DISABLED,
+                    StoreIdGenerator.UNIQUE_ID);
             this.transactionApplierTransformer = transactionApplierTransformer;
         }
 

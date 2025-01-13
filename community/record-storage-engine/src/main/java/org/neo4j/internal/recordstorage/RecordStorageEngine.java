@@ -112,6 +112,7 @@ import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.CommandCreationContext;
 import org.neo4j.storageengine.api.ConstraintRuleAccessor;
@@ -206,7 +207,8 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
             VersionStorage versionStorage,
-            PagePrefetcher pagePrefetcher) {
+            PagePrefetcher pagePrefetcher,
+            StoreIdGenerator storeIdGenerator) {
         this.databaseLayout = databaseLayout;
         this.config = config;
         this.internalLogProvider = internalLogProvider;
@@ -231,7 +233,8 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                         internalLogProvider,
                         contextFactory,
                         false,
-                        logTailMetadata)
+                        logTailMetadata,
+                        storeIdGenerator)
                 .openAllNeoStores();
         this.multiVersion = neoStores.getOpenOptions().contains(PageCacheOpenOptions.MULTI_VERSIONED);
         this.lockVerificationFactory = LockVerificationFactory.select(config, multiVersion);

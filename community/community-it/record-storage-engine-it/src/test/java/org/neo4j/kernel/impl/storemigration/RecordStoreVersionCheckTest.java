@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.function.Consumer;
-import org.eclipse.collections.api.factory.Sets;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
@@ -53,6 +52,7 @@ import org.neo4j.kernel.impl.store.format.aligned.PageAligned;
 import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.NullLogProvider;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.StoreVersionCheck;
 import org.neo4j.string.UTF8;
@@ -274,7 +274,7 @@ class RecordStoreVersionCheckTest {
                 CursorContextFactory.NULL_CONTEXT_FACTORY,
                 false,
                 LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
-                Sets.immutable.empty());
+                StoreIdGenerator.UNIQUE_ID);
         try (var metaDataStore = storeFactory.openNeoStores(StoreType.META_DATA).getMetaDataStore()) {
             return metaDataStore.getStorageFile();
         }

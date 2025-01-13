@@ -71,6 +71,7 @@ import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.LogAssertions;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
@@ -115,7 +116,8 @@ class PropertyDeleterTest {
                         NullLogProvider.getInstance(),
                         new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER),
                         false,
-                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL)
+                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                        StoreIdGenerator.UNIQUE_ID)
                 .openAllNeoStores();
         allocatorProvider = DynamicAllocatorProviders.nonTransactionalAllocator(neoStores);
         propertyStore = neoStores.getPropertyStore();

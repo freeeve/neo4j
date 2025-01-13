@@ -39,7 +39,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.impl.factory.primitive.IntObjectMaps;
 import org.junit.jupiter.api.AfterEach;
@@ -73,6 +72,7 @@ import org.neo4j.kernel.impl.store.record.RecordLoad;
 import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
@@ -120,7 +120,7 @@ public class RecordPropertyCursorTest {
                         new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER),
                         false,
                         LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
-                        Sets.immutable.empty())
+                        StoreIdGenerator.UNIQUE_ID)
                 .openAllNeoStores();
         allocatorProvider = DynamicAllocatorProviders.nonTransactionalAllocator(neoStores);
 

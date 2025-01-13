@@ -80,6 +80,7 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.service.Services;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.migration.SchemaRuleMigrationAccessExtended;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
 import org.neo4j.time.SystemNanoClock;
@@ -174,7 +175,8 @@ public interface StorageEngineFactory {
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
             VersionStorage versionStorage,
-            PagePrefetcher pagePrefetcher)
+            PagePrefetcher pagePrefetcher,
+            StoreIdGenerator storeIdGenerator)
             throws IOException;
 
     /**
@@ -279,17 +281,6 @@ public interface StorageEngineFactory {
             CursorContextFactory contextFactory,
             LogTailLogVersionsMetadata logTailMetadata,
             PageCacheTracer pageCacheTracer)
-            throws IOException;
-
-    void resetMetadata(
-            FileSystemAbstraction fs,
-            DatabaseLayout databaseLayout,
-            Config config,
-            PageCache pageCache,
-            CursorContextFactory contextFactory,
-            PageCacheTracer pageCacheTracer,
-            StoreId storeId,
-            UUID externalStoreId)
             throws IOException;
 
     Optional<UUID> databaseIdUuid(

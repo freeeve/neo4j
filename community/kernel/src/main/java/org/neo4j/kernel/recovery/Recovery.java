@@ -136,6 +136,7 @@ import org.neo4j.monitoring.HealthEventGenerator;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.service.Services;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.RecoveryState;
@@ -615,7 +616,8 @@ public final class Recovery {
                 cursorContextFactory,
                 tracers.getPageCacheTracer(),
                 recoveryVersionStorage,
-                PagePrefetcher.DISABLED);
+                PagePrefetcher.DISABLED,
+                StoreIdGenerator.UNIQUE_ID);
 
         // multi versioned stores recovery does not support format mode atm
         if (storageEngine.getOpenOptions().contains(MULTI_VERSIONED)) {

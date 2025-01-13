@@ -58,6 +58,7 @@ import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
@@ -96,7 +97,8 @@ class RelationshipGroupGetterTest {
                 logProvider,
                 NULL_CONTEXT_FACTORY,
                 false,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL);
+                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                StoreIdGenerator.UNIQUE_ID);
         stores = storeFactory.openNeoStores(StoreType.RELATIONSHIP_GROUP, StoreType.NODE, StoreType.NODE_LABEL);
         groupStore = spy(stores.getRelationshipGroupStore());
         NodeStore nodeStore = stores.getNodeStore();

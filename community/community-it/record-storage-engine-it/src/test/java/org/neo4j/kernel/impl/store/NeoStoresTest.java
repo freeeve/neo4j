@@ -102,6 +102,7 @@ import org.neo4j.lock.LockTracer;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.ClosedTransactionMetadata;
 import org.neo4j.storageengine.api.CommandCreationContext;
 import org.neo4j.storageengine.api.LogVersionRepository;
@@ -449,7 +450,8 @@ class NeoStoresTest {
                 NullLogProvider.getInstance(),
                 CONTEXT_FACTORY,
                 false,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL);
+                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                StoreIdGenerator.UNIQUE_ID);
         NeoStores neoStore = factory.openAllNeoStores();
 
         var ex = assertThrows(UnderlyingStorageException.class, neoStore::close);
@@ -472,7 +474,8 @@ class NeoStoresTest {
                 LOG_PROVIDER,
                 CONTEXT_FACTORY,
                 false,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL);
+                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                StoreIdGenerator.UNIQUE_ID);
 
         // when
         try (NeoStores ignore = factory.openAllNeoStores()) {
@@ -497,7 +500,8 @@ class NeoStoresTest {
                 LOG_PROVIDER,
                 CONTEXT_FACTORY,
                 false,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL);
+                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                StoreIdGenerator.UNIQUE_ID);
         StoreType[] allStoreTypes = StoreType.STORE_TYPES;
         StoreType[] allButLastStoreTypes = Arrays.copyOf(allStoreTypes, allStoreTypes.length - 1);
 
@@ -540,7 +544,8 @@ class NeoStoresTest {
                 CONTEXT_FACTORY,
                 PageCacheTracer.NULL,
                 VersionStorage.EMPTY_STORAGE,
-                PagePrefetcher.DISABLED);
+                PagePrefetcher.DISABLED,
+                StoreIdGenerator.UNIQUE_ID);
         life = new LifeSupport();
         life.add(storageEngine);
         life.add(storageEngine.schemaAndTokensLifecycle());
@@ -715,7 +720,8 @@ class NeoStoresTest {
                 logProvider,
                 CONTEXT_FACTORY,
                 readOnly,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL);
+                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                StoreIdGenerator.UNIQUE_ID);
     }
 
     private static class CloseFailingDefaultIdGeneratorFactory extends DefaultIdGeneratorFactory {

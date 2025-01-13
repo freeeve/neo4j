@@ -50,6 +50,7 @@ import org.neo4j.lock.LockGroup;
 import org.neo4j.lock.LockService;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandVersion;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.test.LatestVersions;
@@ -93,7 +94,8 @@ class ConsistencyCheckingApplierTest {
                         NullLogProvider.getInstance(),
                         new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER),
                         false,
-                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL)
+                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                        StoreIdGenerator.UNIQUE_ID)
                 .openAllNeoStores();
         storeCursors = new CachedStoreCursors(neoStores, CursorContext.NULL_CONTEXT);
         checker = new ConsistencyCheckingApplier(neoStores, CursorContext.NULL_CONTEXT, EmptyMemoryTracker.INSTANCE);

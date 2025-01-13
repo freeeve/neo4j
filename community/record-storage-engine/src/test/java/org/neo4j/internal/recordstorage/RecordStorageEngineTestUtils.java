@@ -54,6 +54,7 @@ import org.neo4j.lock.ResourceLocker;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandCreationContext;
 import org.neo4j.storageengine.api.StandardConstraintRuleAccessor;
 import org.neo4j.storageengine.api.StorageCommand;
@@ -95,7 +96,8 @@ public class RecordStorageEngineTestUtils {
                 new CursorContextFactory(cacheTracer, EMPTY_CONTEXT_SUPPLIER),
                 cacheTracer,
                 VersionStorage.EMPTY_STORAGE,
-                PagePrefetcher.DISABLED);
+                PagePrefetcher.DISABLED,
+                StoreIdGenerator.UNIQUE_ID);
     }
 
     public static void applyLogicalChanges(

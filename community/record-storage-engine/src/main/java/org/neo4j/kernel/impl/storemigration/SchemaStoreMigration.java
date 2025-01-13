@@ -20,7 +20,6 @@
 package org.neo4j.kernel.impl.storemigration;
 
 import static java.util.Arrays.asList;
-import static org.eclipse.collections.impl.factory.Sets.immutable;
 import static org.neo4j.kernel.impl.storemigration.FileOperation.COPY;
 import static org.neo4j.kernel.impl.storemigration.RecordStorageMigrator.createTokenHolders;
 import static org.neo4j.kernel.impl.storemigration.RecordStorageMigrator.need50Migration;
@@ -51,6 +50,7 @@ import org.neo4j.kernel.impl.store.format.RecordFormats;
 import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.migration.SchemaRuleMigrationAccess;
 import org.neo4j.token.TokenHolders;
 
@@ -235,6 +235,6 @@ public class SchemaStoreMigration {
                 contextFactory,
                 true,
                 LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
-                immutable.empty());
+                StoreIdGenerator.UNIQUE_ID);
     }
 }

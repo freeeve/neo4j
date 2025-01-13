@@ -49,7 +49,7 @@ import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
 import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.StoreIdGenerator;
 
 /**
  * This class contains the references to the "NodeStore,RelationshipStore,
@@ -77,6 +77,7 @@ public class NeoStores implements AutoCloseable {
     private final CommonAbstractStore[] stores;
     private final LogTailLogVersionsMetadata logTailMetadata;
     private final ImmutableSet<OpenOption> openOptions;
+    private final StoreIdGenerator storeIdGenerator;
     private final boolean readOnly;
     private final InternalLog log;
 
@@ -93,7 +94,8 @@ public class NeoStores implements AutoCloseable {
             boolean readOnly,
             LogTailLogVersionsMetadata logTailMetadata,
             StoreType[] storeTypes,
-            ImmutableSet<OpenOption> openOptions) {
+            ImmutableSet<OpenOption> openOptions,
+            StoreIdGenerator storeIdGenerator) {
         this.fileSystem = fileSystem;
         this.layout = layout;
         this.config = config;
@@ -107,6 +109,7 @@ public class NeoStores implements AutoCloseable {
         this.readOnly = readOnly;
         this.logTailMetadata = logTailMetadata;
         this.openOptions = openOptions;
+        this.storeIdGenerator = storeIdGenerator;
 
         stores = new CommonAbstractStore[StoreType.STORE_TYPES.length];
         // First open the meta data store so that we can verify the record format. We know that this store is of the
@@ -540,7 +543,7 @@ public class NeoStores implements AutoCloseable {
                         logTailMetadata,
                         layout.getDatabaseName(),
                         openOptions,
-                        () -> StoreId.generateNew(
+                        () -> storeIdGenerator.generateNewStoreId(
                                 RecordStorageEngineFactory.NAME,
                                 recordFormats.getFormatFamily().name(),
                                 recordFormats.majorVersion(),

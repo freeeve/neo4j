@@ -50,6 +50,7 @@ import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
 import org.neo4j.kernel.impl.store.record.PropertyBlock;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.util.IdUpdateListener;
 import org.neo4j.test.Race;
 import org.neo4j.test.extension.Inject;
@@ -82,7 +83,8 @@ class NodeInputIdPropertyLookupTest {
                         NullLogProvider.getInstance(),
                         NULL_CONTEXT_FACTORY,
                         false,
-                        EMPTY_LOG_TAIL)
+                        EMPTY_LOG_TAIL,
+                        StoreIdGenerator.UNIQUE_ID)
                 .openNeoStores(PROPERTY_ARRAY, PROPERTY_STRING, StoreType.PROPERTY);
     }
 

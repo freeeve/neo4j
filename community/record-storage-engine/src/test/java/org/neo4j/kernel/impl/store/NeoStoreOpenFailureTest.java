@@ -44,6 +44,7 @@ import org.neo4j.kernel.impl.store.format.RecordFormats;
 import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.NullLogProvider;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.test.extension.DisabledForRoot;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
@@ -88,7 +89,8 @@ class NeoStoreOpenFailureTest {
                 false,
                 logTail,
                 STORE_TYPES,
-                openOptions);
+                openOptions,
+                StoreIdGenerator.UNIQUE_ID);
         Path schemaStore = neoStores.getSchemaStore().getStorageFile();
         neoStores.close();
 
@@ -114,7 +116,8 @@ class NeoStoreOpenFailureTest {
                                 false,
                                 logTail,
                                 STORE_TYPES,
-                                openOptions));
+                                openOptions,
+                                StoreIdGenerator.UNIQUE_ID));
 
         // We verify that the successfully opened stores were closed again by the failed NeoStores open,
         // by closing the page cache, which will throw if not all files have been unmapped.

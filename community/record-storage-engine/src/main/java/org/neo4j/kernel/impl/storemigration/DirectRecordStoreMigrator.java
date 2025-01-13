@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.storemigration;
 
-import static org.eclipse.collections.impl.factory.Sets.immutable;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.internal.helpers.ArrayUtil.contains;
 
@@ -49,6 +48,7 @@ import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
 import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 
 /**
@@ -100,7 +100,7 @@ class DirectRecordStoreMigrator {
                                 contextFactory,
                                 true,
                                 LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
-                                immutable.empty())
+                                StoreIdGenerator.UNIQUE_ID)
                         .openNeoStores(storesToOpen);
                 NeoStores toStores = new StoreFactory(
                                 toDirectoryStructure,
@@ -115,7 +115,7 @@ class DirectRecordStoreMigrator {
                                 contextFactory,
                                 false,
                                 LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
-                                immutable.empty())
+                                StoreIdGenerator.UNIQUE_ID)
                         .openNeoStores(storesToOpen);
                 var cursorContext = contextFactory.create(DIRECT_STORE_MIGRATOR_TAG);
                 var toStoreCursors = new CachedStoreCursors(toStores, cursorContext);

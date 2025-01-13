@@ -43,6 +43,7 @@ import org.neo4j.kernel.impl.store.format.PageCacheOptionsSelector;
 import org.neo4j.kernel.impl.store.format.RecordFormats;
 import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.InternalLogProvider;
+import org.neo4j.storageengine.StoreIdGenerator;
 
 /**
  * Factory for Store implementations. Can also be used to create empty stores.
@@ -59,6 +60,7 @@ public class StoreFactory {
     private final CursorContextFactory contextFactory;
     private final boolean readOnly;
     private final LogTailLogVersionsMetadata logTailMetadata;
+    private final StoreIdGenerator storeIdGenerator;
     private final ImmutableSet<OpenOption> openOptions;
 
     public StoreFactory(
@@ -71,7 +73,8 @@ public class StoreFactory {
             InternalLogProvider logProvider,
             CursorContextFactory contextFactory,
             boolean readOnly,
-            LogTailLogVersionsMetadata logTailMetadata) {
+            LogTailLogVersionsMetadata logTailMetadata,
+            StoreIdGenerator storeIdGenerator) {
         this(
                 directoryStructure,
                 config,
@@ -90,7 +93,7 @@ public class StoreFactory {
                 contextFactory,
                 readOnly,
                 logTailMetadata,
-                immutable.empty());
+                storeIdGenerator);
     }
 
     public StoreFactory(
@@ -105,7 +108,7 @@ public class StoreFactory {
             CursorContextFactory contextFactory,
             boolean readOnly,
             LogTailLogVersionsMetadata logTailMetadata,
-            ImmutableSet<OpenOption> openOptions) {
+            StoreIdGenerator storeIdGenerator) {
         this.databaseLayout = RecordDatabaseLayout.convert(databaseLayout);
         this.config = config;
         this.idGeneratorFactory = idGeneratorFactory;
@@ -114,7 +117,8 @@ public class StoreFactory {
         this.contextFactory = contextFactory;
         this.readOnly = readOnly;
         this.logTailMetadata = logTailMetadata;
-        this.openOptions = buildOpenOptions(config, recordFormats, openOptions);
+        this.storeIdGenerator = storeIdGenerator;
+        this.openOptions = buildOpenOptions(config, recordFormats, immutable.empty());
         this.logProvider = logProvider;
         this.pageCache = pageCache;
         this.pageCacheTracer = pageCacheTracer;
@@ -157,7 +161,8 @@ public class StoreFactory {
                 readOnly,
                 logTailMetadata,
                 storeTypes,
-                openOptions);
+                openOptions,
+                storeIdGenerator);
     }
 
     private static ImmutableSet<OpenOption> buildOpenOptions(

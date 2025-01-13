@@ -91,6 +91,7 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.LogFilesInitializer;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
@@ -192,7 +193,8 @@ class CsvInputEstimateCalculationIT {
                                     NullLogProvider.getInstance(),
                                     NULL_CONTEXT_FACTORY,
                                     false,
-                                    LogTailLogVersionsMetadata.EMPTY_LOG_TAIL)
+                                    LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                                    StoreIdGenerator.UNIQUE_ID)
                             .openAllNeoStores()) {
                 var nodeStore = stores.getNodeStore();
                 assertRoughlyEqual(
