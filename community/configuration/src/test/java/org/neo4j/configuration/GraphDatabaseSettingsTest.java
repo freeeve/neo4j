@@ -308,4 +308,19 @@ class GraphDatabaseSettingsTest {
                 IllegalArgumentException.class,
                 () -> Config.defaults(default_advertised_address, new SocketAddress(456)));
     }
+
+    @Test
+    void testDefaultCypherVersion() throws IOException {
+        for (GraphDatabaseSettings.CypherVersion cv : GraphDatabaseSettings.CypherVersion.values()) {
+            Path cfg = directory.file("cfg");
+            Files.writeString(
+                    cfg,
+                    GraphDatabaseSettings.default_language.name() + "=" + cv.toString(),
+                    StandardOpenOption.WRITE,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING);
+            Config config = Config.newBuilder().fromFile(cfg).build();
+            assertThat(config.get(GraphDatabaseSettings.default_language)).isEqualTo(cv);
+        }
+    }
 }

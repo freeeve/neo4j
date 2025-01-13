@@ -17,6 +17,12 @@ org.neo4j.configuration.GraphDatabaseSettings.CypherPlanner::COST org.neo4j.conf
 org.neo4j.configuration.GraphDatabaseSettings.CypherPlanner::DEFAULT org.neo4j.configuration.GraphDatabaseSettings.CypherPlanner public static final
 org.neo4j.configuration.GraphDatabaseSettings.CypherPlanner::valueOf(java.lang.String) org.neo4j.configuration.GraphDatabaseSettings.CypherPlanner public static
 org.neo4j.configuration.GraphDatabaseSettings.CypherPlanner::values() org.neo4j.configuration.GraphDatabaseSettings.CypherPlanner[] public static
+org.neo4j.configuration.GraphDatabaseSettings.CypherVersion public static final enum extends java.lang.Enum<org.neo4j.configuration.GraphDatabaseSettings.CypherVersion>
+org.neo4j.configuration.GraphDatabaseSettings.CypherVersion::Cypher25 org.neo4j.configuration.GraphDatabaseSettings.CypherVersion public static final
+org.neo4j.configuration.GraphDatabaseSettings.CypherVersion::Cypher5 org.neo4j.configuration.GraphDatabaseSettings.CypherVersion public static final
+org.neo4j.configuration.GraphDatabaseSettings.CypherVersion::toString() java.lang.String public
+org.neo4j.configuration.GraphDatabaseSettings.CypherVersion::valueOf(java.lang.String) org.neo4j.configuration.GraphDatabaseSettings.CypherVersion public static
+org.neo4j.configuration.GraphDatabaseSettings.CypherVersion::values() org.neo4j.configuration.GraphDatabaseSettings.CypherVersion[] public static
 org.neo4j.configuration.GraphDatabaseSettings.InferSchemaPartsStrategy public static final enum extends java.lang.Enum<org.neo4j.configuration.GraphDatabaseSettings.InferSchemaPartsStrategy>
 org.neo4j.configuration.GraphDatabaseSettings.InferSchemaPartsStrategy::MOST_SELECTIVE_LABEL org.neo4j.configuration.GraphDatabaseSettings.InferSchemaPartsStrategy public static final
 org.neo4j.configuration.GraphDatabaseSettings.InferSchemaPartsStrategy::OFF org.neo4j.configuration.GraphDatabaseSettings.InferSchemaPartsStrategy public static final
@@ -85,6 +91,7 @@ org.neo4j.configuration.GraphDatabaseSettings::db_temporal_timezone org.neo4j.gr
 org.neo4j.configuration.GraphDatabaseSettings::db_timezone org.neo4j.graphdb.config.Setting<org.neo4j.logging.LogTimeZone> public static final
 org.neo4j.configuration.GraphDatabaseSettings::debug_log_enabled org.neo4j.graphdb.config.Setting<java.lang.Boolean> public static final
 org.neo4j.configuration.GraphDatabaseSettings::default_advertised_address org.neo4j.graphdb.config.Setting<org.neo4j.configuration.helpers.SocketAddress> public static final
+org.neo4j.configuration.GraphDatabaseSettings::default_language org.neo4j.graphdb.config.Setting<org.neo4j.configuration.GraphDatabaseSettings.CypherVersion> public static final
 org.neo4j.configuration.GraphDatabaseSettings::default_listen_address org.neo4j.graphdb.config.Setting<org.neo4j.configuration.helpers.SocketAddress> public static final
 org.neo4j.configuration.GraphDatabaseSettings::dense_node_threshold org.neo4j.graphdb.config.Setting<java.lang.Integer> public static final
 org.neo4j.configuration.GraphDatabaseSettings::deprecated_query_cache_size org.neo4j.graphdb.config.Setting<java.lang.Integer> public static final

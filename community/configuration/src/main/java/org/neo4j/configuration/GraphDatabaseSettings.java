@@ -64,6 +64,7 @@ import java.util.Set;
 import org.neo4j.annotations.api.PublicApi;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.configuration.helpers.SocketAddress;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.kernel.database.NamedDatabaseId;
@@ -349,6 +350,28 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
     public static final Setting<Duration> cypher_min_replan_interval = newBuilder(
                     "dbms.cypher.min_replan_interval", DURATION, ofSeconds(10))
             .build();
+
+    public enum CypherVersion {
+        Cypher5("CYPHER_5"),
+        Cypher25("CYPHER_25");
+
+        private final String versionName;
+
+        CypherVersion(String versionName) {
+            this.versionName = versionName;
+        }
+
+        @Override
+        public String toString() {
+            return versionName;
+        }
+    }
+
+    @Description("The default language of a database determines which language is used to evaluate queries "
+            + "that do not explicitly select a language. This setting determines the default language used for "
+            + "new (and initial) databases where not specified as part of CREATE or ALTER database.")
+    public static final Setting<CypherVersion> default_language = newBuilder(
+            "db.query.default_language", ofEnum(GraphDatabaseSettings.CypherVersion.class), CypherVersion.Cypher5).build();
 
     @Description("Determines if Cypher will allow using file URLs when loading data using `LOAD CSV`. Setting this "
             + "value to `false` will cause Neo4j to fail `LOAD CSV` clauses that load data from the file system.")
