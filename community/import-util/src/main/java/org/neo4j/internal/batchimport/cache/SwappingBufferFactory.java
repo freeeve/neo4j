@@ -64,9 +64,17 @@ class SwappingBufferFactory implements BufferFactory, AutoCloseable {
     public void close() {
         try {
             channel.close();
-            fs.deleteFile(file);
+            deleteQuietly();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    private void deleteQuietly() {
+        try {
+            fs.deleteFile(file);
+        } catch (IOException e) {
+            // ignored
         }
     }
 
