@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS;
+import static org.junit.jupiter.params.provider.EnumSource.Mode.EXCLUDE;
 import static org.neo4j.kernel.impl.index.schema.NativeIndexKey.Inclusion.NEUTRAL;
 import static org.neo4j.kernel.impl.index.schema.NativeIndexKey.NO_ENTITY_ID;
 import static org.neo4j.values.storable.ValueGroup.GEOMETRY;
@@ -72,6 +73,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.io.pagecache.ByteArrayPageCursor;
 import org.neo4j.io.pagecache.PageCache;
@@ -239,22 +241,21 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
         assertEquals(0, from.compareValueTo(to), "states not equals after copy");
     }
 
-    @Test
-    void copyShouldCopyExtremeValues() {
+    @ParameterizedTest
+    @EnumSource(
+            mode = EXCLUDE,
+            names = {"NO_VALUE", "VECTOR"}) // todo: remove VECTOR when implemented
+    void copyShouldCopyExtremeValues(ValueGroup valueGroup) {
         // Given
         KEY extreme = newKeyState();
         KEY copy = newKeyState();
 
-        for (ValueGroup valueGroup : ValueGroup.values()) {
-            if (valueGroup != ValueGroup.NO_VALUE) {
-                extreme.initValueAsLowest(valueGroup);
-                copy.copyFrom(extreme);
-                assertEquals(0, extreme.compareValueTo(copy), "states not equals after copy, valueGroup=" + valueGroup);
-                extreme.initValueAsHighest(valueGroup);
-                copy.copyFrom(extreme);
-                assertEquals(0, extreme.compareValueTo(copy), "states not equals after copy, valueGroup=" + valueGroup);
-            }
-        }
+        extreme.initValueAsLowest(valueGroup);
+        copy.copyFrom(extreme);
+        assertEquals(0, extreme.compareValueTo(copy), "states not equals after copy, valueGroup=" + valueGroup);
+        extreme.initValueAsHighest(valueGroup);
+        copy.copyFrom(extreme);
+        assertEquals(0, extreme.compareValueTo(copy), "states not equals after copy, valueGroup=" + valueGroup);
     }
 
     @ParameterizedTest
