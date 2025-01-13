@@ -87,7 +87,7 @@ class CypherQueryObfuscatorFactory {
   private val pipeline =
     Parse andThen
       RewriteProcedureCalls andThen
-      ObfuscationMetadataCollection
+      ObfuscationMetadataCollection(obfuscateOnlyUnsafeLiterals = false)
 
   private def plannerContext(version: CypherVersion, query: String) =
     new PlannerContext(

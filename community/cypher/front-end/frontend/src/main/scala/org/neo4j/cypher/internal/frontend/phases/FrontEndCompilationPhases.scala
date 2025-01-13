@@ -96,7 +96,7 @@ trait FrontEndCompilationPhases {
        * in the query log.
        */
       If((_: BaseState) => resolver.isDefined)(TryRewriteProcedureCalls(resolver.orNull)) andThen
-      ObfuscationMetadataCollection
+      ObfuscationMetadataCollection(config.obfuscateLiterals.obfuscateOnlyUnsafeLiterals())
   }
 
   // Phase 1 (Fabric)
@@ -107,7 +107,7 @@ trait FrontEndCompilationPhases {
     parsingBase(config) andThen
       ExpandStarRewriter andThen
       TryRewriteProcedureCalls(resolver) andThen
-      ObfuscationMetadataCollection andThen
+      ObfuscationMetadataCollection(config.obfuscateLiterals.obfuscateOnlyUnsafeLiterals()) andThen
       SemanticAnalysis(warn = true, config.semanticFeatures: _*)
   }
 

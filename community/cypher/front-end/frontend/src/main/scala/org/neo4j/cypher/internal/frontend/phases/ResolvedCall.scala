@@ -97,7 +97,7 @@ object SensitiveParameterRewriter extends Rewriter {
       new ExplicitParameter(p.name, p.parameterType, p.sizeHint)(p.position) with SensitiveParameter
     case p: AutoExtractedParameter =>
       new AutoExtractedParameter(p.name, p.parameterType, p.sizeHint)(p.position) with SensitiveAutoParameter
-    case l: Literal => l.sensitivize
+    case l: Literal => l.asSensitiveLiteral
   })
 
   override def apply(v: AnyRef): AnyRef = instance.apply(v)

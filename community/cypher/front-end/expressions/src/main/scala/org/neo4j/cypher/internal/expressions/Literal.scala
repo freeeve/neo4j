@@ -27,7 +27,6 @@ sealed trait Literal extends Expression {
   def value: AnyRef
   def asCanonicalStringVal: String
   def maybeSensitive: Boolean = true
-  def sensitivize: Literal = if (maybeSensitive) asSensitiveLiteral else this
   def asSensitiveLiteral: Literal with SensitiveLiteral
   override def isConstantForQuery: Boolean = true
 }

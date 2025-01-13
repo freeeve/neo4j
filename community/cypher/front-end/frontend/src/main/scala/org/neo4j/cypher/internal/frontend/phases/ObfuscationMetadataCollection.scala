@@ -35,7 +35,8 @@ import org.neo4j.cypher.internal.util.StepSequencer
 /**
  * Collect sensitive literals and parameters.
  */
-case object ObfuscationMetadataCollection extends Phase[BaseContext, BaseState, BaseState] {
+case class ObfuscationMetadataCollection(obfuscateOnlyUnsafeLiterals: Boolean)
+    extends Phase[BaseContext, BaseState, BaseState] {
 
   override def phase: CompilationPhaseTracer.CompilationPhase = METADATA_COLLECTION
 
@@ -69,12 +70,11 @@ case object ObfuscationMetadataCollection extends Phase[BaseContext, BaseState, 
         (acc: Vector[LiteralOffset]) =>
           extractedParameters.get(p) match {
             case Some(originalExp) =>
-              val literalOffsets = originalExp.folder.findAllByClass[Literal]
-                .map(_.sensitivize)
-                .collect {
-                  case s: SensitiveLiteral => s
-                }
-                .map(l => LiteralOffset(l.position.offset, l.position.line, Some(l.literalLength)))
+              val literalOffsets =
+                originalExp.folder.findAllByClass[Literal]
+                  .filter(l => !obfuscateOnlyUnsafeLiterals || l.maybeSensitive)
+                  .map(_.asSensitiveLiteral)
+                  .map(l => LiteralOffset(l.position.offset, l.position.line, Some(l.literalLength)))
               SkipChildren(acc ++ literalOffsets)
             case None =>
               // Note, this can lead to query obfuscator failing and the query not being logged
