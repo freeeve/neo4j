@@ -19,7 +19,9 @@
  */
 package org.neo4j.cypher.internal.optionsmap
 
-import org.neo4j.configuration.{Config, GraphDatabaseInternalSettings, GraphDatabaseSettings}
+import org.neo4j.configuration.Config
+import org.neo4j.configuration.GraphDatabaseInternalSettings
+import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.MapValueOps.Ops
 import org.neo4j.dbms.systemgraph.SeedRestoreUntil
 import org.neo4j.dbms.systemgraph.allocation.DatabaseAllocationHints
@@ -28,17 +30,19 @@ import org.neo4j.kernel.database.NormalizedDatabaseName
 import org.neo4j.storageengine.api.StorageEngineFactory
 import org.neo4j.storageengine.api.StorageEngineFactory.allAvailableStorageEngines
 import org.neo4j.values.AnyValue
-import org.neo4j.values.storable._
-import org.neo4j.values.utils.PrettyPrinter
 import org.neo4j.values.storable.DateTimeValue
 import org.neo4j.values.storable.NoValue
 import org.neo4j.values.storable.NumberValue
 import org.neo4j.values.storable.TextValue
+import org.neo4j.values.storable._
+import org.neo4j.values.utils.PrettyPrinter
 import org.neo4j.values.virtual.MapValue
 
 import java.lang.Boolean.FALSE
 import java.util.Locale
-import scala.jdk.CollectionConverters.{CollectionHasAsScala, SeqHasAsJava}
+
+import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 sealed trait OptionValidator[T] {
 
@@ -52,7 +56,7 @@ sealed trait OptionValidator[T] {
       .map(_._2)
       .flatMap {
         case _: NoValue => None
-        case value => Some(value)
+        case value      => Some(value)
       }
       .map(validate(_, config))
   }
@@ -91,7 +95,7 @@ object SeedRestoreUntilOption extends OptionValidator[SeedRestoreUntil] {
   override val KEY: String = "seedRestoreUntil"
 
   override protected def validate(value: AnyValue, config: Option[Config])(implicit
-                                                                           operation: String): SeedRestoreUntil = {
+    operation: String): SeedRestoreUntil = {
     value match {
       case numberValue: NumberValue =>
         SeedRestoreUntil.txId(numberValue.asObject().longValue())
@@ -165,7 +169,8 @@ object SeedURIOption extends StringOptionValidator {
 object SeedSourceDatabaseOption extends OptionValidator[NormalizedDatabaseName] {
   override val KEY: String = "seedSourceDatabase"
 
-  override protected def validate(value: AnyValue, config: Option[Config])(implicit operation: String): NormalizedDatabaseName = {
+  override protected def validate(value: AnyValue, config: Option[Config])(implicit
+    operation: String): NormalizedDatabaseName = {
     value match {
       case numberValue: CharValue =>
         new NormalizedDatabaseName(numberValue.stringValue())
