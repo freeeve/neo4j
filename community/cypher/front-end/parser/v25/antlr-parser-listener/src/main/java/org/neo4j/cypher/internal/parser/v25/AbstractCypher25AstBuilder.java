@@ -429,6 +429,8 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_secondaryTopology -> exitSecondaryTopology(
                     (Cypher25Parser.SecondaryTopologyContext) ctx);
             case Cypher25Parser.RULE_secondaryToken -> exitSecondaryToken((Cypher25Parser.SecondaryTokenContext) ctx);
+            case Cypher25Parser.RULE_defaultLanguageSpecification -> exitDefaultLanguageSpecification(
+                    (Cypher25Parser.DefaultLanguageSpecificationContext) ctx);
             case Cypher25Parser.RULE_dropDatabase -> exitDropDatabase((Cypher25Parser.DropDatabaseContext) ctx);
             case Cypher25Parser.RULE_aliasAction -> exitAliasAction((Cypher25Parser.AliasActionContext) ctx);
             case Cypher25Parser.RULE_alterDatabase -> exitAlterDatabase((Cypher25Parser.AlterDatabaseContext) ctx);

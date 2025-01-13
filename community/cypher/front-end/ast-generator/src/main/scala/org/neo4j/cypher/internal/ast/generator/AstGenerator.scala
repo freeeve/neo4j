@@ -2489,6 +2489,8 @@ class AstGenerator(
     secondaries <- oneOf(Left(intSecondaries), Right(paramSecondaries))
   } yield secondaries
 
+  def _defaultLanguage: Gen[CypherVersion] = oneOf(CypherVersion.Cypher5, CypherVersion.Cypher25)
+
   // User commands
 
   def _showUsers: Gen[ShowUsers] = for {
@@ -3047,14 +3049,16 @@ class AstGenerator(
     wait <- _waitUntilComplete
     options <- _optionsMapAsEitherOrNone
     topology <- option(_topology)
-  } yield CreateDatabase(dbName, ifExistsDo, options, wait, topology)(pos)
+    defaultLanguageVersion <- option(_defaultLanguage)
+  } yield CreateDatabase(dbName, ifExistsDo, options, wait, topology, defaultLanguageVersion)(pos)
 
   def _createCompositeDatabase: Gen[CreateCompositeDatabase] = for {
     dbName <- _databaseNameNoNamespace
     ifExistsDo <- _ifExistsDo
     options <- _optionsMapAsEitherOrNone
     wait <- _waitUntilComplete
-  } yield CreateCompositeDatabase(dbName, ifExistsDo, options, wait)(pos)
+    defaultLanguageVersion <- option(_defaultLanguage)
+  } yield CreateCompositeDatabase(dbName, ifExistsDo, options, wait, defaultLanguageVersion)(pos)
 
   def _dropDatabase: Gen[DropDatabase] = for {
     dbName <- _databaseName
@@ -3071,11 +3075,12 @@ class AstGenerator(
     options <- _optionsForAlterDatabaseOrNone
     access <- option(_access)
     topology <- option(_topology)
+    defaultLanguageVersion <- option(_defaultLanguage)
     optionsToRemove <- _optionsToRemove(hasSetClause =
-      access.nonEmpty || topology.nonEmpty || (!options.equals(NoOptions))
+      access.nonEmpty || topology.nonEmpty || (!options.equals(NoOptions) || defaultLanguageVersion.nonEmpty)
     )
     wait <- _waitUntilComplete
-  } yield AlterDatabase(dbName, ifExists, access, topology, options, optionsToRemove, wait)(pos)
+  } yield AlterDatabase(dbName, ifExists, access, topology, options, optionsToRemove, wait, defaultLanguageVersion)(pos)
 
   def _startDatabase: Gen[StartDatabase] = for {
     dbName <- _databaseName

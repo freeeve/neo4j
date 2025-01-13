@@ -39,7 +39,16 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
     case (accessKeyword, accessType) =>
       test(s"ALTER DATABASE foo SET ACCESS $accessKeyword") {
         assertAst(
-          AlterDatabase(literalFoo, ifExists = false, Some(accessType), None, NoOptions, Set.empty, NoWait)(defaultPos)
+          AlterDatabase(
+            literalFoo,
+            ifExists = false,
+            Some(accessType),
+            None,
+            NoOptions,
+            Set.empty,
+            NoWait,
+            None
+          )(defaultPos)
         )
       }
 
@@ -51,7 +60,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
           None,
           NoOptions,
           Set.empty,
-          NoWait
+          NoWait,
+          None
         )(defaultPos))
       }
 
@@ -64,7 +74,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
             None,
             NoOptions,
             Set.empty,
-            NoWait
+            NoWait,
+            None
           )(defaultPos)
         )
       }
@@ -79,14 +90,24 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
             None,
             NoOptions,
             Set.empty,
-            NoWait
+            NoWait,
+            None
           )((1, 12, 11)).withGraph(Some(use(List("system"), !cypherVersion5)))
         )
       }
 
       test(s"ALTER DATABASE foo IF EXISTS SET ACCESS $accessKeyword") {
         assertAst(
-          AlterDatabase(literalFoo, ifExists = true, Some(accessType), None, NoOptions, Set.empty, NoWait)(defaultPos)
+          AlterDatabase(
+            literalFoo,
+            ifExists = true,
+            Some(accessType),
+            None,
+            NoOptions,
+            Set.empty,
+            NoWait,
+            None
+          )(defaultPos)
         )
       }
   }
@@ -109,7 +130,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
 
   test("ALTER DATABASE foo SET READ ONLY") {
     failsParsing[Statements].withSyntaxError(
-      """Invalid input 'READ': expected 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
+      """Invalid input 'READ': expected 'OPTION', 'ACCESS READ', 'TOPOLOGY' or 'DEFAULT' (line 1, column 24 (offset: 23))
         |"ALTER DATABASE foo SET READ ONLY"
         |                        ^""".stripMargin
     )
@@ -197,7 +218,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         None,
         OptionsMap(Map("txLogEnrichment" -> StringLiteral("FULL")(pos.withInputLength(0)))),
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -211,7 +233,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         None,
         OptionsMap(Map("key" -> SignedDecimalIntegerLiteral("1")(pos))),
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -225,7 +248,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         None,
         OptionsMap(Map("key" -> SignedDecimalIntegerLiteral("-1")(pos))),
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -239,7 +263,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         None,
         OptionsMap(Map("key" -> Null()(pos))),
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -256,7 +281,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
           "key2" -> StringLiteral("two")(pos.withInputLength(0))
         )),
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -270,7 +296,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), None)),
         OptionsMap(Map("txLogEnrichment" -> StringLiteral("FULL")(pos.withInputLength(0)))),
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -284,7 +311,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         None,
         NoOptions,
         Set("key", "key2"),
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -298,7 +326,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), None)),
         NoOptions,
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -312,7 +341,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -326,7 +356,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -340,7 +371,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Right(intParam("param"))), None)),
         NoOptions,
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -354,7 +386,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Right(intParam("param"))))),
         NoOptions,
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -368,7 +401,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Right(intParam("param2"))), Some(Right(intParam("param"))))),
         NoOptions,
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -382,7 +416,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -396,7 +431,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -410,7 +446,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        IndefiniteWait
+        IndefiniteWait,
+        None
       )(pos)
     )
   }
@@ -424,7 +461,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        TimeoutAfter(5)
+        TimeoutAfter(5),
+        None
       )(pos)
     )
   }
@@ -438,7 +476,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        TimeoutAfter(5)
+        TimeoutAfter(5),
+        None
       )(pos)
     )
   }
@@ -452,7 +491,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        TimeoutAfter(5)
+        TimeoutAfter(5),
+        None
       )(pos)
     )
   }
@@ -466,7 +506,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        TimeoutAfter(5)
+        TimeoutAfter(5),
+        None
       )(pos)
     )
   }
@@ -480,7 +521,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -494,7 +536,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(None, Some(Left(1)))),
         NoOptions,
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
@@ -508,10 +551,54 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(None, Some(Right(intParam("param"))))),
         NoOptions,
         Set.empty,
-        NoWait
+        NoWait,
+        None
       )(pos)
     )
   }
+
+  // Default version
+
+  test("ALTER DATABASE foo SET DEFAULT LANGUAGE CYPHER 5") {
+    parsesTo[Statements](AlterDatabase(
+      literalFoo,
+      ifExists = false,
+      None,
+      None,
+      NoOptions,
+      Set.empty,
+      NoWait,
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher5)
+    )(pos))
+  }
+
+  test("ALTER DATABASE foo SET DEFAULT LANGUAGE CYPHER 25") {
+    parsesTo[Statements](AlterDatabase(
+      literalFoo,
+      ifExists = false,
+      None,
+      None,
+      NoOptions,
+      Set.empty,
+      NoWait,
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+    )(pos))
+  }
+
+  test("ALTER DATABASE foo IF EXISTS SET DEFAULT LANGUAGE CYPHER 25") {
+    parsesTo[Statements](AlterDatabase(
+      literalFoo,
+      ifExists = true,
+      None,
+      None,
+      NoOptions,
+      Set.empty,
+      NoWait,
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+    )(pos))
+  }
+
+  // Negative tests
 
   test("ALTER DATABASE foo SET ACCESS READ WRITE OPTIONS {existingData: 'use'}") {
     failsParsing[Statements].withSyntaxError(
@@ -537,7 +624,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
 
   test("ALTER DATABASE foo SET OPTIONS {key: value}") {
     failsParsing[Statements].withSyntaxError(
-      """Invalid input 'OPTIONS': expected 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
+      """Invalid input 'OPTIONS': expected 'OPTION', 'ACCESS READ', 'TOPOLOGY' or 'DEFAULT' (line 1, column 24 (offset: 23))
         |"ALTER DATABASE foo SET OPTIONS {key: value}"
         |                        ^""".stripMargin
     )
@@ -553,7 +640,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
 
   test("ALTER DATABASE foo SET OPTIONS key value") {
     failsParsing[Statements].withSyntaxError(
-      """Invalid input 'OPTIONS': expected 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
+      """Invalid input 'OPTIONS': expected 'OPTION', 'ACCESS READ', 'TOPOLOGY' or 'DEFAULT' (line 1, column 24 (offset: 23))
         |"ALTER DATABASE foo SET OPTIONS key value"
         |                        ^""".stripMargin
     )
@@ -707,6 +794,54 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
       """Invalid input '': expected a parameter or an integer value (line 1, column 32 (offset: 31))
         |"ALTER DATABASE foo SET TOPOLOGY"
         |                                ^""".stripMargin
+    )
+  }
+
+  test("ALTER DATABASE foo SET DEFAULT") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected 'LANGUAGE' (line 1, column 31 (offset: 30))
+        |"ALTER DATABASE foo SET DEFAULT"
+        |                               ^""".stripMargin
+    )
+  }
+
+  test("ALTER DATABASE foo SET DEFAULT LANGUAGE ") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected 'CYPHER' (line 1, column 40 (offset: 39))
+        |"ALTER DATABASE foo SET DEFAULT LANGUAGE"
+        |                                        ^""".stripMargin
+    )
+  }
+
+  test("ALTER DATABASE foo SET DEFAULT LANGUAGE CYPHER") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected an integer value (line 1, column 47 (offset: 46))
+        |"ALTER DATABASE foo SET DEFAULT LANGUAGE CYPHER"
+        |                                               ^""".stripMargin
+    )
+  }
+
+  test("ALTER DATABASE foo SET DEFAULT LANGUAGE CYPHER 22") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid Cypher version '22'. Valid Cypher versions are: 5, 25 (line 1, column 48 (offset: 47))
+        |"ALTER DATABASE foo SET DEFAULT LANGUAGE CYPHER 22"
+        |                                                ^""".stripMargin
+    )
+  }
+
+  test("ALTER DATABASE foo REMOVE OPTION txLogEnrichment SET DEFAULT LANGUAGE CYPHER 25") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'SET': expected 'NOWAIT', 'REMOVE OPTION', 'WAIT' or <EOF> (line 1, column 50 (offset: 49))
+        |"ALTER DATABASE foo REMOVE OPTION txLogEnrichment SET DEFAULT LANGUAGE CYPHER 25"
+        |                                                  ^""".stripMargin
+    )
+  }
+
+  test("ALTER DATABASE foo SET DEFAULT LANGUAGE CYPHER 25 REMOVE OPTION txLogEnrichment") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'REMOVE': expected 'NOWAIT', 'SET', 'WAIT' or <EOF> (line 1, column 51 (offset: 50))
+        |"ALTER DATABASE foo SET DEFAULT LANGUAGE CYPHER 25 REMOVE OPTION txLogEnrichment"
+        |                                                   ^""".stripMargin
     )
   }
 }

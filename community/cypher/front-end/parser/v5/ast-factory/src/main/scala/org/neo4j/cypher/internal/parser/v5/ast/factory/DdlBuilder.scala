@@ -17,6 +17,7 @@
 
 package org.neo4j.cypher.internal.parser.v5.ast.factory
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AdministrationCommand.NATIVE_AUTH
 import org.neo4j.cypher.internal.ast.AlterDatabase
 import org.neo4j.cypher.internal.ast.AlterLocalDatabaseAlias
@@ -439,16 +440,35 @@ trait DdlBuilder extends Cypher5ParserListener {
     val waitUntilComplete = astOpt[WaitUntilComplete](ctx.waitClause(), NoWait)
     ctx.ast = if (!ctx.REMOVE().isEmpty) {
       val optionsToRemove = Set.from(astSeq[String](ctx.symbolicNameString()))
-      AlterDatabase(dbName, ctx.EXISTS() != null, None, None, NoOptions, optionsToRemove, waitUntilComplete)(
+      AlterDatabase(
+        dbName,
+        ctx.EXISTS() != null,
+        None,
+        None,
+        NoOptions,
+        optionsToRemove,
+        waitUntilComplete,
+        None
+      )(
         pos(ctx.getParent)
       )
     } else {
       val access = astOptFromList(ctx.alterDatabaseAccess(), None)
       val topology = astOptFromList(ctx.alterDatabaseTopology(), None)
+      val defaultLanguage = astOptFromList[CypherVersion](ctx.defaultLanguageSpecification(), None)
       val options =
         if (ctx.alterDatabaseOption().isEmpty) NoOptions
         else OptionsMap(astSeq[Map[String, Expression]](ctx.alterDatabaseOption()).reduce(_ ++ _))
-      AlterDatabase(dbName, ctx.EXISTS() != null, access, topology, options, Set.empty, waitUntilComplete)(
+      AlterDatabase(
+        dbName,
+        ctx.EXISTS() != null,
+        access,
+        topology,
+        options,
+        Set.empty,
+        waitUntilComplete,
+        defaultLanguage
+      )(
         pos(ctx.getParent)
       )
     }
@@ -477,6 +497,12 @@ trait DdlBuilder extends Cypher5ParserListener {
 
   final override def exitSecondaryTopology(ctx: Cypher5Parser.SecondaryTopologyContext): Unit = {
     ctx.ast = ctx.uIntOrIntParameter().ast()
+  }
+
+  final override def exitDefaultLanguageSpecification(ctx: Cypher5Parser.DefaultLanguageSpecificationContext): Unit = {
+    CypherVersion.values().find(v => v.versionName.equals(ctx.UNSIGNED_DECIMAL_INTEGER().getText)).foreach(cv =>
+      ctx.ast = cv
+    )
   }
 
   final override def exitAlterDatabaseOption(ctx: Cypher5Parser.AlterDatabaseOptionContext): Unit = {

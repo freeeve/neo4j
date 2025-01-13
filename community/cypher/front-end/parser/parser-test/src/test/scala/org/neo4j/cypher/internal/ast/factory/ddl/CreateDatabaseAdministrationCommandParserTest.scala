@@ -39,13 +39,13 @@ import org.neo4j.cypher.internal.util.symbols.CTMap
 class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
   test("CREATE DATABASE foo") {
-    parsesTo[Statements](CreateDatabase(literalFoo, IfExistsThrowError, NoOptions, NoWait, None)(pos))
+    parsesTo[Statements](CreateDatabase(literalFoo, IfExistsThrowError, NoOptions, NoWait, None, None)(pos))
   }
 
   test("USE system CREATE DATABASE foo") {
     // can parse USE clause, but is not included in AST
     def expected(resolveStrictly: Boolean) = {
-      CreateDatabase(literalFoo, IfExistsThrowError, NoOptions, NoWait, None)(pos)
+      CreateDatabase(literalFoo, IfExistsThrowError, NoOptions, NoWait, None, None)(pos)
         .withGraph(Some(use(List("system"), resolveStrictly)))
     }
 
@@ -61,6 +61,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
       IfExistsThrowError,
       NoOptions,
       NoWait,
+      None,
       None
     )(pos))
   }
@@ -71,6 +72,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
       IfExistsThrowError,
       NoOptions,
       NoWait,
+      None,
       None
     )(pos))
   }
@@ -81,6 +83,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
       IfExistsThrowError,
       NoOptions,
       NoWait,
+      None,
       None
     )(pos))
   }
@@ -91,6 +94,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
       IfExistsThrowError,
       NoOptions,
       IndefiniteWait,
+      None,
       None
     )(pos))
   }
@@ -101,6 +105,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
       IfExistsThrowError,
       NoOptions,
       TimeoutAfter(12),
+      None,
       None
     )(pos))
   }
@@ -111,6 +116,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
       IfExistsThrowError,
       NoOptions,
       TimeoutAfter(12),
+      None,
       None
     )(pos))
   }
@@ -121,6 +127,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
       IfExistsThrowError,
       NoOptions,
       TimeoutAfter(12),
+      None,
       None
     )(pos))
   }
@@ -131,13 +138,14 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
       IfExistsThrowError,
       NoOptions,
       TimeoutAfter(12),
+      None,
       None
     )(pos))
   }
 
   test("CREATE DATABASE foo NOWAIT") {
     parsesTo[Statements](
-      CreateDatabase(literal("foo"), IfExistsThrowError, NoOptions, NoWait, None)(pos)
+      CreateDatabase(literal("foo"), IfExistsThrowError, NoOptions, NoWait, None, None)(pos)
     )
   }
 
@@ -147,6 +155,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
       IfExistsThrowError,
       NoOptions,
       NoWait,
+      None,
       None
     )(pos))
   }
@@ -158,34 +167,35 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
           IfExistsThrowError,
           NoOptions,
           NoWait,
+          None,
           None
         )(pos))
       case _ => _.withSyntaxErrorContaining(
-          "Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF>"
+          "Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT'"
         )
     }
   }
 
   test("CREATE DATABASE `foo-bar42`") {
     parsesTo[Statements](
-      CreateDatabase(literal("foo-bar42"), IfExistsThrowError, NoOptions, NoWait, None)(pos)
+      CreateDatabase(literal("foo-bar42"), IfExistsThrowError, NoOptions, NoWait, None, None)(pos)
     )
   }
 
   test("CREATE DATABASE `_foo-bar42`") {
     parsesTo[Statements](
-      CreateDatabase(literal("_foo-bar42"), IfExistsThrowError, NoOptions, NoWait, None)(pos)
+      CreateDatabase(literal("_foo-bar42"), IfExistsThrowError, NoOptions, NoWait, None, None)(pos)
     )
   }
 
   test("CREATE DATABASE ``") {
     parsesTo[Statements](
-      CreateDatabase(literal(""), IfExistsThrowError, NoOptions, NoWait, None)(pos)
+      CreateDatabase(literal(""), IfExistsThrowError, NoOptions, NoWait, None, None)(pos)
     )
   }
 
   test("CREATE DATABASE foo IF NOT EXISTS") {
-    parsesTo[Statements](CreateDatabase(literalFoo, IfExistsDoNothing, NoOptions, NoWait, None)(pos))
+    parsesTo[Statements](CreateDatabase(literalFoo, IfExistsDoNothing, NoOptions, NoWait, None, None)(pos))
   }
 
   test("CREATE DATABASE foo IF NOT EXISTS WAIT 10 SECONDS") {
@@ -194,55 +204,56 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
       IfExistsDoNothing,
       NoOptions,
       TimeoutAfter(10),
+      None,
       None
     )(pos))
   }
 
   test("CREATE DATABASE foo IF NOT EXISTS WAIT") {
     parsesTo[Statements](
-      CreateDatabase(literalFoo, IfExistsDoNothing, NoOptions, IndefiniteWait, None)(pos)
+      CreateDatabase(literalFoo, IfExistsDoNothing, NoOptions, IndefiniteWait, None, None)(pos)
     )
   }
 
   test("CREATE  DATABASE foo IF NOT EXISTS NOWAIT") {
-    parsesTo[Statements](CreateDatabase(literalFoo, IfExistsDoNothing, NoOptions, NoWait, None)(pos))
+    parsesTo[Statements](CreateDatabase(literalFoo, IfExistsDoNothing, NoOptions, NoWait, None, None)(pos))
   }
 
   test("CREATE DATABASE `_foo-bar42` IF NOT EXISTS") {
     parsesTo[Statements](
-      CreateDatabase(literal("_foo-bar42"), IfExistsDoNothing, NoOptions, NoWait, None)(pos)
+      CreateDatabase(literal("_foo-bar42"), IfExistsDoNothing, NoOptions, NoWait, None, None)(pos)
     )
   }
 
   test("CREATE OR REPLACE DATABASE foo") {
-    parsesTo[Statements](CreateDatabase(literalFoo, IfExistsReplace, NoOptions, NoWait, None)(pos))
+    parsesTo[Statements](CreateDatabase(literalFoo, IfExistsReplace, NoOptions, NoWait, None, None)(pos))
   }
 
   test("CREATE OR REPLACE DATABASE foo WAIT 10 SECONDS") {
     parsesTo[Statements](
-      CreateDatabase(literalFoo, IfExistsReplace, NoOptions, TimeoutAfter(10), None)(pos)
+      CreateDatabase(literalFoo, IfExistsReplace, NoOptions, TimeoutAfter(10), None, None)(pos)
     )
   }
 
   test("CREATE OR REPLACE DATABASE foo WAIT") {
     parsesTo[Statements](
-      CreateDatabase(literalFoo, IfExistsReplace, NoOptions, IndefiniteWait, None)(pos)
+      CreateDatabase(literalFoo, IfExistsReplace, NoOptions, IndefiniteWait, None, None)(pos)
     )
   }
 
   test("CREATE OR REPLACE DATABASE foo NOWAIT") {
-    parsesTo[Statements](CreateDatabase(literalFoo, IfExistsReplace, NoOptions, NoWait, None)(pos))
+    parsesTo[Statements](CreateDatabase(literalFoo, IfExistsReplace, NoOptions, NoWait, None, None)(pos))
   }
 
   test("CREATE OR REPLACE DATABASE `_foo-bar42`") {
     parsesTo[Statements](
-      CreateDatabase(literal("_foo-bar42"), IfExistsReplace, NoOptions, NoWait, None)(pos)
+      CreateDatabase(literal("_foo-bar42"), IfExistsReplace, NoOptions, NoWait, None, None)(pos)
     )
   }
 
   test("CREATE OR REPLACE DATABASE foo IF NOT EXISTS") {
     parsesTo[Statements](
-      CreateDatabase(literalFoo, IfExistsInvalidSyntax, NoOptions, NoWait, None)(pos)
+      CreateDatabase(literalFoo, IfExistsInvalidSyntax, NoOptions, NoWait, None, None)(pos)
     )
   }
 
@@ -260,6 +271,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
           )
         )),
         NoWait,
+        None,
         None
       )(defaultPos)
     )
@@ -279,6 +291,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
           )
         )),
         IndefiniteWait,
+        None,
         None
       )(defaultPos)
     )
@@ -291,6 +304,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
         IfExistsThrowError,
         OptionsParam(ExplicitParameter("param", CTMap)((1, 29, 28))),
         NoWait,
+        None,
         None
       )(defaultPos)
     )
@@ -303,7 +317,8 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
         IfExistsThrowError,
         NoOptions,
         NoWait,
-        Some(Topology(Some(Left(1)), None))
+        Some(Topology(Some(Left(1)), None)),
+        None
       )(pos)
     )
   }
@@ -315,7 +330,8 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
         IfExistsThrowError,
         NoOptions,
         NoWait,
-        Some(Topology(Some(Left(1)), None))
+        Some(Topology(Some(Left(1)), None)),
+        None
       )(pos)
     )
   }
@@ -327,7 +343,8 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
         IfExistsThrowError,
         NoOptions,
         NoWait,
-        Some(Topology(Some(Left(1)), Some(Left(1))))
+        Some(Topology(Some(Left(1)), Some(Left(1)))),
+        None
       )(pos)
     )
   }
@@ -339,7 +356,8 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
         IfExistsThrowError,
         NoOptions,
         NoWait,
-        Some(Topology(Some(Left(1)), Some(Left(2))))
+        Some(Topology(Some(Left(1)), Some(Left(2)))),
+        None
       )(pos)
     )
   }
@@ -351,7 +369,8 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
         IfExistsThrowError,
         NoOptions,
         NoWait,
-        Some(Topology(Some(Left(1)), Some(Left(1))))
+        Some(Topology(Some(Left(1)), Some(Left(1)))),
+        None
       )(pos)
     )
   }
@@ -363,7 +382,8 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
         IfExistsThrowError,
         NoOptions,
         NoWait,
-        Some(Topology(None, Some(Left(1))))
+        Some(Topology(None, Some(Left(1)))),
+        None
       )(pos)
     )
   }
@@ -375,7 +395,8 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
         IfExistsThrowError,
         NoOptions,
         NoWait,
-        Some(Topology(Some(Right(intParam("param"))), None))
+        Some(Topology(Some(Right(intParam("param"))), None)),
+        None
       )(pos)
     )
   }
@@ -387,7 +408,8 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
         IfExistsThrowError,
         NoOptions,
         NoWait,
-        Some(Topology(Some(Right(intParam("param"))), None))
+        Some(Topology(Some(Right(intParam("param"))), None)),
+        None
       )(pos)
     )
   }
@@ -399,7 +421,8 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
         IfExistsThrowError,
         NoOptions,
         NoWait,
-        Some(Topology(Some(Right(intParam("param"))), Some(Right(intParam("param2")))))
+        Some(Topology(Some(Right(intParam("param"))), Some(Right(intParam("param2"))))),
+        None
       )(pos)
     )
   }
@@ -411,7 +434,8 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
         IfExistsThrowError,
         NoOptions,
         NoWait,
-        Some(Topology(Some(Left(1)), Some(Right(intParam("param")))))
+        Some(Topology(Some(Left(1)), Some(Right(intParam("param"))))),
+        None
       )(pos)
     )
   }
@@ -423,7 +447,8 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
         IfExistsThrowError,
         NoOptions,
         NoWait,
-        Some(Topology(Some(Right(intParam("param2"))), Some(Right(intParam("param")))))
+        Some(Topology(Some(Right(intParam("param2"))), Some(Right(intParam("param"))))),
+        None
       )(pos)
     )
   }
@@ -435,20 +460,21 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
         IfExistsThrowError,
         NoOptions,
         NoWait,
-        Some(Topology(None, Some(Right(intParam("param")))))
+        Some(Topology(None, Some(Right(intParam("param"))))),
+        None
       )(pos)
     )
   }
 
   test("CREATE DATABASE alias") {
     parsesTo[Statements](
-      CreateDatabase(literal("alias"), IfExistsThrowError, NoOptions, NoWait, None)(pos)
+      CreateDatabase(literal("alias"), IfExistsThrowError, NoOptions, NoWait, None, None)(pos)
     )
   }
 
   test("CREATE DATABASE alias IF NOT EXISTS") {
     parsesTo[Statements](
-      CreateDatabase(literal("alias"), IfExistsDoNothing, NoOptions, NoWait, None)(pos)
+      CreateDatabase(literal("alias"), IfExistsDoNothing, NoOptions, NoWait, None, None)(pos)
     )
   }
 
@@ -474,12 +500,38 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
           "Invalid input ``graph.db`.`db.db`` for database name. Expected name to contain at most one component"
         )
       case _ => _.withSyntaxError(
-          """Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 27 (offset: 26))
+          """Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 27 (offset: 26))
             |"CREATE DATABASE `graph.db`.`db.db`"
             |                           ^""".stripMargin
         )
     }
   }
+
+  // Default version
+
+  test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 5") {
+    parsesTo[Statements](CreateDatabase(
+      literalFoo,
+      IfExistsThrowError,
+      NoOptions,
+      NoWait,
+      None,
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher5)
+    )(pos))
+  }
+
+  test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 25") {
+    parsesTo[Statements](CreateDatabase(
+      literalFoo,
+      IfExistsThrowError,
+      NoOptions,
+      NoWait,
+      None,
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+    )(pos))
+  }
+
+  // Negative tests
 
   test("CREATE DATABASE \"foo.bar\"") {
     failsParsing[Statements]
@@ -511,7 +563,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
           "Invalid input ``foo`.`bar`.`baz`` for database name. Expected name to contain at most one component"
         )
       case _ => _.withSyntaxError(
-          """Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 22 (offset: 21))
+          """Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 22 (offset: 21))
             |"CREATE DATABASE `foo`.`bar`.`baz`"
             |                      ^""".stripMargin
         )
@@ -522,13 +574,13 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
     failsParsing[Statements].in {
       case Cypher5 =>
         _.withSyntaxError(
-          """Invalid input 'NOT': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+          """Invalid input 'NOT': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
             |"CREATE DATABASE  IF NOT EXISTS"
             |                     ^""".stripMargin
         )
       case _ =>
         _.withSyntaxError(
-          """Invalid input 'NOT': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+          """Invalid input 'NOT': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
             |"CREATE DATABASE  IF NOT EXISTS"
             |                     ^""".stripMargin
         )
@@ -577,12 +629,12 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo SET OPTION key value") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxError(
-          """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+          """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo SET OPTION key value"
             |                     ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'SET': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+          """Invalid input 'SET': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo SET OPTION key value"
             |                     ^""".stripMargin
         )
@@ -592,12 +644,12 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo OPTION {key: value}") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxError(
-          """Invalid input 'OPTION': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+          """Invalid input 'OPTION': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo OPTION {key: value}"
             |                     ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'OPTION': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+          """Invalid input 'OPTION': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo OPTION {key: value}"
             |                     ^""".stripMargin
         )
@@ -607,12 +659,12 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo SET OPTIONS key value") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxError(
-          """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+          """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo SET OPTIONS key value"
             |                     ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'SET': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+          """Invalid input 'SET': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo SET OPTIONS key value"
             |                     ^""".stripMargin
         )
@@ -695,6 +747,56 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
       """Invalid input '': expected a parameter or an integer value (line 1, column 29 (offset: 28))
         |"CREATE DATABASE foo TOPOLOGY"
         |                             ^""".stripMargin
+    )
+  }
+
+  test("CREATE DATABASE foo DEFAULT") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected 'LANGUAGE' (line 1, column 28 (offset: 27))
+        |"CREATE DATABASE foo DEFAULT"
+        |                            ^""".stripMargin
+    )
+  }
+
+  test("CREATE DATABASE foo DEFAULT LANGUAGE") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected 'CYPHER' (line 1, column 37 (offset: 36))
+        |"CREATE DATABASE foo DEFAULT LANGUAGE"
+        |                                     ^""".stripMargin
+    )
+  }
+
+  test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected an integer value (line 1, column 44 (offset: 43))
+        |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER"
+        |                                            ^""".stripMargin
+    )
+  }
+
+  test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 92") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid Cypher version '92'. Valid Cypher versions are: 5, 25 (line 1, column 45 (offset: 44))
+        |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 92"
+        |                                             ^""".stripMargin
+    )
+  }
+
+  // If you take the view that the version number is a Cypher number, then this should probably pass, but
+  // we treat it as a word here, as it's part of the name. We would not allow CYPHER 24 + 1 either.
+  test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 2_5") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid Cypher version '2_5'. Valid Cypher versions are: 5, 25 (line 1, column 45 (offset: 44))
+        |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 2_5"
+        |                                             ^""".stripMargin
+    )
+  }
+
+  test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 9_2t") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid Cypher version '9_2t'. Valid Cypher versions are: 5, 25 (line 1, column 45 (offset: 44))
+        |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 9_2t"
+        |                                             ^""".stripMargin
     )
   }
 }

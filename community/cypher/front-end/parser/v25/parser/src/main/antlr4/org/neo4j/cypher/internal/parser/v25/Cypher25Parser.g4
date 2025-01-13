@@ -1526,11 +1526,11 @@ graphScope
 // Database commands
 
 createCompositeDatabase
-   : COMPOSITE DATABASE databaseName (IF NOT EXISTS)? commandOptions? waitClause?
+   : COMPOSITE DATABASE databaseName (IF NOT EXISTS)? defaultLanguageSpecification? commandOptions? waitClause?
    ;
 
 createDatabase
-   : DATABASE databaseName (IF NOT EXISTS)? (TOPOLOGY (primaryTopology | secondaryTopology)+)? commandOptions? waitClause?
+   : DATABASE databaseName (IF NOT EXISTS)? defaultLanguageSpecification? (TOPOLOGY (primaryTopology | secondaryTopology)+)? commandOptions? waitClause?
    ;
 
 primaryTopology
@@ -1549,6 +1549,10 @@ secondaryToken
    : SECONDARY | SECONDARIES
    ;
 
+defaultLanguageSpecification
+    : DEFAULT LANGUAGE CYPHER UNSIGNED_DECIMAL_INTEGER
+    ;
+
 dropDatabase
    : COMPOSITE? DATABASE symbolicAliasNameOrParameter (IF EXISTS)? aliasAction? ((DUMP | DESTROY) DATA)? waitClause?
    ;
@@ -1560,7 +1564,7 @@ aliasAction
 
 alterDatabase
    : DATABASE symbolicAliasNameOrParameter (IF EXISTS)? (
-      (SET (alterDatabaseAccess | alterDatabaseTopology | alterDatabaseOption))+
+      (SET (alterDatabaseAccess | alterDatabaseTopology | alterDatabaseOption | defaultLanguageSpecification))+
       | (REMOVE OPTION symbolicNameString)+
    ) waitClause?
    ;
@@ -1801,6 +1805,7 @@ unescapedSymbolicNameString_
    | CREATE
    | CSV
    | CURRENT
+   | CYPHER
    | DATA
    | DATABASE
    | DATABASES

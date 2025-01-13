@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.parser.v5.ast.factory
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AdministrationCommand.NATIVE_AUTH
 import org.neo4j.cypher.internal.ast.Auth
 import org.neo4j.cypher.internal.ast.AuthAttribute
@@ -471,7 +472,8 @@ trait DdlCreateBuilder extends Cypher5ParserListener {
       ctx.symbolicAliasNameOrParameter().ast[DatabaseName](),
       ifExistsDo(parent.REPLACE() != null, ctx.EXISTS() != null),
       astOpt[Options](ctx.commandOptions(), NoOptions),
-      astOpt[WaitUntilComplete](ctx.waitClause(), NoWait)
+      astOpt[WaitUntilComplete](ctx.waitClause(), NoWait),
+      astOpt[CypherVersion](ctx.defaultLanguageSpecification())
     )(pos(parent))
   }
 
@@ -490,7 +492,8 @@ trait DdlCreateBuilder extends Cypher5ParserListener {
       ifExistsDo(parent.REPLACE() != null, ctx.EXISTS() != null),
       astOpt[Options](ctx.commandOptions(), NoOptions),
       astOpt[WaitUntilComplete](ctx.waitClause(), NoWait),
-      topology
+      topology,
+      astOpt[CypherVersion](ctx.defaultLanguageSpecification())
     )(pos(parent))
   }
 

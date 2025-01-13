@@ -119,6 +119,7 @@ class Cypher25VocabularyTest extends CypherFunSuite {
     Cypher25Parser.CREATE -> "'CREATE'",
     Cypher25Parser.CSV -> "'CSV'",
     Cypher25Parser.CURRENT -> "'CURRENT'",
+    Cypher25Parser.CYPHER -> "'CYPHER'",
     Cypher25Parser.DATA -> "'DATA'",
     Cypher25Parser.DATABASE -> "'DATABASE'",
     Cypher25Parser.DATABASES -> "'DATABASES'",

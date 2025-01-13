@@ -1057,7 +1057,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         ))
 
       // CREATE [OR REPLACE] DATABASE foo [IF NOT EXISTS]
-      case c @ CreateDatabase(dbName, ifExistsDo, options, waitUntilComplete, topology) =>
+      case c @ CreateDatabase(dbName, ifExistsDo, options, waitUntilComplete, topology, cypherVersion) =>
         Some(plans.AssertManagementActionNotBlocked(CreateDatabaseAction))
           .map(plans.AssertAllowedDbmsActions(_, CreateDatabaseAction))
           .flatMap(canCreateCheck =>
@@ -1086,7 +1086,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           .map(wrapInWait(_, dbName, waitUntilComplete))
           .map(plans.LogSystemCommand(_, prettifier.asString(c)))
 
-      case c @ CreateCompositeDatabase(dbName, ifExistsDo, options, waitUntilComplete) =>
+      case c @ CreateCompositeDatabase(dbName, ifExistsDo, options, waitUntilComplete, cypherVersion) =>
         Some(plans.AssertManagementActionNotBlocked(CreateCompositeDatabaseAction))
           .map(plans.AssertAllowedDbmsActions(_, CreateCompositeDatabaseAction))
           .flatMap(canCreateCheck =>
@@ -1147,7 +1147,16 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           .map(plans.LogSystemCommand(_, prettifier.asString(c)))
 
       // ALTER DATABASE foo [IF EXISTS] [SET ACCESS {READ ONLY | READ WRITE}] [SET TOPOLOGY n PRIMARY [m SECONDARY]] [SET OPTION key value] [REMOVE OPTION key]
-      case c @ AlterDatabase(dbName, ifExists, access, topology, options, optionsToRemove, waitUntilComplete) =>
+      case c @ AlterDatabase(
+          dbName,
+          ifExists,
+          access,
+          topology,
+          options,
+          optionsToRemove,
+          waitUntilComplete,
+          cypherVersion
+        ) =>
         // For a set of (predicate -> privilege); If the predicate is true, add the privilege to the set of required privileges
         val requiredPrivilegedActions: Seq[DbmsAction] = Seq(
           // ALTER DATABASE foo SET TOPOLOGY requires 'ALTER DATABASE' privileges:

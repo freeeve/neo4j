@@ -205,7 +205,7 @@ object Deprecations {
           Some(FixedLengthRelationshipInShortestPath(relPat.position, deprecatedParameter, replacementParameter))
         ))
 
-      case c @ CreateDatabase(nn @ NamespacedName(_, Some(_)), _, _, _, _) =>
+      case c @ CreateDatabase(nn @ NamespacedName(_, Some(_)), _, _, _, _, _) =>
         Some(Deprecation(
           None,
           Some(DeprecatedDatabaseNameNotification(nn.toString, Some(c.position)))

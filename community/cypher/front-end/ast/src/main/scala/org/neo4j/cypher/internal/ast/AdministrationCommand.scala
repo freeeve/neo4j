@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AdministrationCommand.NATIVE_AUTH
 import org.neo4j.cypher.internal.ast.AdministrationCommand.checkIsStringLiteralOrParameter
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
@@ -1491,7 +1492,8 @@ final case class CreateDatabase(
   ifExistsDo: IfExistsDo,
   options: Options,
   waitUntilComplete: WaitUntilComplete,
-  topology: Option[Topology]
+  topology: Option[Topology],
+  defaultVersion: Option[CypherVersion]
 )(val position: InputPosition)
     extends WaitableAdministrationCommand {
 
@@ -1517,7 +1519,8 @@ final case class CreateCompositeDatabase(
   databaseName: DatabaseName,
   ifExistsDo: IfExistsDo,
   options: Options,
-  waitUntilComplete: WaitUntilComplete
+  waitUntilComplete: WaitUntilComplete,
+  defaultVersion: Option[CypherVersion]
 )(
   val position: InputPosition
 ) extends WaitableAdministrationCommand {
@@ -1569,7 +1572,8 @@ final case class AlterDatabase(
   topology: Option[Topology],
   options: Options,
   optionsToRemove: Set[String],
-  waitUntilComplete: WaitUntilComplete
+  waitUntilComplete: WaitUntilComplete,
+  defaultVersion: Option[CypherVersion]
 )(
   val position: InputPosition
 ) extends WaitableAdministrationCommand {

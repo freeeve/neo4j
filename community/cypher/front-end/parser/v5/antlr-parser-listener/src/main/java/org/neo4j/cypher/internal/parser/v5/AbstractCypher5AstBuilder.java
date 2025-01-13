@@ -436,6 +436,8 @@ public abstract class AbstractCypher5AstBuilder implements Cypher5ParserListener
             case Cypher5Parser.RULE_secondaryTopology -> exitSecondaryTopology(
                     (Cypher5Parser.SecondaryTopologyContext) ctx);
             case Cypher5Parser.RULE_secondaryToken -> exitSecondaryToken((Cypher5Parser.SecondaryTokenContext) ctx);
+            case Cypher5Parser.RULE_defaultLanguageSpecification -> exitDefaultLanguageSpecification(
+                    (Cypher5Parser.DefaultLanguageSpecificationContext) ctx);
             case Cypher5Parser.RULE_dropDatabase -> exitDropDatabase((Cypher5Parser.DropDatabaseContext) ctx);
             case Cypher5Parser.RULE_aliasAction -> exitAliasAction((Cypher5Parser.AliasActionContext) ctx);
             case Cypher5Parser.RULE_alterDatabase -> exitAlterDatabase((Cypher5Parser.AlterDatabaseContext) ctx);

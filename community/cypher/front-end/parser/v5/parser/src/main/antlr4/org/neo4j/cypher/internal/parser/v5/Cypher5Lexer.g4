@@ -310,6 +310,10 @@ CURRENT
    : C U R R E N T
    ;
 
+CYPHER
+   : C Y P H E R
+   ;
+
 DATA
    : D A T A
    ;

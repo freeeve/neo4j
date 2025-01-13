@@ -371,7 +371,10 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
             + "that do not explicitly select a language. This setting determines the default language used for "
             + "new (and initial) databases where not specified as part of CREATE or ALTER database.")
     public static final Setting<CypherVersion> default_language = newBuilder(
-            "db.query.default_language", ofEnum(GraphDatabaseSettings.CypherVersion.class), CypherVersion.Cypher5).build();
+                    "db.query.default_language",
+                    ofEnum(GraphDatabaseSettings.CypherVersion.class),
+                    CypherVersion.Cypher5)
+            .build();
 
     @Description("Determines if Cypher will allow using file URLs when loading data using `LOAD CSV`. Setting this "
             + "value to `false` will cause Neo4j to fail `LOAD CSV` clauses that load data from the file system.")

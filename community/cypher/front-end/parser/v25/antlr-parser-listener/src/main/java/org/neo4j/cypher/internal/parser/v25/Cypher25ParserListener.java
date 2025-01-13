@@ -589,6 +589,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitSecondaryToken(Cypher25Parser.SecondaryTokenContext ctx);
 
+    void exitDefaultLanguageSpecification(Cypher25Parser.DefaultLanguageSpecificationContext ctx);
+
     void exitDropDatabase(Cypher25Parser.DropDatabaseContext ctx);
 
     void exitAliasAction(Cypher25Parser.AliasActionContext ctx);

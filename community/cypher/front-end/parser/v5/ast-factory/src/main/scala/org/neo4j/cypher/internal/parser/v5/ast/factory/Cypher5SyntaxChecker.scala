@@ -20,6 +20,7 @@ import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.ErrorNode
 import org.antlr.v4.runtime.tree.TerminalNode
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.parser.AstRuleCtx
@@ -94,6 +95,7 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
       case Cypher5Parser.RULE_symbolicAliasNameOrParameter     => checkSymbolicAliasNameOrParameter(cast(ctx))
       case Cypher5Parser.RULE_databaseScope                    => checkDatabaseScope(cast(ctx))
       case Cypher5Parser.RULE_graphScope                       => checkGraphScope(cast(ctx))
+      case Cypher5Parser.RULE_defaultLanguageSpecification     => checkDefaultLanguageSpecification(cast(ctx))
       case _                                                   =>
     }
   }
@@ -860,6 +862,20 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
           position
         )
       case _ =>
+    }
+  }
+
+  private def checkDefaultLanguageSpecification(ctx: Cypher5Parser.DefaultLanguageSpecificationContext): Unit = {
+    val versionNumberStr = ctx.UNSIGNED_DECIMAL_INTEGER().getText
+    CypherVersion.values().find(v => v.versionName.equals(versionNumberStr)) match {
+      case Some(_) =>
+      case None => _errors :+= exceptionFactory.invalidInputException(
+          versionNumberStr,
+          "Cypher version",
+          CypherVersion.values().map(_.description).toList,
+          s"Invalid Cypher version '$versionNumberStr'. Valid Cypher versions are: ${CypherVersion.values().map(_.versionName).mkString(", ")}",
+          pos(ctx.UNSIGNED_DECIMAL_INTEGER())
+        )
     }
   }
 }

@@ -2363,6 +2363,16 @@ class PrettifierIT extends CypherFunSuite {
       "CREATE DATABASE foo OPTIONS {`backticked key`: \"use\"} WAIT",
     "create database foo options $ops wait" ->
       "CREATE DATABASE foo OPTIONS $ops WAIT",
+    "create database foo default language cypher 25" ->
+      "CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 25",
+    "create database foo If Not Exists default language cypher 25" ->
+      "CREATE DATABASE foo IF NOT EXISTS DEFAULT LANGUAGE CYPHER 25",
+    "create database foo default language cypher 25 topology 1 PRIMARY 2 secondaries wait" ->
+      "CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 25 TOPOLOGY 1 PRIMARY 2 SECONDARIES WAIT",
+    "create database foo if not exists default language cypher 25 topology 1 PRIMARY 2 secondaries wait" ->
+      "CREATE DATABASE foo IF NOT EXISTS DEFAULT LANGUAGE CYPHER 25 TOPOLOGY 1 PRIMARY 2 SECONDARIES WAIT",
+    "create database foo default language cypher 25 OPTIONS {`backticked key`: \"use\"} wait" ->
+      "CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 25 OPTIONS {`backticked key`: \"use\"} WAIT",
     "create composite database composite" ->
       "CREATE COMPOSITE DATABASE composite",
     "create composite database `composite.DB`" ->
@@ -2381,6 +2391,10 @@ class PrettifierIT extends CypherFunSuite {
       "CREATE COMPOSITE DATABASE $c IF NOT EXISTS",
     "create composite database $c options {existingData: 'use'}" ->
       "CREATE COMPOSITE DATABASE $c OPTIONS {existingData: \"use\"}",
+    "create composite database foo default language cypher 25" ->
+      "CREATE COMPOSITE DATABASE foo DEFAULT LANGUAGE CYPHER 25",
+    "create composite database foo default language cypher 25 OPTIONS {`backticked key`: \"use\"} wait" ->
+      "CREATE COMPOSITE DATABASE foo DEFAULT LANGUAGE CYPHER 25 OPTIONS {`backticked key`: \"use\"} WAIT",
     "DROP database foO_Bar_42" ->
       "DROP DATABASE foO_Bar_42 RESTRICT DESTROY DATA",
     "DROP database $foo" ->
@@ -2455,6 +2469,10 @@ class PrettifierIT extends CypherFunSuite {
       "ALTER DATABASE foo SET ACCESS READ ONLY WAIT 10 SECONDS",
     "ALTER DATABASE foo SET ACCESS READ ONLY WAIT 10 seconds" ->
       "ALTER DATABASE foo SET ACCESS READ ONLY WAIT 10 SECONDS",
+    "ALTER DATABASE foo SET DEFAULT LANGUAGE cypher 5" ->
+      "ALTER DATABASE foo SET DEFAULT LANGUAGE CYPHER 5",
+    "ALTER DATABASE foo SeT default LANGUAGE cypher 25 set access READ only WAIt" ->
+      "ALTER DATABASE foo SET ACCESS READ ONLY SET DEFAULT LANGUAGE CYPHER 25 WAIT",
     "start database $foo" ->
       "START DATABASE $foo",
     "start database foO_Bar_42" ->

@@ -670,39 +670,52 @@ case class Prettifier(
         }
         s"${x.name}$optionalName$y$r"
 
-      case x @ CreateDatabase(dbName, ifExistsDo, options, waitUntilComplete, topology) =>
+      case x @ CreateDatabase(dbName, ifExistsDo, options, waitUntilComplete, topology, defaultCypherVersion) =>
         val formattedOptions = asString(options)
         val withoutNamespace = dbName match {
           case n: NamespacedName => Left(n.toString)
           case ParameterName(p)  => Right(p)
         }
         val maybeTopologyString = topology.map(Prettifier.extractTopology).getOrElse("")
+        val maybeCypherVersion = defaultCypherVersion.map(cv => s" DEFAULT LANGUAGE ${cv.description}").getOrElse("")
         ifExistsDo match {
           case IfExistsDoNothing | IfExistsInvalidSyntax =>
-            s"${x.name} ${Prettifier.escapeName(withoutNamespace)} IF NOT EXISTS$maybeTopologyString$formattedOptions${waitUntilComplete.name}"
+            s"${x.name} ${Prettifier.escapeName(withoutNamespace)} IF NOT EXISTS$maybeCypherVersion$maybeTopologyString$formattedOptions${waitUntilComplete.name}"
           case _ =>
-            s"${x.name} ${Prettifier.escapeName(withoutNamespace)}$maybeTopologyString$formattedOptions${waitUntilComplete.name}"
+            s"${x.name} ${Prettifier.escapeName(withoutNamespace)}$maybeCypherVersion$maybeTopologyString$formattedOptions${waitUntilComplete.name}"
         }
 
-      case x @ CreateCompositeDatabase(name, ifExistsDo, options, waitUntilComplete) =>
+      case x @ CreateCompositeDatabase(name, ifExistsDo, options, waitUntilComplete, defaultCypherVersion) =>
         val formattedOptions = asString(options)
+        val maybeCypherVersion = defaultCypherVersion.map(cv => s" DEFAULT LANGUAGE ${cv.description}").getOrElse("")
         val ifExists = ifExistsDo match {
           case IfExistsInvalidSyntax | IfExistsDoNothing => " IF NOT EXISTS"
           case _                                         => ""
         }
-        s"${x.name} ${escapeName(name)}$ifExists$formattedOptions${waitUntilComplete.name}"
+        s"${x.name} ${escapeName(name)}$ifExists${maybeCypherVersion}$formattedOptions${waitUntilComplete.name}"
 
       case x @ DropDatabase(dbName, ifExists, _, aliasAction, additionalAction, waitUntilComplete) =>
         val maybeIfExists = if (ifExists) " IF EXISTS" else ""
         s"${x.name} ${Prettifier.escapeName(dbName)}$maybeIfExists ${aliasAction.name} ${additionalAction.name}${waitUntilComplete.name}"
 
-      case x @ AlterDatabase(dbName, ifExists, access, topology, options, optionsToRemove, waitUntilComplete) =>
+      case x @ AlterDatabase(
+          dbName,
+          ifExists,
+          access,
+          topology,
+          options,
+          optionsToRemove,
+          waitUntilComplete,
+          defaultCypherVersion
+        ) =>
         val maybeAccessString = access.map(getAccessString).getOrElse("")
         val maybeIfExists = if (ifExists) " IF EXISTS" else ""
         val maybeTopologyString = topology.map(topo => s" SET${Prettifier.extractTopology(topo)}").getOrElse("")
+        val maybeCypherVersion =
+          defaultCypherVersion.map(cv => s" SET DEFAULT LANGUAGE ${cv.description}").getOrElse("")
         val formattedOptions = asIndividualOptions(options)
         val formattedOptionsToRemove = optionsToRemove.map(o => s" REMOVE OPTION ${backtick(o)}").mkString("")
-        s"${x.name} ${Prettifier.escapeName(dbName)}$maybeIfExists$maybeAccessString$maybeTopologyString$formattedOptions$formattedOptionsToRemove${waitUntilComplete.name}"
+        s"${x.name} ${Prettifier.escapeName(dbName)}$maybeIfExists$maybeAccessString$maybeTopologyString$formattedOptions$formattedOptionsToRemove$maybeCypherVersion${waitUntilComplete.name}"
 
       case x @ StartDatabase(dbName, waitUntilComplete) =>
         s"${x.name} ${Prettifier.escapeName(dbName)}${waitUntilComplete.name}"
