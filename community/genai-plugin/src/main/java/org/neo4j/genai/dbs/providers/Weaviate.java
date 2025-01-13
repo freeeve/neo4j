@@ -328,9 +328,15 @@ public final class Weaviate implements VectorDatabaseProvider {
 
         Function<InputStream, T> responseTransformer = inputStream -> {
             try {
-                var result = JsonUtils.getObjectMapper().readValue(inputStream, JsonUtils.TYPE_REF_MAP_STRING_MAP);
-                var data = (List<Map<String, Object>>)
-                        ((Map<?, ?>) result.get("data").get("Get")).get(collection);
+                var result = JsonUtils.getObjectMapper().readValue(inputStream, JsonUtils.TYPE_REF_MAP_STRING_OBJECT);
+                if (result.get("errors") instanceof List<?> errors && !errors.isEmpty()) {
+                    var message = new StringBuilder();
+                    errors.forEach(error -> message.append(((Map<String, ?>) error).get("message")));
+                    throw new GenAIProcedureException(message.toString());
+                }
+                Map<String, ?> dataMap = (Map<String, ?>) result.get("data");
+                Map<String, ?> getMap = (Map<String, ?>) dataMap.get("Get");
+                List<Map<String, Object>> data = (List<Map<String, Object>>) getMap.get(collection);
                 return (T) data.stream().map(i -> {
                     Map<String, Object> additional = (Map<String, Object>) i.remove("_additional");
                     Map<String, Object> row = new HashMap<>();

@@ -20,6 +20,7 @@
 package org.neo4j.genai.dbs;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.fail;
 
 import io.weaviate.client.Config;
@@ -37,8 +38,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.provider.Arguments;
+import org.neo4j.genai.util.GenAIProcedureException;
 import org.neo4j.genai.util.JsonUtils;
+import org.neo4j.graphdb.QueryExecutionException;
+import org.neo4j.graphdb.Transaction;
 import org.testcontainers.chromadb.ChromaDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -173,6 +178,35 @@ final class ProvidersIT extends IntegrationTestBase {
         setupQdrant();
         setupChromaDb();
         setupMilvus();
+    }
+
+    @Test
+    void shouldHandleWeaviateErrors() {
+        try (Transaction tx = database.beginTx()) {
+            var query =
+                    """
+				WITH
+				    $url AS uri,
+				    $token AS token,
+				    $collection AS collection,
+				    [1, 2, 3, 4] AS search_vector
+				
+				CALL genai.vector.external.query(uri, collection, search_vector, null, 10,
+				{
+				    token: token,
+				    fields:["unknownField"],
+				    allResults: true
+				})
+				YIELD  score, metadata, id
+				RETURN score, metadata, id
+				""";
+            var result = tx.execute(
+                    query, Map.of("url", WEAVIATE_BASE_URL, "token", ADMIN_KEY, "collection", COLLECTION_NAME));
+            assertThatExceptionOfType(QueryExecutionException.class)
+                    .isThrownBy(result::hasNext)
+                    .withRootCauseInstanceOf(GenAIProcedureException.class)
+                    .withStackTraceContaining("Cannot query field \"unknownField\" on type \"GenaiTestCollection\".");
+        }
     }
 
     static void setupWeaviate() throws AuthException {
