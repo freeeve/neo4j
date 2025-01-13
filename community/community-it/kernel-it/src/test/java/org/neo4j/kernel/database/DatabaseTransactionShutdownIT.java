@@ -38,6 +38,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.DatabaseShutdownException;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.graphdb.TransactionTerminatedException;
 import org.neo4j.graphdb.TransientTransactionFailureException;
 import org.neo4j.kernel.api.KernelTransaction;
