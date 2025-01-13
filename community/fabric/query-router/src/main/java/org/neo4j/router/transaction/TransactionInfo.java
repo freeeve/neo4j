@@ -91,7 +91,7 @@ public final class TransactionInfo {
     }
 
     public StatementLifecycleTransactionInfo statementLifecycleTransactionInfo() {
-        return new StatementLifecycleTransactionInfo(loginContext, clientInfo, txMetadata);
+        return new StatementLifecycleTransactionInfo(loginContext, clientInfo, txMetadata, sessionDatabase);
     }
 
     public void setTxMetadata(Map<String, Object> txMeta) {

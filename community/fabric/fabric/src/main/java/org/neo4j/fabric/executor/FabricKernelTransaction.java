@@ -115,7 +115,8 @@ public class FabricKernelTransaction {
         var parentQuery = lifecycle.getMonitoredQuery();
         var queryExecutionConfiguration = transactionInfo.getQueryExecutionConfiguration();
 
-        if (lifecycle.isParentChildMonitoringMode()) {
+        if (lifecycle instanceof QueryStatementLifecycles.StatementLifecycleImpl
+                && ((QueryStatementLifecycles.StatementLifecycleImpl) lifecycle).isParentChildMonitoringMode()) {
             // Cypher engine reports separately for each child query
             String queryText = "Internal query for parent query id: " + parentQuery.id();
             MapValue params = MapValue.EMPTY;

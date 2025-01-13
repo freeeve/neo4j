@@ -46,7 +46,7 @@ public class FabricTransactionInfo extends StatementLifecycleTransactionInfo {
             Map<String, Object> txMetadata,
             RoutingContext routingContext,
             QueryExecutionConfiguration queryExecutionConfiguration) {
-        super(loginContext, clientConnectionInfo, txMetadata);
+        super(loginContext, clientConnectionInfo, txMetadata, sessionDatabaseReference);
         this.accessMode = accessMode;
         this.sessionDatabaseReference = sessionDatabaseReference;
         this.implicitTransaction = implicitTransaction;

@@ -22,17 +22,23 @@ package org.neo4j.fabric.transaction;
 import java.util.Map;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
 import org.neo4j.internal.kernel.api.security.LoginContext;
+import org.neo4j.kernel.database.DatabaseReference;
 
 public class StatementLifecycleTransactionInfo {
     private final LoginContext loginContext;
     private final ClientConnectionInfo clientConnectionInfo;
     protected Map<String, Object> txMetadata;
+    private final DatabaseReference sessionDatabaseReference;
 
     public StatementLifecycleTransactionInfo(
-            LoginContext loginContext, ClientConnectionInfo clientConnectionInfo, Map<String, Object> txMetadata) {
+            LoginContext loginContext,
+            ClientConnectionInfo clientConnectionInfo,
+            Map<String, Object> txMetadata,
+            DatabaseReference sessionDatabaseReference) {
         this.loginContext = loginContext;
         this.clientConnectionInfo = clientConnectionInfo;
         this.txMetadata = txMetadata;
+        this.sessionDatabaseReference = sessionDatabaseReference;
     }
 
     public ClientConnectionInfo getClientConnectionInfo() {
@@ -45,5 +51,9 @@ public class StatementLifecycleTransactionInfo {
 
     public Map<String, Object> getTxMetadata() {
         return txMetadata;
+    }
+
+    public DatabaseReference getSessionDatabaseReference() {
+        return sessionDatabaseReference;
     }
 }
