@@ -109,7 +109,7 @@ public class CypherTypeException extends Neo4jException {
 
     public static CypherTypeException expectedCollection(String got, String gotPretty, String gotCypherType) {
         var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of("LIST"), gotCypherType);
-        return new CypherTypeException(gql, String.format("Expected a collection, got `$x`", got));
+        return new CypherTypeException(gql, String.format("Expected a collection, got `%s`", got));
     }
 
     public static CypherTypeException expectedCollectionWasNot(String got, String gotPretty, String gotCypherType) {

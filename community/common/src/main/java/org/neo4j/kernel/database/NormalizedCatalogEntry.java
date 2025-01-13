@@ -20,6 +20,7 @@
 package org.neo4j.kernel.database;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import org.neo4j.util.Stringifier;
@@ -35,13 +36,13 @@ public class NormalizedCatalogEntry {
     private final String databaseAlias;
 
     public NormalizedCatalogEntry(String compositeDb, String databaseAlias) {
-        this.compositeDb = Optional.of(compositeDb.toLowerCase());
-        this.databaseAlias = databaseAlias.toLowerCase();
+        this.compositeDb = Optional.of(compositeDb.toLowerCase(Locale.ROOT));
+        this.databaseAlias = databaseAlias.toLowerCase(Locale.ROOT);
     }
 
     public NormalizedCatalogEntry(String databaseAlias) {
         this.compositeDb = Optional.empty();
-        this.databaseAlias = databaseAlias.toLowerCase();
+        this.databaseAlias = databaseAlias.toLowerCase(Locale.ROOT);
     }
 
     public static NormalizedCatalogEntry fromList(List<String> nameParts) {

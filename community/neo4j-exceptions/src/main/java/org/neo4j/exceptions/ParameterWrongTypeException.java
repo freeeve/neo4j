@@ -24,6 +24,7 @@ import static org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27;
 import static org.neo4j.gqlstatus.GqlHelper.getGql42N51;
 
 import java.util.List;
+import java.util.Locale;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
@@ -54,14 +55,14 @@ public class ParameterWrongTypeException extends Neo4jException {
 
     public static ParameterWrongTypeException expectedEntityAtRefSlotFoundInstead(
             int refSlot, String entity, String got, String gotPretty, String gotCypherType) {
-        var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of(entity.toUpperCase()), gotCypherType);
+        var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of(entity.toUpperCase(Locale.ROOT)), gotCypherType);
         return new ParameterWrongTypeException(
                 gql, String.format("Expected to find a %s at ref slot %s but found %s instead", entity, refSlot, got));
     }
 
     public static ParameterWrongTypeException expectedEntityAtLongSlotFoundInstead(
             int longSlot, String entity, String got, String gotPretty, String gotCypherType) {
-        var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of(entity.toUpperCase()), gotCypherType);
+        var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of(entity.toUpperCase(Locale.ROOT)), gotCypherType);
         return new ParameterWrongTypeException(
                 gql,
                 String.format("Expected to find a %s at long slot %s but found %s instead", entity, longSlot, got));

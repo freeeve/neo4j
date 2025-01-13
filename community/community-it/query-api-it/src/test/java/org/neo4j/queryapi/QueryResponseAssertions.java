@@ -19,7 +19,6 @@
  */
 package org.neo4j.queryapi;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.CYPHER_TYPE;
@@ -44,7 +43,7 @@ public final class QueryResponseAssertions
 
     private final HttpResponse<QueryResponse> queryResponse;
 
-    protected QueryResponseAssertions(HttpResponse<QueryResponse> queryResponse) {
+    private QueryResponseAssertions(HttpResponse<QueryResponse> queryResponse) {
         super(queryResponse, QueryResponseAssertions.class);
         this.queryResponse = queryResponse;
     }
@@ -168,11 +167,11 @@ public final class QueryResponseAssertions
                     .isEqualTo(notifications[i].getStatus().code().description());
             Assertions.assertThat(reqNotifications.get("description").asText()).isNotBlank();
             Assertions.assertThat(reqNotifications.get("position").get("offset").asInt())
-                    .isNotNull();
+                    .isNotNegative();
             Assertions.assertThat(reqNotifications.get("position").get("line").asInt())
-                    .isNotNull();
+                    .isPositive();
             Assertions.assertThat(reqNotifications.get("position").get("column").asInt())
-                    .isNotNull();
+                    .isPositive();
             Assertions.assertThat(reqNotifications.get("severity").asText()).isNotBlank();
             Assertions.assertThat(reqNotifications.get("category").asText()).isNotBlank();
         }

@@ -83,13 +83,6 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
         private final Throwable error;
         private final ErrorGqlStatusObject gqlStatusObject;
 
-        @Deprecated
-        private ErrorRecord(String message, Throwable error) {
-            this.message = message;
-            this.error = error;
-            this.gqlStatusObject = null;
-        }
-
         private ErrorRecord(ErrorGqlStatusObject gql, String message, Throwable error) {
             this.message = message;
             this.error = error;

@@ -236,6 +236,7 @@ public class HeapTrackingArrayList<E> implements HeapTracking.List<E>, RandomAcc
         return oldValue;
     }
 
+    @Override
     public E removeLast() {
         return remove(size - 1);
     }

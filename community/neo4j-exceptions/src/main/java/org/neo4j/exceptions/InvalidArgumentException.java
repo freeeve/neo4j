@@ -572,11 +572,10 @@ public class InvalidArgumentException extends Neo4jException {
                 gql = GqlHelper.getGql22007_22N03("seconds", "INTEGER", 0, 60, value);
             }
             default -> {
-                msg = unit.name().toLowerCase() + "out of range: " + value;
-                gql = GqlHelper.getGql22007_22N03(unit.name().toLowerCase(), "INTEGER", -1, -1, value);
+                msg = unit.name().toLowerCase(Locale.ROOT) + "out of range: " + value;
+                gql = GqlHelper.getGql22007_22N03(unit.name().toLowerCase(Locale.ROOT), "INTEGER", -1, -1, value);
             }
         }
-        ;
         return new InvalidArgumentException(gql, msg);
     }
 

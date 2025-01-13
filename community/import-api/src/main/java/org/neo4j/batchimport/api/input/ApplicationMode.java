@@ -19,6 +19,8 @@
  */
 package org.neo4j.batchimport.api.input;
 
+import java.util.Locale;
+
 public enum ApplicationMode {
     CREATE("C"),
     UPDATE("U"),
@@ -33,7 +35,7 @@ public enum ApplicationMode {
     }
 
     public static ApplicationMode valueOfLenient(String name) {
-        var upperCaseName = name.toUpperCase();
+        var upperCaseName = name.toUpperCase(Locale.ROOT);
         for (ApplicationMode mode : MODES) {
             if (upperCaseName.equals(mode.name()) || upperCaseName.equals(mode.alternativeName)) {
                 return mode;

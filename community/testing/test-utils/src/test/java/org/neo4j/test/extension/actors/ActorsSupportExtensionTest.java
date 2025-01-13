@@ -160,7 +160,7 @@ class ActorsSupportExtensionTest {
             actor.interrupt();
         }
 
-        class Sleeper {
+        static class Sleeper {
             public void sleep() {
                 try {
                     Thread.sleep(1_000);

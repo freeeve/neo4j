@@ -324,6 +324,7 @@ public class ConstraintDescriptorImplementation
     // The constraints implementing this class must be unique on the combined fields constraintType, entityToken and
     // propertyToken(s)
     // It is also disallowed to have identical schema (entityToken and propertyToken(s)) and identical index type
+    @Override
     public boolean conflictsWith(ConstraintDescriptor other) {
         if (!this.schema().equals(other.schema())) {
             return false;
@@ -334,11 +335,7 @@ public class ConstraintDescriptorImplementation
                     == other.asIndexBackedConstraint().indexType();
         }
 
-        if (this.type == other.type()) {
-            return true;
-        }
-
-        return false;
+        return this.type == other.type();
     }
 
     @Override
