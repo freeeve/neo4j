@@ -19,18 +19,15 @@
  */
 package org.neo4j.gqlstatus;
 
-import org.assertj.core.api.AbstractThrowableAssert;
 import org.assertj.core.api.ThrowableAssert;
-import org.assertj.core.internal.Throwables;
 
 /**
  * Provides assertions against ErrorGqlStatusObject for Throwables that implement ErrorGqlStatusObject.
  * There are multiple exceptions extending ErrorGqlStatusObject, thus this is not implemented directly
  * against GqlException, and thus the generics on many methods.
  */
-public class GqlExceptionLikeAssert extends AbstractThrowableAssert<GqlExceptionLikeAssert, Throwable>
+public class GqlExceptionLikeAssert extends ThrowableWithPotentialGqlCauseAssert<GqlExceptionLikeAssert>
         implements ErrorGqlStatusObjectAssertDelegate<GqlExceptionLikeAssert> {
-    private final Throwables throwables = Throwables.instance();
 
     protected <T extends Throwable & ErrorGqlStatusObject> GqlExceptionLikeAssert(T t) {
         super(t, GqlExceptionLikeAssert.class);
@@ -43,7 +40,7 @@ public class GqlExceptionLikeAssert extends AbstractThrowableAssert<GqlException
      * Cast a Throwable that extends ErrorGqlStatusObject to the correct type.
      * Return null otherwise.
      */
-    private static <T extends Throwable & ErrorGqlStatusObject> T asT(Throwable t) {
+    static <T extends Throwable & ErrorGqlStatusObject> T asT(Throwable t) {
         if (t instanceof ErrorGqlStatusObject) {
             //noinspection unchecked
             return (T) t;
@@ -71,18 +68,6 @@ public class GqlExceptionLikeAssert extends AbstractThrowableAssert<GqlException
     public <T extends Throwable & ErrorGqlStatusObject> T getActual() {
         //noinspection unchecked
         return (T) actual;
-    }
-
-    /**
-     * Use this instead of {@link ThrowableAssert#cause()} to assert on a cause that is expected to also implement ErrorGqlStatusObject.
-     */
-    public GqlExceptionLikeAssert causeWithGqlStatus() {
-        throwables.assertHasCause(info, actual);
-        var cause = actual.getCause();
-        if (cause instanceof ErrorGqlStatusObject) {
-            return new GqlExceptionLikeAssert(asT(cause));
-        }
-        throw failure("Expected cause to be a Throwable implementing ErrorGqlStatusObject, but was: %s", cause);
     }
 
     @Override

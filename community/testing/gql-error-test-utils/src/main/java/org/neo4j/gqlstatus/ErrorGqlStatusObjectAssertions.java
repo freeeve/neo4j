@@ -21,6 +21,7 @@ package org.neo4j.gqlstatus;
 
 import static org.neo4j.gqlstatus.GqlExceptionLikeAssert.catchGqlException;
 
+import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowableAssert;
 import org.assertj.core.util.CanIgnoreReturnValue;
 
@@ -34,5 +35,11 @@ public class ErrorGqlStatusObjectAssertions {
     @CanIgnoreReturnValue
     public static GqlExceptionLikeAssert assertThatThrownBy(ThrowableAssert.ThrowingCallable shouldRaiseThrowable) {
         return new GqlExceptionLikeAssert(catchGqlException(shouldRaiseThrowable));
+    }
+
+    @CanIgnoreReturnValue
+    public static ThrowableWithPotentialGqlCauseAssert<?> assertThatNonGqlThrownBy(
+            ThrowableAssert.ThrowingCallable shouldRaiseThrowable) {
+        return new ThrowableWithPotentialGqlCauseAssert<>(Assertions.catchThrowable(shouldRaiseThrowable));
     }
 }
