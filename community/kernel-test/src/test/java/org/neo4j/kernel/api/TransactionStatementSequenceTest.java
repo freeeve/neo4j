@@ -19,12 +19,12 @@
  */
 package org.neo4j.kernel.api;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.internal.kernel.api.security.LoginContext.AUTH_DISABLED;
 import static org.neo4j.kernel.api.KernelTransactionFactory.kernelTransaction;
 
 import org.junit.jupiter.api.Test;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.InvalidTransactionTypeKernelException;
 import org.neo4j.kernel.api.security.AnonymousContext;
 
@@ -66,11 +66,12 @@ class TransactionStatementSequenceTest {
         tx.dataWrite();
 
         // when
-        InvalidTransactionTypeKernelException exception =
-                assertThrows(InvalidTransactionTypeKernelException.class, tx::schemaWrite);
-        assertEquals(
-                "Cannot perform schema updates in a transaction that has performed data updates.",
-                exception.getMessage());
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(tx::schemaWrite)
+                .isInstanceOf(InvalidTransactionTypeKernelException.class)
+                .hasMessage("Cannot perform schema updates in a transaction that has performed data updates.")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_25G02)
+                .hasStatusDescription(
+                        "error: invalid transaction state - catalog and data statement mixing not supported");
     }
 
     @Test
@@ -80,11 +81,12 @@ class TransactionStatementSequenceTest {
         tx.schemaWrite();
 
         // when
-        InvalidTransactionTypeKernelException exception =
-                assertThrows(InvalidTransactionTypeKernelException.class, tx::dataWrite);
-        assertEquals(
-                "Cannot perform data updates in a transaction that has performed schema updates.",
-                exception.getMessage());
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(tx::dataWrite)
+                .isInstanceOf(InvalidTransactionTypeKernelException.class)
+                .hasMessage("Cannot perform data updates in a transaction that has performed schema updates.")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_25G02)
+                .hasStatusDescription(
+                        "error: invalid transaction state - catalog and data statement mixing not supported");
     }
 
     @Test

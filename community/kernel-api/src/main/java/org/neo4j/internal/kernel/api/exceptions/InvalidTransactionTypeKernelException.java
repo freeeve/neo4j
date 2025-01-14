@@ -21,14 +21,19 @@ package org.neo4j.internal.kernel.api.exceptions;
 
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class InvalidTransactionTypeKernelException extends KernelException {
-    public InvalidTransactionTypeKernelException(String message) {
-        super(Status.Transaction.ForbiddenDueToTransactionType, (Throwable) null, message);
+
+    private InvalidTransactionTypeKernelException(ErrorGqlStatusObject gqlStatusObject, String message) {
+        super(gqlStatusObject, Status.Transaction.ForbiddenDueToTransactionType, (Throwable) null, message);
     }
 
-    public InvalidTransactionTypeKernelException(ErrorGqlStatusObject gqlStatusObject, String message) {
-        super(gqlStatusObject, Status.Transaction.ForbiddenDueToTransactionType, (Throwable) null, message);
+    public static InvalidTransactionTypeKernelException invalidTransactionType(String message) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25G02)
+                .build();
+        return new InvalidTransactionTypeKernelException(gql, message);
     }
 }

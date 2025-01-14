@@ -1821,14 +1821,14 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         DATA {
             @Override
             TransactionWriteState upgradeToSchemaWrites() throws InvalidTransactionTypeKernelException {
-                throw new InvalidTransactionTypeKernelException(
+                throw InvalidTransactionTypeKernelException.invalidTransactionType(
                         "Cannot perform schema updates in a transaction that has performed data updates.");
             }
         },
         SCHEMA {
             @Override
             TransactionWriteState upgradeToDataWrites() throws InvalidTransactionTypeKernelException {
-                throw new InvalidTransactionTypeKernelException(
+                throw InvalidTransactionTypeKernelException.invalidTransactionType(
                         "Cannot perform data updates in a transaction that has performed schema updates.");
             }
         };
