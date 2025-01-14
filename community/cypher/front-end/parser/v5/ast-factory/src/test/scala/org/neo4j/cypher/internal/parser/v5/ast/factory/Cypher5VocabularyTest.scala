@@ -207,6 +207,7 @@ class Cypher5VocabularyTest extends CypherFunSuite {
     Cypher5Parser.LABELS -> "'LABELS'",
     Cypher5Parser.AMPERSAND -> "'&'",
     Cypher5Parser.EXCLAMATION_MARK -> "'!'",
+    Cypher5Parser.LANGUAGE -> "'LANGUAGE'",
     Cypher5Parser.LBRACKET -> "'['",
     Cypher5Parser.LCURLY -> "'{'",
     Cypher5Parser.LE -> "'<='",

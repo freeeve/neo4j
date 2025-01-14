@@ -20,7 +20,6 @@
 package org.neo4j.internal.kernel.api.security;
 
 import java.util.Locale;
-import java.util.Objects;
 
 public enum PrivilegeAction {
     // Database actions
@@ -73,6 +72,7 @@ public enum PrivilegeAction {
     CREATE_DATABASE,
     DROP_DATABASE,
     SET_DATABASE_ACCESS,
+    SET_DEFAULT_LANGUAGE,
     CREATE_COMPOSITE_DATABASE,
     DROP_COMPOSITE_DATABASE,
 
@@ -193,10 +193,10 @@ public enum PrivilegeAction {
     ALTER_DATABASE {
         @Override
         public boolean satisfies(PrivilegeAction action) {
-            if (Objects.requireNonNull(action) == PrivilegeAction.SET_DATABASE_ACCESS) {
-                return true;
-            }
-            return this == action;
+            return switch (action) {
+                case SET_DATABASE_ACCESS, SET_DEFAULT_LANGUAGE -> true;
+                default -> this == action;
+            };
         }
     },
 

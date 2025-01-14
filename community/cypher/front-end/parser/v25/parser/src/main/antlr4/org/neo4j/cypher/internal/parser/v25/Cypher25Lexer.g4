@@ -623,6 +623,10 @@ EXCLAMATION_MARK
    : '!'
    ;
 
+LANGUAGE
+   : L A N G U A G E
+   ;
+
 LBRACKET
    : '['
    ;

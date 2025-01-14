@@ -3095,6 +3095,8 @@ class PrettifierIT extends CypherFunSuite {
             s"$action ALTER DATABASE ON DBMS $preposition role",
           s"$action set database access on dbms $preposition role" ->
             s"$action SET DATABASE ACCESS ON DBMS $preposition role",
+          s"$action set default language on dbms $preposition role" ->
+            s"$action SET DEFAULT LANGUAGE ON DBMS $preposition role",
           s"$action aliaS Management on dbms $preposition role" ->
             s"$action ALIAS MANAGEMENT ON DBMS $preposition role",
           s"$action  create alias on DBMS $preposition role" ->
