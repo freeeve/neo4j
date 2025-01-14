@@ -65,7 +65,8 @@ public class FabricDatabaseManager {
         var databaseReference =
                 databaseReferenceRepo.getByAlias(databaseNameRaw).orElseThrow(databaseNotFound(databaseNameRaw));
         return getDatabaseContext(databaseReference)
-                .orElseThrow(() -> UnavailableException.databaseUnavailable(databaseNameRaw));
+                .orElseThrow(() -> UnavailableException.databaseUnavailable(
+                        databaseNameRaw, String.format("Database '%s' is unavailable.", databaseNameRaw)));
     }
 
     private Optional<? extends DatabaseContext> getDatabaseContext(DatabaseReference databaseReference) {

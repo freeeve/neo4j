@@ -153,18 +153,19 @@ public class DatabaseAvailabilityGuard extends LifecycleAdapter implements Avail
     public void assertDatabaseAvailable() throws UnavailableException {
         Availability availability = availability(databaseTimeMillis);
         switch (availability) {
-            case AVAILABLE:
-                return;
-            case SHUTDOWN:
+            case AVAILABLE -> {}
+            case SHUTDOWN -> {
                 if (startupFailure != null) {
                     throw new DatabaseShutdownException(startupFailure);
                 }
                 throw new DatabaseShutdownException();
-            case UNAVAILABLE:
-                throwUnavailableException(databaseTimeMillis, availability);
-            default:
-                throw new IllegalStateException("Unsupported availability mode: " + availability);
+            }
+            case UNAVAILABLE -> throwUnavailableException(databaseTimeMillis, availability);
         }
+    }
+
+    public String databaseName() {
+        return namedDatabaseId.name();
     }
 
     @Override
@@ -181,7 +182,7 @@ public class DatabaseAvailabilityGuard extends LifecycleAdapter implements Avail
                 ? "Timeout waiting for database to become available and allow new transactions. Waited "
                         + Format.duration(millis) + ". " + describe()
                 : "Database not available because it's shutting down";
-        throw new UnavailableException(description);
+        throw UnavailableException.databaseUnavailable(databaseName(), description);
     }
 
     private Availability availability() {

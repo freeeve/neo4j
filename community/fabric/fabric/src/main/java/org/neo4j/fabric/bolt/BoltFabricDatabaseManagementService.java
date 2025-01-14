@@ -58,7 +58,8 @@ public class BoltFabricDatabaseManagementService implements BoltGraphDatabaseMan
             return getDatabase(databaseName, memoryTracker);
         } catch (DatabaseShutdownException | UnavailableException e) {
             // The failure expected over bolt
-            throw UnavailableException.databaseUnavailable(databaseName);
+            throw UnavailableException.databaseUnavailable(
+                    databaseName, String.format("Database '%s' is unavailable.", databaseName));
         }
     }
 

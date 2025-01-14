@@ -39,6 +39,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.stubbing.Answer;
 import org.neo4j.configuration.Config;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.kernel.lifecycle.Lifespan;
@@ -143,7 +145,11 @@ class CompositeDatabaseAvailabilityGuardTest {
             return counter.incrementAndGet();
         });
 
-        assertThrows(UnavailableException.class, () -> compositeGuard.await(10));
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> compositeGuard.await(10))
+                .isInstanceOf(UnavailableException.class)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N09)
+                .hasStatusDescription(
+                        "error: connection exception - database unavailable. The database `system` is currently unavailable. Check the database status. Retry your request at a later time.");
 
         assertThat(counter.getValue()).isLessThan(20L);
         assertTrue(defaultGuard.isAvailable());
