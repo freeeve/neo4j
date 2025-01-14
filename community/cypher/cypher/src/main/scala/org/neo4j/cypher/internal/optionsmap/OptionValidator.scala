@@ -30,12 +30,7 @@ import org.neo4j.kernel.database.NormalizedDatabaseName
 import org.neo4j.storageengine.api.StorageEngineFactory
 import org.neo4j.storageengine.api.StorageEngineFactory.allAvailableStorageEngines
 import org.neo4j.values.AnyValue
-import org.neo4j.values.storable.DateTimeValue
-import org.neo4j.values.storable.NoValue
-import org.neo4j.values.storable.NumberValue
-import org.neo4j.values.storable.TextValue
 import org.neo4j.values.storable._
-import org.neo4j.values.utils.PrettyPrinter
 import org.neo4j.values.virtual.MapValue
 
 import java.lang.Boolean.FALSE
@@ -172,10 +167,9 @@ object SeedSourceDatabaseOption extends OptionValidator[NormalizedDatabaseName] 
   override protected def validate(value: AnyValue, config: Option[Config])(implicit
     operation: String): NormalizedDatabaseName = {
     value match {
-      case numberValue: CharValue =>
-        new NormalizedDatabaseName(numberValue.stringValue())
-      case _ =>
-        throw new InvalidArgumentsException(value.toString + " should be a string")
+      case text: TextValue =>
+        new NormalizedDatabaseName(text.stringValue())
+      case _ => throw InvalidArgumentsException.invalidStringOption(operation, KEY, value)
     }
   }
 }
