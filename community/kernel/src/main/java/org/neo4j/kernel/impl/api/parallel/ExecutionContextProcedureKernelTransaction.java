@@ -371,7 +371,7 @@ public class ExecutionContextProcedureKernelTransaction implements KernelTransac
     }
 
     @Override
-    public ExecutionContext createExecutionContext() {
+    public ExecutionContext createExecutionContext(HeapEstimatorCacheConfig heapEstimatorCacheConfig) {
         throw failure("createExecutionContext");
     }
 

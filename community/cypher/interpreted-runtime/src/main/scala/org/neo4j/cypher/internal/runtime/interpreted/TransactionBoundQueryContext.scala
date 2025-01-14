@@ -588,7 +588,7 @@ private[internal] class TransactionBoundReadQueryContext(
     new DefaultValueMapper(transactionalContext.kernelTransactionalContext.transaction())
 
   override def createParallelQueryContext(initialHeapMemory: Long): QueryContext = {
-    val newTransactionalContext = transactionalContext.createParallelTransactionalContext()
+    val newTransactionalContext = transactionalContext.createParallelTransactionalContext(queryConfig)
 
     // Transfer some initial heap memory to the newly created execution context memory tracker,
     // to prevent it from immediately grabbing memory from the transaction pool in case it turns out to be short-lived

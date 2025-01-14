@@ -577,12 +577,13 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                 transactionCursorContext,
                 clockContextSupplier,
                 kernelTransaction,
-                procedureView) -> {
+                procedureView,
+                heapEstimatorCacheConfig) -> {
             var executionContextCursorTracer = new ExecutionContextCursorTracer(
                     PageCacheTracer.NULL, ExecutionContextCursorTracer.TRANSACTION_EXECUTION_TAG);
             var executionContextCursorContext = contextFactory.create(executionContextCursorTracer);
             StorageReader executionContextStorageReader = storageEngine.newReader();
-            MemoryTracker executionContextMemoryTracker = kernelTransaction.createExecutionContextMemoryTracker();
+            MemoryTracker executionContextMemoryTracker = kernelTransaction.createExecutionContextMemoryTracker(heapEstimatorCacheConfig);
             StoreCursors executionContextStoreCursors =
                     storageEngine.createStorageCursors(executionContextCursorContext);
             DefaultPooledCursors executionContextPooledCursors = new DefaultPooledCursors(
@@ -713,7 +714,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     }
 
     @Override
-    public ExecutionContext createExecutionContext() {
+    public ExecutionContext createExecutionContext(HeapEstimatorCacheConfig heapEstimatorCacheConfig) {
         if (hasTxStateWithChanges()) {
             throw new IllegalStateException(
                     "Execution context cannot be used for transactions with non-empty transaction state");
@@ -735,7 +736,8 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                 cursorContext,
                 () -> statementClock,
                 this,
-                this.procedureView);
+                this.procedureView,
+                heapEstimatorCacheConfig);
     }
 
     @Override
@@ -1866,7 +1868,8 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                 CursorContext transactionCursorContext,
                 Supplier<ClockContext> clockContextSupplier,
                 KernelTransaction ktx,
-                ProcedureView procedureView);
+                ProcedureView procedureView,
+                HeapEstimatorCacheConfig heapEstimatorCacheConfig);
     }
 
     private interface CommandDecorator extends Decorator {

@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.runtime.interpreted
 
 import org.neo4j.configuration.Config
 import org.neo4j.csv.reader.CharReadable
+import org.neo4j.cypher.internal.runtime.QueryRuntimeConfig
 import org.neo4j.cypher.internal.runtime.QueryTransactionalContext
 import org.neo4j.cypher.internal.runtime.debug.DebugSupport
 import org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands.TransactionId
@@ -72,7 +73,7 @@ abstract class TransactionalContextWrapper extends QueryTransactionalContext {
 
   def contextWithNewTransaction: TransactionalContextWrapper
 
-  def createParallelTransactionalContext(): ParallelTransactionalContextWrapper
+  def createParallelTransactionalContext(queryConfig: QueryRuntimeConfig): ParallelTransactionalContextWrapper
 
   def cancellationChecker: CancellationChecker
 
@@ -165,8 +166,8 @@ class SingleThreadedTransactionalContextWrapper(tc: TransactionalContext)
 
   override def validateSameDB[E <: Entity](entity: E): Unit = tc.transaction().validateSameDB(entity)
 
-  override def createParallelTransactionalContext(): ParallelTransactionalContextWrapper = {
-    val parallelContext = new ParallelTransactionalContextWrapper(kernelTransactionalContext)
+  override def createParallelTransactionalContext(queryConfig: QueryRuntimeConfig): ParallelTransactionalContextWrapper = {
+    val parallelContext = new ParallelTransactionalContextWrapper(kernelTransactionalContext, queryConfig)
     if (DebugSupport.DEBUG_TRANSACTIONAL_CONTEXT) {
       DebugSupport.TRANSACTIONAL_CONTEXT.log(
         "%s.createParallelTransactionalContext(): %s thread=%s",

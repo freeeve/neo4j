@@ -344,7 +344,7 @@ public class StubKernelTransaction implements KernelTransaction {
     }
 
     @Override
-    public ExecutionContext createExecutionContext() {
+    public ExecutionContext createExecutionContext(HeapEstimatorCacheConfig heapEstimatorCacheConfig) {
         throw new UnsupportedOperationException("not implemented");
     }
 

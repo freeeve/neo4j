@@ -477,7 +477,11 @@ public interface KernelTransaction extends AssertOpen, AutoCloseable {
      * After that transaction thread should call {@link ExecutionContext#close()}}
      * @return separate thread execution context
      */
-    ExecutionContext createExecutionContext();
+    ExecutionContext createExecutionContext(HeapEstimatorCacheConfig heapEstimatorCacheConfig);
+
+    default ExecutionContext createExecutionContext() {
+        return createExecutionContext(HeapEstimatorCacheConfig.DISABLED);
+    }
 
     /**
      * Create an execution context memory tracker to be used by threads separate to where the transaction is executed.
