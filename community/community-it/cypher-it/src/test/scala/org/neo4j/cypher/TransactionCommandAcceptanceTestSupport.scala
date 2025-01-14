@@ -82,19 +82,33 @@ class TransactionCommandAcceptanceTestSupport extends ExecutionEngineFunSuite wi
   ): Unit = {
     val checkCypher5Values = cypherVersion == CypherVersion.Cypher5
 
-    resultMap.keys.size should be(numColumns)
-    resultMap("database") should be(database)
-    resultMap("transactionId").asInstanceOf[String] should startWith(
-      transactionId
-    ) // not stable on system database, differs among things between running the test on its own and the whole class
-    resultMap("currentQueryId").asInstanceOf[String] should startWith(
-      "query-"
-    ) // not stable, differs among things between running the test on its own and the whole class
-    resultMap("username") should be(username)
-    resultMap("currentQuery") should be(query)
+    withClue("keys") {
+      resultMap.keys.size should be(numColumns)
+    }
+    withClue("database") {
+      resultMap("database") should be(database)
+    }
+    withClue("transactionId") {
+      // not stable on system database, differs among things between running the test on its own and the whole class
+      resultMap("transactionId").asInstanceOf[String] should startWith(transactionId)
+    }
+    withClue("currentQueryId") {
+      // not stable, differs among things between running the test on its own and the whole class
+      resultMap("currentQueryId").asInstanceOf[String] should startWith("query-")
+    }
+    withClue("username") {
+      resultMap("username") should be(username)
+    }
+    withClue("currentQuery") {
+      resultMap("currentQuery") should be(query)
+    }
     // Default values:
-    resultMap("status") should be("Running")
-    resultMap("connectionId") should be("")
+    withClue("status") {
+      resultMap("status") should be("Running")
+    }
+    withClue("connectionId") {
+      resultMap("connectionId") should be("")
+    }
     withClue(s"clientAddress ($cypherVersion): ") {
       if (checkCypher5Values) resultMap("clientAddress") should be("")
       else resultMap("clientAddress") should be(null)
@@ -105,7 +119,9 @@ class TransactionCommandAcceptanceTestSupport extends ExecutionEngineFunSuite wi
       if (checkCypher5Values) resultMap("startTime").isInstanceOf[String] should be(true)
       else resultMap("startTime").isInstanceOf[ZonedDateTime] should be(true)
     }
-    resultMap("elapsedTime").isInstanceOf[DurationValue] should be(true)
+    withClue("elapsedTime") {
+      resultMap("elapsedTime").isInstanceOf[DurationValue] should be(true)
+    }
   }
 
   protected def assertCorrectFullMap(
@@ -116,49 +132,112 @@ class TransactionCommandAcceptanceTestSupport extends ExecutionEngineFunSuite wi
     runtime: String,
     database: String = DEFAULT_DATABASE_NAME,
     planner: String = "idp",
-    queryAllocatedBytesIsNull: Boolean = false
+    queryAllocatedBytesIsNull: Boolean = false,
+    cypherVersion: CypherVersion = CypherVersion.Default
   ): Unit = {
-    assertCorrectDefaultMap(resultMap, transactionId, username, query, database, numColumns = 39)
-    resultMap("planner") should be(planner)
-    resultMap("runtime") should be(runtime)
-    // Default values:
-    resultMap("outerTransactionId") should be("")
-    resultMap("parameters") should be(Map())
-    resultMap("indexes") should be(List())
-    resultMap("protocol") should be("embedded")
-    resultMap("metaData") should be(Map())
-    resultMap("requestUri") should be(null)
-    resultMap("currentQueryStatus") should be("running")
-    resultMap("statusDetails") should be("")
-    resultMap("resourceInformation") should be(Map())
-    val currentQueryAllocatedBytes = resultMap("currentQueryAllocatedBytes")
-    if (queryAllocatedBytesIsNull) currentQueryAllocatedBytes should be(null)
-    else {
-      currentQueryAllocatedBytes.isInstanceOf[Long] should be(true)
-      (currentQueryAllocatedBytes.asInstanceOf[Long] > 0L) should be(true)
+    val checkCypher5Values = cypherVersion == CypherVersion.Cypher5
+
+    assertCorrectDefaultMap(resultMap, transactionId, username, query, database, numColumns = 39, cypherVersion)
+    withClue("planner") {
+      resultMap("planner") should be(planner)
     }
-    resultMap("allocatedDirectBytes") should be(0L)
-    resultMap("initializationStackTrace") should be("")
+    withClue("runtime") {
+      resultMap("runtime") should be(runtime)
+    }
+    // Default values:
+    withClue("outerTransactionId") {
+      resultMap("outerTransactionId") should be("")
+    }
+    withClue("parameters") {
+      resultMap("parameters") should be(Map())
+    }
+    withClue("indexes") {
+      resultMap("indexes") should be(List())
+    }
+    withClue("protocol") {
+      resultMap("protocol") should be("embedded")
+    }
+    withClue("metaData") {
+      resultMap("metaData") should be(Map())
+    }
+    withClue("requestUri") {
+      resultMap("requestUri") should be(null)
+    }
+    withClue("currentQueryStatus") {
+      resultMap("currentQueryStatus") should be("running")
+    }
+    withClue("statusDetails") {
+      resultMap("statusDetails") should be("")
+    }
+    withClue("resourceInformation") {
+      resultMap("resourceInformation") should be(Map())
+    }
+    withClue("currentQueryAllocatedBytes") {
+      val currentQueryAllocatedBytes = resultMap("currentQueryAllocatedBytes")
+      if (queryAllocatedBytesIsNull) currentQueryAllocatedBytes should be(null)
+      else {
+        currentQueryAllocatedBytes.isInstanceOf[Long] should be(true)
+        (currentQueryAllocatedBytes.asInstanceOf[Long] > 0L) should be(true)
+      }
+    }
+    withClue("allocatedDirectBytes") {
+      resultMap("allocatedDirectBytes") should be(0L)
+    }
+    withClue("initializationStackTrace") {
+      resultMap("initializationStackTrace") should be("")
+    }
     // Don't check exact values:
-    resultMap("currentQueryStartTime").isInstanceOf[String] should be(true) // This is a timestamp
-    resultMap("currentQueryElapsedTime").isInstanceOf[DurationValue] should be(true)
-    resultMap("estimatedUsedHeapMemory").isInstanceOf[Long] should be(true)
-    resultMap("activeLockCount").isInstanceOf[Long] should be(true)
-    resultMap("currentQueryActiveLockCount").isInstanceOf[Long] should be(true)
-    resultMap("pageHits").isInstanceOf[Long] should be(true)
-    resultMap("pageFaults").isInstanceOf[Long] should be(true)
-    resultMap("currentQueryPageHits").isInstanceOf[Long] should be(true)
-    resultMap("currentQueryPageFaults").isInstanceOf[Long] should be(true)
-    val cpuTime = resultMap("cpuTime")
-    (cpuTime == null || cpuTime.isInstanceOf[DurationValue]) should be(true)
-    resultMap("waitTime").isInstanceOf[DurationValue] should be(true)
-    val idleTime = resultMap("idleTime")
-    (idleTime == null || idleTime.isInstanceOf[DurationValue]) should be(true)
-    val currentQueryCpuTime = resultMap("currentQueryCpuTime")
-    (currentQueryCpuTime == null || currentQueryCpuTime.isInstanceOf[DurationValue]) should be(true)
-    resultMap("currentQueryWaitTime").isInstanceOf[DurationValue] should be(true)
-    val currentQueryIdleTime = resultMap("currentQueryIdleTime")
-    (currentQueryIdleTime == null || currentQueryIdleTime.isInstanceOf[DurationValue]) should be(true)
+    withClue(s"currentQueryStartTime ($cypherVersion): ") {
+      // This is a timestamp
+      if (checkCypher5Values) resultMap("currentQueryStartTime").isInstanceOf[String] should be(true)
+      else resultMap("currentQueryStartTime").isInstanceOf[ZonedDateTime] should be(true)
+    }
+    withClue("currentQueryElapsedTime") {
+      resultMap("currentQueryElapsedTime").isInstanceOf[DurationValue] should be(true)
+    }
+    withClue("estimatedUsedHeapMemory") {
+      resultMap("estimatedUsedHeapMemory").isInstanceOf[Long] should be(true)
+    }
+    withClue("activeLockCount") {
+      resultMap("activeLockCount").isInstanceOf[Long] should be(true)
+    }
+    withClue("currentQueryActiveLockCount") {
+      resultMap("currentQueryActiveLockCount").isInstanceOf[Long] should be(true)
+    }
+    withClue("pageHits") {
+      resultMap("pageHits").isInstanceOf[Long] should be(true)
+    }
+    withClue("pageFaults") {
+      resultMap("pageFaults").isInstanceOf[Long] should be(true)
+    }
+    withClue("currentQueryPageHits") {
+      resultMap("currentQueryPageHits").isInstanceOf[Long] should be(true)
+    }
+    withClue("currentQueryPageFaults") {
+      resultMap("currentQueryPageFaults").isInstanceOf[Long] should be(true)
+    }
+    withClue("cpuTime") {
+      val cpuTime = resultMap("cpuTime")
+      (cpuTime == null || cpuTime.isInstanceOf[DurationValue]) should be(true)
+    }
+    withClue("waitTime") {
+      resultMap("waitTime").isInstanceOf[DurationValue] should be(true)
+    }
+    withClue("idleTime") {
+      val idleTime = resultMap("idleTime")
+      (idleTime == null || idleTime.isInstanceOf[DurationValue]) should be(true)
+    }
+    withClue("currentQueryCpuTime") {
+      val currentQueryCpuTime = resultMap("currentQueryCpuTime")
+      (currentQueryCpuTime == null || currentQueryCpuTime.isInstanceOf[DurationValue]) should be(true)
+    }
+    withClue("currentQueryWaitTime") {
+      resultMap("currentQueryWaitTime").isInstanceOf[DurationValue] should be(true)
+    }
+    withClue("currentQueryIdleTime") {
+      val currentQueryIdleTime = resultMap("currentQueryIdleTime")
+      (currentQueryIdleTime == null || currentQueryIdleTime.isInstanceOf[DurationValue]) should be(true)
+    }
   }
 
   /* Sets up one query for _username_ on neo4j.
