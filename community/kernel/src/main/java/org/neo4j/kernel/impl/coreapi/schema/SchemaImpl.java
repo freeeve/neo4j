@@ -473,7 +473,7 @@ public class SchemaImpl implements Schema {
 
         var foundReference = schemaRead.index(schema, fromPublicApi(index.getIndexType()));
         if (foundReference == IndexDescriptor.NO_INDEX) {
-            throw new SchemaRuleNotFoundException(schema, tokenRead);
+            throw SchemaRuleNotFoundException.schemaRuleNotFound(schema, tokenRead);
         }
         return foundReference;
     }

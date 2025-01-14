@@ -130,7 +130,7 @@ public class SchemaStorage implements SchemaRuleAccess {
                 .filter(descriptor::equals)
                 .toArray(ConstraintDescriptor[]::new);
         if (rules.length == 0) {
-            throw new SchemaRuleNotFoundException(descriptor, tokenHolders);
+            throw SchemaRuleNotFoundException.schemaRuleNotFound(descriptor, tokenHolders);
         }
         if (rules.length > 1) {
             throw new DuplicateSchemaRuleException(descriptor, tokenHolders);

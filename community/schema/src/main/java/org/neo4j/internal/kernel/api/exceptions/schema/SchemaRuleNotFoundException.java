@@ -21,6 +21,9 @@ package org.neo4j.internal.kernel.api.exceptions.schema;
 
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptorSupplier;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -28,11 +31,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class SchemaRuleNotFoundException extends SchemaRuleException {
     private static final String NOT_FOUND_MESSAGE_TEMPLATE = "No %s was found for %s.";
 
-    public SchemaRuleNotFoundException(SchemaDescriptorSupplier schemaThing, TokenNameLookup tokenNameLookup) {
-        super(Status.Schema.SchemaRuleAccessFailed, NOT_FOUND_MESSAGE_TEMPLATE, schemaThing, tokenNameLookup);
-    }
-
-    public SchemaRuleNotFoundException(
+    private SchemaRuleNotFoundException(
             ErrorGqlStatusObject gqlStatusObject,
             SchemaDescriptorSupplier schemaThing,
             TokenNameLookup tokenNameLookup) {
@@ -44,17 +43,18 @@ public class SchemaRuleNotFoundException extends SchemaRuleException {
                 tokenNameLookup);
     }
 
-    public SchemaRuleNotFoundException(SchemaDescriptor schema, TokenNameLookup tokenNameLookup) {
-        super(Status.Schema.SchemaRuleAccessFailed, NOT_FOUND_MESSAGE_TEMPLATE, () -> schema, tokenNameLookup);
+    public static SchemaRuleNotFoundException schemaRuleNotFound(
+            SchemaDescriptorSupplier schemaThing, TokenNameLookup tokenNameLookup) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N21)
+                .withParam(GqlParams.StringParam.schemaDescrType, SchemaRuleException.describe(schemaThing))
+                .withParam(
+                        GqlParams.StringParam.schemaDescr, schemaThing.schema().userDescription(tokenNameLookup))
+                .build();
+        return new SchemaRuleNotFoundException(gql, schemaThing, tokenNameLookup);
     }
 
-    public SchemaRuleNotFoundException(
-            ErrorGqlStatusObject gqlStatusObject, SchemaDescriptor schema, TokenNameLookup tokenNameLookup) {
-        super(
-                gqlStatusObject,
-                Status.Schema.SchemaRuleAccessFailed,
-                NOT_FOUND_MESSAGE_TEMPLATE,
-                () -> schema,
-                tokenNameLookup);
+    public static SchemaRuleNotFoundException schemaRuleNotFound(
+            SchemaDescriptor schema, TokenNameLookup tokenNameLookup) {
+        return schemaRuleNotFound(() -> schema, tokenNameLookup);
     }
 }
