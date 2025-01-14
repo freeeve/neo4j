@@ -78,10 +78,13 @@ public class HeapTrackingListValueBuilder implements AutoCloseable {
         // To be in control of the heap usage of both the added values and the internal array list holding them,
         // we use a scoped memory tracker
         scopedMemoryTracker = memoryTracker.getScopedMemoryTracker();
-        scopedMemoryTracker.allocateHeap(COMBINED_SHALLOW_SIZE);
+        scopedMemoryTracker.allocateHeap(SHALLOW_SIZE + SCOPED_MEMORY_TRACKER_SHALLOW_SIZE);
         values = HeapTrackingArrayList.newArrayList(16, scopedMemoryTracker);
         representation = ValueRepresentation.ANYTHING;
-        heapEstimatorCache = memoryTracker.getHeapEstimatorCache().newWithSameSettings();
+        // NOTE: This _may_ create a unique estimator cache instance for this builder.
+        // If the memory tracker is configured with scoped heap estimator cache enabled,
+        // it will create a new instance for each call.
+        heapEstimatorCache = memoryTracker.getScopedHeapEstimatorCache();
     }
 
     public void addAll(Iterable<AnyValue> values) {

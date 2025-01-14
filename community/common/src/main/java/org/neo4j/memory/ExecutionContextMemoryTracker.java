@@ -276,6 +276,11 @@ public class ExecutionContextMemoryTracker implements LimitedMemoryTracker {
     }
 
     @Override
+    public HeapEstimatorCache getHeapEstimatorCache() {
+        return heapEstimatorCache;
+    }
+
+    @Override
     public void setLimit(long localBytesLimit) {
         this.localBytesLimit = validateLimit(localBytesLimit);
     }

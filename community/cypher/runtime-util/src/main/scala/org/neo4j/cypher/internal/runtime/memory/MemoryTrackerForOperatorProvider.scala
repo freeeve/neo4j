@@ -21,9 +21,9 @@ package org.neo4j.cypher.internal.runtime.memory
 
 import org.neo4j.cypher.internal.runtime.memory.TransactionBoundMemoryTrackerForOperatorProvider.TransactionBoundMemoryTracker
 import org.neo4j.cypher.result.OperatorProfile
-import org.neo4j.memory.DeduplicateLargeObjectsHeapEstimatorCache
 import org.neo4j.memory.DefaultScopedMemoryTracker
 import org.neo4j.memory.EmptyMemoryTracker
+import org.neo4j.memory.HeapEstimatorCache
 import org.neo4j.memory.HeapEstimatorCacheConfig
 import org.neo4j.memory.HeapHighWaterMarkTracker
 import org.neo4j.memory.HeapMemoryTracker
@@ -39,7 +39,7 @@ trait MemoryTrackerForOperatorProvider {
    *
    * @param operatorId the id of the operator
    */
-  def memoryTrackerForOperator(operatorId: Int): MemoryTracker
+  def memoryTrackerForOperator(operatorId: Int, enableScopedHeapEstimatorCache: Boolean = false): MemoryTracker
 
   def setInitializationMemoryTracker(memoryTracker: MemoryTracker): Unit = {
     throw new UnsupportedOperationException(
@@ -65,7 +65,7 @@ object MemoryTrackerForOperatorProvider {
  */
 case object NoOpMemoryTrackerForOperatorProvider extends MemoryTrackerForOperatorProvider {
 
-  override def memoryTrackerForOperator(operatorId: Int): MemoryTracker = EmptyMemoryTracker.INSTANCE
+  override def memoryTrackerForOperator(operatorId: Int, enableScopedHeapEstimatorCache: Boolean): MemoryTracker = EmptyMemoryTracker.INSTANCE
 }
 
 object TransactionBoundMemoryTrackerForOperatorProvider {
@@ -80,7 +80,8 @@ object TransactionBoundMemoryTrackerForOperatorProvider {
   class TransactionBoundMemoryTracker(
     transactionMemoryTracker: MemoryTracker,
     queryGlobalMemoryTracker: HeapMemoryTracker,
-    heapEstimatorCacheConfig: HeapEstimatorCacheConfig
+    heapEstimatorCacheConfig: HeapEstimatorCacheConfig,
+    enableScopedHeapEstimatorCache: Boolean
   ) extends DefaultScopedMemoryTracker(
         transactionMemoryTracker,
         heapEstimatorCacheConfig.newDefaultHeapEstimatorCache()
@@ -99,6 +100,14 @@ object TransactionBoundMemoryTrackerForOperatorProvider {
       // Forward to the queryGlobalMemoryTracker
       queryGlobalMemoryTracker.releaseHeap(bytes)
     }
+
+    override def getScopedHeapEstimatorCache: HeapEstimatorCache = {
+      if (enableScopedHeapEstimatorCache) {
+        super.getHeapEstimatorCache.newWithSameSettings()
+      } else {
+        super.getHeapEstimatorCache
+      }
+    }
   }
 }
 
@@ -116,15 +125,18 @@ class TransactionBoundMemoryTrackerForOperatorProvider(
 ) extends TransactionBoundMemoryTracker(
       transactionMemoryTracker,
       queryHeapHighWatermarkTracker,
-      heapEstimatorCacheConfig
+      heapEstimatorCacheConfig,
+      enableScopedHeapEstimatorCache = false
     )
     with MemoryTrackerForOperatorProvider {
 
-  override def memoryTrackerForOperator(operatorId: Int): MemoryTracker = {
+  override def memoryTrackerForOperator(operatorId: Int, enableScopedHeapEstimatorCache: Boolean): MemoryTracker = {
+    // NOTE: This will create a heap estimator cache instance per operator regardless of the value of enableScopedHeapEstimatorCache
     new TransactionBoundMemoryTracker(
       transactionMemoryTracker,
       queryHeapHighWatermarkTracker.memoryTrackerForOperator(operatorId),
-      heapEstimatorCacheConfig
+      heapEstimatorCacheConfig,
+      enableScopedHeapEstimatorCache
     )
   }
 }

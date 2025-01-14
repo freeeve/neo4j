@@ -72,9 +72,12 @@ public class HeapTrackingMapValueBuilder implements AutoCloseable {
 
     public HeapTrackingMapValueBuilder(MemoryTracker memoryTracker) {
         scopedMemoryTracker = memoryTracker.getScopedMemoryTracker();
-        scopedMemoryTracker.allocateHeap(COMBINED_SHALLOW_SIZE);
+        scopedMemoryTracker.allocateHeap(SHALLOW_SIZE + SCOPED_MEMORY_TRACKER_SHALLOW_SIZE);
         values = HeapTrackingCollections.newMap(scopedMemoryTracker);
-        heapEstimatorCache = memoryTracker.getHeapEstimatorCache().newWithSameSettings();
+        // NOTE: This _may_ create a unique estimator cache instance for this builder.
+        // If the memory tracker is configured with scoped heap estimator cache enabled,
+        // it will create a new instance for each call.
+        heapEstimatorCache = memoryTracker.getScopedHeapEstimatorCache();
     }
 
     public void put(String key, AnyValue value) {

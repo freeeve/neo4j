@@ -86,14 +86,14 @@ public interface MemoryTracker extends AutoCloseable, HeapMemoryTracker, HeapEst
      */
     MemoryTracker getScopedMemoryTracker();
 
-    default MemoryTracker getScopedMemoryTracker(HeapEstimatorCache estimatorCache) {
-        return getScopedMemoryTracker();
-    }
-
     default HeapEstimatorCache getHeapEstimatorCache() {
         // To simplify memory measurement, let this implement a no-op HeapEstimatorCache
         // (instead of returning HeapEstimatorCache.NoHeapEstimatorCache.INSTANCE)
         return this;
+    }
+
+    default HeapEstimatorCache getScopedHeapEstimatorCache() {
+        return getHeapEstimatorCache();
     }
 
     // HeapEstimatorCache
