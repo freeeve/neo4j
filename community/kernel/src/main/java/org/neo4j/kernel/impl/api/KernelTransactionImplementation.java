@@ -583,7 +583,8 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                     PageCacheTracer.NULL, ExecutionContextCursorTracer.TRANSACTION_EXECUTION_TAG);
             var executionContextCursorContext = contextFactory.create(executionContextCursorTracer);
             StorageReader executionContextStorageReader = storageEngine.newReader();
-            MemoryTracker executionContextMemoryTracker = kernelTransaction.createExecutionContextMemoryTracker(heapEstimatorCacheConfig);
+            MemoryTracker executionContextMemoryTracker =
+                    kernelTransaction.createExecutionContextMemoryTracker(heapEstimatorCacheConfig);
             StoreCursors executionContextStoreCursors =
                     storageEngine.createStorageCursors(executionContextCursorContext);
             DefaultPooledCursors executionContextPooledCursors = new DefaultPooledCursors(

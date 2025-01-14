@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.options
 
+import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.HeapEstimatorCachePreset
 import org.neo4j.configuration.GraphDatabaseSettings

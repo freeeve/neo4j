@@ -163,7 +163,8 @@ class ParallelTransactionalContextWrapper(
     throw new UnsupportedOperationException("Not supported in parallel runtime.")
   }
 
-  override def createParallelTransactionalContext(queryConfig: QueryRuntimeConfig): ParallelTransactionalContextWrapper = {
+  override def createParallelTransactionalContext(queryConfig: QueryRuntimeConfig)
+    : ParallelTransactionalContextWrapper = {
     new ParallelTransactionalContextWrapper(kernelTransactionalContext, queryConfig)
   }
 

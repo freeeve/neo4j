@@ -65,7 +65,8 @@ object MemoryTrackerForOperatorProvider {
  */
 case object NoOpMemoryTrackerForOperatorProvider extends MemoryTrackerForOperatorProvider {
 
-  override def memoryTrackerForOperator(operatorId: Int, enableScopedHeapEstimatorCache: Boolean): MemoryTracker = EmptyMemoryTracker.INSTANCE
+  override def memoryTrackerForOperator(operatorId: Int, enableScopedHeapEstimatorCache: Boolean): MemoryTracker =
+    EmptyMemoryTracker.INSTANCE
 }
 
 object TransactionBoundMemoryTrackerForOperatorProvider {

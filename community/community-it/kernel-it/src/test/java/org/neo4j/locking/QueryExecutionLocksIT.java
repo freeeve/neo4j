@@ -1043,8 +1043,8 @@ class QueryExecutionLocksIT {
         }
 
         @Override
-        public ExecutionContext createExecutionContext() {
-            return internal.createExecutionContext();
+        public ExecutionContext createExecutionContext(HeapEstimatorCacheConfig heapEstimatorCacheConfig) {
+            return internal.createExecutionContext(heapEstimatorCacheConfig);
         }
 
         @Override

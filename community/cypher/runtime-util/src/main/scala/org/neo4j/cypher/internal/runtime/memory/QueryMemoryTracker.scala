@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.runtime.debug.DebugSupport.DEBUG_MEMORY_TRACKIN
 import org.neo4j.cypher.internal.runtime.memory.TrackingQueryMemoryTracker.MemoryTrackerPerOperator
 import org.neo4j.cypher.internal.runtime.memory.TrackingQueryMemoryTracker.OperatorMemoryTracker
 import org.neo4j.cypher.internal.runtime.memory.TransactionWorkerThreadDelegatingMemoryTracker.threadLocalExecutionContextMemoryTracker
+import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.memory.EmptyMemoryTracker
 import org.neo4j.memory.HeapEstimatorCache
 import org.neo4j.memory.HeapEstimatorCacheConfig
@@ -255,11 +256,12 @@ class ProfilingParallelTrackingQueryMemoryTracker(
 
   override def heapHighWaterMark(): Long = delegate.heapHighWaterMark()
 
-  override def memoryTrackerForOperator(operatorId: Int, enableScopedHeapEstimatorCache: Boolean): MemoryTracker = memoryPerOperator.computeIfAbsent(
-    operatorId,
-    _ =>
-      new ProfilingParallelHighWaterMarkTrackingWorkerMemoryTracker(delegate)
-  )
+  override def memoryTrackerForOperator(operatorId: Int, enableScopedHeapEstimatorCache: Boolean): MemoryTracker =
+    memoryPerOperator.computeIfAbsent(
+      operatorId,
+      _ =>
+        new ProfilingParallelHighWaterMarkTrackingWorkerMemoryTracker(delegate)
+    )
 
   override def setInitializationMemoryTracker(memoryTracker: MemoryTracker): Unit =
     delegate.setInitializationMemoryTracker(memoryTracker)
@@ -359,14 +361,16 @@ class WorkerThreadDelegatingMemoryTracker extends MemoryTracker with MemoryTrack
   }
 }
 
-class OperatorWorkerThreadDelegatingMemoryTracker(operatorId: Int = Id.INVALID_ID.x, enableScopedHeapEstimatorCache: Boolean = false)
-  extends WorkerThreadDelegatingMemoryTracker {
+class OperatorWorkerThreadDelegatingMemoryTracker(
+  operatorId: Int = Id.INVALID_ID.x,
+  enableScopedHeapEstimatorCache: Boolean = false
+) extends WorkerThreadDelegatingMemoryTracker {
 
   // NOTE: We assume that getting a scoped memory tracker from WorkerThreadDelegatingMemoryTracker
   //       needs to be able to support a concurrent use-case,
   //       e.g. by a heap tracking concurrent collection used for hash join or aggregation.
   override def getScopedMemoryTracker: MemoryTracker = {
-    new ParallelScopedMemoryTracker(this, enableScopedHeapEstimatorCache)
+    new ParallelScopedMemoryTracker(this)
   }
 
   override def getScopedHeapEstimatorCache: HeapEstimatorCache = {

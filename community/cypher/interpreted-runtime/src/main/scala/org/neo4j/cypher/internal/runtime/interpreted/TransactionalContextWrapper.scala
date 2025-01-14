@@ -166,7 +166,8 @@ class SingleThreadedTransactionalContextWrapper(tc: TransactionalContext)
 
   override def validateSameDB[E <: Entity](entity: E): Unit = tc.transaction().validateSameDB(entity)
 
-  override def createParallelTransactionalContext(queryConfig: QueryRuntimeConfig): ParallelTransactionalContextWrapper = {
+  override def createParallelTransactionalContext(queryConfig: QueryRuntimeConfig)
+    : ParallelTransactionalContextWrapper = {
     val parallelContext = new ParallelTransactionalContextWrapper(kernelTransactionalContext, queryConfig)
     if (DebugSupport.DEBUG_TRANSACTIONAL_CONTEXT) {
       DebugSupport.TRANSACTIONAL_CONTEXT.log(

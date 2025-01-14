@@ -122,11 +122,6 @@ public class DefaultScopedMemoryTracker implements ScopedMemoryTracker {
     }
 
     @Override
-    public MemoryTracker getScopedMemoryTracker(HeapEstimatorCache estimatorCache) {
-        return new DefaultScopedMemoryTracker(this, estimatorCache);
-    }
-
-    @Override
     public boolean isClosed() {
         return isClosed;
     }
