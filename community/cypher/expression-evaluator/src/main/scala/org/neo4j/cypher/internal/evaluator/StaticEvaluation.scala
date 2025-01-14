@@ -77,7 +77,6 @@ import org.neo4j.kernel.api.index.IndexUsageStats
 import org.neo4j.kernel.impl.query.FunctionInformation
 import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.logging.InternalLogProvider
-import org.neo4j.memory.HeapEstimatorCacheConfig
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.scheduler.JobScheduler
 import org.neo4j.values.AnyValue

@@ -38,8 +38,16 @@ trait MemoryTrackerForOperatorProvider {
    * Get the memory tracker for the operator with the given id.
    *
    * @param operatorId the id of the operator
+   * @param enableScopedHeapEstimatorCache whether to enable a scoped heap estimator cache for this operator for
+   *                                       collections that can use it, e.g. HeapTrackingListValueBuilder
    */
   def memoryTrackerForOperator(operatorId: Int, enableScopedHeapEstimatorCache: Boolean = false): MemoryTracker
+
+  /**
+   * This is called from generated code (and from Java in tests)
+   */
+  def memoryTrackerForOperator(operatorId: Int): MemoryTracker =
+    memoryTrackerForOperator(operatorId, enableScopedHeapEstimatorCache = false)
 
   def setInitializationMemoryTracker(memoryTracker: MemoryTracker): Unit = {
     throw new UnsupportedOperationException(

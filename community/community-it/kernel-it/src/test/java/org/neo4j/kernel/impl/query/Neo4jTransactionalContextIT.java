@@ -533,7 +533,7 @@ class Neo4jTransactionalContextIT {
 
         // Some operator in outer transaction allocates some memory
         outerTxMemoryTrackerForOperatorProvider
-                .memoryTrackerForOperator(operatorId, false)
+                .memoryTrackerForOperator(operatorId)
                 .allocateHeap(outerHighWaterMark);
 
         // When
@@ -543,7 +543,7 @@ class Neo4jTransactionalContextIT {
             var innerTxMemoryTracker = innerCtx.kernelTransaction().memoryTracker();
             var innerTxMemoryTrackerForOperatorProvider =
                     queryMemoryTracker.newMemoryTrackerForOperatorProvider(innerTxMemoryTracker);
-            var operatorMemoryTracker = innerTxMemoryTrackerForOperatorProvider.memoryTrackerForOperator(operatorId, false);
+            var operatorMemoryTracker = innerTxMemoryTrackerForOperatorProvider.memoryTrackerForOperator(operatorId);
             // Inner transaction allocates some memory for half of the executions
             var accHighWaterMark = 0;
             if (i % 2 == 0) {
@@ -560,7 +560,7 @@ class Neo4jTransactionalContextIT {
         var innerTxMemoryTrackerForOperatorProvider =
                 queryMemoryTracker.newMemoryTrackerForOperatorProvider(openTxMemoryTracker);
         innerTxMemoryTrackerForOperatorProvider
-                .memoryTrackerForOperator(operatorId, false)
+                .memoryTrackerForOperator(operatorId)
                 .allocateHeap(openHighWaterMark);
 
         // Then
