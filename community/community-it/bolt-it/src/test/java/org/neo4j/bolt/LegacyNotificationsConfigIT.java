@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.VersionSelected;
@@ -374,8 +373,6 @@ public class LegacyNotificationsConfigIT {
         assertThat(connection).receivesSuccess(x -> Assertions.assertThat(x).doesNotContainKey("notifications"));
     }
 
-    // FIXME: Disabled on 25/11/2025 - Message of type PullMessage cannot be handled by a session in the READY state.
-    @Disabled
     @ProtocolTest
     @IncludeWire({@Version(major = 5, minor = 4, range = 2)})
     public void shouldNotReturnNotificationsWhenNotHighEnoughSeverity(

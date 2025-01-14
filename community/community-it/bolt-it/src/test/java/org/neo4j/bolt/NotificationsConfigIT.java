@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.Authenticated;
@@ -69,8 +68,6 @@ public class NotificationsConfigIT {
         assertThat(connection).receivesSuccessWithStatus(GqlStatusInfoCodes.STATUS_00000);
     }
 
-    // FIXME: Disabled on 25/11/2025 - Message of type PullMessage cannot be handled by a session in the READY state.
-    @Disabled
     @ProtocolTest
     @ExcludeWire({@Version(major = 5, minor = 4, range = 4), @Version(major = 4)})
     public void shouldReturnNoData(BoltWire wire, @VersionSelected BoltTestConnection connection) throws Throwable {
@@ -98,8 +95,6 @@ public class NotificationsConfigIT {
         assertThat(connection).receivesSuccessWithStatus(GqlStatusInfoCodes.STATUS_00001);
     }
 
-    // FIXME: Disabled on 25/11/2025 - Message of type PullMessage cannot be handled by a session in the READY state.
-    @Disabled
     @ProtocolTest
     @ExcludeWire({@Version(major = 5, minor = 4, range = 4), @Version(major = 4)})
     public void shouldReturnWarning(BoltWire wire, @VersionSelected BoltTestConnection connection) throws Throwable {
