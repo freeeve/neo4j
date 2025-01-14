@@ -2262,7 +2262,7 @@ class IndexPlanningIntegrationTest
 
   private def scannablePredicates(prop: String, cacheSuffix: String = "N"): Seq[ScannablePredicate] = {
     val binaryOpPredicates =
-      Seq("=", ">", ">=", "<", "<=", "IN")
+      Seq("=", ">", ">=", "<", "<=")
         .map(op => ScannablePredicate(prop, (x: String) => s"$x $op $$param", cacheSuffix))
 
     binaryOpPredicates ++ scannableTextPredicates(prop, cacheSuffix) ++ scannablePointPredicates(prop, cacheSuffix)
@@ -2790,7 +2790,7 @@ class IndexPlanningIntegrationTest
       .build()
   }
 
-  test("should not plan an index for negated predicate") {
+  test("should not plan an index scan for NOT ANY over empty list") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(2)
       .setLabelCardinality("N0", 2)
@@ -2801,7 +2801,7 @@ class IndexPlanningIntegrationTest
     val q = """
               |MATCH (n:N1) WITH collect(n.p0) AS c0
               |MATCH (n:N0)
-              |WHERE NOT (any(v IN c0 WHERE n.p1 = v))
+              |WHERE NOT any(v IN c0 WHERE n.p1 = v)
               |RETURN *""".stripMargin
 
     val plan = planner.plan(q).stripProduceResults
@@ -2811,6 +2811,69 @@ class IndexPlanningIntegrationTest
       .|.nodeByLabelScan("n", "N0", IndexOrderNone, "c0")
       .aggregation(Seq(), Seq("collect(n.p0) AS c0"))
       .nodeByLabelScan("n", "N1")
+      .build()
+  }
+
+  test("should not plan a node index scan for NOT IN unknown list") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 500)
+      .addNodeIndex("A", Seq("prop"), 0.1, 0.1)
+      .setRelationshipCardinality("()-[:REL]->()", 500)
+      .addRelationshipIndex("REL", Seq("prop"), 0.1, 0.1)
+      .build()
+
+    val q = "MATCH (a:A) WHERE NOT a.prop IN $param RETURN *"
+    val plan = planner.plan(q).stripProduceResults
+
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("NOT a.prop IN $param")
+      .nodeByLabelScan("a", "A")
+      .build()
+  }
+
+  test("should not plan a composite node index scan for NOT IN unknown list") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 500)
+      .addNodeIndex("A", Seq("prop", "otherProp"), 0.1, 0.1)
+      .build()
+
+    val q = "MATCH (a:A) WHERE NOT a.prop IN $param AND a.otherProp IS NOT NULL RETURN *"
+    val plan = planner.plan(q).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("NOT a.prop IN $param", "a.otherProp IS NOT NULL")
+      .nodeByLabelScan("a", "A")
+      .build()
+  }
+
+  test("should not plan a relationship index scan for NOT IN unknown list") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[:REL]->()", 500)
+      .addRelationshipIndex("REL", Seq("prop"), 0.1, 0.1)
+      .build()
+
+    val q = "MATCH (a)-[r:REL]->(b) WHERE NOT r IN $param RETURN *"
+    val plan = planner.plan(q).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("NOT r IN $param")
+      .relationshipTypeScan("(a)-[r:REL]->(b)")
+      .build()
+  }
+
+  test("should not plan a composite relationship index scan for NOT IN unknown list") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[:REL]->()", 500)
+      .addRelationshipIndex("REL", Seq("prop", "otherProp"), 0.1, 0.1)
+      .build()
+
+    val q = "MATCH (a)-[r:REL]->(b) WHERE NOT r.prop IN $param AND r.otherProp IS NOT NULL RETURN *"
+    val plan = planner.plan(q).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("NOT r.prop IN $param", "r.otherProp IS NOT NULL")
+      .relationshipTypeScan("(a)-[r:REL]->(b)")
       .build()
   }
 }

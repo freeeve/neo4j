@@ -53,6 +53,7 @@ import org.neo4j.cypher.internal.logical.plans.Descending
 import org.neo4j.cypher.internal.logical.plans.DirectedAllRelationshipsScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipByIdSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.ExclusiveBound
 import org.neo4j.cypher.internal.logical.plans.Expand
@@ -85,10 +86,12 @@ import org.neo4j.cypher.internal.logical.plans.RangeGreaterThan
 import org.neo4j.cypher.internal.logical.plans.RangeLessThan
 import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.RightOuterHashJoin
+import org.neo4j.cypher.internal.logical.plans.RollUpApply
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.SingleQueryExpression
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipByIdSeek
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
 import org.neo4j.cypher.internal.util.Cost
@@ -556,6 +559,203 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
           _
         ) => ()
     }
+  }
+
+  test("should not plan 'NOT <property> IN <empty list literal>' with index scan") {
+    val (logicalPlan, _, _) =
+      new givenConfig {
+        indexOn("A", "prop")
+      } getLogicalPlanFor
+        """
+          |MATCH (n:A)
+          |WHERE NOT n.prop IN []
+          |RETURN n""".stripMargin
+
+    logicalPlan should beLike { case Selection(_, _: NodeByLabelScan) => }
+  }
+
+  test("should not plan 'NOT any IN <empty list literal>' with index scan") {
+    val (logicalPlan, _, _) =
+      new givenConfig {
+        indexOn("A", "prop")
+      } getLogicalPlanFor
+        """
+          |MATCH (n:A)
+          |WHERE NOT any(val IN [] WHERE n.prop = val)
+          |RETURN n""".stripMargin
+
+    logicalPlan should beLike { case Selection(_, _: NodeByLabelScan) => }
+  }
+
+  test("should not plan 'none IN <empty list literal>' with index scan") {
+    val (logicalPlan, _, _) =
+      new givenConfig {
+        indexOn("A", "prop")
+      } getLogicalPlanFor
+        """
+          |MATCH (n:A)
+          |WHERE none(val IN [] WHERE n.prop = val)
+          |RETURN n""".stripMargin
+
+    logicalPlan should beLike { case Selection(_, _: NodeByLabelScan) => }
+  }
+
+  test("should not plan 'NOT <property> IN <list comprehension>' with index scan") {
+    val (logicalPlan, _, _) =
+      new givenConfig {
+        indexOn("A", "prop")
+      } getLogicalPlanFor
+        """
+          |MATCH (n:A)
+          |WHERE NOT n.prop IN [m IN COLLECT { MATCH (n) RETURN n } WHERE m.p STARTS WITH 'X' | m.p]
+          |RETURN n""".stripMargin
+
+    logicalPlan should beLike { case Selection(_, RollUpApply(_: NodeByLabelScan, _, _, _)) => }
+  }
+
+  test("should not plan 'NOT <property> IN <empty list variable>' with index scan") {
+    val (logicalPlan, _, _) =
+      new givenConfig {
+        indexOn("A", "prop")
+      } getLogicalPlanFor
+        """
+          |WITH [] AS v
+          |MATCH (n:A)
+          |WHERE NOT n.prop IN v
+          |RETURN n""".stripMargin
+
+    logicalPlan should beLike { case Selection(_, Projection(_: NodeByLabelScan, _)) => }
+  }
+
+  test("should not plan 'NOT <property> IN <subquery expression>' with index scan") {
+    val (logicalPlan, _, _) =
+      new givenConfig {
+        indexOn("A", "prop")
+      } getLogicalPlanFor
+        """
+          |WITH [] AS v
+          |MATCH (n:A)
+          |WHERE NOT n.prop IN COLLECT { MATCH (m) WHERE m.p STARTS WITH 'X' RETURN m.p }
+          |RETURN n""".stripMargin
+
+    logicalPlan should beLike { case Projection(Selection(_, RollUpApply(_: NodeByLabelScan, _, _, _)), _) => }
+  }
+
+  test("should plan '<property> IN <non-empty list literal>' with index scan") {
+    val (logicalPlan, _, _) =
+      new givenConfig {
+        indexOn("A", "prop")
+      } getLogicalPlanFor
+        """
+          |MATCH (n:A)
+          |WHERE NOT n.prop IN [1]
+          |RETURN n""".stripMargin
+
+    logicalPlan should beLike { case Selection(_, _: NodeIndexScan) => }
+  }
+
+  test("should plan 'NOT <property> EQUALS <literal>' index scan (Not(Equals) is rewritten to Not(In)") {
+    val (logicalPlan, _, _) =
+      new givenConfig {
+        indexOn("A", "prop")
+      } getLogicalPlanFor
+        """
+          |MATCH (n:A)
+          |WHERE NOT n.prop = 2
+          |RETURN n""".stripMargin
+
+    logicalPlan should beLike { case Selection(_, _: NodeIndexScan) => }
+  }
+
+  test("should not plan composite node index scan when testing membership of an empty list") {
+    val (logicalPlan, _, _) =
+      new givenConfig {
+        indexOn("A", "prop", "otherProp")
+      } getLogicalPlanFor
+        """
+          |MATCH (n:A)
+          |WHERE NOT n.prop IN [] AND n.otherProp IS NOT NULL
+          |RETURN n""".stripMargin
+
+    logicalPlan should beLike { case Selection(_, _: NodeByLabelScan) => }
+  }
+
+  test("should not plan 'NOT <property> IS TYPED <type> NOT NULL' with index scan") {
+    val (logicalPlan, _, _) =
+      new givenConfig {
+        indexOn("A", "prop")
+      } getLogicalPlanFor
+        """
+          |MATCH (n:A)
+          |WHERE NOT n.prop IS TYPED INT NOT NULL
+          |RETURN n""".stripMargin
+
+    logicalPlan should beLike { case Selection(_, _: NodeByLabelScan) => }
+  }
+
+  test("should plan '<property> IS TYPED <type> NOT NULL' with index scan") {
+    val (logicalPlan, _, _) =
+      new givenConfig {
+        indexOn("A", "prop")
+      } getLogicalPlanFor
+        """
+          |MATCH (n:A)
+          |WHERE n.prop IS TYPED STRING NOT NULL
+          |RETURN n""".stripMargin
+
+    logicalPlan should beLike { case Selection(_, _: NodeIndexScan) => }
+  }
+
+  test("should plan non-scannable predicate AND scannable predicate with index scan") {
+    val (logicalPlan, _, _) =
+      new givenConfig {
+        indexOn("A", "prop")
+      } getLogicalPlanFor
+        """
+          |MATCH (n:A)
+          |WHERE NOT n.prop IN [] AND n.prop IS NOT NULL
+          |RETURN n""".stripMargin
+
+    logicalPlan should beLike { case Selection(_, _: NodeIndexScan) => }
+  }
+
+  test("should not plan non-scannable predicate AND non-scannable predicate with index scan") {
+    val (logicalPlan, _, _) =
+      new givenConfig {
+        indexOn("A", "prop")
+      } getLogicalPlanFor
+        """
+          |MATCH (n:A)
+          |WHERE (NOT n.prop IN []) AND none(val IN [] WHERE n.prop = val)
+          |RETURN n""".stripMargin
+
+    logicalPlan should beLike { case Selection(_, _: NodeByLabelScan) => }
+  }
+
+  test("should plan non-scannable half of OR with node label scan") {
+    val (logicalPlan, _, _) =
+      new givenConfig {
+        indexOn("A", "prop")
+      } getLogicalPlanFor
+        """
+          |MATCH (n:A)
+          |WHERE (NOT n.prop IN []) OR (NOT n.prop = 42)
+          |RETURN n""".stripMargin
+
+    logicalPlan should beLike { case Distinct(Union(Selection(_, _: NodeByLabelScan), _), _) => }
+  }
+
+  test("should plan non-scannable XOR with node label scan") {
+    val (logicalPlan, _, _) =
+      new givenConfig {
+        indexOn("A", "prop")
+      } getLogicalPlanFor
+        """
+          |MATCH (n:A)
+          |WHERE (NOT n.prop IS TYPED STRING NOT NULL) XOR (n.prop IN [])
+          |RETURN n""".stripMargin
+
+    logicalPlan should beLike { case Selection(_, _: NodeByLabelScan) => }
   }
 
   test("should use indexes for large collections if it is a unique index") {

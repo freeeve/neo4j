@@ -46,6 +46,7 @@ import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ReplaceLiteral
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ReplacePatternComprehensionWithCollectSubquery
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.RewriteOrderById
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.RewriteSizeOfCollectToCount
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.SimplifyIterablePredicates
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.UnwrapParenthesizedPath
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions.ExpressionsHaveComputedDependencies
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.ASTRewriterFactory
@@ -89,6 +90,7 @@ object ASTRewriter {
         ReplacePatternComprehensionWithCollectSubquery,
         RewriteOrderById,
         RewriteSizeOfCollectToCount,
+        SimplifyIterablePredicates,
         UnwrapParenthesizedPath
       ),
       initialConditions = SemanticInfoAvailable ++ Set(

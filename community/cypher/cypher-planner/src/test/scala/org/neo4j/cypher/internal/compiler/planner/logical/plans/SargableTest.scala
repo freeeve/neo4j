@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNumber
 import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.cypher.internal.util.symbols.CTStringNotNull
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -264,6 +265,54 @@ class SargableTest extends CypherFunSuite with AstConstructionTestSupport {
         scannable.ident should equal(nodeA)
         scannable.propertyKey should equal(propertyExpr.propertyKey)
     }
+  }
+
+  test("NOT a.prop = v is property scannable") {
+    val expr = not(equals(prop("a", "prop"), v"v"))
+
+    assertMatches(expr) { case AsPropertyScannable(_) => }
+  }
+
+  test("NOT a.prop IN v is not property scannable") {
+    val expr = not(in(prop("a", "prop"), v"v"))
+
+    assertDoesNotMatch(expr) { case AsPropertyScannable(_) => }
+  }
+
+  test("NOT a.prop IN empty list parameter is not property scannable") {
+    val expr = not(in(prop("a", "prop"), parameter("name", CTList(CTAny), Some(0))))
+
+    assertDoesNotMatch(expr) { case AsPropertyScannable(_) => }
+  }
+
+  test("NOT a.prop IN non-empty list parameter is property scannable") {
+    val expr = not(in(prop("a", "prop"), parameter("name", CTList(CTAny), Some(1))))
+
+    assertMatches(expr) { case AsPropertyScannable(_) => }
+  }
+
+  test("NOT a.prop IN literal empty list is not property scannable") {
+    val expr = not(in(prop("a", "prop"), listOf()))
+
+    assertDoesNotMatch(expr) { case AsPropertyScannable(_) => }
+  }
+
+  test("NOT a.prop IN literal non-empty list is not property scannable") {
+    val expr = not(in(prop("a", "prop"), listOf(literal(1), literal(2))))
+
+    assertMatches(expr) { case AsPropertyScannable(_) => }
+  }
+
+  test("NOT property IS TYPED INT NOT NULL is not property scannable") {
+    val expr = not(isTyped(prop("a", "prop"), CTStringNotNull))
+
+    assertDoesNotMatch(expr) { case AsPropertyScannable(_) => }
+  }
+
+  test("property IS TYPED INT NOT NULL is property scannable") {
+    val expr = isTyped(prop("a", "prop"), CTStringNotNull)
+
+    assertMatches(expr) { case AsPropertyScannable(_) => }
   }
 
   private def assertMatches[T](item: Expression)(pf: PartialFunction[Expression, T]) =

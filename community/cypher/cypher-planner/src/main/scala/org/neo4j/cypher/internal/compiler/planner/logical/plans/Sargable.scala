@@ -42,6 +42,7 @@ import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.Not
+import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PartialPredicate
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -66,12 +67,15 @@ import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.SeekRange
 import org.neo4j.cypher.internal.logical.plans.SeekableArgs
 import org.neo4j.cypher.internal.logical.plans.SingleSeekableArg
+import org.neo4j.cypher.internal.util.BucketSize
+import org.neo4j.cypher.internal.util.ExactSize
 import org.neo4j.cypher.internal.util.Last
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CypherType
+import org.neo4j.cypher.internal.util.symbols.ListType
 import org.neo4j.cypher.internal.util.symbols.PointType
 import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
@@ -135,7 +139,6 @@ object AsExplicitlyPropertyScannable {
 object AsPropertyScannable {
 
   def unapply(v: Any): Option[Scannable[Expression]] = v match {
-
     case AsExplicitlyPropertyScannable(scannable) =>
       Some(scannable)
 
@@ -148,8 +151,10 @@ object AsPropertyScannable {
     case expr: Equals =>
       partialPropertyPredicate(expr, expr.lhs)
 
-    case expr: In =>
-      partialPropertyPredicate(expr, expr.lhs)
+    case expr @ In(lhs, rhs) =>
+      // Because `NOT NULL IN []` is `TRUE`, then null property values can only be safely
+      // excluded when the rhs of IN is known to be a non-empty list
+      partialPropertyPredicate(expr, lhs, safelyScannableWhenNegated = isKnownNonEmptyList(rhs))
 
     case expr: InequalityExpression =>
       partialPropertyPredicate(expr, expr.lhs)
@@ -170,29 +175,50 @@ object AsPropertyScannable {
       partialPropertyPredicate(regex, regex.lhs, cypherType = CTString)
 
     case isTyped @ IsTyped(lhs, cypherType) if !cypherType.isNullable =>
-      partialPropertyPredicate(isTyped, lhs, cypherType = cypherType)
+      partialPropertyPredicate(isTyped, lhs, cypherType = cypherType, safelyScannableWhenNegated = false)
 
     case isNormalized: IsNormalized =>
       partialPropertyPredicate(isNormalized, isNormalized.lhs, cypherType = CTString)
 
     case not @ Not(AsPropertyScannable(scannable)) =>
-      partialPropertyPredicate(not, scannable.property, cypherType = scannable.cypherType)
+      scannable match {
+        case ips: ImplicitlyPropertyScannable[Expression] if !ips.safelyScannableWhenNegated =>
+          None
+        case _ =>
+          partialPropertyPredicate(not, scannable.property, cypherType = scannable.cypherType)
+      }
 
     case _ =>
       None
   }
 
+  private def isKnownNonEmptyList(expr: Expression): Boolean = expr match {
+    case Parameter(_, ListType(_, _), sizeHint: BucketSize) if sizeHint != ExactSize(0) => true
+    case ListLiteral(expressions) if expressions.nonEmpty                               => true
+    case _                                                                              => false
+  }
+
   private def partialPropertyPredicate[P <: Expression](
     predicate: P,
     lhs: Expression,
-    cypherType: CypherType = CTAny
+    cypherType: CypherType = CTAny,
+    safelyScannableWhenNegated: Boolean = true
   ): Option[ImplicitlyPropertyScannable[IsNotNull]] = {
     lhs match {
       case property @ Property(ident: LogicalVariable, _) =>
         PartialPredicate.ifNotEqual(
           IsNotNull(property)(predicate.position),
           predicate
-        ).map(ImplicitlyPropertyScannable(_, ident, property, solvesPredicate = false, cypherType = cypherType))
+        ).map(
+          ImplicitlyPropertyScannable(
+            _,
+            ident,
+            property,
+            solvesPredicate = false,
+            cypherType = cypherType,
+            safelyScannableWhenNegated = safelyScannableWhenNegated
+          )
+        )
 
       case _ =>
         None
@@ -499,5 +525,6 @@ case class ImplicitlyPropertyScannable[+T <: Expression](
   ident: LogicalVariable,
   property: LogicalProperty,
   solvesPredicate: Boolean,
-  cypherType: CypherType
+  cypherType: CypherType,
+  safelyScannableWhenNegated: Boolean
 ) extends Scannable[PartialPredicate[T]]

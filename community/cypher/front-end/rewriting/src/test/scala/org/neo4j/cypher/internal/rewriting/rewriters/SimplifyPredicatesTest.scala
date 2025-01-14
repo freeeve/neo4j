@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.rewriting.rewriters
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.rewriting.AstRewritingTestSupport
 import org.neo4j.cypher.internal.rewriting.RewriteTest
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.SimplifyIterablePredicates
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
@@ -157,7 +158,7 @@ class SimplifyPredicatesTest extends CypherFunSuite with Matchers with RewriteTe
     shouldNotRewrite(expr(parameter("p", CTString, Some(1))))
   }
 
-  override def rewriterUnderTest: Rewriter = SimplifyPredicates
+  override def rewriterUnderTest: Rewriter = SimplifyIterablePredicates.instance
 
   private def rewrite(e: Expression): Expression = e.endoRewrite(rewriterUnderTest)
 
