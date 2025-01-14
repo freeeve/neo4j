@@ -36,9 +36,9 @@ public class IllegalTokenNameException extends SchemaKernelException {
                         tokenName != null ? "'" + tokenName + "'" : "Null"));
     }
 
-    public static IllegalTokenNameException invalidTokenName(String tokenName, TokenType typ) {
+    public static IllegalTokenNameException invalidTokenName(String tokenName, TokenType type) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I11)
-                .withParam(GqlParams.StringParam.tokenType, typ.getName())
+                .withParam(GqlParams.StringParam.tokenType, type.getName())
                 .withParam(GqlParams.StringParam.input, tokenName)
                 .build();
         return new IllegalTokenNameException(gql, tokenName);

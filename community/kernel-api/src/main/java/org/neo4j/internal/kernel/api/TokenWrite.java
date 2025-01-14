@@ -141,13 +141,13 @@ public interface TokenWrite {
     /**
      * Checks that the provided token name is a valid one.
      * @param name the token name to check.
-     * @param typ the type of the token.
+     * @param type the type of the token.
      * @return the token name, for convenience.
      * @throws IllegalTokenNameException if the token name is not valid.
      */
-    static String checkValidTokenName(String name, TokenType typ) throws IllegalTokenNameException {
+    static String checkValidTokenName(String name, TokenType type) throws IllegalTokenNameException {
         if (name == null || name.isEmpty() || name.contains("\0")) {
-            throw IllegalTokenNameException.invalidTokenName(name, typ);
+            throw IllegalTokenNameException.invalidTokenName(name, type);
         }
         return name;
     }

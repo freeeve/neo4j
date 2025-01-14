@@ -190,10 +190,10 @@ public class KernelToken extends KernelTokenRead implements Token {
         return ktx.securityContext().mode();
     }
 
-    private int getOrCreateForName(TokenHolder tokens, PrivilegeAction action, String name, TokenType typ)
+    private int getOrCreateForName(TokenHolder tokens, PrivilegeAction action, String name, TokenType type)
             throws KernelException {
         ktx.assertOpen();
-        int id = tokens.getIdByName(checkValidTokenName(name, typ));
+        int id = tokens.getIdByName(checkValidTokenName(name, type));
         if (id != TokenConstants.NO_TOKEN) {
             return id;
         }
@@ -204,12 +204,12 @@ public class KernelToken extends KernelTokenRead implements Token {
     }
 
     private void getOrCreateForNames(
-            TokenHolder tokenHolder, PrivilegeAction action, String[] names, int[] ids, TokenType typ)
+            TokenHolder tokenHolder, PrivilegeAction action, String[] names, int[] ids, TokenType type)
             throws KernelException {
         ktx.assertOpen();
         assertSameLength(names, ids);
         for (int i = 0; i < names.length; i++) {
-            ids[i] = tokenHolder.getIdByName(checkValidTokenName(names[i], typ));
+            ids[i] = tokenHolder.getIdByName(checkValidTokenName(names[i], type));
             if (ids[i] == TokenConstants.NO_TOKEN) {
                 ktx.securityAuthorizationHandler().assertAllowsTokenCreates(ktx.securityContext(), action);
                 // ensures the registry has all applied transactions before attempting to create any new ones
