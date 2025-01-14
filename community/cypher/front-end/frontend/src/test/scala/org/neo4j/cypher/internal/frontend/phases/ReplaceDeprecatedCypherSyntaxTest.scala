@@ -18,6 +18,9 @@ package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SyntaxDeprecationWarningsAndReplacements
 import org.neo4j.cypher.internal.rewriting.Deprecations.SemanticallyDeprecatedFeatures
 import org.neo4j.cypher.internal.rewriting.Deprecations.SyntacticallyDeprecatedFeatures
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite

@@ -34,11 +34,11 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.AST_REWRITE
 import org.neo4j.cypher.internal.frontend.phases.InitialState
-import org.neo4j.cypher.internal.frontend.phases.Parse
 import org.neo4j.cypher.internal.frontend.phases.Phase
-import org.neo4j.cypher.internal.frontend.phases.PreparatoryRewriting
-import org.neo4j.cypher.internal.frontend.phases.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.Transformer
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.rewriting.rewriters.ProjectNamedPaths
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.ErrorMessageProvider

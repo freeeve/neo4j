@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOperators
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 

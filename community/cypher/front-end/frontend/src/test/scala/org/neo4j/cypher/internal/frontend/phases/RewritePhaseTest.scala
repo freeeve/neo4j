@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.helpers.TestContext
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses

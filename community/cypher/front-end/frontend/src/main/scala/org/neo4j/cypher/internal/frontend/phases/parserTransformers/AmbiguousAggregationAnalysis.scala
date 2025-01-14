@@ -14,27 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.frontend.phases
+package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
 import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.frontend.phases.BaseContains
+import org.neo4j.cypher.internal.frontend.phases.BaseContext
+import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.SEMANTIC_CHECK
+import org.neo4j.cypher.internal.frontend.phases.Transformer
+import org.neo4j.cypher.internal.frontend.phases.VisitorPhase
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.rewriting.conditions.FunctionInvocationsResolved
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions.ExpressionsHaveComputedDependencies
 import org.neo4j.cypher.internal.util.StepSequencer
-import org.neo4j.cypher.internal.util.StepSequencer.DefaultPostCondition
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 
 /**
  * Verify aggregation expressions and make sure there are no ambiguous grouping keys.
  */
-case class AmbiguousAggregationAnalysis()
-    extends VisitorPhase[BaseContext, BaseState] {
+case object AmbiguousAggregationAnalysis extends VisitorPhase[BaseContext, BaseState] with StepSequencer.Step
+    with ParsePipelineTransformerFactory {
 
   override def visit(from: BaseState, context: BaseContext): Unit = {
     val errors = from.statement().folder.fold(Seq.empty[SemanticErrorDef]) {
@@ -48,11 +53,6 @@ case class AmbiguousAggregationAnalysis()
   }
 
   override def phase: CompilationPhaseTracer.CompilationPhase = SEMANTIC_CHECK
-
-}
-
-case object AmbiguousAggregationAnalysis extends StepSequencer.Step with DefaultPostCondition
-    with ParsePipelineTransformerFactory {
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
     BaseContains[Statement](),
@@ -69,5 +69,5 @@ case object AmbiguousAggregationAnalysis extends StepSequencer.Step with Default
     parameterTypeMapping: Map[String, ParameterTypeInfo],
     semanticFeatures: Seq[SemanticFeature],
     obfuscateLiterals: Boolean
-  ): Transformer[BaseContext, BaseState, BaseState] = AmbiguousAggregationAnalysis()
+  ): Transformer[BaseContext, BaseState, BaseState] = this
 }

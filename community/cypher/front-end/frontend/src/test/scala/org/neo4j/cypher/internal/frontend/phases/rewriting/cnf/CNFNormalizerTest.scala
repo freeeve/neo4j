@@ -38,9 +38,9 @@ import org.neo4j.cypher.internal.frontend.phases.InitialState
 import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats
 import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.Monitors
-import org.neo4j.cypher.internal.frontend.phases.PreparatoryRewriting.SemanticAnalysisPossible
-import org.neo4j.cypher.internal.frontend.phases.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.Transformer
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting.SemanticAnalysisPossible
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizer.steps
 import org.neo4j.cypher.internal.frontend.phases.transitiveEqualities
 import org.neo4j.cypher.internal.rewriting.AstRewritingMonitor

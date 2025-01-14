@@ -21,9 +21,9 @@ import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.frontend.helpers.ErrorCollectingContext
 import org.neo4j.cypher.internal.frontend.helpers.NoPlannerName
 import org.neo4j.cypher.internal.frontend.phases.InitialState
-import org.neo4j.cypher.internal.frontend.phases.Parse
-import org.neo4j.cypher.internal.frontend.phases.PreparatoryRewriting
-import org.neo4j.cypher.internal.frontend.phases.SemanticAnalysis
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 

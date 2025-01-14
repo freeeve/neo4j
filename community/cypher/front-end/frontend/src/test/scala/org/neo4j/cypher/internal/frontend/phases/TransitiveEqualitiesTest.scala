@@ -18,7 +18,7 @@ package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.Statement
-import org.neo4j.cypher.internal.frontend.phases.PreparatoryRewriting.SemanticAnalysisPossible
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting.SemanticAnalysisPossible
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizer
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizerTest.SemanticWrapper
 import org.neo4j.cypher.internal.util.StepSequencer

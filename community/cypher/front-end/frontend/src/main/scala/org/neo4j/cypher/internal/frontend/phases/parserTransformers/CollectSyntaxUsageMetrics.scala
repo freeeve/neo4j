@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.frontend.phases
+package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
+import IsolateSubqueriesInMutatingPatterns.SubqueriesInMutatingPatternsIsolated
 import org.neo4j.cypher.internal.ast.CollectExpression
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.ExistsExpression
@@ -24,8 +25,13 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
+import org.neo4j.cypher.internal.frontend.phases.BaseContains
+import org.neo4j.cypher.internal.frontend.phases.BaseContext
+import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.METADATA_COLLECTION
-import org.neo4j.cypher.internal.frontend.phases.IsolateSubqueriesInMutatingPatterns.SubqueriesInMutatingPatternsIsolated
+import org.neo4j.cypher.internal.frontend.phases.SyntaxUsageMetricKey
+import org.neo4j.cypher.internal.frontend.phases.Transformer
+import org.neo4j.cypher.internal.frontend.phases.VisitorPhase
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.rewriting.conditions.SensitiveLiteralsExtracted
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy

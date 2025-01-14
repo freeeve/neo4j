@@ -43,8 +43,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.E
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.CompressPlanIDs
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.InsertCachedProperties
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.SortPredicatesBySelectivity
-import org.neo4j.cypher.internal.frontend.phases.AmbiguousAggregationAnalysis
-import org.neo4j.cypher.internal.frontend.phases.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CopyQuantifiedPathPatternPredicatesToJuxtaposedNodes
@@ -53,16 +51,18 @@ import org.neo4j.cypher.internal.frontend.phases.If
 import org.neo4j.cypher.internal.frontend.phases.MoveBoundaryNodePredicates
 import org.neo4j.cypher.internal.frontend.phases.Namespacer
 import org.neo4j.cypher.internal.frontend.phases.ObfuscationMetadataCollection
-import org.neo4j.cypher.internal.frontend.phases.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.ProcedureAndFunctionDeprecationWarnings
 import org.neo4j.cypher.internal.frontend.phases.ProcedureWarnings
 import org.neo4j.cypher.internal.frontend.phases.ProjectNamedPathsRewriter
-import org.neo4j.cypher.internal.frontend.phases.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.ShortestPathVariableDeduplicator
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.collapseMultipleInPredicates
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.isolateAggregation
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AmbiguousAggregationAnalysis
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizer
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.rewriteEqualityToInPredicate
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.simplifyPredicates
@@ -141,7 +141,7 @@ object CompilationPhases extends FrontEndCompilationPhases {
   // Phase 2
   val prepareForCaching: Transformer[PlannerContext, BaseState, BaseState] =
     RewriteProcedureCalls andThen
-      AmbiguousAggregationAnalysis() andThen
+      AmbiguousAggregationAnalysis andThen
       ProcedureAndFunctionDeprecationWarnings andThen
       ProcedureWarnings andThen
       ObfuscationMetadataCollection

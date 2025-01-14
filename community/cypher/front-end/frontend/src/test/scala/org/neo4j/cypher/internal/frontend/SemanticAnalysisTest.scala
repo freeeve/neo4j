@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidNumberOfProc
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.frontend.SemanticAnalysisTest.gql42N29
 import org.neo4j.cypher.internal.frontend.SemanticAnalysisTest.gql42NA5
-import org.neo4j.cypher.internal.frontend.phases.SemanticAnalysis
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.util.CartesianProductNotification
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.InputPosition

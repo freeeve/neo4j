@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.frontend.helpers.ErrorCollectingContext
 import org.neo4j.cypher.internal.frontend.helpers.ErrorCollectingContext.failWith
 import org.neo4j.cypher.internal.frontend.helpers.NoPlannerName
 import org.neo4j.cypher.internal.frontend.phases.InitialState
-import org.neo4j.cypher.internal.frontend.phases.SemanticAnalysis
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 

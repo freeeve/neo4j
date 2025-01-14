@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.frontend.phases
+package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
 import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.CreateOrInsert
@@ -35,11 +35,16 @@ import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.functions.Exists
+import org.neo4j.cypher.internal.frontend.phases.BaseContains
+import org.neo4j.cypher.internal.frontend.phases.BaseContext
+import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.SEMANTIC_TYPE_CHECK
-import org.neo4j.cypher.internal.frontend.phases.ListCoercedToBooleanCheck.listCoercedToBooleanCheck
-import org.neo4j.cypher.internal.frontend.phases.PatternExpressionInNonExistenceCheck.patternExpressionInNonExistenceCheck
-import org.neo4j.cypher.internal.frontend.phases.SemanticTypeCheck.SemanticErrorCheck
+import org.neo4j.cypher.internal.frontend.phases.Transformer
+import org.neo4j.cypher.internal.frontend.phases.VisitorPhase
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ListCoercedToBooleanCheck.listCoercedToBooleanCheck
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PatternExpressionInNonExistenceCheck.patternExpressionInNonExistenceCheck
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck.SemanticErrorCheck
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable

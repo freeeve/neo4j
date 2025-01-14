@@ -19,6 +19,15 @@ package org.neo4j.cypher.internal.frontend.phases
 import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.CollectSyntaxUsageMetrics
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.IsolateSubqueriesInMutatingPatterns
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.LiteralExtraction
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SyntaxDeprecationWarningsAndReplacements
 import org.neo4j.cypher.internal.rewriting.Deprecations
 import org.neo4j.cypher.internal.rewriting.rewriters.Forced
 import org.neo4j.cypher.internal.rewriting.rewriters.IfNoParameter

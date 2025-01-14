@@ -20,6 +20,8 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.frontend.helpers.ErrorCollectingContext
 import org.neo4j.cypher.internal.frontend.helpers.NoPlannerName
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.CollectSyntaxUsageMetrics
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
