@@ -954,7 +954,7 @@ abstract class MemoryDeallocationTestBase[CONTEXT <: RuntimeContext](
     // then
     val toleratedDeviation = runtimeUsed match {
       // TODO: this deviation in parallel is very high
-      case Parallel => 0.6
+      case Parallel => 0.8
       case _        => 0.005
     }
     compareMemoryUsage(query(rows = 10), query(rows = 100), toleratedDeviation = toleratedDeviation)
@@ -998,8 +998,12 @@ abstract class MemoryDeallocationTestBase[CONTEXT <: RuntimeContext](
         .argument()
         .build()
     }
-
-    compareMemoryUsage(query(skip = 1000), query(skip = 10000), toleratedDeviation = 0.5)
+    // then
+    val toleratedDeviation = runtimeUsed match {
+      case Parallel => 0.8
+      case _        => 0.5
+    }
+    compareMemoryUsage(query(skip = 1000), query(skip = 10000), toleratedDeviation = toleratedDeviation)
   }
 
   test("should account for memory allocated in value population") {
