@@ -128,6 +128,7 @@ public class GqlParams {
         routingPolicy(new STRLIT()), // Routing policy
         runtime(new STRLIT()), // Cypher runtime name
         schemaDescr(new STRLIT()), // Schema descriptor
+        schemaDescrType(new VERBATIM()), // type of schema descriptor
         selector(new VERBATIM()), // A GPM path selector
         selectorType1(new STRLIT()), // Selector type
         selectorType2(new STRLIT()),

@@ -4122,7 +4122,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlStatus("50N21"),
             """
                     The { %s } was not found for { %s }. Verify that the spelling is correct.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.schemaDescr, GqlParams.StringParam.token},
+            new GqlParams.GqlParam[] {GqlParams.StringParam.schemaDescrType, GqlParams.StringParam.schemaDescr},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
             "no such schema descriptor",
