@@ -19,8 +19,13 @@
  */
 package org.neo4j.internal.kernel.api.exceptions.schema;
 
+import java.util.Collections;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
+import org.neo4j.values.storable.Value;
 
 /**
  * Signals that a schema rule in the schema store was malformed, i.e. contained corrupted data and could not
@@ -41,5 +46,17 @@ public class MalformedSchemaRuleException extends SchemaKernelException {
 
     public MalformedSchemaRuleException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, Status.General.SchemaCorruptionDetected, message);
+    }
+
+    public static MalformedSchemaRuleException propertyTypeMismatch(
+            String property, Value value, Class<? extends Value> expectedType, Class<? extends Value> actualType) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
+                .withParam(GqlParams.StringParam.value, value.prettyPrint())
+                .withParam(GqlParams.ListParam.valueTypeList, Collections.singletonList(expectedType.getSimpleName()))
+                .withParam(GqlParams.StringParam.valueType, actualType.getSimpleName())
+                .build();
+        var legacyMessage = String.format(
+                "Expected property %s to be a %s but was %s", property, expectedType.getSimpleName(), value);
+        return new MalformedSchemaRuleException(gql, legacyMessage);
     }
 }

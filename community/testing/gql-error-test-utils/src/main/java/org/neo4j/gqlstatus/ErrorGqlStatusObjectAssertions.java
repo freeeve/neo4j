@@ -32,6 +32,10 @@ public class ErrorGqlStatusObjectAssertions {
         return new ErrorGqlStatusObjectAssertImplementation(actual);
     }
 
+    public static <T extends Exception & ErrorGqlStatusObject> GqlExceptionLikeAssert assertThat(T actual) {
+        return new GqlExceptionLikeAssert(actual);
+    }
+
     @CanIgnoreReturnValue
     public static GqlExceptionLikeAssert assertThatThrownBy(ThrowableAssert.ThrowingCallable shouldRaiseThrowable) {
         return new GqlExceptionLikeAssert(catchGqlException(shouldRaiseThrowable));

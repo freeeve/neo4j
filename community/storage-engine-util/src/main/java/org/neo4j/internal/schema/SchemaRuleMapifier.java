@@ -229,7 +229,7 @@ public class SchemaRuleMapifier {
         if (value instanceof IntArray intArray) {
             return intArray.asObject();
         }
-        throw new MalformedSchemaRuleException("Expected property " + property + " to be a IntArray but was " + value);
+        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, IntArray.class, value.getClass());
     }
 
     private static long getLong(String property, Map<String, Value> props) throws MalformedSchemaRuleException {
@@ -237,7 +237,7 @@ public class SchemaRuleMapifier {
         if (value instanceof LongValue longValue) {
             return longValue.value();
         }
-        throw new MalformedSchemaRuleException("Expected property " + property + " to be a LongValue but was " + value);
+        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, LongValue.class, value.getClass());
     }
 
     private static OptionalLong getOptionalLong(String property, Map<String, Value> props) {
@@ -261,7 +261,7 @@ public class SchemaRuleMapifier {
         if (value instanceof TextValue textValue) {
             return textValue.stringValue();
         }
-        throw new MalformedSchemaRuleException("Expected property " + property + " to be a TextValue but was " + value);
+        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, TextValue.class, value.getClass());
     }
 
     private static String[] getStringArray(String property, Map<String, Value> props)
@@ -270,8 +270,7 @@ public class SchemaRuleMapifier {
         if (value instanceof StringArray stringArray) {
             return stringArray.asObject();
         }
-        throw new MalformedSchemaRuleException(
-                "Expected property " + property + " to be a StringArray but was " + value);
+        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, StringArray.class, value.getClass());
     }
 
     private static void putLongProperty(Map<String, Value> map, String property, long value) {
