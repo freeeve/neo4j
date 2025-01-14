@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryR
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SyntaxDeprecationWarningsAndReplacements
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.UnwrapTopLevelBraces
 import org.neo4j.cypher.internal.rewriting.Deprecations
 import org.neo4j.cypher.internal.rewriting.rewriters.Forced
 import org.neo4j.cypher.internal.rewriting.rewriters.IfNoParameter
@@ -68,6 +69,7 @@ trait FrontEndCompilationPhases {
         ExtractSensitiveLiterals
       ) andThen
       SemanticAnalysis(warn = true, config.semanticFeatures: _*) andThen
+      UnwrapTopLevelBraces andThen
       RemoveDuplicateUseClauses andThen
       SemanticTypeCheck andThen
       SyntaxDeprecationWarningsAndReplacements(Deprecations.SemanticallyDeprecatedFeatures) andThen

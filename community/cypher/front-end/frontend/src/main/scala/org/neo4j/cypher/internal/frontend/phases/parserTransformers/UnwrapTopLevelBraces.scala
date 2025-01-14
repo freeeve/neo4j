@@ -14,16 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters
+package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
-import org.neo4j.cypher.internal.ast._
-import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoTopLevelBraces
+import org.neo4j.cypher.internal.ast.PartQuery
+import org.neo4j.cypher.internal.ast.ProjectingUnion
+import org.neo4j.cypher.internal.ast.Query
+import org.neo4j.cypher.internal.ast.SingleQuery
+import org.neo4j.cypher.internal.ast.TopLevelBraces
+import org.neo4j.cypher.internal.ast.UnionAll
+import org.neo4j.cypher.internal.ast.UnionDistinct
+import org.neo4j.cypher.internal.ast.UseGraph
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.frontend.phases.BaseContext
+import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.frontend.phases.StatementRewriter
+import org.neo4j.cypher.internal.frontend.phases.Transformer
+import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
-import org.neo4j.cypher.internal.rewriting.rewriters.factories.PreparatoryRewritingRewriterFactory
-import org.neo4j.cypher.internal.util.CypherExceptionFactory
+import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.Step
+import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 import org.neo4j.cypher.internal.util.topDown
 
 /**
@@ -69,11 +81,11 @@ import org.neo4j.cypher.internal.util.topDown
  *    RETURN 4 AS x  *
  *
  */
-case object UnwrapTopLevelBraces extends Step with PreparatoryRewritingRewriterFactory {
+case object UnwrapTopLevelBraces extends StatementRewriter with ParsePipelineTransformerFactory with Step {
 
   override def preConditions: Set[StepSequencer.Condition] = Set()
 
-  override def postConditions: Set[StepSequencer.Condition] = Set(ContainsNoTopLevelBraces)
+  override def postConditions: Set[StepSequencer.Condition] = Set()
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable
 
@@ -104,18 +116,6 @@ case object UnwrapTopLevelBraces extends Step with PreparatoryRewritingRewriterF
       } else tlb
   })
 
-  private val markReturns: Rewriter = topDown(Rewriter.lift {
-    case tlb: TopLevelBraces =>
-      tlb.copy(query =
-        tlb.query.endoRewrite(
-          topDown(Rewriter.lift {
-            case ret: Return =>
-              ret.copy(inTopLevelBraces = true)(ret.position)
-          })
-        )
-      )(tlb.position)
-  })
-
   private val rewriter: Rewriter = topDown(Rewriter.lift {
     case u @ UnionDistinct(lhs, rhs) =>
       u.copy(lhs.getQuery(true), rhs.singleQuery)(u.position)
@@ -125,7 +125,12 @@ case object UnwrapTopLevelBraces extends Step with PreparatoryRewritingRewriterF
       tlb.getQuery(false)
   })
 
-  val instance: Rewriter = propagateUse andThen markReturns andThen rewriter
+  override def instance(from: BaseState, context: BaseContext): Rewriter = propagateUse andThen rewriter
 
-  override def getRewriter(cypherExceptionFactory: CypherExceptionFactory): Rewriter = instance
+  override def getTransformer(
+    literalExtractionStrategy: LiteralExtractionStrategy,
+    parameterTypeMapping: Map[String, ParameterTypeInfo],
+    semanticFeatures: Seq[SemanticFeature],
+    obfuscateLiterals: Boolean
+  ): Transformer[BaseContext, BaseState, BaseState] = this
 }

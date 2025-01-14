@@ -14,20 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.rewriting
+package org.neo4j.cypher.internal.frontend.phases.rewriting
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.Statement
-import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.UnwrapTopLevelBraces
+import org.neo4j.cypher.internal.frontend.helpers.TestState
+import org.neo4j.cypher.internal.frontend.phases.Monitors
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.UnwrapTopLevelBraces
+import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.TestContext
+import org.neo4j.cypher.internal.rewriting.RewriteTest
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
 
-  override val rewriterUnderTest: Rewriter = UnwrapTopLevelBraces.instance
+  override val rewriterUnderTest: Rewriter =
+    UnwrapTopLevelBraces.instance(TestState(None), new TestContext(mock[Monitors]))
 
   test("braces") {
     assertRewrite(CypherVersion.Cypher25, "{ RETURN 1 AS x }", "RETURN 1 AS x")
@@ -485,7 +490,7 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
     // Removes marker to returns allowing them to throw helpful message
     query.endoRewrite(bottomUp(Rewriter.lift {
       case ret: Return =>
-        ret.copy(inTopLevelBraces = false)(ret.position)
+        ret.copy()(ret.position)
     }))
 
   }

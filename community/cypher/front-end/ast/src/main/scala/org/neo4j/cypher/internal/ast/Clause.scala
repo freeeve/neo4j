@@ -1753,6 +1753,8 @@ case class Finish()(val position: InputPosition) extends Clause with ClauseAllow
   override def clauseSpecificSemanticCheck: SemanticCheck = SemanticCheck.success
 }
 
+trait UnaliasedNotAllowed { val msg: String }
+
 object Return {
 
   def apply(returnItems: ReturnItems)(pos: InputPosition): Return =
@@ -1767,7 +1769,7 @@ case class Return(
   limit: Option[Limit],
   excludedNames: Set[String] = Set.empty,
   addedInRewrite: Boolean = false, // used for SHOW/TERMINATE commands
-  inTopLevelBraces: Boolean = false
+  context: UnaliasedNotAllowed = ImportingWithSubqueryCall
 )(val position: InputPosition) extends ProjectionClause with ClauseAllowedOnSystem {
 
   override def name = "RETURN"
@@ -1783,7 +1785,7 @@ case class Return(
       checkVariableScope chain
       ProjectionClause.checkAliasedReturnItems(
         returnItems,
-        if (inTopLevelBraces) "{ RETURN ... }" else "CALL { RETURN ... }"
+        context.msg
       ) chain
       SemanticPatternCheck.checkValidPropertyKeyNamesInReturnItems(returnItems)
 
@@ -1993,6 +1995,8 @@ sealed trait SubqueryCall extends HorizonClause with SemanticAnalysisTooling {
   }
 }
 
+case object ImportingWithSubqueryCall extends UnaliasedNotAllowed { override val msg = "CALL { RETURN ... }" }
+
 case class ImportingWithSubqueryCall(
   override val innerQuery: Query,
   override val inTransactionsParameters: Option[SubqueryCall.InTransactionsParameters],
@@ -2032,6 +2036,8 @@ case class ImportingWithSubqueryCall(
     }
   }
 }
+
+case object ScopeClauseSubqueryCall extends UnaliasedNotAllowed { override val msg = "CALL () { RETURN ... }" }
 
 case class ScopeClauseSubqueryCall(
   override val innerQuery: Query,

@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.AscSortItem
 import org.neo4j.cypher.internal.ast.DescSortItem
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.OrderBy
+import org.neo4j.cypher.internal.ast.PartQuery
 import org.neo4j.cypher.internal.ast.ProjectingUnion
 import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.Query
@@ -47,7 +48,6 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.ScopeExpression
 import org.neo4j.cypher.internal.expressions.Variable
-import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoTopLevelBraces
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.PreparatoryRewritingRewriterFactory
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
@@ -132,17 +132,15 @@ case class NormalizeWithAndReturnClauses(
    */
   private def rewriteTopLevelQuery(query: org.neo4j.cypher.internal.ast.Query): org.neo4j.cypher.internal.ast.Query =
     query match {
-      case sq: SingleQuery => rewriteTopLevelSingleQuery(sq)
+      case pq: PartQuery => rewriteTopLevelPartQuery(pq)
       case union @ UnionAll(lhs, rhs) =>
-        union.copy(lhs = rewriteTopLevelQuery(lhs), rhs = rewriteTopLevelSingleQuery(rhs.singleQuery))(
+        union.copy(lhs = rewriteTopLevelQuery(lhs), rhs = rewriteTopLevelPartQuery(rhs))(
           union.position
         )
       case union @ UnionDistinct(lhs, rhs) =>
-        union.copy(lhs = rewriteTopLevelQuery(lhs), rhs = rewriteTopLevelSingleQuery(rhs.singleQuery))(
+        union.copy(lhs = rewriteTopLevelQuery(lhs), rhs = rewriteTopLevelPartQuery(rhs))(
           union.position
         )
-      case _: TopLevelBraces =>
-        throw new IllegalStateException("Didn't expect TopLevelBraces, only SingleQuery, UnionAll, or UnionDistinct.")
       case _: ProjectingUnion =>
         throw new IllegalStateException("Didn't expect ProjectingUnion, only SingleQuery, UnionAll, or UnionDistinct.")
     }
@@ -151,12 +149,18 @@ case class NormalizeWithAndReturnClauses(
    * Adds aliases to all return items in Return clauses in the top level query.
    * Rewrites all projection clauses (also in subqueries) using [[rewriteProjectionsRecursively]].
    */
-  private def rewriteTopLevelSingleQuery(singleQuery: SingleQuery): SingleQuery = {
-    val newClauses = singleQuery.clauses.map {
-      case r: Return => addAliasesToReturn(r)
-      case x         => x
+  private def rewriteTopLevelPartQuery(partQuery: PartQuery): PartQuery = {
+    partQuery match {
+      case sq: SingleQuery =>
+        val newClauses = sq.clauses.map {
+          case r: Return => addAliasesToReturn(r)
+          case x         => x
+        }
+        sq.copy(clauses = newClauses)(sq.position).endoRewrite(rewriteProjectionsRecursively)
+      case tlb: TopLevelBraces =>
+        tlb.endoRewrite(rewriteProjectionsRecursively)
     }
-    singleQuery.copy(clauses = newClauses)(singleQuery.position).endoRewrite(rewriteProjectionsRecursively)
+
   }
 
   private def addAliasesToReturn(r: Return): Return =
@@ -297,7 +301,7 @@ case object NormalizeWithAndReturnClauses extends Step with PreparatoryRewriting
     NormalizeWithAndReturnClauses(cypherExceptionFactory)
   }
 
-  override def preConditions: Set[StepSequencer.Condition] = Set(ContainsNoTopLevelBraces)
+  override def preConditions: Set[StepSequencer.Condition] = Set()
 
   override def postConditions: Set[StepSequencer.Condition] = Set(
     ReturnItemsAreAliased,

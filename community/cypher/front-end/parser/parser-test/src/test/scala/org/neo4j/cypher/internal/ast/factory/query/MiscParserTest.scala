@@ -578,8 +578,7 @@ class MiscParserTest extends AstParsingTestBase {
       None,
       None,
       None,
-      Set(),
-      false
+      Set()
     )(pos)))(pos))))
   }
 

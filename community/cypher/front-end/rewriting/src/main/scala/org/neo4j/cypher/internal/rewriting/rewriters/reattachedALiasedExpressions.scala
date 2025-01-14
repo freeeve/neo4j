@@ -30,9 +30,7 @@ case object reattachAliasedExpressions extends Rewriter {
   private val findingRewriter: Rewriter = bottomUp(Rewriter.lift {
     case clause: Return =>
       val innerRewriter = expressionRewriter(clause.returnItems.items)
-      clause.copy(
-        orderBy = clause.orderBy.endoRewrite(innerRewriter)
-      )(clause.position)
+      clause.copy(orderBy = clause.orderBy.endoRewrite(innerRewriter))(clause.position)
 
     case clause: With =>
       val innerRewriter = expressionRewriter(clause.returnItems.items)
