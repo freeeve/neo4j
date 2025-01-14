@@ -113,6 +113,7 @@ import org.neo4j.cypher.internal.logical.plans.RelationshipCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.RelationshipIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.RelationshipLogicalLeafPlan
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
+import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.Repeat
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
@@ -811,6 +812,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         _: PartialTop |
         _: CacheProperties |
         _: RemoteBatchProperties |
+        _: RemoteBatchPropertiesWithFilter |
         _: NonFuseable |
         _: InjectCompilationError |
         _: NonPipelined |

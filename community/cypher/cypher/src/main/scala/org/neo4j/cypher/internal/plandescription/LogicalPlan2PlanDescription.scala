@@ -221,6 +221,7 @@ import org.neo4j.cypher.internal.logical.plans.RangeLessThan
 import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.RelationshipCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
+import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.RepeatOptions
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
@@ -1909,6 +1910,17 @@ case class LogicalPlan2PlanDescription(
           "RemoteBatchProperties",
           children,
           Seq(Details(properties.toSeq.map(asPrettyString(_)))),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
+      case RemoteBatchPropertiesWithFilter(_, predicates, properties) =>
+        PlanDescriptionImpl(
+          id,
+          "RemoteBatchPropertiesWithFilter",
+          children,
+          Seq(Details(properties.toSeq.map(asPrettyString(_)) ++ predicates.toSeq.map(asPrettyString(_)))),
           variables,
           withRawCardinalities,
           withDistinctness
