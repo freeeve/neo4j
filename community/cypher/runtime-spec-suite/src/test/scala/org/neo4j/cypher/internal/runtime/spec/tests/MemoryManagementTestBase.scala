@@ -43,6 +43,8 @@ import org.neo4j.values.virtual.VirtualValues
 
 import java.util.Locale
 
+import scala.jdk.CollectionConverters.IterableHasAsJava
+
 object MemoryManagementTestBase {
   // The configured max memory per transaction in Bytes
   val maxMemory: Long = ByteUnit.mebiBytes(6)
@@ -976,6 +978,31 @@ abstract class MemoryManagementTestBase[CONTEXT <: RuntimeContext](
     val result = profile(logicalQuery, runtime)
     val expected = Range.inclusive(1, sizeHint).reverse.map(i => Array[Any](i, aaa))
     result should beColumns("i", "aaa").withRows(inOrder(expected))
+
+    result.runtimeResult.queryProfile().maxAllocatedMemory() should be < 200000L
+  }
+
+  test("should not count duplicated memory of large object in collect aggregation") {
+    // given
+    val sizeHint = 2000
+    val largeObject = "a".repeat(65536)
+    val input = inputValues(Array(largeObject))
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c2")
+      .aggregation(Seq.empty, Seq("collect(x2) as c2"))
+      .unwind("c AS x2")
+      .aggregation(Seq.empty, Seq("collect(x) as c"))
+      .unwind(s"range(1, $sizeHint) as i")
+      .input(variables = Seq("x"))
+      .build()
+
+    val result = profile(logicalQuery, runtime, input)
+
+    // Matching on the result is painfully slow, so skip it. It is tested elsewhere.
+    // val c = ValueUtils.asListValue(Range.inclusive(1, sizeHint).map(_ => largeObject).asJava)
+    // result should beColumns("c2").withSingleRow(Array[Any](c))
+
+    result.awaitAll()
 
     result.runtimeResult.queryProfile().maxAllocatedMemory() should be < 200000L
   }
