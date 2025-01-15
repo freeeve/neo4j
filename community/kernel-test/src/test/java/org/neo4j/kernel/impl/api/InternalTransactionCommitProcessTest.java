@@ -263,6 +263,8 @@ class InternalTransactionCommitProcessTest {
 
     @Test
     void shouldFailWithOutOfDiskSpaceOnPreAllocationException() throws Exception {
+        AssertableLogProvider logProvider = new AssertableLogProvider();
+
         TransactionAppender appender = mock(TransactionAppender.class);
         StorageEngine storageEngine = mock(StorageEngine.class);
         doThrow(new OutOfDiskSpaceException("test out of disk"))
@@ -270,21 +272,33 @@ class InternalTransactionCommitProcessTest {
                 .preAllocateStoreFilesForCommands(any(), any());
         var commandCommitListeners = mock(CommandCommitListeners.class);
         TransactionCommitProcess commitProcess = new InternalTransactionCommitProcess(
-                appender, storageEngine, true, commandCommitListeners, () -> true, NullLogProvider.getInstance());
+                appender, storageEngine, true, commandCommitListeners, () -> true, logProvider);
 
         var transaction = mockedTransaction(mock(TransactionIdStore.class));
-        TransactionFailureException exception = assertThrows(
-                TransactionFailureException.class,
-                () -> commitProcess.commit(transaction, transactionWriteEvent, INTERNAL));
-        assertThat(exception.getMessage()).contains("Could not preallocate disk space ");
+        var exceptionAssert = ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> commitProcess.commit(transaction, transactionWriteEvent, INTERNAL))
+                .isInstanceOf(TransactionFailureException.class)
+                .hasMessageContaining("Could not preallocate disk space ")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_51N59)
+                .hasStatusDescription(
+                        "error: system configuration or operation exception - internal resource exhaustion. The DBMS is unable to handle the request, please retry later or contact the system operator. More information is present in the logs.")
+                .hasStatus(Status.General.UnknownError);
         // FIXME ODP this is not the status we should end up with in the end
-        assertThat(exception.status()).isEqualTo(Status.General.UnknownError);
-        assertTrue(contains(exception, "test out of disk", OutOfDiskSpaceException.class));
-        verify(commandCommitListeners).registerFailure(transaction, exception);
+        exceptionAssert
+                .rootCause()
+                .isInstanceOf(OutOfDiskSpaceException.class)
+                .hasMessageContaining("test out of disk");
+
+        verify(commandCommitListeners).registerFailure(transaction, exceptionAssert.getActual());
+
+        LogAssertions.assertThat(logProvider)
+                .containsMessageWithException("Could not preallocate disk space ", exceptionAssert.getActual());
     }
 
     @Test
     void shouldNotReportOutOfDiskSpaceOnGeneralIOException() throws Exception {
+        AssertableLogProvider logProvider = new AssertableLogProvider();
+
         TransactionAppender appender = mock(TransactionAppender.class);
         StorageEngine storageEngine = mock(StorageEngine.class);
         doThrow(new IOException("IO exception other than out of disk"))
@@ -292,16 +306,26 @@ class InternalTransactionCommitProcessTest {
                 .preAllocateStoreFilesForCommands(any(), any());
         var commandCommitListeners = mock(CommandCommitListeners.class);
         TransactionCommitProcess commitProcess = new InternalTransactionCommitProcess(
-                appender, storageEngine, true, commandCommitListeners, () -> true, NullLogProvider.getInstance());
+                appender, storageEngine, true, commandCommitListeners, () -> true, logProvider);
 
         var transaction = mockedTransaction(mock(TransactionIdStore.class));
-        TransactionFailureException exception = assertThrows(
-                TransactionFailureException.class,
-                () -> commitProcess.commit(transaction, transactionWriteEvent, INTERNAL));
-        assertThat(exception.getMessage()).contains("Could not preallocate disk space ");
-        assertThat(exception.status()).isEqualTo(Status.Transaction.TransactionCommitFailed);
-        assertTrue(contains(exception, "IO exception other than out of disk", IOException.class));
-        verify(commandCommitListeners).registerFailure(transaction, exception);
+        var exceptionAssert = ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> commitProcess.commit(transaction, transactionWriteEvent, INTERNAL))
+                .isInstanceOf(TransactionFailureException.class)
+                .hasMessageContaining("Could not preallocate disk space ")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_51N59)
+                .hasStatusDescription(
+                        "error: system configuration or operation exception - internal resource exhaustion. The DBMS is unable to handle the request, please retry later or contact the system operator. More information is present in the logs.")
+                .hasStatus(Status.Transaction.TransactionCommitFailed);
+        exceptionAssert
+                .rootCause()
+                .isInstanceOf(IOException.class)
+                .hasMessageContaining("IO exception other than out of disk");
+
+        verify(commandCommitListeners).registerFailure(transaction, exceptionAssert.getActual());
+
+        LogAssertions.assertThat(logProvider)
+                .containsMessageWithException("Could not preallocate disk space ", exceptionAssert.getActual());
     }
 
     @Test

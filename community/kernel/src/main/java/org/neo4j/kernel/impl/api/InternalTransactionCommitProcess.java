@@ -66,7 +66,7 @@ public class InternalTransactionCommitProcess implements TransactionCommitProces
             throws TransactionFailureException {
         try {
             if (preAllocateSpaceInStores) {
-                preAllocateSpaceInStores(batch, transactionWriteEvent, mode);
+                preAllocateSpaceInStores(batch, mode);
             }
             if (prefetchCommands.getAsBoolean()) {
                 storageEngine.prefetchPagesForCommands(batch, mode);
@@ -108,23 +108,18 @@ public class InternalTransactionCommitProcess implements TransactionCommitProces
         }
     }
 
-    private void preAllocateSpaceInStores(
-            StorageEngineTransaction batch,
-            TransactionWriteEvent transactionWriteEvent,
-            TransactionApplicationMode mode)
+    private void preAllocateSpaceInStores(StorageEngineTransaction batch, TransactionApplicationMode mode)
             throws TransactionFailureException {
         // FIXME ODP - add function to commitEvent to be able to trace?
         try {
             storageEngine.preAllocateStoreFilesForCommands(batch, mode);
         } catch (OutOfDiskSpaceException oods) {
-            throw new TransactionFailureException(
-                    // FIXME ODP - add an out of disk space status when we are ready to expose this functionality
-                    Status.General.UnknownError,
-                    oods,
-                    "Could not preallocate disk space for the transaction: " + batch);
+            // FIXME ODP - add an out of disk space status when we are ready to expose this functionality
+            throw TransactionFailureException.couldNotPreallocateDiskSpace(
+                    batch.toString(), Status.General.UnknownError, oods, log);
         } catch (Throwable cause) {
-            throw new TransactionFailureException(
-                    TransactionCommitFailed, cause, "Could not preallocate disk space for the transaction: " + batch);
+            throw TransactionFailureException.couldNotPreallocateDiskSpace(
+                    batch.toString(), TransactionCommitFailed, cause, log);
         }
     }
 

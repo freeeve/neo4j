@@ -24,6 +24,7 @@ import static org.neo4j.gqlstatus.GqlExceptionLikeAssert.asT;
 import org.assertj.core.api.AbstractThrowableAssert;
 import org.assertj.core.api.ThrowableAssert;
 import org.assertj.core.internal.Throwables;
+import org.neo4j.kernel.api.exceptions.Status;
 
 /**
  * Same as a regular ThrowableAssert, but allows to navigate to a cause that implements ErrorGqlStatusObject
@@ -51,5 +52,19 @@ public class ThrowableWithPotentialGqlCauseAssert<SELF extends ThrowableWithPote
             return new GqlExceptionLikeAssert(asT(cause));
         }
         throw failure("Expected cause to be a Throwable implementing ErrorGqlStatusObject, but was: %s", cause);
+    }
+
+    /**
+     * Assert that the status of this Throwable is the expected status.
+     * Assumes that the throwable implements Status.HasStatus, will throw an exception otherwise.
+     */
+    public SELF hasStatus(Status status) {
+        if (!(actual instanceof Status.HasStatus hS)) {
+            throw failure("Expected actual to be a Throwable implementing Status.HasStatus, but was: %s", actual);
+        }
+        if (hS.status() != status) {
+            throw failure("Expected status to be %s, but was: %s", status, hS.status());
+        }
+        return myself;
     }
 }

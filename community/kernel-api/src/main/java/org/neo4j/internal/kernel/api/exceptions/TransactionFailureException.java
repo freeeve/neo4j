@@ -157,4 +157,14 @@ public class TransactionFailureException extends KernelException {
         log.error(message, e);
         return e;
     }
+
+    public static TransactionFailureException couldNotPreallocateDiskSpace(
+            String batchString, Status status, Throwable cause, Log log) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N59)
+                .build();
+        final var message = "Could not preallocate disk space for the transaction: %s".formatted(batchString);
+        final var e = new TransactionFailureException(gql, status, cause, message);
+        log.error(message, e);
+        return e;
+    }
 }
