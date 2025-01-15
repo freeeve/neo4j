@@ -79,6 +79,7 @@ import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Selector.Sho
 import org.neo4j.cypher.internal.logical.plans.ordering.DefaultProvidedOrderFactory
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrderFactory
+import org.neo4j.cypher.internal.util.AssertionRunner
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
@@ -1125,7 +1126,13 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
 
   private def shouldFailAssertion(createPlan: PlanCreationContext => LogicalPlan) = {
     new givenConfig().withLogicalPlanningContext { (_, context) =>
-      intercept[AssertionError](getPlan(context, createPlan))
+      if (!AssertionRunner.ASSERTIONS_ENABLED) {
+        withClue("NOTE: this test requires assertions to be enabled. Set the vm option -ea to enable them.\n") {
+          intercept[AssertionError](getPlan(context, createPlan))
+        }
+      } else {
+        intercept[AssertionError](getPlan(context, createPlan))
+      }
     }
   }
 
