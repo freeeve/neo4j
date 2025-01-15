@@ -353,10 +353,18 @@ class TransactionBoundPlanContext(
     }
   }
 
+  private def indexExistsAndIsOnline(index: schema.IndexDescriptor): Boolean = {
+    try {
+      tc.schemaRead.indexGetStateNonLocking(index) == InternalIndexState.ONLINE
+    } catch {
+      case _: IndexNotFoundKernelException => false
+    }
+  }
+
   private def getTokenIndexDescriptor(indexes: java.util.Iterator[schema.IndexDescriptor])
     : Option[TokenIndexDescriptor] = {
     indexes.asScala
-      .filter(tc.schemaRead.indexGetStateNonLocking(_) == InternalIndexState.ONLINE)
+      .filter(indexExistsAndIsOnline)
       .nextOption()
       .map { kernelIndexDescriptor =>
         val typ = kernelIndexDescriptor.schema().entityType()
