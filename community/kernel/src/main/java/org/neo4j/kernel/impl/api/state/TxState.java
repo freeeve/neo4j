@@ -176,9 +176,9 @@ public class TxState implements TransactionState {
                         // IntegrityValidator/MutableRelationships, this is just for deleted nodes
                         // with added rels in this tx.
                         if (nodeState.isAddedInThisBatch()) {
-                            throw new DeletedNodeStillHasRelationshipsException();
+                            throw DeletedNodeStillHasRelationshipsException.nodeCreatedInThisTxStillHasRelationships();
                         }
-                        throw new DeletedNodeStillHasRelationshipsException(nodeState.getId());
+                        throw DeletedNodeStillHasRelationshipsException.nodeStillHasRelationships(nodeState.getId());
                     }
                     // For nodes that were added and removed in this tx there is no need to try to figure out any
                     // relationship ids, there shouldn't be any.

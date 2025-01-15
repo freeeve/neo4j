@@ -31,15 +31,11 @@ import org.neo4j.kernel.api.exceptions.Status;
  */
 public class ConstraintViolationTransactionFailureException extends TransactionFailureException {
 
-    protected ConstraintViolationTransactionFailureException(String msg) {
-        super(Status.Schema.ConstraintValidationFailed, msg);
-    }
-
     private ConstraintViolationTransactionFailureException(String msg, KernelException cause) {
         super(Status.Schema.ConstraintValidationFailed, cause, msg);
     }
 
-    private ConstraintViolationTransactionFailureException(ErrorGqlStatusObject gqlStatusObject, String msg) {
+    protected ConstraintViolationTransactionFailureException(ErrorGqlStatusObject gqlStatusObject, String msg) {
         super(gqlStatusObject, Status.Schema.ConstraintValidationFailed, msg);
     }
 

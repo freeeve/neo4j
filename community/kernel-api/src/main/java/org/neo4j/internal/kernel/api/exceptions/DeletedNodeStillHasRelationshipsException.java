@@ -19,14 +19,29 @@
  */
 package org.neo4j.internal.kernel.api.exceptions;
 
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+
 public class DeletedNodeStillHasRelationshipsException extends ConstraintViolationTransactionFailureException {
-    public DeletedNodeStillHasRelationshipsException(long nodeId) {
-        super(
-                "Cannot delete node<" + nodeId
-                        + ">, because it still has relationships. To delete this node, you must first delete its relationships.");
+
+    private DeletedNodeStillHasRelationshipsException(ErrorGqlStatusObject errorGqlStatusObject, String message) {
+        super(errorGqlStatusObject, message);
     }
 
-    public DeletedNodeStillHasRelationshipsException() {
-        super("Cannot delete node that was created in this transaction, because it still has relationships.");
+    public static DeletedNodeStillHasRelationshipsException nodeStillHasRelationships(long nodeId) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_G1001)
+                .build();
+        var message =
+                "Cannot delete node<%s>, because it still has relationships. To delete this node, you must first delete its relationships."
+                        .formatted(nodeId);
+        return new DeletedNodeStillHasRelationshipsException(gql, message);
+    }
+
+    public static DeletedNodeStillHasRelationshipsException nodeCreatedInThisTxStillHasRelationships() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_G1001)
+                .build();
+        var message = "Cannot delete node that was created in this transaction, because it still has relationships.";
+        return new DeletedNodeStillHasRelationshipsException(gql, message);
     }
 }

@@ -45,7 +45,7 @@ import org.neo4j.kernel.impl.store.record.Record;
 class IntegrityValidator {
     static void validateNodeRecord(NodeRecord record) throws TransactionFailureException {
         if (!record.inUse() && record.getNextRel() != Record.NO_NEXT_RELATIONSHIP.intValue()) {
-            throw new DeletedNodeStillHasRelationshipsException(record.getId());
+            throw DeletedNodeStillHasRelationshipsException.nodeStillHasRelationships(record.getId());
         }
     }
 
