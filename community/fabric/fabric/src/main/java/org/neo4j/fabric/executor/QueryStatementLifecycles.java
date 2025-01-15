@@ -52,7 +52,6 @@ public class QueryStatementLifecycles {
     private final DatabaseContextProvider<? extends DatabaseContext> databaseContextProvider;
     private final QueryExecutionMonitor dbmsMonitor;
     private final ExecutingQueryFactory executingQueryFactory;
-    private final Config config;
     private final boolean shardQueryLogEnabled;
 
     public QueryStatementLifecycles(
@@ -65,7 +64,6 @@ public class QueryStatementLifecycles {
         this.dbmsMonitor = dbmsMonitors.newMonitor(QueryExecutionMonitor.class);
         this.executingQueryFactory =
                 new ExecutingQueryFactory(systemNanoClock, setupCpuClockAtomicReference(config), systemLockTracer);
-        this.config = config;
         this.shardQueryLogEnabled = config.get(GraphDatabaseInternalSettings.shard_query_log_enabled);
     }
 
