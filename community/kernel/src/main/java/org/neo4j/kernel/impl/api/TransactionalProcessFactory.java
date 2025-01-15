@@ -23,6 +23,7 @@ import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
 import org.neo4j.kernel.impl.api.chunk.TransactionRollbackProcess;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
 import org.neo4j.kernel.impl.transaction.log.TransactionAppender;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.storageengine.api.StorageEngine;
 
 public interface TransactionalProcessFactory {
@@ -32,7 +33,8 @@ public interface TransactionalProcessFactory {
             DatabaseReadOnlyChecker readOnlyDatabaseChecker,
             boolean preAllocateSpaceInStoreFiles,
             CommandCommitListeners commandCommitListeners,
-            boolean prefetchPages);
+            boolean prefetchPages,
+            LogProvider logProvider);
 
     TransactionRollbackProcess createRollbackProcess(
             StorageEngine storageEngine, LogicalTransactionStore transactionStore);

@@ -29,6 +29,7 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
+import org.neo4j.logging.Log;
 
 public class TransactionFailureException extends KernelException {
     @Deprecated
@@ -136,5 +137,24 @@ public class TransactionFailureException extends KernelException {
                 .build();
         return new TransactionFailureException(
                 gql, Status.Transaction.TransactionRollbackFailed, cause, "Could not drop created constraint indexes");
+    }
+
+    public static TransactionFailureException couldNotApplyTransaction(String batchString, Throwable cause, Log log) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN05)
+                .build();
+        final var message =
+                "Could not apply the transaction: %s to the store after written to log.".formatted(batchString);
+        var e = new TransactionFailureException(gql, Status.Transaction.TransactionCommitFailed, cause, message);
+        log.error(message, e);
+        return e;
+    }
+
+    public static TransactionFailureException couldNotAppendTransaction(String batchString, Throwable cause, Log log) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN06)
+                .build();
+        final var message = "Could not append transaction: %s to log.".formatted(batchString);
+        final var e = new TransactionFailureException(gql, Status.Transaction.TransactionLogError, cause, message);
+        log.error(message, e);
+        return e;
     }
 }

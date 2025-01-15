@@ -20,7 +20,6 @@
 package org.neo4j.kernel.impl.api;
 
 import static org.neo4j.kernel.api.exceptions.Status.Transaction.TransactionCommitFailed;
-import static org.neo4j.kernel.api.exceptions.Status.Transaction.TransactionLogError;
 
 import java.util.function.BooleanSupplier;
 import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
@@ -30,6 +29,8 @@ import org.neo4j.kernel.impl.transaction.log.LogAppendEvent;
 import org.neo4j.kernel.impl.transaction.log.TransactionAppender;
 import org.neo4j.kernel.impl.transaction.tracing.StoreApplyEvent;
 import org.neo4j.kernel.impl.transaction.tracing.TransactionWriteEvent;
+import org.neo4j.logging.Log;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
@@ -40,18 +41,21 @@ public class InternalTransactionCommitProcess implements TransactionCommitProces
     private final boolean preAllocateSpaceInStores;
     private final CommandCommitListeners commandCommitListeners;
     private final BooleanSupplier prefetchCommands;
+    private final Log log;
 
     public InternalTransactionCommitProcess(
             TransactionAppender appender,
             StorageEngine storageEngine,
             boolean preAllocateSpaceInStores,
             CommandCommitListeners commandCommitListeners,
-            BooleanSupplier prefetchCommands) {
+            BooleanSupplier prefetchCommands,
+            LogProvider logProvider) {
         this.appender = appender;
         this.storageEngine = storageEngine;
         this.preAllocateSpaceInStores = preAllocateSpaceInStores;
         this.commandCommitListeners = commandCommitListeners;
         this.prefetchCommands = prefetchCommands;
+        this.log = logProvider.getLog(getClass());
     }
 
     @Override
@@ -88,8 +92,7 @@ public class InternalTransactionCommitProcess implements TransactionCommitProces
         try (LogAppendEvent logAppendEvent = transactionWriteEvent.beginLogAppend()) {
             return appender.append(batch, logAppendEvent);
         } catch (Throwable cause) {
-            throw new TransactionFailureException(
-                    TransactionLogError, cause, "Could not append transaction: " + batch + " to log.");
+            throw TransactionFailureException.couldNotAppendTransaction(batch.toString(), cause, log);
         }
     }
 
@@ -101,10 +104,7 @@ public class InternalTransactionCommitProcess implements TransactionCommitProces
         try (StoreApplyEvent storeApplyEvent = transactionWriteEvent.beginStoreApply()) {
             storageEngine.apply(batch, mode);
         } catch (Throwable cause) {
-            throw new TransactionFailureException(
-                    TransactionCommitFailed,
-                    cause,
-                    "Could not apply the transaction: " + batch + " to the store after written to log.");
+            throw TransactionFailureException.couldNotApplyTransaction(batch.toString(), cause, log);
         }
     }
 

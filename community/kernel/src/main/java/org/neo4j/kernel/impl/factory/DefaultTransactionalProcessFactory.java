@@ -32,6 +32,7 @@ import org.neo4j.kernel.impl.api.chunk.MultiVersionTransactionRollbackProcess;
 import org.neo4j.kernel.impl.api.chunk.TransactionRollbackProcess;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
 import org.neo4j.kernel.impl.transaction.log.TransactionAppender;
+import org.neo4j.logging.LogProvider;
 import org.neo4j.storageengine.api.StorageEngine;
 
 public class DefaultTransactionalProcessFactory implements TransactionalProcessFactory {
@@ -42,14 +43,16 @@ public class DefaultTransactionalProcessFactory implements TransactionalProcessF
             DatabaseReadOnlyChecker readOnlyChecker,
             boolean preAllocateSpaceInStoreFiles,
             CommandCommitListeners commandCommitListeners,
-            boolean prefetchPages) {
+            boolean prefetchPages,
+            LogProvider logProvider) {
         return new DatabaseTransactionCommitProcess(
                 new InternalTransactionCommitProcess(
                         appender,
                         storageEngine,
                         preAllocateSpaceInStoreFiles,
                         commandCommitListeners,
-                        () -> prefetchPages),
+                        () -> prefetchPages,
+                        logProvider),
                 readOnlyChecker);
     }
 

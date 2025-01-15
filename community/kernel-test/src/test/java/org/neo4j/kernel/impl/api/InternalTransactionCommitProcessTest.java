@@ -43,6 +43,8 @@ import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_I
 import java.io.IOException;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.io.pagecache.OutOfDiskSpaceException;
 import org.neo4j.kernel.KernelVersion;
@@ -55,8 +57,12 @@ import org.neo4j.kernel.impl.transaction.log.TestableTransactionAppender;
 import org.neo4j.kernel.impl.transaction.log.TransactionAppender;
 import org.neo4j.kernel.impl.transaction.log.TransactionCommitmentFactory;
 import org.neo4j.kernel.impl.transaction.tracing.TransactionWriteEvent;
+import org.neo4j.logging.AssertableLogProvider;
+import org.neo4j.logging.LogAssertions;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.StorageEngine;
+import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
@@ -68,25 +74,69 @@ class InternalTransactionCommitProcessTest {
     @Test
     void shouldFailWithProperMessageOnAppendException() throws Exception {
         // GIVEN
+        AssertableLogProvider logProvider = new AssertableLogProvider();
+
         TransactionAppender appender = mock(TransactionAppender.class);
+        StorageEngine storageEngine = mock(StorageEngine.class);
+        var commandCommitListeners = mock(CommandCommitListeners.class);
+
         IOException rootCause = new IOException("Mock exception");
         doThrow(new IOException(rootCause))
                 .when(appender)
                 .append(any(CompleteTransaction.class), any(LogAppendEvent.class));
-        StorageEngine storageEngine = mock(StorageEngine.class);
-        var commandCommitListeners = mock(CommandCommitListeners.class);
+
         TransactionCommitProcess commitProcess = new InternalTransactionCommitProcess(
-                appender, storageEngine, false, commandCommitListeners, () -> true);
+                appender, storageEngine, false, commandCommitListeners, () -> true, logProvider);
 
         // WHEN
         var mockedTransaction = mockedTransaction(mock(TransactionIdStore.class));
-        TransactionFailureException exception = assertThrows(
-                TransactionFailureException.class,
-                () -> commitProcess.commit(mockedTransaction, transactionWriteEvent, INTERNAL));
+        var exceptionAssert = ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> commitProcess.commit(mockedTransaction, transactionWriteEvent, INTERNAL))
+                .isInstanceOf(TransactionFailureException.class)
+                .hasMessageContaining("Could not append transaction: ")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_2DN06)
+                .hasStatusDescription(
+                        "error: invalid transaction termination - failed to append transaction. There was an error on appending the transaction. See logs for more information.");
+        exceptionAssert.rootCause().isInstanceOf(IOException.class).hasMessageContaining("Mock exception");
 
-        assertThat(exception.getMessage()).contains("Could not append transaction: ");
-        assertTrue(contains(exception, rootCause.getMessage(), rootCause.getClass()));
-        verify(commandCommitListeners).registerFailure(mockedTransaction, exception);
+        verify(commandCommitListeners).registerFailure(mockedTransaction, exceptionAssert.getActual());
+
+        LogAssertions.assertThat(logProvider)
+                .containsMessageWithException("Could not append transaction: ", exceptionAssert.getActual());
+    }
+
+    @Test
+    void shouldFailWithProperMessageOnApplyException() throws Exception {
+        // GIVEN
+        TransactionAppender appender = mock(TransactionAppender.class);
+
+        AssertableLogProvider logProvider = new AssertableLogProvider();
+        StorageEngine storageEngine = mock(StorageEngine.class);
+        var commandCommitListeners = mock(CommandCommitListeners.class);
+
+        IOException rootCause = new IOException("Mock exception");
+        doThrow(new IOException(rootCause))
+                .when(storageEngine)
+                .apply(any(StorageEngineTransaction.class), any(TransactionApplicationMode.class));
+
+        TransactionCommitProcess commitProcess = new InternalTransactionCommitProcess(
+                appender, storageEngine, false, commandCommitListeners, () -> true, logProvider);
+
+        // WHEN
+        var mockedTransaction = mockedTransaction(mock(TransactionIdStore.class));
+        var exceptionAssert = ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> commitProcess.commit(mockedTransaction, transactionWriteEvent, INTERNAL))
+                .isInstanceOf(TransactionFailureException.class)
+                .hasMessageContaining("Could not apply the transaction: ")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_2DN05)
+                .hasStatusDescription(
+                        "error: invalid transaction termination - failed to apply transaction. There was an error on applying the transaction. See logs for more information.");
+        exceptionAssert.rootCause().isInstanceOf(IOException.class).hasMessageContaining("Mock exception");
+
+        verify(commandCommitListeners).registerFailure(mockedTransaction, exceptionAssert.getActual());
+
+        LogAssertions.assertThat(logProvider)
+                .containsMessageWithException("Could not apply the transaction: ", exceptionAssert.getActual());
     }
 
     @Test
@@ -103,7 +153,7 @@ class InternalTransactionCommitProcessTest {
                 .apply(any(CompleteTransaction.class), any(TransactionApplicationMode.class));
         var commandCommitListeners = mock(CommandCommitListeners.class);
         TransactionCommitProcess commitProcess = new InternalTransactionCommitProcess(
-                appender, storageEngine, false, commandCommitListeners, () -> true);
+                appender, storageEngine, false, commandCommitListeners, () -> true, NullLogProvider.getInstance());
         CompleteTransaction transaction = mockedTransaction(transactionIdStore);
 
         // WHEN
@@ -139,8 +189,8 @@ class InternalTransactionCommitProcessTest {
         when(transactionIdStore.nextCommittingTransactionId()).thenReturn(txId);
 
         var storageEngine = mock(StorageEngine.class);
-        var commitProcess =
-                new InternalTransactionCommitProcess(appender, storageEngine, false, NO_LISTENERS, () -> true);
+        var commitProcess = new InternalTransactionCommitProcess(
+                appender, storageEngine, false, NO_LISTENERS, () -> true, NullLogProvider.getInstance());
         var batch = new CompleteCommandBatch(
                 Collections.emptyList(),
                 UNKNOWN_CONSENSUS_INDEX,
@@ -177,7 +227,7 @@ class InternalTransactionCommitProcessTest {
 
         var commandCommitListeners = mock(CommandCommitListeners.class);
         TransactionCommitProcess commitProcess = new InternalTransactionCommitProcess(
-                appender, storageEngine, false, commandCommitListeners, () -> true);
+                appender, storageEngine, false, commandCommitListeners, () -> true, NullLogProvider.getInstance());
         CompleteCommandBatch noCommandTx = new CompleteCommandBatch(
                 Collections.emptyList(),
                 UNKNOWN_CONSENSUS_INDEX,
@@ -219,8 +269,8 @@ class InternalTransactionCommitProcessTest {
                 .when(storageEngine)
                 .preAllocateStoreFilesForCommands(any(), any());
         var commandCommitListeners = mock(CommandCommitListeners.class);
-        TransactionCommitProcess commitProcess =
-                new InternalTransactionCommitProcess(appender, storageEngine, true, commandCommitListeners, () -> true);
+        TransactionCommitProcess commitProcess = new InternalTransactionCommitProcess(
+                appender, storageEngine, true, commandCommitListeners, () -> true, NullLogProvider.getInstance());
 
         var transaction = mockedTransaction(mock(TransactionIdStore.class));
         TransactionFailureException exception = assertThrows(
@@ -241,8 +291,8 @@ class InternalTransactionCommitProcessTest {
                 .when(storageEngine)
                 .preAllocateStoreFilesForCommands(any(), any());
         var commandCommitListeners = mock(CommandCommitListeners.class);
-        TransactionCommitProcess commitProcess =
-                new InternalTransactionCommitProcess(appender, storageEngine, true, commandCommitListeners, () -> true);
+        TransactionCommitProcess commitProcess = new InternalTransactionCommitProcess(
+                appender, storageEngine, true, commandCommitListeners, () -> true, NullLogProvider.getInstance());
 
         var transaction = mockedTransaction(mock(TransactionIdStore.class));
         TransactionFailureException exception = assertThrows(
@@ -260,7 +310,7 @@ class InternalTransactionCommitProcessTest {
         StorageEngine storageEngine = mock(StorageEngine.class);
         var commandCommitListeners = mock(CommandCommitListeners.class);
         TransactionCommitProcess commitProcess = new InternalTransactionCommitProcess(
-                appender, storageEngine, false, commandCommitListeners, () -> true);
+                appender, storageEngine, false, commandCommitListeners, () -> true, NullLogProvider.getInstance());
         commitProcess.commit(mockedTransaction(mock(TransactionIdStore.class)), transactionWriteEvent, INTERNAL);
 
         verify(storageEngine, never()).preAllocateStoreFilesForCommands(any(), any());

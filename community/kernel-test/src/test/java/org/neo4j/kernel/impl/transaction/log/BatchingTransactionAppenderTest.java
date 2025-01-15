@@ -101,6 +101,7 @@ import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFiles;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 import org.neo4j.kernel.impl.transaction.tracing.TransactionWriteEvent;
 import org.neo4j.kernel.lifecycle.LifeSupport;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.Panic;
 import org.neo4j.storageengine.api.CommandBatch;
@@ -472,7 +473,8 @@ class BatchingTransactionAppenderTest {
                 mock(StorageEngine.class, RETURNS_MOCKS),
                 false,
                 CommandCommitListeners.NO_LISTENERS,
-                () -> true);
+                () -> true,
+                NullLogProvider.getInstance());
         when(transactionIdStore.nextCommittingTransactionId()).thenReturn(42L);
         var transactionCommitment = new TransactionCommitment(transactionIdStore);
         var transactionIdGenerator = new IdStoreTransactionIdGenerator(transactionIdStore);
