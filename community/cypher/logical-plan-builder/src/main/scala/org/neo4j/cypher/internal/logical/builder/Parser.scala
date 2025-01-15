@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.logical.builder
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.GraphReference
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.UseGraph
@@ -42,6 +43,7 @@ import org.neo4j.cypher.internal.logical.plans.Ascending
 import org.neo4j.cypher.internal.logical.plans.CoerceToPredicate
 import org.neo4j.cypher.internal.logical.plans.ColumnOrder
 import org.neo4j.cypher.internal.logical.plans.Descending
+import org.neo4j.cypher.internal.parser.v25.ast.factory.Cypher25AstParser
 import org.neo4j.cypher.internal.parser.v5.ast.factory.Cypher5AstParser
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.LabelExpressionPredicateNormalizer
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RemoveSyntaxTracking
@@ -123,10 +125,10 @@ object Parser {
   }
 
   // Note, only supports cypher 5 for now.
-  def astParser(cypher: String) = new Cypher5AstParser(cypher, Neo4jCypherExceptionFactory(cypher, None), None)
+  def cypher5AstParser(cypher: String) = new Cypher5AstParser(cypher, Neo4jCypherExceptionFactory(cypher, None), None)
 
   def parseExpression(text: String): Expression = {
-    Try(astParser(text).expression()) match {
+    Try(cypher5AstParser(text).expression()) match {
       case Success(expression) =>
         Parser.cleanup(expression)
       case Failure(exception) =>
@@ -136,7 +138,7 @@ object Parser {
   }
 
   def parsePatternElement(text: String): PatternElement = {
-    Try(astParser(text).parse[PatternElement](_.patternElement())) match {
+    Try(cypher5AstParser(text).parse[PatternElement](_.patternElement())) match {
       case Success(patternElement) =>
         Parser.cleanup(patternElement)
       case Failure(exception) =>
@@ -146,7 +148,7 @@ object Parser {
   }
 
   def parseProcedureCall(text: String): UnresolvedCall = {
-    astParser(s"CALL $text").parse[ASTNode](_.callClause()) match {
+    cypher5AstParser(s"CALL $text").parse[ASTNode](_.callClause()) match {
       case u: UnresolvedCall => Parser.cleanup(u)
       case c                 => throw new IllegalArgumentException(s"Expected UnresolvedCall but got: $c")
     }
@@ -168,8 +170,17 @@ object Parser {
     }
   }
 
-  def parseGraphReference(text: String): GraphReference =
-    astParser(s"USE $text").parse[UseGraph](_.useClause()).graphReference
+  def parseGraphReference(text: String): GraphReference = {
+    if (CypherVersion.Default == CypherVersion.Cypher5) {
+      cypher5AstParser(s"USE $text").parse[UseGraph](_.useClause()).graphReference
+    } else {
+      new Cypher25AstParser(
+        s"USE $text",
+        Neo4jCypherExceptionFactory(s"USE $text", None),
+        None
+      ).parse[UseGraph](_.useClause()).graphReference
+    }
+  }
 
   def unapply(arg: String): Option[Expression] = Some(parseExpression(arg))
 }
