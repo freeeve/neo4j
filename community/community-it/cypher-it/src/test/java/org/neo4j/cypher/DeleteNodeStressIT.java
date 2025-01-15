@@ -63,9 +63,9 @@ class DeleteNodeStressIT {
     @Test
     void shouldBeAbleToReturnNodesWhileDeletingNode() throws InterruptedException, ExecutionException {
         // Given
-        Future query1 =
+        Future<?> query1 =
                 executeInThread("MATCH (n:L {prop:42}) OPTIONAL MATCH (m:L {prop:1337}) WITH n MATCH () return n");
-        Future query2 = executeInThread("MATCH (n:L {prop:42}) DELETE n");
+        Future<?> query2 = executeInThread("MATCH (n:L {prop:42}) DELETE n");
 
         // Then
         query1.get();
@@ -75,9 +75,9 @@ class DeleteNodeStressIT {
     @Test
     void shouldBeAbleToCheckPropertiesWhileDeletingNode() throws InterruptedException, ExecutionException {
         // Given
-        Future query1 = executeInThread(
+        Future<?> query1 = executeInThread(
                 "MATCH (n:L {prop:42}) OPTIONAL MATCH (m:L {prop:1337}) WITH n MATCH () RETURN n.prop IS NOT NULL");
-        Future query2 = executeInThread("MATCH (n:L {prop:42}) DELETE n");
+        Future<?> query2 = executeInThread("MATCH (n:L {prop:42}) DELETE n");
 
         // When
         query1.get();
@@ -87,9 +87,9 @@ class DeleteNodeStressIT {
     @Test
     void shouldBeAbleToRemovePropertiesWhileDeletingNode() throws InterruptedException, ExecutionException {
         // Given
-        Future query1 =
+        Future<?> query1 =
                 executeInThread("MATCH (n:L {prop:42}) OPTIONAL MATCH (m:L {prop:1337}) WITH n MATCH () REMOVE n.prop");
-        Future query2 = executeInThread("MATCH (n:L {prop:42}) DELETE n");
+        Future<?> query2 = executeInThread("MATCH (n:L {prop:42}) DELETE n");
 
         // When
         query1.get();
@@ -99,9 +99,9 @@ class DeleteNodeStressIT {
     @Test
     void shouldBeAbleToSetPropertiesWhileDeletingNode() throws InterruptedException, ExecutionException {
         // Given
-        Future query1 = executeInThread(
+        Future<?> query1 = executeInThread(
                 "MATCH (n:L {prop:42}) OPTIONAL MATCH (m:L {prop:1337}) WITH n MATCH () SET n.foo = 'bar'");
-        Future query2 = executeInThread("MATCH (n:L {prop:42}) DELETE n");
+        Future<?> query2 = executeInThread("MATCH (n:L {prop:42}) DELETE n");
 
         // When
         query1.get();
@@ -111,16 +111,16 @@ class DeleteNodeStressIT {
     @Test
     void shouldBeAbleToCheckLabelsWhileDeleting() throws InterruptedException, ExecutionException {
         // Given
-        Future query1 = executeInThread(
+        Future<?> query1 = executeInThread(
                 "MATCH (n:L {prop:42}) OPTIONAL MATCH (m:L {prop:1337}) WITH n MATCH () RETURN labels(n)");
-        Future query2 = executeInThread("MATCH (n:L {prop:42}) DELETE n");
+        Future<?> query2 = executeInThread("MATCH (n:L {prop:42}) DELETE n");
 
         // When
         query1.get();
         query2.get();
     }
 
-    private Future executeInThread(final String query) {
+    private Future<?> executeInThread(final String query) {
         return executorService.submit(() -> {
             try (Transaction transaction = db.beginTx()) {
                 transaction.execute(query).resultAsString();
