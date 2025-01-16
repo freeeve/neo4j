@@ -22,6 +22,7 @@ package org.neo4j.storageengine.api;
 import java.util.concurrent.atomic.LongAdder;
 import org.neo4j.graphdb.TransientFailureException;
 import org.neo4j.internal.kernel.api.exceptions.ConstraintViolationTransactionFailureException;
+import org.neo4j.internal.kernel.api.exceptions.schema.TokenLengthLimitExceededException;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.api.LeaseException;
 import org.neo4j.kernel.impl.locking.LockClientStoppedException;
@@ -94,7 +95,8 @@ public interface InternalErrorTracer {
             return !isTransient(throwable)
                     && !isConstraintViolation(throwable)
                     && !isLockClientTermination(throwable)
-                    && !isLeaseException(throwable);
+                    && !isLeaseException(throwable)
+                    && !isTokenLengthLimit(throwable);
         }
 
         private static boolean isLeaseException(Throwable throwable) {
@@ -107,6 +109,10 @@ public interface InternalErrorTracer {
 
         private static boolean isConstraintViolation(Throwable throwable) {
             return throwable instanceof ConstraintViolationTransactionFailureException;
+        }
+
+        private static boolean isTokenLengthLimit(Throwable throwable) {
+            return throwable instanceof TokenLengthLimitExceededException;
         }
 
         private static boolean isTransient(Throwable throwable) {
