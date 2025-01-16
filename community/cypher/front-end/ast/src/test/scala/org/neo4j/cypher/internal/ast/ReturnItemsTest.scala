@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
+import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
@@ -42,8 +43,13 @@ class ReturnItemsTest extends CypherFunSuite with AstConstructionTestSupport {
 
     val result = items.semanticCheck.run(SemanticState.clean)
 
-    result.errors should have size 1
-    result.errors.head.msg should startWith("Multiple result columns with the same name are not supported")
+    result.errors shouldBe Seq(
+      SemanticError(
+        GqlHelper.getGql42001_42N38(0, 0, 0),
+        "Multiple result columns with the same name are not supported",
+        InputPosition(0, 0, 0)
+      )
+    )
   }
 
   test("should forbid unaliased projections collisions, e.g., projecting more than one value to the same id") {
@@ -54,8 +60,13 @@ class ReturnItemsTest extends CypherFunSuite with AstConstructionTestSupport {
 
     val result = items.semanticCheck.run(SemanticState.clean)
 
-    result.errors should have size 1
-    result.errors.head.msg should startWith("Multiple result columns with the same name are not supported")
+    result.errors shouldBe Seq(
+      SemanticError(
+        GqlHelper.getGql42001_42N38(0, 0, 0),
+        "Multiple result columns with the same name are not supported",
+        InputPosition(0, 0, 0)
+      )
+    )
   }
 
   test("should not forbid aliased projections of the same expression with different names") {

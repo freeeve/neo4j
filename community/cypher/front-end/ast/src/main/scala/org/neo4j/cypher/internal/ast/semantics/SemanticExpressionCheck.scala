@@ -260,11 +260,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       case x: NotEquals =>
         check(ctx, x.arguments) chain checkTypes(x, x.signatures)
 
-      case x: InvalidNotEquals =>
-        SemanticError(
-          "Unknown operation '!=' (you probably meant to use '<>', which is the operator for inequality testing)",
-          x.position
-        )
+      case x: InvalidNotEquals => SemanticError.wrongInequalityOperator(x.position)
 
       case x: RegexMatch =>
         check(ctx, x.arguments) chain

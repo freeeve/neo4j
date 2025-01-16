@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.gqlstatus.GqlHelper
 
 class TypePredicateExpressionsSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAnalysisTestSuite {
 
@@ -27,6 +28,7 @@ class TypePredicateExpressionsSemanticAnalysisTest extends CypherFunSuite with N
         |""".stripMargin
 
     run(query).hasError(
+      GqlHelper.getGql42001_42N63(15, 1, 16),
       "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`",
       p(15, 1, 16)
     )
@@ -38,6 +40,7 @@ class TypePredicateExpressionsSemanticAnalysisTest extends CypherFunSuite with N
         |""".stripMargin
 
     run(query).hasError(
+      GqlHelper.getGql42001_42N63(19, 1, 20),
       "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`",
       p(19, 1, 20)
     )
@@ -49,6 +52,7 @@ class TypePredicateExpressionsSemanticAnalysisTest extends CypherFunSuite with N
         |""".stripMargin
 
     run(query).hasError(
+      GqlHelper.getGql42001_42N63(24, 1, 25),
       "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`",
       p(24, 1, 25)
     )
@@ -60,6 +64,7 @@ class TypePredicateExpressionsSemanticAnalysisTest extends CypherFunSuite with N
         |""".stripMargin
 
     run(query).hasError(
+      GqlHelper.getGql42001_42N63(69, 1, 70),
       "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`",
       p(69, 1, 70)
     )
@@ -71,6 +76,7 @@ class TypePredicateExpressionsSemanticAnalysisTest extends CypherFunSuite with N
         |""".stripMargin
 
     run(query).hasError(
+      GqlHelper.getGql42001_42N63(19, 1, 20),
       "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`",
       p(19, 1, 20)
     )
@@ -80,6 +86,7 @@ class TypePredicateExpressionsSemanticAnalysisTest extends CypherFunSuite with N
     val query = "RETURN 1 IS :: ANY<ANY<BOOL | BOOLEAN | INT> | ANY<ANY<BOOL NOT NULL>>>"
 
     run(query).hasError(
+      GqlHelper.getGql42001_42N63(19, 1, 20),
       "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`",
       p(19, 1, 20)
     )
@@ -89,6 +96,7 @@ class TypePredicateExpressionsSemanticAnalysisTest extends CypherFunSuite with N
     val query = "RETURN 1 IS :: ANY<BOOLEAN NOT NULL | BOOLEAN>"
 
     run(query).hasError(
+      GqlHelper.getGql42001_42N63(19, 1, 20),
       "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`",
       p(19, 1, 20)
     )

@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
+import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.ListType
@@ -51,10 +52,7 @@ case class CypherTypeName(cypherType: CypherType) extends SemanticCheckable with
           ) ||
             unionInnerType.sortedInnerTypes.forall(!_.isNullable))
         )
-          error(
-            "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`",
-            unionInnerType.position
-          )
+          error(SemanticError.innerTypeWithDifferentNullability(unionInnerType.position))
         else semanticCheckFold(unionInnerType.sortedInnerTypes)(cypherTypeSemanticCheck)
       case _ => SemanticCheck.success
     }

@@ -132,10 +132,15 @@ class ErrorMessagesTest extends ExecutionEngineWithoutRestartFunSuite {
   }
 
   test("fail when using exclamation mark") {
-    expectError(
+    val error = expectError(
       "match (n) where id(n) = 0 and n.foo != 2 return n",
       "Unknown operation '!=' (you probably meant to use '<>', which is the operator for inequality testing) (line 1, column 37 (offset: 36))"
     )
+    error.gqlStatus() shouldBe "42001"
+    error.cause() should not be empty
+    val gqlCause = error.cause().get()
+    gqlCause.gqlStatus() shouldBe "42I49"
+    gqlCause.statusDescription() shouldBe "error: syntax error or access rule violation - invalid inequality operator. Unknown inequality operator '!='. The operator for inequality in Cypher is '<>'."
   }
 
   test("trying to drop constraint index should return sensible error") {
@@ -238,9 +243,10 @@ class ErrorMessagesTest extends ExecutionEngineWithoutRestartFunSuite {
     )
   }
 
-  private def expectError(query: String, expectedError: String*): Unit = {
+  private def expectError(query: String, expectedError: String*): Neo4jException = {
     val error = intercept[Neo4jException](executeQuery(query))
     withClue(error)(expectedError.exists(error.getMessage.contains) shouldBe true)
+    error
   }
 
   private def expectSyntaxError(query: String, expectedOffset: Int, expectedError: String*): Unit = {

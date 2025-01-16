@@ -839,7 +839,7 @@ case class Match(
       .groupBy(identity)
       .collect {
         case (variable, identHints) if identHints.size > 1 =>
-          SemanticError("Multiple join hints for same variable are not supported", variable.position)
+          SemanticError.multipleJoinHintsForSameVariable(variable.asCanonicalStringVal, variable.position)
       }.toVector
 
     (state: SemanticState) => semantics.SemanticCheckResult(state, errors)

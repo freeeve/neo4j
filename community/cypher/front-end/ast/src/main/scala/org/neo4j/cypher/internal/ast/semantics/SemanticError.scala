@@ -1114,6 +1114,41 @@ object SemanticError {
   def variableNotDefined(variableName: String, position: InputPosition): SemanticError = {
     variableNotDefined(variableName, s"Variable `$variableName` not defined", position)
   }
+
+  def wrongInequalityOperator(position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I49)
+        .atPosition(position.offset, position.line, position.column)
+        .build())
+      .build()
+    SemanticError(
+      gql,
+      "Unknown operation '!=' (you probably meant to use '<>', which is the operator for inequality testing)",
+      position
+    )
+  }
+
+  def multipleReturnColumnsWithSameName(position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N38(position.offset, position.line, position.column)
+    SemanticError(gql, "Multiple result columns with the same name are not supported", position)
+  }
+
+  def multipleJoinHintsForSameVariable(variable: String, position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N26)
+        .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.StringParam.variable, variable)
+        .build())
+      .build()
+    SemanticError(gql, "Multiple join hints for same variable are not supported", position)
+  }
+
+  def innerTypeWithDifferentNullability(position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N63(position.offset, position.line, position.column)
+    SemanticError(gql, "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`", position)
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef
