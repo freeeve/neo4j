@@ -82,6 +82,13 @@ sealed trait RemoteBatchingStrategy {
     orderToLeverage: Seq[Expression] = Seq.empty
   ): RemoteBatchingResult
 
+  def planBatchPropertiesForExpressionsWithLookahead(
+    queryGraph: QueryGraph,
+    input: LogicalPlan,
+    context: LogicalPlanningContext,
+    expressions: Iterable[Expression]
+  ): (RewrittenExpressions, LogicalPlan)
+
   def planBatchPropertiesForExpressionWithLookahead(
     queryGraph: QueryGraph,
     input: LogicalPlan,
@@ -189,6 +196,22 @@ object RemoteBatchingStrategy {
           accessedProperties,
           (rewrittenProjections.values ++ rewrittenOrderToLeverage).toSeq
         )
+      )
+    }
+
+    override def planBatchPropertiesForExpressionsWithLookahead(
+      queryGraph: QueryGraph,
+      input: LogicalPlan,
+      context: LogicalPlanningContext,
+      expressions: Iterable[Expression]
+    ): (RewrittenExpressions, LogicalPlan) = {
+      val accessedProperties = remainingPropertyAccesses(queryGraph, input, context)
+
+      val rewriter = cachedPropertiesRewriter(input, context)
+      val rewrittenExpressions = RewrittenExpressions(expressions.map(expr => expr -> expr.endoRewrite(rewriter)).toMap)
+      (
+        rewrittenExpressions,
+        planBatchProperties(input, context, accessedProperties, rewrittenExpressions.allRewrittenExpressions.toSeq)
       )
     }
 
@@ -579,6 +602,13 @@ object RemoteBatchingStrategy {
       CachePropertiesRewritableExpressions(projections = projections, orderToLeverage = orderToLeverage),
       plan = input
     )
+
+    override def planBatchPropertiesForExpressionsWithLookahead(
+      queryGraph: QueryGraph,
+      input: LogicalPlan,
+      context: LogicalPlanningContext,
+      expressions: Iterable[Expression]
+    ): (RewrittenExpressions, LogicalPlan) = (RewrittenExpressions.withNoRewrittenExprs(expressions), input)
 
     override def planBatchPropertiesForExpressionWithLookahead(
       queryGraph: QueryGraph,

@@ -1602,4 +1602,64 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       .nodeByLabelScan("person", "Person")
       .build())(SymmetricalLogicalPlanEquality)
   }
+
+  test("should cache properties on the LHS when used in a nested index join") {
+    val query =
+      """
+        |MATCH (person:Person), (city:City)
+        |WHERE  person.firstName = city.name
+        |RETURN *
+        |""".stripMargin
+
+    planner.plan(query) should equal(planner
+      .planBuilder()
+      .produceResults("city", "person")
+      .apply()
+      .|.nodeIndexOperator(
+        "person:Person(firstName = cacheN[city.name])",
+        argumentIds = Set("city"),
+        getValue = Map("firstName" -> DoNotGetValue)
+      )
+      .remoteBatchProperties("cacheNFromStore[city.name]")
+      .nodeByLabelScan("city", "City")
+      .build())
+  }
+
+  test("should cache properties on the LHS when used in a nested index join: distinct match clauses") {
+    val query =
+      """
+        |MATCH (person:Person)
+        |MATCH (friend:Person { id: person.id })
+        |RETURN person.id, friend.id
+        |""".stripMargin
+
+    planner.plan(query) should (
+      equal(planner
+        .planBuilder()
+        .produceResults("`person.id`", "`friend.id`")
+        .projection("cacheN[person.id] AS `person.id`", "cacheN[friend.id] AS `friend.id`")
+        .apply()
+        .|.nodeIndexOperator(
+          "friend:Person(id = cacheN[person.id])",
+          argumentIds = Set("person"),
+          getValue = Map("id" -> GetValue),
+          unique = true
+        )
+        .remoteBatchProperties("cacheNFromStore[person.id]")
+        .nodeByLabelScan("person", "Person")
+        .build()) or
+        equal(planner.planBuilder().produceResults("`person.id`", "`friend.id`")
+          .projection("cacheN[person.id] AS `person.id`", "cacheN[friend.id] AS `friend.id`")
+          .apply()
+          .|.nodeIndexOperator(
+            "person:Person(id = cacheN[friend.id])",
+            argumentIds = Set("friend"),
+            getValue = Map("id" -> GetValue),
+            unique = true
+          )
+          .remoteBatchProperties("cacheNFromStore[friend.id]")
+          .nodeByLabelScan("friend", "Person")
+          .build())
+    )
+  }
 }

@@ -580,6 +580,15 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
     kit: QueryPlannerKit,
     singleComponentPlanner: SingleComponentPlannerTrait
   ): Iterator[LogicalPlan] = {
+    // pre-fetch remote batch properties on the LHS if they can be used with the plan
+    val (_, lhsPlanWithPrefetchedProperties) =
+      context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForExpressionsWithLookahead(
+        lhsQG,
+        lhsPlan,
+        context,
+        predicates
+      )
+
     // Replan the RHS with the LHS arguments available. If good indexes exist, they can now be used
     // Also keep any hints we might have gotten in the rhsQG so they get considered during planning
     val rhsQgWithLhsArguments =
@@ -597,9 +606,9 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
     rightSymbols match {
       case SetExtractor(rightSymbol) =>
         val contextForRhs = context.withModifiedPlannerState(_
-          .withUpdatedLabelInfo(lhsPlan, context.staticComponents.planningAttributes.solveds)
+          .withUpdatedLabelInfo(lhsPlanWithPrefetchedProperties, context.staticComponents.planningAttributes.solveds)
           .withPreviouslyCachedProperties(
-            context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(lhsPlan.id)
+            context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(lhsPlanWithPrefetchedProperties.id)
           ))
         val leafPlanCandidates = {
           val contextForRhsLeaves =
@@ -639,7 +648,7 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
         // this confuses the cost model
         rhsPlans.fold[Iterator[LogicalPlan]](Iterator.empty)(_.allResults.iterator.collect {
           case rhsPlan if containsDependentIndexSeeks(rhsPlan) =>
-            context.staticComponents.logicalPlanProducer.planApply(lhsPlan, rhsPlan, context)
+            context.staticComponents.logicalPlanProducer.planApply(lhsPlanWithPrefetchedProperties, rhsPlan, context)
         })
       case _ =>
         // If there are more than one dependency on RHS symbols, no index can solve the predicate
