@@ -20,19 +20,31 @@
 package org.neo4j.exceptions;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
+/**
+ * Thrown when running Enterprise admin commands in community.
+ * <p>
+ * Same GQL status code as {@link org.neo4j.exceptions.RuntimeUnsupportedException#unsupportedRuntimeInThisVersion}, but different Status
+ */
 public class SecurityAdministrationException extends CypherExecutionException {
-    public SecurityAdministrationException(String message) {
-        super(message);
-    }
-
-    public SecurityAdministrationException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    private SecurityAdministrationException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
 
     @Override
     public Status status() {
         return Status.Statement.UnsupportedAdministrationCommand;
+    }
+
+    public static SecurityAdministrationException unsupportedInCommunity(String queryText, String component) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N27)
+                .withParam(GqlParams.StringParam.component, component)
+                .withParam(GqlParams.StringParam.edition, "community edition")
+                .build();
+        return new SecurityAdministrationException(gql, "Unsupported administration command: " + queryText);
     }
 }

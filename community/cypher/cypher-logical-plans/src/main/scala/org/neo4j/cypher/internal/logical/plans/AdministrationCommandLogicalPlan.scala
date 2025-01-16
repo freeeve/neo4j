@@ -48,9 +48,6 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.logical.plans.DatabaseTypeFilter.All
 import org.neo4j.cypher.internal.util.attribution.IdGen
-import org.neo4j.exceptions.DatabaseAdministrationException
-import org.neo4j.exceptions.NotSystemDatabaseException
-import org.neo4j.exceptions.SecurityAdministrationException
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.graphdb.security.AuthorizationViolationException
 
@@ -65,18 +62,13 @@ abstract class AdministrationCommandLogicalPlan(
 
   override val localAvailableSymbols: Set[LogicalVariable] = returnColumns.toSet
 
-  def invalid(message: String): RuntimeException
 }
 
 abstract class DatabaseAdministrationLogicalPlan(source: Option[AdministrationCommandLogicalPlan] = None)(implicit
-  idGen: IdGen) extends AdministrationCommandLogicalPlan(source) {
-  override def invalid(message: String): DatabaseAdministrationException = new NotSystemDatabaseException(message)
-}
+  idGen: IdGen) extends AdministrationCommandLogicalPlan(source)
 
 abstract class SecurityAdministrationLogicalPlan(source: Option[AdministrationCommandLogicalPlan] = None)(implicit
-  idGen: IdGen) extends AdministrationCommandLogicalPlan(source) {
-  override def invalid(message: String): SecurityAdministrationException = new SecurityAdministrationException(message)
-}
+  idGen: IdGen) extends AdministrationCommandLogicalPlan(source)
 
 // Non-administration commands that are allowed on system database, e.g. SHOW PROCEDURES
 case class AllowedNonAdministrationCommands(statement: Statement)(implicit idGen: IdGen)

@@ -20,6 +20,7 @@
 package org.neo4j.cypher
 
 import org.neo4j.configuration.Config
+import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.initial_default_database
@@ -31,7 +32,9 @@ import org.neo4j.dbms.database.DefaultSystemGraphComponent
 import org.neo4j.dbms.database.DefaultSystemGraphInitializer
 import org.neo4j.dbms.database.SystemGraphComponents
 import org.neo4j.dbms.systemgraph.CommunityTopologyGraphComponent
+import org.neo4j.exceptions.Neo4jException
 import org.neo4j.exceptions.SyntaxException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.internal.kernel.api.security.CommunitySecurityLog
 import org.neo4j.kernel.internal.GraphDatabaseAPI
 import org.neo4j.logging.NullLogProvider
@@ -42,6 +45,7 @@ import org.neo4j.storageengine.api.MetadataProvider
 import org.scalatest.OptionValues
 import org.scalatest.enablers.Messaging.messagingNatureOfThrowable
 
+import java.lang.Boolean.TRUE
 import java.nio.file.Path
 import java.time.Clock
 import java.time.ZonedDateTime
@@ -632,28 +636,46 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
 
     // THEN
 
-    assertFailure("CREATE DATABASE foo", "Unsupported administration command: CREATE DATABASE foo")
+    assertFailureWithGQLStatus(
+      "CREATE DATABASE foo",
+      "Unsupported administration command: CREATE DATABASE foo",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'CREATE DATABASE' is not supported in community edition."
+    )
 
-    assertFailure("CREATE DATABASE $foo", "Unsupported administration command: CREATE DATABASE $foo")
+    assertFailureWithGQLStatus(
+      "CREATE DATABASE $foo",
+      "Unsupported administration command: CREATE DATABASE $foo",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'CREATE DATABASE' is not supported in community edition."
+    )
 
-    assertFailure(
+    assertFailureWithGQLStatus(
       s"CREATE DATABASE $DEFAULT_DATABASE_NAME",
-      s"Unsupported administration command: CREATE DATABASE $DEFAULT_DATABASE_NAME"
+      s"Unsupported administration command: CREATE DATABASE $DEFAULT_DATABASE_NAME",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'CREATE DATABASE' is not supported in community edition."
     )
 
-    assertFailure(
+    assertFailureWithGQLStatus(
       s"CREATE DATABASE $DEFAULT_DATABASE_NAME IF NOT EXISTS",
-      s"Unsupported administration command: CREATE DATABASE $DEFAULT_DATABASE_NAME IF NOT EXISTS"
+      s"Unsupported administration command: CREATE DATABASE $DEFAULT_DATABASE_NAME IF NOT EXISTS",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'CREATE DATABASE' is not supported in community edition."
     )
 
-    assertFailure(
+    assertFailureWithGQLStatus(
       s"CREATE OR REPLACE DATABASE $DEFAULT_DATABASE_NAME",
-      s"Unsupported administration command: CREATE OR REPLACE DATABASE $DEFAULT_DATABASE_NAME"
+      s"Unsupported administration command: CREATE OR REPLACE DATABASE $DEFAULT_DATABASE_NAME",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'CREATE OR REPLACE DATABASE' is not supported in community edition."
     )
 
-    assertFailure(
+    assertFailureWithGQLStatus(
       s"CREATE DATABASE $DEFAULT_DATABASE_NAME OPTIONS {existingData: 'use', existingDataSeedInstance: '1'}",
-      s"Unsupported administration command: CREATE DATABASE $DEFAULT_DATABASE_NAME OPTIONS {existingData: 'use', existingDataSeedInstance: '1'}"
+      s"Unsupported administration command: CREATE DATABASE $DEFAULT_DATABASE_NAME OPTIONS {existingData: 'use', existingDataSeedInstance: '1'}",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'CREATE DATABASE' is not supported in community edition."
     )
   }
 
@@ -663,18 +685,32 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
 
     // THEN
 
-    assertFailure("DROP DATABASE foo", "Unsupported administration command: DROP DATABASE foo")
-
-    assertFailure("DROP DATABASE $foo", "Unsupported administration command: DROP DATABASE $foo")
-
-    assertFailure(
-      s"DROP DATABASE $DEFAULT_DATABASE_NAME",
-      s"Unsupported administration command: DROP DATABASE $DEFAULT_DATABASE_NAME"
+    assertFailureWithGQLStatus(
+      "DROP DATABASE foo",
+      "Unsupported administration command: DROP DATABASE foo",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'DROP DATABASE' is not supported in community edition."
     )
 
-    assertFailure(
+    assertFailureWithGQLStatus(
+      "DROP DATABASE $foo",
+      "Unsupported administration command: DROP DATABASE $foo",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'DROP DATABASE' is not supported in community edition."
+    )
+
+    assertFailureWithGQLStatus(
+      s"DROP DATABASE $DEFAULT_DATABASE_NAME",
+      s"Unsupported administration command: DROP DATABASE $DEFAULT_DATABASE_NAME",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'DROP DATABASE' is not supported in community edition."
+    )
+
+    assertFailureWithGQLStatus(
       s"DROP DATABASE $DEFAULT_DATABASE_NAME IF EXISTS",
-      s"Unsupported administration command: DROP DATABASE $DEFAULT_DATABASE_NAME IF EXISTS"
+      s"Unsupported administration command: DROP DATABASE $DEFAULT_DATABASE_NAME IF EXISTS",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'DROP DATABASE' is not supported in community edition."
     )
   }
 
@@ -683,14 +719,18 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
     setup(defaultConfig)
 
     // THEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "ALTER DATABASE foo SET ACCESS READ ONLY",
-      "Unsupported administration command: ALTER DATABASE foo SET ACCESS READ ONLY"
+      "Unsupported administration command: ALTER DATABASE foo SET ACCESS READ ONLY",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'ALTER DATABASE' is not supported in community edition."
     )
 
-    assertFailure(
+    assertFailureWithGQLStatus(
       s"ALTER DATABASE $DEFAULT_DATABASE_NAME SET ACCESS READ WRITE",
-      s"Unsupported administration command: ALTER DATABASE $DEFAULT_DATABASE_NAME SET ACCESS READ WRITE"
+      s"Unsupported administration command: ALTER DATABASE $DEFAULT_DATABASE_NAME SET ACCESS READ WRITE",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'ALTER DATABASE' is not supported in community edition."
     )
   }
 
@@ -700,13 +740,25 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
 
     // THEN
 
-    assertFailure("START DATABASE foo", "Unsupported administration command: START DATABASE foo")
+    assertFailureWithGQLStatus(
+      "START DATABASE foo",
+      "Unsupported administration command: START DATABASE foo",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'START DATABASE' is not supported in community edition."
+    )
 
-    assertFailure("START DATABASE $foo", "Unsupported administration command: START DATABASE $foo")
+    assertFailureWithGQLStatus(
+      "START DATABASE $foo",
+      "Unsupported administration command: START DATABASE $foo",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'START DATABASE' is not supported in community edition."
+    )
 
-    assertFailure(
+    assertFailureWithGQLStatus(
       s"START DATABASE $DEFAULT_DATABASE_NAME",
-      s"Unsupported administration command: START DATABASE $DEFAULT_DATABASE_NAME"
+      s"Unsupported administration command: START DATABASE $DEFAULT_DATABASE_NAME",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'START DATABASE' is not supported in community edition."
     )
   }
 
@@ -716,13 +768,25 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
 
     // THEN
 
-    assertFailure("STOP DATABASE foo", "Unsupported administration command: STOP DATABASE foo")
+    assertFailureWithGQLStatus(
+      "STOP DATABASE foo",
+      "Unsupported administration command: STOP DATABASE foo",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'STOP DATABASE' is not supported in community edition."
+    )
 
-    assertFailure("STOP DATABASE $foo", "Unsupported administration command: STOP DATABASE $foo")
+    assertFailureWithGQLStatus(
+      "STOP DATABASE $foo",
+      "Unsupported administration command: STOP DATABASE $foo",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'STOP DATABASE' is not supported in community edition."
+    )
 
-    assertFailure(
+    assertFailureWithGQLStatus(
       s"STOP DATABASE $DEFAULT_DATABASE_NAME",
-      s"Unsupported administration command: STOP DATABASE $DEFAULT_DATABASE_NAME"
+      s"Unsupported administration command: STOP DATABASE $DEFAULT_DATABASE_NAME",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'STOP DATABASE' is not supported in community edition."
     )
   }
 
@@ -732,26 +796,39 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
 
     // THEN
 
-    assertFailure("CREATE COMPOSITE DATABASE foo", "Unsupported administration command: CREATE COMPOSITE DATABASE foo")
+    assertFailureWithGQLStatus(
+      "CREATE COMPOSITE DATABASE foo",
+      "Unsupported administration command: CREATE COMPOSITE DATABASE foo",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'CREATE COMPOSITE DATABASE' is not supported in community edition."
+    )
 
-    assertFailure(
+    assertFailureWithGQLStatus(
       "CREATE COMPOSITE DATABASE $foo",
-      "Unsupported administration command: CREATE COMPOSITE DATABASE $foo"
+      "Unsupported administration command: CREATE COMPOSITE DATABASE $foo",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'CREATE COMPOSITE DATABASE' is not supported in community edition."
     )
 
-    assertFailure(
+    assertFailureWithGQLStatus(
       s"CREATE COMPOSITE DATABASE $DEFAULT_DATABASE_NAME",
-      s"Unsupported administration command: CREATE COMPOSITE DATABASE $DEFAULT_DATABASE_NAME"
+      s"Unsupported administration command: CREATE COMPOSITE DATABASE $DEFAULT_DATABASE_NAME",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'CREATE COMPOSITE DATABASE' is not supported in community edition."
     )
 
-    assertFailure(
+    assertFailureWithGQLStatus(
       s"CREATE COMPOSITE DATABASE $DEFAULT_DATABASE_NAME IF NOT EXISTS",
-      s"Unsupported administration command: CREATE COMPOSITE DATABASE $DEFAULT_DATABASE_NAME IF NOT EXISTS"
+      s"Unsupported administration command: CREATE COMPOSITE DATABASE $DEFAULT_DATABASE_NAME IF NOT EXISTS",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'CREATE COMPOSITE DATABASE' is not supported in community edition."
     )
 
-    assertFailure(
+    assertFailureWithGQLStatus(
       s"CREATE OR REPLACE COMPOSITE DATABASE $DEFAULT_DATABASE_NAME",
-      s"Unsupported administration command: CREATE OR REPLACE COMPOSITE DATABASE $DEFAULT_DATABASE_NAME"
+      s"Unsupported administration command: CREATE OR REPLACE COMPOSITE DATABASE $DEFAULT_DATABASE_NAME",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'CREATE OR REPLACE COMPOSITE DATABASE' is not supported in community edition."
     )
   }
 
@@ -761,19 +838,57 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
 
     // THEN
 
-    assertFailure("DROP COMPOSITE DATABASE foo", "Unsupported administration command: DROP COMPOSITE DATABASE foo")
+    assertFailureWithGQLStatus(
+      "DROP COMPOSITE DATABASE foo",
+      "Unsupported administration command: DROP COMPOSITE DATABASE foo",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'DROP COMPOSITE DATABASE' is not supported in community edition."
+    )
 
-    assertFailure("DROP COMPOSITE DATABASE $foo", "Unsupported administration command: DROP COMPOSITE DATABASE $foo")
+    assertFailureWithGQLStatus(
+      "DROP COMPOSITE DATABASE $foo",
+      "Unsupported administration command: DROP COMPOSITE DATABASE $foo",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'DROP COMPOSITE DATABASE' is not supported in community edition."
+    )
 
-    assertFailure(
+    assertFailureWithGQLStatus(
       s"DROP COMPOSITE DATABASE $DEFAULT_DATABASE_NAME",
-      s"Unsupported administration command: DROP COMPOSITE DATABASE $DEFAULT_DATABASE_NAME"
+      s"Unsupported administration command: DROP COMPOSITE DATABASE $DEFAULT_DATABASE_NAME",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'DROP COMPOSITE DATABASE' is not supported in community edition."
     )
 
-    assertFailure(
+    assertFailureWithGQLStatus(
       s"DROP COMPOSITE DATABASE foo IF EXISTS",
-      s"Unsupported administration command: DROP COMPOSITE DATABASE foo IF EXISTS"
+      s"Unsupported administration command: DROP COMPOSITE DATABASE foo IF EXISTS",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'DROP COMPOSITE DATABASE' is not supported in community edition."
     )
+  }
+
+  test("should fail with enterprise-only runtime") {
+    // GIVEN
+    val config = Config.defaults(GraphDatabaseSettings.cypher_hints_error, TRUE)
+    setup(config)
+
+    // WHEN
+    selectDatabase(DEFAULT_DATABASE_NAME)
+    val exception = the[Neo4jException] thrownBy {
+      execute(s"CYPHER runtime=parallel SHOW DATABASE $DEFAULT_DATABASE_NAME")
+    }
+
+    // THEN
+    exception should have message "This version of Neo4j does not support the requested runtime: `parallel`"
+    exception.gqlStatusObject().gqlStatus() should be(GqlStatusInfoCodes.STATUS_22000.getStatusString)
+    exception.gqlStatusObject().statusDescription() should be("error: data exception")
+    val cause = exception.gqlStatusObject().cause()
+    cause should not be empty
+    cause.get().gqlStatus() should be(GqlStatusInfoCodes.STATUS_51N27.getStatusString)
+    cause.get().statusDescription() should be(
+      "error: system configuration or operation exception - not supported in this edition. 'parallel' is not supported in community edition."
+    )
+
   }
 
   // Helper methods

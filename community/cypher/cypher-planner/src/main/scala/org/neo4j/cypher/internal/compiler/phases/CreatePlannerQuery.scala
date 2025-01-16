@@ -75,9 +75,7 @@ case class CreatePlannerQuery(semanticFeatures: Set[SemanticFeature])
 
       LogicalPlanState(from).copy(maybeQuery = Some(plannerQuery))
 
-    case command: AdministrationCommand => throw new NotSystemDatabaseException(
-        s"This is an administration command and it should be executed against the system database: ${command.name}"
-      )
+    case command: AdministrationCommand => throw NotSystemDatabaseException.notSystemDatabaseException(command.name)
 
     case x => throw new InternalException(s"Expected a Query and not `$x`")
   }

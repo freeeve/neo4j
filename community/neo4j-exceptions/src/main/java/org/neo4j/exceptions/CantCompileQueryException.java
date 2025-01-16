@@ -46,7 +46,7 @@ public class CantCompileQueryException extends Neo4jException {
     public static CantCompileQueryException unsupportedRuntimeInThisVersion(String runtime) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N27)
-                        .withParam(GqlParams.StringParam.item, runtime)
+                        .withParam(GqlParams.StringParam.component, runtime)
                         .withParam(GqlParams.StringParam.edition, "community edition")
                         .build())
                 .build();

@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.PlanFingerprint
 import org.neo4j.cypher.internal.PlanFingerprintReference
 import org.neo4j.cypher.internal.ReusabilityState
 import org.neo4j.cypher.internal.SchemaCommandRuntime
+import org.neo4j.cypher.internal.ast.AdministrationCommand
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.AstCache
@@ -100,8 +101,9 @@ import org.neo4j.cypher.internal.util.InternalNotificationStats
 import org.neo4j.cypher.internal.util.RecordingNotificationLogger
 import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
 import org.neo4j.cypher.internal.util.devNullLogger
+import org.neo4j.exceptions.DisallowedOnSystemException
 import org.neo4j.exceptions.Neo4jException
-import org.neo4j.exceptions.NotSystemDatabaseException
+import org.neo4j.exceptions.SecurityAdministrationException
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.kernel.api.query.QueryObfuscator
 import org.neo4j.kernel.database.DatabaseReference
@@ -569,11 +571,19 @@ case class CypherPlanner(
             case Some(ProcedureCall(_, ResolvedCall(signature, _, _, _, _, _, _))) if signature.systemProcedure =>
               (FineToReuse, false)
             case Some(_: ProcedureCall) =>
-              throw new NotSystemDatabaseException("Attempting invalid procedure call in administration runtime")
-            case Some(plan: AdministrationCommandLogicalPlan) =>
-              throw plan.invalid("Unsupported administration command: " + logicalPlanState.queryText)
-            case _ => throw new NotSystemDatabaseException(
-                "Attempting invalid administration command in administration runtime"
+              throw DisallowedOnSystemException.disallowedOnSystemException(
+                "Attempting invalid procedure call in administration runtime",
+                logicalPlanState.queryText
+              )
+            case Some(_: AdministrationCommandLogicalPlan) =>
+              val name = logicalPlanState.statement() match {
+                case s: AdministrationCommand => s.name
+                case s: Statement             => s.getClass.getSimpleName
+              }
+              throw SecurityAdministrationException.unsupportedInCommunity(logicalPlanState.queryText, name)
+            case _ => throw DisallowedOnSystemException.disallowedOnSystemException(
+                "Attempting invalid administration command in administration runtime",
+                logicalPlanState.queryText
               )
           }
         }
