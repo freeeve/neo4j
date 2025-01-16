@@ -27,7 +27,10 @@ import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOr
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.unnestOptional
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.ir.QueryGraph
+import org.neo4j.cypher.internal.ir.helpers.CachedFunction
+import org.neo4j.cypher.internal.ir.helpers.CachedFunction.CacheKey
 import org.neo4j.cypher.internal.logical.plans.AggregatingPlan
+import org.neo4j.cypher.internal.logical.plans.CachedProperties
 import org.neo4j.cypher.internal.logical.plans.LogicalLeafPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.macros.AssertMacros
@@ -78,13 +81,33 @@ case object applyOptional extends OptionalSolver {
   ): OptionalSolver.Solver = {
     val innerContext: LogicalPlanningContext =
       context.withModifiedPlannerState(_.withFusedLabelInfo(enclosingQg.selections.labelInfo))
-    val inner = context.staticComponents.queryGraphSolver.plan(
+    def doPlan(cachedContext: CachedFunction.CacheKey[CachedProperties, Unit]): BestPlans = {
+      val previouslyCachedProperties = cachedContext.cacheKey
+      context.staticComponents.queryGraphSolver.plan(
+        optionalQg,
+        removeColumnsWithoutDependencies(interestingOrderConfig),
+        innerContext.withModifiedPlannerState(_.withPreviouslyCachedProperties(previouslyCachedProperties))
+      )
+    }
+
+    // The case without previously cached properties is computed as a lazy val and not the cache function.
+    // This case is handled separately, since non-sharded databases will never have previously cached properties.
+    // This should avoid the overhead of the cache function and any regressions in planning times for non-sharded deployments.
+    lazy val innerPlanWithoutPreviouslyCachedProperties = context.staticComponents.queryGraphSolver.plan(
       optionalQg,
       removeColumnsWithoutDependencies(interestingOrderConfig),
       innerContext
     )
+    val cachedPlanInnerOfOptionalMatch = CachedFunction(doPlan _)
     (lhs: LogicalPlan) =>
       val lhsSymbols = lhs.availableSymbols
+      val lhsCachedProperties = context.staticComponents.planningAttributes.cachedPropertiesPerPlan(lhs.id)
+      val inner =
+        if (lhsCachedProperties.isEmpty)
+          innerPlanWithoutPreviouslyCachedProperties
+        else {
+          cachedPlanInnerOfOptionalMatch(CacheKey(lhsCachedProperties)())
+        }
       inner.allResults.iterator.map { inner =>
         val innerWithFixedArguments = inner.endoRewrite(bottomUp(
           Rewriter.lift {

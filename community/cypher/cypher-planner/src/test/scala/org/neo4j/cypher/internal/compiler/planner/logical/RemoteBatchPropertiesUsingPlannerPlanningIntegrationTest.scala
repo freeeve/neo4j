@@ -1080,7 +1080,7 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
     )
   }
 
-  test("optional match with properties from outer matches should fetch batches") {
+  test("optional match with properties from outer matches should not fetch properties again") {
     val query =
       """
         |MATCH (p:Person {firstName: 'foo'})
@@ -1097,7 +1097,6 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       .|.filter("NOT cacheN[s.firstName] = cacheN[p.firstName]", "s:Person")
       .|.remoteBatchProperties("cacheNFromStore[s.firstName]")
       .|.expandAll("(p)-[anon_0:KNOWS]-(s)")
-      .|.remoteBatchProperties("cacheNFromStore[p.firstName]")
       .|.argument("p")
       .nodeIndexOperator("p:Person(firstName = 'foo')", getValue = Map("firstName" -> GetValue))
       .build())

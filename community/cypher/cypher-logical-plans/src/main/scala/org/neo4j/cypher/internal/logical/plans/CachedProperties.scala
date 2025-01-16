@@ -132,6 +132,8 @@ case class CachedProperties(entries: Map[LogicalVariable, CachedProperties.Entry
     )
   }
 
+  def nonEmpty: Boolean = this.entries.nonEmpty
+  def isEmpty: Boolean = this.entries.isEmpty
 }
 
 object CachedProperties {
