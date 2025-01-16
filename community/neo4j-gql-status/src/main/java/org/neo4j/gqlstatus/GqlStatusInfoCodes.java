@@ -3451,7 +3451,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42N53(
             new GqlStatus("42N53"),
             """
-                    The quantified path pattern may yield an infinite number of rows under match mode 'REPEATABLE ELEMENTS` Use a path selector or add an upper bound to the quantified path pattern.""",
+                    The quantified path pattern may yield an infinite number of rows under match mode 'REPEATABLE ELEMENTS'. Add an upper bound to the quantified path pattern.""",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
