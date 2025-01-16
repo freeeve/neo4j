@@ -119,7 +119,7 @@ public abstract class KernelTokenRead implements TokenRead {
         try {
             return tokenHolders.propertyKeyTokens().getTokenById(propertyKeyId).name();
         } catch (TokenNotFoundException e) {
-            throw new PropertyKeyIdNotFoundKernelException(propertyKeyId, e);
+            throw PropertyKeyIdNotFoundKernelException.propertyKeyIdNotFound(propertyKeyId, e);
         }
     }
 

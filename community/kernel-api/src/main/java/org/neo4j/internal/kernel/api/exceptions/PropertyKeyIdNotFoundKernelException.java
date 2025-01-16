@@ -21,14 +21,14 @@ package org.neo4j.internal.kernel.api.exceptions;
 
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class PropertyKeyIdNotFoundKernelException extends KernelException {
-    public PropertyKeyIdNotFoundKernelException(int propertyKeyId, Exception cause) {
-        super(Status.Schema.PropertyKeyAccessFailed, cause, "Property key with id=%d not found", propertyKeyId);
-    }
 
-    public PropertyKeyIdNotFoundKernelException(
+    private PropertyKeyIdNotFoundKernelException(
             ErrorGqlStatusObject gqlStatusObject, int propertyKeyId, Exception cause) {
         super(
                 gqlStatusObject,
@@ -36,5 +36,13 @@ public class PropertyKeyIdNotFoundKernelException extends KernelException {
                 cause,
                 "Property key with id=%d not found",
                 propertyKeyId);
+    }
+
+    public static PropertyKeyIdNotFoundKernelException propertyKeyIdNotFound(int propertyKeyIdId, Exception cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N59)
+                .withParam(GqlParams.StringParam.tokenType, "property key")
+                .withParam(GqlParams.NumberParam.tokenId, propertyKeyIdId)
+                .build();
+        return new PropertyKeyIdNotFoundKernelException(gql, propertyKeyIdId, cause);
     }
 }

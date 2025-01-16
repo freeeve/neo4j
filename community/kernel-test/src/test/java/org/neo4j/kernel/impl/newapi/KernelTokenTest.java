@@ -36,6 +36,7 @@ import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.LabelNotFoundKernelException;
+import org.neo4j.internal.kernel.api.exceptions.PropertyKeyIdNotFoundKernelException;
 import org.neo4j.internal.kernel.api.exceptions.schema.IllegalTokenNameException;
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
@@ -329,5 +330,16 @@ class KernelTokenTest {
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N59)
                 .hasStatusDescription(
                         "error: data exception - token does not exist. The label token with id 0 does not exist.");
+    }
+
+    @Test
+    void shouldThrowCorrectExceptionWhenPropertyKeyTokenNotFound() throws Exception {
+        when(propertyKeyTokens.getTokenById(0)).thenThrow(new TokenNotFoundException("nope"));
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> kernelToken.propertyKeyName(0))
+                .isInstanceOf(PropertyKeyIdNotFoundKernelException.class)
+                .hasMessage("Property key with id=0 not found")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N59)
+                .hasStatusDescription(
+                        "error: data exception - token does not exist. The property key token with id 0 does not exist.");
     }
 }
