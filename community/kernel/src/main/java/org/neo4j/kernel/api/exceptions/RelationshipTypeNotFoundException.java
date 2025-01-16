@@ -21,21 +21,25 @@ package org.neo4j.kernel.api.exceptions;
 
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 public class RelationshipTypeNotFoundException extends KernelException {
-    public RelationshipTypeNotFoundException(String relationshipType, Exception cause) {
-        super(
-                Status.Schema.RelationshipTypeAccessFailed,
-                cause,
-                "Relationship type '" + relationshipType + "' not found");
-    }
 
-    public RelationshipTypeNotFoundException(
+    private RelationshipTypeNotFoundException(
             ErrorGqlStatusObject gqlStatusObject, String relationshipType, Exception cause) {
         super(
                 gqlStatusObject,
                 Status.Schema.RelationshipTypeAccessFailed,
                 cause,
                 "Relationship type '" + relationshipType + "' not found");
+    }
+
+    public static RelationshipTypeNotFoundException relationshipTypeNotFound(String relationshipType, Exception cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N62)
+                .withParam(GqlParams.StringParam.relType, relationshipType)
+                .build();
+        return new RelationshipTypeNotFoundException(gql, relationshipType, cause);
     }
 }

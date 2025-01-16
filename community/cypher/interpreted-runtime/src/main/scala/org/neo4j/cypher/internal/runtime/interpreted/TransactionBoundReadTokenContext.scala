@@ -68,7 +68,7 @@ abstract class TransactionBoundReadTokenContext(transactionalContext: QueryTrans
   def getRelTypeId(relType: String): Int = {
     val relTypeId: Int = transactionalContext.tokenRead.relationshipType(relType)
     if (relTypeId == TokenConstants.NO_TOKEN)
-      throw new RelationshipTypeNotFoundException(relType, null)
+      throw RelationshipTypeNotFoundException.relationshipTypeNotFound(relType, null)
     relTypeId
   }
 
