@@ -1149,6 +1149,20 @@ object SemanticError {
     val gql = GqlHelper.getGql42001_42N63(position.offset, position.line, position.column)
     SemanticError(gql, "All types in a Closed Dynamic Union must be nullable, or be appended with `NOT NULL`", position)
   }
+
+  def expressionCanOnlyBeUsedInMatch(
+    startOfLegacyMessage: String,
+    expr: String,
+    clause: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = GqlHelper.getGql42001_42I04(expr, clause, position.offset, position.line, position.column)
+    SemanticError(
+      gql,
+      s"$startOfLegacyMessage cannot be used in a $clause clause, but only in a MATCH clause.",
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

@@ -139,11 +139,13 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
               if x.isSelective => normalizeParenthesizedPath(parenthesizedPath)
             case element => element
           }
+          val selector = normalised.selector.prettified
           check(ctx)(normalised.part) chain
             when(normalised.isSelective) {
               checkContext(
                 ctx,
-                s"Path selectors such as `${normalised.selector.prettified}`",
+                selector,
+                s"Path selectors such as `$selector`",
                 normalised.selector.position
               )
             } chain
@@ -219,7 +221,8 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
           }
         }
 
-        checkContext(ctx, s"${x.name}(...)", x.position) chain
+        val patternStringifier = PatternStringifier(stringifier)
+        checkContext(ctx, patternStringifier.apply(x), s"${x.name}(...)", x.position) chain
           checkNoQuantifiedPatterns chain
           checkContainsSingle chain
           checkKnownEnds chain
@@ -228,10 +231,10 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
           check(ctx, x.element)
     }
 
-  private def checkContext(ctx: SemanticContext, name: String, pos: InputPosition): SemanticCheck =
+  private def checkContext(ctx: SemanticContext, expr: String, name: String, pos: InputPosition): SemanticCheck =
     ctx match {
       case SemanticContext.Merge | SemanticContext.Create =>
-        SemanticError(s"$name cannot be used in ${ctx.description}, but only in a MATCH clause.", pos)
+        SemanticError.expressionCanOnlyBeUsedInMatch(name, expr, ctx.name, pos)
       case _ => success
     }
 
@@ -350,8 +353,8 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
               q.position
             )
           }
-
-        checkContext(ctx, "Quantified path patterns", element.position) chain
+        val patternStringifier = PatternStringifier(stringifier)
+        checkContext(ctx, patternStringifier.apply(q), "Quantified path patterns", element.position) chain
           checkContainedPatterns chain
           checkRelCount chain
           checkQuantifier(quantifier) chain

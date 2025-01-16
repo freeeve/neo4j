@@ -37,8 +37,11 @@ abstract class QuantifiedPathPatternsInDifferentClausesSemanticAnalysisTest(stat
   override def defaultQuery: String = s"$statement $testName"
 
   test("((a)-[:Rel]->(b)){2}") {
-    run().hasErrorMessages(
-      s"Quantified path patterns cannot be used in a $statement clause, but only in a MATCH clause."
+    val statementOffset = s"$statement ".length
+    run().hasError(
+      GqlHelper.getGql42001_42I04(testName, statement.toString, statementOffset, 1, statementOffset + 1),
+      s"Quantified path patterns cannot be used in a $statement clause, but only in a MATCH clause.",
+      InputPosition(statementOffset, 1, statementOffset + 1)
     )
   }
 }

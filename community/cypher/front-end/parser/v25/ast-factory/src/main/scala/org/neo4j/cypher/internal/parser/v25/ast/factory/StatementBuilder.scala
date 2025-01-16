@@ -118,6 +118,7 @@ import org.neo4j.cypher.internal.parser.v25.ast.factory.Cypher25AstUtil.nonEmpty
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.NonEmptyList
+import org.neo4j.gqlstatus.GqlHelper
 
 import java.util.stream.Collectors
 
@@ -252,9 +253,20 @@ trait StatementBuilder extends Cypher25ParserListener {
     val patternList = ctx.patternList()
     val nonPrefixedPatternPartList = patternList.ast[ArraySeq[PatternPart]]().map {
       case p: NonPrefixedPatternPart => p
-      case p: PatternPartWithSelector => throw exceptionFactory.syntaxException(
-          s"Path selectors such as `${p.selector.prettified}` cannot be used in a CREATE clause, but only in a MATCH clause.",
-          pos(patternList)
+      case p: PatternPartWithSelector =>
+        val inputPosition = pos(patternList)
+        val selector = p.selector.prettified
+        val gql = GqlHelper.getGql42001_42I04(
+          selector,
+          "CREATE",
+          inputPosition.offset,
+          inputPosition.line,
+          inputPosition.column
+        )
+        throw exceptionFactory.syntaxException(
+          gql,
+          s"Path selectors such as `$selector` cannot be used in a CREATE clause, but only in a MATCH clause.",
+          inputPosition
         )
     }
     ctx.ast = Create(Pattern.ForUpdate(nonPrefixedPatternPartList)(pos(patternList)))(pos(ctx))
@@ -397,9 +409,20 @@ trait StatementBuilder extends Cypher25ParserListener {
     val patternPart = ctxChild(ctx, 1)
     val nonPrefixedPatternPart = patternPart.ast[PatternPart]() match {
       case p: NonPrefixedPatternPart => p
-      case p: PatternPartWithSelector => throw exceptionFactory.syntaxException(
-          s"Path selectors such as `${p.selector.prettified}` cannot be used in a MERGE clause, but only in a MATCH clause.",
-          pos(patternPart)
+      case p: PatternPartWithSelector =>
+        val inputPosition = pos(patternPart)
+        val selector = p.selector.prettified
+        val gql = GqlHelper.getGql42001_42I04(
+          selector,
+          "MERGE",
+          inputPosition.offset,
+          inputPosition.line,
+          inputPosition.column
+        );
+        throw exceptionFactory.syntaxException(
+          gql,
+          s"Path selectors such as `$selector` cannot be used in a MERGE clause, but only in a MATCH clause.",
+          inputPosition
         )
     }
 
