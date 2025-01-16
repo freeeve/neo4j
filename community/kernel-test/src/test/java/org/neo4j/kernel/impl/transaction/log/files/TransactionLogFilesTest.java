@@ -282,6 +282,7 @@ class TransactionLogFilesTest {
                 EnvelopeWriteChannel envelopeWriteChannel = getEnvelopeChannel(channel)) {
             // Some magic bytes that just happen to give a checksum with last byte 0
             byte[] bytes = new byte[] {105, -62, -59, 21, -8, 63, -67, -47, 58, 63};
+            envelopeWriteChannel.beginChecksumForWriting();
             envelopeWriteChannel.putVersion(kernelVersion.version());
             envelopeWriteChannel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
             envelopeWriteChannel.put(bytes, bytes.length);

@@ -108,6 +108,7 @@ class EnvelopeWriteChannelTest {
 
             channel.resetAppendedBytesCounter();
 
+            channel.beginChecksumForWriting();
             channel.putVersion(version);
             channel.putTerm(term);
             channel.putContentType(contentType);
@@ -160,6 +161,7 @@ class EnvelopeWriteChannelTest {
         final var fileChannel = storeChannel();
         final var buffer = buffer(segmentSize * 2);
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
@@ -169,6 +171,7 @@ class EnvelopeWriteChannelTest {
                     .as("should have written the data AND the envelope")
                     .isEqualTo(segmentSize + chunkSize);
 
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
@@ -197,12 +200,14 @@ class EnvelopeWriteChannelTest {
 
         final var fileChannel = storeChannel();
         try (var channel = writeChannel(fileChannel, segmentSize, buffer(256))) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             assertChecksum(channel.putChecksum(), checksums[0]);
 
+            channel.beginChecksumForWriting();
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             assertChecksum(channel.putChecksum(), checksums[1]);
@@ -228,11 +233,13 @@ class EnvelopeWriteChannelTest {
 
         final var buffer = buffer(segmentSize * 2);
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             channel.endCurrentEntry();
+            channel.beginChecksumForWriting();
             channel.put(SMALL_BYTES, SMALL_BYTES.length);
 
             assertThatThrownBy(channel::position)
@@ -264,6 +271,7 @@ class EnvelopeWriteChannelTest {
         final var fileChannel = storeChannel();
         final var buffer = buffer(segmentSize);
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
@@ -301,6 +309,7 @@ class EnvelopeWriteChannelTest {
         final var fileChannel = storeChannel();
         final var buffer = buffer(segmentSize * 2);
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
@@ -335,6 +344,7 @@ class EnvelopeWriteChannelTest {
         final var fileChannel = storeChannel();
         final var buffer = buffer(segmentSize * 2);
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
@@ -369,6 +379,7 @@ class EnvelopeWriteChannelTest {
         final var fileChannel = storeChannel();
         final var buffer = buffer(segmentSize);
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
@@ -403,6 +414,7 @@ class EnvelopeWriteChannelTest {
 
         final var fileChannel = storeChannel();
         try (var channel = writeChannel(fileChannel, segmentSize, buffer(segmentSize * 3))) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
@@ -433,6 +445,7 @@ class EnvelopeWriteChannelTest {
 
         final var fileChannel = storeChannel();
         try (var channel = writeChannel(fileChannel, segmentSize, buffer(segmentSize * 3))) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
@@ -466,11 +479,13 @@ class EnvelopeWriteChannelTest {
 
         final var buffer = buffer(segmentSize * 2);
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
             channel.put(SMALL_BYTES, SMALL_BYTES.length);
             channel.endCurrentEntry();
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
@@ -506,11 +521,13 @@ class EnvelopeWriteChannelTest {
         final var fileChannel = storeChannel();
         final var buffer = buffer(segmentSize);
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             channel.endCurrentEntry();
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putContentType(CONTENT_TYPE);
             channel.put(SMALL_BYTES, SMALL_BYTES.length);
@@ -543,11 +560,13 @@ class EnvelopeWriteChannelTest {
 
         final var fileChannel = storeChannel();
         try (var channel = writeChannel(fileChannel, segmentSize, buffer(segmentSize * 2))) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             channel.putChecksum();
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putContentType(CONTENT_TYPE);
             channel.put(SMALL_BYTES, SMALL_BYTES.length);
@@ -575,11 +594,13 @@ class EnvelopeWriteChannelTest {
 
         final var fileChannel = storeChannel();
         try (var channel = writeChannel(fileChannel, segmentSize, buffer(segmentSize * 2))) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             channel.putChecksum();
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putContentType(CONTENT_TYPE);
             channel.putLong(value);
@@ -606,6 +627,7 @@ class EnvelopeWriteChannelTest {
         final var fileChannel = storeChannel();
 
         try (var channel = writeChannel(fileChannel, segmentSize, buffer(segmentSize * 3))) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
@@ -640,6 +662,7 @@ class EnvelopeWriteChannelTest {
                 buffer,
                 logRotation(fileChannel, header(segmentSize), maxLogFileSize),
                 LogTracers.NULL)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
@@ -695,6 +718,7 @@ class EnvelopeWriteChannelTest {
                 buffer,
                 logRotation(fileChannel, header(segmentSize), maxLogFileSize),
                 LogTracers.NULL)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
@@ -756,6 +780,7 @@ class EnvelopeWriteChannelTest {
                 buffer(segmentSize),
                 logRotation(fileChannel, header(segmentSize), maxLogFileSize),
                 LogTracers.NULL)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
@@ -818,6 +843,7 @@ class EnvelopeWriteChannelTest {
                 buffer,
                 logRotation(fileChannel, header(segmentSize), maxLogFileSize),
                 LogTracers.NULL)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
@@ -863,6 +889,342 @@ class EnvelopeWriteChannelTest {
         }
     }
 
+    @Test
+    void rotationHappensOnFirstDataGoingOverRotationLimit() throws IOException {
+        int segmentSize = 128;
+        final var maxLogFileSize = segmentSize * 3;
+        final var chunkSize = segmentSize - HEADER_SIZE;
+        final var byteData = bytes(random, chunkSize * 2);
+        byte[] firstEnvelope = copyOfRange(byteData, 0, chunkSize);
+        byte[] secondEnvelope = copyOfRange(byteData, chunkSize, chunkSize * 2);
+        final var secondByteData = bytes(random, chunkSize * 2);
+        byte[] thirdEnvelope = copyOfRange(secondByteData, 0, chunkSize);
+        byte[] fourthEnvelope = copyOfRange(secondByteData, chunkSize, chunkSize * 2);
+
+        final var initialLogVersion = 0L;
+
+        final int[] checksums = new int[] {0xecdd40b9, 0x8df7e412, 0x119f4e2f, 0xac04407};
+
+        final var fileChannel = storeChannel(initialLogVersion);
+
+        final var rotatedPath1 = logPath(initialLogVersion + 1);
+        final var rotatedPath2 = logPath(initialLogVersion + 2);
+
+        final var buffer = buffer(segmentSize * 3);
+        try (var channel = writeChannel(
+                fileChannel,
+                segmentSize,
+                buffer,
+                logRotation(fileChannel, header(segmentSize), maxLogFileSize),
+                LogTracers.NULL)) {
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION);
+            channel.putTerm(TERM);
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(byteData, byteData.length);
+            channel.endCurrentEntry();
+            channel.prepareForFlush();
+
+            assertThat(fileChannel.position()).isEqualTo(maxLogFileSize);
+            assertThat(fileSystem.fileExists(rotatedPath1))
+                    .as("should not have created the second log file yet")
+                    .isFalse();
+
+            // Lets put the next one
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION);
+            channel.putTerm(TERM);
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(secondByteData, secondByteData.length);
+            channel.endCurrentEntry();
+            channel.prepareForFlush();
+            assertThat(fileChannel.position())
+                    .as("should have filled the initial file")
+                    .isEqualTo(maxLogFileSize);
+            assertThat(fileSystem.fileExists(rotatedPath1))
+                    .as("should have created the second log file")
+                    .isTrue();
+            assertThat(fileSystem.getFileSize(rotatedPath1))
+                    .as("should have written the data to the new log file")
+                    .isEqualTo(maxLogFileSize);
+            assertThat(fileSystem.fileExists(rotatedPath2))
+                    .as("should not have created the third log file")
+                    .isFalse();
+
+            assertEnvelopeContents(
+                    channelData(fileChannel, segmentSize),
+                    envelope(EnvelopeType.BEGIN, FIRST_INDEX, firstEnvelope, checksums[0]),
+                    envelope(EnvelopeType.END, FIRST_INDEX, secondEnvelope, checksums[1]));
+
+            try (var rotatedFileChannel = storeChannel(initialLogVersion + 1)) {
+                assertEnvelopeContents(
+                        channelData(rotatedFileChannel, maxLogFileSize, segmentSize),
+                        checksums[1],
+                        envelope(EnvelopeType.BEGIN, FIRST_INDEX + 1, thirdEnvelope, checksums[2]),
+                        envelope(EnvelopeType.END, FIRST_INDEX + 1, fourthEnvelope, checksums[3]));
+            }
+        }
+    }
+
+    @Test
+    void rotationHappensOnFirstDataGoingOverRotationLimitWithPadding() throws IOException {
+        int segmentSize = 128;
+        final var maxLogFileSize = segmentSize * 2;
+        final var paddingBytes = 15;
+        final var chunkSize =
+                segmentSize - HEADER_SIZE - paddingBytes; // Just under segment size to trigger some padding
+        final var byteData = bytes(random, chunkSize);
+
+        final var initialLogVersion = 0L;
+
+        final int[] checksums = new int[] {0x4cfd80dc, 0xc018135f};
+
+        final var fileChannel = storeChannel(initialLogVersion);
+
+        final var rotatedPath1 = logPath(initialLogVersion + 1);
+
+        final var buffer = buffer(segmentSize * 3);
+        try (var channel = writeChannel(
+                fileChannel,
+                segmentSize,
+                buffer,
+                logRotation(fileChannel, header(segmentSize), maxLogFileSize),
+                LogTracers.NULL)) {
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION);
+            channel.putTerm(TERM);
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(byteData, byteData.length);
+            channel.endCurrentEntry();
+            channel.prepareForFlush();
+
+            assertThat(fileChannel.position())
+                    .as("should have written the first envelope but no padding")
+                    .isEqualTo(maxLogFileSize - paddingBytes);
+            assertThat(fileSystem.fileExists(rotatedPath1))
+                    .as("should not have created the second log file yet")
+                    .isFalse();
+
+            // Lets put the next one
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION);
+            channel.putTerm(TERM);
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(byteData, byteData.length);
+            channel.endCurrentEntry();
+            channel.prepareForFlush();
+            assertThat(fileChannel.position())
+                    .as("should have filled the initial file")
+                    .isEqualTo(maxLogFileSize);
+            assertThat(fileSystem.fileExists(rotatedPath1))
+                    .as("should have created the second log file")
+                    .isTrue();
+            assertThat(fileSystem.getFileSize(rotatedPath1))
+                    .as("should have written the data to the new log file")
+                    .isEqualTo(segmentSize + HEADER_SIZE + chunkSize);
+
+            assertEnvelopeContents(
+                    channelData(fileChannel, segmentSize),
+                    envelope(EnvelopeType.FULL, FIRST_INDEX, byteData, checksums[0]),
+                    padding(paddingBytes));
+
+            try (var rotatedFileChannel = storeChannel(initialLogVersion + 1)) {
+                assertEnvelopeContents(
+                        channelData(rotatedFileChannel, (int) fileSystem.getFileSize(rotatedPath1), segmentSize),
+                        checksums[0],
+                        envelope(EnvelopeType.FULL, FIRST_INDEX + 1, byteData, checksums[1]));
+            }
+        }
+    }
+
+    @Test
+    void dontMissRotationIfStartingOnRotationLimit() throws IOException {
+        int segmentSize = 128;
+        final var maxLogFileSize = segmentSize * 3;
+        final var chunkSize = segmentSize - HEADER_SIZE;
+        final var byteData = bytes(random, chunkSize * 2);
+        byte[] firstEnvelope = copyOfRange(byteData, 0, chunkSize);
+        byte[] secondEnvelope = copyOfRange(byteData, chunkSize, chunkSize * 2);
+        final var secondByteData = bytes(random, chunkSize * 2);
+        byte[] thirdEnvelope = copyOfRange(secondByteData, 0, chunkSize);
+        byte[] fourthEnvelope = copyOfRange(secondByteData, chunkSize, chunkSize * 2);
+
+        final var initialLogVersion = 0L;
+
+        final int[] checksums = new int[] {0xecdd40b9, 0x8df7e412, 0x119f4e2f, 0xac04407};
+
+        var fileChannel = storeChannel(initialLogVersion);
+
+        final var rotatedPath1 = logPath(initialLogVersion + 1);
+        final var rotatedPath2 = logPath(initialLogVersion + 2);
+
+        var buffer = buffer(segmentSize * 3);
+        try (var channel = writeChannel(
+                fileChannel,
+                segmentSize,
+                buffer,
+                logRotation(fileChannel, header(segmentSize), maxLogFileSize),
+                LogTracers.NULL)) {
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION);
+            channel.putTerm(TERM);
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(byteData, byteData.length);
+            channel.endCurrentEntry();
+            channel.prepareForFlush();
+
+            assertThat(fileChannel.position()).isEqualTo(maxLogFileSize);
+            assertThat(fileSystem.fileExists(rotatedPath1))
+                    .as("should not have created the second log file yet")
+                    .isFalse();
+        }
+
+        // Open the channel again and see that rotation is triggered on the next write
+        fileChannel = storeChannel(initialLogVersion);
+        buffer = buffer(segmentSize * 3);
+        try (var channel = writeChannel(
+                fileChannel,
+                segmentSize,
+                checksums[1],
+                buffer,
+                logRotation(fileChannel, header(segmentSize), maxLogFileSize),
+                LogTracers.NULL,
+                maxLogFileSize /* don't forget to position the channel to where we were */,
+                FIRST_INDEX)) {
+
+            // Lets put the next one
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION);
+            channel.putTerm(TERM);
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(secondByteData, secondByteData.length);
+            channel.endCurrentEntry();
+            channel.prepareForFlush();
+            assertThat(fileChannel.position())
+                    .as("should have filled the initial file")
+                    .isEqualTo(maxLogFileSize);
+            assertThat(fileSystem.fileExists(rotatedPath1))
+                    .as("should have created the second log file")
+                    .isTrue();
+            assertThat(fileSystem.getFileSize(rotatedPath1))
+                    .as("should have written the data to the new log file")
+                    .isEqualTo(maxLogFileSize);
+            assertThat(fileSystem.fileExists(rotatedPath2))
+                    .as("should not have created the third log file")
+                    .isFalse();
+
+            assertEnvelopeContents(
+                    channelData(fileChannel, segmentSize),
+                    envelope(EnvelopeType.BEGIN, FIRST_INDEX, firstEnvelope, checksums[0]),
+                    envelope(EnvelopeType.END, FIRST_INDEX, secondEnvelope, checksums[1]));
+
+            try (var rotatedFileChannel = storeChannel(initialLogVersion + 1)) {
+                assertEnvelopeContents(
+                        channelData(rotatedFileChannel, maxLogFileSize, segmentSize),
+                        checksums[1],
+                        envelope(EnvelopeType.BEGIN, FIRST_INDEX + 1, thirdEnvelope, checksums[2]),
+                        envelope(EnvelopeType.END, FIRST_INDEX + 1, fourthEnvelope, checksums[3]));
+            }
+        }
+    }
+
+    @Test
+    void dontTriggerRotationUntilNextBoundaryIfOverFileRotationLimit() throws IOException {
+        int segmentSize = 128;
+        final var higherMaxLogFileSize = segmentSize * 4;
+        final var lowerMaxLogFileSize = segmentSize * 3;
+        final var chunkSize = segmentSize - HEADER_SIZE;
+        final var bytesInLastSegmentFirstTx = 15;
+        final var lastEnvelopeFirstTxSize = 15 + HEADER_SIZE;
+        final var totalSizeFirstTx = (chunkSize + HEADER_SIZE) * 2 + lastEnvelopeFirstTxSize;
+        final var byteData = bytes(random, chunkSize * 2 + bytesInLastSegmentFirstTx);
+        byte[] firstEnvelope = copyOfRange(byteData, 0, chunkSize);
+        byte[] secondEnvelope = copyOfRange(byteData, chunkSize, chunkSize * 2);
+        byte[] thirdEnvelope = copyOfRange(byteData, chunkSize * 2, byteData.length);
+        final var secondByteData = bytes(random, chunkSize * 2 - lastEnvelopeFirstTxSize);
+        byte[] fourthEnvelope = copyOfRange(secondByteData, 0, chunkSize - lastEnvelopeFirstTxSize);
+        byte[] fifthEnvelope = copyOfRange(secondByteData, chunkSize - lastEnvelopeFirstTxSize, secondByteData.length);
+
+        final var initialLogVersion = 0L;
+
+        final int[] checksums = new int[] {0xecdd40b9, 0xc47ef95e, 0x2eb6537a, 0x37fb27e9, 0x5022958a};
+
+        var fileChannel = storeChannel(initialLogVersion);
+
+        final var rotatedPath1 = logPath(initialLogVersion + 1);
+        final var rotatedPath2 = logPath(initialLogVersion + 2);
+
+        var buffer = buffer(segmentSize * 3);
+        try (var channel = writeChannel(
+                fileChannel,
+                segmentSize,
+                buffer,
+                logRotation(fileChannel, header(segmentSize), higherMaxLogFileSize),
+                LogTracers.NULL)) {
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION);
+            channel.putTerm(TERM);
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(byteData, byteData.length);
+            channel.endCurrentEntry();
+            channel.prepareForFlush();
+
+            assertThat(fileChannel.position()).isEqualTo(segmentSize + totalSizeFirstTx);
+            assertThat(fileSystem.fileExists(rotatedPath1))
+                    .as("should not have created the second log file yet")
+                    .isFalse();
+        }
+
+        // Open the channel again and see that rotation is not triggered until the segment boundary
+        fileChannel = storeChannel(initialLogVersion);
+        buffer = buffer(segmentSize * 3);
+        try (var channel = writeChannel(
+                fileChannel,
+                segmentSize,
+                checksums[2],
+                buffer,
+                logRotation(fileChannel, header(segmentSize), lowerMaxLogFileSize),
+                LogTracers.NULL,
+                segmentSize + totalSizeFirstTx /* don't forget to position the channel to where we were */,
+                FIRST_INDEX)) {
+
+            // Lets put the next one
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION);
+            channel.putTerm(TERM);
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(secondByteData, secondByteData.length);
+            channel.endCurrentEntry();
+            channel.prepareForFlush();
+            assertThat(fileChannel.position())
+                    .as("should have filled the initial file to the next segment")
+                    .isEqualTo(lowerMaxLogFileSize + segmentSize);
+            assertThat(fileSystem.fileExists(rotatedPath1))
+                    .as("should have created the second log file")
+                    .isTrue();
+            assertThat(fileSystem.getFileSize(rotatedPath1))
+                    .as("should have written the data to the new log file")
+                    .isEqualTo(segmentSize * 2);
+            assertThat(fileSystem.fileExists(rotatedPath2))
+                    .as("should not have created the third log file")
+                    .isFalse();
+
+            assertEnvelopeContents(
+                    channelData(fileChannel, segmentSize),
+                    envelope(EnvelopeType.BEGIN, FIRST_INDEX, firstEnvelope, checksums[0]),
+                    envelope(EnvelopeType.MIDDLE, FIRST_INDEX, secondEnvelope, checksums[1]),
+                    envelope(EnvelopeType.END, FIRST_INDEX, thirdEnvelope, checksums[2]),
+                    envelope(EnvelopeType.BEGIN, FIRST_INDEX + 1, fourthEnvelope, checksums[3]));
+
+            try (var rotatedFileChannel = storeChannel(initialLogVersion + 1)) {
+                assertEnvelopeContents(
+                        channelData(rotatedFileChannel, segmentSize * 2, segmentSize),
+                        checksums[3],
+                        envelope(EnvelopeType.END, FIRST_INDEX + 1, fifthEnvelope, checksums[4]));
+            }
+        }
+    }
+
     @ParameterizedTest
     @ValueSource(ints = {128, 512, 1024})
     void spanningOverLogFileIsTraced(int segmentSize) throws IOException {
@@ -877,6 +1239,7 @@ class EnvelopeWriteChannelTest {
                 buffer(segmentSize * 2),
                 logRotation(fileChannel, header(segmentSize), maxLogFileSize),
                 tracer)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
@@ -901,6 +1264,7 @@ class EnvelopeWriteChannelTest {
                 buffer(segmentSize * 2),
                 logRotation(fileChannel, header(segmentSize), segmentSize * 100),
                 LogTracers.NULL)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
@@ -909,6 +1273,7 @@ class EnvelopeWriteChannelTest {
             long truncatePosition = channel.position();
 
             for (int i = 0; i < numberOfTruncatedLongs; i++) {
+                channel.beginChecksumForWriting();
                 channel.putVersion(KERNEL_VERSION);
                 channel.putContentType(CONTENT_TYPE);
                 channel.putLong(i);
@@ -920,6 +1285,7 @@ class EnvelopeWriteChannelTest {
             channel.truncateToPosition(truncatePosition, 0xCF1AE743, FIRST_INDEX, TERM);
 
             // Channel should be usable after truncate
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putContentType(CONTENT_TYPE);
             channel.putLong(101);
@@ -952,11 +1318,12 @@ class EnvelopeWriteChannelTest {
         final var fileChannel = storeChannel();
         final var buffer = buffer(segmentSize);
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
-            channel.putVersion(KERNEL_VERSION); // Version is for the channel, not for a specific envelope.
-            channel.putContentType(CONTENT_TYPE);
             assertThat(channel.position())
                     .as("should start writing after header and zeroed first segment")
                     .isEqualTo(segmentSize);
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION); // Version is for the channel, not for a specific envelope.
+            channel.putContentType(CONTENT_TYPE);
 
             // Lets try to complete an empty envelope at the beginning of the segment:
             assertThatThrownBy(channel::endCurrentEntry)
@@ -1115,6 +1482,7 @@ class EnvelopeWriteChannelTest {
 
             // Start offset should be possible to write without version & content type, but these are needed for "real"
             // envelopes
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putContentType(CONTENT_TYPE);
             channel.putTerm(TERM);
@@ -1144,10 +1512,11 @@ class EnvelopeWriteChannelTest {
         final var fileChannel = storeChannel();
         final var buffer = buffer(segmentSize);
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
-            channel.putVersion(KERNEL_VERSION); // Version is for the channel, not for a specific envelope.
             assertThat(channel.position())
                     .as("should start writing after header and zeroed first segment")
                     .isEqualTo(segmentSize);
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION); // Version is for the channel, not for a specific envelope.
 
             // Add a regular envelope first:
             channel.putContentType(CONTENT_TYPE);
@@ -1172,10 +1541,11 @@ class EnvelopeWriteChannelTest {
         final var fileChannel = storeChannel();
         final var buffer = buffer(segmentSize);
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
-            channel.putVersion(KERNEL_VERSION); // Version is for the channel, not for a specific envelope.
             assertThat(channel.position())
                     .as("should start writing after header and zeroed first segment")
                     .isEqualTo(segmentSize);
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION); // Version is for the channel, not for a specific envelope.
 
             channel.putContentType(CONTENT_TYPE);
             channel.put(fullPayloadValue, fullPayloadLength);
@@ -1196,10 +1566,11 @@ class EnvelopeWriteChannelTest {
         final var fileChannel = storeChannel();
         final var buffer = buffer(segmentSize);
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
-            channel.putVersion(KERNEL_VERSION); // Version is for the channel, not for a specific envelope.
             assertThat(channel.position())
                     .as("should start writing after header and zeroed first segment")
                     .isEqualTo(segmentSize);
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION); // Version is for the channel, not for a specific envelope.
 
             // Start add a regular envelope first, but don't close it...
             channel.put((byte) random.nextInt());
@@ -1268,18 +1639,20 @@ class EnvelopeWriteChannelTest {
         HeapScopedBuffer buffer1 = buffer(segmentSize);
         ByteBuffer inData;
         try (var channel = writeChannel(fileChannel, segmentSize, buffer1)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             assertChecksum(channel.putChecksum(), checksums[0]);
 
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             assertChecksum(channel.putChecksum(), checksums[1]);
             inData = slice(buffer1);
-            inData.limit(buffer1.getBuffer().position() - HEADER_SIZE);
+            inData.limit(buffer1.getBuffer().position());
         }
 
         fileChannel = storeChannel();
@@ -1287,8 +1660,8 @@ class EnvelopeWriteChannelTest {
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
             ByteBuffer realBuffer = buffer.getBuffer();
             assertThat(realBuffer.position())
-                    .as("buffer is already positioned one header in")
-                    .isEqualTo(HEADER_SIZE);
+                    .as("buffer is positioned at beginning")
+                    .isEqualTo(0);
 
             // Asking for segment size offset - should be turned into offset into current envelope
             channel.directPutAll(inData, segmentSize);
@@ -1316,18 +1689,20 @@ class EnvelopeWriteChannelTest {
         HeapScopedBuffer buffer1 = buffer(segmentSize);
         ByteBuffer inData;
         try (var channel = writeChannel(fileChannel, segmentSize, buffer1)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             assertChecksum(channel.putChecksum(), checksums[0]);
 
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             assertChecksum(channel.putChecksum(), checksums[1]);
             inData = slice(buffer1);
-            inData.limit(buffer1.getBuffer().position() - HEADER_SIZE);
+            inData.limit(buffer1.getBuffer().position());
         }
 
         fileChannel = storeChannel();
@@ -1335,8 +1710,8 @@ class EnvelopeWriteChannelTest {
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
             ByteBuffer realBuffer = buffer.getBuffer();
             assertThat(realBuffer.position())
-                    .as("buffer is already positioned one header in")
-                    .isEqualTo(HEADER_SIZE);
+                    .as("buffer is positioned at beginning")
+                    .isEqualTo(0);
 
             // Asking a bit in and don't have data written up to that point
             channel.directPutAll(inData, 33);
@@ -1364,12 +1739,14 @@ class EnvelopeWriteChannelTest {
         HeapScopedBuffer buffer1 = buffer(segmentSize);
         ByteBuffer inData;
         try (var channel = writeChannel(fileChannel, segmentSize, buffer1)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             assertChecksum(channel.putChecksum(), checksums[0]);
 
+            channel.beginChecksumForWriting();
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             assertChecksum(channel.putChecksum(), checksums[1]);
@@ -1382,8 +1759,8 @@ class EnvelopeWriteChannelTest {
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
             ByteBuffer realBuffer = buffer.getBuffer();
             assertThat(realBuffer.position())
-                    .as("buffer is already positioned one header in")
-                    .isEqualTo(HEADER_SIZE);
+                    .as("buffer is positioned at beginning")
+                    .isEqualTo(0);
 
             // No offset on the second one, it should then put its data directly after previously written data.
             channel.directPutAll(inData.limit(chunkSize), 0);
@@ -1412,12 +1789,14 @@ class EnvelopeWriteChannelTest {
         HeapScopedBuffer buffer1 = buffer(segmentSize);
         ByteBuffer inData;
         try (var channel = writeChannel(fileChannel, segmentSize, buffer1)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             assertChecksum(channel.putChecksum(), checksums[0]);
 
+            channel.beginChecksumForWriting();
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             assertChecksum(channel.putChecksum(), checksums[1]);
@@ -1430,8 +1809,8 @@ class EnvelopeWriteChannelTest {
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
             ByteBuffer realBuffer = buffer.getBuffer();
             assertThat(realBuffer.position())
-                    .as("buffer is already positioned one header in")
-                    .isEqualTo(HEADER_SIZE);
+                    .as("buffer is positioned at beginning")
+                    .isEqualTo(0);
 
             // Offset on second write, but there is data before it, so it should not insert a startOffset envelope
             channel.directPutAll(inData.limit(chunkSize), 0);
@@ -1459,6 +1838,7 @@ class EnvelopeWriteChannelTest {
         HeapScopedBuffer buffer1 = buffer(384);
         ByteBuffer inData;
         try (var channel = writeChannel(fileChannel, segmentSize, buffer1)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
@@ -1466,11 +1846,12 @@ class EnvelopeWriteChannelTest {
             assertChecksum(channel.putChecksum(), checksums[0]);
 
             // This one will split on segment boundary
+            channel.beginChecksumForWriting();
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             assertChecksum(channel.putChecksum(), checksums[2]);
             inData = slice(buffer1).position(segmentSize);
-            inData.limit(buffer1.getBuffer().position() - HEADER_SIZE);
+            inData.limit(buffer1.getBuffer().position());
         }
 
         fileChannel = storeChannel();
@@ -1479,8 +1860,8 @@ class EnvelopeWriteChannelTest {
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
             ByteBuffer realBuffer = buffer.getBuffer();
             assertThat(realBuffer.position())
-                    .as("buffer is already positioned one header in")
-                    .isEqualTo(HEADER_SIZE);
+                    .as("buffer is positioned at beginning")
+                    .isEqualTo(0);
 
             // Asking for segment size offset - should be turned into offset into current envelope
             channel.directPutAll(inData, segmentSize);
@@ -1513,19 +1894,21 @@ class EnvelopeWriteChannelTest {
         ByteBuffer inData;
         ByteBuffer inDataCopy;
         try (var channel = writeChannel(fileChannel, segmentSize, buffer1)) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putTerm(TERM);
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             assertChecksum(channel.putChecksum(), checksums[0]);
 
+            channel.beginChecksumForWriting();
             channel.putContentType(CONTENT_TYPE);
             channel.put(byteData, byteData.length);
             assertChecksum(channel.putChecksum(), checksums[1]);
             inData = slice(buffer1).position(segmentSize);
-            inData.limit(buffer1.getBuffer().position() - HEADER_SIZE);
+            inData.limit(buffer1.getBuffer().position());
             inDataCopy = slice(buffer1).position(segmentSize);
-            inDataCopy.limit(buffer1.getBuffer().position() - HEADER_SIZE);
+            inDataCopy.limit(buffer1.getBuffer().position());
         }
 
         fileChannel = storeChannel();
@@ -1533,8 +1916,8 @@ class EnvelopeWriteChannelTest {
         try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
             ByteBuffer realBuffer = buffer.getBuffer();
             assertThat(realBuffer.position())
-                    .as("buffer is already positioned one header in")
-                    .isEqualTo(HEADER_SIZE);
+                    .as("buffer is positioned at beginning")
+                    .isEqualTo(0);
 
             int dataLimit = inData.limit();
             int splitPoint = inData.position() + 50;
@@ -1556,12 +1939,148 @@ class EnvelopeWriteChannelTest {
     }
 
     @Test
+    void directPutAllDoesNotRotateIfEndsAtFileMax() throws IOException {
+        final var initialLogVersion = 1L;
+        final var rotatedPath = logPath(initialLogVersion + 1);
+
+        int segmentSize = 128;
+        final var maxLogFileSize = segmentSize * 2;
+        final var byteData = bytes(random, 33);
+        final var checksums = new int[] {0x5DE2F72, 0x8F63B97A};
+
+        // Create some real envelopes to write as a chunk to an EnvelopeWriteChannel
+        var fileChannel = storeChannel(initialLogVersion);
+        HeapScopedBuffer buffer1 = buffer(384);
+        ByteBuffer inData;
+        try (var channel = writeChannel(fileChannel, segmentSize, buffer1)) {
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION);
+            channel.putTerm(TERM);
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(byteData, byteData.length);
+            assertChecksum(channel.putChecksum(), checksums[0]);
+
+            channel.beginChecksumForWriting();
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(byteData, byteData.length);
+            assertChecksum(channel.putChecksum(), checksums[1]);
+            inData = slice(buffer1).position(segmentSize);
+            inData.limit(buffer1.getBuffer().position());
+        }
+
+        fileChannel = storeChannel();
+        final var buffer = buffer(segmentSize);
+        try (var channel = writeChannel(
+                fileChannel,
+                segmentSize,
+                buffer,
+                logRotation(fileChannel, header(segmentSize), maxLogFileSize),
+                LogTracers.NULL)) {
+            ByteBuffer realBuffer = buffer.getBuffer();
+            assertThat(realBuffer.position())
+                    .as("buffer is positioned at beginning")
+                    .isEqualTo(0);
+
+            // Asking for segment size offset - should be turned into offset into current envelope
+            channel.directPutAll(inData, segmentSize);
+
+            // Should have positioned directly after (header and data in end envelope)
+            assertThat(realBuffer.position()).isEqualTo(segmentSize);
+            channel.prepareForFlush();
+
+            assertThat(fileChannel.position())
+                    .as("should have ignored the rotation limit at end of directPutAll")
+                    .isEqualTo(maxLogFileSize);
+            assertThat(fileSystem.fileExists(rotatedPath))
+                    .as("should not have created the new log file")
+                    .isFalse();
+
+            assertEnvelopeContents(
+                    channelData(fileChannel, segmentSize),
+                    envelope(EnvelopeType.FULL, FIRST_INDEX, byteData, checksums[0]),
+                    envelope(EnvelopeType.FULL, FIRST_INDEX + 1, byteData, checksums[1]));
+        }
+    }
+
+    @Test
+    void directPutAllDoesNotRotateInMiddle() throws IOException {
+        final var initialLogVersion = 1L;
+        final var rotatedPath = logPath(initialLogVersion + 1);
+
+        int segmentSize = 128;
+        final var maxLogFileSize = segmentSize * 2;
+        final var byteData = bytes(random, 38);
+        final var checksums = new int[] {0x90A3889B, 0x4AA44A38, 0x62D78F2C};
+
+        // Create some real envelopes to write as a chunk to an EnvelopeWriteChannel - split over a segment boundary
+        var fileChannel = storeChannel(initialLogVersion);
+        HeapScopedBuffer buffer1 = buffer(384);
+        ByteBuffer inData;
+        try (var channel = writeChannel(fileChannel, segmentSize, buffer1)) {
+            channel.beginChecksumForWriting();
+            channel.putVersion(KERNEL_VERSION);
+            channel.putTerm(TERM);
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(byteData, byteData.length);
+            assertChecksum(channel.putChecksum(), checksums[0]);
+
+            // This one will split on segment boundary
+            channel.beginChecksumForWriting();
+            channel.putContentType(CONTENT_TYPE);
+            channel.put(byteData, byteData.length);
+            assertChecksum(channel.putChecksum(), checksums[2]);
+            inData = slice(buffer1).position(segmentSize);
+            inData.limit(buffer1.getBuffer().position());
+        }
+
+        fileChannel = storeChannel();
+        // Buffer as small as the segment size to trigger flushing in directPutAll
+        final var buffer = buffer(segmentSize);
+        try (var channel = writeChannel(
+                fileChannel,
+                segmentSize,
+                buffer,
+                logRotation(fileChannel, header(segmentSize), maxLogFileSize),
+                LogTracers.NULL)) {
+            ByteBuffer realBuffer = buffer.getBuffer();
+            assertThat(realBuffer.position())
+                    .as("buffer is positioned at beginning")
+                    .isEqualTo(0);
+
+            // Asking for segment size offset - should be turned into offset into current envelope
+            channel.directPutAll(inData, segmentSize);
+
+            // Should have positioned directly after (header and data in end envelope)
+            assertThat(realBuffer.position()).isEqualTo(HEADER_SIZE + 10);
+            channel.prepareForFlush();
+
+            assertThat(fileChannel.position())
+                    .as("should have ignored the rotation limit in directPutAll")
+                    .isGreaterThan(maxLogFileSize);
+            assertThat(fileSystem.fileExists(rotatedPath))
+                    .as("should not have created the new log file")
+                    .isFalse();
+
+            assertEnvelopeContents(
+                    channelData(fileChannel, segmentSize),
+                    envelope(EnvelopeType.FULL, FIRST_INDEX, byteData, checksums[0]),
+                    envelope(EnvelopeType.BEGIN, FIRST_INDEX + 1, Arrays.copyOfRange(byteData, 0, 28), checksums[1]),
+                    envelope(
+                            EnvelopeType.END,
+                            FIRST_INDEX + 1,
+                            Arrays.copyOfRange(byteData, 28, byteData.length),
+                            checksums[2]));
+        }
+    }
+
+    @Test
     void termMustBeIncreasing() throws IOException {
         int segmentSize = 64;
         final var data = (byte) 14;
 
         var fileChannel = storeChannel(0);
         try (var channel = writeChannel(fileChannel, segmentSize, buffer())) {
+            channel.beginChecksumForWriting();
             channel.putVersion(KERNEL_VERSION);
             channel.putContentType(CONTENT_TYPE);
             channel.putTerm(10);
@@ -1690,9 +2209,23 @@ class EnvelopeWriteChannelTest {
             LogRotation logRotation,
             LogTracers logTracers)
             throws IOException {
-        channel.position(segmentSize);
+        return writeChannel(
+                channel, segmentSize, checksum, scopedBuffer, logRotation, logTracers, segmentSize, FIRST_INDEX - 1);
+    }
+
+    private EnvelopeWriteChannel writeChannel(
+            StoreChannel channel,
+            int segmentSize,
+            int checksum,
+            ScopedBuffer scopedBuffer,
+            LogRotation logRotation,
+            LogTracers logTracers,
+            int offset,
+            long currentIndex)
+            throws IOException {
+        channel.position(offset);
         final var writeChannel = new EnvelopeWriteChannel(
-                channel, scopedBuffer, segmentSize, checksum, FIRST_INDEX - 1, logTracers, logRotation);
+                channel, scopedBuffer, segmentSize, checksum, currentIndex, logTracers, logRotation);
         if (logRotation instanceof LogRotationForChannel rotator) {
             rotator.bindWriteChannel(writeChannel);
         }

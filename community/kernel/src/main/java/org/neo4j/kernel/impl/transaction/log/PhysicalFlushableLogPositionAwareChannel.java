@@ -111,7 +111,7 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
     }
 
     @Override
-    public void beginChecksumForWriting() {
+    public void beginChecksumForWriting() throws IOException {
         checksumChannel.beginChecksumForWriting();
     }
 

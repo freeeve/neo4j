@@ -167,10 +167,9 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
         return previousChecksum;
     }
 
-    public void endCurrentEntry() throws IOException {
+    public void endCurrentEntry() {
         checkState(currentPayloadLength() > 0, "Closing empty envelope is not allowed.");
         completeEnvelope(true);
-        prepareNextEnvelope();
         currentContentType = UNSPECIFIED_CONTENT_TYPE; // expected to be set for every new entry.
     }
 
@@ -214,17 +213,15 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
     @Override
     public long position() throws IOException {
         checkState(
-                (buffer.position() == currentEnvelopeStart + LogEnvelopeHeader.HEADER_SIZE)
-                        || /* or after a directPutAll */ buffer.position() == currentEnvelopeStart,
-                "position() must be called right after endCurrentEntry()");
+                buffer.position() == currentEnvelopeStart, "position() must be called right after endCurrentEntry()");
 
         long bufferViewStart = channel.position() - lastWrittenPosition;
         return bufferViewStart + currentEnvelopeStart;
     }
 
     @Override
-    public void beginChecksumForWriting() {
-        // nothing
+    public void beginChecksumForWriting() throws IOException {
+        prepareNextEnvelope();
     }
 
     @Override
@@ -247,17 +244,12 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
         buffer.clear().position(oldPosition);
         lastWrittenPosition = currentEnvelopeStart;
 
-        if (channel.position() >= rotateAtSize) {
-            rotateLogFile();
-            buffer.position(currentEnvelopeStart);
-            // NOTE! 'channel' will be updated by 'setChannel'.
-            // 'setChannel' will also update buffer and positions.
-        } else if (currentEnvelopeStart >= buffer.capacity()) {
+        if (currentEnvelopeStart >= buffer.capacity()) {
             // Buffer is exhausted, reset and start over
             buffer.clear();
             lastWrittenPosition = 0;
             currentEnvelopeStart = 0;
-            nextSegmentOffset = segmentBlockSize;
+            nextSegmentOffset = 0; // Updated from padSegmentAndGoToNext
         }
 
         return channel;
@@ -363,6 +355,7 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
      * The data in the buffer must be already finished envelopes from another source, and it must be put on the same
      * offset within a segment for the envelope boundaries to become correct.
      * The method takes care of inserting a start offset envelope if necessary.
+     * This method does not handle any file rotation, it must be done externally before this call if necessary.
      *
      * @param src buffer with data to write to this channel.
      * @param offset offset of the data on the origin. Will be used to figure out the offset to start on within the
@@ -394,7 +387,7 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
 
             if (srcIndex != srcEnd) {
                 // Still have data left to put. Make sure we flush if buffer is full
-                padSegmentAndGoToNext();
+                padSegmentAndGoToNext(false);
             }
         }
         appendedBytes += length;
@@ -462,7 +455,7 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
     /**
      * @param initialPosition initial position where we should start appending.
      */
-    private void initialPositions(long initialPosition) {
+    private void initialPositions(long initialPosition) throws IOException {
         int bufferWindowOffset = (int) (initialPosition % buffer.capacity());
         currentEnvelopeStart = bufferWindowOffset;
         lastWrittenPosition = bufferWindowOffset;
@@ -472,7 +465,15 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
         if (rotateAtSize == 0) {
             rotateAtSize = Long.MAX_VALUE; // Rotation disabled
         }
-        buffer.clear().position(bufferWindowOffset + LogEnvelopeHeader.HEADER_SIZE);
+        buffer.clear().position(bufferWindowOffset);
+
+        // Handle the case where we started up on a channel that is already at rotation size.
+        // Make sure it is on a segment boundary though, otherwise it needs to wait until it hits the next boundary
+        long channelPos = channel.position();
+        if (channelPos >= rotateAtSize && currentEnvelopeStart == (nextSegmentOffset - segmentBlockSize)) {
+            // Setting nextSegmentOffset to current position to trigger rotation on the first envelope
+            nextSegmentOffset = currentEnvelopeStart;
+        }
     }
 
     private void completeEnvelopeAndGoToNextSegment() throws IOException {
@@ -567,12 +568,24 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
         }
     }
 
+    private void rotateIfLimitReached() throws IOException {
+        if (channel.position() >= rotateAtSize) {
+            rotateLogFile();
+            // NOTE! 'channel' will be updated by 'setChannel'.
+            // 'setChannel' will also update buffer and positions.
+        }
+    }
+
     private void beginNewEnvelope() {
         currentEnvelopeStart = buffer.position();
         buffer.position(currentEnvelopeStart + LogEnvelopeHeader.HEADER_SIZE);
     }
 
     private void padSegmentAndGoToNext() throws IOException {
+        padSegmentAndGoToNext(true);
+    }
+
+    private void padSegmentAndGoToNext(boolean allowRotation) throws IOException {
         int position = buffer.position();
         if (position < nextSegmentOffset) {
             buffer.put(PADDING_ZEROES, 0, nextSegmentOffset - position);
@@ -582,10 +595,12 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
         currentEnvelopeStart = nextSegmentOffset;
 
         if (currentEnvelopeStart == buffer.capacity()
-                || (channel.position() + currentEnvelopeStart - lastWrittenPosition) == rotateAtSize) {
+                || (channel.position() + currentEnvelopeStart - lastWrittenPosition) >= rotateAtSize) {
             prepareForFlush();
-        } else {
-            nextSegmentOffset += segmentBlockSize;
+        }
+        nextSegmentOffset += segmentBlockSize;
+        if (allowRotation) {
+            rotateIfLimitReached();
         }
     }
 
@@ -647,13 +662,13 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
                         && channel.position() == segmentBlockSize,
                 ERROR_MSG_TEMPLATE_OFFSET_MUST_BE_FIRST_IN_THE_FIRST_SEGMENT);
         checkState(
-                (currentEnvelopeStart + HEADER_SIZE) == buffer.position(),
+                currentEnvelopeStart == buffer.position(),
                 ERROR_MSG_TEMPLATE_OFFSET_MUST_NOT_BE_INSIDE_ANOTHER_ENVELOPE);
 
         final int payloadLength = size - HEADER_SIZE;
+        buffer.position(currentEnvelopeStart + HEADER_SIZE);
         put(new byte[payloadLength], payloadLength);
         writeHeader(EnvelopeType.START_OFFSET, payloadLength);
-        prepareNextEnvelope();
     }
 
     public long currentIndex() {

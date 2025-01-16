@@ -1617,6 +1617,7 @@ class RecoveryCorruptedTransactionLogIT {
                 int previousChecksum,
                 byte[] additionalHeaderData)
                 throws IOException {
+            channel.beginChecksumForWriting();
             channel.putVersion(version.version()).put(TX_START);
         }
     }
@@ -1640,6 +1641,7 @@ class RecoveryCorruptedTransactionLogIT {
                 byte[] additionalHeaderData)
                 throws IOException {
             byte nonExistingLogEntryVersion = (byte) (LATEST_KERNEL_VERSION.version() + 10);
+            channel.beginChecksumForWriting();
             channel.putVersion(nonExistingLogEntryVersion).put(TX_START);
             channel.putLong(timeWritten)
                     .putLong(latestCommittedTxWhenStarted)
