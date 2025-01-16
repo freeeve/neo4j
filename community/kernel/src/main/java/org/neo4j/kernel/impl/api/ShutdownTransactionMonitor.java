@@ -17,10 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.availability;
+package org.neo4j.kernel.impl.api;
 
-public interface AvailabilityListener {
-    default void available() {}
+public interface ShutdownTransactionMonitor {
+    default void awaitActiveTransactionClose() {}
 
-    default void unavailable() {}
+    default void awaitTerminatedTransactionClose() {}
+
+    default void awaitClosingTransactionClose() {}
 }

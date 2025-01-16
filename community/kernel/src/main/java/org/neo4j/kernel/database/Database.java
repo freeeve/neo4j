@@ -21,6 +21,7 @@ package org.neo4j.kernel.database;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.locks.LockSupport.parkNanos;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.shutdown_terminated_transaction_wait_timeout;
 import static org.neo4j.configuration.GraphDatabaseSettings.db_format;
 import static org.neo4j.function.Predicates.alwaysTrue;
@@ -96,7 +97,6 @@ import org.neo4j.kernel.api.impl.fulltext.DefaultFulltextAdapter;
 import org.neo4j.kernel.api.impl.fulltext.FulltextIndexProvider;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.availability.AvailabilityGuard;
-import org.neo4j.kernel.availability.DatabaseAvailability;
 import org.neo4j.kernel.availability.DatabaseAvailabilityGuard;
 import org.neo4j.kernel.diagnostics.providers.DbmsDiagnosticsManager;
 import org.neo4j.kernel.extension.DatabaseExtensions;
@@ -109,6 +109,7 @@ import org.neo4j.kernel.impl.api.KernelImpl;
 import org.neo4j.kernel.impl.api.KernelTransactions;
 import org.neo4j.kernel.impl.api.KernelTransactionsFactory;
 import org.neo4j.kernel.impl.api.LeaseService;
+import org.neo4j.kernel.impl.api.ShutdownTransactionMonitor;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
 import org.neo4j.kernel.impl.api.TransactionIdSequence;
 import org.neo4j.kernel.impl.api.TransactionRegistry;
@@ -262,7 +263,6 @@ public class Database extends AbstractDatabase {
     private final CommandCommitListeners commandCommitListeners;
     private MemoryTracker otherDatabaseMemoryTracker;
     private RecoveryCleanupWorkCollector recoveryCleanupWorkCollector;
-    private DatabaseAvailability databaseAvailability;
     private DatabaseTransactionEventListeners databaseTransactionEventListeners;
     private IOController ioController;
     private ElementIdMapper elementIdMapper;
@@ -357,9 +357,6 @@ public class Database extends AbstractDatabase {
         life.add(new LockerLifecycleAdapter(fileLockerService.createDatabaseLocker(fs, databaseLayout)));
         life.add(databaseConfig);
 
-        databaseAvailability = new DatabaseAvailability(
-                databaseAvailabilityGuard, transactionStats, clock, getAwaitActiveTransactionDeadlineMillis());
-
         databaseDependencies.satisfyDependency(ioController);
         databaseDependencies.satisfyDependency(transactionIdSequence);
         databaseDependencies.satisfyDependency(readOnlyDatabaseChecker);
@@ -374,7 +371,6 @@ public class Database extends AbstractDatabase {
         databaseDependencies.satisfyDependency(transactionStats);
         databaseDependencies.satisfyDependency(indexStats);
         databaseDependencies.satisfyDependency(databaseLockManager);
-        databaseDependencies.satisfyDependency(databaseAvailability);
         databaseDependencies.satisfyDependency(idGeneratorFactory);
         databaseDependencies.satisfyDependency(idController);
         databaseDependencies.satisfyDependency(lockService);
@@ -613,8 +609,7 @@ public class Database extends AbstractDatabase {
         life.add(onStop(this::awaitAllClosingTransactions));
 
         life.add(checkpointerLifecycle);
-        life.add(databaseAvailabilityGuard);
-        life.setLast(databaseAvailability);
+        life.setLast(databaseAvailabilityGuard);
 
         databaseDependencies.resolveDependency(DbmsDiagnosticsManager.class).dumpDatabaseDiagnostics(this);
 
@@ -1266,18 +1261,37 @@ public class Database extends AbstractDatabase {
         internalLog.info("Waiting for closing transactions.");
 
         var transactionRegistry = transactionRegistry();
+        var transactionShutdownMonitor = databaseMonitors.newMonitor(ShutdownTransactionMonitor.class);
+
+        // give time for transactions to complete without termination
+        if (transactionRegistry.haveActiveTransaction()) {
+            transactionShutdownMonitor.awaitActiveTransactionClose();
+            long completionDeadline = clock.millis() + getAwaitActiveTransactionDeadlineMillis();
+            while (transactionRegistry.haveActiveTransaction() && clock.millis() < completionDeadline) {
+                parkNanos(MILLISECONDS.toNanos(10));
+            }
+        }
+
+        // terminate transactions
         transactionRegistry.terminateTransactions();
 
         // Give transactions a short time to detect they are terminated
-        long waitTime =
-                databaseConfig.get(shutdown_terminated_transaction_wait_timeout).toMillis();
-        long deadline = clock.millis() + waitTime;
-        while (transactionRegistry.haveActiveTransaction() && clock.millis() < deadline) {
-            LockSupport.parkNanos(MILLISECONDS.toNanos(10));
+        if (transactionRegistry.haveActiveTransaction()) {
+            transactionShutdownMonitor.awaitTerminatedTransactionClose();
+            long waitTime = databaseConfig
+                    .get(shutdown_terminated_transaction_wait_timeout)
+                    .toMillis();
+            long deadline = clock.millis() + waitTime;
+            while (transactionRegistry.haveActiveTransaction() && clock.millis() < deadline) {
+                LockSupport.parkNanos(MILLISECONDS.toNanos(10));
+            }
         }
 
-        while (transactionRegistry.haveClosingTransaction()) {
-            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
+        if (transactionRegistry.haveClosingTransaction()) {
+            transactionShutdownMonitor.awaitClosingTransactionClose();
+            while (transactionRegistry.haveClosingTransaction()) {
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
+            }
         }
 
         if (transactionRegistry.haveActiveTransaction()) {

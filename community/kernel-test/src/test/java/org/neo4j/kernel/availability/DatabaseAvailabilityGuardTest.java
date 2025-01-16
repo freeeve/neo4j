@@ -26,11 +26,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.kernel.database.DatabaseIdFactory.from;
 
@@ -94,7 +92,7 @@ class DatabaseAvailabilityGuardTest {
 
         availabilityGuard.init();
         assertFalse(availabilityGuard.isShutdown());
-        assertTrue(availabilityGuard.isAvailable());
+        assertFalse(availabilityGuard.isAvailable());
 
         availabilityGuard.start();
         assertFalse(availabilityGuard.isShutdown());
@@ -106,38 +104,38 @@ class DatabaseAvailabilityGuardTest {
         AvailabilityGuard databaseAvailabilityGuard = getDatabaseAvailabilityGuard(clock, log);
 
         // When starting out
-        verifyNoInteractions(log);
+        verifyLogging(log, times(4));
 
         // When requirement is added
         databaseAvailabilityGuard.require(REQUIREMENT_1);
 
         // Then log should have been called
-        verifyLogging(log, atLeastOnce());
+        verifyLogging(log, times(6));
 
         // When requirement fulfilled
         databaseAvailabilityGuard.fulfill(REQUIREMENT_1);
 
         // Then log should have been called
-        verifyLogging(log, times(4));
+        verifyLogging(log, times(8));
 
         // When requirement is added
         databaseAvailabilityGuard.require(REQUIREMENT_1);
         databaseAvailabilityGuard.require(REQUIREMENT_2);
 
         // Then log should have been called
-        verifyLogging(log, times(6));
+        verifyLogging(log, times(10));
 
         // When requirement fulfilled
         databaseAvailabilityGuard.fulfill(REQUIREMENT_1);
 
         // Then log should not have been called
-        verifyLogging(log, times(6));
+        verifyLogging(log, times(10));
 
         // When requirement fulfilled
         databaseAvailabilityGuard.fulfill(REQUIREMENT_2);
 
         // Then log should have been called
-        verifyLogging(log, times(8));
+        verifyLogging(log, times(12));
     }
 
     @Test
@@ -256,9 +254,6 @@ class DatabaseAvailabilityGuardTest {
             public void available() {
                 notified.set(true);
             }
-
-            @Override
-            public void unavailable() {}
         };
 
         databaseAvailabilityGuard.addListener(availabilityListener);
@@ -278,9 +273,6 @@ class DatabaseAvailabilityGuardTest {
 
         final AtomicBoolean notified = new AtomicBoolean();
         AvailabilityListener availabilityListener = new AvailabilityListener() {
-            @Override
-            public void available() {}
-
             @Override
             public void unavailable() {
                 notified.set(true);

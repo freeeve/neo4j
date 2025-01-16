@@ -173,6 +173,7 @@ class KernelTransactionsTest {
         databaseAvailabilityGuard = new DatabaseAvailabilityGuard(
                 DEFAULT_DATABASE_ID, clock, NullLog.getInstance(), 0, mock(CompositeDatabaseAvailabilityGuard.class));
         databaseAvailabilityGuard.init();
+        databaseAvailabilityGuard.start();
     }
 
     @AfterEach

@@ -401,10 +401,6 @@ public class KernelTransactions extends LifecycleAdapter
 
     @Override
     public void terminateTransactions() {
-        markAllTransactionsAsTerminated();
-    }
-
-    private void markAllTransactionsAsTerminated() {
         // we mark all transactions for termination since we want to make sure these transactions
         // won't be reused, ever. Each transaction has, among other things, a Locks.Client and we
         // certainly want to keep that from being reused from this point.

@@ -45,6 +45,7 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.availability.AvailabilityGuard;
 import org.neo4j.kernel.availability.AvailabilityListener;
 import org.neo4j.kernel.impl.api.KernelTransactions;
+import org.neo4j.kernel.impl.api.ShutdownTransactionMonitor;
 import org.neo4j.kernel.impl.coreapi.TransactionImpl;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.AssertableLogProvider;
@@ -94,13 +95,23 @@ class DatabaseTransactionShutdownIT {
                 .resolveDependency(Config.class)
                 .get(shutdown_terminated_transaction_wait_timeout);
 
+        var transactionLatch = new CountDownLatch(1);
+        var databaseMonitors = db.getDependencyResolver().resolveDependency(DatabaseMonitors.class);
+        databaseMonitors.addMonitorListener(new ShutdownTransactionMonitor() {
+
+            @Override
+            public void awaitTerminatedTransactionClose() {
+                transactionLatch.countDown();
+            }
+        });
+
         try (OtherThreadExecutor executor = new OtherThreadExecutor("test")) {
             Transaction tx = db.beginTx();
             KernelTransaction ktx = ((TransactionImpl) tx).kernelTransaction();
             // When
             tx.createNode();
             Future<Object> shutdownFuture = executor.executeDontWait(this::shutdownDbms);
-            executor.waitUntilWaiting(details -> details.isAt(Database.class, "awaitAllClosingTransactions"));
+            transactionLatch.await();
 
             // Then
             assertThat(ktx.getTerminationMark()).isNotEmpty();
@@ -123,6 +134,16 @@ class DatabaseTransactionShutdownIT {
     void shouldWaitForTransactionToDetectTerminationAndCloseOnShutdown() throws Exception {
         setUp(Clocks.fakeClock());
         // Given
+        var transactionLatch = new CountDownLatch(1);
+        var databaseMonitors = db.getDependencyResolver().resolveDependency(DatabaseMonitors.class);
+        databaseMonitors.addMonitorListener(new ShutdownTransactionMonitor() {
+
+            @Override
+            public void awaitTerminatedTransactionClose() {
+                transactionLatch.countDown();
+            }
+        });
+
         try (OtherThreadExecutor executor = new OtherThreadExecutor("test")) {
             Future<Object> shutdownFuture;
             Transaction tx = db.beginTx();
@@ -130,7 +151,7 @@ class DatabaseTransactionShutdownIT {
             // When
             tx.createNode();
             shutdownFuture = executor.executeDontWait(this::shutdownDbms);
-            executor.waitUntilWaiting(details -> details.isAt(Database.class, "awaitAllClosingTransactions"));
+            transactionLatch.await();
             assertThat(ktx.getTerminationMark()).isNotEmpty();
 
             // Transaction is terminated. Let's close it.
@@ -146,9 +167,6 @@ class DatabaseTransactionShutdownIT {
         DependencyResolver dep = db.getDependencyResolver();
         KernelTransactions ktxs = dep.resolveDependency(KernelTransactions.class);
         dep.resolveDependency(AvailabilityGuard.class).addListener(new AvailabilityListener() {
-            @Override
-            public void available() {}
-
             @Override
             public void unavailable() {
                 ktxs.unblockNewTransactions();
