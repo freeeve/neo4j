@@ -497,6 +497,7 @@ object CypherCurrentCompiler {
         )
       } catch {
         case e: Throwable =>
+          queryMonitor.endFailure(transactionalContext.executingQuery(), e)
           QuerySubscriber.safelyOnError(subscriber, e)
           taskCloser.close(Error(e))
           // NOTE: We leave it up to outer layers to rollback on failure
