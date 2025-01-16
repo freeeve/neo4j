@@ -21,18 +21,14 @@ package org.neo4j.internal.kernel.api.exceptions;
 
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class RelationshipTypeIdNotFoundKernelException extends KernelException {
-    public RelationshipTypeIdNotFoundKernelException(long relationshipTypeId, Exception cause) {
-        super(
-                Status.Schema.RelationshipTypeAccessFailed,
-                cause,
-                "Relationship type id '%s' not found",
-                relationshipTypeId);
-    }
 
-    public RelationshipTypeIdNotFoundKernelException(
+    private RelationshipTypeIdNotFoundKernelException(
             ErrorGqlStatusObject gqlStatusObject, long relationshipTypeId, Exception cause) {
         super(
                 gqlStatusObject,
@@ -40,5 +36,14 @@ public class RelationshipTypeIdNotFoundKernelException extends KernelException {
                 cause,
                 "Relationship type id '%s' not found",
                 relationshipTypeId);
+    }
+
+    public static RelationshipTypeIdNotFoundKernelException relationshipTypeNotFound(
+            int relationshipTypeId, Exception cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N59)
+                .withParam(GqlParams.StringParam.tokenType, "relationship type")
+                .withParam(GqlParams.NumberParam.tokenId, relationshipTypeId)
+                .build();
+        return new RelationshipTypeIdNotFoundKernelException(gql, relationshipTypeId, cause);
     }
 }

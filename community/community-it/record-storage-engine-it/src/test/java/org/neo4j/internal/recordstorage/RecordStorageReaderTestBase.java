@@ -331,7 +331,7 @@ public abstract class RecordStorageReaderTestBase {
         try {
             return tokenHolders.relationshipTypeTokens().getTokenById(id).name();
         } catch (TokenNotFoundException e) {
-            throw new RelationshipTypeIdNotFoundKernelException(id, e);
+            throw RelationshipTypeIdNotFoundKernelException.relationshipTypeNotFound(id, e);
         }
     }
 
