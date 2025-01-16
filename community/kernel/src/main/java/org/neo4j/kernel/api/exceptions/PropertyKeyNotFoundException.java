@@ -21,17 +21,24 @@ package org.neo4j.kernel.api.exceptions;
 
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 public class PropertyKeyNotFoundException extends KernelException {
-    public PropertyKeyNotFoundException(String propertyKey, Exception cause) {
-        super(Status.Schema.PropertyKeyAccessFailed, cause, "Property key '" + propertyKey + "' not found");
-    }
 
-    public PropertyKeyNotFoundException(ErrorGqlStatusObject gqlStatusObject, String propertyKey, Exception cause) {
+    private PropertyKeyNotFoundException(ErrorGqlStatusObject gqlStatusObject, String propertyKey, Exception cause) {
         super(
                 gqlStatusObject,
                 Status.Schema.PropertyKeyAccessFailed,
                 cause,
                 "Property key '" + propertyKey + "' not found");
+    }
+
+    public static PropertyKeyNotFoundException propertyKeyNotFound(String propertyKey, Exception cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N63)
+                .withParam(GqlParams.StringParam.propKey, propertyKey)
+                .build();
+        return new PropertyKeyNotFoundException(gql, propertyKey, cause);
     }
 }

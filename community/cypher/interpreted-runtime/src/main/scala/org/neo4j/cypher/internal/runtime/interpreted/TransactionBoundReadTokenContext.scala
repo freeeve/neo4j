@@ -38,7 +38,7 @@ abstract class TransactionBoundReadTokenContext(transactionalContext: QueryTrans
   def getPropertyKeyId(propertyKeyName: String): Int = {
     val propertyId: Int = transactionalContext.tokenRead.propertyKey(propertyKeyName)
     if (propertyId == TokenConstants.NO_TOKEN)
-      throw new PropertyKeyNotFoundException(propertyKeyName, null)
+      throw PropertyKeyNotFoundException.propertyKeyNotFound(propertyKeyName, null)
     propertyId
   }
 
