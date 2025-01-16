@@ -45,7 +45,7 @@ public class ReadOnlyTokenRead implements TokenRead {
         try {
             return tokenHolders.labelTokens().getTokenById(labelId).name();
         } catch (TokenNotFoundException e) {
-            throw new LabelNotFoundKernelException(labelId, e);
+            throw LabelNotFoundKernelException.labelNotFound(labelId, e);
         }
     }
 

@@ -47,7 +47,7 @@ abstract class TransactionBoundReadTokenContext(transactionalContext: QueryTrans
   def getLabelId(labelName: String): Int = {
     val labelId: Int = transactionalContext.tokenRead.nodeLabel(labelName)
     if (labelId == TokenConstants.NO_TOKEN)
-      throw new LabelNotFoundKernelException(labelId, null)
+      throw LabelNotFoundKernelException.labelNotFound(labelId, null)
     labelId
   }
 

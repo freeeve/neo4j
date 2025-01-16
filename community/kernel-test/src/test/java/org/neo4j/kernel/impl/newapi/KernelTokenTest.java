@@ -33,6 +33,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+import org.neo4j.internal.kernel.api.exceptions.LabelNotFoundKernelException;
 import org.neo4j.internal.kernel.api.exceptions.schema.IllegalTokenNameException;
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
@@ -44,6 +47,7 @@ import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.token.api.TokenConstants;
 import org.neo4j.token.api.TokenHolder;
+import org.neo4j.token.api.TokenNotFoundException;
 
 class KernelTokenTest {
     private KernelTransactionImplementation ktx;
@@ -314,5 +318,16 @@ class KernelTokenTest {
         when(commandCreationContext.reserveRelationshipTypeTokenId("poke")).thenReturn(13, 13, 14);
         int id = kernelToken.relationshipTypeCreateForName("poke", false);
         assertEquals(14, id);
+    }
+
+    @Test
+    void shouldThrowCorrectExceptionWhenLabelTokenNotFound() throws Exception {
+        when(labelTokens.getTokenById(0)).thenThrow(new TokenNotFoundException("nope"));
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> kernelToken.nodeLabelName(0))
+                .isInstanceOf(LabelNotFoundKernelException.class)
+                .hasMessage("Label with id=0 not found")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N59)
+                .hasStatusDescription(
+                        "error: data exception - token does not exist. The label token with id 0 does not exist.");
     }
 }

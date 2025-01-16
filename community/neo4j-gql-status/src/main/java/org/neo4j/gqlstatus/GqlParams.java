@@ -142,7 +142,6 @@ public class GqlParams {
         token(new STRLIT()), // Token name
         token1(new STRLIT()),
         token2(new STRLIT()),
-        tokenId(new STRLIT()), // Token id
         tokenType(new VERBATIM()), // Token type
         tokenType1(new VERBATIM()),
         tokenType2(new VERBATIM()),
@@ -181,6 +180,7 @@ public class GqlParams {
         lower(new NUM()), // Lower bound
         pos(new NUM()), // A position (e.g., in a sequence)
         timeAmount(new NUM()), // Integral amount of some time unit
+        tokenId(new NUM()), // Token id
         upper(new NUM()), // Upper bound
         value(new VAL()); // Value
 

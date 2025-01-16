@@ -1637,7 +1637,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlStatus("22N59"),
             """
                     The { %s } token with id { %s } does not exist.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.tokenType, GqlParams.StringParam.tokenId},
+            new GqlParams.GqlParam[] {GqlParams.StringParam.tokenType, GqlParams.NumberParam.tokenId},
             emptyMap(),
             Condition.DATA_EXCEPTION,
             "token does not exist",
