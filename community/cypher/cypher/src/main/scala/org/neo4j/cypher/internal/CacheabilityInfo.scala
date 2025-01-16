@@ -34,4 +34,5 @@ trait CacheabilityInfo {
   def shouldBeCached: Boolean
 
   def notifications: IndexedSeq[InternalNotification]
+  def codeGenByteCodeSize: Long = 0L
 }

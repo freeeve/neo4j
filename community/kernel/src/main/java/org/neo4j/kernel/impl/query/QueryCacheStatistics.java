@@ -22,55 +22,59 @@ package org.neo4j.kernel.impl.query;
 import java.util.Map;
 
 public interface QueryCacheStatistics {
-    Long preParserCacheEntries();
+    long preParserCacheEntries();
 
-    Long astCacheEntries();
+    long astCacheEntries();
 
-    Long logicalPlanCacheEntries();
+    long logicalPlanCacheEntries();
 
-    Long executionPlanCacheEntries();
+    long executionPlanCacheEntries();
 
-    Long executableQueryCacheEntries();
+    long executableQueryCacheEntries();
 
-    Long numberOfReplans();
+    default long executableQueryCacheCodeGenSize() {
+        return 0L;
+    }
 
-    Long replanWaitTime();
+    long numberOfReplans();
+
+    long replanWaitTime();
 
     Map<String, CacheMetrics> metricsPerCacheKind();
 
     QueryCacheStatistics EMPTY = new QueryCacheStatistics() {
         @Override
-        public Long preParserCacheEntries() {
+        public long preParserCacheEntries() {
             return 0L;
         }
 
         @Override
-        public Long astCacheEntries() {
+        public long astCacheEntries() {
             return 0L;
         }
 
         @Override
-        public Long logicalPlanCacheEntries() {
+        public long logicalPlanCacheEntries() {
             return 0L;
         }
 
         @Override
-        public Long executionPlanCacheEntries() {
+        public long executionPlanCacheEntries() {
             return 0L;
         }
 
         @Override
-        public Long executableQueryCacheEntries() {
+        public long executableQueryCacheEntries() {
             return 0L;
         }
 
         @Override
-        public Long numberOfReplans() {
+        public long numberOfReplans() {
             return 0L;
         }
 
         @Override
-        public Long replanWaitTime() {
+        public long replanWaitTime() {
             return 0L;
         }
 

@@ -979,9 +979,11 @@ abstract class QueryCachingTest(executionPlanCacheSize: Int =
     private class LoggingCacheTracer[Key](name: String, logKey: Boolean) extends CacheTracer[Key] {
       override def cacheHit(key: Key, metaData: String): Unit = log += s"$name: cacheHit" + keySuffix(key)
       override def cacheMiss(key: Key, metaData: String): Unit = log += s"$name: cacheMiss" + keySuffix(key)
-      override def compute(key: Key, metaData: String): Unit = log += s"$name: cacheCompile" + keySuffix(key)
 
-      override def computeWithExpressionCodeGen(key: Key, metaData: String): Unit =
+      override def compute(key: Key, codeGenSize: Long, metaData: String): Unit =
+        log += s"$name: cacheCompile" + keySuffix(key)
+
+      override def computeWithExpressionCodeGen(key: Key, codeGenSize: Long, metaData: String): Unit =
         log += s"$name: cacheCompileWithExpressionCodeGen" + keySuffix(key)
 
       override def cacheStale(

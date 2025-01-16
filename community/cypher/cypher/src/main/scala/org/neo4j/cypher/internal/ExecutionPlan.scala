@@ -63,6 +63,8 @@ abstract class ExecutionPlan {
   def batchSize: Option[Int] = None
 
   def internalPlanDescriptionRewriter: Option[InternalPlanDescriptionRewriter] = None
+
+  def generatedByteCodeSize: Long = 0L
 }
 
 trait ResourceManagerFactory {

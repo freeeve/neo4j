@@ -20,6 +20,7 @@
 package org.neo4j.codegen.api
 
 import org.neo4j.codegen.ByteCodeVisitor
+import org.neo4j.codegen.CodeGenerator
 import org.neo4j.codegen.TypeReference
 import org.neo4j.codegen.api.IntermediateRepresentation.add
 import org.neo4j.codegen.api.IntermediateRepresentation.and
@@ -77,7 +78,7 @@ import java.nio.ByteBuffer
 import scala.util.Random
 
 class SizeEstimationTest extends CypherFunSuite {
-  private val codeGeneration = CodeGeneration.codeGeneration()
+  private val codeGeneration = CodeGeneration.codeGeneration(new CodeGenerator.Stats)
   private val sizeComputer = new ByteSizeComputer
   val generator = codeGeneration.createGenerator()
   generator.setByteCodeVisitor(sizeComputer)

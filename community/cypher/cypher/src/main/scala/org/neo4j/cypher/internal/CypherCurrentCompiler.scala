@@ -616,5 +616,7 @@ object CypherCurrentCompiler {
         planningNotifications
       )
     }
+
+    override def codeGenByteCodeSize: Long = executionPlan.generatedByteCodeSize
   }
 }

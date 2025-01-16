@@ -23,26 +23,24 @@ import org.neo4j.cypher.internal.util.helpers.MapSupport.PowerMap
 import org.neo4j.kernel.impl.query.CacheMetrics
 import org.neo4j.kernel.impl.query.QueryCacheStatistics
 
-import java.lang
-
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 class CombinedQueryCacheStatistics(a: QueryCacheStatistics, b: QueryCacheStatistics) extends QueryCacheStatistics {
-  override def preParserCacheEntries(): lang.Long = a.preParserCacheEntries() + b.preParserCacheEntries()
+  override def preParserCacheEntries(): Long = a.preParserCacheEntries() + b.preParserCacheEntries()
 
-  override def astCacheEntries(): lang.Long = a.astCacheEntries() + b.astCacheEntries()
+  override def astCacheEntries(): Long = a.astCacheEntries() + b.astCacheEntries()
 
-  override def logicalPlanCacheEntries(): lang.Long = a.logicalPlanCacheEntries() + b.logicalPlanCacheEntries()
+  override def logicalPlanCacheEntries(): Long = a.logicalPlanCacheEntries() + b.logicalPlanCacheEntries()
 
-  override def executionPlanCacheEntries(): lang.Long = a.executionPlanCacheEntries + b.executionPlanCacheEntries
+  override def executionPlanCacheEntries(): Long = a.executionPlanCacheEntries + b.executionPlanCacheEntries
 
-  override def executableQueryCacheEntries(): lang.Long =
+  override def executableQueryCacheEntries(): Long =
     a.executableQueryCacheEntries() + b.executableQueryCacheEntries
 
-  override def numberOfReplans(): lang.Long = a.numberOfReplans() + b.numberOfReplans()
+  override def numberOfReplans(): Long = a.numberOfReplans() + b.numberOfReplans()
 
-  override def replanWaitTime(): lang.Long = a.replanWaitTime() + b.replanWaitTime()
+  override def replanWaitTime(): Long = a.replanWaitTime() + b.replanWaitTime()
 
   override def metricsPerCacheKind(): java.util.Map[String, CacheMetrics] = {
     val aMap = Map.from(a.metricsPerCacheKind().asScala)
@@ -87,9 +85,9 @@ class CombinedCacheTracer[T](a: CacheTracer[T], b: CacheTracer[T]) extends Cache
     b.cacheMiss(key, metaData)
   }
 
-  override def compute(key: T, metaData: String): Unit = {
-    a.compute(key, metaData)
-    b.compute(key, metaData)
+  override def compute(key: T, codeGenSize: Long, metaData: String): Unit = {
+    a.compute(key, codeGenSize, metaData)
+    b.compute(key, codeGenSize, metaData)
   }
 
   override def discard(key: T, metaData: String): Unit = {
@@ -97,9 +95,9 @@ class CombinedCacheTracer[T](a: CacheTracer[T], b: CacheTracer[T]) extends Cache
     b.discard(key, metaData)
   }
 
-  override def computeWithExpressionCodeGen(key: T, metaData: String): Unit = {
-    a.computeWithExpressionCodeGen(key, metaData)
-    b.computeWithExpressionCodeGen(key, metaData)
+  override def computeWithExpressionCodeGen(key: T, codeGenSize: Long, metaData: String): Unit = {
+    a.computeWithExpressionCodeGen(key, codeGenSize, metaData)
+    b.computeWithExpressionCodeGen(key, codeGenSize, metaData)
   }
 
   override def cacheStale(key: T, secondsSinceCompute: Int, metaData: String, maybeReason: Option[String]): Unit = {

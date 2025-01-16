@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal
 
+import org.neo4j.codegen.CodeGenerator
 import org.neo4j.cypher.internal.InterpretedRuntime.InterpretedExecutionPlan
 import org.neo4j.cypher.internal.InterpretedRuntime.calculateTransactionMode
 import org.neo4j.cypher.internal.SlottedRuntime.NO_METADATA
@@ -68,7 +69,8 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
     context: CONTEXT,
     physicalPlan: PhysicalPlan,
     query: LogicalQuery,
-    selectivityTrackerRegistrator: SelectivityTrackerRegistrator
+    selectivityTrackerRegistrator: SelectivityTrackerRegistrator,
+    codeGenStats: CodeGenerator.Stats
   ): (Option[ExpressionConverter], List[ExpressionConverter], () => Seq[Argument], () => Set[InternalNotification]) = {
     (None, baseConverters, NO_METADATA, NO_WARNINGS)
   }
@@ -109,12 +111,13 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
         )
       )
 
+      val codeGenStats = new CodeGenerator.Stats
       val (mainConverter, fallbackConverters, metadataGen, warningsGen) =
         if (context.materializedEntitiesMode) {
           val converters = MaterializedEntitiesExpressionConverter(context.tokenContext) +: baseConverters
           (None, converters, NO_METADATA, NO_WARNINGS)
         } else if (context.compileExpressions) {
-          compileExpressions(baseConverters, context, physicalPlan, query, selectivityTrackerRegistrator)
+          compileExpressions(baseConverters, context, physicalPlan, query, selectivityTrackerRegistrator, codeGenStats)
         } else {
           (None, baseConverters, NO_METADATA, NO_WARNINGS)
         }
@@ -180,7 +183,8 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
         query.readOnly,
         transactionMode.startsTransactions,
         metadataGen(),
-        warningsGen()
+        warningsGen(),
+        codeGenStats.stagedByteCodeSize
       )
     } catch {
       case e: CypherException =>

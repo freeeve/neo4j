@@ -43,13 +43,13 @@ abstract class CacheMetricsMonitor[KEY] extends CacheTracer[KEY] with CacheMetri
 
   override def cacheMiss(key: KEY, metaData: String): Unit = misses.increment()
 
-  override def compute(key: KEY, metaData: String): Unit = compiled.increment()
+  override def compute(key: KEY, codeGenSize: Long, metaData: String): Unit = compiled.increment()
 
   override def discard(key: KEY, metaData: String): Unit = discards.increment()
 
   override def awaitOngoingComputation(key: KEY, metaData: String): Unit = awaits.increment()
 
-  override def computeWithExpressionCodeGen(key: KEY, metaData: String): Unit = {
+  override def computeWithExpressionCodeGen(key: KEY, codeGenSize: Long, metaData: String): Unit = {
     compiled.increment()
     compiledWithExpressionCodeGen.increment()
   }
@@ -92,12 +92,14 @@ class ExecutionPlanCacheMetricsMonitor() extends CacheMetricsMonitor[CypherQuery
   override val cacheKind: String = CypherQueryCaches.ExecutionPlanCache.kind
 }
 
-class ExecutableQueryCacheMetricsMonitor() extends CacheMetricsMonitor[CypherQueryCaches.ExecutableQueryCache.Key] {
+class ExecutableQueryCacheMetricsMonitor() extends CacheMetricsMonitor[CypherQueryCaches.ExecutableQueryCache.Key]
+    with CacheMetrics.CodeGen {
   override val monitorTag: String = CypherQueryCaches.ExecutableQueryCache.monitorTag
   override val cacheKind: String = CypherQueryCaches.ExecutableQueryCache.kind
 
   private val counter = new LongAdder
   private val waitTime = new LongAdder
+  private val codeGenByteCodeSize = new LongAdder
 
   override def cacheStale(
     queryKey: CacheKey[InputQuery.CacheKey],
@@ -110,7 +112,22 @@ class ExecutableQueryCacheMetricsMonitor() extends CacheMetricsMonitor[CypherQue
     waitTime.add(secondsSincePlan)
   }
 
-  def numberOfReplans: Long = counter.sum()
+  override def compute(key: CacheKey[InputQuery.CacheKey], codeGenSize: Long, metaData: String): Unit = {
+    super.compute(key, codeGenSize, metaData)
+    codeGenByteCodeSize.add(codeGenSize)
+  }
 
+  override def computeWithExpressionCodeGen(
+    key: CacheKey[InputQuery.CacheKey],
+    codeGenSize: Long,
+    metaData: String
+  ): Unit = {
+    super.computeWithExpressionCodeGen(key, codeGenSize, metaData)
+    codeGenByteCodeSize.add(codeGenSize)
+  }
+
+  override def getCodeGenByteCodeSize: Long = codeGenByteCodeSize.sum()
+
+  def numberOfReplans: Long = counter.sum()
   def replanWaitTime: Long = waitTime.sum()
 }

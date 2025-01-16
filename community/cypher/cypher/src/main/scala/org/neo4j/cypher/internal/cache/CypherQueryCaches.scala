@@ -72,7 +72,6 @@ import org.neo4j.logging.InternalLogProvider
 import org.neo4j.monitoring.Monitors
 import org.neo4j.values.virtual.MapValue
 
-import java.lang
 import java.time.Clock
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -597,29 +596,32 @@ class CypherQueryCaches(
 
   private object stats extends QueryCacheStatistics {
 
-    override def preParserCacheEntries(): lang.Long =
+    override def preParserCacheEntries(): Long =
       preParserCache.estimatedSize()
 
-    override def astCacheEntries(): lang.Long =
+    override def astCacheEntries(): Long =
       allCaches.asScala
         .collect { case c: AstCache.Cache => c.estimatedSize() }
         .sum
 
-    override def logicalPlanCacheEntries(): lang.Long =
+    override def logicalPlanCacheEntries(): Long =
       allCaches.asScala
         .collect { case c: LogicalPlanCache.Cache => c.estimatedSize() }
         .sum
 
-    override def executionPlanCacheEntries(): lang.Long =
+    override def executionPlanCacheEntries(): Long =
       executionPlanCache.estimatedSize()
 
-    override def executableQueryCacheEntries(): lang.Long =
+    override def executableQueryCacheEntries(): Long =
       executableQueryCache.estimatedSize()
 
-    override def numberOfReplans(): lang.Long =
+    override def executableQueryCacheCodeGenSize(): Long =
+      executableQueryCache.values.map(_.value.codeGenByteCodeSize).sum
+
+    override def numberOfReplans(): Long =
       cacheTracers.executablePlan.numberOfReplans
 
-    override def replanWaitTime(): lang.Long =
+    override def replanWaitTime(): Long =
       cacheTracers.executablePlan.replanWaitTime
 
     override def metricsPerCacheKind(): java.util.Map[String, CacheMetrics] = {

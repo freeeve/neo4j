@@ -38,7 +38,7 @@ trait CacheTracer[KEY] {
   /**
    * A value was computed. This is either a new value or replacing a value for a stale item.
    */
-  def compute(key: KEY, metaData: String): Unit = ()
+  def compute(key: KEY, codeGenSize: Long, metaData: String): Unit = ()
 
   /**
    * A value was removed from the cache.
@@ -48,7 +48,7 @@ trait CacheTracer[KEY] {
   /**
    * Some compute was invoked to compute a key to a value, requesting expression code generation.
    */
-  def computeWithExpressionCodeGen(key: KEY, metaData: String): Unit = ()
+  def computeWithExpressionCodeGen(key: KEY, codeGenSize: Long, metaData: String): Unit = ()
 
   /**
    * The item was found in the cache but has become stale.

@@ -19,6 +19,8 @@
  */
 package org.neo4j.cypher.internal
 
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.atLeastOnce
 import org.mockito.Mockito.verify
 import org.neo4j.cypher.internal.QueryCacheTest.TC
@@ -55,7 +57,7 @@ class QueryCacheStressTest extends CypherFunSuite {
 
     // Then
     Await.ready(futures, 60.seconds)
-    verify(tracer, atLeastOnce()).computeWithExpressionCodeGen(key, "")
+    verify(tracer, atLeastOnce()).computeWithExpressionCodeGen(ArgumentMatchers.eq(key), any(), ArgumentMatchers.eq(""))
   }
 
   test("should hit at least once when running from multiple threads") {

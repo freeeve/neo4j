@@ -52,12 +52,17 @@ class CodeLoader extends ClassLoader {
      *
      * @param classes classes to load
      * @param visitor visitor which inspects class bytecodes
+     * @return the size of the loaded bytecode
      */
-    synchronized void stageForLoading(Iterable<? extends ByteCodes> classes, ByteCodeVisitor visitor) {
+    synchronized long stageForLoading(Iterable<? extends ByteCodes> classes, ByteCodeVisitor visitor) {
+        long byteCodeSize = 0L;
         for (ByteCodes clazz : classes) {
-            visitor.visitByteCode(clazz.name(), clazz.bytes().duplicate());
+            final var bytes = clazz.bytes().duplicate();
+            byteCodeSize += bytes.remaining();
+            visitor.visitByteCode(clazz.name(), bytes);
             stagedClasses.put(clazz.name(), clazz);
         }
+        return byteCodeSize;
     }
 
     @Override

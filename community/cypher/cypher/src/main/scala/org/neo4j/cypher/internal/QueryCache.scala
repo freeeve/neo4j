@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionException
 import scala.concurrent.TimeoutException
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
@@ -158,6 +159,7 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
   }
 
   def estimatedSize(): Long = inner.estimatedSize()
+  def values: Iterator[CachedValue] = inner.asMap().values().iterator().asScala.collect { case v: CachedValue => v }
 
   /**
    * An entry in this cache. Can either be an actual value, or a placeholder for a value currently being computed.
@@ -361,7 +363,7 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
     lazy val executingQuery = tc.executingQuery()
     if (maximumSize.currentValue == 0) {
       val result = compiler.compile()
-      tracer.compute(queryKey, metaData)
+      tracer.compute(queryKey, result.codeGenByteCodeSize, metaData)
       result
     } else {
       // Mark as being computed if not present
@@ -471,7 +473,7 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
       val result = if (!cachedValue.recompiledWithExpressionCodeGen) {
         compiler.maybeCompileWithExpressionCodeGen(cachedValue.numberOfHits, onRecompilation _) match {
           case Some(recompiledQuery) =>
-            tracer.computeWithExpressionCodeGen(queryKey, metaData)
+            tracer.computeWithExpressionCodeGen(queryKey, recompiledQuery.codeGenByteCodeSize, metaData)
             val recompiled = new CachedValue(recompiledQuery, recompiledWithExpressionCodeGen = true)
             inner.put(queryKey, recompiled)
             // If we get here, beingRecomputed must have been assigned.
@@ -530,7 +532,7 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
       recompiledWithExpressionCodeGen = false,
       beingComputed
     )
-    tracer.compute(queryKey, metaData)
+    tracer.compute(queryKey, result.codeGenByteCodeSize, metaData)
     result
   }
 
@@ -551,7 +553,7 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
       recompiledWithExpressionCodeGen = true,
       beingComputed
     )
-    tracer.computeWithExpressionCodeGen(queryKey, metaData)
+    tracer.computeWithExpressionCodeGen(queryKey, result.codeGenByteCodeSize, metaData)
     result
   }
 

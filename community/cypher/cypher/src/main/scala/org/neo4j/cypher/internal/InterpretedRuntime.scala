@@ -127,7 +127,8 @@ object InterpretedRuntime extends CypherRuntime[RuntimeContext] {
       query.readOnly,
       transactionsMode.startsTransactions,
       IndexedSeq.empty,
-      Set.empty
+      Set.empty,
+      generatedByteCodeSize = 0L
     )
   }
 
@@ -160,7 +161,8 @@ object InterpretedRuntime extends CypherRuntime[RuntimeContext] {
     readOnly: Boolean,
     startsTransactions: Boolean,
     override val metadata: Seq[Argument],
-    warnings: Set[InternalNotification]
+    warnings: Set[InternalNotification],
+    override val generatedByteCodeSize: Long
   ) extends ExecutionPlan {
 
     override def run(

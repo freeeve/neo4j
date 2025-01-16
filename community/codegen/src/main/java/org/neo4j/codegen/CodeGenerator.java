@@ -67,6 +67,7 @@ public abstract class CodeGenerator {
     private long currentCompilationUnit;
     private long openClassCount;
     private ByteCodeVisitor byteCodeVisitor = DO_NOTHING;
+    private Stats stats = null;
 
     public static CodeGenerator generateCode(CodeGenerationStrategy<?> strategy, CodeGeneratorOption... options)
             throws CodeGenerationNotSupportedException {
@@ -97,6 +98,11 @@ public abstract class CodeGenerator {
     @VisibleForTesting
     public void setByteCodeVisitor(ByteCodeVisitor visitor) {
         this.byteCodeVisitor = visitor;
+    }
+
+    public CodeGenerator withStats(Stats stats) {
+        this.stats = stats;
+        return this;
     }
 
     public ClassLoader classLoader() {
@@ -182,7 +188,12 @@ public abstract class CodeGenerator {
             Preconditions.checkState(openClassCount == 0, "Compilation has not completed.");
 
             this.currentCompilationUnit++;
-            loader.stageForLoading(compile(loader.getParent()), byteCodeVisitor);
+            final var size = loader.stageForLoading(compile(loader.getParent()), byteCodeVisitor);
+            if (this.stats != null) this.stats.stagedByteCodeSize += size;
         }
+    }
+
+    public static class Stats {
+        public long stagedByteCodeSize;
     }
 }

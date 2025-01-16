@@ -78,14 +78,17 @@ object CodeGeneration {
   final val GENERATE_JAVA_SOURCE_DEBUG_OPTION = CypherDebugOption.generateJavaSource.name
   final val GENERATED_SOURCE_LOCATION_PROPERTY = "org.neo4j.cypher.DEBUG.generated_source_location"
 
-  def fromDebugOptions(methodLimit: Int = MAX_METHOD_LIMIT, debugOptions: CypherDebugOptions): CodeGeneration =
-    codeGeneration(methodLimit, modeFromDebugOptions(debugOptions))
+  def fromDebugOptions(
+    stats: CodeGenerator.Stats,
+    methodLimit: Int = MAX_METHOD_LIMIT,
+    debugOptions: CypherDebugOptions
+  ): CodeGeneration = codeGeneration(stats, methodLimit, modeFromDebugOptions(debugOptions))
 
   def codeGeneration(
+    stats: CodeGenerator.Stats,
     methodLimit: Int = MAX_METHOD_LIMIT,
-    mode: CodeGenerationMode =
-      ByteCodeGeneration(new CodeSaver(false, false))
-  ): CodeGeneration = new CodeGeneration(methodLimit, mode)
+    mode: CodeGenerationMode = ByteCodeGeneration(new CodeSaver(false, false))
+  ): CodeGeneration = new CodeGeneration(methodLimit, mode, stats)
 
   sealed trait CodeGenerationMode {
     def saver: CodeSaver
@@ -134,7 +137,7 @@ object CodeGeneration {
   }
 }
 
-class CodeGeneration(methodLimit: Int, val codeGenerationMode: CodeGenerationMode) {
+class CodeGeneration(methodLimit: Int, val codeGenerationMode: CodeGenerationMode, val stats: CodeGenerator.Stats) {
 
   def createGenerator(): CodeGenerator = {
     createGenerator(classOf[IntermediateRepresentation].getClassLoader)
@@ -149,7 +152,7 @@ class CodeGeneration(methodLimit: Int, val codeGenerationMode: CodeGenerationMod
     if (DEBUG_PRINT_SOURCE) options ::= PRINT_SOURCE
     if (DEBUG_PRINT_BYTECODE) options ::= PRINT_BYTECODE
 
-    generateCode(parentClassLoader, strategy, options: _*)
+    generateCode(parentClassLoader, strategy, options: _*).withStats(stats)
   }
 
   def compileClass[T](c: ClassDeclaration[T], generator: CodeGenerator): ClassHandle = {
