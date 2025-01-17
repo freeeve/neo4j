@@ -17,7 +17,6 @@
 package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
-import org.neo4j.configuration.helpers.LogObfuscationLevel
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
@@ -51,7 +50,7 @@ trait FrontEndCompilationPhases {
     /* TODO: This is not part of configuration - Move to BaseState */
     parameterTypeMapping: Map[String, ParameterTypeInfo] = Map.empty,
     semanticFeatures: Seq[SemanticFeature] = defaultSemanticFeatures,
-    obfuscateLiterals: LogObfuscationLevel = LogObfuscationLevel.NONE
+    obfuscateLiterals: Boolean = false
   ) {
 
     def literalExtractionStrategy: LiteralExtractionStrategy = extractLiterals match {
@@ -66,8 +65,8 @@ trait FrontEndCompilationPhases {
     CollectSyntaxUsageMetrics andThen
       SyntaxDeprecationWarningsAndReplacements(Deprecations.SyntacticallyDeprecatedFeatures) andThen
       PreparatoryRewriting andThen
-      If((_: BaseState) => config.obfuscateLiterals.obfuscateLiterals())(
-        ExtractSensitiveLiterals(config.obfuscateLiterals.obfuscateOnlyUnsafeLiterals())
+      If((_: BaseState) => config.obfuscateLiterals)(
+        ExtractSensitiveLiterals
       ) andThen
       SemanticAnalysis(warn = true, config.semanticFeatures: _*) andThen
       UnwrapTopLevelBraces andThen
@@ -96,7 +95,7 @@ trait FrontEndCompilationPhases {
        * in the query log.
        */
       If((_: BaseState) => resolver.isDefined)(TryRewriteProcedureCalls(resolver.orNull)) andThen
-      ObfuscationMetadataCollection(config.obfuscateLiterals.obfuscateOnlyUnsafeLiterals())
+      ObfuscationMetadataCollection
   }
 
   // Phase 1 (Fabric)
@@ -107,7 +106,7 @@ trait FrontEndCompilationPhases {
     parsingBase(config) andThen
       ExpandStarRewriter andThen
       TryRewriteProcedureCalls(resolver) andThen
-      ObfuscationMetadataCollection(config.obfuscateLiterals.obfuscateOnlyUnsafeLiterals()) andThen
+      ObfuscationMetadataCollection andThen
       SemanticAnalysis(warn = true, config.semanticFeatures: _*)
   }
 

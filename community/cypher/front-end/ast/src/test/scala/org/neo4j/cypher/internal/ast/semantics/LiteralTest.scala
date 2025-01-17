@@ -18,7 +18,7 @@ package org.neo4j.cypher.internal.ast.semantics
 
 import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaultContext
 import org.neo4j.cypher.internal.expressions.Literal
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
+import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
@@ -34,9 +34,10 @@ class LiteralTest extends SemanticFunSuite {
     assert(expressionType === CTString.invariant)
   }
 
+  // NOTE: technically not a literal
   test("correctly parses unsigned decimal numbers") {
-    assert(NonSensitiveUnsignedDecimalIntegerLiteral("22")(pos).value === 22)
-    assert(NonSensitiveUnsignedDecimalIntegerLiteral("0")(pos).value === 0)
+    assert(PathLengthQuantifier("22")(pos).value === 22)
+    assert(PathLengthQuantifier("0")(pos).value === 0)
   }
 
   test("throws error for invalid unsigned decimal numbers") {

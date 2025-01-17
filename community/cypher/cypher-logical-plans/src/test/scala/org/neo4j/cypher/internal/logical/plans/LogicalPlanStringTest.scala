@@ -57,6 +57,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
 import org.neo4j.cypher.internal.expressions.Parameter
+import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.PathStep
 import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -274,6 +275,7 @@ object LogicalPlanStringTest {
 
     val whiteListedClasses: Set[Class[_]] = Set[Class[_]](
       classOf[LogicalVariable],
+      classOf[PathLengthQuantifier],
       classOf[FunctionInvocation],
       classOf[SemanticCheck],
       classOf[PointBoundingBoxSeekRangeWrapper],

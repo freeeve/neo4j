@@ -202,12 +202,12 @@ object PatternPart {
   }
 
   sealed trait CountedSelector extends Selector {
-    val count: Either[NonSensitiveUnsignedDecimalIntegerLiteral, Parameter]
+    val count: Either[PathLengthQuantifier, Parameter]
   }
 
   sealed trait SelectiveSelector extends Selector
 
-  case class AnyPath(count: Either[NonSensitiveUnsignedDecimalIntegerLiteral, Parameter])(val position: InputPosition)
+  case class AnyPath(count: Either[PathLengthQuantifier, Parameter])(val position: InputPosition)
       extends SelectiveSelector
       with CountedSelector {
 
@@ -225,7 +225,7 @@ object PatternPart {
   }
 
   case class AnyShortestPath(count: Either[
-    NonSensitiveUnsignedDecimalIntegerLiteral,
+    PathLengthQuantifier,
     Parameter
   ])(val position: InputPosition)
       extends SelectiveSelector
@@ -244,7 +244,7 @@ object PatternPart {
   }
 
   case class ShortestGroups(count: Either[
-    NonSensitiveUnsignedDecimalIntegerLiteral,
+    PathLengthQuantifier,
     Parameter
   ])(val position: InputPosition)
       extends SelectiveSelector

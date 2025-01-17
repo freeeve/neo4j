@@ -28,13 +28,11 @@ import org.neo4j.cypher.internal.util.bottomUp
 /**
  * Extracts all literals of the query and replaces them with `SensitiveLiteral`
  */
-case class ExtractSensitiveLiterals(obfuscateOnlyUnsafeLiterals: Boolean)
-    extends Phase[BaseContext, BaseState, BaseState] with StepSequencer.Step {
+case object ExtractSensitiveLiterals extends Phase[BaseContext, BaseState, BaseState] with StepSequencer.Step {
 
   override def process(from: BaseState, context: BaseContext): BaseState = {
     val rewriter: Rewriter = bottomUp(Rewriter.lift {
-      case l: Literal if !obfuscateOnlyUnsafeLiterals || l.maybeSensitive =>
-        l.asSensitiveLiteral
+      case l: Literal => l.asSensitiveLiteral
     })
     from.withStatement(from.statement().endoRewrite(rewriter))
   }

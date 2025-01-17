@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal.runtime.spec.rewriters
 
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
+import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Skip
 import org.neo4j.cypher.internal.runtime.spec.rewriters.PlanRewriterContext.pos
@@ -48,7 +48,7 @@ case class SkipEverywhere(
     ctx,
     config,
     (plan: LogicalPlan) => {
-      Skip(plan, NonSensitiveUnsignedDecimalIntegerLiteral("0")(pos))(ctx.idGen)
+      Skip(plan, UnsignedDecimalIntegerLiteral("0")(pos))(ctx.idGen)
     }
   )
 

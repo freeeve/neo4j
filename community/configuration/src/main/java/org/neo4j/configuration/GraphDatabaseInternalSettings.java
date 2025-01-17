@@ -897,13 +897,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .addConstraint(range(2, 100))
             .build();
 
-    @Description("Don't obfuscate literals that are non-sensitive such as quantifiers.")
-    @Internal
-    public static final Setting<Boolean> log_queries_obfuscate_unsafe_literals_only = newBuilder(
-                    "internal.db.logs.query.obfuscate_unsafe_literals_only", BOOL, false)
-            .dynamic()
-            .build();
-
     @Internal
     @Description(
             "Whether or not to dump system and database diagnostics. This takes a non-negligible amount of time to do and therefore "

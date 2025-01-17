@@ -75,7 +75,6 @@ import org.neo4j.cypher.internal.expressions.NFKDNormalForm
 import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
 import org.neo4j.cypher.internal.expressions.NormalForm
 import org.neo4j.cypher.internal.expressions.Not
@@ -84,6 +83,7 @@ import org.neo4j.cypher.internal.expressions.Or
 import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.PathConcatenation
 import org.neo4j.cypher.internal.expressions.PathFactor
+import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternComprehension
@@ -253,9 +253,9 @@ trait ExpressionBuilder extends Cypher5ParserListener {
     }
   }
 
-  private def selectorCount(node: TerminalNode, p: InputPosition): NonSensitiveUnsignedDecimalIntegerLiteral =
-    if (node == null) NonSensitiveUnsignedDecimalIntegerLiteral("1")(p)
-    else NonSensitiveUnsignedDecimalIntegerLiteral(node.getText)(pos(node))
+  private def selectorCount(node: TerminalNode, p: InputPosition): PathLengthQuantifier =
+    if (node == null) PathLengthQuantifier("1")(p)
+    else PathLengthQuantifier(node.getText)(pos(node))
 
   final override def exitSelector(ctx: Cypher5Parser.SelectorContext): Unit = {
     val p = pos(ctx)
@@ -305,7 +305,7 @@ trait ExpressionBuilder extends Cypher5ParserListener {
       val to = optSafeUnsignedDecimalInt(ctx.to)
       Some(org.neo4j.cypher.internal.expressions.Range(from, to)(from.map(_.position).getOrElse(pos(ctx))))
     } else if (ctx.single != null) {
-      val single = Some(NonSensitiveUnsignedDecimalIntegerLiteral(ctx.single.getText)(pos(ctx.single)))
+      val single = Some(PathLengthQuantifier(ctx.single.getText)(pos(ctx.single)))
       Some(org.neo4j.cypher.internal.expressions.Range(single, single)(pos(ctx)))
     } else None
   }

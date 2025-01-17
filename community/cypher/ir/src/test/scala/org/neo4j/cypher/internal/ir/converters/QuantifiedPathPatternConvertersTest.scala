@@ -21,10 +21,9 @@ package org.neo4j.cypher.internal.ir.converters
 
 import org.neo4j.cypher.internal.expressions.FixedQuantifier
 import org.neo4j.cypher.internal.expressions.IntervalQuantifier
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
+import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.PlusQuantifier
 import org.neo4j.cypher.internal.expressions.StarQuantifier
-import org.neo4j.cypher.internal.expressions.UnsignedIntegerLiteral
 import org.neo4j.cypher.internal.ir.converters.QuantifiedPathPatternConverters.convertGraphPatternQuantifier
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Repetition
@@ -34,7 +33,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class QuantifiedPathPatternConvertersTest extends CypherFunSuite {
 
   final private val position: InputPosition = InputPosition.NONE
-  final private val literal123: UnsignedIntegerLiteral = NonSensitiveUnsignedDecimalIntegerLiteral("123")(position)
+  final private val literal123: PathLengthQuantifier = PathLengthQuantifier("123")(position)
 
   test("should convert * quantifier to 0 or more repetitions") {
     val quantifier = StarQuantifier()(position)

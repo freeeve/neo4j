@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.IntegerLiteral
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Parameter
+import org.neo4j.cypher.internal.expressions.StringDecimalInteger
 import org.neo4j.cypher.internal.expressions.TypeSignature
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
@@ -298,6 +299,13 @@ trait SemanticAnalysisTooling {
 
   def typeSwitch(expr: Expression)(choice: TypeSpec => SemanticCheck): SemanticCheck =
     SemanticCheck.fromState(state => choice(state.expressionType(expr).actual))
+
+  def validNumber(long: StringDecimalInteger): Boolean =
+    try {
+      long.value.isInstanceOf[Long]
+    } catch {
+      case _: java.lang.NumberFormatException => false
+    }
 
   def validNumber(long: IntegerLiteral): Boolean =
     try {

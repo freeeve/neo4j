@@ -100,7 +100,6 @@ import org.neo4j.cypher.internal.expressions.NodePathStep
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.NodeRelPair
 import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
 import org.neo4j.cypher.internal.expressions.NoneOfRelationships
 import org.neo4j.cypher.internal.expressions.NormalForm
@@ -115,6 +114,7 @@ import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.PathConcatenation
 import org.neo4j.cypher.internal.expressions.PathExpression
 import org.neo4j.cypher.internal.expressions.PathFactor
+import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.PathStep
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternAtom
@@ -350,8 +350,8 @@ trait AstConstructionTestSupport {
   def literalInt(value: Long, position: InputPosition = pos): SignedDecimalIntegerLiteral =
     SignedDecimalIntegerLiteral(value.toString)(position)
 
-  def literalUnsignedInt(intValue: Int): NonSensitiveUnsignedDecimalIntegerLiteral =
-    NonSensitiveUnsignedDecimalIntegerLiteral(intValue.toString)(pos)
+  def literalUnsignedInt(intValue: Int): PathLengthQuantifier =
+    PathLengthQuantifier(intValue.toString)(pos)
 
   def literalFloat(floatValue: Double): DecimalDoubleLiteral =
     DecimalDoubleLiteral(floatValue.toString)(pos)
@@ -877,13 +877,13 @@ trait AstConstructionTestSupport {
     PatternPart.AllPaths()(pos)
 
   def anyPathSelector(count: Int): PatternPart.AnyPath =
-    PatternPart.AnyPath(Left(NonSensitiveUnsignedDecimalIntegerLiteral(count.toString)(pos)))(pos)
+    PatternPart.AnyPath(Left(PathLengthQuantifier(count.toString)(pos)))(pos)
 
   def anyPathSelector(count: String): PatternPart.AnyPath =
     PatternPart.AnyPath(Right(parameter(count, CTInteger)))(pos)
 
   def anyShortestPathSelector(count: Int): PatternPart.AnyShortestPath =
-    PatternPart.AnyShortestPath(Left(NonSensitiveUnsignedDecimalIntegerLiteral(count.toString)(pos)))(pos)
+    PatternPart.AnyShortestPath(Left(PathLengthQuantifier(count.toString)(pos)))(pos)
 
   def anyShortestPathSelector(count: String): PatternPart.AnyShortestPath =
     PatternPart.AnyShortestPath(Right(parameter(count, CTInteger)))(pos)
@@ -892,7 +892,7 @@ trait AstConstructionTestSupport {
     PatternPart.AllShortestPaths()(pos)
 
   def shortestGroups(count: Int): PatternPart.ShortestGroups =
-    PatternPart.ShortestGroups(Left(NonSensitiveUnsignedDecimalIntegerLiteral(count.toString)(pos)))(pos)
+    PatternPart.ShortestGroups(Left(PathLengthQuantifier(count.toString)(pos)))(pos)
 
   def shortestGroups(count: String): PatternPart.ShortestGroups =
     PatternPart.ShortestGroups(Right(parameter(count, CTInteger)))(pos)

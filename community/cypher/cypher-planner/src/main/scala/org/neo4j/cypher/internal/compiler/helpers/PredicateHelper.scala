@@ -27,8 +27,8 @@ import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.GreaterThan
 import org.neo4j.cypher.internal.expressions.ListComprehension
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.OperatorExpression
+import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.TypeSignatures
 import org.neo4j.cypher.internal.expressions.functions
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
@@ -54,7 +54,7 @@ object PredicateHelper {
   def coerceToPredicate(predicate: Expression): Expression = predicate match {
     case e: ListComprehension => GreaterThan(
         FunctionInvocation(FunctionName(functions.Size.name)(e.position), e)(e.position),
-        NonSensitiveUnsignedDecimalIntegerLiteral("0")(e.position)
+        SignedDecimalIntegerLiteral("0")(e.position)
       )(e.position)
     case e if isPredicate(e) => e
     case e                   => CoerceToPredicate(e)

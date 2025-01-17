@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.compiler.phases
 
-import org.neo4j.configuration.helpers.LogObfuscationLevel
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.AdministrationCommandPlanBuilder
@@ -140,12 +139,12 @@ object CompilationPhases extends FrontEndCompilationPhases {
   private val orderedPlanPipelineSteps = astPlanPipelineSteps ++ irPlanPipelineSteps ++ lpPlanPipelineSteps
 
   // Phase 2
-  def prepareForCaching(obfuscateLiterals: LogObfuscationLevel): Transformer[PlannerContext, BaseState, BaseState] =
+  val prepareForCaching: Transformer[PlannerContext, BaseState, BaseState] =
     RewriteProcedureCalls andThen
       AmbiguousAggregationAnalysis andThen
       ProcedureAndFunctionDeprecationWarnings andThen
       ProcedureWarnings andThen
-      ObfuscationMetadataCollection(obfuscateLiterals.obfuscateOnlyUnsafeLiterals())
+      ObfuscationMetadataCollection
 
   // Phase 3
   def planPipeLine(

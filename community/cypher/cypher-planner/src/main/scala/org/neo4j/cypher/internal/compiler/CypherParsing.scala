@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.compiler
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
-import org.neo4j.configuration.helpers.LogObfuscationLevel
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.helpers.ParameterValueTypeHelper
 import org.neo4j.cypher.internal.compiler.phases.BaseContextImpl
@@ -113,14 +112,14 @@ case class CypherParsingConfig(
   extractLiterals: ExtractLiteral = ExtractLiteral.ALWAYS,
   useParameterSizeHint: Boolean = true,
   semanticFeatures: Seq[SemanticFeature] = defaultSemanticFeatures,
-  obfuscateLiterals: () => LogObfuscationLevel = () => LogObfuscationLevel.NONE,
+  obfuscateLiterals: () => Boolean = () => false,
   queryRouterForCompositeEnabled: Boolean = false
 )
 
 object CypherParsingConfig {
 
   def fromCypherConfiguration(cypherConfiguration: CypherConfiguration): CypherParsingConfig = {
-    def obfuscateLiterals(): LogObfuscationLevel = {
+    def obfuscateLiterals(): Boolean = {
       // Is dynamic, but documented to not affect caching.
       cypherConfiguration.obfuscateLiterals
     }

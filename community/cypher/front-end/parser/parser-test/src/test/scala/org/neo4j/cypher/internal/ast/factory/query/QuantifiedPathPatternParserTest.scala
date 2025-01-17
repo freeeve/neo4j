@@ -26,9 +26,9 @@ import org.neo4j.cypher.internal.expressions.GraphPatternQuantifier
 import org.neo4j.cypher.internal.expressions.IntervalQuantifier
 import org.neo4j.cypher.internal.expressions.MatchMode
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.PathConcatenation
+import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart
@@ -154,8 +154,8 @@ class QuantifiedPathPatternParserTest extends AstParsingTestBase with LegacyAstP
               )
             )(pos),
             IntervalQuantifier(
-              Some(NonSensitiveUnsignedDecimalIntegerLiteral("1")(pos)),
-              Some(NonSensitiveUnsignedDecimalIntegerLiteral("3")(pos))
+              Some(PathLengthQuantifier("1")(pos)),
+              Some(PathLengthQuantifier("3")(pos))
             )(
               pos
             ),
@@ -558,8 +558,8 @@ class QuantifiedPathPatternsQuantifierParserTest extends AstParsingTestBase with
   test("{1_000, 1_000_000}") {
     parses[GraphPatternQuantifier].toAstPositioned {
       IntervalQuantifier(
-        Some(NonSensitiveUnsignedDecimalIntegerLiteral("1_000")((1, 2, 1))),
-        Some(NonSensitiveUnsignedDecimalIntegerLiteral("1_000_000")((1, 9, 8)))
+        Some(PathLengthQuantifier("1_000")((1, 2, 1))),
+        Some(PathLengthQuantifier("1_000_000")((1, 9, 8)))
       )((1, 1, 0))
     }
   }

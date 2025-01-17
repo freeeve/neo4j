@@ -35,8 +35,7 @@ import org.neo4j.cypher.internal.util.StepSequencer
 /**
  * Collect sensitive literals and parameters.
  */
-case class ObfuscationMetadataCollection(obfuscateOnlyUnsafeLiterals: Boolean)
-    extends Phase[BaseContext, BaseState, BaseState] {
+case object ObfuscationMetadataCollection extends Phase[BaseContext, BaseState, BaseState] {
 
   override def phase: CompilationPhaseTracer.CompilationPhase = METADATA_COLLECTION
 
@@ -72,7 +71,6 @@ case class ObfuscationMetadataCollection(obfuscateOnlyUnsafeLiterals: Boolean)
             case Some(originalExp) =>
               val literalOffsets =
                 originalExp.folder.findAllByClass[Literal]
-                  .filter(l => !obfuscateOnlyUnsafeLiterals || l.maybeSensitive)
                   .map(_.asSensitiveLiteral)
                   .map(l => LiteralOffset(l.position.offset, l.position.line, Some(l.literalLength)))
               SkipChildren(acc ++ literalOffsets)

@@ -45,8 +45,8 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapExpression
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.NodePattern
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Parameter
+import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertyKeyToken
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
@@ -752,8 +752,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     val length = p.length match {
       case SimplePatternLength => None
       case VarPatternLength(min, max) => Some(Some(Range(
-          Some(NonSensitiveUnsignedDecimalIntegerLiteral(min.toString)(pos)),
-          max.map(i => NonSensitiveUnsignedDecimalIntegerLiteral(i.toString)(pos))
+          Some(PathLengthQuantifier(min.toString)(pos)),
+          max.map(i => PathLengthQuantifier(i.toString)(pos))
         )(pos)))
     }
 

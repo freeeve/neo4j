@@ -26,7 +26,6 @@ import scala.util.matching.Regex
 sealed trait Literal extends Expression {
   def value: AnyRef
   def asCanonicalStringVal: String
-  def maybeSensitive: Boolean = true
   def asSensitiveLiteral: Literal with SensitiveLiteral
   override def isConstantForQuery: Boolean = true
 }
@@ -43,18 +42,8 @@ sealed trait IntegerLiteral extends NumberLiteral {
 sealed trait SignedIntegerLiteral extends IntegerLiteral
 sealed trait UnsignedIntegerLiteral extends IntegerLiteral
 
-sealed abstract class DecimalIntegerLiteral(stringVal: String) extends IntegerLiteral {
-  lazy val integerMatcher: Regex = """-?\d+((_\d+)?)*""" r
-
-  lazy val value: java.lang.Long = stringVal match {
-    case integerMatcher(_*) => java.lang.Long.parseLong(stringVal.toList.filter(c => c != '_').mkString)
-    // pass along to keep the same error message
-    case _ => java.lang.Long.parseLong(stringVal)
-  }
-}
-
 case class SignedDecimalIntegerLiteral(stringVal: String)(val position: InputPosition)
-    extends DecimalIntegerLiteral(stringVal) with SignedIntegerLiteral {
+    extends IntegerLiteral with SignedIntegerLiteral with StringDecimalInteger {
 
   override def asSensitiveLiteral: Literal with SensitiveLiteral =
     new SignedDecimalIntegerLiteral(stringVal)(position) with SensitiveLiteral {
@@ -62,15 +51,13 @@ case class SignedDecimalIntegerLiteral(stringVal: String)(val position: InputPos
     }
 }
 
-case class NonSensitiveUnsignedDecimalIntegerLiteral(
+case class UnsignedDecimalIntegerLiteral(
   stringVal: String
 )(val position: InputPosition)
-    extends DecimalIntegerLiteral(stringVal) with UnsignedIntegerLiteral {
-
-  override def maybeSensitive: Boolean = false
+    extends IntegerLiteral with UnsignedIntegerLiteral with StringDecimalInteger {
 
   override def asSensitiveLiteral: Literal with SensitiveLiteral =
-    new NonSensitiveUnsignedDecimalIntegerLiteral(stringVal)(position) with SensitiveLiteral {
+    new UnsignedDecimalIntegerLiteral(stringVal)(position) with SensitiveLiteral {
       override def literalLength: Int = stringVal.length
     }
 }

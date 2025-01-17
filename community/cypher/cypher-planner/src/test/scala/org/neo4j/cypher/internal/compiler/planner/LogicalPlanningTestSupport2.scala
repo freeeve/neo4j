@@ -211,7 +211,7 @@ object LogicalPlanningTestSupport2 extends MockitoSugar {
     deduplicateNames: Boolean = deduplicateNames
   ): Transformer[PlannerContext, BaseState, LogicalPlanState] = {
     val p1 = parsing(parsingConfig) andThen
-      prepareForCaching(parsingConfig.obfuscateLiterals) andThen
+      prepareForCaching andThen
       planPipeLine(pushdownPropertyReads = pushdownPropertyReads, semanticFeatures = parsingConfig.semanticFeatures)
     p1 andThen
       If((_: LogicalPlanState) => compressAnonymousVariables)(

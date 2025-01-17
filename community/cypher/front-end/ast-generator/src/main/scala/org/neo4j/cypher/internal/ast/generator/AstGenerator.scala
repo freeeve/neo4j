@@ -426,7 +426,6 @@ import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
 import org.neo4j.cypher.internal.expressions.NormalForm
 import org.neo4j.cypher.internal.expressions.Not
@@ -436,6 +435,7 @@ import org.neo4j.cypher.internal.expressions.Or
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PathConcatenation
 import org.neo4j.cypher.internal.expressions.PathFactor
+import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternComprehension
@@ -484,6 +484,7 @@ import org.neo4j.cypher.internal.expressions.Subtract
 import org.neo4j.cypher.internal.expressions.True
 import org.neo4j.cypher.internal.expressions.UnaryAdd
 import org.neo4j.cypher.internal.expressions.UnarySubtract
+import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableSelector
 import org.neo4j.cypher.internal.expressions.Xor
@@ -692,8 +693,11 @@ class AstGenerator(
     sig = if (neg) "-" else ""
   } yield List(sig, str).mkString
 
-  def _unsignedDecIntLit: Gen[NonSensitiveUnsignedDecimalIntegerLiteral] =
-    _unsignedIntString("", 10).map(NonSensitiveUnsignedDecimalIntegerLiteral(_)(pos))
+  def _pathLengthQuantifier: Gen[PathLengthQuantifier] =
+    _unsignedIntString("", 10).map(PathLengthQuantifier(_)(pos))
+
+  def _unsignedDecIntLit: Gen[UnsignedDecimalIntegerLiteral] =
+    _unsignedIntString("", 10).map(UnsignedDecimalIntegerLiteral(_)(pos))
 
   def _signedDecIntLit: Gen[SignedDecimalIntegerLiteral] =
     _signedIntString("", 10).map(SignedDecimalIntegerLiteral(_)(pos))
@@ -1199,8 +1203,8 @@ class AstGenerator(
   } yield NodePattern(variable, labelExpression, properties, predicate)(pos)
 
   def _range: Gen[Range] = for {
-    lower <- option(_unsignedDecIntLit)
-    upper <- option(_unsignedDecIntLit)
+    lower <- option(_pathLengthQuantifier)
+    upper <- option(_pathLengthQuantifier)
   } yield Range(lower, upper)(pos)
 
   def _semanticDirection: Gen[SemanticDirection] =
@@ -1239,12 +1243,12 @@ class AstGenerator(
   )
 
   def _generalQuantifier: Gen[IntervalQuantifier] = for {
-    lower <- option(_unsignedDecIntLit)
-    upper <- option(_unsignedDecIntLit)
+    lower <- option(_pathLengthQuantifier)
+    upper <- option(_pathLengthQuantifier)
   } yield IntervalQuantifier(lower, upper)(pos)
 
   def _fixedQuantifier: Gen[FixedQuantifier] = for {
-    value <- _unsignedDecIntLit
+    value <- _pathLengthQuantifier
   } yield FixedQuantifier(value)(pos)
 
   def _quantifier: Gen[GraphPatternQuantifier] = oneOf(
@@ -1274,16 +1278,16 @@ class AstGenerator(
     lzy(_pathConcatenation(dynamicLabelsAllowed))
   )
 
-  private def literalIntOrParam: Gen[Either[NonSensitiveUnsignedDecimalIntegerLiteral, Parameter]] = for {
-    int <- lzy(_unsignedDecIntLit)
+  private def literalIntOrParam: Gen[Either[PathLengthQuantifier, Parameter]] = for {
+    int <- lzy(_pathLengthQuantifier)
     param <- lzy(_parameter)
     count <- oneOf(Left(int), Right(param))
   } yield {
     count
   }
 
-  private def literalIntOnly: Gen[Either[NonSensitiveUnsignedDecimalIntegerLiteral, Parameter]] = for {
-    int <- lzy(_unsignedDecIntLit)
+  private def literalIntOnly: Gen[Either[PathLengthQuantifier, Parameter]] = for {
+    int <- lzy(_pathLengthQuantifier)
   } yield {
     Left(int)
   }

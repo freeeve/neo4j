@@ -24,7 +24,6 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.configuration.GraphDatabaseSettings
-import org.neo4j.configuration.helpers.LogObfuscationLevel
 import org.neo4j.cypher.internal.config.CypherConfiguration.statsDivergenceFromConfig
 import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
@@ -194,9 +193,6 @@ class CypherConfiguration private (val config: Config) {
 
   // dynamic configurations
   private var _obfuscateLiterals: Boolean = config.get(GraphDatabaseSettings.log_queries_obfuscate_literals)
-
-  private var _obfuscateUnsafeLiteralsOnly: Boolean =
-    config.get(GraphDatabaseInternalSettings.log_queries_obfuscate_unsafe_literals_only)
   private var _renderPlanDescription: Boolean = config.get(GraphDatabaseSettings.cypher_render_plan_descriptions)
 
   private var _parallelRuntimeSupport: CypherParallelRuntimeSupportOption =
@@ -221,11 +217,6 @@ class CypherConfiguration private (val config: Config) {
   )
 
   config.addListener[java.lang.Boolean](
-    GraphDatabaseInternalSettings.log_queries_obfuscate_unsafe_literals_only,
-    (_: java.lang.Boolean, newValue: java.lang.Boolean) => _obfuscateUnsafeLiteralsOnly = newValue
-  )
-
-  config.addListener[java.lang.Boolean](
     GraphDatabaseSettings.cypher_render_plan_descriptions,
     (_: java.lang.Boolean, newValue: java.lang.Boolean) => _renderPlanDescription = newValue
   )
@@ -233,10 +224,7 @@ class CypherConfiguration private (val config: Config) {
   def toggledFeatures(features: Map[Setting[java.lang.Boolean], String]): Set[String] =
     features.filter(s => config.get(s._1)).values.toSet
 
-  def obfuscateLiterals: LogObfuscationLevel = {
-    LogObfuscationLevel.create(_obfuscateLiterals, _obfuscateUnsafeLiteralsOnly)
-  }
-
+  def obfuscateLiterals: Boolean = _obfuscateLiterals
   def renderPlanDescription: Boolean = _renderPlanDescription
   def parallelRuntimeSupport: CypherParallelRuntimeSupportOption = _parallelRuntimeSupport
 

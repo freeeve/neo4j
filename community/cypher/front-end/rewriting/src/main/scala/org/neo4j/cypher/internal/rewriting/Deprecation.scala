@@ -48,7 +48,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
+import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.Range
 import org.neo4j.cypher.internal.expressions.RelationshipChain
@@ -186,8 +186,8 @@ object Deprecations {
           variable,
           labelExpression,
           Some(Some(Range(
-            Some(NonSensitiveUnsignedDecimalIntegerLiteral("1")(relPat.position)),
-            Some(NonSensitiveUnsignedDecimalIntegerLiteral("1")(relPat.position))
+            Some(PathLengthQuantifier("1")(relPat.position)),
+            Some(PathLengthQuantifier("1")(relPat.position))
           )(relPat.position))),
           properties,
           predicate,

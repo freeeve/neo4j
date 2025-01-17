@@ -24,10 +24,9 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.IntegerLiteral
 import org.neo4j.cypher.internal.expressions.Literal
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.PathExpression
-import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.SubqueryExpression
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.symbols.CTInteger
@@ -97,9 +96,8 @@ object ASTSlicingPhrase extends SemanticAnalysisTooling {
   ): SemanticCheck = {
     try {
       expression match {
-        case _: NonSensitiveUnsignedDecimalIntegerLiteral                  => SemanticCheck.success
-        case i: SignedDecimalIntegerLiteral if i.value > 0                 => SemanticCheck.success
-        case i: SignedDecimalIntegerLiteral if i.value == 0 && acceptsZero => SemanticCheck.success
+        case i: IntegerLiteral if i.value > 0                 => SemanticCheck.success
+        case i: IntegerLiteral if i.value == 0 && acceptsZero => SemanticCheck.success
         case lit: Literal =>
           val accepted = if (acceptsZero) "non-negative" else "positive"
           val lowerBound = if (acceptsZero) 0 else 1

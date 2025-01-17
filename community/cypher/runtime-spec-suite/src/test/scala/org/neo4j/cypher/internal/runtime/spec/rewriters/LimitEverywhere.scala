@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal.runtime.spec.rewriters
 
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
+import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.logical.plans.Limit
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.runtime.spec.rewriters.PlanRewriterContext.pos
@@ -48,7 +48,7 @@ case class LimitEverywhere(
     ctx,
     config,
     (plan: LogicalPlan) => {
-      Limit(plan, NonSensitiveUnsignedDecimalIntegerLiteral(Long.MaxValue.toString)(pos))(ctx.idGen)
+      Limit(plan, UnsignedDecimalIntegerLiteral(Long.MaxValue.toString)(pos))(ctx.idGen)
     }
   )
 

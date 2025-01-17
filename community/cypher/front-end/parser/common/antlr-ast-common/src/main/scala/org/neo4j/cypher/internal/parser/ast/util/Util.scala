@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.ast.IfExistsDoNothing
 import org.neo4j.cypher.internal.ast.IfExistsInvalidSyntax
 import org.neo4j.cypher.internal.ast.IfExistsReplace
 import org.neo4j.cypher.internal.ast.IfExistsThrowError
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
+import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.parser.AstRuleCtx
 import org.neo4j.cypher.internal.parser.lexer.CypherQueryAccess
@@ -53,12 +53,12 @@ object Util {
     else throw new IllegalArgumentException(s"Unexpected size $size")
   }
 
-  def optSafeUnsignedDecimalInt(token: Token): Option[NonSensitiveUnsignedDecimalIntegerLiteral] = {
+  def optSafeUnsignedDecimalInt(token: Token): Option[PathLengthQuantifier] = {
     if (token != null) Some(safeUnsignedDecimalInt(token)) else None
   }
 
-  def safeUnsignedDecimalInt(token: Token): NonSensitiveUnsignedDecimalIntegerLiteral = {
-    NonSensitiveUnsignedDecimalIntegerLiteral(token.getText)(pos(token))
+  def safeUnsignedDecimalInt(token: Token): PathLengthQuantifier = {
+    PathLengthQuantifier(token.getText)(pos(token))
   }
 
   @inline def ctxChild(ctx: AstRuleCtx, index: Int): AstRuleCtx = ctx.getChild(index).asInstanceOf[AstRuleCtx]

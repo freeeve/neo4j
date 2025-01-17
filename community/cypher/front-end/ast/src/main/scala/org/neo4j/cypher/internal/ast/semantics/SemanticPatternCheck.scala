@@ -36,12 +36,12 @@ import org.neo4j.cypher.internal.expressions.MapExpression
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.NodePattern
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Null
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.PathConcatenation
 import org.neo4j.cypher.internal.expressions.PathFactor
+import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.Pattern.SemanticContext
@@ -248,7 +248,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
         _ => SkipChildren(false)
     }) {
       val fixedZeroQuantifier =
-        FixedQuantifier(NonSensitiveUnsignedDecimalIntegerLiteral("0")(InputPosition.NONE))(InputPosition.NONE)
+        FixedQuantifier(PathLengthQuantifier("0")(InputPosition.NONE))(InputPosition.NONE)
       val minimalPatternPart = x.element.endoRewrite {
         topDown(Rewriter.lift {
           case q: QuantifiedPath => q.copy(quantifier = fixedZeroQuantifier)(InputPosition.NONE)
@@ -424,7 +424,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
   private def checkQuantifier(quantifier: GraphPatternQuantifier): SemanticCheck =
     checkQuantifierValue(quantifier) ifOkChain {
       quantifier match {
-        case FixedQuantifier(NonSensitiveUnsignedDecimalIntegerLiteral("0")) =>
+        case FixedQuantifier(PathLengthQuantifier("0")) =>
           SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
             "quantifier for a path pattern",
             "INTEGER",
@@ -440,7 +440,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
                |In this case, the lower bound ${lower.value} is greater than the upper bound ${upper.value}.""".stripMargin,
             quantifier.position
           )
-        case IntervalQuantifier(_, Some(NonSensitiveUnsignedDecimalIntegerLiteral("0"))) =>
+        case IntervalQuantifier(_, Some(PathLengthQuantifier("0"))) =>
           SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
             "quantifier upperbound for a path pattern",
             "INTEGER",

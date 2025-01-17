@@ -38,23 +38,24 @@ case class StarQuantifier()(val position: InputPosition) extends GraphPatternQua
 /**
  * Represents a quantifier like {1, 5} with optional lower and upper bound.
  */
-case class IntervalQuantifier(lower: Option[UnsignedIntegerLiteral], upper: Option[UnsignedIntegerLiteral])(
+case class IntervalQuantifier(lower: Option[PathLengthQuantifier], upper: Option[PathLengthQuantifier])(
   val position: InputPosition
 ) extends GraphPatternQuantifier {
   override def canBeEmpty: Boolean = lower.map(_.value.longValue()).getOrElse(0L) == 0
 
   override def mapExpressions(f: Expression => Expression): GraphPatternQuantifier = copy(
-    lower.map(f).asInstanceOf[Option[UnsignedIntegerLiteral]],
-    upper.map(f).asInstanceOf[Option[UnsignedIntegerLiteral]]
+    lower.map(f).asInstanceOf[Option[PathLengthQuantifier]],
+    upper.map(f).asInstanceOf[Option[PathLengthQuantifier]]
   )(this.position)
 }
 
 /**
  * Represents a quantifier like {3} with for which lower and upper bound are equal.
  */
-case class FixedQuantifier(value: UnsignedIntegerLiteral)(val position: InputPosition) extends GraphPatternQuantifier {
+case class FixedQuantifier(value: PathLengthQuantifier)(val position: InputPosition) extends GraphPatternQuantifier {
+
   override def canBeEmpty: Boolean = value.value == 0
 
   override def mapExpressions(f: Expression => Expression): GraphPatternQuantifier =
-    copy(f(value).asInstanceOf[UnsignedIntegerLiteral])(this.position)
+    copy(f(value).asInstanceOf[PathLengthQuantifier])(this.position)
 }

@@ -75,7 +75,6 @@ import org.neo4j.cypher.internal.expressions.NFKDNormalForm
 import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
 import org.neo4j.cypher.internal.expressions.NormalForm
 import org.neo4j.cypher.internal.expressions.Not
@@ -85,6 +84,7 @@ import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.PathConcatenation
 import org.neo4j.cypher.internal.expressions.PathFactor
+import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternComprehension
@@ -181,7 +181,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   override def exitNonNegativeIntegerSpecification(ctx: Cypher25Parser.NonNegativeIntegerSpecificationContext): Unit = {
     val integer = ctx.UNSIGNED_DECIMAL_INTEGER()
     ctx.ast = if (integer != null) {
-      Left(NonSensitiveUnsignedDecimalIntegerLiteral(ctx.getText)(pos(ctx)))
+      Left(PathLengthQuantifier(ctx.getText)(pos(ctx)))
     } else {
       val count = ctx.parameter().ast[Parameter]()
       Right(ExplicitParameter(count.name, CTInteger)(count.position))
@@ -264,10 +264,10 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   private def selectorCount(
     ctx: Cypher25Parser.NonNegativeIntegerSpecificationContext,
     p: InputPosition
-  ): Either[NonSensitiveUnsignedDecimalIntegerLiteral, Parameter] =
-    astOpt[Either[NonSensitiveUnsignedDecimalIntegerLiteral, Parameter]](
+  ): Either[PathLengthQuantifier, Parameter] =
+    astOpt[Either[PathLengthQuantifier, Parameter]](
       ctx,
-      Left(NonSensitiveUnsignedDecimalIntegerLiteral("1")(p))
+      Left(PathLengthQuantifier("1")(p))
     )
 
   final override def exitSelector(ctx: Cypher25Parser.SelectorContext): Unit = {
@@ -318,7 +318,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
       val to = optSafeUnsignedDecimalInt(ctx.to)
       Some(org.neo4j.cypher.internal.expressions.Range(from, to)(from.map(_.position).getOrElse(pos(ctx))))
     } else if (ctx.single != null) {
-      val single = Some(NonSensitiveUnsignedDecimalIntegerLiteral(ctx.single.getText)(pos(ctx.single)))
+      val single = Some(PathLengthQuantifier(ctx.single.getText)(pos(ctx.single)))
       Some(org.neo4j.cypher.internal.expressions.Range(single, single)(pos(ctx)))
     } else None
   }

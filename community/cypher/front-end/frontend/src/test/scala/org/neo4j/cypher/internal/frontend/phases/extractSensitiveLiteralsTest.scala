@@ -23,12 +23,10 @@ import org.neo4j.cypher.internal.expressions.SensitiveLiteral
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.FoldConstants
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-abstract class extractSensitiveLiteralsTest extends CypherFunSuite with AstConstructionTestSupport
+class extractSensitiveLiteralsTest extends CypherFunSuite with AstConstructionTestSupport
     with RewritePhaseTest {
 
-  override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
-    ExtractSensitiveLiterals(obfuscateSensitiveLiteralsOnly)
-  protected def obfuscateSensitiveLiteralsOnly: Boolean
+  override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] = ExtractSensitiveLiterals
 
   val queries = Seq(
     "MATCH (n) WHERE n.salary = 10000000.76 RETURN n",
@@ -65,7 +63,7 @@ abstract class extractSensitiveLiteralsTest extends CypherFunSuite with AstConst
     assertSensitiveNotRewritten("MATCH (n) WHERE 2<1 RETURN n AS r")
   }
 
-  test("should obfuscate quantifiers") {
+  test("should not obfuscate quantifiers") {
     val queries = Seq("MATCH (a)-[r*1..1000]->(b) RETURN b", "MATCH (a) ( ()-->() ){1,1000} (b) RETURN b")
 
     queries.foreach(q => {
@@ -73,11 +71,7 @@ abstract class extractSensitiveLiteralsTest extends CypherFunSuite with AstConst
         q,
         statement => {
           statement.folder.findAllByClass[Literal].foreach(l => {
-            if (obfuscateSensitiveLiteralsOnly) {
-              l shouldNot be(a[SensitiveLiteral])
-            } else {
-              l shouldBe a[SensitiveLiteral]
-            }
+            l shouldNot be(a[SensitiveLiteral])
           })
         }
       )
@@ -91,12 +85,4 @@ abstract class extractSensitiveLiteralsTest extends CypherFunSuite with AstConst
       unfolded.statement() should equal(folded)
     }
   }
-}
-
-class extractAllSensitiveLiteralsTest extends extractSensitiveLiteralsTest {
-  override protected def obfuscateSensitiveLiteralsOnly: Boolean = false
-}
-
-class extractOnlyUnsafeSensitiveLiteralsTest extends extractSensitiveLiteralsTest {
-  override protected def obfuscateSensitiveLiteralsOnly: Boolean = true
 }

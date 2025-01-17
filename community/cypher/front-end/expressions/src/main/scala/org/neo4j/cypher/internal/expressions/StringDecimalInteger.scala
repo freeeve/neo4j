@@ -16,15 +16,16 @@
  */
 package org.neo4j.cypher.internal.expressions
 
-import org.neo4j.cypher.internal.util.ASTNode
-import org.neo4j.cypher.internal.util.InputPosition
+import scala.util.matching.Regex
 
-case class Range(lower: Option[PathLengthQuantifier], upper: Option[PathLengthQuantifier])(
-  val position: InputPosition
-) extends ASTNode with HasMappableExpressions[Range] {
+trait StringDecimalInteger {
+  def stringVal: String
 
-  override def mapExpressions(f: Expression => Expression): Range = copy(
-    lower.map(f).asInstanceOf[Option[PathLengthQuantifier]],
-    upper.map(f).asInstanceOf[Option[PathLengthQuantifier]]
-  )(this.position)
+  lazy val integerMatcher: Regex = """-?\d+((_\d+)?)*""".r
+
+  lazy val value: java.lang.Long = stringVal match {
+    case integerMatcher(_*) => java.lang.Long.parseLong(stringVal.toList.filter(c => c != '_').mkString)
+    // pass along to keep the same error message
+    case _ => java.lang.Long.parseLong(stringVal)
+  }
 }

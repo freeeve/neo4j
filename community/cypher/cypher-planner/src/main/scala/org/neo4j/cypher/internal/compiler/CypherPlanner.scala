@@ -83,7 +83,7 @@ case class CypherPlanner[Context <: PlannerContext](
   }
 
   def normalizeQuery(state: BaseState, context: Context): BaseState =
-    prepareForCaching(parsingConfig.obfuscateLiterals()).transform(state, context)
+    prepareForCaching.transform(state, context)
 
   def planPreparedQuery(state: BaseState, context: PlannerContext): LogicalPlanState = {
     val features: Seq[SemanticFeature] = CypherParsingConfig.getEnabledFeatures(

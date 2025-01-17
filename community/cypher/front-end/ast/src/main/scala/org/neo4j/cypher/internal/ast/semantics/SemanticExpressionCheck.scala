@@ -46,7 +46,6 @@ import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.Contains
 import org.neo4j.cypher.internal.expressions.CountStar
 import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
-import org.neo4j.cypher.internal.expressions.DecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
 import org.neo4j.cypher.internal.expressions.DifferentRelationships
 import org.neo4j.cypher.internal.expressions.Disjoint
@@ -120,6 +119,7 @@ import org.neo4j.cypher.internal.expressions.RepeatPathStep
 import org.neo4j.cypher.internal.expressions.ShortestPathExpression
 import org.neo4j.cypher.internal.expressions.SingleRelationshipPathStep
 import org.neo4j.cypher.internal.expressions.StartsWith
+import org.neo4j.cypher.internal.expressions.StringDecimalInteger
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.Subtract
 import org.neo4j.cypher.internal.expressions.UnaryAdd
@@ -717,7 +717,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
 
       // LITERALS
 
-      case x: DecimalIntegerLiteral =>
+      case x: StringDecimalInteger =>
         when(!validNumber(x)) {
           if (x.stringVal matches "^-?[1-9][0-9]*$") {
             SemanticError.numberTooLarge("integer", x.stringVal, x.position)

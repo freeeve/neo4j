@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQppPredicat
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NodePattern
-import org.neo4j.cypher.internal.expressions.NonSensitiveUnsignedDecimalIntegerLiteral
+import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.Range
 import org.neo4j.cypher.internal.expressions.RelTypeName
@@ -148,8 +148,8 @@ case class StatefulShortestToFindShortestRewriter(
     pr.length match {
       case SimplePatternLength => None
       case VarPatternLength(min, max) => Some(Some(Range(
-          Some(NonSensitiveUnsignedDecimalIntegerLiteral(min.toString)(pos)),
-          max.map(i => NonSensitiveUnsignedDecimalIntegerLiteral(i.toString)(pos))
+          Some(PathLengthQuantifier(min.toString)(pos)),
+          max.map(i => PathLengthQuantifier(i.toString)(pos))
         )(pos)))
     }
   }
@@ -221,8 +221,8 @@ case class StatefulShortestToFindShortestRewriter(
   private def getRange(qpp: QuantifiedPathPattern): Option[Some[Range]] = {
     val pos = InputPosition.NONE
     Some(Some(Range(
-      Some(NonSensitiveUnsignedDecimalIntegerLiteral(qpp.repetition.min.toString)(pos)),
-      qpp.repetition.max.limit.map(i => NonSensitiveUnsignedDecimalIntegerLiteral(i.toString)(pos))
+      Some(PathLengthQuantifier(qpp.repetition.min.toString)(pos)),
+      qpp.repetition.max.limit.map(i => PathLengthQuantifier(i.toString)(pos))
     )(pos)))
   }
 

@@ -33,11 +33,11 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompa
 import org.neo4j.cypher.internal.evaluator.SimpleInternalExpressionEvaluator
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.IntegerLiteral
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.expressions.StringDecimalInteger
 import org.neo4j.cypher.internal.expressions.functions.DeterministicFunction.isFunctionDeterministic
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.ir.PlannerQuery
@@ -235,7 +235,7 @@ trait ExpressionEvaluator {
     }
 
     expression match {
-      case literal: IntegerLiteral => Some(literal.value)
+      case literal: StringDecimalInteger => Some(literal.value)
       case nonLiteral if isStable(nonLiteral) =>
         evaluateExpression(nonLiteral)
           .collect { case number: NumberValue => number.longValue() }
