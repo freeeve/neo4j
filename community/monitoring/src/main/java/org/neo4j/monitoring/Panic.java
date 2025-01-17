@@ -19,8 +19,13 @@
  */
 package org.neo4j.monitoring;
 
+import java.util.function.BiFunction;
+
 public interface Panic {
     <EXCEPTION extends Throwable> void assertNoPanic(Class<EXCEPTION> panicDisguise) throws EXCEPTION;
+
+    <EXCEPTION extends Throwable> void assertNoPanic(BiFunction<String, Throwable, EXCEPTION> panicDisguise)
+            throws EXCEPTION;
 
     void panic(Throwable cause);
 
