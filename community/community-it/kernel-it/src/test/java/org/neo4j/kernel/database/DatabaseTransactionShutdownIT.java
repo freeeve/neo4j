@@ -213,7 +213,7 @@ class DatabaseTransactionShutdownIT {
         try (Transaction leakedTx = db.beginTx()) {
             dbms.shutdown();
             LogAssertions.assertThat(logProvider)
-                    .forClass(Database.class)
+                    .forClass(KernelTransactions.class)
                     .forLevel(WARN)
                     .containsMessages(UNCLEAN_SHUTDOWN_MSG);
             assertThatThrownBy(leakedTx::close)
@@ -245,6 +245,10 @@ class DatabaseTransactionShutdownIT {
             latch.await();
             dbms.shutdown();
             assertThat(ktxs.haveActiveTransaction()).isFalse();
+            LogAssertions.assertThat(logProvider)
+                    .forClass(Database.class)
+                    .forLevel(WARN)
+                    .doesNotContainMessage(UNCLEAN_SHUTDOWN_MSG);
         } finally {
             done.set(true);
             if (future != null) {

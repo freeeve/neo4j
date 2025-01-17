@@ -32,6 +32,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.availability.AvailabilityGuard;
+import org.neo4j.kernel.database.DatabaseMonitors;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.impl.api.chunk.TransactionRollbackProcess;
@@ -97,5 +98,6 @@ public interface KernelTransactionsFactory {
             DatabaseHealth databaseHealth,
             TransactionValidatorFactory transactionValidatorFactory,
             LogProvider internalLogProvider,
-            TopologyGraphDbmsModel.HostedOnMode mode);
+            TopologyGraphDbmsModel.HostedOnMode mode,
+            DatabaseMonitors databaseMonitors);
 }

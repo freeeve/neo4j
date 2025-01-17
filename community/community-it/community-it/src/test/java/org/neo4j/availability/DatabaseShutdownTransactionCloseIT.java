@@ -22,16 +22,22 @@ package org.neo4j.availability;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
+import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.graphdb.DatabaseShutdownException;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.TransactionTerminatedException;
 import org.neo4j.graphdb.event.TransactionData;
 import org.neo4j.graphdb.event.TransactionEventListenerAdapter;
+import org.neo4j.kernel.availability.UnavailableException;
 import org.neo4j.kernel.database.DatabaseMonitors;
 import org.neo4j.kernel.impl.api.ShutdownTransactionMonitor;
 import org.neo4j.test.extension.DbmsExtension;
@@ -265,6 +271,40 @@ public class DatabaseShutdownTransactionCloseIT {
             });
 
             assertDoesNotThrow(() -> shutdownFuture.get());
+        }
+    }
+
+    @Test
+    void transactionTerminationOnShutdown() {
+        int executors = 20;
+        try (var executor = Executors.newFixedThreadPool(executors)) {
+            var futures = new ArrayList<Future<?>>(executors);
+            for (int i = 0; i < executors; i++) {
+                futures.add(executor.submit(() -> {
+                    while (true) {
+                        try (var tx = databaseService.beginTx()) {
+                            var start = tx.createNode();
+                            var end = tx.createNode();
+                            start.createRelationshipTo(
+                                    end,
+                                    RelationshipType.withName(
+                                            RandomStringUtils.insecure().nextAscii(10)));
+                            tx.commit();
+                        }
+                    }
+                }));
+            }
+            managementService.shutdown();
+
+            for (Future<?> future : futures) {
+                assertThatThrownBy(future::get)
+                        .rootCause()
+                        .isInstanceOfAny(
+                                DatabaseShutdownException.class,
+                                UnavailableException.class,
+                                TransactionTerminatedException.class,
+                                IllegalStateException.class);
+            }
         }
     }
 }

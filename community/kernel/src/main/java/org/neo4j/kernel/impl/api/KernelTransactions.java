@@ -19,8 +19,11 @@
  */
 package org.neo4j.kernel.impl.api;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toSet;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.shutdown_terminated_transaction_wait_timeout;
 import static org.neo4j.configuration.GraphDatabaseSettings.memory_transaction_database_max_size;
+import static org.neo4j.configuration.GraphDatabaseSettings.shutdown_transaction_end_timeout;
 import static org.neo4j.io.pagecache.PageCacheOpenOptions.MULTI_VERSIONED;
 import static org.neo4j.kernel.impl.api.transaction.serial.DatabaseSerialGuard.EMPTY_GUARD;
 
@@ -29,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
@@ -48,7 +52,6 @@ import org.neo4j.graphdb.DatabaseShutdownException;
 import org.neo4j.graphdb.TransactionFailureHelper;
 import org.neo4j.internal.id.IdController;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
-import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.internal.kernel.api.security.AbstractSecurityLog;
 import org.neo4j.internal.kernel.api.security.DatabaseAccessMode;
 import org.neo4j.internal.kernel.api.security.LoginContext;
@@ -63,6 +66,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.api.procedure.ProcedureView;
 import org.neo4j.kernel.availability.AvailabilityGuard;
+import org.neo4j.kernel.database.DatabaseMonitors;
 import org.neo4j.kernel.database.DatabaseReferenceImpl;
 import org.neo4j.kernel.database.DatabaseReferenceRepository;
 import org.neo4j.kernel.database.DatabaseTracers;
@@ -85,6 +89,7 @@ import org.neo4j.kernel.impl.query.TransactionExecutionMonitor;
 import org.neo4j.kernel.impl.transaction.log.TransactionCommitmentFactory;
 import org.neo4j.kernel.internal.event.DatabaseTransactionEventListeners;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
+import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.GlobalMemoryGroupTracker;
 import org.neo4j.memory.ScopedMemoryPool;
@@ -172,6 +177,8 @@ public class KernelTransactions extends LifecycleAdapter
     private final TopologyGraphDbmsModel.HostedOnMode mode;
     private final DatabaseSerialGuard databaseSerialGuard;
     private final TransactionStateBehaviour transactionStateBehaviour;
+    private final Log log;
+    private final DatabaseMonitors databaseMonitors;
     private ScopedMemoryPool transactionMemoryPool;
 
     /**
@@ -220,7 +227,8 @@ public class KernelTransactions extends LifecycleAdapter
             DatabaseHealth databaseHealth,
             TransactionValidatorFactory transactionValidatorFactory,
             LogProvider internalLogProvider,
-            TopologyGraphDbmsModel.HostedOnMode mode) {
+            TopologyGraphDbmsModel.HostedOnMode mode,
+            DatabaseMonitors databaseMonitors) {
         this.config = config;
         this.lockManager = lockManager;
         this.constraintIndexCreator = constraintIndexCreator;
@@ -260,6 +268,8 @@ public class KernelTransactions extends LifecycleAdapter
         this.transactionIdSequence = transactionIdSequence;
         this.multiVersioned = storageEngine.getOpenOptions().contains(MULTI_VERSIONED);
         this.mode = mode;
+        this.log = internalLogProvider.getLog(KernelTransactions.class);
+        this.databaseMonitors = databaseMonitors;
         this.txPool = new MonitoredTransactionPool(
                 new GlobalKernelTransactionPool(allTransactions, new TransactionFactory(allTransactions, tracers)),
                 activeTransactionCounter,
@@ -313,10 +323,10 @@ public class KernelTransactions extends LifecycleAdapter
             while (!newTransactionsLock.readLock().tryLock(1, TimeUnit.SECONDS)) {
                 assertRunning();
             }
-            KernelTransactionImplementation tx = null;
             try {
+                assertRunning();
                 TransactionId lastCommittedTransaction = transactionIdStore.getLastCommittedTransaction();
-                tx = txPool.acquire();
+                var tx = txPool.acquire();
                 tx.initialize(
                         lastCommittedTransaction.id(),
                         type,
@@ -325,14 +335,7 @@ public class KernelTransactions extends LifecycleAdapter
                         transactionIdSequence.next(),
                         clientInfo,
                         procedureView);
-                assertRunning();
                 return tx;
-            } catch (Throwable t) {
-                try (var close = tx) {
-                } catch (TransactionFailureException | RuntimeException e) {
-                    t.addSuppressed(e);
-                }
-                throw t;
             } finally {
                 newTransactionsLock.readLock().unlock();
             }
@@ -391,14 +394,6 @@ public class KernelTransactions extends LifecycleAdapter
                 .collect(toSet());
     }
 
-    /**
-     * Dispose of all pooled transactions. This is done on shutdown.
-     */
-    public void disposeAll() {
-        terminateTransactions();
-        txPool.close();
-    }
-
     @Override
     public void terminateTransactions() {
         // we mark all transactions for termination since we want to make sure these transactions
@@ -444,13 +439,64 @@ public class KernelTransactions extends LifecycleAdapter
     public void stop() {
         blockNewTransactions();
         stopped = true;
+        waitAndTerminateRunningTransactions();
+    }
+
+    private void waitAndTerminateRunningTransactions() {
+        log.info("Waiting for closing transactions.");
+
+        var transactionShutdownMonitor = databaseMonitors.newMonitor(ShutdownTransactionMonitor.class);
+
+        if (!newTransactionsLock.isWriteLocked()) {
+            throw new IllegalStateException("Ability to start new transactions should be disabled.");
+        }
+
+        // give time for transactions to complete without termination
+        if (haveActiveTransaction()) {
+            transactionShutdownMonitor.awaitActiveTransactionClose();
+            long completionDeadline = clock.millis()
+                    + config.get(shutdown_transaction_end_timeout).toMillis();
+            while (haveActiveTransaction() && clock.millis() < completionDeadline) {
+                LockSupport.parkNanos(MILLISECONDS.toNanos(10));
+            }
+        }
+
+        // terminate transactions
+        terminateTransactions();
+
+        // Give transactions a short time to detect they are terminated
+        if (haveActiveTransaction()) {
+            transactionShutdownMonitor.awaitTerminatedTransactionClose();
+            long waitTime =
+                    config.get(shutdown_terminated_transaction_wait_timeout).toMillis();
+            long deadline = clock.millis() + waitTime;
+            while (haveActiveTransaction() && clock.millis() < deadline) {
+                LockSupport.parkNanos(MILLISECONDS.toNanos(10));
+            }
+        }
+
+        if (haveClosingTransaction()) {
+            transactionShutdownMonitor.awaitClosingTransactionClose();
+            while (haveClosingTransaction()) {
+                LockSupport.parkNanos(MILLISECONDS.toNanos(10));
+            }
+        }
+
+        if (haveActiveTransaction()) {
+            log.warn("Failed to close all transactions. Shutdown may be unclean.");
+        } else {
+            log.info("All transactions are closed.");
+        }
     }
 
     @Override
     public void shutdown() {
-        transactionMemoryPool.close();
-        disposeAll();
-        unblockNewTransactions(); // Release the lock before we discard this object
+        // All transaction should be terminated/awaited to complete on stop
+        try (var tempMemoryPool = transactionMemoryPool;
+                var tempTxPool = txPool) {
+        } finally {
+            unblockNewTransactions(); // Release the lock before we discard this object
+        }
     }
 
     @Override

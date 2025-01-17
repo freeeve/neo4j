@@ -69,6 +69,7 @@ import org.neo4j.io.pagecache.impl.muninn.EvictionBouncer;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
+import org.neo4j.kernel.impl.api.KernelTransactions;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointerImpl;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
@@ -184,7 +185,7 @@ class DatabaseIT {
 
         assertNotEquals(flushesBeforeClose, pageCacheWrapper.getFileFlushes());
         LogAssertions.assertThat(logProvider)
-                .forClass(Database.class)
+                .forClass(KernelTransactions.class)
                 .forLevel(INFO)
                 .containsMessages(
                         format("[%s] Waiting for closing transactions.", logPrefix),

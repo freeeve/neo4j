@@ -39,6 +39,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.neo4j.collection.Dependencies.dependenciesOf;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.shutdown_terminated_transaction_wait_timeout;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
 import static org.neo4j.internal.helpers.collection.Iterators.asSet;
@@ -58,6 +59,7 @@ import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_I
 import static org.neo4j.storageengine.api.txstate.validation.TransactionValidatorFactory.EMPTY_VALIDATOR_FACTORY;
 import static org.neo4j.util.concurrent.Futures.combine;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -102,6 +104,7 @@ import org.neo4j.kernel.api.security.AnonymousContext;
 import org.neo4j.kernel.availability.AvailabilityGuard;
 import org.neo4j.kernel.availability.CompositeDatabaseAvailabilityGuard;
 import org.neo4j.kernel.availability.DatabaseAvailabilityGuard;
+import org.neo4j.kernel.database.DatabaseMonitors;
 import org.neo4j.kernel.database.DatabaseReferenceImpl;
 import org.neo4j.kernel.database.DatabaseReferenceRepository;
 import org.neo4j.kernel.database.DatabaseTracers;
@@ -126,6 +129,7 @@ import org.neo4j.kernel.monitoring.tracing.DefaultTracers;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.logging.NullLog;
 import org.neo4j.logging.NullLogProvider;
+import org.neo4j.logging.internal.DatabaseLogProvider;
 import org.neo4j.memory.GlobalMemoryGroupTracker;
 import org.neo4j.memory.MemoryGroup;
 import org.neo4j.memory.MemoryPools;
@@ -214,8 +218,6 @@ class KernelTransactionsTest {
         // Given
         KernelTransactions transactions = newKernelTransactions();
 
-        transactions.disposeAll();
-
         KernelTransaction first = getKernelTransaction(transactions);
         KernelTransaction second = getKernelTransaction(transactions);
         KernelTransaction leftOpen = getKernelTransaction(transactions);
@@ -223,13 +225,11 @@ class KernelTransactionsTest {
         second.close();
 
         // When
-        transactions.disposeAll();
+        transactions.stop();
+        transactions.shutdown();
 
         // Then
-        KernelTransaction postDispose = getKernelTransaction(transactions);
-        assertThat(postDispose).isNotEqualTo(first);
-        assertThat(postDispose).isNotEqualTo(second);
-
+        assertThatThrownBy(() -> getKernelTransaction(transactions)).isInstanceOf(IllegalStateException.class);
         assertNotNull(leftOpen.getReasonIfTerminated());
     }
 
@@ -393,7 +393,8 @@ class KernelTransactionsTest {
         KernelTransaction tx2 = getKernelTransaction(kernelTransactions);
         KernelTransaction tx3 = getKernelTransaction(kernelTransactions);
 
-        kernelTransactions.disposeAll();
+        kernelTransactions.stop();
+        kernelTransactions.shutdown();
 
         assertEquals(
                 Status.General.DatabaseUnavailable, tx1.getReasonIfTerminated().get());
@@ -421,7 +422,8 @@ class KernelTransactionsTest {
         txOne.close();
         txTwo.close();
         txThree.close();
-        kernelTransactions.disposeAll();
+        kernelTransactions.stop();
+        kernelTransactions.shutdown();
 
         // Then
         verify(storeStatement1).close();
@@ -793,6 +795,8 @@ class KernelTransactionsTest {
                 "null", NullLog.getInstance(), new Monitors(), mock(JobScheduler.class), clock, config);
         final DatabaseTracers databaseTracers = new DatabaseTracers(tracers, DEFAULT_DATABASE_ID);
 
+        config.setIfNotSet(shutdown_terminated_transaction_wait_timeout, Duration.ZERO);
+
         KernelTransactions transactions;
         if (testKernelTransactions) {
             transactions = createTestTransactions(
@@ -871,7 +875,8 @@ class KernelTransactionsTest {
                 mock(DatabaseHealth.class),
                 EMPTY_VALIDATOR_FACTORY,
                 NullLogProvider.getInstance(),
-                TopologyGraphDbmsModel.HostedOnMode.SINGLE);
+                TopologyGraphDbmsModel.HostedOnMode.SINGLE,
+                new DatabaseMonitors(new Monitors(), DatabaseLogProvider.nullDatabaseLogProvider()));
     }
 
     private static TestKernelTransactions createTestTransactions(
@@ -959,7 +964,7 @@ class KernelTransactionsTest {
                 TokenHolders tokenHolders,
                 Dependencies databaseDependencies) {
             super(
-                    Config.defaults(),
+                    Config.defaults(shutdown_terminated_transaction_wait_timeout, Duration.ZERO),
                     locks,
                     constraintIndexCreator,
                     transactionCommitProcess,
@@ -997,7 +1002,8 @@ class KernelTransactionsTest {
                     mock(DatabaseHealth.class),
                     EMPTY_VALIDATOR_FACTORY,
                     NullLogProvider.getInstance(),
-                    TopologyGraphDbmsModel.HostedOnMode.SINGLE);
+                    TopologyGraphDbmsModel.HostedOnMode.SINGLE,
+                    new DatabaseMonitors(new Monitors(), DatabaseLogProvider.nullDatabaseLogProvider()));
         }
 
         @Override

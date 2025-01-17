@@ -20,9 +20,6 @@
 package org.neo4j.kernel.database;
 
 import static java.lang.String.format;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.locks.LockSupport.parkNanos;
-import static org.neo4j.configuration.GraphDatabaseInternalSettings.shutdown_terminated_transaction_wait_timeout;
 import static org.neo4j.configuration.GraphDatabaseSettings.db_format;
 import static org.neo4j.function.Predicates.alwaysTrue;
 import static org.neo4j.function.ThrowingAction.executeAll;
@@ -41,10 +38,8 @@ import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -109,10 +104,8 @@ import org.neo4j.kernel.impl.api.KernelImpl;
 import org.neo4j.kernel.impl.api.KernelTransactions;
 import org.neo4j.kernel.impl.api.KernelTransactionsFactory;
 import org.neo4j.kernel.impl.api.LeaseService;
-import org.neo4j.kernel.impl.api.ShutdownTransactionMonitor;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
 import org.neo4j.kernel.impl.api.TransactionIdSequence;
-import org.neo4j.kernel.impl.api.TransactionRegistry;
 import org.neo4j.kernel.impl.api.TransactionVisibilityProvider;
 import org.neo4j.kernel.impl.api.TransactionalProcessFactory;
 import org.neo4j.kernel.impl.api.TransactionsFactory;
@@ -582,7 +575,6 @@ public class Database extends AbstractDatabase {
 
         kernelModule.satisfyDependencies(databaseDependencies);
 
-        // Do these assignments last so that we can ensure no cyclical dependencies exist
         this.kernelModule = kernelModule;
 
         databaseDependencies.satisfyDependency(commitmentFactory);
@@ -606,7 +598,6 @@ public class Database extends AbstractDatabase {
         life.add(onStop(() -> this.executionEngine.clearQueryCaches()));
         life.add(onStart(this::registerUpgradeListener));
         life.add(databaseHealth);
-        life.add(onStop(this::awaitAllClosingTransactions));
 
         life.add(checkpointerLifecycle);
         life.setLast(databaseAvailabilityGuard);
@@ -1053,7 +1044,8 @@ public class Database extends AbstractDatabase {
                 databaseHealth,
                 transactionValidatorFactory,
                 internalLogProvider,
-                mode));
+                mode,
+                databaseMonitors));
 
         var transactionMonitor = buildTransactionMonitor(kernelTransactions, transactionIdStore, databaseConfig);
 
@@ -1129,11 +1121,6 @@ public class Database extends AbstractDatabase {
                     .error(format("Failed to delete '%s' files.", namedDatabaseId), e);
             throw new UncheckedIOException(e);
         }
-    }
-
-    @Override
-    protected TransactionRegistry transactionRegistry() {
-        return kernelModule.kernelTransactions();
     }
 
     @Override
@@ -1249,56 +1236,6 @@ public class Database extends AbstractDatabase {
         databasePageCache.listExistingMappings().stream()
                 .filter(deleteFilePredicate)
                 .forEach(file -> file.setDeleteOnClose(true));
-    }
-
-    private long getAwaitActiveTransactionDeadlineMillis() {
-        return databaseConfig
-                .get(GraphDatabaseSettings.shutdown_transaction_end_timeout)
-                .toMillis();
-    }
-
-    private void awaitAllClosingTransactions() {
-        internalLog.info("Waiting for closing transactions.");
-
-        var transactionRegistry = transactionRegistry();
-        var transactionShutdownMonitor = databaseMonitors.newMonitor(ShutdownTransactionMonitor.class);
-
-        // give time for transactions to complete without termination
-        if (transactionRegistry.haveActiveTransaction()) {
-            transactionShutdownMonitor.awaitActiveTransactionClose();
-            long completionDeadline = clock.millis() + getAwaitActiveTransactionDeadlineMillis();
-            while (transactionRegistry.haveActiveTransaction() && clock.millis() < completionDeadline) {
-                parkNanos(MILLISECONDS.toNanos(10));
-            }
-        }
-
-        // terminate transactions
-        transactionRegistry.terminateTransactions();
-
-        // Give transactions a short time to detect they are terminated
-        if (transactionRegistry.haveActiveTransaction()) {
-            transactionShutdownMonitor.awaitTerminatedTransactionClose();
-            long waitTime = databaseConfig
-                    .get(shutdown_terminated_transaction_wait_timeout)
-                    .toMillis();
-            long deadline = clock.millis() + waitTime;
-            while (transactionRegistry.haveActiveTransaction() && clock.millis() < deadline) {
-                LockSupport.parkNanos(MILLISECONDS.toNanos(10));
-            }
-        }
-
-        if (transactionRegistry.haveClosingTransaction()) {
-            transactionShutdownMonitor.awaitClosingTransactionClose();
-            while (transactionRegistry.haveClosingTransaction()) {
-                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
-            }
-        }
-
-        if (transactionRegistry.haveActiveTransaction()) {
-            internalLog.warn("Failed to close all transactions. Shutdown may be unclean.");
-        } else {
-            internalLog.info("All transactions are closed.");
-        }
     }
 
     public static Iterable<IndexDescriptor> initialSchemaRulesLoader(ReadableStorageEngine storageEngine) {
