@@ -19,6 +19,7 @@
  */
 package org.neo4j.dbms.systemgraph;
 
+import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
@@ -94,7 +95,7 @@ public interface TopologyGraphDbmsModel {
             return Arrays.stream(values())
                     .filter(databaseStatus -> databaseStatus.statusName().equals(statusName))
                     .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException(String.format("No such status '%s'", statusName)));
+                    .orElseThrow(() -> new IllegalArgumentException(format("No such status '%s'", statusName)));
         }
     }
 
@@ -177,6 +178,7 @@ public interface TopologyGraphDbmsModel {
     String DATABASE_STARTED_AT_PROPERTY = "started_at";
     String DATABASE_UPDATED_AT_PROPERTY = "updated_at";
     String DATABASE_STOPPED_AT_PROPERTY = "stopped_at";
+    String DATABASE_EXTERNAL_ID_PROPERTY = "external_id";
     String DELETED_DATABASE_DUMP_DATA_PROPERTY = "dump_data";
     String DELETED_DATABASE_DELETED_AT_PROPERTY = "deleted_at";
     String DELETED_DATABASE_KEEP_DATA_PROPERTY = "keep_data";
