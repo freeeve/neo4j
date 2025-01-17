@@ -25,35 +25,35 @@ import org.neo4j.cypher.internal.util.PredicateCost.Tolerance
  *
  * Given c0 as the cost for predicate0 and s0 as the selectivity of predicate0
  * (and analogous for other predicates), predicate0 should be evaluated before
- * predicate1 iff c0 + s0 * c1 > c1 + s1 * c0.
+ * predicate1 iff c0 + s0 * c1 < c1 + s1 * c0.
  *
  * This is a well defined ordering. Given predicate0, predicate1 and predicate2,
  * where
  *
- * I:  c0 + s0 * c1 > c1 + s1 * c0 (predicate0 comes before predicate1)
- * II: c1 + s1 * c2 > c2 + s2 * c1 (predicate1 comes before predicate2)
+ * I:  c0 + s0 * c1 < c1 + s1 * c0 (predicate0 comes before predicate1)
+ * II: c1 + s1 * c2 < c2 + s2 * c1 (predicate1 comes before predicate2)
  * and all c_i and s_i are positive.
  *
  * we can show that predicate0 comes before predicate2:
  *
- * I:    c0 + s0 * c1            > c1 + s1 * c0                   | -c1
- *       c0 + s0 * c1 - c1       >      s1 * c0                   | /c0
- *      (c0 + s0 * c1 - c1) / c0 >      s1
+ * I:    c0 + s0 * c1            < c1 + s1 * c0                   | -c1
+ *       c0 + s0 * c1 - c1       <      s1 * c0                   | /c0
+ *      (c0 + s0 * c1 - c1) / c0 <      s1
  *
- * II: c1 + s1 * c2 >  c2 + s2 * c1                               | -c1
- *          s1 * c2 >  c2 + s2 * c1 - c1                          | /c2
- *          s1      > (c2 + s2 * c1 - c1) / c2
+ * II: c1 + s1 * c2 <  c2 + s2 * c1                               | -c1
+ *          s1 * c2 <  c2 + s2 * c1 - c1                          | /c2
+ *          s1      < (c2 + s2 * c1 - c1) / c2
  *
  * Substitute s1 in I:
- *   (c0 + s0 * c1 - c1) / c0 > (c2 + s2 * c1 - c1) / c2
- *    1 + (s0 * c1 - c1) / c0 >  1 + (s2 * c1 - c1) / c2          | -1
- *        (s0 * c1 - c1) / c0 >      (s2 * c1 - c1) / c2          | /c1
- *        (s0 - 1)       / c0 >      (s2 - 1)       / c2          | *c0
- *        (s0 - 1)            >      (s2 - 1) * c0  / c2          | *c2
- *        (s0 - 1) * c2       >      (s2 - 1) * c0
- *        s0 * c2 - c2        >      s2 * c0 - c0                 | +c0
- *   c0 + s0 * c2 - c2        >      s2 * c0                      | +c2
- *   c0 + s0 * c2             > c2 + s2 * c0
+ *   (c0 + s0 * c1 - c1) / c0 < (c2 + s2 * c1 - c1) / c2
+ *    1 + (s0 * c1 - c1) / c0 <  1 + (s2 * c1 - c1) / c2          | -1
+ *        (s0 * c1 - c1) / c0 <      (s2 * c1 - c1) / c2          | /c1
+ *        (s0 - 1)       / c0 <      (s2 - 1)       / c2          | *c0
+ *        (s0 - 1)            <      (s2 - 1) * c0  / c2          | *c2
+ *        (s0 - 1) * c2       <      (s2 - 1) * c0
+ *        s0 * c2 - c2        <      s2 * c0 - c0                 | +c0
+ *   c0 + s0 * c2 - c2        <      s2 * c0                      | +c2
+ *   c0 + s0 * c2             < c2 + s2 * c0
  *
  * As it happens, cost per row can be 0, and selectivity can be 1 (when a predicate returns all incoming rows).
  * This breaks the transitivity property of equality.
