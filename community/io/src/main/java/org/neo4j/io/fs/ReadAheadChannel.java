@@ -294,6 +294,10 @@ public class ReadAheadChannel<T extends StoreChannel> implements ReadableChannel
         return channel;
     }
 
+    protected void resetAheadBuffer() {
+        aheadBuffer.limit(0);
+    }
+
     @Override
     public void position(long byteOffset) throws IOException {
         long positionRelativeToAheadBuffer = byteOffset - (channel.position() - aheadBuffer.limit());

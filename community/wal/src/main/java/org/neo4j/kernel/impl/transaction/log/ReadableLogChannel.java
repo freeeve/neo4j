@@ -26,4 +26,7 @@ public interface ReadableLogChannel extends ReadableLogPositionAwareChannel, Ver
 
     @Override
     long position() throws IOException;
+
+    // reset channel to position and clear any underlying buffering
+    void resetToPosition(long byteOffset) throws IOException;
 }

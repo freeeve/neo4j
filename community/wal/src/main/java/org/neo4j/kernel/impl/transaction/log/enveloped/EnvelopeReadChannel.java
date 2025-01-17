@@ -222,6 +222,11 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     }
 
     @Override
+    public void resetToPosition(long byteOffset) throws IOException {
+        position(byteOffset);
+    }
+
+    @Override
     public void position(long byteOffset) throws IOException {
         requireNonNegative(byteOffset);
 

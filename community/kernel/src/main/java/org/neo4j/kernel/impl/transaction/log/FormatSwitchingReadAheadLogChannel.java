@@ -109,6 +109,11 @@ public class FormatSwitchingReadAheadLogChannel implements ReadableLogChannel {
     }
 
     @Override
+    public void resetToPosition(long byteOffset) throws IOException {
+        delegate.resetToPosition(byteOffset);
+    }
+
+    @Override
     public void beginChecksum() {
         delegate.beginChecksum();
     }
