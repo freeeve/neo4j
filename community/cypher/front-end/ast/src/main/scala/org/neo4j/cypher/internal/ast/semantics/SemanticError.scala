@@ -1168,6 +1168,14 @@ object SemanticError {
       position
     )
   }
+
+  def patternPredicateInVarLengthRel(position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42N37(position.offset, position.line, position.column),
+      "Relationship pattern predicates are not supported for variable-length relationships.",
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

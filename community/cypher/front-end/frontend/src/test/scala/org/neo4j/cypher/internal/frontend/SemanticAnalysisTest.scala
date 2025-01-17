@@ -318,6 +318,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
     run(
       "WITH 123 AS minValue MATCH (n)-[r:Relationship*1..3 {prop: 42} WHERE r.otherProp > minValue]->(m) RETURN r AS result"
     ).hasError(
+      GqlHelper.getGql42001_42N37(81, 1, 82),
       "Relationship pattern predicates are not supported for variable-length relationships.",
       p(81, 1, 82)
     )
@@ -1456,10 +1457,12 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   }
 
   test("Relationship Pattern predicates should not be allowed with quantification") {
-    run("MATCH ()-[r:Rel* WHERE r.prop > 42]->() return *").hasError(
-      "Relationship pattern predicates are not supported for variable-length relationships.",
-      p(30, 1, 31)
-    )
+    run("MATCH ()-[r:Rel* WHERE r.prop > 42]->() return *")
+      .hasError(
+        GqlHelper.getGql42001_42N37(30, 1, 31),
+        "Relationship pattern predicates are not supported for variable-length relationships.",
+        p(30, 1, 31)
+      )
   }
 
   test("subquery without RETURN should not declare variables from YIELD in the outer scope") {
