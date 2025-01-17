@@ -144,7 +144,8 @@ class DatabaseTransactionShutdownIT {
             }
         });
 
-        try (OtherThreadExecutor executor = new OtherThreadExecutor("test")) {
+        try (OtherThreadExecutor executor =
+                new OtherThreadExecutor("waitForTransactionToDetectTerminationAndCloseOnShutdown")) {
             Future<Object> shutdownFuture;
             Transaction tx = db.beginTx();
             KernelTransaction ktx = ((TransactionImpl) tx).kernelTransaction();
@@ -173,7 +174,7 @@ class DatabaseTransactionShutdownIT {
             }
         });
 
-        try (OtherThreadExecutor executor = new OtherThreadExecutor("test")) {
+        try (OtherThreadExecutor executor = new OtherThreadExecutor("notAllowNewTransactionsAfterUnavailable")) {
             Future<RuntimeException> future;
             ktxs.blockNewTransactions();
             future = executor.executeDontWait(() -> {
