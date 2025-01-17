@@ -395,7 +395,7 @@ public class MultiIndexPopulationConcurrentUpdatesIT {
                     new SchemaCache(new StandardConstraintSemantics(), providerMap, storageEngine.indexingBehaviour());
             schemaCache.load(iterable(rules));
 
-            indexService.createIndexes(AUTH_DISABLED, rules);
+            indexService.createIndexes(AUTH_DISABLED, NULL_CONTEXT, rules);
             transaction.commit();
         }
     }

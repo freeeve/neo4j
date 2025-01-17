@@ -55,6 +55,7 @@ public class IndexPopulationJob implements Runnable {
     private final IndexMonitor monitor;
     private final CursorContextFactory contextFactory;
     private final MemoryTracker memoryTracker;
+    private final boolean multiversion;
     private final ByteBufferFactory bufferFactory;
     private final ThreadSafePeakMemoryTracker memoryAllocationTracker;
     private final MultipleIndexPopulator multiPopulator;
@@ -84,11 +85,13 @@ public class IndexPopulationJob implements Runnable {
             String databaseName,
             Subject subject,
             EntityType populatedEntityType,
-            Config config) {
+            Config config,
+            boolean multiversion) {
         this.multiPopulator = multiPopulator;
         this.monitor = monitor;
         this.contextFactory = contextFactory;
         this.memoryTracker = memoryTracker;
+        this.multiversion = multiversion;
         this.memoryAllocationTracker = new ThreadSafePeakMemoryTracker();
         this.bufferFactory = new ByteBufferFactory(
                 UnsafeDirectByteBufferAllocator::new,
@@ -119,14 +122,14 @@ public class IndexPopulationJob implements Runnable {
      */
     @Override
     public void run() {
-        doRun(true);
-    }
-
-    public void runOnEmptyStore() {
         doRun(false);
     }
 
-    private void doRun(boolean nonEmptyStore) {
+    public void runOnEmptyStore() {
+        doRun(true);
+    }
+
+    private void doRun(boolean emptyStore) {
         try (var cursorContext = contextFactory.create(INDEX_POPULATION_TAG)) {
             var indexDescriptors = multiPopulator.indexDescriptors();
             monitor.indexPopulationJobStarting(indexDescriptors);
@@ -140,8 +143,15 @@ public class IndexPopulationJob implements Runnable {
             try {
                 multiPopulator.create(cursorContext);
                 multiPopulator.resetIndexCounts(cursorContext);
+                // in mvcc we need to wait for some concurrent transactions to complete in order to build consitent
+                // index and to not break isolation guarantees
+                boolean waitForConcurrentTransactions = multiversion && !emptyStore;
+                if (waitForConcurrentTransactions) {
+                    multiPopulator.awaitHorizonBeforeScan();
+                }
 
                 monitor.indexPopulationScanStarting(indexDescriptors);
+                multiPopulator.resetVisibility(cursorContext);
                 indexAllEntities(contextFactory);
                 monitor.indexPopulationScanComplete();
                 if (stopped) {
@@ -149,7 +159,7 @@ public class IndexPopulationJob implements Runnable {
                     // We remain in POPULATING state
                     return;
                 }
-                multiPopulator.flipAfterStoreScan(cursorContext, nonEmptyStore);
+                multiPopulator.flipAfterStoreScan(cursorContext, waitForConcurrentTransactions);
             } catch (Throwable t) {
                 multiPopulator.cancel(t, cursorContext);
             }
@@ -309,7 +319,7 @@ public class IndexPopulationJob implements Runnable {
         }
 
         if (populatedIndexes.size() == 1) {
-            var index = populatedIndexes.get(0);
+            var index = populatedIndexes.getFirst();
             return "Population of index '" + index.getName() + "'";
         }
 

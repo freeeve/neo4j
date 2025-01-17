@@ -175,7 +175,7 @@ class IndexTransactionApplierFactoryTest {
         }
 
         @Override
-        public void createIndexes(Subject subject, IndexDescriptor... indexes) {}
+        public void createIndexes(Subject subject, CursorContext cursorContext, IndexDescriptor... indexes) {}
 
         @Override
         public void activateIndex(IndexDescriptor index) {}

@@ -54,6 +54,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.common.EntityType;
 import org.neo4j.configuration.Config;
+import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
@@ -123,7 +124,9 @@ class MultipleIndexPopulatorTest {
                 "",
                 AUTH_DISABLED,
                 Config.defaults(),
-                EMPTY_VISIBILITY_PROVIDER);
+                EMPTY_VISIBILITY_PROVIDER,
+                IndexMonitor.NO_MONITOR,
+                NULL_CONTEXT);
     }
 
     @Test
@@ -145,7 +148,7 @@ class MultipleIndexPopulatorTest {
 
         indexPopulation.disconnectAndStop(NULL_CONTEXT);
 
-        indexPopulation.flip(NULL_CONTEXT, true);
+        indexPopulation.flip(NULL_CONTEXT, false);
 
         verify(indexPopulation.populator, never()).sample(NULL_CONTEXT);
     }
@@ -155,7 +158,7 @@ class MultipleIndexPopulatorTest {
         IndexPopulator populator = createIndexPopulator();
         IndexPopulation indexPopulation = addPopulator(populator, 1);
 
-        indexPopulation.flip(NULL_CONTEXT, true);
+        indexPopulation.flip(NULL_CONTEXT, false);
 
         indexPopulation.disconnectAndStop(NULL_CONTEXT);
 

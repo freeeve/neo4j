@@ -66,7 +66,8 @@ class IndexPopulationJobMonitoringTest {
                 "Test DB",
                 new Subject("Test User"),
                 NODE,
-                Config.defaults());
+                Config.defaults(),
+                false);
 
         addIndex(job, "the ONE");
 
@@ -106,7 +107,8 @@ class IndexPopulationJobMonitoringTest {
                 "Another Test DB",
                 new Subject("Another Test User"),
                 NODE,
-                Config.defaults());
+                Config.defaults(),
+                false);
 
         addIndex(job, "index 1");
         addIndex(job, "index 2");

@@ -49,6 +49,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.function.ThrowingConsumer;
+import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.PopulationProgress;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -102,7 +103,7 @@ import org.neo4j.values.storable.Value;
  * <li>Call to {@link #create(CursorContext)} to create data structures and files to start accepting updates.</li>
  * <li>Call to {@link #createStoreScan(CursorContextFactory)} and {@link StoreScan#run(StoreScan.ExternalUpdatesCheck)}(blocking call).</li>
  * <li>While all nodes are being indexed, calls to {@link #queueConcurrentUpdate(IndexEntryUpdate)} are accepted.</li>
- * <li>Call to {@link #flipAfterStoreScan(CursorContext)} after successful population, or {@link #cancel(Throwable, CursorContext)} if not</li>
+ * <li>Call to {@link #flipAfterStoreScan(CursorContext, boolean)} after successful population, or {@link #cancel(Throwable, CursorContext)} if not</li>
  * </ol>
  * <p>
  * It is possible for concurrent updates from transactions to arrive while index population is in progress. Such
@@ -110,7 +111,7 @@ import org.neo4j.values.storable.Value;
  * queue size has reached {@link #queueThreshold} then it drains all batched updates and waits for all job scheduler
  * tasks to complete and flushes updates from the queue using {@link MultipleIndexUpdater}. If queue size never reaches
  * {@link #queueThreshold} than all queued concurrent updates are flushed after the store scan in
- * {@link #flipAfterStoreScan(CursorContext)}.
+ * {@link #flipAfterStoreScan(CursorContext, boolean)}.
  * <p>
  */
 public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, AutoCloseable {
@@ -149,7 +150,9 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
     private final String databaseName;
     private final Subject subject;
     private final TransactionVisibilityProvider transactionVisibilityProvider;
+    private final IndexMonitor monitor;
     private final AtomicBoolean populationJobStopped = new AtomicBoolean(false);
+    private final long transactionIdCreatedIndexes;
 
     public MultipleIndexPopulator(
             IndexStoreView storeView,
@@ -163,7 +166,9 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
             String databaseName,
             Subject subject,
             Config config,
-            TransactionVisibilityProvider transactionVisibilityProvider) {
+            TransactionVisibilityProvider transactionVisibilityProvider,
+            IndexMonitor monitor,
+            CursorContext cursorContextOfIndexCreator) {
         this.storeView = storeView;
         this.contextFactory = contextFactory;
         this.cursorContext = contextFactory.create(MULTIPLE_INDEX_POPULATOR_TAG);
@@ -185,6 +190,9 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
         this.horizonPollIntervalNanos = config.get(GraphDatabaseSettings.transaction_monitor_check_interval)
                 .toNanos();
         this.transactionVisibilityProvider = transactionVisibilityProvider;
+        this.monitor = monitor;
+        this.transactionIdCreatedIndexes =
+                cursorContextOfIndexCreator.getVersionContext().committingTransactionId();
     }
 
     IndexPopulation addPopulator(
@@ -327,7 +335,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
      * This means population job has finished, successfully or unsuccessfully and resources can be released.
      *
      * Note that {@link IndexPopulation index populations} cannot be closed. Instead, the underlying
-     * {@link IndexPopulator index populator} is closed by {@link #flipAfterStoreScan(CursorContext)},
+     * {@link IndexPopulator index populator} is closed by {@link #flipAfterStoreScan(CursorContext, boolean)},
      * {@link #cancel(IndexPopulation, Throwable, CursorContext)} or {@link #stop(IndexPopulation, CursorContext)}.
      */
     @Override
@@ -356,11 +364,11 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
      * to {@link OnlineIndexProxy online}, given that nothing goes wrong.
      *
      */
-    void flipAfterStoreScan(CursorContext cursorContext, boolean nonEmptyStore) {
+    void flipAfterStoreScan(CursorContext cursorContext, boolean awaitHorizon) {
         for (IndexPopulation population : populations) {
             try {
                 population.scanCompleted(cursorContext);
-                population.flip(cursorContext, nonEmptyStore);
+                population.flip(cursorContext, awaitHorizon);
             } catch (Throwable t) {
                 cancel(population, t, cursorContext);
             }
@@ -441,8 +449,8 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
             log.info("Populating from queue at %d", currentlyIndexedEntityId);
         }
 
-        long updateByteSizeDrained = 0;
         try (var updater = newPopulatingUpdater(cursorContext)) {
+            long updateByteSizeDrained = 0;
             do {
                 IndexEntryUpdate<?> update = concurrentUpdateQueue.poll();
                 if (update != null) {
@@ -462,6 +470,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
                 }
             } while (!concurrentUpdateQueue.isEmpty());
             concurrentUpdateQueueByteSize.addAndGet(-updateByteSizeDrained);
+            monitor.concurrentUpdatesQueueDrained(updateByteSizeDrained);
         }
         if (printDebug) {
             log.info("Done applying updates from queue");
@@ -514,6 +523,11 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
 
     public void notifyPopulationJobStopped() {
         populationJobStopped.setRelease(true);
+    }
+
+    public void resetVisibility(CursorContext cursorContext) {
+        cursorContext.getVersionContext().refreshVisibilityBoundaries();
+        forEachPopulation(population -> population.resetVisibility(cursorContext), cursorContext);
     }
 
     public static class MultipleIndexUpdater implements IndexUpdater {
@@ -600,6 +614,16 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
             }
         }
 
+        void resetVisibility(CursorContext cursorContext) {
+            populatorLock.lock();
+            try {
+                highestClosedTxAtPopulationStart =
+                        cursorContext.getVersionContext().highestClosed();
+            } finally {
+                populatorLock.unlock();
+            }
+        }
+
         /**
          * Disconnect this single {@link IndexPopulation index population} from ongoing multiple index population
          * and close {@link IndexPopulator index populator}, leaving it in {@link InternalIndexState#POPULATING populating state}.
@@ -634,15 +658,15 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
             }
         }
 
-        void flip(CursorContext cursorContext, boolean nonEmptyStore)
+        void flip(CursorContext cursorContext, boolean awaitHorizon)
                 throws IndexProxyAlreadyClosedKernelException, ExceptionDuringFlipKernelException {
             phaseTracker.enterPhase(PhaseTracker.Phase.FLIP);
-            if (nonEmptyStore && populationOngoing) {
+            if (awaitHorizon && populationOngoing) {
                 // In multiversion database index must remain pouplating until everything that was added into index
                 // through the store scan is visible by any current and future transactions.
                 // To achieve this we remember highestEverSeen transaction at population start and don't flip until
                 // horizon reaches that transaction
-                blockUntilHorizonReached(highestClosedTxAtPopulationStart);
+                awaitUntilHorizonReached(highestClosedTxAtPopulationStart);
             }
             flipper.flip(() -> {
                 populatorLock.lock();
@@ -704,13 +728,20 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
         }
     }
 
-    private void blockUntilHorizonReached(long highestEverSeenAtPopulationStart) {
+    public void awaitHorizonBeforeScan() {
+        awaitUntilHorizonReached(transactionIdCreatedIndexes);
+    }
+
+    private void awaitUntilHorizonReached(long targetTransaction) {
         if (EMPTY_VISIBILITY_PROVIDER.equals(transactionVisibilityProvider)) {
             return;
         }
         while (!populationJobStopped.getAcquire()
-                && transactionVisibilityProvider.oldestObservableHorizon() < highestEverSeenAtPopulationStart) {
+                && transactionVisibilityProvider.oldestObservableHorizon() < targetTransaction) {
             LockSupport.parkNanos(horizonPollIntervalNanos);
+            if (needToApplyExternalUpdates()) {
+                applyExternalUpdates(Long.MAX_VALUE);
+            }
         }
     }
 
@@ -736,10 +767,10 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
 
                     if (printDebug) {
                         if (!updates.isEmpty()) {
-                            long lastEntityId = updates.get(updates.size() - 1).getEntityId();
+                            long lastEntityId = updates.getLast().getEntityId();
                             log.info(
                                     "Added scan updates for entities %d-%d",
-                                    updates.get(0).getEntityId(), lastEntityId);
+                                    updates.getFirst().getEntityId(), lastEntityId);
                         } else {
                             log.info("Added zero scan updates");
                         }

@@ -46,6 +46,7 @@ import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.SchemaRule;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
 import org.neo4j.io.ByteUnit;
+import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.impl.store.MetaDataStore;
 import org.neo4j.kernel.impl.store.NeoStores;
 import org.neo4j.kernel.impl.store.SchemaStore;
@@ -112,7 +113,7 @@ class SchemaRuleCommandTest {
         visitSchemaRuleCommand(indexApplier, new SchemaRuleCommand(serialization, before, after, rule));
 
         // THEN
-        verify(indexUpdateListener).createIndexes(SYSTEM, rule);
+        verify(indexUpdateListener).createIndexes(SYSTEM, CursorContext.NULL_CONTEXT, rule);
     }
 
     @Test

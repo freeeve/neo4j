@@ -28,11 +28,13 @@ import org.neo4j.io.pagecache.context.CursorContext;
 public interface IndexUpdateListener {
     /**
      * One or more indexes were created. This listener should take care of managing initial population of it.
-     * @param subject subject that triggered the index creation.
-     * This is used for monitoring purposes, so work related to index creation and population can be linked to its originator.
-     * @param indexes indexes that were created.
+     *
+     * @param subject       subject that triggered the index creation.
+     *                      This is used for monitoring purposes, so work related to index creation and population can be linked to its originator.
+     * @param cursorContext cursor context
+     * @param indexes       indexes that were created.
      */
-    void createIndexes(Subject subject, IndexDescriptor... indexes);
+    void createIndexes(Subject subject, CursorContext cursorContext, IndexDescriptor... indexes);
 
     /**
      * Used when activating an index after it has been created and populated.
@@ -62,7 +64,7 @@ public interface IndexUpdateListener {
 
     class Adapter implements IndexUpdateListener {
         @Override
-        public void createIndexes(Subject subject, IndexDescriptor... indexes) {}
+        public void createIndexes(Subject subject, CursorContext cursorContext, IndexDescriptor... indexes) {}
 
         @Override
         public void activateIndex(IndexDescriptor index) throws KernelException {}

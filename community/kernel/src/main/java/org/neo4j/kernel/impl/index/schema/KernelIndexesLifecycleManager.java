@@ -42,6 +42,7 @@ import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.kernel.api.exceptions.index.IndexPopulationFailedKernelException;
 import org.neo4j.kernel.api.index.KernelSchemaLifecycleContext;
@@ -117,6 +118,7 @@ public class KernelIndexesLifecycleManager implements IndexesLifecycleManager {
 
         indexingService.createIndexes(
                 Subject.SYSTEM,
+                CursorContext.NULL_CONTEXT,
                 indexDescriptors.stream()
                         .map(indexingService::completeConfiguration)
                         .toArray(IndexDescriptor[]::new));

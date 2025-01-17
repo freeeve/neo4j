@@ -26,6 +26,7 @@ import org.neo4j.common.Subject;
 import org.neo4j.internal.recordstorage.Command.PropertyCommand;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaRule;
+import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
@@ -61,6 +62,7 @@ public class IndexTransactionApplierFactory implements TransactionApplierFactory
         private final IndexActivator indexActivator;
         private final BatchContext batchContext;
         private final CommandSelector commandSelector;
+        private final CursorContext cursorContext;
 
         SingleTransactionApplier(
                 StorageEngineTransaction commands, BatchContext batchContext, CommandSelector commandSelector) {
@@ -69,6 +71,7 @@ public class IndexTransactionApplierFactory implements TransactionApplierFactory
             this.batchContext = batchContext;
             this.commandSelector = commandSelector;
             this.indexUpdatesExtractor = new IndexUpdatesExtractor(commandSelector);
+            this.cursorContext = commands.cursorContext();
         }
 
         @Override
@@ -87,7 +90,8 @@ public class IndexTransactionApplierFactory implements TransactionApplierFactory
 
             // Created pending indexes
             if (createdIndexes != null) {
-                indexUpdateListener.createIndexes(subject, createdIndexes.toArray(new IndexDescriptor[0]));
+                indexUpdateListener.createIndexes(
+                        subject, cursorContext, createdIndexes.toArray(new IndexDescriptor[0]));
                 createdIndexes = null;
             }
         }

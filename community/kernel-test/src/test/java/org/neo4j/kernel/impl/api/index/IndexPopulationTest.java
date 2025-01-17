@@ -30,6 +30,7 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import org.junit.jupiter.api.Test;
 import org.neo4j.common.EntityType;
 import org.neo4j.configuration.Config;
+import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.PopulationProgress;
 import org.neo4j.internal.schema.SchemaDescriptorSupplier;
@@ -83,7 +84,9 @@ class IndexPopulationTest {
                         "",
                         AUTH_DISABLED,
                         Config.defaults(),
-                        EMPTY_VISIBILITY_PROVIDER)) {
+                        EMPTY_VISIBILITY_PROVIDER,
+                        IndexMonitor.NO_MONITOR,
+                        CursorContext.NULL_CONTEXT)) {
             multipleIndexPopulator.queueConcurrentUpdate(someUpdate());
             multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY).run(StoreScan.NO_EXTERNAL_UPDATES);
             multipleIndexPopulator.addPopulator(emptyPopulatorWithThrowingUpdater(), dummyIndex(), flipper);

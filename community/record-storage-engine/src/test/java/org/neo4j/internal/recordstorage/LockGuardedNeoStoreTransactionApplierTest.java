@@ -618,7 +618,7 @@ class LockGuardedNeoStoreTransactionApplierTest {
         assertFalse(result);
 
         verify(schemaStore).updateRecord(eq(after), any(), any(), any(), any());
-        verify(indexingService).createIndexes(AUTH_DISABLED, rule);
+        verify(indexingService).createIndexes(AUTH_DISABLED, NULL_CONTEXT, rule);
         verify(cacheAccess).addSchemaRule(rule);
     }
 
@@ -641,7 +641,7 @@ class LockGuardedNeoStoreTransactionApplierTest {
 
         verify(schemaStore.getIdGenerator()).setHighestPossibleIdInUse(after.getId());
         verify(schemaStore).updateRecord(eq(after), any(), any(), any(), any());
-        verify(indexingService).createIndexes(AUTH_DISABLED, rule);
+        verify(indexingService).createIndexes(AUTH_DISABLED, NULL_CONTEXT, rule);
         verify(cacheAccess).addSchemaRule(rule);
     }
 

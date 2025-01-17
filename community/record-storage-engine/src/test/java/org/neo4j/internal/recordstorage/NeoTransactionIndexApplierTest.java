@@ -31,6 +31,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
+import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.impl.store.record.DynamicRecord;
 import org.neo4j.kernel.impl.store.record.NodeRecord;
 import org.neo4j.kernel.impl.store.record.SchemaRecord;
@@ -92,7 +93,7 @@ class NeoTransactionIndexApplierTest {
 
         // Then
         assertFalse(result);
-        verify(indexingService).createIndexes(SYSTEM, indexRule);
+        verify(indexingService).createIndexes(SYSTEM, CursorContext.NULL_CONTEXT, indexRule);
     }
 
     private static IndexDescriptor indexRule(long ruleId, int labelId, int propertyId) {

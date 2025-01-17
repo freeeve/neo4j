@@ -24,6 +24,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class TransactionIdSequence {
     private final AtomicLong value = new AtomicLong(0L);
 
+    public TransactionIdSequence() {}
+
     public long next() {
         return value.incrementAndGet();
     }

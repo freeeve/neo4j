@@ -150,6 +150,7 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
     private final StorageEngineIndexingBehaviour storageEngineIndexingBehaviour;
     private final KernelVersionProvider kernelVersionProvider;
     private final IndexDropController indexDropController;
+    private final boolean multiversion;
     private JobHandle<?> eventuallyConsistentFulltextIndexRefreshJob;
 
     private volatile JobHandle<?> usageReportJob = JobHandle.EMPTY;
@@ -206,8 +207,8 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
         this.readOnlyChecker = readOnlyChecker;
         this.config = config;
         this.openOptions = storageEngine.getOpenOptions();
-        this.transactionVisibilityProvider =
-                openOptions.contains(MULTI_VERSIONED) ? transactionVisibilityProvider : EMPTY_VISIBILITY_PROVIDER;
+        this.multiversion = openOptions.contains(MULTI_VERSIONED);
+        this.transactionVisibilityProvider = multiversion ? transactionVisibilityProvider : EMPTY_VISIBILITY_PROVIDER;
         this.storeView = indexStoreViewFactory.createTokenIndexStoreView(indexMapRef::getIndexProxy);
         this.kernelVersionProvider = kernelVersionProvider;
         this.indexDropController = createIndexDropController(internalLogProvider, transactionVisibilityProvider, fs);
@@ -217,7 +218,7 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
             InternalLogProvider internalLogProvider,
             TransactionVisibilityProvider transactionVisibilityProvider,
             FileSystemAbstraction fs) {
-        return openOptions.contains(MULTI_VERSIONED) && !EMPTY_VISIBILITY_PROVIDER.equals(transactionVisibilityProvider)
+        return multiversion && !EMPTY_VISIBILITY_PROVIDER.equals(transactionVisibilityProvider)
                 ? new MultiVersionIndexDropController(
                         jobScheduler, transactionVisibilityProvider, this, fs, internalLogProvider)
                 : new DefaultIndexDropController(this);
@@ -437,8 +438,10 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
         }
 
         for (var descriptorToPopulate : rebuildingDescriptorsByType.entrySet()) {
-            var populationJob =
-                    newIndexPopulationJob(descriptorToPopulate.getKey().entityType(), SYSTEM);
+            // NULL_CONTEXT is ok here, it is used to check horizon before population,
+            // and as this happens during database start we already know that there are no prior transactions
+            var populationJob = newIndexPopulationJob(
+                    descriptorToPopulate.getKey().entityType(), SYSTEM, CursorContext.NULL_CONTEXT);
             populate(descriptorToPopulate.getValue(), indexMap, populationJob);
         }
     }
@@ -637,12 +640,12 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
      * it is *vital* that it is stable, and handles errors very well. Failing here means that the entire db
      * will shut down.
      *
-     * @param subject subject that triggered the index creation.
-     * This is used for monitoring purposes, so work related to index creation and population can be linked to its originator.
+     * @param subject       subject that triggered the index creation.
+     *                      This is used for monitoring purposes, so work related to index creation and population can be linked to its originator.
      */
     @Override
-    public void createIndexes(Subject subject, IndexDescriptor... rules) {
-        IndexPopulationStarter populationStarter = new IndexPopulationStarter(subject, rules);
+    public void createIndexes(Subject subject, CursorContext cursorContext, IndexDescriptor... rules) {
+        IndexPopulationStarter populationStarter = new IndexPopulationStarter(subject, cursorContext, rules);
         indexMapRef.modify(populationStarter);
         populationStarter.startPopulation();
     }
@@ -705,7 +708,8 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
                         case POPULATING -> indexProxyCreator.createPopulatingIndexProxy(
                                 descriptor,
                                 IndexMonitor.NO_MONITOR,
-                                newIndexPopulationJob(descriptor.schema().entityType(), SYSTEM));
+                                newIndexPopulationJob(
+                                        descriptor.schema().entityType(), SYSTEM, CursorContext.NULL_CONTEXT));
                         case FAILED -> indexProxyCreator.createFailedIndexProxy(
                                 descriptor, failure("test forced failure"));
                     });
@@ -820,7 +824,7 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
         return monitor;
     }
 
-    private IndexPopulationJob newIndexPopulationJob(EntityType type, Subject subject) {
+    private IndexPopulationJob newIndexPopulationJob(EntityType type, Subject subject, CursorContext cursorContext) {
         MultipleIndexPopulator multiPopulator = new MultipleIndexPopulator(
                 storeView,
                 internalLogProvider,
@@ -833,9 +837,19 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
                 databaseName,
                 subject,
                 config,
-                transactionVisibilityProvider);
+                transactionVisibilityProvider,
+                monitor,
+                cursorContext);
         return new IndexPopulationJob(
-                multiPopulator, monitor, contextFactory, memoryTracker, databaseName, subject, NODE, config);
+                multiPopulator,
+                monitor,
+                contextFactory,
+                memoryTracker,
+                databaseName,
+                subject,
+                NODE,
+                config,
+                multiversion);
     }
 
     private void startIndexPopulation(IndexPopulationJob job, CursorContext cursorContext) {
@@ -902,18 +916,20 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
 
     private final class IndexPopulationStarter implements UnaryOperator<IndexMap> {
         private final Subject subject;
+        private final CursorContext cursorContext;
         private final IndexDescriptor[] descriptors;
         private final Map<IndexPopulationCategory, IndexPopulationJob> populationJobs = new HashMap<>();
 
-        IndexPopulationStarter(Subject subject, IndexDescriptor[] descriptors) {
+        IndexPopulationStarter(Subject subject, CursorContext cursorContext, IndexDescriptor[] descriptors) {
             this.subject = subject;
+            this.cursorContext = cursorContext;
             this.descriptors = descriptors;
         }
 
         @Override
         public IndexMap apply(IndexMap indexMap) {
             for (IndexDescriptor descriptor : descriptors) {
-                IndexProxy index = indexMap.getIndexProxy(descriptor);
+                var index = indexMap.getIndexProxy(descriptor);
                 if (index != null && state == State.NOT_STARTED) {
                     // This index already has a proxy. No need to build another.
                     continue;
@@ -924,14 +940,14 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
                     var populationJob = populationJobs.computeIfAbsent(
                             new IndexPopulationCategory(completeDescriptor, storageEngineIndexingBehaviour),
                             category -> newIndexPopulationJob(
-                                    completeDescriptor.schema().entityType(), subject));
-                    index = indexProxyCreator.createPopulatingIndexProxy(completeDescriptor, monitor, populationJob);
-                    index.start();
+                                    completeDescriptor.schema().entityType(), subject, cursorContext));
+                    var proxy =
+                            indexProxyCreator.createPopulatingIndexProxy(completeDescriptor, monitor, populationJob);
+                    proxy.start();
+                    indexMap.putIndexProxy(proxy);
                 } else {
-                    index = indexProxyCreator.createRecoveringIndexProxy(completeDescriptor);
+                    indexMap.putIndexProxy(indexProxyCreator.createRecoveringIndexProxy(completeDescriptor));
                 }
-
-                indexMap.putIndexProxy(index);
             }
             return indexMap;
         }

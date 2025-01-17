@@ -43,6 +43,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.neo4j.common.EntityType;
 import org.neo4j.configuration.Config;
+import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.PopulationProgress;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -106,7 +107,9 @@ class TokenIndexPopulationTest {
                 "",
                 AUTH_DISABLED,
                 Config.defaults(),
-                EMPTY_VISIBILITY_PROVIDER);
+                EMPTY_VISIBILITY_PROVIDER,
+                IndexMonitor.NO_MONITOR,
+                CursorContext.NULL_CONTEXT);
     }
 
     @Test

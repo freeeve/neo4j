@@ -94,7 +94,8 @@ public class IndexCommandTransactionApplierFactory implements TransactionApplier
 
             // Created pending indexes
             if (createdIndexes != null) {
-                indexUpdateListener.createIndexes(subject, createdIndexes.toArray(new IndexDescriptor[0]));
+                indexUpdateListener.createIndexes(
+                        subject, cursorContext, createdIndexes.toArray(new IndexDescriptor[0]));
                 createdIndexes = null;
             }
         }

@@ -266,7 +266,7 @@ class IndexingServiceTest {
         life.start();
 
         // when
-        indexingService.createIndexes(AUTH_DISABLED, index);
+        indexingService.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index);
         IndexProxy proxy = indexingService.getIndexProxy(index);
 
         waitForIndexesToComeOnline(indexingService, index);
@@ -297,8 +297,8 @@ class IndexingServiceTest {
         life.start();
 
         // when
-        indexingService.createIndexes(AUTH_DISABLED, index);
-        indexingService.createIndexes(AUTH_DISABLED, index);
+        indexingService.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index);
+        indexingService.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index);
 
         // We are asserting that the second call to createIndex does not throw an exception.
         waitForIndexesToComeOnline(indexingService, index);
@@ -336,7 +336,7 @@ class IndexingServiceTest {
 
         // when
 
-        indexingService.createIndexes(AUTH_DISABLED, index);
+        indexingService.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index);
         IndexProxy proxy = indexingService.getIndexProxy(index);
         assertEquals(POPULATING, proxy.getState());
         populationStartBarrier.await();
@@ -390,7 +390,7 @@ class IndexingServiceTest {
 
         // when
         IndexDescriptor index = constraintIndexRule(0, labelId, propertyKeyId, PROVIDER_DESCRIPTOR);
-        indexingService.createIndexes(AUTH_DISABLED, index);
+        indexingService.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index);
         IndexProxy proxy = indexingService.getIndexProxy(index);
 
         // don't wait for index to come ONLINE here since we're testing that it doesn't
@@ -419,7 +419,7 @@ class IndexingServiceTest {
 
         // when
         IndexDescriptor index = constraintIndexRule(0, labelId, propertyKeyId, PROVIDER_DESCRIPTOR);
-        indexingService.createIndexes(AUTH_DISABLED, index);
+        indexingService.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index);
         IndexProxy proxy = indexingService.getIndexProxy(index);
 
         indexingService.activateIndex(index);
@@ -699,7 +699,7 @@ class IndexingServiceTest {
         IndexingService indexing = newIndexingServiceWithMockedDependencies(populator, accessor, withData());
         life.start();
 
-        indexing.createIndexes(AUTH_DISABLED, index);
+        indexing.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index);
         waitForIndexesToComeOnline(indexing, index);
         verify(populator, timeout(10000)).close(eq(true), any());
 
@@ -757,8 +757,8 @@ class IndexingServiceTest {
 
         life.start();
 
-        indexing.createIndexes(AUTH_DISABLED, index1);
-        indexing.createIndexes(AUTH_DISABLED, index2);
+        indexing.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index1);
+        indexing.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index2);
 
         waitForIndexesToComeOnline(indexing, index1, index2);
 
@@ -828,10 +828,10 @@ class IndexingServiceTest {
 
         // WHEN dropping another index, which happens to have the same label/property... while recovering
         IndexDescriptor otherIndex = prototype.withName("index_" + otherIndexId).materialise(otherIndexId);
-        indexing.createIndexes(AUTH_DISABLED, otherIndex);
+        indexing.createIndexes(AUTH_DISABLED, NULL_CONTEXT, otherIndex);
         indexing.dropIndex(otherIndex);
         // and WHEN finally creating our index again (at a later point in recovery)
-        indexing.createIndexes(AUTH_DISABLED, index);
+        indexing.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index);
         reset(accessor);
         indexing.applyUpdates(nodeIdsAsIndexUpdates(nodeId), NULL_CONTEXT, false);
         // and WHEN starting, i.e. completing recovery
@@ -860,10 +860,10 @@ class IndexingServiceTest {
         // config... while recovering
         IndexConfig indexConfig = index.getIndexConfig().withIfAbsent("a", Values.booleanValue(true));
         IndexDescriptor otherIndex = index.withIndexConfig(indexConfig);
-        indexing.createIndexes(AUTH_DISABLED, otherIndex);
+        indexing.createIndexes(AUTH_DISABLED, NULL_CONTEXT, otherIndex);
         indexing.dropIndex(otherIndex);
         // and WHEN finally creating our index again (at a later point in recovery)
-        indexing.createIndexes(AUTH_DISABLED, index);
+        indexing.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index);
         reset(accessor);
         indexing.applyUpdates(nodeIdsAsIndexUpdates(nodeId), NULL_CONTEXT, false);
         // and WHEN starting, i.e. completing recovery
@@ -907,6 +907,7 @@ class IndexingServiceTest {
         long fakeOwningConstraintRuleId = 1;
         indexing.createIndexes(
                 AUTH_DISABLED,
+                NULL_CONTEXT,
                 constraintIndexRule(2, labelId, propertyKeyId, PROVIDER_DESCRIPTOR, fakeOwningConstraintRuleId));
         // and then starting, i.e. considering recovery completed
         life.start();
@@ -930,7 +931,7 @@ class IndexingServiceTest {
         IndexDescriptor index1 = storeIndex(0, 0, 0, PROVIDER_DESCRIPTOR);
         IndexDescriptor index2 = storeIndex(1, 0, 1, PROVIDER_DESCRIPTOR);
         IndexDescriptor index3 = storeIndex(2, 1, 0, PROVIDER_DESCRIPTOR);
-        indexing.createIndexes(AUTH_DISABLED, index1, index2, index3);
+        indexing.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index1, index2, index3);
 
         // THEN
         IndexPrototype prototype = forSchema(forLabel(0, 0)).withIndexProvider(PROVIDER_DESCRIPTOR);
@@ -996,7 +997,7 @@ class IndexingServiceTest {
         ArgumentCaptor<Boolean> closeArgs = ArgumentCaptor.forClass(Boolean.class);
 
         // when
-        indexing.createIndexes(AUTH_DISABLED, index);
+        indexing.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index);
         waitForIndexesToGetIntoState(indexing, FAILED, index);
         verify(populator, timeout(10000).times(2)).close(closeArgs.capture(), any());
 
@@ -1458,7 +1459,7 @@ class IndexingServiceTest {
 
         // when
         indexingService.dropIndex(indexDescriptor);
-        indexingService.createIndexes(AUTH_DISABLED, indexDescriptor);
+        indexingService.createIndexes(AUTH_DISABLED, NULL_CONTEXT, indexDescriptor);
         life.start();
 
         // then drop call two times: one from the explicit call by this test and the other from start()
@@ -1493,7 +1494,7 @@ class IndexingServiceTest {
                 .withIndexProvider(PROVIDER_DESCRIPTOR)
                 .withIndexType(IndexType.LOOKUP)
                 .materialise(2);
-        indexingService.createIndexes(SYSTEM, valueIndex, lookupIndex);
+        indexingService.createIndexes(SYSTEM, NULL_CONTEXT, valueIndex, lookupIndex);
 
         // then
         await().atMost(10, SECONDS).until(() -> populationJobDescriptors.size() == 2);
@@ -1553,7 +1554,7 @@ class IndexingServiceTest {
         var indexesToCreate = lookupIndexFirst
                 ? new IndexDescriptor[] {lookupIndex, valueIndex}
                 : new IndexDescriptor[] {valueIndex, lookupIndex};
-        indexingService.createIndexes(SYSTEM, indexesToCreate);
+        indexingService.createIndexes(SYSTEM, NULL_CONTEXT, indexesToCreate);
 
         // then
         assertThat(populationJobDescriptors).isEqualTo(List.of(valueIndex, lookupIndex));
@@ -1688,7 +1689,7 @@ class IndexingServiceTest {
         life.start();
         clock.forward(10, SECONDS);
         var creationTimeMillis = clock.millis();
-        indexingService.createIndexes(AUTH_DISABLED, index);
+        indexingService.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index);
         waitForIndexesToComeOnline(indexingService, index);
 
         // when
@@ -1720,7 +1721,7 @@ class IndexingServiceTest {
         life.start();
         clock.forward(10, SECONDS);
         var creationTimeMillis = clock.millis();
-        indexingService.createIndexes(AUTH_DISABLED, tokenIndex);
+        indexingService.createIndexes(AUTH_DISABLED, NULL_CONTEXT, tokenIndex);
         waitForIndexesToComeOnline(indexingService, tokenIndex);
 
         // when
@@ -1749,7 +1750,7 @@ class IndexingServiceTest {
         var indexingService = newIndexingServiceWithMockedDependencies(
                 populator, accessor, withData(), IndexMonitor.NO_MONITOR, fakeClockScheduler, life);
         life.start();
-        indexingService.createIndexes(AUTH_DISABLED, index, tokenIndex);
+        indexingService.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index, tokenIndex);
         waitForIndexesToComeOnline(indexingService, tokenIndex);
         verify(indexStatisticsStore, times(0)).addUsageStats(eq(index.getId()), any());
         verify(indexStatisticsStore, times(0)).addUsageStats(eq(tokenIndex.getId()), any());
@@ -1769,7 +1770,7 @@ class IndexingServiceTest {
             var indexingService = newIndexingServiceWithMockedDependencies(
                     populator, accessor, withData(), IndexMonitor.NO_MONITOR, localLife.add(scheduler), localLife);
             localLife.start();
-            indexingService.createIndexes(AUTH_DISABLED, index);
+            indexingService.createIndexes(AUTH_DISABLED, NULL_CONTEXT, index);
             waitForIndexesToComeOnline(indexingService, index);
 
             IndexSampler neverEndingSampler = (cursorContext, stopped) -> {

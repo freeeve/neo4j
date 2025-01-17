@@ -638,7 +638,8 @@ class IndexPopulationJobTest {
                 "",
                 AUTH_DISABLED,
                 EntityType.NODE,
-                Config.defaults());
+                Config.defaults(),
+                false);
 
         // when
         populationJob.run();
@@ -693,7 +694,8 @@ class IndexPopulationJobTest {
                 "",
                 AUTH_DISABLED,
                 EntityType.NODE,
-                Config.defaults());
+                Config.defaults(),
+                false);
 
         // when
         populationJob.run();
@@ -909,7 +911,9 @@ class IndexPopulationJobTest {
                 "",
                 AUTH_DISABLED,
                 Config.defaults(),
-                EMPTY_VISIBILITY_PROVIDER);
+                EMPTY_VISIBILITY_PROVIDER,
+                NO_MONITOR,
+                CursorContext.NULL_CONTEXT);
         IndexPopulationJob job = new IndexPopulationJob(
                 multiPopulator,
                 NO_MONITOR,
@@ -918,7 +922,8 @@ class IndexPopulationJobTest {
                 "",
                 AUTH_DISABLED,
                 EntityType.NODE,
-                Config.defaults());
+                Config.defaults(),
+                false);
         IndexDescriptor descriptor = prototype.withName("index_" + indexId).materialise(indexId);
         IndexProxyStrategy indexProxyStrategy = new ValueIndexProxyStrategy(descriptor, indexStatisticsStore, tokens);
         job.addPopulator(populator, indexProxyStrategy, flipper);
@@ -993,7 +998,9 @@ class IndexPopulationJobTest {
                     "",
                     AUTH_DISABLED,
                     Config.defaults(),
-                    EMPTY_VISIBILITY_PROVIDER);
+                    EMPTY_VISIBILITY_PROVIDER,
+                    NO_MONITOR,
+                    CursorContext.NULL_CONTEXT);
         }
 
         @Override
