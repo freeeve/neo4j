@@ -21,6 +21,7 @@ package org.neo4j.dbms.database;
 
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_CREATED_AT_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_LANGUAGE_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_LABEL;
@@ -46,6 +47,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel;
 import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -107,10 +109,11 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
 
     @Override
     public void initializeSystemGraphModel(GraphDatabaseService system) throws InvalidArgumentsException {
+        CypherVersion languageVersion = cypherVersionFromConfig(config.get(GraphDatabaseSettings.default_language));
         try (var tx = system.beginTx()) {
             var now = ZonedDateTime.ofInstant(clock.instant(), clock.getZone());
-            createDatabaseNode(tx, defaultDbName.name(), true, UUID.randomUUID(), now);
-            createDatabaseNode(tx, SYSTEM_DATABASE_NAME, false, SYSTEM_DATABASE_ID.uuid(), now);
+            createDatabaseNode(tx, defaultDbName.name(), true, UUID.randomUUID(), now, languageVersion);
+            createDatabaseNode(tx, SYSTEM_DATABASE_NAME, false, SYSTEM_DATABASE_ID.uuid(), now, languageVersion);
             tx.commit();
         } catch (ConstraintViolationException e) {
             throw new InvalidArgumentsException("The specified database '" + defaultDbName.name() + "' or '"
@@ -150,7 +153,7 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
         }
     }
 
-    private void updateDefaultDatabase(GraphDatabaseService system) throws InvalidArgumentsException {
+    private void updateDefaultDatabase(GraphDatabaseService system) {
         boolean defaultFound;
 
         try (Transaction tx = system.beginTx()) {
@@ -185,7 +188,9 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
                             DATABASE_STATUS_PROPERTY, TopologyGraphDbmsModel.DatabaseStatus.ONLINE.statusName());
                 } else {
                     var now = ZonedDateTime.ofInstant(clock.instant(), clock.getZone());
-                    createDatabaseNode(tx, defaultDbName.name(), true, UUID.randomUUID(), now);
+                    CypherVersion languageVersion =
+                            cypherVersionFromConfig(config.get(GraphDatabaseSettings.default_language));
+                    createDatabaseNode(tx, defaultDbName.name(), true, UUID.randomUUID(), now, languageVersion);
                 }
             }
             tx.commit();
@@ -202,7 +207,12 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
     }
 
     public static Node createDatabaseNode(
-            Transaction tx, String databaseName, boolean defaultDb, UUID uuid, ZonedDateTime now) {
+            Transaction tx,
+            String databaseName,
+            boolean defaultDb,
+            UUID uuid,
+            ZonedDateTime now,
+            CypherVersion defualtLanguage) {
         var databaseNode = tx.createNode(DATABASE_LABEL);
         databaseNode.setProperty(DATABASE_NAME_PROPERTY, databaseName);
         databaseNode.setProperty(DATABASE_UUID_PROPERTY, uuid.toString());
@@ -210,6 +220,7 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
         databaseNode.setProperty(DATABASE_DEFAULT_PROPERTY, defaultDb);
         databaseNode.setProperty(DATABASE_CREATED_AT_PROPERTY, now);
         databaseNode.setProperty(DATABASE_STARTED_AT_PROPERTY, now);
+        databaseNode.setProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY, defualtLanguage.persistedValue);
         var randomId = ThreadLocalRandom.current().nextLong();
         databaseNode.setProperty(DATABASE_STORE_RANDOM_ID_PROPERTY, randomId);
 
@@ -221,5 +232,12 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
         nameNode.setProperty(PRIMARY_PROPERTY, true);
         nameNode.createRelationshipTo(databaseNode, TARGETS_RELATIONSHIP);
         return databaseNode;
+    }
+
+    public static CypherVersion cypherVersionFromConfig(GraphDatabaseSettings.CypherVersion dbmsVersion) {
+        return switch (dbmsVersion) {
+            case GraphDatabaseSettings.CypherVersion.Cypher5 -> CypherVersion.Cypher5;
+            case GraphDatabaseSettings.CypherVersion.Cypher25 -> CypherVersion.Cypher25;
+        };
     }
 }

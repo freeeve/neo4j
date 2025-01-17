@@ -20,19 +20,21 @@
 package org.neo4j.cypher.internal;
 
 public enum CypherVersion {
-    Cypher5("5", "CYPHER 5", false),
-    Cypher25("25", "CYPHER 25", true);
+    Cypher5("5", "CYPHER 5", false, "cypher-5"),
+    Cypher25("25", "CYPHER 25", true, "cypher-25");
 
     public static final CypherVersion Default = Cypher5;
 
     public final String versionName;
     public final String description;
     public final boolean experimental;
+    public final String persistedValue; // stored on the :Database node in the system graph
 
-    CypherVersion(String versionName, String description, boolean experimental) {
+    CypherVersion(String versionName, String description, boolean experimental, String persistedValue) {
         this.versionName = versionName;
         this.description = description;
         this.experimental = experimental;
+        this.persistedValue = persistedValue;
     }
 
     @Override

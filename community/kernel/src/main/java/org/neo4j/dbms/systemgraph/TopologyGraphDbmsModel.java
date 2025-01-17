@@ -184,6 +184,7 @@ public interface TopologyGraphDbmsModel {
     String DELETED_DATABASE_KEEP_DATA_PROPERTY = "keep_data";
     String DATABASE_LOG_ENRICHMENT_PROPERTY = "txLogEnrichment";
     String DATABASE_BOOTSTRAP_KERNEL_VERSION_PROPERTY = "bootstrapKernelVersion";
+    String DATABASE_DEFAULT_LANGUAGE_PROPERTY = "defaultLanguage";
 
     Label DATABASE_NAME_LABEL = Label.label("DatabaseName");
     String DATABASE_NAME = DATABASE_NAME_LABEL.name();
