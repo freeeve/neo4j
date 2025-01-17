@@ -31,6 +31,7 @@ import static org.neo4j.util.Preconditions.checkState;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -84,6 +85,7 @@ public class CsvInput implements Input {
     private final Groups groups;
     private final boolean autoSkipHeaders;
     private final MemoryTracker memoryTracker;
+    private List<Header> cachedNodeHeaders;
 
     /**
      * @param nodeDataFactory multiple {@link DataFactory} instances providing data, each {@link DataFactory}
@@ -262,10 +264,12 @@ public class CsvInput implements Input {
         // parse all node headers and remember all ID spaces
         final MutableBoolean nodesHasAction = new MutableBoolean();
         final MutableBoolean relationshipsHasAction = new MutableBoolean();
+        cachedNodeHeaders = new ArrayList<>();
         final var nodeSample = validateAndEstimate(
                 nodeDataFactory,
                 nodeHeaderFactory,
                 (header, source, noDecorator) -> {
+                    cachedNodeHeaders.add(header);
                     if (Arrays.stream(header.entries()).noneMatch(entry -> entry.type() == Type.LABEL) && noDecorator) {
                         monitor.noNodeLabelsSpecified(source);
                     }
@@ -429,23 +433,29 @@ public class CsvInput implements Input {
 
     @Override
     public Map<String, SchemaDescriptor> referencedNodeSchema(TokenHolders tokenHolders) {
-        try {
-            // parse all node headers and remember all ID spaces
-            Map<String, SchemaDescriptor> result = new HashMap<>();
-            for (DataFactory dataFactory : nodeDataFactory) {
-                Data data = dataFactory.create(config);
-                try (CharSeeker dataStream = charSeeker(new MultiReadable(data.stream()), config, true)) {
-                    // Parsing and constructing this header will create this group,
-                    // so no need to do something with the result of it right now
-                    Header header =
-                            DataFactories.defaultFormatNodeFileHeader().create(dataStream, config, idType, groups);
-                    collectReferencedNodeSchemaFromHeader(header, tokenHolders, result);
+        if (cachedNodeHeaders == null) {
+            cachedNodeHeaders = new ArrayList<>();
+            try {
+                // parse all node headers and remember all ID spaces
+                for (DataFactory dataFactory : nodeDataFactory) {
+                    Data data = dataFactory.create(config);
+                    try (CharSeeker dataStream = charSeeker(new MultiReadable(data.stream()), config, false)) {
+                        // Parsing and constructing this header will create this group,
+                        // so no need to do something with the result of it right now
+                        cachedNodeHeaders.add(
+                                DataFactories.defaultFormatNodeFileHeader().create(dataStream, config, idType, groups));
+                    }
                 }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
             }
-            return result;
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
         }
+
+        Map<String, SchemaDescriptor> result = new HashMap<>();
+        for (Header header : cachedNodeHeaders) {
+            collectReferencedNodeSchemaFromHeader(header, tokenHolders, result);
+        }
+        return result;
     }
 
     public static void collectReferencedNodeSchemaFromHeader(
