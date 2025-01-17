@@ -302,8 +302,7 @@ public class DatabaseShutdownTransactionCloseIT {
                         .isInstanceOfAny(
                                 DatabaseShutdownException.class,
                                 UnavailableException.class,
-                                TransactionTerminatedException.class,
-                                IllegalStateException.class);
+                                TransactionTerminatedException.class);
             }
         }
     }
