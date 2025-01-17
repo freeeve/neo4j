@@ -49,14 +49,29 @@ public class MalformedSchemaRuleException extends SchemaKernelException {
     }
 
     public static MalformedSchemaRuleException propertyTypeMismatch(
-            String property, Value value, Class<? extends Value> expectedType, Class<? extends Value> actualType) {
+            String property, Value value, Class<? extends Value> expectedType) {
+        if (value == null) {
+            return propertyUnexpectedlyNull(property, expectedType);
+        }
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
                 .withParam(GqlParams.StringParam.value, value.prettyPrint())
                 .withParam(GqlParams.ListParam.valueTypeList, Collections.singletonList(expectedType.getSimpleName()))
-                .withParam(GqlParams.StringParam.valueType, actualType.getSimpleName())
+                .withParam(GqlParams.StringParam.valueType, value.getClass().getSimpleName())
                 .build();
         var legacyMessage = String.format(
                 "Expected property %s to be a %s but was %s", property, expectedType.getSimpleName(), value);
+        return new MalformedSchemaRuleException(gql, legacyMessage);
+    }
+
+    public static MalformedSchemaRuleException propertyUnexpectedlyNull(
+            String property, Class<? extends Value> expectedType) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
+                .withParam(GqlParams.StringParam.value, "null")
+                .withParam(GqlParams.ListParam.valueTypeList, Collections.singletonList(expectedType.getSimpleName()))
+                .withParam(GqlParams.StringParam.valueType, "null")
+                .build();
+        var legacyMessage = String.format(
+                "Expected property %s to be a %s but was %s", property, expectedType.getSimpleName(), null);
         return new MalformedSchemaRuleException(gql, legacyMessage);
     }
 }

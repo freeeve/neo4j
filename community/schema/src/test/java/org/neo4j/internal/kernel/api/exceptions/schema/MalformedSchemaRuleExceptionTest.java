@@ -22,7 +22,6 @@ package org.neo4j.internal.kernel.api.exceptions.schema;
 import org.junit.jupiter.api.Test;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
-import org.neo4j.values.storable.IntValue;
 import org.neo4j.values.storable.StringValue;
 import org.neo4j.values.storable.Values;
 
@@ -30,8 +29,7 @@ class MalformedSchemaRuleExceptionTest {
 
     @Test
     void propertyMismatchShouldUseCorrectMessageAndGqlStatus() {
-        var e = MalformedSchemaRuleException.propertyTypeMismatch(
-                "prop", Values.intValue(1), StringValue.class, IntValue.class);
+        var e = MalformedSchemaRuleException.propertyTypeMismatch("prop", Values.intValue(1), StringValue.class);
         ErrorGqlStatusObjectAssertions.assertThat(e)
                 .hasMessageContaining("Expected property prop to be a StringValue but was Int(1)")
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N01)

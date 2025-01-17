@@ -229,7 +229,7 @@ public class SchemaRuleMapifier {
         if (value instanceof IntArray intArray) {
             return intArray.asObject();
         }
-        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, IntArray.class, value.getClass());
+        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, IntArray.class);
     }
 
     private static long getLong(String property, Map<String, Value> props) throws MalformedSchemaRuleException {
@@ -237,7 +237,7 @@ public class SchemaRuleMapifier {
         if (value instanceof LongValue longValue) {
             return longValue.value();
         }
-        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, LongValue.class, value.getClass());
+        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, LongValue.class);
     }
 
     private static OptionalLong getOptionalLong(String property, Map<String, Value> props) {
@@ -261,7 +261,7 @@ public class SchemaRuleMapifier {
         if (value instanceof TextValue textValue) {
             return textValue.stringValue();
         }
-        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, TextValue.class, value.getClass());
+        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, TextValue.class);
     }
 
     private static String[] getStringArray(String property, Map<String, Value> props)
@@ -270,7 +270,7 @@ public class SchemaRuleMapifier {
         if (value instanceof StringArray stringArray) {
             return stringArray.asObject();
         }
-        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, StringArray.class, value.getClass());
+        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, StringArray.class);
     }
 
     private static void putLongProperty(Map<String, Value> map, String property, long value) {

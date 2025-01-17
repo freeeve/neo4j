@@ -381,7 +381,7 @@ public class SchemaStore44Reader implements AutoCloseable {
         if (value instanceof IntArray) {
             return (int[]) value.asObject();
         }
-        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, IntArray.class, value.getClass());
+        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, IntArray.class);
     }
 
     private static long getLong(String property, Map<String, Value> props) throws MalformedSchemaRuleException {
@@ -389,7 +389,7 @@ public class SchemaStore44Reader implements AutoCloseable {
         if (value instanceof LongValue) {
             return ((LongValue) value).value();
         }
-        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, LongValue.class, value.getClass());
+        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, LongValue.class);
     }
 
     private static Long getOptionalLong(String property, Map<String, Value> props) {
@@ -405,7 +405,7 @@ public class SchemaStore44Reader implements AutoCloseable {
         if (value instanceof TextValue) {
             return ((TextValue) value).stringValue();
         }
-        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, TextValue.class, value.getClass());
+        throw MalformedSchemaRuleException.propertyTypeMismatch(property, value, TextValue.class);
     }
 
     private static String getOptionalString(String property, Map<String, Value> map) {
