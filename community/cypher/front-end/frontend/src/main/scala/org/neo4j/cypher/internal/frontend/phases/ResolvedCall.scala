@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.ReturnItems.ReturnVariables
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.success
+import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.CoerceTo
@@ -218,13 +219,9 @@ case class ResolvedCall(
       }
     } else {
       if (totalNumArgs == 0) {
-        error("Procedure call is missing parentheses: " + signature.name, position)
+        error(SemanticError.procedureCallWithoutParentheses(signature.name.toString, position))
       } else
-        error(
-          "Procedure call inside a query does not support passing arguments implicitly. " +
-            "Please pass arguments explicitly in parentheses after procedure name for " + signature.name,
-          position
-        )
+        error(SemanticError.procedureCallWithParenthesesWithArgs(signature.name.toString, position))
     }
   }
 

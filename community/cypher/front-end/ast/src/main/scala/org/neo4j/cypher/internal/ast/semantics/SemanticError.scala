@@ -1176,6 +1176,23 @@ object SemanticError {
       position
     )
   }
+
+  def procedureCallWithoutParentheses(name: String, position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42N36(position.offset, position.line, position.column),
+      "Procedure call is missing parentheses: " + name,
+      position
+    )
+  }
+
+  def procedureCallWithParenthesesWithArgs(name: String, position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42N36(position.offset, position.line, position.column),
+      "Procedure call inside a query does not support passing arguments implicitly. " +
+        "Please pass arguments explicitly in parentheses after procedure name for " + name,
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef
