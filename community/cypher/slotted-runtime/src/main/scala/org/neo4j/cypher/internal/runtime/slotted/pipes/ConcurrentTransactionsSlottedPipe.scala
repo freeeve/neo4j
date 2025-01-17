@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expres
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.AbstractConcurrentTransactionsPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionBatch
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionForeachPipe.toStatusMap
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionStatus
@@ -104,7 +105,7 @@ case class ConcurrentTransactionApplySlottedPipe(
 
   override protected def createTask(
     innerPipe: TransactionPipeWrapper,
-    batch: EagerBuffer[CypherRow],
+    batch: TransactionBatch,
     memoryTracker: MemoryTracker,
     state: QueryState,
     outputQueue: ArrayBlockingQueue[TaskOutputResult],
@@ -137,7 +138,7 @@ case class ConcurrentTransactionForeachSlottedPipe(
 
   override protected def createTask(
     innerPipe: TransactionPipeWrapper,
-    batch: EagerBuffer[CypherRow],
+    batch: TransactionBatch,
     memoryTracker: MemoryTracker,
     state: QueryState,
     outputQueue: ArrayBlockingQueue[TaskOutputResult],

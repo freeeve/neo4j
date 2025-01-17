@@ -24,8 +24,11 @@ import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
+import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
 import org.neo4j.cypher.internal.logical.plans.Prober
 import org.neo4j.cypher.internal.logical.plans.Prober.Probe
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
@@ -47,17 +50,22 @@ import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.graphdb.Label
 import org.neo4j.internal.helpers.collection.Iterables
 import org.neo4j.kernel.api.KernelTransaction.Type
+import org.neo4j.kernel.api.exceptions.Status
+import org.neo4j.kernel.api.exceptions.Status.HasStatus
 import org.neo4j.kernel.impl.coreapi.InternalTransaction
 import org.neo4j.kernel.impl.util.ValueUtils
 import org.neo4j.logging.InternalLogProvider
 import org.neo4j.test.Barrier
+import org.neo4j.values.storable.IntegralValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.storable.Values.stringValue
 import org.neo4j.values.virtual.MapValue
 import org.scalatest.LoneElement
 
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.locks.LockSupport
 
+import scala.concurrent.duration.MILLISECONDS
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
 object ConcurrentTransactionApplyTestBase
@@ -815,6 +823,104 @@ abstract class ConcurrentTransactionApplyTestBase[CONTEXT <: RuntimeContext](
       consume(execute(logicalQuery, runtime, inputValues(inputRows: _*)))
     }
     exception.getMessage should include("/ by zero")
+  }
+
+  final private class TestTransientFailure(message: String) extends RuntimeException(message) with HasStatus {
+    override def status: Status = Status.Transaction.Outdated
+  }
+
+  test("should retry transient errors") {
+    val nNodes = 10
+    val nodeIds = new Array[Long](nNodes)
+    withNewTx(tx => {
+      (0 until nNodes).foreach { i =>
+        val node = tx.createNode()
+        node.setProperty("prop", i.toLong)
+        nodeIds(i) = node.getId
+      }
+      tx.commit()
+    })
+
+    val errorCounts = new Array[Int](nNodes)
+    errorCounts(1) = 3
+    errorCounts(3) = 8
+    errorCounts(5) = 5
+    errorCounts(7) = 2
+    errorCounts(9) = 100
+    val delays = new Array[Long](nNodes)
+    delays(1) = MILLISECONDS.toNanos(100)
+    delays(5) = MILLISECONDS.toNanos(1000)
+    delays(9) = MILLISECONDS.toNanos(1)
+    val thrownCounts = new Array[Int](nNodes)
+
+    val errorProbe = new Prober.Probe {
+      override def onRow(row: AnyRef, state: AnyRef): Unit = {
+        val i = row.asInstanceOf[CypherRow].getByName("i").asInstanceOf[IntegralValue].longValue().toInt
+        print(s"Row $i on thread ${Thread.currentThread().getName}\n")
+        val delay = delays(i)
+        if (delay > 0L) {
+          LockSupport.parkNanos(delay)
+        }
+        var ec = errorCounts(i)
+        if (ec > 0) {
+          ec -= 1
+          errorCounts(i) = ec
+          val tc = thrownCounts(i) + 1
+          thrownCounts(i) = tc
+          val message = s"Error on row $i ($tc thrown, $ec left) on thread ${Thread.currentThread().getName}"
+          print(message + "\n")
+          throw new TestTransientFailure(message)
+        }
+      }
+    }
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("i", "u")
+      .projection("a.u AS u")
+      .transactionApply(batchSize = 2, concurrency = concurrency, onErrorBehaviour = OnErrorRetryThenContinue)
+      .|.setProperty("a", "u", "i * 1000")
+      .|.prober(errorProbe)
+      .|.argument("a", "i")
+      .sort("i ASC")
+      .projection("a.prop AS i")
+      .allNodeScan("a")
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult = execute(query, runtime)
+    val expected = (0 until nNodes).map { i =>
+      Array[Any](i.toLong, i * 1000L)
+    }
+    runtimeResult should beColumns("i", "u").withRows(expected)
+  }
+
+  test("should retry deadlocks") {
+    val nNodes = 10
+    val nodeIds = new Array[Long](nNodes)
+    withNewTx(tx => {
+      (0 until nNodes).foreach { i =>
+        val node = tx.createNode()
+        node.setProperty("prop", i)
+        nodeIds(i) = node.getId
+      }
+    })
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("a", "b", "r")
+      .transactionApply(batchSize = 2, concurrency = concurrency, onErrorBehaviour = OnErrorRetryThenContinue)
+      .|.create(createRelationship("r", "a", "T", "b", OUTGOING))
+      .|.filter(s"b.prop = (a.prop + diff) % $nNodes")
+      .|.projection("CASE a.prop % 2 WHEN 0 THEN 2 ELSE -2 END as diff")
+      .|.allNodeScan("b")
+      .|.argument()
+      .sort("a.prop ASC")
+      .allNodeScan("a")
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult = execute(query, runtime)
+    consume(runtimeResult)
+    val nodes = Iterables.asList(tx.getAllNodes)
+    nodes.size shouldBe 3
   }
 
   protected def txAssertionProbe(assertion: InternalTransaction => Unit): Prober.Probe = {

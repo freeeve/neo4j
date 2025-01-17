@@ -567,16 +567,6 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
     run(query).hasNoErrors
   }
 
-  test("CALL IN TRANSACTIONS ON ERROR BREAK without inner and outer return should pass semantic check") {
-    val query =
-      """CALL {
-        |  CREATE ()
-        |} IN TRANSACTIONS 
-        |  ON ERROR BREAK 
-        |""".stripMargin
-    run(query).hasNoErrors
-  }
-
   test("CALL IN TRANSACTIONS ON ERROR BREAK with inner return and no outer return should fail semantic check") {
     val query =
       """CALL {
@@ -586,6 +576,31 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |""".stripMargin
     run(query).hasError(
       getGql42001_42N71(0, 1, 1),
+      "Query cannot conclude with CALL (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
+      p(0, 1, 1)
+    )
+  }
+
+  test("CALL IN TRANSACTIONS ON ERROR RETRY should pass semantic check") {
+    val query =
+      """CALL {
+        |  RETURN 1 AS v
+        |} IN TRANSACTIONS
+        |  ON ERROR RETRY
+        |  RETURN v
+        |""".stripMargin
+    run(query).hasNoErrors
+  }
+
+  test("CALL IN TRANSACTIONS ON ERROR RETRY with inner return and no outer return should fail semantic check") {
+    val query =
+      """CALL {
+        |  RETURN 1 AS v
+        |} IN TRANSACTIONS
+        |  ON ERROR RETRY
+        |""".stripMargin
+    run(query).hasError(
+      getGql42001_42N71(1, 1, 0),
       "Query cannot conclude with CALL (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
       p(0, 1, 1)
     )
@@ -630,6 +645,18 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
       "Variable `v` already declared",
       p(85, 4, 54)
     )
+  }
+
+  test(
+    "CALL IN TRANSACTIONS  ON ERROR RETRY REPORT STATUS AS <v> should fail semantic check if <v> has already been scoped"
+  ) {
+    val query =
+      """WITH {} AS v
+        |CALL {
+        |  CREATE ()
+        |} IN TRANSACTIONS ON ERROR RETRY REPORT STATUS AS v RETURN v
+        |""".stripMargin
+    run(query).hasError("Variable `v` already declared", p(85, 4, 54))
   }
 
   test("CALL IN TRANSACTIONS ON ERROR BREAK REPORT STATUS AS status should pass semantic check") {

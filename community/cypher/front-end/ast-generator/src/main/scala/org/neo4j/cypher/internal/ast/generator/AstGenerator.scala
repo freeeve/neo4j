@@ -304,6 +304,9 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsParameters
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsReportParameters
 import org.neo4j.cypher.internal.ast.TerminateTransactionAction
@@ -1635,7 +1638,14 @@ class AstGenerator(
     for {
       batchSize <- option(_expression)
       concurrency <- option(option(_expression))
-      onErrorBehaviour <- option(oneOf[InTransactionsOnErrorBehaviour](OnErrorContinue, OnErrorBreak, OnErrorFail))
+      onErrorBehaviour <- option(oneOf[InTransactionsOnErrorBehaviour](
+        OnErrorContinue,
+        OnErrorBreak,
+        OnErrorFail,
+        OnErrorRetryThenContinue,
+        OnErrorRetryThenBreak,
+        OnErrorRetryThenFail
+      ))
       reportAs <- option(string)
     } yield InTransactionsParameters(
       batchSize.map(InTransactionsBatchParameters(_)(pos)),

@@ -32,6 +32,9 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.expressions
 import org.neo4j.cypher.internal.expressions.Ands
@@ -2770,9 +2773,12 @@ case class LogicalPlan2PlanDescription(
       case _                                                    => ""
     }
     val errorParams = onErrorBehaviour match {
-      case OnErrorContinue => " ON ERROR CONTINUE"
-      case OnErrorBreak    => " ON ERROR BREAK"
-      case OnErrorFail     => " ON ERROR FAIL"
+      case OnErrorContinue          => " ON ERROR CONTINUE"
+      case OnErrorBreak             => " ON ERROR BREAK"
+      case OnErrorFail              => " ON ERROR FAIL"
+      case OnErrorRetryThenContinue => " ON ERROR RETRY THEN CONTINUE"
+      case OnErrorRetryThenBreak    => " ON ERROR RETRY THEN BREAK"
+      case OnErrorRetryThenFail     => " ON ERROR RETRY THEN FAIL"
     }
     val reportParams = maybeReportAs.fold("")(status => s" REPORT STATUS AS ${status.name}")
 

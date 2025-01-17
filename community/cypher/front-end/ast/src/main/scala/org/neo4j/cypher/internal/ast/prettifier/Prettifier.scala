@@ -191,6 +191,9 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsConcurrencyParam
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsParameters
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause
 import org.neo4j.cypher.internal.ast.TopLevelBraces
@@ -1008,10 +1011,13 @@ case class Prettifier(
         case None                                                      => ""
       }
       val onError = ip.errorParams.map(_.behaviour) match {
-        case Some(OnErrorBreak)    => s" ON ERROR BREAK"
-        case Some(OnErrorContinue) => s" ON ERROR CONTINUE"
-        case Some(OnErrorFail)     => s" ON ERROR FAIL"
-        case None                  => ""
+        case Some(OnErrorBreak)             => s" ON ERROR BREAK"
+        case Some(OnErrorContinue)          => s" ON ERROR CONTINUE"
+        case Some(OnErrorFail)              => s" ON ERROR FAIL"
+        case Some(OnErrorRetryThenContinue) => s" ON ERROR RETRY THEN CONTINUE"
+        case Some(OnErrorRetryThenBreak)    => s" ON ERROR RETRY THEN BREAK"
+        case Some(OnErrorRetryThenFail)     => s" ON ERROR RETRY THEN FAIL"
+        case None                           => ""
       }
       val reportStatus = ip.reportParams.map(_.reportAs) match {
         case Some(statusVar) => s" REPORT STATUS AS ${backtick(statusVar.name)}"

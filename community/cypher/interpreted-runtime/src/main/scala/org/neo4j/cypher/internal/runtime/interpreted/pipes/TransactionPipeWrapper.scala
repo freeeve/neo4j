@@ -20,10 +20,14 @@
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.RecoverableCypherError
+import org.neo4j.cypher.internal.RetryableCypherError
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.EntityTransformer
@@ -57,12 +61,20 @@ trait TransactionPipeWrapper {
 
   /**
    * Consumes the inner pipe in a new transaction and discard the resulting rows.
-   * 
-   * @param state query state
+   *
+   * @param state     query state
    * @param outerRows outer rows, will not be closed as part of this call
    */
-  def consume(state: QueryState, outerRows: EagerBuffer[CypherRow]): TransactionStatus = {
-    processBatch(state, outerRows)(_ => ())
+  def consume(state: QueryState, outerRows: TransactionBatch): TransactionResult = {
+    val status = processBatch(state, outerRows.rows)(_ => ())
+    status match {
+      case rollback: Rollback =>
+        val retry = shouldRetry(rollback.failure, outerRows)
+        onRollback(rollback, retry)
+        TransactionResult(rollback, None, shouldRetry = retry)
+      case _ =>
+        TransactionResult(status, None, shouldRetry = false)
+    }
   }
 
   /**
@@ -74,13 +86,13 @@ trait TransactionPipeWrapper {
    */
   def createResults(
     state: QueryState,
-    outerRows: EagerBuffer[CypherRow],
+    outerRows: TransactionBatch,
     memoryTracker: MemoryTracker
   ): TransactionResult = {
     val entityTransformer = new CypherRowEntityTransformer(state.query.entityTransformer)
-    val innerResult = createEagerBuffer[CypherRow](memoryTracker, math.min(outerRows.size(), 1024).toInt)
+    val innerResult = createEagerBuffer[CypherRow](memoryTracker, math.min(outerRows.rows.size(), 1024).toInt)
 
-    val status = processBatch(state, outerRows) { innerRow =>
+    val status = processBatch(state, outerRows.rows) { innerRow =>
       // Row based caching relies on the transaction state to avoid stale reads (see AbstractCachedProperty.apply).
       // Since we do not share the transaction state we must clear the cached properties.
       innerRow.invalidateCachedProperties()
@@ -88,10 +100,15 @@ trait TransactionPipeWrapper {
     }
 
     status match {
-      case commit: Commit => TransactionResult(commit, Some(innerResult))
+      case commit: Commit => TransactionResult(commit, Some(innerResult), shouldRetry = false)
+      case rollback: Rollback =>
+        innerResult.close()
+        val retry = shouldRetry(rollback.failure, outerRows)
+        onRollback(rollback, retry)
+        TransactionResult(rollback, None, shouldRetry = retry)
       case other =>
         innerResult.close()
-        TransactionResult(other, None)
+        TransactionResult(other, None, shouldRetry = false)
     }
   }
 
@@ -100,7 +117,16 @@ trait TransactionPipeWrapper {
     outerRows: EagerBuffer[CypherRow] // Should not be closed
   )(f: CypherRow => Unit): TransactionStatus
 
+  protected def onRollback(rollback: Rollback, shouldRetry: Boolean): Unit
+
   protected def shouldBreak: Boolean
+
+  /**
+   * If retries are enabled and the given throwable is a retryable error,
+   * update the retry state of the batch and return true if the batch should be retried.
+   * NOTE: As it updates the retry state of the batch it should only be called once for every retried execution!
+   */
+  protected def shouldRetry(throwable: Throwable, batch: TransactionBatch): Boolean
 
   /**
    * Evaluates inner pipe in a new transaction.
@@ -187,7 +213,13 @@ class OnErrorContinueTxPipe(val outerId: Id, val inner: Pipe, val concurrentAcce
     createInnerResultsInNewTransaction(state, outerRows)(f)
   }
 
-  protected def shouldBreak: Boolean = false
+  override protected def onRollback(rollback: Rollback, shouldRetry: Boolean): Unit = {
+    // Do nothing
+  }
+
+  override protected def shouldBreak: Boolean = false
+
+  override protected def shouldRetry(throwable: Throwable, batch: TransactionBatch): Boolean = false
 }
 
 // NOTE! Keeps state that is not safe to re-use between queries. Create a new instance for each query.
@@ -195,22 +227,24 @@ class OnErrorBreakTxPipe(val outerId: Id, val inner: Pipe, val concurrentAccess:
     extends TransactionPipeWrapper {
   @volatile private[this] var break: Boolean = false
 
-  override def shouldBreak: Boolean = { break }
+  override protected def shouldBreak: Boolean = { break }
 
-  override def processBatch(
+  override protected def shouldRetry(throwable: Throwable, batch: TransactionBatch): Boolean = false
+
+  override protected def processBatch(
     state: QueryState,
     outerRows: EagerBuffer[CypherRow]
   )(f: CypherRow => Unit): TransactionStatus = {
     if (break) {
       NotRun
     } else {
-      createInnerResultsInNewTransaction(state, outerRows)(f) match {
-        case commit: Commit => commit
-        case rollback: Rollback =>
-          break = true
-          rollback
-        case other => throw new IllegalStateException(s"Unexpected transaction status $other")
-      }
+      createInnerResultsInNewTransaction(state, outerRows)(f)
+    }
+  }
+
+  override protected def onRollback(rollback: Rollback, shouldRetry: Boolean): Unit = {
+    if (!shouldRetry) {
+      break = true
     }
   }
 }
@@ -221,15 +255,52 @@ class OnErrorFailTxPipe(val outerId: Id, val inner: Pipe, val concurrentAccess: 
 
   override def shouldBreak: Boolean = false
 
+  override def shouldRetry(throwable: Throwable, batch: TransactionBatch): Boolean = false
+
   override def processBatch(
     state: QueryState,
     outerRows: EagerBuffer[CypherRow]
   )(f: CypherRow => Unit): TransactionStatus = {
-    createInnerResultsInNewTransaction(state, outerRows)(f) match {
-      case commit: Commit     => commit
-      case rollback: Rollback => throw rollback.failure
-      case other              => throw new IllegalStateException(s"Unexpected transaction status $other")
+    createInnerResultsInNewTransaction(state, outerRows)(f)
+  }
+
+  override def onRollback(rollback: Rollback, shouldRetry: Boolean): Unit = {
+    if (!shouldRetry) {
+      throw rollback.failure
     }
+  }
+}
+
+class OnErrorRetryThenContinueTxPipe(
+  outerId: Id,
+  inner: Pipe,
+  concurrentAccess: Boolean,
+  val retryLogic: TransactionRetryLogic
+) extends OnErrorContinueTxPipe(outerId, inner, concurrentAccess) with OnErrorRetryTxPipe
+
+class OnErrorRetryThenBreakTxPipe(
+  outerId: Id,
+  inner: Pipe,
+  concurrentAccess: Boolean,
+  val retryLogic: TransactionRetryLogic
+) extends OnErrorBreakTxPipe(outerId, inner, concurrentAccess) with OnErrorRetryTxPipe
+
+class OnErrorRetryThenFailTxPipe(
+  outerId: Id,
+  inner: Pipe,
+  concurrentAccess: Boolean,
+  val retryLogic: TransactionRetryLogic
+) extends OnErrorFailTxPipe(outerId, inner, concurrentAccess) with OnErrorRetryTxPipe
+
+trait OnErrorRetryTxPipe {
+  self: TransactionPipeWrapper =>
+
+  def retryLogic: TransactionRetryLogic
+
+  override def shouldRetry(throwable: Throwable, batch: TransactionBatch): Boolean = {
+    // NOTE: This updates the retry state of the batch so should only be called once per retried execution!
+    val isRetryable = RetryableCypherError.isRetryable(throwable)
+    isRetryable && batch.shouldRetryAgain(retryLogic)
   }
 }
 
@@ -261,7 +332,68 @@ case object NonRecoverableError extends TransactionStatus {
   override def profileInformation: InterpretedProfileInformation = null
 }
 
-case class TransactionResult(status: TransactionStatus, committedResults: Option[EagerBuffer[CypherRow]])
+case class TransactionBatch(rows: EagerBuffer[CypherRow]) {
+  private[this] var _retryState: TransactionRetryLogic.RetryState = _
+  private[this] var _nextRetryState: TransactionRetryLogic.RetryState = _
+
+  def retryState: TransactionRetryLogic.RetryState = _retryState
+
+  def close(): Unit = {
+    rows.close()
+  }
+
+  def hasRetried: Boolean = _retryState != null
+
+  def computeNextRetryState(retryLogic: TransactionRetryLogic): Unit = {
+    if (_nextRetryState == null) {
+      ensureRetryState(retryLogic)
+      retryLogic.computeNextRetryState(_retryState, _retryState)
+      retryLogic.computeNextRetryState(_retryState, _nextRetryState)
+    } else {
+      _retryState = _nextRetryState
+      retryLogic.computeNextRetryState(_retryState, _nextRetryState)
+    }
+  }
+
+  def nanosUntilRetry(retryLogic: TransactionRetryLogic): Long = {
+    ensureRetryState(retryLogic)
+    retryLogic.nanosUntilRetry(_retryState)
+  }
+
+  def shouldRetryAgain(retryLogic: TransactionRetryLogic): Boolean = {
+    ensureRetryState(retryLogic)
+    retryLogic.shouldRetryAgain(_nextRetryState)
+  }
+
+  private def ensureRetryState(retryLogic: TransactionRetryLogic): Unit = {
+    if (_retryState == null) {
+      _retryState = retryLogic.newRetryState()
+    }
+    if (_nextRetryState == null) {
+      _nextRetryState = retryLogic.newRetryState()
+    }
+  }
+
+  override def toString: String = {
+    s"TransactionBatch(retryState=${_retryState})"
+  }
+}
+
+object TransactionBatch {
+
+  def comparator: java.util.Comparator[TransactionBatch] = {
+    (b1: TransactionBatch, b2: TransactionBatch) =>
+      {
+        b1.retryState.compareTo(b2.retryState)
+      }
+  }
+}
+
+case class TransactionResult(
+  status: TransactionStatus,
+  committedResults: Option[EagerBuffer[CypherRow]],
+  shouldRetry: Boolean
+)
 
 object TransactionPipeWrapper {
 
@@ -274,7 +406,8 @@ object TransactionPipeWrapper {
     error: InTransactionsOnErrorBehaviour,
     outerId: Id,
     inner: Pipe,
-    concurrentAccess: Boolean
+    concurrentAccess: Boolean,
+    retryLogic: TransactionRetryLogic
   ): TransactionPipeWrapper = {
     error match {
       case OnErrorContinue                 => new OnErrorContinueTxPipe(outerId, inner, concurrentAccess)
@@ -283,8 +416,14 @@ object TransactionPipeWrapper {
         // NOTE: We intentionally use OnErrorBreakTxPipe for OnErrorFail in concurrent execution,
         //       since we need to send the error back to the main thread anyway.
         new OnErrorBreakTxPipe(outerId, inner, concurrentAccess)
-      case OnErrorFail => new OnErrorFailTxPipe(outerId, inner, concurrentAccess)
-      case other       => throw new UnsupportedOperationException(s"Unsupported error behaviour $other")
+      case OnErrorFail              => new OnErrorFailTxPipe(outerId, inner, concurrentAccess)
+      case OnErrorRetryThenContinue => new OnErrorRetryThenContinueTxPipe(outerId, inner, concurrentAccess, retryLogic)
+      case OnErrorRetryThenBreak    => new OnErrorRetryThenBreakTxPipe(outerId, inner, concurrentAccess, retryLogic)
+      case OnErrorRetryThenFail if concurrentAccess =>
+        new OnErrorRetryThenBreakTxPipe(outerId, inner, concurrentAccess, retryLogic)
+      case OnErrorRetryThenFail => new OnErrorRetryThenFailTxPipe(outerId, inner, concurrentAccess, retryLogic)
+
+      case other => throw new UnsupportedOperationException(s"Unsupported error behaviour $other")
     }
   }
 

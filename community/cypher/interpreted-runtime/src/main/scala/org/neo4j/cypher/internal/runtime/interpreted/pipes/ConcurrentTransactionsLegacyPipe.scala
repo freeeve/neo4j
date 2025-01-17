@@ -85,7 +85,7 @@ case class ConcurrentTransactionApplyLegacyPipe(
 
   override protected def createTask(
     innerPipe: TransactionPipeWrapper,
-    batch: EagerBuffer[CypherRow],
+    batch: TransactionBatch,
     memoryTracker: MemoryTracker,
     state: QueryState,
     outputQueue: ArrayBlockingQueue[TaskOutputResult],
@@ -118,7 +118,7 @@ case class ConcurrentTransactionForeachLegacyPipe(
 
   override protected def createTask(
     innerPipe: TransactionPipeWrapper,
-    batch: EagerBuffer[CypherRow],
+    batch: TransactionBatch,
     memoryTracker: MemoryTracker,
     state: QueryState,
     outputQueue: ArrayBlockingQueue[TaskOutputResult],

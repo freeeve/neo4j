@@ -43,4 +43,10 @@ public class QueryExecutionTimeoutException extends Neo4jException {
     public Status status() {
         return Status.Statement.ExecutionTimeout;
     }
+
+    public static QueryExecutionTimeoutException transactionRetryTimeout(Throwable cause) {
+        return new QueryExecutionTimeoutException(
+                "Transaction retry timed out. TODO: Improve this error message. Add #failures and the timeout value.",
+                cause);
+    }
 }

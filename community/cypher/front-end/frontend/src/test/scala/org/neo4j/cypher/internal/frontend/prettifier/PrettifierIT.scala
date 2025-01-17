@@ -195,6 +195,10 @@ class PrettifierIT extends CypherFunSuite {
       """CALL {
         |  CREATE (n)
         |} IN TRANSACTIONS OF 1 ROWS ON ERROR CONTINUE""".stripMargin,
+    "call { create ( n ) } in transactions of 1 row on error retry" ->
+      """CALL {
+        |  CREATE (n)
+        |} IN TRANSACTIONS OF 1 ROWS ON ERROR RETRY""".stripMargin,
     "call { create ( n ) } in transactions report status as s" ->
       """CALL {
         |  CREATE (n)
@@ -265,6 +269,10 @@ class PrettifierIT extends CypherFunSuite {
       """OPTIONAL CALL {
         |  CREATE (n)
         |} IN TRANSACTIONS OF 1 ROWS ON ERROR CONTINUE""".stripMargin,
+    "optional call { create ( n ) } in transactions of 1 row on error retry" ->
+      """OPTIONAL CALL {
+        |  CREATE (n)
+        |} IN TRANSACTIONS OF 1 ROWS ON ERROR RETRY""".stripMargin,
     "optional call { create ( n ) } in transactions report status as s" ->
       """OPTIONAL CALL {
         |  CREATE (n)

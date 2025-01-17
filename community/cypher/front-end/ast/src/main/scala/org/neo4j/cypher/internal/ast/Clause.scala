@@ -1880,6 +1880,9 @@ object SubqueryCall {
     case object OnErrorContinue extends InTransactionsOnErrorBehaviour
     case object OnErrorBreak extends InTransactionsOnErrorBehaviour
     case object OnErrorFail extends InTransactionsOnErrorBehaviour
+    case object OnErrorRetryThenContinue extends InTransactionsOnErrorBehaviour
+    case object OnErrorRetryThenBreak extends InTransactionsOnErrorBehaviour
+    case object OnErrorRetryThenFail extends InTransactionsOnErrorBehaviour
   }
 
   final case class InTransactionsParameters(

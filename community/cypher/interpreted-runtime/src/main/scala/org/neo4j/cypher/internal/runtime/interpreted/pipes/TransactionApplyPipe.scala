@@ -45,14 +45,16 @@ abstract class AbstractTransactionApplyPipe(
     input: ClosingIterator[CypherRow],
     state: QueryState
   ): ClosingIterator[CypherRow] = {
-    val innerPipeInTx = TransactionPipeWrapper(onErrorBehaviour, id, inner, concurrentAccess = false)
+    val innerPipeInTx = TransactionPipeWrapper(onErrorBehaviour, id, inner, concurrentAccess = false, retryLogic = null)
     val batchSizeLong = evaluateBatchSize(batchSize, state)
     val memoryTracker = state.memoryTrackerForOperatorProvider.memoryTrackerForOperator(id.x)
 
     input
       .eagerGrouped(batchSizeLong, memoryTracker)
-      .flatMap { batch =>
+      .flatMap { eagerBuffer =>
+        val batch = TransactionBatch(eagerBuffer)
         val innerResult = innerPipeInTx.createResults(state, batch, memoryTracker)
+        // TODO: Implement retry if (result.shouldRetry)
         val statistics = innerResult.status.queryStatistics
         if (statistics != null) {
           state.query.addStatistics(statistics)
@@ -61,7 +63,7 @@ abstract class AbstractTransactionApplyPipe(
           case Some(result) =>
             batch.close()
             result.autoClosingIterator().asClosingIterator
-          case _ => nullRows(batch, state)
+          case _ => nullRows(batch.rows, state)
         }
 
         withStatus(output, innerResult.status)
