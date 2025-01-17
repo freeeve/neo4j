@@ -107,6 +107,7 @@ import org.neo4j.cypher.internal.ast.RevokeType
 import org.neo4j.cypher.internal.ast.ServerManagementAction
 import org.neo4j.cypher.internal.ast.SetAuthAction
 import org.neo4j.cypher.internal.ast.SetDatabaseAccessAction
+import org.neo4j.cypher.internal.ast.SetDefaultLanguageAction
 import org.neo4j.cypher.internal.ast.SetOwnPassword
 import org.neo4j.cypher.internal.ast.SetPasswordsAction
 import org.neo4j.cypher.internal.ast.SetUserHomeDatabaseAction
@@ -1081,7 +1082,15 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
                 Some(canCreateCheck)
             }
           ).map(plans.EnsureNameIsNotAmbiguous(_, dbName.asLegacyName, isComposite = false))
-          .map(plans.CreateDatabase(_, dbName.asLegacyName, options, ifExistsDo, isComposite = false, topology))
+          .map(plans.CreateDatabase(
+            _,
+            dbName.asLegacyName,
+            options,
+            ifExistsDo,
+            isComposite = false,
+            topology,
+            cypherVersion
+          ))
           .map(plans.EnsureValidNumberOfDatabases(_))
           .map(wrapInWait(_, dbName, waitUntilComplete))
           .map(plans.LogSystemCommand(_, prettifier.asString(c)))
@@ -1110,7 +1119,15 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
                 Some(canCreateCheck)
             }
           ).map(plans.EnsureNameIsNotAmbiguous(_, dbName.asLegacyName, isComposite = true))
-          .map(plans.CreateDatabase(_, dbName.asLegacyName, options, ifExistsDo, isComposite = true, topology = None))
+          .map(plans.CreateDatabase(
+            _,
+            dbName.asLegacyName,
+            options,
+            ifExistsDo,
+            isComposite = true,
+            topology = None,
+            cypherVersion
+          ))
           .map(plans.EnsureValidNumberOfDatabases(_))
           .map(wrapInWait(_, dbName, waitUntilComplete))
           .map(plans.LogSystemCommand(_, prettifier.asString(c)))
@@ -1166,7 +1183,9 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           // ALTER DATABASE foo REMOVE OPTION ... requires 'ALTER DATABASE' privileges:
           optionsToRemove.nonEmpty -> AlterDatabaseAction,
           // ALTER DATABASE foo SET ACCESS ... requires 'SET DATABASE ACCESS' privileges:
-          access.nonEmpty -> SetDatabaseAccessAction
+          access.nonEmpty -> SetDatabaseAccessAction,
+          // ALTER DATABASE foo SET DEFAULT LANGUAGE ... requires 'SET DEFAULT LANGUAGE' privileges:
+          cypherVersion.nonEmpty -> SetDefaultLanguageAction
         ).filter(_._1)
           .map(_._2)
           .distinct
@@ -1186,7 +1205,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
             else assertAllowed
           )
           .map(plans.EnsureValidNonSystemDatabase(_, "ALTER DATABASE", dbName, "alter"))
-          .map(plans.AlterDatabase(_, dbName, access, topology, options, optionsToRemove))
+          .map(plans.AlterDatabase(_, dbName, access, topology, options, cypherVersion, optionsToRemove))
           .map(wrapInWait(_, dbName, waitUntilComplete))
           .map(plans.LogSystemCommand(_, prettifier.asString(c)))
 

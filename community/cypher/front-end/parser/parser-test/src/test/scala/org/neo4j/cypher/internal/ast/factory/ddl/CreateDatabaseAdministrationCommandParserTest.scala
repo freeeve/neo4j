@@ -782,6 +782,14 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
     )
   }
 
+  test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER $param") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '$': expected an integer value (line 1, column 45 (offset: 44))
+        |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER $param"
+        |                                             ^""".stripMargin
+    )
+  }
+
   // If you take the view that the version number is a Cypher number, then this should probably pass, but
   // we treat it as a word here, as it's part of the name. We would not allow CYPHER 24 + 1 either.
   test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 2_5") {

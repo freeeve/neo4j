@@ -7487,7 +7487,10 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     )
 
     assertGood(
-      attach(CreateDatabase(privLhsLP, util.Left("db1"), NoOptions, IfExistsDoNothing, isComposite = false, None), 1.0),
+      attach(
+        CreateDatabase(privLhsLP, util.Left("db1"), NoOptions, IfExistsDoNothing, isComposite = false, None, None),
+        1.0
+      ),
       adminPlanDescription
     )
 
@@ -7498,7 +7501,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
     assertGood(
       attach(
-        AlterDatabase(privLhsLP, NamespacedName("db1")(pos), Some(ReadOnlyAccess), None, NoOptions, Set.empty),
+        AlterDatabase(privLhsLP, NamespacedName("db1")(pos), Some(ReadOnlyAccess), None, NoOptions, None, Set.empty),
         1.0
       ),
       adminPlanDescription
@@ -7506,7 +7509,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
     assertGood(
       attach(
-        AlterDatabase(privLhsLP, NamespacedName("db1")(pos), Some(ReadWriteAccess), None, NoOptions, Set.empty),
+        AlterDatabase(privLhsLP, NamespacedName("db1")(pos), Some(ReadWriteAccess), None, NoOptions, None, Set.empty),
         1.0
       ),
       adminPlanDescription
@@ -7647,6 +7650,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           NoOptions,
           IfExistsDoNothing,
           isComposite = false,
+          None,
           None
         )),
         1.0

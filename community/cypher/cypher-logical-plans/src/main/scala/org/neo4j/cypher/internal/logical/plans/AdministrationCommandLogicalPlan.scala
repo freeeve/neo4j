@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.logical.plans
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Access
 import org.neo4j.cypher.internal.ast.ActionResource
 import org.neo4j.cypher.internal.ast.AdministrationAction
@@ -514,7 +515,8 @@ case class CreateDatabase(
   options: Options,
   ifExistsDo: IfExistsDo,
   isComposite: Boolean,
-  topology: Option[Topology]
+  topology: Option[Topology],
+  defaultLanguageVersion: Option[CypherVersion]
 )(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan(Some(source))
 
 case class DropDatabase(
@@ -531,6 +533,7 @@ case class AlterDatabase(
   access: Option[Access],
   topology: Option[Topology],
   options: Options,
+  defaultLanguageVersion: Option[CypherVersion],
   optionsToRemove: Set[String]
 )(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan(Some(source))
 
