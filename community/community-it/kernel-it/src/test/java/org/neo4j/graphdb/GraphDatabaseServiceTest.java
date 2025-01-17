@@ -87,15 +87,15 @@ public class GraphDatabaseServiceTest {
 
         barrier.await();
 
-        Future<Object> shutdownFuture = t3.executeDontWait(() -> {
-            managementService.shutdown();
-            return null;
-        });
         availabilityGuard.addListener(new AvailabilityListener() {
             @Override
             public void unavailable() {
                 barrier.release();
             }
+        });
+        Future<Object> shutdownFuture = t3.executeDontWait(() -> {
+            managementService.shutdown();
+            return null;
         });
         assertDoesNotThrow((ThrowingSupplier<Object>) txFuture::get);
         shutdownFuture.get();
@@ -120,17 +120,17 @@ public class GraphDatabaseServiceTest {
         });
 
         barrier.await();
-        Future<Object> shutdownFuture = t3.executeDontWait(() -> {
-            managementService.shutdown();
-            return null;
-        });
-
         availabilityGuard.addListener(new AvailabilityListener() {
             @Override
             public void unavailable() {
                 barrier.release(); // <-- this triggers t2 to continue its transaction
             }
         });
+        Future<Object> shutdownFuture = t3.executeDontWait(() -> {
+            managementService.shutdown();
+            return null;
+        });
+
         shutdownFuture.get();
 
         assertThrows(DatabaseShutdownException.class, database::beginTx);
