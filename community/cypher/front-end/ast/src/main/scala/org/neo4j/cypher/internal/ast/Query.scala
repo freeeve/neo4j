@@ -698,7 +698,10 @@ object SingleQuery {
     }
 }
 
-case object TopLevelBraces extends UnaliasedNotAllowed { override val msg: String = "{ RETURN ... }" }
+case object TopLevelBraces extends UnaliasedNotAllowed {
+  val name: String = "{ ... }"
+  override val msg: String = "{ RETURN ... }"
+}
 
 case class TopLevelBraces(
   query: Query,
@@ -746,7 +749,7 @@ case class TopLevelBraces(
     query.semanticCheckInSubqueryContext(outer, current) chain recordCurrentScope(this)
 
   override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
-    query.semanticCheckImportingWithSubQueryContext(outer) chain recordCurrentScope(this)
+    SemanticCheck.error(SemanticError.invalidUseOfOldCall(TopLevelBraces.name, position))
 
   override def semanticCheckInSubqueryExpressionContext(canOmitReturn: Boolean): SemanticCheck =
     query.semanticCheckInSubqueryExpressionContext(canOmitReturn) chain recordCurrentScope(this)
@@ -758,6 +761,9 @@ case class TopLevelBraces(
   override def checkImportingWith: SemanticCheck = query.checkImportingWith
   override def importColumns: Seq[String] = query.importColumns
   override def isCorrelated: Boolean = query.isCorrelated
+
+  override def finalScope(scope: Scope): Scope =
+    if (scope.children.size < 1) Scope.empty else scope.children.last
 }
 
 object Union {
@@ -855,8 +861,8 @@ sealed trait Union extends Query {
 
   private def defineUnionVariables: SemanticCheck = (state: SemanticState) => {
     var result = SemanticCheckResult.success(state.newChildScope)
-    val scopeFromLhs = lhs.finalScope(state.scope(lhs).get)
-    val scopeFromRhs = rhs.finalScope(state.scope(rhs).get)
+    val scopeFromLhs = lhs.finalScope(state.scope(lhs).getOrElse(Scope.empty))
+    val scopeFromRhs = rhs.finalScope(state.scope(rhs).getOrElse(Scope.empty))
 
     /**
      * Derived from UnionMapping, but only has the names of the variables in LHS and RHS,

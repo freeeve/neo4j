@@ -3340,6 +3340,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "incompatible return columns",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42N3C(
+            new GqlStatus("42N3C"),
+            """
+                    Not possible to enclose { %s } in CALL { ... }, please use CALL () { ... }.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "invalid use of CALL { ... }",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42N40(
             new GqlStatus("42N40"),
             """

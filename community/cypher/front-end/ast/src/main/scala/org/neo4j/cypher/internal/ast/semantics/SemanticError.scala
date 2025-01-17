@@ -531,6 +531,11 @@ object SemanticError {
     SemanticError(gql, "All sub queries in an UNION must have the same return column names", position)
   }
 
+  def invalidUseOfOldCall(clause: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N3C(clause, position.offset, position.line, position.column)
+    SemanticError(gql, gql.cause().get().gqlStatusObject().getMessage, position)
+  }
+
   def invalidUseOfUnion(position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)
