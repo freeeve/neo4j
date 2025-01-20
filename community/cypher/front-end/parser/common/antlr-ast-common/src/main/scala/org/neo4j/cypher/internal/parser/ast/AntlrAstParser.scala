@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.internal.helpers.Exceptions
 
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.control.NonFatal
 
 /** Helper trait for all antlr based [[AstParser]]s. */
@@ -41,11 +42,9 @@ trait AntlrAstParser[P <: AstBuildingAntlrParser] extends AstParser {
   protected def exceptionFactory: CypherExceptionFactory
   protected def errorStrategyConf: CypherErrorStrategy.Conf
 
-  final def parse[AST <: AnyRef](f: P => AstRuleCtx): AST = {
-    parseCst(f).ast[AST]()
-  }
+  case class ParsingResult(cst: AstRuleCtx, tokens: Seq[Token], errors: Seq[Throwable])
 
-  final def parseCst(f: P => AstRuleCtx): AstRuleCtx = {
+  final def parse[AST <: AnyRef](f: P => AstRuleCtx): AST = {
     val listener = new SyntaxErrorListener(exceptionFactory)
     val parser = newParser(preparsedTokens(listener, fullTokens = false))
 
@@ -56,24 +55,53 @@ trait AntlrAstParser[P <: AstBuildingAntlrParser] extends AstParser {
     // Use bail error strategy to fail fast and avoid recovery attempts
     parser.setErrorHandler(new BailErrorStrategy)
 
-    try {
-      doParse(parser, listener, f)
-    } catch {
-      case NonFatal(_) =>
-        // The fast route failed, now try again with full error handling and prediction mode
+    val cst =
+      try {
+        cstIfNoExceptions(doParse(parser, listener, f))
+      } catch {
+        case NonFatal(_) =>
+          // The fast route failed, now try again with full error handling and prediction mode
 
-        // Reset parser and token stream
-        // We do not reuse the TokenStream because we need `fullTokens = true` for better error handling
-        parser.setInputStream(preparsedTokens(listener, fullTokens = true))
+          // Reset parser and token stream
+          // We do not reuse the TokenStream because we need `fullTokens = true` for better error handling
+          parser.setInputStream(preparsedTokens(listener, fullTokens = true))
 
-        // Slower but correct prediction.
-        parser.getInterpreter.setPredictionMode(PredictionMode.LL)
+          // Slower but correct prediction.
+          parser.getInterpreter.setPredictionMode(PredictionMode.LL)
 
-        // CypherErrorStrategy allows us to get the correct error messages in case we still fail
-        parser.setErrorHandler(new CypherErrorStrategy(errorStrategyConf))
-        parser.addErrorListener(listener)
+          // CypherErrorStrategy allows us to get the correct error messages in case we still fail
+          parser.setErrorHandler(new CypherErrorStrategy(errorStrategyConf))
+          parser.addErrorListener(listener)
 
-        doParse(parser, listener, f)
+          cstIfNoExceptions(doParse(parser, listener, f))
+      }
+
+    cst.ast[AST]
+  }
+
+  final def parseCst(f: P => AstRuleCtx): ParsingResult = {
+    val listener = new SyntaxErrorListener(exceptionFactory)
+    val tokenStream = preparsedTokens(listener, fullTokens = true)
+    val parser = newParser(tokenStream)
+    // Slower but correct prediction.
+    parser.getInterpreter.setPredictionMode(PredictionMode.LL)
+
+    // CypherErrorStrategy allows us to get the correct error messages in case we still fail
+    parser.setErrorHandler(new CypherErrorStrategy(errorStrategyConf))
+    parser.addErrorListener(listener)
+
+    val (cst, errors) = doParse(parser, listener, f)
+
+    ParsingResult(cst, tokenStream.getTokens.asScala.toSeq, errors)
+  }
+
+  final private def cstIfNoExceptions[CTX <: AstRuleCtx](result: (CTX, Seq[Throwable])): CTX = {
+    val (cst, errors) = result
+
+    if (errors.nonEmpty) {
+      throw errors.reduce(Exceptions.chain)
+    } else {
+      cst
     }
   }
 
@@ -81,33 +109,25 @@ trait AntlrAstParser[P <: AstBuildingAntlrParser] extends AstParser {
     parser: P,
     listener: SyntaxErrorListener,
     f: P => CTX
-  ): CTX = {
+  ): (CTX, Seq[Throwable]) = {
     val result = f(parser)
+    val errors = parser.syntaxChecker().errors ++ listener.syntaxErrors
 
-    // Throw syntax checker errors
-    if (parser.syntaxChecker().errors.nonEmpty) {
-      throw parser.syntaxChecker().errors.reduce(Exceptions.chain)
-    }
-
-    // Throw any syntax errors
-    if (listener.syntaxErrors.nonEmpty) {
-      throw listener.syntaxErrors.reduce(Exceptions.chain)
-    }
-
-    if (!parseReachedEof(parser)) {
-      throw exceptionFactory.syntaxException(
+    if (errors.isEmpty && !parseReachedEof(parser)) {
+      val eofError = exceptionFactory.syntaxException(
         s"Invalid input '${parser.getCurrentToken.getText}'",
         position(parser.getCurrentToken)
       )
+      return (result, errors :+ eofError)
     }
 
-    result
+    (result, errors)
   }
 
   final private def parseReachedEof(parser: P): Boolean =
     parser.isMatchedEOF || parser.getCurrentToken.getType == Token.EOF
 
-  final private def preparsedTokens(listener: SyntaxErrorListener, fullTokens: Boolean): TokenStream =
+  final private def preparsedTokens(listener: SyntaxErrorListener, fullTokens: Boolean): CommonTokenStream =
     try {
       val lexer = newLexer(fullTokens)
       lexer.removeErrorListeners()
