@@ -20,7 +20,6 @@
 package org.neo4j.dbms.routing;
 
 import static org.neo4j.kernel.api.exceptions.Status.Database.DatabaseNotFound;
-import static org.neo4j.kernel.api.exceptions.Status.General.DatabaseUnavailable;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.util.Optional;
@@ -66,9 +65,6 @@ public class RoutingTableServiceHelpers {
     }
 
     public static RoutingException databaseNotAvailableException(String databaseName) {
-        return new RoutingException(
-                DatabaseUnavailable,
-                "Unable to get a routing table for database '" + databaseName
-                        + "' because this database is unavailable");
+        return RoutingException.routingTableForUnavailableDb(databaseName);
     }
 }

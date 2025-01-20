@@ -21,7 +21,6 @@ package org.neo4j.dbms.routing;
 
 import static org.neo4j.dbms.routing.RoutingTableServiceHelpers.FROM_ALIAS_KEY;
 import static org.neo4j.kernel.api.exceptions.Status.Database.IllegalAliasChain;
-import static org.neo4j.kernel.api.exceptions.Status.General.DatabaseUnavailable;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.time.Clock;
@@ -188,8 +187,7 @@ public class DefaultRoutingService implements RoutingService, PanicEventHandler 
     private static void assertRoutingResultNotEmpty(RoutingResult result, DatabaseReference databaseReference)
             throws RoutingException {
         if (result.containsNoEndpoints()) {
-            throw new RoutingException(
-                    DatabaseUnavailable, "Routing table for database " + databaseReference.alias() + " is empty");
+            throw RoutingException.routingTableIsEmpty(databaseReference.alias().toString());
         }
     }
 
