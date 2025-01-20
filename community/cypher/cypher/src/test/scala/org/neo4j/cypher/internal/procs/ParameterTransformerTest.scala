@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.procs
 
+import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualValues
@@ -72,6 +73,20 @@ class ParameterTransformerTest extends CypherFunSuite {
         Array(Values.stringValue("C"), Values.stringValue("B"))
       ),
       Set.empty
+    )
+  }
+
+  test("should validate and update") {
+    val notification = mock[InternalNotification]
+    ParameterTransformer((_, _, _) => VirtualValues.map(Array("A"), Array(Values.stringValue("A"))))
+      .validate((_, params) => (params.updatedWith("A", Values.stringValue("C")), Set(notification)))
+      .convert((_, params) => params.updatedWith("A", Values.stringValue("C")))
+      .transform(null, null, VirtualValues.EMPTY_MAP, VirtualValues.EMPTY_MAP) shouldBe (
+      VirtualValues.map(
+        Array("A"),
+        Array(Values.stringValue("C"))
+      ),
+      Set(notification)
     )
   }
 

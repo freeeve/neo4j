@@ -55,7 +55,13 @@ case class ParameterTransformer(
 ) extends ParameterTransformerFunction {
 
   def convert(convFunc: ParameterConversionFunction): ParameterTransformer = {
-    ParameterTransformer(genFunc, (tx, mv) => (convFunc(tx, transformFunc(tx, mv)._1), Set.empty))
+    ParameterTransformer(
+      genFunc,
+      (tx, mv) => {
+        val (params, notifications) = transformFunc(tx, mv)
+        (convFunc(tx, params), notifications)
+      }
+    )
   }
 
   def optionallyConvert(convFunc: Option[ParameterConversionFunction]): ParameterTransformer = {
