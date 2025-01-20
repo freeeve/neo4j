@@ -330,15 +330,6 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     }
 
     @Override
-    public void setCurrentPosition(long byteOffset) throws IOException {
-        requireNonNegative(byteOffset);
-
-        LogPositionMarker positionMarker = new LogPositionMarker();
-        positionMarker.mark(channel.getLogVersion(), byteOffset);
-        setLogPosition(positionMarker);
-    }
-
-    @Override
     public int endChecksumAndValidate() {
         return previousChecksum;
     }

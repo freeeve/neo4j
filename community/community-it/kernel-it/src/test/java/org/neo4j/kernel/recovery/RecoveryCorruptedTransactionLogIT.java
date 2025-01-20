@@ -1386,7 +1386,7 @@ class RecoveryCorruptedTransactionLogIT {
             throws IOException {
         final var logFile = logFiles.getLogFile();
         final var channel = ReadAheadUtils.newChannel(logFile, logVersion, EmptyMemoryTracker.INSTANCE);
-        channel.setCurrentPosition(startPosition.getByteOffset());
+        channel.position(startPosition.getByteOffset());
         return channel;
     }
 

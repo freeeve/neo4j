@@ -41,11 +41,6 @@ public class InMemoryVersionableReadableClosablePositionAwareChannel extends InM
     }
 
     @Override
-    public void setCurrentPosition(long byteOffset) {
-        getCurrentBuffer().position(byteOffset);
-    }
-
-    @Override
     public void resetToPosition(long byteOffset) {
         position(byteOffset);
     }

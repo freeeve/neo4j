@@ -22,11 +22,6 @@ package org.neo4j.kernel.impl.transaction.log;
 import java.io.IOException;
 
 public interface ReadableLogChannel extends ReadableLogPositionAwareChannel, VersionableLog {
-    void setCurrentPosition(long byteOffset) throws IOException;
-
-    @Override
-    long position() throws IOException;
-
     // reset channel to position and clear any underlying buffering
     void resetToPosition(long byteOffset) throws IOException;
 }

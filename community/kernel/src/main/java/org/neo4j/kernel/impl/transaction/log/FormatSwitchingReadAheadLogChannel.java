@@ -99,11 +99,6 @@ public class FormatSwitchingReadAheadLogChannel implements ReadableLogChannel {
     }
 
     @Override
-    public void setCurrentPosition(long byteOffset) throws IOException {
-        delegate.setCurrentPosition(byteOffset);
-    }
-
-    @Override
     public long position() throws IOException {
         return delegate.position();
     }

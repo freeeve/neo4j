@@ -127,11 +127,6 @@ public class ReadAheadLogChannel extends ReadAheadChannel<LogVersionedStoreChann
     @Override
     public void resetToPosition(long byteOffset) throws IOException {
         super.resetAheadBuffer();
-        setCurrentPosition(byteOffset);
-    }
-
-    @Override
-    public void setCurrentPosition(long byteOffset) throws IOException {
         channel.position(byteOffset);
     }
 }
