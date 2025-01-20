@@ -24,7 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.V6;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.DEFAULT_LOG_SEGMENT_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper.CHECKPOINT_FILE_PREFIX;
 import static org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper.DEFAULT_NAME;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
@@ -43,12 +45,19 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.memory.ByteBuffers;
+import org.neo4j.io.memory.NativeScopedBuffer;
+import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
 import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
+import org.neo4j.kernel.impl.transaction.log.LogTracers;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
+import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeWriteChannel;
+import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 import org.neo4j.storageengine.api.StoreId;
-import org.neo4j.test.LatestVersions;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
 
@@ -264,6 +273,39 @@ class TransactionLogFilesTest {
         }
     }
 
+    @Test
+    void envelopedFileWithFirstPartlyZeroChecksumHasEntries() throws Exception {
+        KernelVersion kernelVersion = VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+        LogFile logFile = createLogFiles(() -> kernelVersion).getLogFile();
+        try (PhysicalLogVersionedStoreChannel channel =
+                        logFile.createLogChannelForVersion(1, () -> 1L, () -> kernelVersion, BASE_TX_CHECKSUM);
+                EnvelopeWriteChannel envelopeWriteChannel = getEnvelopeChannel(channel)) {
+            // Some magic bytes that just happen to give a checksum with last byte 0
+            byte[] bytes = new byte[] {105, -62, -59, 21, -8, 63, -67, -47, 58, 63};
+            envelopeWriteChannel.putVersion(kernelVersion.version());
+            envelopeWriteChannel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
+            envelopeWriteChannel.put(bytes, bytes.length);
+            envelopeWriteChannel.endCurrentEntry();
+            assertThat((envelopeWriteChannel.currentChecksum() & 0xFF)).isEqualTo(0);
+            envelopeWriteChannel.prepareForFlush();
+            assertThat(channel.size())
+                    .isGreaterThan(LogFormat.fromKernelVersion(kernelVersion).getHeaderSize());
+            assertTrue(logFile.hasAnyEntries(1));
+        }
+    }
+
+    private static EnvelopeWriteChannel getEnvelopeChannel(PhysicalLogVersionedStoreChannel channel)
+            throws IOException {
+        return new EnvelopeWriteChannel(
+                channel,
+                new NativeScopedBuffer(DEFAULT_LOG_SEGMENT_SIZE, ByteOrder.LITTLE_ENDIAN, INSTANCE),
+                DEFAULT_LOG_SEGMENT_SIZE,
+                BASE_TX_CHECKSUM,
+                1,
+                LogTracers.NULL,
+                LogRotation.NO_ROTATION);
+    }
+
     private void create3_5FileWithHeader(DatabaseLayout databaseLayout, String version, int bytesOfData)
             throws IOException {
         try (StoreChannel storeChannel =
@@ -284,8 +326,12 @@ class TransactionLogFilesTest {
     }
 
     private LogFiles createLogFiles() throws Exception {
+        return createLogFiles(LATEST_KERNEL_VERSION_PROVIDER);
+    }
+
+    private LogFiles createLogFiles(KernelVersionProvider kvp) throws Exception {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        var files = LogFilesBuilder.builder(databaseLayout, fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+        var files = LogFilesBuilder.builder(databaseLayout, fileSystem, kvp)
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withLogVersionRepository(new SimpleLogVersionRepository())
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)

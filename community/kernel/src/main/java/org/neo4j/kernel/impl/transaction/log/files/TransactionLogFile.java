@@ -468,11 +468,11 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
             }
             try (StoreChannel channel = fileSystem.read(logFile)) {
                 try (var scopedBuffer =
-                        new HeapScopedBuffer(headerSize + 1, ByteOrder.LITTLE_ENDIAN, context.getMemoryTracker())) {
+                        new HeapScopedBuffer(headerSize + 4, ByteOrder.LITTLE_ENDIAN, context.getMemoryTracker())) {
                     var buffer = scopedBuffer.getBuffer();
                     channel.readAll(buffer);
                     buffer.flip();
-                    return buffer.get(headerSize) != 0;
+                    return buffer.getInt(headerSize) != 0;
                 }
             }
         } catch (IOException e) {
