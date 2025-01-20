@@ -1353,9 +1353,9 @@ case class LogicalPlanProducer(
           innerEnd = endBinding.inner,
           nodeVariableGroupings = pattern.nodeVariableGroupings,
           relationshipVariableGroupings = pattern.relationshipVariableGroupings,
-          reverseGroupVariableProjections = reverseGroupVariableProjections
-        )
-      case _ => throw new IllegalStateException(s"Unknown match mode: $matchMode")
+          reverseGroupVariableProjections = reverseGroupVariableProjections,
+        emitPredicate = None
+      )case _ => throw new IllegalStateException(s"Unknown match mode: $matchMode")
     }
     annotate(
       repeatPlan,

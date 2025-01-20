@@ -3501,7 +3501,8 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       innerEnd = "m",
       groupNodes = Set(("n", "n"), ("m", "m")),
       groupRelationships = Set.empty,
-      reverseGroupVariableProjections = false
+      reverseGroupVariableProjections = false,
+      emitPredicate = None
     )
 
     planner.plan(version, query) should equal(
@@ -3533,19 +3534,21 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         innerEnd = "o",
         groupNodes = Set.empty,
         groupRelationships = Set.empty,
-        reverseGroupVariableProjections = false
-      )
-      val `(p)((r)-...-(t)) {, 100}` = WalkParameters(
-        min = 0,
-        max = Limited(100),
-        start = "p",
-        end = "anon_0",
-        innerStart = "r",
-        innerEnd = "t",
-        groupNodes = Set(("t", "t")),
-        groupRelationships = Set.empty,
-        reverseGroupVariableProjections = false
-      )
+        reverseGroupVariableProjections = false,
+      emitPredicate = None
+    )
+    val `(p)((r)-...-(t)) {, 100}` = WalkParameters(
+      min = 0,
+      max = Limited(100),
+      start = "p",
+      end = "anon_0",
+      innerStart = "r",
+      innerEnd = "t",
+      groupNodes = Set(("t", "t")),
+      groupRelationships = Set.empty,
+      reverseGroupVariableProjections = false,
+      emitPredicate = None
+    )
 
       planner.plan(version, query) should equal(
         planner.planBuilder()

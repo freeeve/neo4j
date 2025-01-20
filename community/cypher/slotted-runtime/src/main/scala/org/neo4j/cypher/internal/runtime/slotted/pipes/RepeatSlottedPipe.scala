@@ -46,7 +46,6 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.RepeatSlottedPipe.Travers
 import org.neo4j.cypher.internal.runtime.slotted.pipes.RepeatSlottedPipe.WalkModeConstraint
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.attribution.Id
-import org.neo4j.memory.EmptyMemoryTracker
 import org.neo4j.memory.HeapEstimator
 import org.neo4j.memory.Measurable
 import org.neo4j.memory.MemoryTracker
@@ -301,7 +300,10 @@ case class RepeatSlottedPipe(
                 stack.push(createNextState(stackHead, row, innerEndNode, tracker))
               }
               // if iterated long enough emit, otherwise recurse
-              if (stackHead.iterations >= repetition.min && (emitPredicate == null || (emitPredicate(row, state) eq Values.TRUE) ) ) {
+              if (
+                stackHead.iterations >= repetition.min &&
+                (emitPredicate == null || (emitPredicate(row, state) eq Values.TRUE))
+              ) {
                 newResultRow(row, stackHead.groupNodes, stackHead.groupRelationships, innerEndNode)
               } else {
                 produceNext()
