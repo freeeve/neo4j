@@ -181,12 +181,13 @@ class RemoteBatchPropertiesWithFilterPlanningIntegrationTest extends CypherFunSu
         "cacheN[friend.firstName] AS friendFirstName",
         "cacheR[knows.creationDate] AS knowsSince"
       )
-      .filter("cacheN[person.lastName] = cacheN[friend.lastName]", "person:Person")
+      .filter("cacheN[person.lastName] = cacheN[friend.lastName]")
       .remoteBatchPropertiesWithFilter(
         "cacheNFromStore[person.lastName]",
-        "cacheRFromStore[knows.creationDate]",
-        "cacheNFromStore[person.firstName]"
+        "cacheNFromStore[person.firstName]",
+        "cacheRFromStore[knows.creationDate]"
       )("cacheR[knows.creationDate] < $max_creation_date")
+      .filter("person:Person")
       .expandAll("(friend)<-[knows:KNOWS]-(person)")
       .remoteBatchProperties("cacheNFromStore[friend.lastName]", "cacheNFromStore[friend.firstName]")
       .nodeByLabelScan("friend", "Person")
@@ -264,10 +265,10 @@ class RemoteBatchPropertiesWithFilterPlanningIntegrationTest extends CypherFunSu
       .remoteBatchProperties("cacheNFromStore[p.creationDate]")
       .union()
       .|.projection("p AS p")
-      .|.filter("p:Message")
       .|.remoteBatchPropertiesWithFilter("cacheNFromStore[p.creationDate]")(
         "cacheN[p.creationDate] < $max_creation_date"
       )
+      .|.filter("p:Message")
       .|.expandAll("(anon_1)<-[anon_0:POST_HAS_CREATOR]-(p)")
       .|.nodeIndexOperator("anon_1:Person(firstName = 'Smith')", getValue = Map("firstName" -> DoNotGetValue))
       .projection("p AS p")
@@ -397,11 +398,13 @@ class RemoteBatchPropertiesWithFilterPlanningIntegrationTest extends CypherFunSu
         "cacheN[person.firstName] AS personFirstName",
         "cacheN[person.lastName] AS personLastName"
       )
-      .remoteBatchProperties("cacheNFromStore[message.content]", "cacheNFromStore[message.imageFile]")
+      .remoteBatchPropertiesWithFilter(
+        "cacheNFromStore[person.lastName]",
+        "cacheNFromStore[person.firstName]",
+        "cacheNFromStore[message.imageFile]",
+        "cacheNFromStore[message.content]"
+      )("cacheN[person.firstName] IS NOT NULL")
       .filterExpression(hasLabels("person", "Person"))
-      .remoteBatchPropertiesWithFilter("cacheNFromStore[person.lastName]", "cacheNFromStore[person.firstName]")(
-        "cacheN[person.firstName] IS NOT NULL"
-      )
       .relationshipIndexOperator(
         "(message)-[r:COMMENT_HAS_CREATOR(location = 'London')]->(person)",
         getValue = Map("location" -> GetValue)
@@ -429,13 +432,13 @@ class RemoteBatchPropertiesWithFilterPlanningIntegrationTest extends CypherFunSu
         "cacheN[person.firstName] AS personFirstName",
         "cacheN[person.lastName] AS personLastName"
       )
-      .remoteBatchProperties("cacheNFromStore[message.content]", "cacheNFromStore[message.imageFile]")
-      .filterExpressionOrString(
-        hasLabels("person", "Person")
-      )
-      .remoteBatchPropertiesWithFilter("cacheNFromStore[person.lastName]", "cacheNFromStore[person.firstName]")(
-        "cacheN[person.firstName] IS NOT NULL"
-      )
+      .remoteBatchPropertiesWithFilter(
+        "cacheNFromStore[person.lastName]",
+        "cacheNFromStore[person.firstName]",
+        "cacheNFromStore[message.imageFile]",
+        "cacheNFromStore[message.content]"
+      )("cacheN[person.firstName] IS NOT NULL")
+      .filter("person:Person")
       .relationshipIndexOperator(
         "(message)-[r:COMMENT_HAS_CREATOR(id = ???)]->(person)",
         paramExpr = Some(ExplicitParameter("CommentCreatorId", CTAny)(InputPosition.NONE)),
@@ -456,8 +459,8 @@ class RemoteBatchPropertiesWithFilterPlanningIntegrationTest extends CypherFunSu
     plan should equal(planner.subPlanBuilder()
       .projection("cacheN[a.firstName] AS `a.firstName`", "cacheN[a.age] AS `a.age`")
       .selectOrSemiApply("anon_4")
-      .|.filterExpression(hasLabels("anon_3", "Person"))
       .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_3.lastName]")("cacheN[anon_3.lastName] = 'Smith'")
+      .|.filterExpression(hasLabels("anon_3", "Person"))
       .|.expandAll("(a)-[anon_2:KNOWS]-(anon_3)")
       .|.argument("a")
       .letSelectOrAntiSemiApply("anon_4", "cacheN[a.age] > 30")
@@ -482,14 +485,14 @@ class RemoteBatchPropertiesWithFilterPlanningIntegrationTest extends CypherFunSu
         .projection("cacheN[a.firstName] AS `a.firstName`", "cacheN[a.lastName] AS `a.lastName`")
         .remoteBatchProperties("cacheNFromStore[a.firstName]")
         .selectOrAntiSemiApply("anon_4")
-        .|.filterExpression(hasLabels("anon_3", "Person"))
         .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_3.lastName]")("cacheN[anon_3.lastName] = 'Smith'")
+        .|.filterExpression(hasLabels("anon_3", "Person"))
         .|.expandAll("(a)-[anon_2:KNOWS]-(anon_3)")
         .|.filter("cacheN[a.lastName] = 'Smyth'")
         .|.argument("a")
         .letSemiApply("anon_4")
-        .|.filterExpression(hasLabels("anon_1", "Person"))
         .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_1.lastName]")("cacheN[anon_1.lastName] = 'Smyth'")
+        .|.filterExpression(hasLabels("anon_1", "Person"))
         .|.expandAll("(a)-[anon_0:KNOWS]-(anon_1)")
         .|.remoteBatchPropertiesWithFilter("cacheNFromStore[a.lastName]")("cacheN[a.lastName] = 'Smith'")
         .|.argument("a")
@@ -667,4 +670,36 @@ class RemoteBatchPropertiesWithFilterPlanningIntegrationTest extends CypherFunSu
       .allNodeScan("person")
       .build()
   }
+
+  test("Should plan a filter by labels before RemoteBatchPropertiesWithFilter") {
+    val query =
+      """  MATCH (person:Person)-[knows:KNOWS]->(friend:Person)
+        |WHERE person.lastName = friend.lastName AND knows.creationDate < $max_creation_date
+        |RETURN person.firstName AS personFirstName,
+        |friend.firstName AS friendFirstName,
+        |knows.creationDate AS knowsSince""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults("personFirstName", "friendFirstName", "knowsSince")
+      .projection(
+        "cacheN[person.firstName] AS personFirstName",
+        "cacheN[friend.firstName] AS friendFirstName",
+        "cacheR[knows.creationDate] AS knowsSince"
+      )
+      .filter("cacheN[person.lastName] = cacheN[friend.lastName]")
+      .remoteBatchPropertiesWithFilter(
+        "cacheNFromStore[person.lastName]",
+        "cacheNFromStore[person.firstName]",
+        "cacheRFromStore[knows.creationDate]"
+      )("cacheR[knows.creationDate] < $max_creation_date")
+      .filter("person:Person")
+      .expandAll("(friend)<-[knows:KNOWS]-(person)")
+      .remoteBatchProperties("cacheNFromStore[friend.lastName]", "cacheNFromStore[friend.firstName]")
+      .nodeByLabelScan("friend", "Person")
+      .build()
+  }
+
 }

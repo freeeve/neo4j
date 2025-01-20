@@ -501,18 +501,23 @@ object RemoteBatchingStrategy {
             accessedProperties,
             allRewrittenPreds
           ) // we still fetch properties even if the corresponding expression isn't pushed down to remote batch properties.
-        if (props.nonEmpty)
+
+        if (props.nonEmpty) {
+          // we separate the predicates that access properties from the ones that don't so we can push down the later
+          val (propAccessPreds, predsToPushDown) =
+            nonInlinablePreds.map(_._2).partition(_.folder.treeExists(_.isInstanceOf[CachedProperty]))
           (
             context.staticComponents.logicalPlanProducer.planRemoteBatchPropertiesWithFilter(
               input,
               props,
               context,
               rewrittenExprs,
-              solvedExprs.toSeq
+              solvedExprs.toSeq,
+              predsToPushDown.toSeq
             ),
-            nonInlinablePreds.map(_._2).toSeq
+            propAccessPreds.toSeq
           )
-        else
+        } else
           (
             planBatchProperties(input, context, accessedProperties, allRewrittenPreds),
             allRewrittenPreds

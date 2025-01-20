@@ -3807,15 +3807,33 @@ case class LogicalPlanProducer(
     properties: Set[CachedProperty],
     context: LogicalPlanningContext,
     inlinablePredicates: Seq[Expression],
-    solvedPredicates: Seq[Expression]
+    solvedPredicates: Seq[Expression],
+    predsToPushDown: Seq[Expression]
   ): LogicalPlan = {
+    def addSelectionBefore =
+      if (predsToPushDown.nonEmpty) {
+        val pushedDownSolved = solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(
+          _.amendQueryGraph(_.addPredicates(predsToPushDown: _*))
+        )
+        Some(annotateSelection(
+          Selection(predsToPushDown, inner),
+          pushedDownSolved,
+          ProvidedOrder.Left,
+          cachedPropertiesPerPlan.get(inner.id),
+          context
+        ))
+      } else {
+        None
+      }
+
+    val newInner = addSelectionBefore.getOrElse(inner)
+    val cachedProperties = cachedPropertiesPerPlan.get(newInner.id).addAll(properties)
     val remoteBatchPropertiesWithFilter =
-      RemoteBatchPropertiesWithFilter(inner, inlinablePredicates.toSet, properties.map(identity))
+      RemoteBatchPropertiesWithFilter(newInner, inlinablePredicates.toSet, properties.map(identity))
     val solved =
-      solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(
+      solveds.get(newInner.id).asSinglePlannerQuery.updateTailOrSelf(
         _.amendQueryGraph(_.addPredicates(solvedPredicates: _*))
       )
-    val cachedProperties = cachedPropertiesPerPlan.get(inner.id).addAll(properties)
     annotate(remoteBatchPropertiesWithFilter, solved, ProvidedOrder.empty, cachedProperties, context)
   }
 
