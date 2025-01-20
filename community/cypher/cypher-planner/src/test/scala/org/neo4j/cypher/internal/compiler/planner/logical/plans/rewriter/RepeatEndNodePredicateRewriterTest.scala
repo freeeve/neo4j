@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.util.UpperBound.Unlimited
 import org.neo4j.cypher.internal.util.attribution.Attributes
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class RepeatEmitPredicateRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class RepeatEndNodePredicateRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport {
   private def subPlanBuilder = new LogicalPlanBuilder(wholePlan = false)
 
   private val `TRAIL (a) ((n)-[r]-(m))+ (b)`: TrailParameters = TrailParameters(
@@ -44,7 +44,7 @@ class RepeatEmitPredicateRewriterTest extends CypherFunSuite with LogicalPlannin
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    emitPredicate = None
+    endNodePredicate = None
   )
 
   private val `WALK (a) ((n)-[r]-(m))+ (b)`: WalkParameters = WalkParameters(
@@ -57,7 +57,7 @@ class RepeatEmitPredicateRewriterTest extends CypherFunSuite with LogicalPlannin
     groupNodes = Set(("n_i", "n"), ("m_i", "m")),
     groupRelationships = Set(("r_i", "r")),
     reverseGroupVariableProjections = false,
-    emitPredicate = None
+    endNodePredicate = None
   )
 
   test("should not rewrite trail when no filter") {
@@ -94,8 +94,8 @@ class RepeatEmitPredicateRewriterTest extends CypherFunSuite with LogicalPlannin
       .allNodeScan("a")
       .build()
 
-    val newEmitPredicate = ands(equals(varFor("m_i"), varFor("a")))
-    val rewrittenTrailParams = `TRAIL (a) ((n)-[r]-(m))+ (b)`.copy(emitPredicate = Some(newEmitPredicate))
+    val newEndNodePredicate = ands(equals(varFor("m_i"), varFor("a")))
+    val rewrittenTrailParams = `TRAIL (a) ((n)-[r]-(m))+ (b)`.copy(endNodePredicate = Some(newEndNodePredicate))
     val after = subPlanBuilder
       .repeatTrail(rewrittenTrailParams)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
@@ -117,8 +117,8 @@ class RepeatEmitPredicateRewriterTest extends CypherFunSuite with LogicalPlannin
       .allNodeScan("a")
       .build()
 
-    val newEmitPredicate = ands(equals(varFor("m_i"), varFor("a")))
-    val rewrittenWalkParams = `WALK (a) ((n)-[r]-(m))+ (b)`.copy(emitPredicate = Some(newEmitPredicate))
+    val newEndNodePredicate = ands(equals(varFor("m_i"), varFor("a")))
+    val rewrittenWalkParams = `WALK (a) ((n)-[r]-(m))+ (b)`.copy(endNodePredicate = Some(newEndNodePredicate))
     val after = subPlanBuilder
       .repeatWalk(rewrittenWalkParams)
       .|.expand("(n_i)-[r_i]->(m_i)")
@@ -134,5 +134,5 @@ class RepeatEmitPredicateRewriterTest extends CypherFunSuite with LogicalPlannin
   }
 
   private def rewrite(p: LogicalPlan): LogicalPlan =
-    p.endoRewrite(repeatEmitPredicateRewriter(Attributes(idGen)))
+    p.endoRewrite(repeatEndNodePredicateRewriter(Attributes(idGen)))
 }

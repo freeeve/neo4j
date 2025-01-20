@@ -4213,7 +4213,7 @@ sealed abstract class Repeat(idGen: IdGen)
  * @param previouslyBoundRelationships      all relationship variables of the same MATCH that are present in lhs that are not provably disjoint
  * @param previouslyBoundRelationshipGroups all relationship group variables of the same MATCH that are present in lhs that are not provably disjoint
  * @param reverseGroupVariableProjections   if `true` reverse the group variable lists
- * @param emitPredicate   predicate used to filter rows before they are emitted from RHS
+ * @param endNodePredicate                  predicate used to filter rows before they are emitted from RHS. Currently inserted by a logical plan rewriter.
  */
 case class RepeatTrail(
   override val left: LogicalPlan,
@@ -4229,7 +4229,7 @@ case class RepeatTrail(
   previouslyBoundRelationships: Set[LogicalVariable],
   previouslyBoundRelationshipGroups: Set[LogicalVariable],
   reverseGroupVariableProjections: Boolean,
-  emitPredicate: Option[Ands]
+  endNodePredicate: Option[Ands]
 )(implicit idGen: IdGen) extends Repeat(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(left = newLHS)(idGen)
   override def withRhs(newRHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(right = newRHS)(idGen)
@@ -4263,6 +4263,7 @@ case class RepeatTrail(
  * @param nodeVariableGroupings             node variables to aggregate
  * @param relationshipVariableGroupings     relationship variables to aggregate
  * @param reverseGroupVariableProjections   if `true` reverse the group variable lists
+ * @param endNodePredicate                  predicate used to filter rows before they are emitted from RHS. Currently inserted by a logical plan rewriter.
  */
 case class RepeatWalk(
   override val left: LogicalPlan,
@@ -4275,7 +4276,7 @@ case class RepeatWalk(
   override val nodeVariableGroupings: Set[VariableGrouping],
   override val relationshipVariableGroupings: Set[VariableGrouping],
   reverseGroupVariableProjections: Boolean,
-  emitPredicate: Option[Ands]
+  endNodePredicate: Option[Ands]
 )(implicit idGen: IdGen) extends Repeat(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(left = newLHS)(idGen)
   override def withRhs(newRHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(right = newRHS)(idGen)

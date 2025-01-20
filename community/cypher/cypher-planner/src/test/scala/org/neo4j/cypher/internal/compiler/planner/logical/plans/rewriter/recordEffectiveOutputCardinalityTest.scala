@@ -339,7 +339,7 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      emitPredicate = None
+      endNodePredicate = None
     )
 
     val initial = new LogicalPlanBuilder(false)
@@ -383,7 +383,7 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      emitPredicate = None
+      endNodePredicate = None
     )
 
     val initial = new LogicalPlanBuilder(false)
@@ -487,7 +487,7 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      emitPredicate = None
+      endNodePredicate = None
     )
 
     val initial = new LogicalPlanBuilder(false)
@@ -536,7 +536,7 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      emitPredicate = None
+      endNodePredicate = None
     )
 
     val trailCardinality = (0 to upperBound).map(Math.pow(expandCardinality, _)).sum * lhsCardinality
@@ -595,7 +595,7 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      emitPredicate = None
+      endNodePredicate = None
     )
 
     val trailCardinality = (0 to upperBound).map(Math.pow(expandCardinality, _)).sum * lhsCardinality

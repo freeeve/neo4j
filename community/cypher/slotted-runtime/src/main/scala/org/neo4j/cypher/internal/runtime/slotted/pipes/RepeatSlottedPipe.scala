@@ -119,13 +119,13 @@ case class RepeatSlottedPipe(
   rhsSlots: SlotConfiguration,
   argumentSize: SlotConfiguration.Size,
   reverseGroupVariableProjections: Boolean,
-  maybeEmitPredicate: Option[Expression]
+  maybeEndNodePredicate: Option[Expression]
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) {
 
   private[this] val emptyGroupNodes = emptyLists(groupNodes.length)
   private[this] val emptyGroupRelationships = emptyLists(groupRelationships.length)
   private[this] val getStartNodeFunction = makeGetPrimitiveNodeFromSlotFunctionFor(startSlot)
-  private[this] val emitPredicate = maybeEmitPredicate.orNull
+  private[this] val endNodePredicate = maybeEndNodePredicate.orNull
 
   private def createNewState(outerRow: CypherRow, startNode: Long, tracker: MemoryTracker): SlottedRepeatState =
     uniquenessConstraint match {
@@ -302,7 +302,7 @@ case class RepeatSlottedPipe(
               // if iterated long enough emit, otherwise recurse
               if (
                 stackHead.iterations >= repetition.min &&
-                (emitPredicate == null || (emitPredicate(row, state) eq Values.TRUE))
+                (endNodePredicate == null || (endNodePredicate(row, state) eq Values.TRUE))
               ) {
                 newResultRow(row, stackHead.groupNodes, stackHead.groupRelationships, innerEndNode)
               } else {
@@ -324,10 +324,10 @@ case class RepeatSlottedPipe(
               }
 
               val innerState = state.withInitialContext(rhsInitialRow)
-              innerResult = if (emitPredicate == null)
+              innerResult = if (endNodePredicate == null)
                 inner.createResults(innerState)
               else
-                inner.createResults(innerState).filter(row => emitPredicate(row, state) eq Values.TRUE)
+                inner.createResults(innerState).filter(row => endNodePredicate(row, state) eq Values.TRUE)
               produceNext()
             } else {
               if (stackHead != null) {

@@ -687,7 +687,7 @@ object LogicalPlanToPlanBuilderString {
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections,
-          emitPredicate
+          endNodePredicate
         ) =>
         trailParametersString(
           repetition,
@@ -701,7 +701,7 @@ object LogicalPlanToPlanBuilderString {
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections,
-          emitPredicate
+          endNodePredicate
         )
       case BidirectionalRepeatTrail(
           _,
@@ -743,7 +743,7 @@ object LogicalPlanToPlanBuilderString {
           groupNodes,
           groupRelationships,
           reverseGroupVariableProjections,
-          emitPredicate
+          endNodePredicate
         ) =>
         walkParametersString(
           repetition,
@@ -754,7 +754,7 @@ object LogicalPlanToPlanBuilderString {
           groupNodes,
           groupRelationships,
           reverseGroupVariableProjections,
-          emitPredicate
+          endNodePredicate
         )
 
       case NodeByIdSeek(idName, ids, argumentIds) =>
@@ -1554,7 +1554,7 @@ object LogicalPlanToPlanBuilderString {
     previouslyBoundRelationships: Set[LogicalVariable],
     previouslyBoundRelationshipGroups: Set[LogicalVariable],
     reverseGroupVariableProjections: Boolean,
-    emitPredicate: Option[Ands]
+    endNodePredicate: Option[Ands]
   ) =
     call(
       "TrailParameters",
@@ -1570,7 +1570,7 @@ object LogicalPlanToPlanBuilderString {
       previouslyBoundRelationships,
       previouslyBoundRelationshipGroups,
       reverseGroupVariableProjections + ", " +
-        emitPredicate.map(expressionStringifier(_))
+        endNodePredicate.map(expressionStringifier(_))
     )
 
   private def walkParametersString(
@@ -1582,7 +1582,7 @@ object LogicalPlanToPlanBuilderString {
     groupNodes: Set[VariableGrouping],
     groupRelationships: Set[VariableGrouping],
     reverseGroupVariableProjections: Boolean,
-    emitPredicate: Option[Ands]
+    endNodePredicate: Option[Ands]
   ) =
     call(
       "WalkParameters",
@@ -1595,7 +1595,7 @@ object LogicalPlanToPlanBuilderString {
       groupNodes,
       groupRelationships,
       reverseGroupVariableProjections + ", " +
-        emitPredicate.map(expressionStringifier(_))
+        endNodePredicate.map(expressionStringifier(_))
     )
 
   private def setPropertiesParam(items: Seq[(PropertyKeyName, Expression)]): Param =

@@ -3117,7 +3117,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         trailParameters.previouslyBoundRelationships.map(varFor),
         trailParameters.previouslyBoundRelationshipGroups.map(varFor),
         trailParameters.reverseGroupVariableProjections,
-        trailParameters.emitPredicate
+        trailParameters.endNodePredicate
       )(_)
     ))
   }
@@ -3178,7 +3178,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
           VariableGrouping(varFor(inner), varFor(outer))(pos)
         },
         walkParameters.reverseGroupVariableProjections,
-        walkParameters.emitPredicate
+        walkParameters.endNodePredicate
       )(_)
     ))
   }
@@ -3382,7 +3382,7 @@ object AbstractLogicalPlanBuilder {
     previouslyBoundRelationships: Set[String],
     previouslyBoundRelationshipGroups: Set[String],
     reverseGroupVariableProjections: Boolean,
-    emitPredicate: Option[Ands]
+    endNodePredicate: Option[Ands]
   )
 
   case class WalkParameters(
@@ -3395,7 +3395,7 @@ object AbstractLogicalPlanBuilder {
     groupNodes: Set[(String, String)],
     groupRelationships: Set[(String, String)],
     reverseGroupVariableProjections: Boolean,
-    emitPredicate: Option[Ands]
+    endNodePredicate: Option[Ands]
   )
 
   def createPattern(

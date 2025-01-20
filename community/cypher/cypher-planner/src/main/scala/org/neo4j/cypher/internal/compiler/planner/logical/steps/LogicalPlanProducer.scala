@@ -1340,7 +1340,7 @@ case class LogicalPlanProducer(
           previouslyBoundRelationships = previouslyBoundRelationships,
           previouslyBoundRelationshipGroups = previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections = reverseGroupVariableProjections,
-        emitPredicate = None
+        endNodePredicate = None
       )
     case TraversalMatchMode.Walk =>
         RepeatWalk(
@@ -1354,7 +1354,7 @@ case class LogicalPlanProducer(
           nodeVariableGroupings = pattern.nodeVariableGroupings,
           relationshipVariableGroupings = pattern.relationshipVariableGroupings,
           reverseGroupVariableProjections = reverseGroupVariableProjections,
-        emitPredicate = None
+        endNodePredicate = None
       )case _ => throw new IllegalStateException(s"Unknown match mode: $matchMode")
     }
     annotate(

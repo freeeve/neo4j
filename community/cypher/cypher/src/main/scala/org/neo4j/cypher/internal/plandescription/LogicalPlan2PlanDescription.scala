@@ -3137,12 +3137,12 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case RepeatTrail(_, _, repetition, start, end, _, _, _, _, _, _, _, _, emitPredicate) =>
+      case RepeatTrail(_, _, repetition, start, end, _, _, _, _, _, _, _, _, endNodePredicate) =>
         PlanDescriptionImpl(
           id = plan.id,
           "Repeat(Trail)",
           children,
-          Seq(Details(repeatDetails(repetition, start, end, emitPredicate))),
+          Seq(Details(repeatDetails(repetition, start, end, endNodePredicate))),
           variables,
           withRawCardinalities,
           withDistinctness
@@ -3170,12 +3170,12 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case RepeatWalk(_, _, repetition, start, end, _, _, _, _, _, emitPredicate) =>
+      case RepeatWalk(_, _, repetition, start, end, _, _, _, _, _, endNodePredicate) =>
         PlanDescriptionImpl(
           id = plan.id,
           "Repeat(Walk)",
           children,
-          Seq(Details(repeatDetails(repetition, start, end, emitPredicate))),
+          Seq(Details(repeatDetails(repetition, start, end, endNodePredicate))),
           variables,
           withRawCardinalities,
           withDistinctness
@@ -3191,7 +3191,7 @@ case class LogicalPlan2PlanDescription(
     repetition: Repetition,
     start: LogicalVariable,
     end: LogicalVariable,
-    emitPredicate: Option[Ands]
+    endNodePredicate: Option[Ands]
   ): PrettyString = {
     val repString = repetition match {
       case Repetition(min, Limited(n)) =>
@@ -3199,8 +3199,8 @@ case class LogicalPlan2PlanDescription(
       case Repetition(min, Unlimited) =>
         pretty"{${asPrettyString.raw(min.toString)}, }"
     }
-    val emitPredicateString = emitPredicate.map(p => pretty" WHERE ${asPrettyString(p)}").getOrElse(pretty"")
-    pretty"(${asPrettyString(start.name)}) (...)$repString (${asPrettyString(end.name)})$emitPredicateString"
+    val endNodePredicateString = endNodePredicate.map(p => pretty" WHERE ${asPrettyString(p)}").getOrElse(pretty"")
+    pretty"(${asPrettyString(start.name)}) (...)$repString (${asPrettyString(end.name)})$endNodePredicateString"
   }
 
   private def addPlanningAttributes(

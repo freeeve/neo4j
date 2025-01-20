@@ -104,14 +104,14 @@ case class RepeatPipe(
   groupRelationships: Set[VariableGrouping],
   uniquenessConstraint: TraversalModeConstraint,
   reverseGroupVariableProjections: Boolean,
-  maybeEmitPredicate: Option[Expression]
+  maybeEndNodePredicate: Option[Expression]
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) {
 
   private val groupNodeNames = groupNodes.toArray.sortBy(_.singleton.name)
   private val groupRelationshipNames = groupRelationships.toArray.sortBy(_.singleton.name)
   private val emptyGroupNodes = emptyLists(groupNodes.size)
   private val emptyGroupRelationships = emptyLists(groupRelationships.size)
-  private val emitPredicate = maybeEmitPredicate.orNull
+  private val endNodePredicate = maybeEndNodePredicate.orNull
 
   private def createNewState(
     outerRow: CypherRow,
@@ -260,7 +260,7 @@ case class RepeatPipe(
                 // if iterated long enough emit, otherwise recurse
                 if (
                   stackHead.iterations >= repetition.min &&
-                  (emitPredicate == null || (emitPredicate(row, state) eq Values.TRUE))
+                  (endNodePredicate == null || (endNodePredicate(row, state) eq Values.TRUE))
                 ) {
                   val resultRow = row.copyWith(computeNewEntries(newGroupNodes, newGroupRels, innerEndNode))
                   Some(resultRow)

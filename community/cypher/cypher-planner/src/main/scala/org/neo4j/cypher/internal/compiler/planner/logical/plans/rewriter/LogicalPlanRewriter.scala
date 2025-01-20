@@ -139,7 +139,7 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
       Some(inSequence(
         pruningVarExpanderRewriter,
         trailWithTwoFiltersToPruningVarExpandRewriter,
-        repeatEmitPredicateRewriter(otherAttributes.withAlso(solveds, cardinalities, effectiveCardinalities))
+        repeatEndNodePredicateRewriter(otherAttributes.withAlso(solveds, cardinalities, effectiveCardinalities))
       )),
       Some(collectDistinctRewriter),
       // Only used on read-only queries, until rewriter is tested to work with cleanUpEager

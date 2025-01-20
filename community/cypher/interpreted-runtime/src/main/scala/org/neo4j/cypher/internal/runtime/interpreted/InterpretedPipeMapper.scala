@@ -2106,7 +2106,7 @@ case class InterpretedPipeMapper(
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections,
-          emitPredicate
+          endNodePredicate
         ) =>
         RepeatPipe(
           lhs,
@@ -2124,7 +2124,7 @@ case class InterpretedPipeMapper(
             previouslyBoundRelationshipGroups.map(_.name)
           ),
           reverseGroupVariableProjections,
-          maybeEmitPredicate = emitPredicate.map(buildExpression(_))
+          maybeEndNodePredicate = endNodePredicate.map(buildExpression(_))
         )(id = id)
 
       case RepeatWalk(
@@ -2138,7 +2138,7 @@ case class InterpretedPipeMapper(
           groupNodes,
           groupRelationships,
           reverseGroupVariableProjections,
-          emitPredicate
+          endNodePredicate
         ) =>
         RepeatPipe(
           lhs,
@@ -2152,7 +2152,7 @@ case class InterpretedPipeMapper(
           groupRelationships,
           RepeatPipe.WalkModeConstraint,
           reverseGroupVariableProjections,
-          maybeEmitPredicate = emitPredicate.map(buildExpression(_))
+          maybeEndNodePredicate = endNodePredicate.map(buildExpression(_))
         )(id = id)
 
       case x =>

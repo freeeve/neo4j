@@ -835,7 +835,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set("e"),
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      emitPredicate = None
+      endNodePredicate = None
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -928,7 +928,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      emitPredicate = None
+      endNodePredicate = None
     )
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "b", "c", "r", "s")
@@ -1882,7 +1882,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set("r1"),
         false,
-        emitPredicate = None
+        endNodePredicate = None
       ))
     val plan1 = plan0.|.|.|.|.|.filter("r2_inner IS NOT NULL")
       .|.|.|.|.|.optional("middle")
@@ -1912,7 +1912,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set(),
         false,
-        emitPredicate = None
+        endNodePredicate = None
       ))
       .|.|.|.|.filter("b_inner:MIDDLE")
       .|.|.|.|.nodeHashJoin("b_inner")
@@ -1936,7 +1936,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set(),
         false,
-        emitPredicate = None
+        endNodePredicate = None
       ))
     val plan2 = plan1.|.|.|.|.nodeHashJoin("anon_end_inner")
       .|.|.|.|.|.filter("anon_end_inner:MIDDLE")
@@ -2654,7 +2654,7 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      emitPredicate = None
+      endNodePredicate = None
     )
   }
 
@@ -2672,7 +2672,7 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set("r"),
       reverseGroupVariableProjections = false,
-      emitPredicate = None
+      endNodePredicate = None
     )
   }
 
@@ -2719,7 +2719,7 @@ object RepeatTrailTestBase {
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    emitPredicate = None
+    endNodePredicate = None
   )
 
   val `(start:START) [()-[]->(:MIDDLE)]{1, 1} (firstMiddle:MIDDLE)`: TrailParameters = TrailParameters(
@@ -2735,7 +2735,7 @@ object RepeatTrailTestBase {
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    emitPredicate = None
+    endNodePredicate = None
   )
 
   val `(firstMiddle) [(a)-[r1]->(b:MIDDLE)]{0, *} (middle:MIDDLE:LOOP)`: TrailParameters = TrailParameters(
@@ -2751,7 +2751,7 @@ object RepeatTrailTestBase {
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    emitPredicate = None
+    endNodePredicate = None
   )
 
   val `(middle) [(c)-[r2]->(d:LOOP)]{0, *} (end:LOOP)`: TrailParameters = TrailParameters(
@@ -2767,7 +2767,7 @@ object RepeatTrailTestBase {
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set("r1"),
     reverseGroupVariableProjections = false,
-    emitPredicate = None
+    endNodePredicate = None
   )
 
   val `(you) [(b)<-[r]-(a)]{0, *} (me)`: TrailParameters =
@@ -2784,7 +2784,7 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = true,
-      emitPredicate = None
+      endNodePredicate = None
     )
 
   val `(me) [(a)-[r]->(b)<-[rr]-(c)]{0,1} (you)`: TrailParameters =
@@ -2801,7 +2801,7 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      emitPredicate = None
+      endNodePredicate = None
     )
 
   val `(me) ((b)-[r]->(c) WHERE EXISTS {...} ){1,} (you)`: TrailParameters = TrailParameters(
@@ -2817,7 +2817,7 @@ object RepeatTrailTestBase {
     Set(),
     Set(),
     false,
-    emitPredicate = None
+    endNodePredicate = None
   )
 
   val `(b) ((d)-[rr]->(aa:A) WHERE EXISTS {...} ){1,} (a)`: TrailParameters = TrailParameters(
@@ -2833,7 +2833,7 @@ object RepeatTrailTestBase {
     Set(),
     Set(),
     false,
-    emitPredicate = None
+    endNodePredicate = None
   )
 
   val `(aa) ((e)<-[rrr]-(f)){1,}) (g)`: TrailParameters = TrailParameters(
@@ -2849,7 +2849,7 @@ object RepeatTrailTestBase {
     Set(),
     Set(),
     false,
-    emitPredicate = None
+    endNodePredicate = None
   )
 
   val `(me)( (b)-[r]->(c) WHERE EXISTS { (b)( (bb)-[rr]->(aa:A) ){0,}(a) } ){0,}(you)`: TrailParameters =
@@ -2866,7 +2866,7 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      emitPredicate = None
+      endNodePredicate = None
     )
 
   val `(me) [(a)-[r]->(b)-[rr]->(c)<-[rrr]-(d)]{0,1} (you)`: TrailParameters =
@@ -2883,7 +2883,7 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      emitPredicate = None
+      endNodePredicate = None
     )
 
   val `(b_inner)((bb)-[rr]->(aa:A)){0,}(a)`: TrailParameters = TrailParameters(
@@ -2899,7 +2899,7 @@ object RepeatTrailTestBase {
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    emitPredicate = None
+    endNodePredicate = None
   )
 }
 
@@ -3960,7 +3960,7 @@ trait OrderedTrailTestBase[CONTEXT <: RuntimeContext] {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      emitPredicate = None
+      endNodePredicate = None
     )
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "b", "c", "r", "s")
