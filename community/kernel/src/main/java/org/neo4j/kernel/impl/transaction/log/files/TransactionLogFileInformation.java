@@ -65,22 +65,6 @@ public class TransactionLogFileInformation implements LogFileInformation {
     }
 
     @Override
-    public long getFirstExistingEntryAppendIndex() throws IOException {
-        LogFile logFile = logFiles.getLogFile();
-        long version = logFile.getHighestLogVersion();
-        long candidateFirstAppendIndex = -1;
-        while (logFile.versionExists(version)) {
-            candidateFirstAppendIndex = getFirstEntryAppendIndex(version);
-            version--;
-        }
-        version++; // the loop above goes back one version too far.
-
-        // OK, so we now have the oldest existing log version here. Open it and see if there's any transaction
-        // in there. If there is then that transaction is the first one that we have.
-        return logFile.hasAnyEntries(version) ? candidateFirstAppendIndex : -1;
-    }
-
-    @Override
     public long getFirstEntryAppendIndex(long version) throws IOException {
         LogHeader logHeader = logHeaderCache.getLogHeader(version);
         if (logHeader != null) { // It existed in cache

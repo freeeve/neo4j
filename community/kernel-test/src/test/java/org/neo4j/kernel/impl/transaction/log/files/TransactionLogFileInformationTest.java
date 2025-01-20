@@ -128,69 +128,6 @@ class TransactionLogFileInformationTest {
     }
 
     @Test
-    void shouldReadAndCacheFirstCommittedTransactionIdWhenNotCached() throws Exception {
-        TransactionLogFileInformation info = new TransactionLogFileInformation(logFiles, logHeaderCache, context);
-        long baseId = 5;
-        long expectedAppendIndex = baseId + 2L;
-
-        long version = 10L;
-        when(logFile.getHighestLogVersion()).thenReturn(version);
-        when(logHeaderCache.getLogHeader(version)).thenReturn(null);
-        when(logFile.versionExists(version)).thenReturn(true);
-        LogHeader expectedHeader = LATEST_LOG_FORMAT.newHeader(
-                2,
-                baseId + 1L,
-                LogHeader.UNKNOWN_TERM,
-                storeId,
-                UNKNOWN_LOG_SEGMENT_SIZE,
-                BASE_TX_CHECKSUM,
-                LATEST_KERNEL_VERSION);
-        when(logFile.extractHeader(version)).thenReturn(expectedHeader);
-        when(logFile.hasAnyEntries(version)).thenReturn(true);
-
-        long firstCommittedAppendIndex = info.getFirstExistingEntryAppendIndex();
-        assertEquals(expectedAppendIndex, firstCommittedAppendIndex);
-        verify(logHeaderCache).putHeader(version, expectedHeader);
-    }
-
-    @Test
-    void shouldReadFirstCommittedTransactionIdWhenCached() throws Exception {
-        TransactionLogFileInformation info = new TransactionLogFileInformation(logFiles, logHeaderCache, context);
-        long baseId = 5;
-        long expectedAppendIndex = baseId + 2L;
-
-        long version = 10L;
-        when(logFile.getHighestLogVersion()).thenReturn(version);
-        when(logFile.versionExists(version)).thenReturn(true);
-
-        LogHeader expectedHeader = LATEST_LOG_FORMAT.newHeader(
-                2,
-                baseId + 1L,
-                LogHeader.UNKNOWN_TERM,
-                storeId,
-                UNKNOWN_LOG_SEGMENT_SIZE,
-                BASE_TX_CHECKSUM,
-                LATEST_KERNEL_VERSION);
-        when(logHeaderCache.getLogHeader(version)).thenReturn(expectedHeader);
-        when(logFile.hasAnyEntries(version)).thenReturn(true);
-
-        long firstCommittedAppendIndex = info.getFirstExistingEntryAppendIndex();
-        assertEquals(expectedAppendIndex, firstCommittedAppendIndex);
-    }
-
-    @Test
-    void shouldReturnNothingWhenThereAreNoTransactions() throws Exception {
-        TransactionLogFileInformation info = new TransactionLogFileInformation(logFiles, logHeaderCache, context);
-
-        long version = 10L;
-        when(logFile.getHighestLogVersion()).thenReturn(version);
-        when(logFile.hasAnyEntries(version)).thenReturn(false);
-
-        long firstCommittedAppendIndex = info.getFirstExistingEntryAppendIndex();
-        assertEquals(-1, firstCommittedAppendIndex);
-    }
-
-    @Test
     void extractLogFileTimeFromChunkStartEntry() throws IOException {
         var logEntryReader = mock(LogEntryReader.class);
         var readableLogChannel = mock(ReadableLogChannel.class);
