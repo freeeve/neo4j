@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
-import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
@@ -95,11 +94,7 @@ class RepeatEmitPredicateRewriterTest extends CypherFunSuite with LogicalPlannin
       .allNodeScan("a")
       .build()
 
-    val newEmitPredicate = `TRAIL (a) ((n)-[r]-(m))+ (b)`.emitPredicate match {
-      case None              => ands(equals(varFor("m_i"), varFor("a")))
-      case Some(Ands(exprs)) => ands(exprs.incl(equals(varFor("m_i"), varFor("a"))))
-      case Some(e)           => throw new IllegalStateException(s"Unexpected predicate expression: $e")
-    }
+    val newEmitPredicate = ands(equals(varFor("m_i"), varFor("a")))
     val rewrittenTrailParams = `TRAIL (a) ((n)-[r]-(m))+ (b)`.copy(emitPredicate = Some(newEmitPredicate))
     val after = subPlanBuilder
       .repeatTrail(rewrittenTrailParams)
@@ -122,11 +117,7 @@ class RepeatEmitPredicateRewriterTest extends CypherFunSuite with LogicalPlannin
       .allNodeScan("a")
       .build()
 
-    val newEmitPredicate = `WALK (a) ((n)-[r]-(m))+ (b)`.emitPredicate match {
-      case None              => ands(equals(varFor("m_i"), varFor("a")))
-      case Some(Ands(exprs)) => ands(exprs.incl(equals(varFor("m_i"), varFor("a"))))
-      case Some(e)           => throw new IllegalStateException(s"Unexpected predicate expression: $e")
-    }
+    val newEmitPredicate = ands(equals(varFor("m_i"), varFor("a")))
     val rewrittenWalkParams = `WALK (a) ((n)-[r]-(m))+ (b)`.copy(emitPredicate = Some(newEmitPredicate))
     val after = subPlanBuilder
       .repeatWalk(rewrittenWalkParams)
