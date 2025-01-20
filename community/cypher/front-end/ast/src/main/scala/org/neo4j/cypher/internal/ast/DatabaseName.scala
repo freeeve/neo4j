@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast
 
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
@@ -29,6 +30,14 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 
 sealed trait DatabaseName extends ASTNode {
   def asLegacyName: Either[String, Parameter]
+}
+
+object DatabaseName {
+
+  def apply(either: Either[String, Parameter])(pos: InputPosition): DatabaseName = either match {
+    case Left(name)   => NamespacedName(name)(pos)
+    case Right(param) => ParameterName(param)(pos)
+  }
 }
 
 case class NamespacedName(nameComponents: List[String], namespace: Option[String])(val position: InputPosition)
@@ -55,7 +64,11 @@ object NamespacedName {
 case class ParameterName(parameter: Parameter)(val position: InputPosition) extends DatabaseName {
   override def asLegacyName: Either[String, Parameter] = Right(parameter)
 
-  def getNameParts(params: MapValue, defaultNamespace: String): (Option[String], String, String) = {
+  def getNameParts(
+    params: MapValue,
+    defaultNamespace: String,
+    fromCreateDb: Boolean = false
+  ): (Option[String], String, String, String) = {
     val paramValue = params.get(parameter.name)
     if (!paramValue.isInstanceOf[TextValue]) {
       throw ParameterWrongTypeException.expectedParameterToBeString(
@@ -64,18 +77,28 @@ case class ParameterName(parameter: Parameter)(val position: InputPosition) exte
         paramValue.prettify()
       )
     } else {
+      def backtick(s: String) = ExpressionStringifier().backtick(s)
       val paramStringValue = paramValue.asInstanceOf[TextValue].stringValue()
       val namePartsSplit = paramStringValue.split('.')
       // To not loose trailing dots we add in the empty string that followed it
       val nameParts = if (paramStringValue.endsWith(".")) namePartsSplit :+ "" else namePartsSplit
       if (nameParts.length == 1) {
-        (None, nameParts(0), nameParts(0))
+        (None, nameParts(0), nameParts(0), backtick(nameParts(0)))
+      } else if (fromCreateDb) {
+        val displayName = paramValue.asInstanceOf[TextValue].stringValue()
+        val quotedDisplayName = backtick(displayName)
+        (None, displayName, displayName, quotedDisplayName)
       } else {
         val displayName =
           if (nameParts(0).equals(defaultNamespace))
             nameParts.tail.mkString(".")
           else paramStringValue
-        (Some(nameParts(0)), nameParts.tail.mkString("."), displayName)
+        val quotedDisplayName = {
+          val name = backtick(nameParts.tail.mkString("."))
+          if (nameParts(0).equals(defaultNamespace)) name
+          else s"${backtick(nameParts(0))}.$name"
+        }
+        (Some(nameParts(0)), nameParts.tail.mkString("."), displayName, quotedDisplayName)
       }
     }
   }

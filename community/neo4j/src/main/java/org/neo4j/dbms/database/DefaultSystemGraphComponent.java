@@ -35,6 +35,7 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DISPLAY_NAME_PRO
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PRIMARY_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.QUOTED_DISPLAY_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGETS_RELATIONSHIP;
 import static org.neo4j.kernel.database.DatabaseId.SYSTEM_DATABASE_ID;
 
@@ -54,6 +55,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.ConstraintDefinition;
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
+import org.neo4j.util.Stringifier;
 
 /**
  * This is the community component for databases.
@@ -215,6 +217,7 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
         nameNode.setProperty(NAME_PROPERTY, databaseName);
         nameNode.setProperty(NAMESPACE_PROPERTY, DEFAULT_NAMESPACE);
         nameNode.setProperty(DISPLAY_NAME_PROPERTY, databaseName);
+        nameNode.setProperty(QUOTED_DISPLAY_NAME_PROPERTY, Stringifier.backtick(databaseName));
         nameNode.setProperty(PRIMARY_PROPERTY, true);
         nameNode.createRelationshipTo(databaseNode, TARGETS_RELATIONSHIP);
         return databaseNode;

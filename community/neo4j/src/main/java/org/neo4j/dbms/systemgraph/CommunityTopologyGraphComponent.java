@@ -31,6 +31,7 @@ import org.neo4j.dbms.database.SystemGraphComponentWithVersion;
 import org.neo4j.dbms.systemgraph.versions.CommunityTopologyComponentVersion_0_44;
 import org.neo4j.dbms.systemgraph.versions.CommunityTopologyComponentVersion_1_50;
 import org.neo4j.dbms.systemgraph.versions.CommunityTopologyComponentVersion_2_58;
+import org.neo4j.dbms.systemgraph.versions.CommunityTopologyComponentVersion_3_202502;
 import org.neo4j.dbms.systemgraph.versions.KnownCommunityTopologyComponentVersion;
 import org.neo4j.dbms.systemgraph.versions.NoCommunityTopologyComponentVersion;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -56,9 +57,11 @@ public class CommunityTopologyGraphComponent extends AbstractSystemGraphComponen
         KnownCommunityTopologyComponentVersion version0 = new CommunityTopologyComponentVersion_0_44();
         KnownCommunityTopologyComponentVersion version1 = new CommunityTopologyComponentVersion_1_50();
         KnownCommunityTopologyComponentVersion version2 = new CommunityTopologyComponentVersion_2_58(version1);
+        KnownCommunityTopologyComponentVersion version3 = new CommunityTopologyComponentVersion_3_202502(version2);
         knownCommunityTopologyComponentVersions.add(version0);
         knownCommunityTopologyComponentVersions.add(version1);
         knownCommunityTopologyComponentVersions.add(version2);
+        knownCommunityTopologyComponentVersions.add(version3);
     }
 
     @Override

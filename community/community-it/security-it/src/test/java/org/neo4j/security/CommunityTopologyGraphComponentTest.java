@@ -34,6 +34,7 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DatabaseAccess.R
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PRIMARY_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.QUOTED_DISPLAY_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGETS_RELATIONSHIP;
 
 import java.time.Clock;
@@ -63,6 +64,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
+import org.neo4j.util.Stringifier;
 
 @TestDirectoryExtension
 @TestInstance(PER_CLASS)
@@ -288,6 +290,38 @@ class CommunityTopologyGraphComponentTest {
                     String name = (String) node.getProperty(NAME_PROPERTY);
                     assertThat(node.getProperty(DISPLAY_NAME_PROPERTY)).isEqualTo(name);
                     assertThat(node.getProperty(NAMESPACE_PROPERTY)).isEqualTo(DEFAULT_NAMESPACE);
+                });
+            }
+        });
+    }
+
+    @Test
+    void shouldHaveQuotedDisplayNameOnUpgradeToV1() throws Exception {
+        // GIVEN
+        initializeSystem();
+        CommunityTopologyGraphComponent component =
+                new CommunityTopologyGraphComponent(Config.defaults(), NullLogProvider.getInstance());
+        component.initializeSystemGraph(system, true);
+
+        inTx(tx -> {
+            // Remove any quotedDisplayNames to get old behaviour
+            try (ResourceIterator<Node> nodes = tx.findNodes(DATABASE_NAME_LABEL)) {
+                nodes.forEachRemaining(node -> {
+                    node.removeProperty(QUOTED_DISPLAY_NAME_PROPERTY);
+                });
+            }
+        });
+        setComponentVersionTo(0);
+
+        // WHEN
+        component.upgradeToCurrent(system);
+
+        // THEN
+        inTx(tx -> {
+            try (ResourceIterator<Node> nodes = tx.findNodes(DATABASE_NAME_LABEL)) {
+                nodes.forEachRemaining(node -> {
+                    String name = (String) node.getProperty(NAME_PROPERTY);
+                    assertThat(node.getProperty(QUOTED_DISPLAY_NAME_PROPERTY)).isEqualTo(Stringifier.backtick(name));
                 });
             }
         });

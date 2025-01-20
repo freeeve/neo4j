@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.getDatabaseNameFie
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.AdministrationShowCommandUtils
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.administration.ShowAliasesExecutionPlanner.Alias
@@ -37,6 +38,7 @@ import org.neo4j.cypher.internal.ast.NamespacedName
 import org.neo4j.cypher.internal.ast.ParameterName
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.Yield
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.procs.ParameterTransformer
 import org.neo4j.cypher.internal.procs.SystemCommandExecutionPlan
@@ -49,6 +51,7 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DRIVER_SETTINGS
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTIES
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.QUOTED_DISPLAY_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.URL_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.USERNAME_PROPERTY
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
@@ -85,17 +88,19 @@ case class ShowAliasesExecutionPlanner(
     val verboseColumns = if (verbose) ", driverSettings{.*} as driver, properties{.*} as properties" else ""
     val (aliasNameFields, aliasPropertyFilter) = filterAliasByName(aliasName)
 
+    val displayNameProperty = context.runtimeContext.cypherVersion match {
+      case CypherVersion.Cypher5 => DISPLAY_NAME_PROPERTY
+      case _                     => QUOTED_DISPLAY_NAME_PROPERTY
+    }
+
     val query =
       s"""UNWIND $$$aliasTargetParameter AS alias
          |WITH alias $aliasPropertyFilter
          |MATCH (aliasNode:$DATABASE_NAME{$NAME_PROPERTY: alias.name, $NAMESPACE_PROPERTY: alias.namespace})
          |OPTIONAL MATCH (aliasNode)-[:$CONNECTS_WITH]->(driverSettings:$DRIVER_SETTINGS)
          |OPTIONAL MATCH (aliasNode)-[:$PROPERTIES]->(properties:$ALIAS_PROPERTIES)
-         |WITH alias.$DISPLAY_NAME_PROPERTY as name,
-         |CASE alias.$NAMESPACE_PROPERTY
-         | WHEN '$DEFAULT_NAMESPACE' THEN null
-         | ELSE alias.$NAMESPACE_PROPERTY
-         |END as composite,
+         |WITH alias.$displayNameProperty as name,
+         |alias.composite as composite,
          |alias.database as database,
          |alias.location as location,
          |aliasNode.$URL_PROPERTY as url,
@@ -111,7 +116,7 @@ case class ShowAliasesExecutionPlanner(
       aliasNameFields.map(anf => VirtualValues.map(anf.keys, anf.values)).getOrElse(VirtualValues.EMPTY_MAP),
       source = sourcePlan,
       parameterTransformer =
-        ParameterTransformer((_, sc, _) => generateVisibleAliases(sc)).convert(
+        ParameterTransformer((_, sc, _) => generateVisibleAliases(sc, context.runtimeContext.cypherVersion)).convert(
           aliasNameFields.map(_.nameConverter).getOrElse(IdentityConverter)
         )
           .validate(aliasNameFields.map(aliasNameFields =>
@@ -139,21 +144,28 @@ case class ShowAliasesExecutionPlanner(
     (aliasNameFields, aliasPropertyFilter)
   }
 
-  private def generateVisibleAliases(sc: SecurityContext): MapValue = {
+  private def generateVisibleAliases(sc: SecurityContext, cypherVersion: CypherVersion): MapValue = {
 
     def referencesToAlias(alias: DatabaseReference): Iterable[Alias] = alias match {
       case a: DatabaseReferenceImpl.External => Seq(Alias(
           a.alias().name(),
           a.namespace().toScala.map(_.name()).getOrElse(DEFAULT_NAMESPACE),
           Some(a.targetAlias().name()),
-          REMOTE
+          REMOTE,
+          cypherVersion
         ))
       case c: DatabaseReferenceImpl.Composite => c.constituents().asScala.flatMap(referencesToAlias)
       case a: DatabaseReferenceImpl.Internal if !a.isPrimary =>
         val primary = referenceResolver.getByAlias(a.databaseId().name()).toScala.collect {
           case ref if sc.databaseAccessMode().canSeeDatabase(ref) => ref.alias().name()
         }
-        Seq(Alias(a.alias().name(), a.namespace().toScala.map(_.name()).getOrElse(DEFAULT_NAMESPACE), primary, LOCAL))
+        Seq(Alias(
+          a.alias().name(),
+          a.namespace().toScala.map(_.name()).getOrElse(DEFAULT_NAMESPACE),
+          primary,
+          LOCAL,
+          cypherVersion
+        ))
       case _ => Seq.empty
     }
 
@@ -170,19 +182,38 @@ object ShowAliasesExecutionPlanner {
   private val aliasTargetParameter = internalKey("aliasTargets")
   private val LOCAL = "local"
   private val REMOTE = "remote"
+  private def backtick(s: String) = ExpressionStringifier().backtick(s)
 
-  private case class Alias(name: String, namespace: String, database: Option[String], location: String) {
+  private case class Alias(
+    name: String,
+    namespace: String,
+    database: Option[String],
+    location: String,
+    cypherVersion: CypherVersion
+  ) {
     private val displayName = if (namespace == DEFAULT_NAMESPACE) name else s"$namespace.$name"
 
-    def asMapValue: MapValue = VirtualValues.map(
-      Array("name", "namespace", "database", "displayName", "location"),
-      Array(
-        Values.stringValue(name),
-        Values.stringValue(namespace),
-        database.map(Values.stringValue).getOrElse(Values.NO_VALUE),
-        Values.stringValue(displayName),
-        Values.stringValue(location)
+    private val quotedDisplayName =
+      if (namespace == DEFAULT_NAMESPACE) backtick(name) else s"${backtick(namespace)}.${backtick(name)}"
+
+    def asMapValue: MapValue = {
+      val db = if (cypherVersion == CypherVersion.Cypher5) database else database.map(backtick)
+      val composite =
+        if (namespace == DEFAULT_NAMESPACE) None
+        else if (cypherVersion == CypherVersion.Cypher5) Some(namespace)
+        else Some(backtick(namespace))
+      VirtualValues.map(
+        Array("name", "namespace", "composite", "database", "displayName", "quotedDisplayName", "location"),
+        Array(
+          Values.stringValue(name),
+          Values.stringValue(namespace),
+          composite.map(Values.stringValue).getOrElse(Values.NO_VALUE),
+          db.map(Values.stringValue).getOrElse(Values.NO_VALUE),
+          Values.stringValue(displayName),
+          Values.stringValue(quotedDisplayName),
+          Values.stringValue(location)
+        )
       )
-    )
+    }
   }
 }

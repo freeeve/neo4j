@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.userLabel
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userNamePropKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.AdministrationShowCommandUtils
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.administration.ShowDatabaseExecutionPlanner.accessibleDbsKey
@@ -76,6 +77,7 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DISPLAY_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.QUOTED_DISPLAY_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGETS
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
 import org.neo4j.kernel.database.DatabaseReferenceRepository
@@ -133,6 +135,11 @@ case class ShowDatabasesExecutionPlanner(
       }
     val returnClause = AdministrationShowCommandUtils.generateReturnClause(symbols, yields, returns, Seq("name"))
 
+    val displayNameProperty = context.runtimeContext.cypherVersion match {
+      case CypherVersion.Cypher5 => DISPLAY_NAME_PROPERTY
+      case _                     => QUOTED_DISPLAY_NAME_PROPERTY
+    }
+
     val query = Predef.augmentString(
       s"""// First resolve which database is the home database
            |OPTIONAL MATCH (default:$DATABASE_LABEL {$DATABASE_DEFAULT_PROPERTY: true})
@@ -143,12 +150,12 @@ case class ShowDatabasesExecutionPlanner(
            |MATCH (d:$DATABASE)<-[:$TARGETS]-(dn:$DATABASE_NAME {$NAME_PROPERTY: props.name, $NAMESPACE_PROPERTY: '$DEFAULT_NAMESPACE'})
            |WITH d, dn, props, homeDbName
            |OPTIONAL MATCH (d)<-[:$TARGETS]-(a:$DATABASE_NAME)
-           |WITH a, d, dn, props, homeDbName ORDER BY a.$DISPLAY_NAME_PROPERTY
+           |WITH a, d, dn, props, homeDbName ORDER BY a.$displayNameProperty
            |OPTIONAL MATCH (constituent:$DATABASE_NAME {$NAMESPACE_PROPERTY: dn.$NAME_PROPERTY})
            |WHERE d:$COMPOSITE_DATABASE AND constituent <> dn
-           |WITH d.name as name,
+           |WITH dn.$displayNameProperty as name,
            |collect(a) as aliases,
-           |collect(constituent.$DISPLAY_NAME_PROPERTY) as constituents,
+           |collect(constituent.$displayNameProperty) as constituents,
            |props.$ACCESS_COL as $ACCESS_COL,
            |props.$ADDRESS_COL as $ADDRESS_COL,
            |props.$ROLE_COL as $ROLE_COL,
@@ -159,14 +166,15 @@ case class ShowDatabasesExecutionPlanner(
            |props.$CURRENT_STATUS_COL as $CURRENT_STATUS_COL,
            |props.$STATUS_MSG_COL as $STATUS_MSG_COL,
            |props.type as type,
+           |d.name as dbNameProperty,
            |d.$DATABASE_DEFAULT_PROPERTY as default,
            |homeDbName,
-           |coalesce( homeDbName in collect(a.$DISPLAY_NAME_PROPERTY) + [d.name], false ) as home
+           |coalesce( homeDbName in collect(a.$displayNameProperty) + [d.name], false ) as home
            |$verboseColumns
            |
            |WITH name AS $NAME_COL,
            |type,
-           |[alias in aliases WHERE NOT (name = alias.$NAME_PROPERTY AND alias.$NAMESPACE_PROPERTY = '$DEFAULT_NAMESPACE') | alias.$DISPLAY_NAME_PROPERTY] as $ALIASES_COL,
+           |[alias in aliases WHERE NOT (dbNameProperty = alias.$NAME_PROPERTY AND alias.$NAMESPACE_PROPERTY = '$DEFAULT_NAMESPACE') | alias.$displayNameProperty] as $ALIASES_COL,
            |$ACCESS_COL,
            |$ADDRESS_COL,
            |$ROLE_COL,

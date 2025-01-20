@@ -198,6 +198,7 @@ public interface TopologyGraphDbmsModel {
     String NAMESPACE_PROPERTY = "namespace";
 
     String DISPLAY_NAME_PROPERTY = "displayName";
+    String QUOTED_DISPLAY_NAME_PROPERTY = "quotedDisplayName";
     String DEFAULT_NAMESPACE = "system-root";
     Label REMOTE_DATABASE_LABEL = Label.label("Remote");
     String REMOTE_DATABASE = REMOTE_DATABASE_LABEL.name();

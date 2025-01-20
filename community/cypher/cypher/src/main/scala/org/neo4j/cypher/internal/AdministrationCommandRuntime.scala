@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.ast.Password
 import org.neo4j.cypher.internal.ast.RemoveAuth
 import org.neo4j.cypher.internal.ast.RemoveHomeDatabaseAction
 import org.neo4j.cypher.internal.ast.SetHomeDatabaseAction
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.Parameter
@@ -725,13 +726,17 @@ object AdministrationCommandRuntime {
    *
    * @param nameKey parameter key used in the "inner" cypher
    * @param name the namespaced name or parameter
+   * @param fromCreateDb make this behave closer to getNameFields to keep existing behaviour for create database
    * @return
    */
   private[internal] def getDatabaseNameFields(
     nameKey: String,
-    name: DatabaseName
+    name: DatabaseName,
+    fromCreateDb: Boolean = false
   ): DatabaseNameFields = {
+    // NOTE: valueMapper and backtick are used in different order, ensure that valueMapper doesn't affect backticks
     val valueMapper: String => String = new NormalizedDatabaseName(_).name()
+    def backtick(s: String) = ExpressionStringifier().backtick(s)
     name match {
       case name @ NamespacedName(_, None) =>
         DatabaseNameFields(
@@ -741,6 +746,8 @@ object AdministrationCommandRuntime {
           Values.utf8Value(DEFAULT_NAMESPACE),
           s"$internalPrefix${nameKey}_displayName",
           Values.utf8Value(valueMapper(name.name)),
+          s"$internalPrefix${nameKey}_quotedDisplayName",
+          Values.utf8Value(backtick(valueMapper(name.name))),
           wasParameter = false,
           IdentityConverter
         )
@@ -755,12 +762,18 @@ object AdministrationCommandRuntime {
             if (namespace == DEFAULT_NAMESPACE) valueMapper(name.name)
             else valueMapper(namespace) + "." + valueMapper(name.name)
           ),
+          s"$internalPrefix${nameKey}_quotedDisplayName",
+          Values.utf8Value(
+            if (namespace == DEFAULT_NAMESPACE) backtick(valueMapper(name.name))
+            else backtick(valueMapper(namespace)) + "." + backtick(valueMapper(name.name))
+          ),
           wasParameter = false,
           IdentityConverter
         )
       case pn @ ParameterName(parameter) =>
         def rename: String => String = paramName => internalKey(paramName)
         val displayNameKey = internalKey(parameter.name + "_displayName")
+        val quotedDisplayNameKey = internalKey(parameter.name + "_quotedDisplayName")
         DatabaseNameFields(
           rename(parameter.name),
           Values.NO_VALUE,
@@ -768,15 +781,19 @@ object AdministrationCommandRuntime {
           Values.utf8Value(DEFAULT_NAMESPACE),
           displayNameKey,
           Values.NO_VALUE,
+          quotedDisplayNameKey,
+          Values.NO_VALUE,
           wasParameter = true,
           (_, params) => {
-            val (namespace, name, displayName) = pn.getNameParts(params, DEFAULT_NAMESPACE)
+            val (namespace, name, displayName, quotedDisplayName) =
+              pn.getNameParts(params, DEFAULT_NAMESPACE, fromCreateDb)
             params.updatedWith(
               internalKey(parameter.name + "_namespace"),
               Values.utf8Value(valueMapper(namespace.getOrElse(DEFAULT_NAMESPACE)))
             )
               .updatedWith(internalKey(parameter.name), Values.utf8Value(valueMapper(name)))
               .updatedWith(displayNameKey, Values.utf8Value(valueMapper(displayName)))
+              .updatedWith(quotedDisplayNameKey, Values.utf8Value(valueMapper(quotedDisplayName)))
           }
         )
     }
@@ -854,8 +871,12 @@ object AdministrationCommandRuntime {
     new InvalidArgumentException(gql, gql.getMessage)
   }
 
-  private[internal] def runtimeStringValue(field: Either[String, Parameter], params: MapValue): String = field match {
-    case Left(s)  => s
+  private[internal] def runtimeStringValue(
+    field: Either[String, Parameter],
+    params: MapValue,
+    literalValueMapper: String => String = identity
+  ): String = field match {
+    case Left(s)  => literalValueMapper(s)
     case Right(p) => runtimeStringValue(p.name, params, prettyPrint = false)
   }
 
@@ -964,12 +985,14 @@ object AdministrationCommandRuntime {
     namespaceValue: Value,
     displayNameKey: String,
     displayNameValue: Value,
+    quotedDisplayNameKey: String,
+    quotedDisplayNameValue: Value,
     wasParameter: Boolean,
     override val nameConverter: (Transaction, MapValue) => MapValue
   ) extends NameConverter {
 
-    val keys: Array[String] = Array(nameKey, namespaceKey, displayNameKey)
-    val values: Array[AnyValue] = Array(nameValue, namespaceValue, displayNameValue)
+    val keys: Array[String] = Array(nameKey, namespaceKey, displayNameKey, quotedDisplayNameKey)
+    val values: Array[AnyValue] = Array(nameValue, namespaceValue, displayNameValue, quotedDisplayNameValue)
 
     def asNodeFilter: String = s"{$NAME_PROPERTY: $$`$nameKey`, $NAMESPACE_PROPERTY: $$`$namespaceKey`}"
 

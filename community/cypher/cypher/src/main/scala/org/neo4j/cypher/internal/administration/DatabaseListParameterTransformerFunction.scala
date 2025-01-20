@@ -41,6 +41,7 @@ import org.neo4j.cypher.internal.procs.ParameterTransformerFunction
 import org.neo4j.cypher.internal.util.AssertionRunner
 import org.neo4j.cypher.internal.util.DeprecatedDatabaseNameNotification
 import org.neo4j.cypher.internal.util.InternalNotification
+import org.neo4j.dbms.database.DatabaseDetails
 import org.neo4j.dbms.database.TopologyInfoService
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_LABEL
@@ -56,9 +57,12 @@ import org.neo4j.kernel.database.DatabaseReferenceImpl
 import org.neo4j.kernel.database.DatabaseReferenceRepository
 import org.neo4j.kernel.database.DefaultDatabaseResolver
 import org.neo4j.kernel.database.NormalizedDatabaseName
+import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.MapValue
 import org.neo4j.values.virtual.VirtualValues
+
+import java.util
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -113,8 +117,9 @@ class DatabaseListParameterTransformerFunction(
           DatabaseIdFactory.from(db.alias().name(), db.id())
       }
 
-    val dbMetadata = {
-      val dbInfos = infoService.databases(transaction, accessibleDatabases.asJava, detailLevels(verbose, maybeYield))
+    val dbMetadata: util.List[AnyValue] = {
+      val dbInfos: util.Set[DatabaseDetails] =
+        infoService.databases(transaction, accessibleDatabases.asJava, detailLevels(verbose, maybeYield))
       dbInfos.asScala.map(info => DatabaseDetailsMapper.toMapValue(info)).toList.asJava
     }
 
@@ -159,7 +164,7 @@ class DatabaseListParameterTransformerFunction(
             (new NormalizedDatabaseName(nn.name), normalizedNamespace, Set.empty[InternalNotification])
           }
         case pn: ParameterName =>
-          val (namespace, name, _) = pn.getNameParts(params, DEFAULT_NAMESPACE)
+          val (namespace, name, _, _) = pn.getNameParts(params, DEFAULT_NAMESPACE)
           val normalizedNamespace = namespace.map(new NormalizedDatabaseName(_))
           normalizedNamespace match {
             case None => (new NormalizedDatabaseName(name), None, Set.empty[InternalNotification])
