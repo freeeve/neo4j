@@ -85,47 +85,47 @@ class MoveBoundaryNodePredicatesTest extends CypherFunSuite
   }
 
   test(
-    "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->())+ (), ANY SHORTEST () (()-->())+ (end:B) RETURN count(*) AS c"
+    "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->()){,100} (), ANY SHORTEST () (()-->()){,100} (end:B) RETURN count(*) AS c"
   ) {
     assertRewritten(
       testName,
-      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->())+ (), ANY SHORTEST () (()-->())+ (end) WHERE start:A AND end:B RETURN count(*) AS c"
+      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ANY SHORTEST () (()-->()){,100} (end) WHERE start:A AND end:B RETURN count(*) AS c"
     )
   }
 
   test(
-    "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->())+ (), ANY SHORTEST () (()-->())+ (end:B) WHERE $param RETURN count(*) AS c"
+    "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->()){,100} (), ANY SHORTEST () (()-->()){,100} (end:B) WHERE $param RETURN count(*) AS c"
   ) {
     assertRewritten(
       testName,
-      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->())+ (), ANY SHORTEST () (()-->())+ (end) WHERE $param AND start:A AND end:B RETURN count(*) AS c"
+      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ANY SHORTEST () (()-->()){,100} (end) WHERE $param AND start:A AND end:B RETURN count(*) AS c"
     )
   }
 
   test(
-    "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->())+ (), ALL () (()-->()){2, 4} (end:B) RETURN count(*) AS c"
+    "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->()){,100} (), ALL () (()-->()){2, 4} (end:B) RETURN count(*) AS c"
   ) {
     assertRewritten(
       testName,
-      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->())+ (), ALL () (()-->()){2, 4} (end:B) WHERE start:A RETURN count(*) AS c"
+      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ALL () (()-->()){2, 4} (end:B) WHERE start:A RETURN count(*) AS c"
     )
   }
 
   test(
-    "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->())+ (), ALL () (()-->()){2, 4} (end:B) WHERE $param RETURN count(*) AS c"
+    "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->()){,100} (), ALL () (()-->()){2, 4} (end:B) WHERE $param RETURN count(*) AS c"
   ) {
     assertRewritten(
       testName,
-      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->())+ (), ALL () (()-->()){2, 4} (end:B) WHERE $param AND start:A RETURN count(*) AS c"
+      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ALL () (()-->()){2, 4} (end:B) WHERE $param AND start:A RETURN count(*) AS c"
     )
   }
 
   test(
-    "MATCH REPEATABLE ELEMENTS ANY SHORTEST (p = (start:A) (()-->())+ ()), ANY SHORTEST () (()-->())+ (end:B) RETURN count(*) AS c"
+    "MATCH REPEATABLE ELEMENTS ANY SHORTEST (p = (start:A) (()-->()){,100} ()), ANY SHORTEST () (()-->()){,100} (end:B) RETURN count(*) AS c"
   ) {
     assertRewritten(
       testName,
-      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (p = (start) (()-->())+ ()), ANY SHORTEST () (()-->())+ (end) WHERE start:A AND end:B RETURN count(*) AS c"
+      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (p = (start) (()-->()){,100} ()), ANY SHORTEST () (()-->()){,100} (end) WHERE start:A AND end:B RETURN count(*) AS c"
     )
   }
 

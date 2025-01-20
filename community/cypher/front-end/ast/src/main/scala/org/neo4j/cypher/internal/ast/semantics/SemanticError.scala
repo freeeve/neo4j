@@ -1062,8 +1062,8 @@ object SemanticError {
   def unsafeUsageOfRepeatableElements(position: InputPosition): SemanticError = {
     SemanticError(
       GqlHelper.getGql42001_42N53(position.offset, position.line, position.column),
-      "The pattern may yield an infinite number of rows under match mode REPEATABLE ELEMENTS, " +
-        "perhaps use a path selector or add an upper bound to your quantified path patterns.",
+      "The quantified path pattern may yield an infinite number of rows under match mode 'REPEATABLE ELEMENTS'. " +
+        "Add an upper bound to the quantified path pattern.",
       position
     )
   }

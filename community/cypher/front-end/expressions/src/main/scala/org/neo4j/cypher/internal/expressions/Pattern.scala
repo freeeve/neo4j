@@ -105,11 +105,11 @@ case class PatternPartWithSelector(selector: Selector, part: NonPrefixedPatternP
   override def position: InputPosition = part.position
   override def allVariables: Set[LogicalVariable] = part.allVariables
   override def element: PatternElement = part.element
-  override def isBounded: Boolean = part.isBounded || selector.isBounded
+  override def isBounded: Boolean = part.isBounded
   override def isFixedLength: Boolean = part.isFixedLength
   override def dependencies: Set[LogicalVariable] = part.dependencies
 
-  def isSelective: Boolean = selector.isBounded
+  def isSelective: Boolean = selector.isSelective
 
   def modifyElement(f: PatternElement => PatternElement): PatternPartWithSelector = {
     def replaceInAnonymous(app: AnonymousPatternPart): AnonymousPatternPart = app match {
@@ -198,7 +198,7 @@ object PatternPart {
   sealed trait Selector extends ASTNode {
     def prettified: String
 
-    def isBounded: Boolean
+    def isSelective: Boolean
   }
 
   sealed trait CountedSelector extends Selector {
@@ -216,12 +216,12 @@ object PatternPart {
       case Right(p) => s"ANY $$${p.name} PATHS"
     }
 
-    override def isBounded: Boolean = true
+    override def isSelective: Boolean = true
   }
 
   case class AllPaths()(val position: InputPosition) extends Selector {
     override def prettified: String = "ALL PATHS"
-    override def isBounded: Boolean = false
+    override def isSelective: Boolean = false
   }
 
   case class AnyShortestPath(count: Either[UnsignedDecimalIntegerLiteral, Parameter])(val position: InputPosition)
@@ -232,12 +232,12 @@ object PatternPart {
       case Left(n)  => s"SHORTEST ${n.value} PATHS"
       case Right(p) => s"SHORTEST $$${p.name} PATHS"
     }
-    override def isBounded: Boolean = true
+    override def isSelective: Boolean = true
   }
 
   case class AllShortestPaths()(val position: InputPosition) extends SelectiveSelector {
     override def prettified: String = "ALL SHORTEST PATHS"
-    override def isBounded: Boolean = true
+    override def isSelective: Boolean = true
   }
 
   case class ShortestGroups(count: Either[UnsignedDecimalIntegerLiteral, Parameter])(val position: InputPosition)
@@ -248,7 +248,7 @@ object PatternPart {
       case Left(n)  => s"SHORTEST ${n.value} PATH GROUPS"
       case Right(p) => s"SHORTEST $$${p.name} PATH GROUPS"
     }
-    override def isBounded: Boolean = true
+    override def isSelective: Boolean = true
   }
 }
 

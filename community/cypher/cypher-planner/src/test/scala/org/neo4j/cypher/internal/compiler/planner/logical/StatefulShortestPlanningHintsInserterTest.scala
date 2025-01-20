@@ -126,8 +126,8 @@ class StatefulShortestPlanningHintsInserterTest extends CypherFunSuite with Logi
   test("should insert multiple hints if multiple SSPs in a MATCH") {
     val q = buildSinglePlannerQueryAndRewrite(
       """MATCH REPEATABLE ELEMENTS 
-        |  ANY SHORTEST (a) ((b)-[r]->(c))* (d), 
-        |  ANY SHORTEST (a2) ((b2)-[r2]->(c2))* (d2) 
+        |  ANY SHORTEST (a) ((b)-[r]->(c)){,100} (d),
+        |  ANY SHORTEST (a2) ((b2)-[r2]->(c2)){,100} (d2)
         |RETURN *""".stripMargin,
       CypherStatefulShortestPlanningModeOption.intoOnly
     )

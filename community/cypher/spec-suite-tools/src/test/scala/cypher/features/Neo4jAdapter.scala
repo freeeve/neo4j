@@ -60,9 +60,11 @@ object Neo4jAdapter {
     GraphDatabaseSettings.transaction_timeout -> Duration.ofMinutes(15)
   )
 
-  // This method will allow introducing semanticfeatures (feature flags) for a set of feature files
+  // This method will allow introducing SemanticFeatures (feature flags) for a set of feature files
   // When the semantic feature is made generally available, we will just need to update the case statements.
   def featureDependentSettings(featureName: String): collection.Map[Setting[_], Object] = featureName match {
+    case "MatchModesAcceptance" =>
+      enableSemanticFeatures(Set(SemanticFeature.MatchModes))
     case _ =>
       Map.empty
   }

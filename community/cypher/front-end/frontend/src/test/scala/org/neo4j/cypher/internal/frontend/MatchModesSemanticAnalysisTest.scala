@@ -31,8 +31,8 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite with SemanticAnalysi
 
   def unboundRepeatableElementsSemanticError(pos: InputPosition): SemanticError = SemanticError(
     GqlHelper.getGql42001_42N53(pos.offset, pos.line, pos.column),
-    "The pattern may yield an infinite number of rows under match mode REPEATABLE ELEMENTS, " +
-      "perhaps use a path selector or add an upper bound to your quantified path patterns.",
+    "The quantified path pattern may yield an infinite number of rows under match mode 'REPEATABLE ELEMENTS'. " +
+      "Add an upper bound to the quantified path pattern.",
     pos
   )
 
@@ -103,15 +103,21 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite with SemanticAnalysi
   }
 
   test("REPEATABLE ELEMENTS SHORTEST 2 PATH ((a)-[:REL]->(b))+") {
-    runWith(MatchModes).hasNoErrors
+    runWith(MatchModes).hasErrors(
+      unboundRepeatableElementsSemanticError(p(42, 1, 43))
+    )
   }
 
   test("REPEATABLE ELEMENTS ANY ((a)-[:REL]->(b))+") {
-    runWith(MatchModes).hasNoErrors
+    runWith(MatchModes).hasErrors(
+      unboundRepeatableElementsSemanticError(p(30, 1, 31))
+    )
   }
 
   test("REPEATABLE ELEMENTS SHORTEST 1 PATH GROUPS ((a)-[:REL]->(b))+") {
-    runWith(MatchModes).hasNoErrors
+    runWith(MatchModes).hasErrors(
+      unboundRepeatableElementsSemanticError(p(49, 1, 50))
+    )
   }
 
   test("shortestPath((a)-[:REL*]->(b)), shortestPath((c)-[:REL*]->(d))") {
@@ -132,7 +138,10 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite with SemanticAnalysi
   }
 
   test("REPEATABLE ELEMENTS SHORTEST 1 PATH (a)-[:REL*]->(b), SHORTEST 1 PATH (c)-[:REL*]->(d)") {
-    runWith(MatchModes).hasNoErrors
+    runWith(MatchModes).hasErrors(
+      unboundRepeatableElementsSemanticError(p(42, 1, 43)),
+      unboundRepeatableElementsSemanticError(p(76, 1, 77))
+    )
   }
 
   test("DIFFERENT RELATIONSHIPS SHORTEST 1 PATH (a)-[:REL*]->(b), SHORTEST 1 PATH (c)-[:REL*]->(d)") {

@@ -358,7 +358,7 @@ sealed trait Clause extends ASTNode with SemanticCheckable with SemanticAnalysis
     val legacyShortest = this.folder.findAllByClass[ShortestPathsPatternPart]
 
     val hasPathSelectorOrMatchMode = this.folder.treeFold(false) {
-      case s: Selector if s.isBounded   => _ => SkipChildren(true)
+      case s: Selector if s.isSelective => _ => SkipChildren(true)
       case DifferentRelationships(true) =>
         // Allow implicit match mode
         acc => if (acc) SkipChildren(acc) else TraverseChildren(acc)
@@ -878,6 +878,11 @@ case class Match(
     }
   }
 
+  /**
+   * Under the match mode repeatable elements, StatefulShortestPath can go into infinite
+   * loops if there is a path pattern with unbounded quantifiers. As a result, we consider patterns
+   * with unbounded quantifiers — with or without selective path search — to be unsafe under repeatable elements.
+   */
   private def checkRepeatableElements(state: SemanticState): SemanticCheckResult = {
     val errors = pattern.patternParts.collect {
       case part if !part.isBounded => SemanticError.unsafeUsageOfRepeatableElements(part.position)

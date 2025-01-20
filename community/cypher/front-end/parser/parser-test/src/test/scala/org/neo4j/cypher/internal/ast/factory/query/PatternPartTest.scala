@@ -84,35 +84,35 @@ class PatternPartTest extends AstParsingTestBase
   }
 
   test("SHORTEST 1 (n)-->+(m)") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe true)
+    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
   }
 
   test("SHORTEST 4 (n)-->*(m)") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe true)
+    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
   }
 
   test("ALL SHORTEST (n)-->*(m) ()") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe true)
+    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
   }
 
   test("ALL SHORTEST (n)-->{0,}(m)") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe true)
+    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
   }
 
   test("ANY SHORTEST (n)-->+(m)") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe true)
+    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
   }
 
   test("ANY 4 (n)-->*(m)") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe true)
+    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
   }
 
   test("ANY (n)-->*(m) ()") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe true)
+    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
   }
 
   test("SHORTEST 5 GROUPS (n)-->{0,}(m)") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe true)
+    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
   }
 
   test("(n)-[r *]->(m)") {
