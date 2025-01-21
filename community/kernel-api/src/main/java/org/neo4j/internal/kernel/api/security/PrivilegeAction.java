@@ -73,6 +73,8 @@ public enum PrivilegeAction {
     DROP_DATABASE,
     SET_DATABASE_ACCESS,
     SET_DEFAULT_LANGUAGE,
+    ALTER_DATABASE_OPTIONS,
+    ALTER_DATABASE_TOPOLOGY,
     CREATE_COMPOSITE_DATABASE,
     DROP_COMPOSITE_DATABASE,
 
@@ -194,7 +196,7 @@ public enum PrivilegeAction {
         @Override
         public boolean satisfies(PrivilegeAction action) {
             return switch (action) {
-                case SET_DATABASE_ACCESS, SET_DEFAULT_LANGUAGE -> true;
+                case SET_DATABASE_ACCESS, SET_DEFAULT_LANGUAGE, ALTER_DATABASE_OPTIONS, ALTER_DATABASE_TOPOLOGY -> true;
                 default -> this == action;
             };
         }

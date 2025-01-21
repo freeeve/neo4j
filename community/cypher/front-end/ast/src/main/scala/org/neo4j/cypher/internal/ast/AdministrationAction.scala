@@ -172,6 +172,10 @@ case object SetDatabaseAccessAction extends DatabaseManagementAction("SET DATABA
 
 case object SetDefaultLanguageAction extends DatabaseManagementAction("SET DEFAULT LANGUAGE")
 
+case object AlterDatabaseTopologyAction extends DatabaseManagementAction("ALTER DATABASE")
+
+case object AlterDatabaseOptionsAction extends DatabaseManagementAction("ALTER DATABASE")
+
 case object CompositeDatabaseManagementActions extends DatabaseManagementAction("COMPOSITE DATABASE MANAGEMENT")
 
 case object CreateCompositeDatabaseAction extends DatabaseManagementAction("CREATE COMPOSITE DATABASE")

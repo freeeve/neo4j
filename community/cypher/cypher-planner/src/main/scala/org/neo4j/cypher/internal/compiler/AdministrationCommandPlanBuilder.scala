@@ -26,7 +26,8 @@ import org.neo4j.cypher.internal.ast.AllDatabasesScope
 import org.neo4j.cypher.internal.ast.AllGraphsScope
 import org.neo4j.cypher.internal.ast.AlterAliasAction
 import org.neo4j.cypher.internal.ast.AlterDatabase
-import org.neo4j.cypher.internal.ast.AlterDatabaseAction
+import org.neo4j.cypher.internal.ast.AlterDatabaseOptionsAction
+import org.neo4j.cypher.internal.ast.AlterDatabaseTopologyAction
 import org.neo4j.cypher.internal.ast.AlterLocalDatabaseAlias
 import org.neo4j.cypher.internal.ast.AlterRemoteDatabaseAlias
 import org.neo4j.cypher.internal.ast.AlterServer
@@ -1177,11 +1178,11 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         // For a set of (predicate -> privilege); If the predicate is true, add the privilege to the set of required privileges
         val requiredPrivilegedActions: Seq[DbmsAction] = Seq(
           // ALTER DATABASE foo SET TOPOLOGY requires 'ALTER DATABASE' privileges:
-          topology.nonEmpty -> AlterDatabaseAction,
+          topology.nonEmpty -> AlterDatabaseTopologyAction,
           // ALTER DATABASE foo SET OPTION ... requires 'ALTER DATABASE' privileges:
-          (options != NoOptions) -> AlterDatabaseAction,
+          (options != NoOptions) -> AlterDatabaseOptionsAction,
           // ALTER DATABASE foo REMOVE OPTION ... requires 'ALTER DATABASE' privileges:
-          optionsToRemove.nonEmpty -> AlterDatabaseAction,
+          optionsToRemove.nonEmpty -> AlterDatabaseOptionsAction,
           // ALTER DATABASE foo SET ACCESS ... requires 'SET DATABASE ACCESS' privileges:
           access.nonEmpty -> SetDatabaseAccessAction,
           // ALTER DATABASE foo SET DEFAULT LANGUAGE ... requires 'SET DEFAULT LANGUAGE' privileges:
@@ -1189,10 +1190,9 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         ).filter(_._1)
           .map(_._2)
           .distinct
+        val alterIsValidOnSystem = requiredPrivilegedActions == Seq(SetDefaultLanguageAction)
 
-        Some(plans.AssertManagementActionNotBlocked(AlterDatabaseAction))
-          // AssertManagementActionNotBlocked doesn't know about SetDatabaseAccessAction,
-          // pass AlterDatabaseAction no matter what requiredPrivilegedActions we need
+        Some(plans.AssertManagementActionNotBlocked(requiredPrivilegedActions))
           .map(s => plans.AssertAllowedDbmsActions(Some(s), requiredPrivilegedActions))
           .map(assertAllowed =>
             if (ifExists) plans.DoNothingIfDatabaseNotExists(
@@ -1204,7 +1204,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
             )
             else assertAllowed
           )
-          .map(plans.EnsureValidNonSystemDatabase(_, "ALTER DATABASE", dbName, "alter"))
+          .map(source =>
+            if (!alterIsValidOnSystem) plans.EnsureValidNonSystemDatabase(source, "ALTER DATABASE", dbName, "alter")
+            else source
+          )
           .map(plans.AlterDatabase(_, dbName, access, topology, options, cypherVersion, optionsToRemove))
           .map(wrapInWait(_, dbName, waitUntilComplete))
           .map(plans.LogSystemCommand(_, prettifier.asString(c)))

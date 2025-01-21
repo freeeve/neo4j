@@ -137,16 +137,16 @@ case class CommunityAdministrationCommandRuntime(
   // When the community commands are run within enterprise, this allows the enterprise commands to be chained
   private def fullLogicalToExecutable = extraLogicalToExecutable orElse logicalToExecutable
 
-  val checkShowUserPrivilegesText: String =
+  private val checkShowUserPrivilegesText: String =
     "Try executing SHOW USER PRIVILEGES to determine the missing or denied privileges. " +
       "In case of missing privileges, they need to be granted (See GRANT). In case of denied privileges, they need to be revoked (See REVOKE) and granted."
 
-  def prettifyActionName(actions: AdministrationAction*): String = {
+  private def prettifyActionName(actions: AdministrationAction*): String = {
     actions.map {
       case StartDatabaseAction => "START DATABASE"
       case StopDatabaseAction  => "STOP DATABASE"
       case a                   => a.name
-    }.sorted.mkString(" and/or ")
+    }.distinct.sorted.mkString(" and/or ")
   }
 
   private[internal] def adminActionErrorMessage(

@@ -26,6 +26,8 @@ import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ADMIN;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALIAS_MANAGEMENT;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALTER_ALIAS;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALTER_DATABASE;
+import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALTER_DATABASE_OPTIONS;
+import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALTER_DATABASE_TOPOLOGY;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALTER_USER;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ASSIGN_PRIVILEGE;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ASSIGN_ROLE;
@@ -121,7 +123,9 @@ class PrivilegeActionTest {
                 DATABASE_MANAGEMENT,
                 Set.of(CREATE_DATABASE, DROP_DATABASE, ALTER_DATABASE, COMPOSITE_DATABASE_MANAGEMENT));
         expected.put(COMPOSITE_DATABASE_MANAGEMENT, Set.of(CREATE_COMPOSITE_DATABASE, DROP_COMPOSITE_DATABASE));
-        expected.put(ALTER_DATABASE, Set.of(SET_DATABASE_ACCESS, SET_DEFAULT_LANGUAGE));
+        expected.put(
+                ALTER_DATABASE,
+                Set.of(SET_DATABASE_ACCESS, SET_DEFAULT_LANGUAGE, ALTER_DATABASE_OPTIONS, ALTER_DATABASE_TOPOLOGY));
         expected.put(ALIAS_MANAGEMENT, Set.of(CREATE_ALIAS, DROP_ALIAS, ALTER_ALIAS, SHOW_ALIAS));
         expected.put(PRIVILEGE_MANAGEMENT, Set.of(SHOW_PRIVILEGE, ASSIGN_PRIVILEGE, REMOVE_PRIVILEGE));
         expected.put(WRITE, Set.of(SET_LABEL, REMOVE_LABEL, CREATE_ELEMENT, DELETE_ELEMENT, SET_PROPERTY));

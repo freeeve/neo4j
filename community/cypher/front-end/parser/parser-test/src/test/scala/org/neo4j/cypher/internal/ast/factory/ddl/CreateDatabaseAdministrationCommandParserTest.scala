@@ -791,12 +791,28 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   }
 
   // If you take the view that the version number is a Cypher number, then this should probably pass, but
-  // we treat it as a word here, as it's part of the name. We would not allow CYPHER 24 + 1 either.
+  // we treat it as a word here, as it's part of the name.
   test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 2_5") {
     failsParsing[Statements].withSyntaxError(
       """Invalid Cypher version '2_5'. Valid Cypher versions are: 5, 25 (line 1, column 45 (offset: 44))
         |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 2_5"
         |                                             ^""".stripMargin
+    )
+  }
+
+  test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 24 + 1") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid Cypher version '24'. Valid Cypher versions are: 5, 25 (line 1, column 45 (offset: 44))
+        |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 24 + 1"
+        |                                             ^""".stripMargin
+    )
+  }
+
+  test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 25 - 0") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '-': expected 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 48 (offset: 47))
+        |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 25 - 0"
+        |                                                ^""".stripMargin
     )
   }
 

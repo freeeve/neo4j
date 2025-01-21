@@ -581,7 +581,8 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             newBuilder("internal.dbms.block_start_stop_database", BOOL, false).build();
 
     @Internal
-    @Description("Enable or disable the ability to alter databases.")
+    @Description(
+            "Enable or disable the ability to alter databases. This excludes SET DEFAULT LANGUAGE, which is always allowed (RBAC permitting).")
     public static final Setting<Boolean> block_alter_database =
             newBuilder("internal.dbms.block_alter_database", BOOL, false).build();
 
