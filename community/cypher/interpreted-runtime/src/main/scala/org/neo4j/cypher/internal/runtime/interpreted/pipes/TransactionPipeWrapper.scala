@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expres
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper.CypherRowEntityTransformer
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper.assertTransactionStateIsEmpty
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper.logError
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionRetryLogic.RetryState
 import org.neo4j.cypher.internal.runtime.interpreted.profiler.InterpretedProfileInformation
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.exceptions.CypherExecutionInterruptedException
@@ -300,7 +301,7 @@ trait OnErrorRetryTxPipe {
   override def shouldRetry(throwable: Throwable, batch: TransactionBatch): Boolean = {
     // NOTE: This updates the retry state of the batch so should only be called once per retried execution!
     val isRetryable = RetryableCypherError.isRetryable(throwable)
-    isRetryable && batch.shouldRetryAgain(retryLogic)
+    isRetryable && batch.shouldRetryAgain()
   }
 }
 
@@ -332,60 +333,67 @@ case object NonRecoverableError extends TransactionStatus {
   override def profileInformation: InterpretedProfileInformation = null
 }
 
-case class TransactionBatch(rows: EagerBuffer[CypherRow]) {
-  private[this] var _retryState: TransactionRetryLogic.RetryState = _
-  private[this] var _nextRetryState: TransactionRetryLogic.RetryState = _
-
-  def retryState: TransactionRetryLogic.RetryState = _retryState
+sealed trait TransactionBatch {
+  def rows: EagerBuffer[CypherRow]
 
   def close(): Unit = {
     rows.close()
   }
 
-  def hasRetried: Boolean = _retryState != null
+  def hasRetried: Boolean
+  def computeNextRetryState(retryLogic: TransactionRetryLogic): RetryableTransactionBatch
+  def shouldRetryAgain(): Boolean
+}
 
-  def computeNextRetryState(retryLogic: TransactionRetryLogic): Unit = {
-    if (_nextRetryState == null) {
-      ensureRetryState(retryLogic)
-      retryLogic.computeNextRetryState(_retryState, _retryState)
-      retryLogic.computeNextRetryState(_retryState, _nextRetryState)
-    } else {
-      _retryState = _nextRetryState
-      retryLogic.computeNextRetryState(_retryState, _nextRetryState)
-    }
+class FreshTransactionBatch(val rows: EagerBuffer[CypherRow]) extends TransactionBatch {
+  override def hasRetried: Boolean = false
+
+  override def computeNextRetryState(retryLogic: TransactionRetryLogic): RetryableTransactionBatch = {
+    val firstState = retryLogic.newRetryState()
+    new RetryableTransactionBatch(rows, firstState, firstState.computeNextRetryState())
   }
 
-  def nanosUntilRetry(retryLogic: TransactionRetryLogic): Long = {
-    ensureRetryState(retryLogic)
-    retryLogic.nanosUntilRetry(_retryState)
+  override def toString: String = s"FreshTransactionBatch(rowCount=${rows.size()})"
+
+  override def shouldRetryAgain(): Boolean =
+    // a fresh batch should always be retried at least once if retries are enabled
+    true
+}
+
+class RetryableTransactionBatch(
+  val rows: EagerBuffer[CypherRow],
+  private val retryState: RetryState, // Used in the retry priority queue to compare batches scheduled for retry
+  private val nextRetryState: RetryState // Used by tasks to see if we shouldRetryAgain on failure
+) extends TransactionBatch {
+
+  def hasRetried: Boolean = true
+
+  def computeNextRetryState(retryLogic: TransactionRetryLogic): RetryableTransactionBatch = {
+    new RetryableTransactionBatch(rows, nextRetryState, nextRetryState.computeNextRetryState())
   }
 
-  def shouldRetryAgain(retryLogic: TransactionRetryLogic): Boolean = {
-    ensureRetryState(retryLogic)
-    retryLogic.shouldRetryAgain(_nextRetryState)
+  def nanosUntilRetry(): Long = {
+    retryState.nanosUntilRetry()
   }
 
-  private def ensureRetryState(retryLogic: TransactionRetryLogic): Unit = {
-    if (_retryState == null) {
-      _retryState = retryLogic.newRetryState()
-    }
-    if (_nextRetryState == null) {
-      _nextRetryState = retryLogic.newRetryState()
-    }
+  def shouldRetryAgain(): Boolean = {
+    nextRetryState.shouldRetryAgain()
   }
 
-  override def toString: String = {
-    s"TransactionBatch(retryState=${_retryState})"
-  }
+  override def toString: String =
+    s"RetryableTransactionBatch(rowCount=${rows.size()}, retryState=$retryState, nextRetryState=$nextRetryState)"
+}
+
+object RetryableTransactionBatch {
+
+  def comparator: java.util.Comparator[RetryableTransactionBatch] =
+    java.util.Comparator.comparing(_.retryState)
 }
 
 object TransactionBatch {
 
-  def comparator: java.util.Comparator[TransactionBatch] = {
-    (b1: TransactionBatch, b2: TransactionBatch) =>
-      {
-        b1.retryState.compareTo(b2.retryState)
-      }
+  def apply(rows: EagerBuffer[CypherRow]): TransactionBatch = {
+    new FreshTransactionBatch(rows)
   }
 }
 

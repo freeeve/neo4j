@@ -20,11 +20,14 @@
 package org.neo4j.cypher.internal.runtime.spec.tests
 
 import org.neo4j.cypher.internal.CypherRuntime
+import org.neo4j.cypher.internal.LogicalQuery
 import org.neo4j.cypher.internal.RuntimeContext
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
@@ -74,7 +77,7 @@ abstract class ConcurrentTransactionApplyTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],
   val sizeHint: Int,
-  concurrency: TransactionConcurrency = TransactionConcurrency.Serial
+  concurrency: TransactionConcurrency
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime, testPlanCombinationRewriterHints = Set(NoRewrites))
     with SideEffectingInputStream[CONTEXT]
     with LoneElement
@@ -829,8 +832,42 @@ abstract class ConcurrentTransactionApplyTestBase[CONTEXT <: RuntimeContext](
     override def status: Status = Status.Transaction.Outdated
   }
 
-  test("should retry transient errors") {
-    val nNodes = 10
+  class ErrorInjectionProbe(
+    nRows: Int,
+    errorsToThrowForRow: Int => Int, // Row number => Number of errors to inject
+    delayInNanosForRow: Int => Long, // Row number => Delay in nanos before retry
+    rowNumberFromCypherRow: AnyRef => Int // Cypher Row => Row number
+  ) extends Prober.Probe {
+    // NOTE: We assume only one thread at a time will access the same array element,
+    // and that thread visibility is guaranteed by the scheduler
+
+    val thrownCounts = new Array[Int](nRows)
+
+    override def onRow(row: AnyRef, state: AnyRef): Unit = {
+      val i = rowNumberFromCypherRow(row)
+      // print(s"Row $i on thread ${Thread.currentThread().getName}\n")
+      val delay = delayInNanosForRow(i)
+      if (delay > 0L) {
+        LockSupport.parkNanos(delay)
+      }
+      val ec = errorsToThrowForRow(i)
+      var tc = thrownCounts(i)
+      if (tc < ec) {
+        tc += 1
+        thrownCounts(i) = tc
+        val message = s"Error on row $i ($tc thrown, ${ec - tc} left) on thread ${Thread.currentThread().getName}"
+        // print(message + "\n")
+        throw new TestTransientFailure(message)
+      }
+    }
+  }
+
+  private def getRowNumberByVariable(variableName: String): AnyRef => Int = {
+    row =>
+      row.asInstanceOf[CypherRow].getByName(variableName).asInstanceOf[IntegralValue].longValue().toInt
+  }
+
+  private def createNodePropertyTestGraph(nNodes: Int): Array[Long] = {
     val nodeIds = new Array[Long](nNodes)
     withNewTx(tx => {
       (0 until nNodes).foreach { i =>
@@ -840,7 +877,68 @@ abstract class ConcurrentTransactionApplyTestBase[CONTEXT <: RuntimeContext](
       }
       tx.commit()
     })
+    nodeIds
+  }
 
+  private def createErrorTestQuery(
+    batchSize: Int,
+    errorProbe: Prober.Probe,
+    onErrorBehaviour: InTransactionsOnErrorBehaviour
+  ): LogicalQuery = {
+    new LogicalQueryBuilder(this)
+      .produceResults("i", "u")
+      .projection("a.u AS u")
+      .transactionApply(batchSize = batchSize, concurrency = concurrency, onErrorBehaviour = onErrorBehaviour)
+      .|.setProperty("a", "u", "i * 1000")
+      .|.prober(errorProbe)
+      .|.argument("a", "i")
+      .sort("i ASC")
+      .projection("a.prop AS i")
+      .allNodeScan("a")
+      .build(readOnly = false)
+  }
+
+  test("should retry transient errors - scenario 1") {
+    val nNodes = 5
+    createNodePropertyTestGraph(nNodes)
+    val batchSize = 1
+
+    // Setup error injection
+    val errorCounts = new Array[Int](nNodes)
+    errorCounts(0) = 3
+    errorCounts(1) = 8
+    errorCounts(2) = 0
+    errorCounts(3) = 2
+    errorCounts(4) = 5
+    val delays = new Array[Long](nNodes)
+    delays(0) = MILLISECONDS.toNanos(100)
+    delays(3) = MILLISECONDS.toNanos(1000)
+    delays(4) = MILLISECONDS.toNanos(1)
+
+    val errorProbe = new ErrorInjectionProbe(
+      nNodes,
+      errorCounts(_),
+      delays(_),
+      getRowNumberByVariable("i")
+    )
+
+    val query = createErrorTestQuery(batchSize, errorProbe, OnErrorRetryThenContinue)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult = execute(query, runtime)
+    val expected = (0 until nNodes).map { i =>
+      Array[Any](i.toLong, i * 1000L)
+    }
+    runtimeResult should beColumns("i", "u").withRows(expected)
+  }
+
+  test("should timeout and fallback on retrying transient errors - scenario") {
+    val nNodes = 10
+    val nodeIds = createNodePropertyTestGraph(nNodes)
+
+    // TODO: Configure timeout
+
+    // Setup error injection
     val errorCounts = new Array[Int](nNodes)
     errorCounts(1) = 3
     errorCounts(3) = 8
@@ -851,46 +949,21 @@ abstract class ConcurrentTransactionApplyTestBase[CONTEXT <: RuntimeContext](
     delays(1) = MILLISECONDS.toNanos(100)
     delays(5) = MILLISECONDS.toNanos(1000)
     delays(9) = MILLISECONDS.toNanos(1)
-    val thrownCounts = new Array[Int](nNodes)
 
-    val errorProbe = new Prober.Probe {
-      override def onRow(row: AnyRef, state: AnyRef): Unit = {
-        val i = row.asInstanceOf[CypherRow].getByName("i").asInstanceOf[IntegralValue].longValue().toInt
-        print(s"Row $i on thread ${Thread.currentThread().getName}\n")
-        val delay = delays(i)
-        if (delay > 0L) {
-          LockSupport.parkNanos(delay)
-        }
-        var ec = errorCounts(i)
-        if (ec > 0) {
-          ec -= 1
-          errorCounts(i) = ec
-          val tc = thrownCounts(i) + 1
-          thrownCounts(i) = tc
-          val message = s"Error on row $i ($tc thrown, $ec left) on thread ${Thread.currentThread().getName}"
-          print(message + "\n")
-          throw new TestTransientFailure(message)
-        }
-      }
-    }
-    val query = new LogicalQueryBuilder(this)
-      .produceResults("i", "u")
-      .projection("a.u AS u")
-      .transactionApply(batchSize = 2, concurrency = concurrency, onErrorBehaviour = OnErrorRetryThenContinue)
-      .|.setProperty("a", "u", "i * 1000")
-      .|.prober(errorProbe)
-      .|.argument("a", "i")
-      .sort("i ASC")
-      .projection("a.prop AS i")
-      .allNodeScan("a")
-      .build(readOnly = false)
+    val errorProbe = new ErrorInjectionProbe(
+      nNodes,
+      errorCounts(_),
+      delays(_),
+      getRowNumberByVariable("i")
+    )
+
+    val query = createErrorTestQuery(batchSize = 2, errorProbe, OnErrorRetryThenFail)
 
     // then
-    val runtimeResult: RecordingRuntimeResult = execute(query, runtime)
-    val expected = (0 until nNodes).map { i =>
-      Array[Any](i.toLong, i * 1000L)
+    val exception = intercept[StatusWrapCypherException] {
+      consume(execute(query, runtime))
     }
-    runtimeResult should beColumns("i", "u").withRows(expected)
+    exception.getMessage should include("Transaction retry timed out")
   }
 
   test("should retry deadlocks") {

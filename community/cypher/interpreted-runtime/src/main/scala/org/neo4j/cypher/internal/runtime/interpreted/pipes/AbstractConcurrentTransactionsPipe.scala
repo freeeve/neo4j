@@ -176,6 +176,7 @@ abstract class AbstractConcurrentTransactionsPipe(
     protected def awaitPendingRetries(): Boolean = false
 
     protected def pollOutputQueue(): TaskOutputResult = {
+      // TODO: Make sure we respect outer transaction termination/timeout here as well!
       val taskResult = outputQueue.take() // NOTE: blocking operation!
       taskResult
     }
@@ -337,7 +338,7 @@ abstract class AbstractConcurrentTransactionsPipe(
     private[this] val retryQueueSizeLimit = inputQueueMaxCapacity
 
     private[this] val retryQueue =
-      new util.PriorityQueue[TransactionBatch](inputQueueMaxCapacity, TransactionBatch.comparator)
+      new util.PriorityQueue[RetryableTransactionBatch](inputQueueMaxCapacity, RetryableTransactionBatch.comparator)
 
     override protected def hasAvailableInput: Boolean = {
       !inputQueue.isEmpty || input.hasNext || !retryQueue.isEmpty
@@ -346,7 +347,7 @@ abstract class AbstractConcurrentTransactionsPipe(
     override protected def nextAvailableInput(): TransactionBatch = {
       if (!retryQueue.isEmpty) {
         val retryBatch = retryQueue.peek()
-        val delay = retryBatch.nanosUntilRetry(retryLogic)
+        val delay = retryBatch.nanosUntilRetry()
         if (delay <= 0L) {
           return retryQueue.poll()
         } else if (retryQueue.size() >= retryQueueSizeLimit) {
@@ -373,7 +374,7 @@ abstract class AbstractConcurrentTransactionsPipe(
       // TODO: Make sure we respect outer transaction termination/timeout!
       val retryBatch = retryQueue.peek()
       if (retryBatch != null) {
-        val delay = retryBatch.nanosUntilRetry(retryLogic)
+        val delay = retryBatch.nanosUntilRetry()
         if (delay > 0L) {
           if (DebugSupport.DEBUG_CONCURRENT_TRANSACTIONS) {
             logMessage(s"Waiting on retry queue: delay=$delay")
@@ -390,22 +391,16 @@ abstract class AbstractConcurrentTransactionsPipe(
     override protected def pollOutputQueue(): TaskOutputResult = {
       val retryBatch = retryQueue.peek()
       if (retryBatch != null) {
-        val delay = Math.max(retryBatch.nanosUntilRetry(retryLogic), 0L)
-        val taskResult =
-          try {
-            if (DebugSupport.DEBUG_CONCURRENT_TRANSACTIONS) {
-              logMessage(s"Timed waiting on output queue: delay=$delay")
-            }
-            // TODO: Make sure we respect outer transaction termination/timeout!
-            outputQueue.poll(delay, java.util.concurrent.TimeUnit.NANOSECONDS) // NOTE: blocking operation!
-          } catch {
-            case e: InterruptedException =>
-              // TODO: Should we handle this?
-              throw e
+        val delay = Math.max(retryBatch.nanosUntilRetry(), 0L)
+        // NOTE: Even if the delay is 0 we can poll the output queue here since we are going to make sure that
+        //       we have saturated active tasks before we return the next output row.
+        val taskResult = {
+          if (DebugSupport.DEBUG_CONCURRENT_TRANSACTIONS) {
+            logMessage(s"Timed waiting on output queue: delay=$delay")
           }
-//        if (taskResult == null) {
-//          ensureActiveTasks()
-//        }
+          // TODO: Make sure we respect outer transaction termination/timeout!
+          outputQueue.poll(delay, java.util.concurrent.TimeUnit.NANOSECONDS) // NOTE: blocking operation!
+        }
         taskResult
       } else {
         super.pollOutputQueue()
@@ -423,9 +418,9 @@ abstract class AbstractConcurrentTransactionsPipe(
             checkOnlyWhenAssertionsAreEnabled(batch.hasRetried, "Expected the batch to have been retried")
 
           case _ =>
-            batch.computeNextRetryState(retryLogic)
+            val retryableBatch = batch.computeNextRetryState(retryLogic)
             logMessage("Adding batch to retry queue")
-            retryQueue.add(batch)
+            retryQueue.add(retryableBatch)
         }
       }
     }
@@ -518,6 +513,7 @@ abstract class AbstractConcurrentTransactionsPipe(
 
       // TODO: We should probably record the errors on OnErrorRetry and add as suppressed errors on timeout, so that
       //       a cause of repeated failures can be found in the stack trace.
+      // Or maybe just a failure count is enough.
       val error = innerResult.status match {
         case Rollback(_, failure, _, _) if onErrorBehaviour eq OnErrorFail => failure
         case Rollback(_, failure, _, _) if supportsRetries && !shouldRetry =>

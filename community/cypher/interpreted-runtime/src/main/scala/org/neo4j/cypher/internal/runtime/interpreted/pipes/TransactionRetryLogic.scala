@@ -37,23 +37,28 @@ import scala.concurrent.duration.MILLISECONDS
  */
 object TransactionRetryLogic {
 
-  trait RetryState {
+  trait RetryState extends Comparable[RetryState] {
     def retryCount: Int
-    def compareTo(other: RetryState): Int
+    def retryTimestamp: Long
+
+    def computeNextRetryState(): RetryState
+    def shouldRetryAgain(): Boolean
+    def nanosUntilRetry(): Long
+
+    override def compareTo(other: RetryState): Int = {
+      java.lang.Long.compare(retryTimestamp, other.retryTimestamp)
+    }
   }
 }
 
 trait TransactionRetryLogic {
   def newRetryState(): RetryState
-  def computeNextRetryState(state: RetryState, nextState: RetryState): Unit
-  def shouldRetryAgain(state: RetryState): Boolean
-  def nanosUntilRetry(state: RetryState): Long
 }
 
 /**
  * A stateful retry logic that implements exponential backoff with jitter.
  */
-class ExponentialBackoffRetryLogic(
+case class ExponentialBackoffRetryLogic(
   maxRetryTimeNanos: Long = DEFAULT_MAX_RETRY_TIME_NANOS,
   initialRetryDelayNanos: Long = INITIAL_RETRY_DELAY_NANOS,
   multiplier: Double = RETRY_DELAY_MULTIPLIER,
@@ -69,45 +74,15 @@ class ExponentialBackoffRetryLogic(
 
   override def newRetryState(): ExponentialBackoffRetryState = {
     val initialDelay = (initialRetryDelayNanos.toDouble / multiplier).toLong
-    new ExponentialBackoffRetryState(0, 0L, 0L, _retryDelayNanos = initialDelay, _retryDelayWithJitterNanos = 0L)
+    ExponentialBackoffRetryState(this, 0, 0L, 0L, retryDelayNanos = initialDelay)
   }
 
-  override def computeNextRetryState(_state: RetryState, _nextState: RetryState): Unit = {
-    val state = _state.asInstanceOf[ExponentialBackoffRetryState]
-    val nextState = _nextState.asInstanceOf[ExponentialBackoffRetryState]
-    val retryDelayNanos = nextRetryDelayNanos(state._retryDelayNanos)
-    val retryDelayWithJitterNanos = retryDelayWithJitter(retryDelayNanos)
-    nextState._retryCount = state._retryCount + 1
-    nextState._retryDelayNanos = retryDelayNanos
-    nextState._retryDelayWithJitterNanos = retryDelayWithJitterNanos
-    val t = System.nanoTime()
-    if (nextState._retryCount == 1) {
-      nextState._firstRetryTimestamp = t
-    } else {
-      nextState._firstRetryTimestamp = state._firstRetryTimestamp
-    }
-    nextState._retryTimestamp = t + retryDelayWithJitterNanos
-  }
-
-  override def shouldRetryAgain(_state: RetryState): Boolean = {
-    val state = _state.asInstanceOf[ExponentialBackoffRetryState]
-    state._retryTimestamp - state._firstRetryTimestamp < maxRetryTimeNanos
-  }
-
-  override def nanosUntilRetry(_state: RetryState): Long = {
-    val state = _state.asInstanceOf[ExponentialBackoffRetryState]
-    val ts = state._retryTimestamp
-    val now = System.nanoTime()
-    val nanosUntilRetry = ts - now
-    nanosUntilRetry
-  }
-
-  private def nextRetryDelayNanos(lastRetryDelayNanos: Long): Long = {
-    val delay = (lastRetryDelayNanos * multiplier).toLong
+  def multiply(delayNanos: Long): Long = {
+    val delay = (delayNanos * multiplier).toLong
     Math.min(delay, maxRetryDelayNanos)
   }
 
-  private def retryDelayWithJitter(delayNanos: Long): Long = {
+  def jitter(delayNanos: Long): Long = {
     val jitter = (delayNanos * jitterFactor).toLong
     val min = delayNanos - jitter
     val max = delayNanos + jitter
@@ -122,23 +97,40 @@ object ExponentialBackoffRetryLogic {
   final val RETRY_DELAY_JITTER_FACTOR = 0.2
   final val MAX_RETRY_DELAY_NANOS = Long.MaxValue / 2
 
-  final class ExponentialBackoffRetryState(
-    var _retryCount: Int,
-    var _firstRetryTimestamp: Long,
-    var _retryTimestamp: Long,
-    var _retryDelayNanos: Long,
-    var _retryDelayWithJitterNanos: Long
+  final case class ExponentialBackoffRetryState(
+    config: ExponentialBackoffRetryLogic,
+    retryCount: Int,
+    firstRetryTimestamp: Long,
+    retryTimestamp: Long,
+    retryDelayNanos: Long
   ) extends RetryState {
-    override def retryCount: Int = _retryCount
-
-    override def compareTo(other: RetryState): Int = {
-      val o = other.asInstanceOf[ExponentialBackoffRetryState]
-      java.lang.Long.compare(_retryTimestamp, o._retryTimestamp)
-    }
 
     override def toString: String = {
-      s"ExponentialBackoffRetryState(retryCount=${_retryCount}, retryTimestamp=${_retryTimestamp}, " +
-        s"retryDelayNanos=${_retryDelayNanos}, retryDelayWithJitterNanos=${_retryDelayWithJitterNanos})"
+      s"ExponentialBackoffRetryState(retryCount=${retryCount}, retryTimestamp=${retryTimestamp}, " +
+        s"retryDelayNanos=${retryDelayNanos})"
+    }
+
+    override def computeNextRetryState(): RetryState = {
+      val newRetryDelayNanos = config.multiply(retryDelayNanos)
+      val t = System.nanoTime()
+      ExponentialBackoffRetryState(
+        config = config,
+        retryCount = retryCount + 1,
+        retryDelayNanos = newRetryDelayNanos,
+        firstRetryTimestamp = if (retryCount == 0) t else firstRetryTimestamp,
+        retryTimestamp = t + config.jitter(newRetryDelayNanos)
+      )
+    }
+
+    override def shouldRetryAgain(): Boolean = {
+      retryTimestamp - firstRetryTimestamp < config.maxRetryTimeNanos
+    }
+
+    override def nanosUntilRetry(): Long = {
+      val ts = retryTimestamp
+      val now = System.nanoTime()
+      val nanosUntilRetry = ts - now
+      nanosUntilRetry
     }
   }
 }
