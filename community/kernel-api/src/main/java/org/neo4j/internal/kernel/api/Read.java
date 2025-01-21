@@ -520,17 +520,12 @@ public interface Read {
 
     /**
      * @param relationshipReference the owner of the properties.
-     * @param startNodeReference    start node of the owner of the properties
      * @param reference             a reference from {@link RelationshipCursor#propertiesReference()}.
      * @param selection
      * @param cursor
      */
     void relationshipProperties(
-            long relationshipReference,
-            long startNodeReference,
-            Reference reference,
-            PropertySelection selection,
-            PropertyCursor cursor);
+            long relationshipReference, Reference reference, PropertySelection selection, PropertyCursor cursor);
 
     /**
      * Checks if a node was deleted in the current transaction

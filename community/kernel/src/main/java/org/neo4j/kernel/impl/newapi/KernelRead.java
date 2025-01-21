@@ -656,11 +656,7 @@ public final class KernelRead implements Read {
 
     @Override
     public void relationshipProperties(
-            long relationshipReference,
-            long startNodeReference,
-            Reference reference,
-            PropertySelection selection,
-            PropertyCursor cursor) {
+            long relationshipReference, Reference reference, PropertySelection selection, PropertyCursor cursor) {
         ((DefaultPropertyCursor) cursor)
                 .initRelationship(relationshipReference, reference, selection, this, txStateHolder, accessModeProvider);
     }
