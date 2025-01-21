@@ -236,7 +236,6 @@ class SharedCacheContainerTest extends CypherFunSuite {
     an[UnsupportedOperationException] should be thrownBy map.putAll(Collections.singletonMap("a", "a"))
     an[UnsupportedOperationException] should be thrownBy map.clear()
     an[UnsupportedOperationException] should be thrownBy map.keySet()
-    an[UnsupportedOperationException] should be thrownBy map.values()
     an[UnsupportedOperationException] should be thrownBy map.entrySet()
     an[UnsupportedOperationException] should be thrownBy map.computeIfAbsent("a", x => x)
     an[UnsupportedOperationException] should be thrownBy map.computeIfPresent("a", (x, _) => x)

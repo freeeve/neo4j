@@ -25,6 +25,7 @@ import com.github.benmanes.caffeine.cache.stats.CacheStats
 
 import java.lang
 import java.util
+import java.util.Collections.unmodifiableCollection
 import java.util.Optional
 import java.util.OptionalInt
 import java.util.OptionalLong
@@ -133,7 +134,7 @@ case class SharedCacheContainer[K, V](inner: Cache[(Int, K), V], id: Int, tracer
 
     override def keySet(): util.Set[K] = throw new UnsupportedOperationException()
 
-    override def values(): util.Collection[V] = throw new UnsupportedOperationException()
+    override def values(): util.Collection[V] = unmodifiableCollection(innerMap.values())
 
     override def entrySet(): util.Set[java.util.Map.Entry[K, V]] = throw new UnsupportedOperationException()
 
