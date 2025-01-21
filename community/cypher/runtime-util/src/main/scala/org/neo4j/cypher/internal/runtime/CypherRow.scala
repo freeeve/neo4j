@@ -38,7 +38,6 @@ import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
 
 import scala.collection.mutable
-import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
 
 object CypherRow {
@@ -71,15 +70,9 @@ case class RuntimeMetadataValue(value: Measurable) extends AnyValue {
 object RuntimeMetadataValue {
   final val SHALLOW_SIZE: Long = HeapEstimator.shallowSizeOfInstance(classOf[RuntimeMetadataValue])
 
-  def extract[A](value: AnyValue)(implicit ct: ClassTag[A]): A =
-    value match {
-      case RuntimeMetadataValue(value: A) => value
-      case RuntimeMetadataValue(value) => throw new IllegalStateException(
-          s"Runtime metadata value extraction failed; expected ${ct.runtimeClass.getSimpleName}, found ${value.getClass.getSimpleName}."
-        )
-      case _ =>
-        throw new IllegalStateException(s"Runtime metadata value extraction failed; value was ${value.getTypeName}")
-    }
+  def extract[A](value: AnyValue): A = {
+    value.asInstanceOf[RuntimeMetadataValue].value.asInstanceOf[A]
+  }
 }
 
 case class ResourceLinenumber(filename: String, linenumber: Long, last: Boolean = false) extends Measurable {
