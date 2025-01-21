@@ -251,21 +251,21 @@ public final class DefaultStructWriter extends UtcStructWriter implements Struct
 
         ctx.buffer().writeListHeader(relationships.length * 2);
         var currentOrigin = nodes[0];
-        for (var i = 0; i < reducedRelationships.size(); ++i) {
-            var relationship = reducedRelationships.get(i);
 
-            int targetIndex;
-            if (currentOrigin.id() == relationship.startNodeId()) {
-                ctx.buffer().writeInt(i + 1);
-            } else {
-                ctx.buffer().writeInt((-i) - 1);
-            }
+        for (var i = 0; i < relationships.length; ++i) {
+            var relationship = relationships[i];
 
-            targetIndex = nodeIndices.getOrDefault(nodes[i + 1].id(), -1);
+            int relIndex = relationshipIndices.getOrDefault(relationship.id(), -1);
+            int targetIndex = nodeIndices.getOrDefault(nodes[i + 1].id(), -1);
 
-            if (targetIndex == -1) {
+            if (targetIndex == -1 || relIndex == -1) {
                 throw new IllegalArgumentException(
                         "Illegal node/relationship combination: Cannot locate target node for relationship #" + i);
+            }
+            if (currentOrigin.id() == relationship.startNodeId()) {
+                ctx.buffer().writeInt(relIndex + 1);
+            } else {
+                ctx.buffer().writeInt(-relIndex - 1);
             }
 
             ctx.buffer().writeInt(targetIndex);

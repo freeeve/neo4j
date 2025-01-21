@@ -214,4 +214,40 @@ class DefaultBoltValueWriterTest {
 
         assertThat(indices).hasSize(4).containsExactly(1L, 1L, 2L, 2L);
     }
+
+    @Test
+    void shouldWritePathWithRepeatableElements() throws PackstreamReaderException {
+        var buf = PackstreamBuf.allocUnpooled();
+        var ctx = Mockito.mock(WriterContext.class);
+
+        Mockito.doReturn(buf).when(ctx).buffer();
+
+        var person = nodeValue(21, "21", stringArray("Person"), MapValue.EMPTY);
+        var computer = nodeValue(42, "42", stringArray("Computer"), MapValue.EMPTY);
+
+        var owns = relationshipValue(13, "13", person, computer, Values.stringValue("OWNS"), MapValue.EMPTY);
+
+        var nodes = new NodeValue[] {person, computer, person};
+        var rels = new RelationshipValue[] {owns, owns};
+
+        DefaultStructWriter.getInstance().writePath(ctx, nodes, rels);
+
+        var header = buf.readStructHeader();
+        var nodesHeader = buf.readLengthPrefixMarker(Type.LIST);
+        var relsHeader = buf.readLengthPrefixMarker(Type.LIST);
+
+        var indices = buf.readList(PackstreamBuf::readInt);
+
+        assertThat(header.length()).isEqualTo(3);
+        assertThat(header.tag()).isEqualTo((short) 'P');
+
+        assertThat(nodesHeader).isEqualTo(2);
+        Mockito.verify(ctx).writeValue(eq(person));
+        Mockito.verify(ctx).writeValue(eq(computer));
+
+        assertThat(relsHeader).isEqualTo(1);
+        Mockito.verify(ctx).writeUnboundRelationship("13", 13, "OWNS", MapValue.EMPTY);
+
+        assertThat(indices).hasSize(4).containsExactly(1L, 1L, -1L, 0L);
+    }
 }
