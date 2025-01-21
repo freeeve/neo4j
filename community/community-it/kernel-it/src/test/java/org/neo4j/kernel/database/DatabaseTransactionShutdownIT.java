@@ -105,7 +105,8 @@ class DatabaseTransactionShutdownIT {
             }
         });
 
-        try (OtherThreadExecutor executor = new OtherThreadExecutor("test")) {
+        try (OtherThreadExecutor executor =
+                new OtherThreadExecutor("shouldWaitForTransactionToDetectTerminationOnShutdown")) {
             Transaction tx = db.beginTx();
             KernelTransaction ktx = ((TransactionImpl) tx).kernelTransaction();
             // When
@@ -117,8 +118,10 @@ class DatabaseTransactionShutdownIT {
             assertThat(ktx.getTerminationMark()).isNotEmpty();
             assertThatThrownBy(tx::createNode).isInstanceOf(TransactionTerminatedException.class);
 
-            // Forward the clock
-            clock.forward(waitTime.plusMillis(1));
+            // Forward the clock for shutdown to continue, ignoring the non-closed transaction
+            while (!shutdownFuture.isDone()) {
+                clock.forward(waitTime.plusMillis(1));
+            }
 
             // Shutdown will continue, ignoring the non-closed transaction
             shutdownFuture.get();
