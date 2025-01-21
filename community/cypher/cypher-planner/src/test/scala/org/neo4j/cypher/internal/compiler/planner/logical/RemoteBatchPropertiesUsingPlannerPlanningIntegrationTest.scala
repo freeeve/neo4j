@@ -1662,4 +1662,40 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
           .build())
     )
   }
+
+  test("should push limit to run before remoteBatchProperties.") {
+    val query =
+      """
+        |MATCH (p: Person {id:$id})
+        |WITH p
+        |MATCH (p)-[:KNOWS*1..3]-(poster:Person)<-[:POST_HAS_CREATOR]-(post:Message)
+        |WITH p,
+        |     {
+        |        status: post.status,
+        |        createdAt: post.createdAt,
+        |        createdBy: poster.name
+        |      } AS details
+        |LIMIT 10
+        |RETURN collect(details) AS details
+        |""".stripMargin
+    planner.plan(query).stripProduceResults shouldEqual planner.subPlanBuilder()
+      .aggregation(Seq(), Seq("collect(details) AS details"))
+      .projection(
+        "{status: cacheN[post.status], createdAt: cacheN[post.createdAt], createdBy: cacheN[poster.name]} AS details"
+      )
+      .remoteBatchProperties("cacheNFromStore[post.status]", "cacheNFromStore[post.createdAt]")
+      .limit(10)
+      .filter("post:Message")
+      .expandAll("(poster)<-[anon_1:POST_HAS_CREATOR]-(post)")
+      .remoteBatchProperties("cacheNFromStore[poster.name]")
+      .filter("poster:Person")
+      .expand("(p)-[anon_0:KNOWS*1..3]-(poster)")
+      .nodeIndexOperator(
+        "p:Person(id = ???)",
+        paramExpr = Some(parameter("id", CTAny)),
+        getValue = Map("id" -> DoNotGetValue),
+        unique = true
+      )
+      .build()
+  }
 }

@@ -75,6 +75,8 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.NFA.PathLength
 import org.neo4j.cypher.internal.logical.plans.NotDistinct
+import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
+import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Selector.Shortest
 import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
 import org.neo4j.cypher.internal.logical.plans.ordering.DefaultProvidedOrderFactory
@@ -85,6 +87,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound
+import org.neo4j.cypher.internal.util.attribution.SameId
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.InternalException
@@ -1100,6 +1103,146 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         ctx.context
       )
     )
+  }
+
+  test("planRemoteBatchProperties should fuse if inner is a RemoteBatchProperties") {
+    new givenConfig().withLogicalPlanningContext { (_, context) =>
+      val planCreationContext = buildPlanCreationContext(context)
+      val innerCachedProperty = cachedNodeProp("x", "bar")
+      val innerRBP = planCreationContext.producer.planRemoteBatchProperties(
+        planCreationContext.lhs,
+        Set(innerCachedProperty),
+        planCreationContext.context
+      )
+      val outerCachedProperty = cachedNodeProp("y", "foo")
+      val outer = planCreationContext.producer.planRemoteBatchProperties(
+        innerRBP,
+        Set(outerCachedProperty),
+        planCreationContext.context
+      )
+      outer shouldEqual RemoteBatchProperties(planCreationContext.lhs, Set(innerCachedProperty, outerCachedProperty))(
+        SameId(outer.id)
+      )
+      context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(outer.id) should equal(
+        CachedProperties(Map()).addAll(Iterable(innerCachedProperty, outerCachedProperty))
+      )
+      context.staticComponents.planningAttributes.solveds.get(outer.id) should equal(
+        context.staticComponents.planningAttributes.solveds.get(planCreationContext.lhs.id)
+      )
+    }
+  }
+
+  test("planRemoteBatchProperties should fuse if inner is a RemoteBatchPropertiesWithFilter") {
+    new givenConfig().withLogicalPlanningContext { (_, context) =>
+      val planCreationContext = buildPlanCreationContext(context)
+      val innerCachedProperty = cachedNodeProp("x", "bar")
+      val innerPredicates = Seq(equals(innerCachedProperty, literal(42)))
+      val innerRBP = planCreationContext.producer.planRemoteBatchPropertiesWithFilter(
+        planCreationContext.lhs,
+        Set(innerCachedProperty),
+        planCreationContext.context,
+        innerPredicates,
+        innerPredicates,
+        Seq.empty
+      )
+      val outerCachedProperty = cachedNodeProp("y", "foo")
+      val outer = planCreationContext.producer.planRemoteBatchProperties(
+        innerRBP,
+        Set(outerCachedProperty),
+        planCreationContext.context
+      )
+      outer shouldEqual RemoteBatchPropertiesWithFilter(
+        planCreationContext.lhs,
+        innerPredicates.toSet,
+        Set(innerCachedProperty, outerCachedProperty)
+      )(
+        SameId(outer.id)
+      )
+      context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(outer.id) should equal(
+        CachedProperties(Map()).addAll(Iterable(innerCachedProperty, outerCachedProperty))
+      )
+      context.staticComponents.planningAttributes.solveds.get(outer.id) should equal(
+        context.staticComponents.planningAttributes.solveds.get(innerRBP.id)
+      )
+    }
+  }
+
+  test("planRemoteBatchPropertiesWithFilter should fuse if inner is a RemoteBatchPropertiesWithFilter") {
+    new givenConfig().withLogicalPlanningContext { (_, context) =>
+      val planCreationContext = buildPlanCreationContext(context)
+      val innerCachedProperty = cachedNodeProp("x", "bar")
+      val innerPredicates = Seq(equals(innerCachedProperty, literal(42)))
+      val innerRBP = planCreationContext.producer.planRemoteBatchPropertiesWithFilter(
+        planCreationContext.lhs,
+        Set(innerCachedProperty),
+        planCreationContext.context,
+        innerPredicates,
+        innerPredicates,
+        Seq.empty
+      )
+      val outerCachedProperty = cachedNodeProp("y", "foo")
+      val outerPredicates = Seq(equals(outerCachedProperty, literal(42)))
+      val outer = planCreationContext.producer.planRemoteBatchPropertiesWithFilter(
+        innerRBP,
+        Set(outerCachedProperty),
+        planCreationContext.context,
+        outerPredicates,
+        outerPredicates,
+        Seq.empty
+      )
+      outer shouldEqual RemoteBatchPropertiesWithFilter(
+        planCreationContext.lhs,
+        (innerPredicates ++ outerPredicates).toSet,
+        Set(innerCachedProperty, outerCachedProperty)
+      )(
+        SameId(outer.id)
+      )
+      context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(outer.id) should equal(
+        CachedProperties(Map()).addAll(Iterable(innerCachedProperty, outerCachedProperty))
+      )
+      context.staticComponents.planningAttributes.solveds.get(
+        outer.id
+      ).asSinglePlannerQuery.tailOrSelf.queryGraph.selections.flatPredicatesSet should equal(
+        (innerPredicates ++ outerPredicates).toSet
+      )
+    }
+  }
+
+  test("planRemoteBatchPropertiesWithFilter should fuse if inner is a RemoteBatchProperties") {
+    new givenConfig().withLogicalPlanningContext { (_, context) =>
+      val planCreationContext = buildPlanCreationContext(context)
+      val innerCachedProperty = cachedNodeProp("x", "bar")
+      val innerRBP = planCreationContext.producer.planRemoteBatchProperties(
+        planCreationContext.lhs,
+        Set(innerCachedProperty),
+        planCreationContext.context
+      )
+      val outerCachedProperty = cachedNodeProp("y", "foo")
+      val outerPredicates = Seq(equals(outerCachedProperty, literal(42)))
+      val outer = planCreationContext.producer.planRemoteBatchPropertiesWithFilter(
+        innerRBP,
+        Set(outerCachedProperty),
+        planCreationContext.context,
+        outerPredicates,
+        outerPredicates,
+        Seq.empty
+      )
+      outer shouldEqual RemoteBatchPropertiesWithFilter(
+        planCreationContext.lhs,
+        outerPredicates.toSet,
+        Set(innerCachedProperty, outerCachedProperty)
+      )(
+        SameId(outer.id)
+      )
+      context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(outer.id) should equal(
+        CachedProperties(Map()).addAll(Iterable(innerCachedProperty, outerCachedProperty))
+      )
+      context.staticComponents.planningAttributes.solveds.get(
+        outer.id
+      ).asSinglePlannerQuery.tailOrSelf.queryGraph.selections.flatPredicatesSet should equal(
+        outerPredicates.toSet
+      )
+    }
   }
 
   case class PlanCreationContext(

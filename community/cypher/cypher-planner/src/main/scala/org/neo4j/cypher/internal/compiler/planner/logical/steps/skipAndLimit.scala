@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.logical.plans.ExhaustiveLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Limit
 import org.neo4j.cypher.internal.logical.plans.LogicalBinaryPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.util.attribution.IdGen
 
 import scala.annotation.tailrec
@@ -54,53 +55,82 @@ object skipAndLimit extends PlanTransformer {
     else Limit(plan, count)(idGen)
 
   def apply(plan: LogicalPlan, query: SinglePlannerQuery, context: LogicalPlanningContext): LogicalPlan = {
+    plan match {
+      // A remoteBatchProperties operator will run on a fixed batch size irrespective of the actual limit.
+      // Since the remoteBatchProperties operator will not affect the overall correctness of the output,
+      // and has to run on a remote shard, it is more performant to run this operator after the limit operator.
+      case remoteBatchProperties: RemoteBatchProperties =>
+        planSkipAndLimit(remoteBatchProperties.source, query, context)
+          .map(skipAndLimitPlan =>
+            context.staticComponents.logicalPlanProducer.changeSourceOnRemoteBatchProperties(
+              skipAndLimitPlan,
+              remoteBatchProperties,
+              context
+            )
+          )
+          .getOrElse(remoteBatchProperties)
+      case otherPlans =>
+        planSkipAndLimit(otherPlans, query, context).getOrElse(otherPlans)
+    }
+  }
+
+  @tailrec
+  private def planSkipAndLimit(
+    plan: LogicalPlan,
+    query: SinglePlannerQuery,
+    context: LogicalPlanningContext
+  ): Option[LogicalPlan] = {
     query.horizon match {
       case p: QueryProjection =>
         val queryPagination = p.queryPagination
         (queryPagination.skip, queryPagination.limit) match {
           case (Some(skipExpr), Some(limitExpr)) if skipExpr.isConstantForQuery =>
-            context.staticComponents.logicalPlanProducer.planSkipAndLimit(
+            Some(context.staticComponents.logicalPlanProducer.planSkipAndLimit(
               plan,
               skipExpr,
               limitExpr,
               query.interestingOrder,
               context,
               shouldPlanExhaustiveLimit(plan, simpleExpressionEvaluator.evaluateLongIfStable(limitExpr))
-            )
+            ))
 
           case (Some(skipExpr), Some(limitExpr)) =>
             val skipped =
               context.staticComponents.logicalPlanProducer.planSkip(plan, skipExpr, query.interestingOrder, context)
             // Recurse and remove skip from horizon to get limit planned as well
-            apply(skipped, query.withHorizon(p.withPagination(QueryPagination(None, Some(limitExpr)))), context)
+            planSkipAndLimit(
+              skipped,
+              query.withHorizon(p.withPagination(QueryPagination(None, Some(limitExpr)))),
+              context
+            )
 
           case (Some(skipExpr), _) =>
-            context.staticComponents.logicalPlanProducer.planSkip(plan, skipExpr, query.interestingOrder, context)
+            Some(context.staticComponents.logicalPlanProducer.planSkip(plan, skipExpr, query.interestingOrder, context))
 
           case (_, Some(limitExpr))
             if shouldPlanExhaustiveLimit(plan, simpleExpressionEvaluator.evaluateLongIfStable(limitExpr)) =>
-            context.staticComponents.logicalPlanProducer.planExhaustiveLimit(
+            Some(context.staticComponents.logicalPlanProducer.planExhaustiveLimit(
               plan,
               limitExpr,
               limitExpr,
               query.interestingOrder,
               context = context
-            )
+            ))
 
           case (_, Some(limitExpr)) =>
-            context.staticComponents.logicalPlanProducer.planLimit(
+            Some(context.staticComponents.logicalPlanProducer.planLimit(
               plan,
               limitExpr,
               limitExpr,
               query.interestingOrder,
               context = context
-            )
+            ))
 
           case _ =>
-            plan
+            None
         }
 
-      case _ => plan
+      case _ => None
     }
   }
 }

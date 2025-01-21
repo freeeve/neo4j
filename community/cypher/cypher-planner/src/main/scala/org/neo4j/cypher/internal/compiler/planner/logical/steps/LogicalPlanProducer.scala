@@ -3790,14 +3790,36 @@ case class LogicalPlanProducer(
     properties: Set[CachedProperty],
     context: LogicalPlanningContext
   ): LogicalPlan = {
-    val remoteBatchProperties = RemoteBatchProperties(inner, properties.map(identity))
     val solved = solveds.get(inner.id)
     val cachedProperties = cachedPropertiesPerPlan.get(inner.id).addAll(properties)
+    val plan = inner match {
+      case RemoteBatchProperties(nestedInner, nestedProperties) =>
+        RemoteBatchProperties(nestedInner, nestedProperties ++ properties)
+      case RemoteBatchPropertiesWithFilter(nestedInner, predicates, nestedProperties) =>
+        RemoteBatchPropertiesWithFilter(nestedInner, predicates, nestedProperties ++ properties)
+      case _ => RemoteBatchProperties(inner, properties.map(identity))
+    }
     annotate(
-      remoteBatchProperties,
+      plan,
       solved,
       ProvidedOrder.Left,
       cachedProperties,
+      context
+    )
+  }
+
+  def changeSourceOnRemoteBatchProperties(
+    newInner: LogicalPlan,
+    currentRemoteBatchProperties: RemoteBatchProperties,
+    context: LogicalPlanningContext
+  ): LogicalPlan = {
+    val newRemoteBatchProperties = RemoteBatchProperties(newInner, currentRemoteBatchProperties.properties)
+    val solved = solveds.get(newInner.id)
+    annotate(
+      newRemoteBatchProperties,
+      solved,
+      ProvidedOrder.Left,
+      cachedPropertiesPerPlan.get(currentRemoteBatchProperties.id),
       context
     )
   }
@@ -3828,13 +3850,22 @@ case class LogicalPlanProducer(
 
     val newInner = addSelectionBefore.getOrElse(inner)
     val cachedProperties = cachedPropertiesPerPlan.get(newInner.id).addAll(properties)
-    val remoteBatchPropertiesWithFilter =
-      RemoteBatchPropertiesWithFilter(newInner, inlinablePredicates.toSet, properties.map(identity))
     val solved =
       solveds.get(newInner.id).asSinglePlannerQuery.updateTailOrSelf(
         _.amendQueryGraph(_.addPredicates(solvedPredicates: _*))
       )
-    annotate(remoteBatchPropertiesWithFilter, solved, ProvidedOrder.empty, cachedProperties, context)
+    val plan = newInner match {
+      case RemoteBatchProperties(nestedInner, nestedProperties) =>
+        RemoteBatchPropertiesWithFilter(nestedInner, inlinablePredicates.toSet, nestedProperties ++ properties)
+      case RemoteBatchPropertiesWithFilter(nestedInner, nestedPredicates, nestedProperties) =>
+        RemoteBatchPropertiesWithFilter(
+          nestedInner,
+          nestedPredicates ++ inlinablePredicates,
+          nestedProperties ++ properties
+        )
+      case _ => RemoteBatchPropertiesWithFilter(newInner, inlinablePredicates.toSet, properties.map(identity))
+    }
+    annotate(plan, solved, ProvidedOrder.empty, cachedProperties, context)
   }
 
   def addMissingStandaloneArgumentPatternNodes(
