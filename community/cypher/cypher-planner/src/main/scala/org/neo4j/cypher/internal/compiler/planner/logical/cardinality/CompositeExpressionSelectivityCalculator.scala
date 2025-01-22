@@ -196,19 +196,31 @@ case class CompositeExpressionSelectivityCalculator(planContext: PlanContext) ex
     val queryGraphs = getQueryGraphs(labelInfo, relTypeInfo, unwrappedSelections, argumentIds)
 
     // we search for index matches for each variable individually to increase the chance of cache hits
-    val indexMatches = {
-      queryGraphs.relQgs.flatMap(relationshipIndexMatchCache(_, semanticTable, indexPredicateProviderContext)) ++
-        queryGraphs.nodeQgs.flatMap(nodeIndexMatchCache(_, semanticTable, indexPredicateProviderContext))
-    } filter {
-      _.propertyPredicates.size > 1
-    }
+    val relationshipIndexMatches =
+      queryGraphs.relQgs.flatMap(relationshipIndexMatchCache(_, semanticTable, indexPredicateProviderContext)).toSet
+    val nodeIndexMatches =
+      queryGraphs.nodeQgs.flatMap(nodeIndexMatchCache(_, semanticTable, indexPredicateProviderContext)).toSet
+    val allIndexMatches = relationshipIndexMatches.union(nodeIndexMatches)
+    val (atMostOnePropertyPredicate, twoOrMorePropertyPredicates) =
+      allIndexMatches.partition(_.propertyPredicates.size <= 1)
 
-    if (indexMatches.isEmpty) {
+    if (twoOrMorePropertyPredicates.isEmpty) {
       // If we match with no composite index we can use the singleExpressionSelectivityCalculator
       return fallback
     }
 
-    val selectivitiesForPredicates = indexMatches
+    val predicatesSolvedBySimpleIndexes =
+      atMostOnePropertyPredicate.flatMap(_.propertyPredicates).flatMap(_.solvedPredicate)
+
+    // No need to rely on composite indexes for predicates solved by simple indexes
+    val remainingPredicates = unwrappedSelections.flatPredicatesSet.diff(predicatesSolvedBySimpleIndexes)
+
+    if (remainingPredicates.isEmpty) {
+      // If there are no predicates to be solved by composite indexes, we can use the singleExpressionSelectivityCalculator
+      return fallback
+    }
+
+    val selectivitiesForPredicates = twoOrMorePropertyPredicates
       .groupBy(im => (im.indexDescriptor, im.variable))
       .values
       .flatMap { indexMatches =>
@@ -239,7 +251,7 @@ case class CompositeExpressionSelectivityCalculator(planContext: PlanContext) ex
 
     // Keep only index matches that have no overlaps - otherwise the math gets very complicated.
     val compositeDisjointPredicatesWithSelectivities =
-      greedyDisjointPredicatesWithSelectivities(selectivitiesForPredicates, unwrappedSelections.flatPredicatesSet)
+      greedyDisjointPredicatesWithSelectivities(selectivitiesForPredicates, remainingPredicates)
 
     val coveredPredicates = compositeDisjointPredicatesWithSelectivities.flatMap(_.solvedPredicates)
     val notCoveredPredicates = unwrappedSelections.flatPredicates.filter(!coveredPredicates.contains(_))

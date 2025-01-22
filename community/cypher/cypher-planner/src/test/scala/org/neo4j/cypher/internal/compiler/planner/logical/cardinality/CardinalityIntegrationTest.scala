@@ -1761,6 +1761,34 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     queryShouldHaveCardinality(builder, query, 500)
   }
 
+  test("favour simple indexes when available in cardinality estimation") {
+    val allBooks: Double = 120.0
+    val bookGenres: Double = 3.0
+    val bookPublicationYearAndGenres: Double = 60.0
+
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(1000)
+        .setLabelCardinality("Book", allBooks)
+        .addNodeIndex("Book", List("genre"), 1.0, 1.0 / bookGenres)
+        .addNodeIndex("Book", List("publicationYear", "genre"), 1.0, 1.0 / bookPublicationYearAndGenres)
+        .addNodeExistenceConstraint("Book", "publicationYear")
+        .addNodeExistenceConstraint("Book", "genre")
+        .build()
+
+    // Use the simple index on book genre
+    val novels: Double = allBooks / bookGenres
+    queryShouldHaveCardinality(planner, "MATCH (book:Book {genre: 'novel'})", novels)
+
+    // Use the composite index on book publication year and genre
+    val novelsFrom2019: Double = allBooks / bookPublicationYearAndGenres
+    queryShouldHaveCardinality(planner, "MATCH (book:Book {genre: 'novel', publicationYear: 2019})", novelsFrom2019)
+
+    // No simple index on book publication year, calculate it from the composite index
+    val bookFrom2019: Double = allBooks * math.sqrt(1.0 / bookPublicationYearAndGenres)
+    queryShouldHaveCardinality(planner, "MATCH (book:Book {publicationYear: 2019})", bookFrom2019)
+  }
+
   private def uniquenessSelectivityForNRels(n: Int): Double = {
     RepetitionCardinalityModel.relationshipUniquenessSelectivity(
       differentRelationships = 0,
