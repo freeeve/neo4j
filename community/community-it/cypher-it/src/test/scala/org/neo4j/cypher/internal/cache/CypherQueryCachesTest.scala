@@ -301,6 +301,8 @@ class CypherQueryCachesTest extends CypherFunSuite with GraphDatabaseTestSupport
   }
 
   test("Logical plan cache does only cache its own notifications") {
+    // This query fails in Cypher 25.
+    // To get test coverage there we could create a dummy notification activated by preparser options I believe.
     val result1 = execute("CREATE (a {f\\u0085oo:1})")
     result1.notifications.size shouldBe 1
     result1.gqlStatusObjects.size shouldBe 2
@@ -311,5 +313,4 @@ class CypherQueryCachesTest extends CypherFunSuite with GraphDatabaseTestSupport
     result2.notifications should be(empty)
     result2.gqlStatusObjects should be(List(StandardGqlStatusObject.OMITTED_RESULT))
   }
-
 }
