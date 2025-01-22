@@ -415,23 +415,27 @@ object TransactionPipeWrapper {
     outerId: Id,
     inner: Pipe,
     concurrentAccess: Boolean,
-    retryLogic: TransactionRetryLogic
+    retryLogic: Option[TransactionRetryLogic]
   ): TransactionPipeWrapper = {
-    error match {
-      case OnErrorContinue                 => new OnErrorContinueTxPipe(outerId, inner, concurrentAccess)
-      case OnErrorBreak                    => new OnErrorBreakTxPipe(outerId, inner, concurrentAccess)
-      case OnErrorFail if concurrentAccess =>
+    (error, retryLogic) match {
+      case (OnErrorContinue, _)                 => new OnErrorContinueTxPipe(outerId, inner, concurrentAccess)
+      case (OnErrorBreak, _)                    => new OnErrorBreakTxPipe(outerId, inner, concurrentAccess)
+      case (OnErrorFail, _) if concurrentAccess =>
         // NOTE: We intentionally use OnErrorBreakTxPipe for OnErrorFail in concurrent execution,
         //       since we need to send the error back to the main thread anyway.
         new OnErrorBreakTxPipe(outerId, inner, concurrentAccess)
-      case OnErrorFail              => new OnErrorFailTxPipe(outerId, inner, concurrentAccess)
-      case OnErrorRetryThenContinue => new OnErrorRetryThenContinueTxPipe(outerId, inner, concurrentAccess, retryLogic)
-      case OnErrorRetryThenBreak    => new OnErrorRetryThenBreakTxPipe(outerId, inner, concurrentAccess, retryLogic)
-      case OnErrorRetryThenFail if concurrentAccess =>
+      case (OnErrorFail, _) => new OnErrorFailTxPipe(outerId, inner, concurrentAccess)
+      case (OnErrorRetryThenContinue, Some(retryLogic)) =>
+        new OnErrorRetryThenContinueTxPipe(outerId, inner, concurrentAccess, retryLogic)
+      case (OnErrorRetryThenBreak, Some(retryLogic)) =>
         new OnErrorRetryThenBreakTxPipe(outerId, inner, concurrentAccess, retryLogic)
-      case OnErrorRetryThenFail => new OnErrorRetryThenFailTxPipe(outerId, inner, concurrentAccess, retryLogic)
+      case (OnErrorRetryThenFail, Some(retryLogic)) if concurrentAccess =>
+        new OnErrorRetryThenBreakTxPipe(outerId, inner, concurrentAccess, retryLogic)
+      case (OnErrorRetryThenFail, Some(retryLogic)) =>
+        new OnErrorRetryThenFailTxPipe(outerId, inner, concurrentAccess, retryLogic)
 
-      case other => throw new UnsupportedOperationException(s"Unsupported error behaviour $other")
+      case other =>
+        throw new UnsupportedOperationException(s"Unsupported error behaviour $other with retry logic $retryLogic")
     }
   }
 

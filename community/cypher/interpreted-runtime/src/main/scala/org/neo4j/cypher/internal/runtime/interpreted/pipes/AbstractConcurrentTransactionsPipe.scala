@@ -53,16 +53,13 @@ abstract class AbstractConcurrentTransactionsPipe(
   onErrorBehaviour: InTransactionsOnErrorBehaviour
 ) extends PipeWithSource(source) {
 
-  private[this] val retryLogic: TransactionRetryLogic = if (supportsRetries) {
-    new ExponentialBackoffRetryLogic()
-  } else {
-    null
+  private[this] val retryLogic: Option[TransactionRetryLogic] = onErrorBehaviour match {
+    case OnErrorRetryThenContinue | OnErrorRetryThenBreak | OnErrorRetryThenFail =>
+      Some(new ExponentialBackoffRetryLogic())
+    case _ => None
   }
 
-  private def supportsRetries: Boolean = onErrorBehaviour match {
-    case OnErrorRetryThenContinue | OnErrorRetryThenBreak | OnErrorRetryThenFail => true
-    case _                                                                       => false
-  }
+  private def supportsRetries: Boolean = retryLogic.nonEmpty
 
   protected def withStatus(output: ClosingIterator[CypherRow], status: TransactionStatus): ClosingIterator[CypherRow]
   protected def nullRows(value: EagerBuffer[CypherRow], state: QueryState): ClosingIterator[CypherRow]
@@ -91,17 +88,18 @@ abstract class AbstractConcurrentTransactionsPipe(
     val memoryTracker = state.memoryTrackerForOperatorProvider.memoryTrackerForOperator(id.x)
     val inputBatchIterator = input.eagerGrouped(batchSizeLong, memoryTracker)
 
-    if (supportsRetries) {
-      new RetryConcurrentTransactionsIterator(
-        concurrencyLong,
-        inputBatchIterator,
-        innerPipeInTx,
-        memoryTracker,
-        state,
-        retryLogic
-      )
-    } else {
-      new ConcurrentTransactionsIterator(concurrencyLong, inputBatchIterator, innerPipeInTx, memoryTracker, state)
+    retryLogic match {
+      case Some(retryLogic) =>
+        new RetryConcurrentTransactionsIterator(
+          concurrencyLong,
+          inputBatchIterator,
+          innerPipeInTx,
+          memoryTracker,
+          state,
+          retryLogic
+        )
+      case None =>
+        new ConcurrentTransactionsIterator(concurrencyLong, inputBatchIterator, innerPipeInTx, memoryTracker, state)
     }
   }
 
