@@ -24,8 +24,10 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.neo4j.batchimport.api.input.IdType;
@@ -51,6 +53,8 @@ class ParquetDataInputChunk implements ParquetInputChunk {
     private String arrayDelimiter;
     private IdType idType;
     private Iterator<List<Object>> iterator;
+    private Collection<String> filteredLabelsOrTypes;
+    private final Map<Object, Collection<String>> labelCache = new HashMap<>();
 
     @Override
     public boolean readWith(ParquetDataReader reader) {
@@ -59,13 +63,13 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             if (iterator == null) {
                 return false;
             }
-
+            // set up metadata for this reader to avoid repeated parsing those in the reading step
             parquetDataFile = reader.getParquetDataFile();
             groups = reader.getGroups();
             defaultTimezoneSupplier = reader.getDefaultTimezoneSupplier();
             arrayDelimiter = reader.getArrayDelimiter();
             idType = reader.getIdType();
-
+            filteredLabelsOrTypes = filterEmptyLabelsAndTrim(parquetDataFile.labelsOrType());
             return true;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -83,10 +87,11 @@ class ParquetDataInputChunk implements ParquetInputChunk {
 
         var columns = parquetDataFile.columns();
         List<Object> readData = iterator.next();
-        List<String> labels = new ArrayList<>(filterEmptyLabelsAndTrim(parquetDataFile.labelsOrType()));
+        List<String> labels = new ArrayList<>(filteredLabelsOrTypes);
         StringBuilder idValue = new StringBuilder();
-        Collection<String> typeCandidates = filterEmptyLabelsAndTrim(parquetDataFile.labelsOrType());
-        var type = typeCandidates.isEmpty() ? "" : typeCandidates.iterator().next();
+        var type = filteredLabelsOrTypes.isEmpty()
+                ? ""
+                : filteredLabelsOrTypes.iterator().next();
         var isRelationshipEntity = false;
         for (int i = 0; i < readData.size(); i++) {
             var parquetColumn = columns.get(i);
@@ -112,15 +117,25 @@ class ParquetDataInputChunk implements ParquetInputChunk {
                 }
             }
             if (parquetColumn.isLabelColumn()) {
-                labels.addAll(readLabelFromEntry(readDatum));
+                labels.addAll(readLabelsFromEntry(readDatum));
             }
             // common
             if (parquetColumn.hasPropertyName()
                     && parquetColumn.logicalColumnType() == ParquetLogicalColumnType.PROPERTY) {
-                entityToHydrate.property(
-                        parquetColumn.propertyName(),
-                        convertType(readDatum, parquetColumn),
-                        parquetColumn.isIdentifier());
+                if (readDatum instanceof Map rawDataMap) {
+                    Map<String, Object> dataMap = (Map<String, Object>) rawDataMap;
+                    for (Map.Entry<String, Object> entry : dataMap.entrySet()) {
+                        entityToHydrate.property(
+                                entry.getKey(),
+                                convertType(entry.getValue(), parquetColumn),
+                                parquetColumn.isIdentifier());
+                    }
+                } else {
+                    entityToHydrate.property(
+                            parquetColumn.propertyName(),
+                            convertType(readDatum, parquetColumn),
+                            parquetColumn.isIdentifier());
+                }
             }
             // relationship
             if (parquetColumn.isStartId()) {
@@ -223,7 +238,9 @@ class ParquetDataInputChunk implements ParquetInputChunk {
         return labels.stream().filter(s -> !s.isEmpty()).map(String::trim).collect(Collectors.toSet());
     }
 
-    private Collection<String> readLabelFromEntry(Object readDatum) {
-        return filterEmptyLabelsAndTrim(Arrays.asList(readDatum.toString().split(arrayDelimiter)));
+    private Collection<String> readLabelsFromEntry(Object readDatum) {
+        return labelCache.computeIfAbsent(
+                readDatum,
+                (read) -> filterEmptyLabelsAndTrim(Arrays.asList(read.toString().split(arrayDelimiter))));
     }
 }

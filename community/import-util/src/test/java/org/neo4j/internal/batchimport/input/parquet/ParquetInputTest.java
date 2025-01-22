@@ -142,6 +142,225 @@ class ParquetInputTest {
     }
 
     @Test
+    void shouldReadListTypes() throws Exception {
+        // GIVEN
+        var fileUrl = getClass().getResource("/parquet/list.parquet");
+        var nodeFile = Path.of(fileUrl.toURI());
+        Input input = new ParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(
+                    nodes,
+                    123L,
+                    properties("aList", List.of("a", "b", "c"), "name", "Mattias Persson"),
+                    labels("HACKER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldReadListTypesWithSingleEntry() throws Exception {
+        // GIVEN
+        var fileUrl = getClass().getResource("/parquet/list_single.parquet");
+        var nodeFile = Path.of(fileUrl.toURI());
+        Input input = new ParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 123L, properties("aList", List.of("a"), "name", "Mattias Persson"), labels("HACKER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldReadListTypesWithNoEntry() throws Exception {
+        // GIVEN
+        var fileUrl = getClass().getResource("/parquet/list_empty.parquet");
+        var nodeFile = Path.of(fileUrl.toURI());
+        Input input = new ParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 123L, properties("aList", List.of(), "name", "Mattias Persson"), labels("HACKER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldReadListTypesWithNullEntry() throws Exception {
+        // GIVEN
+        var fileUrl = getClass().getResource("/parquet/list_null.parquet");
+        var nodeFile = Path.of(fileUrl.toURI());
+        Input input = new ParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldReadMapTypes() throws Exception {
+        // GIVEN
+        var fileUrl = getClass().getResource("/parquet/map.parquet");
+        var nodeFile = Path.of(fileUrl.toURI());
+        Input input = new ParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(
+                    nodes,
+                    123L,
+                    properties("aMap.a", "aa", "aMap.b", "bb", "name", "Mattias Persson"),
+                    labels("HACKER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldReadMultipleMapTypes() throws Exception {
+        // GIVEN
+        var fileUrl = getClass().getResource("/parquet/map_multiple.parquet");
+        var nodeFile = Path.of(fileUrl.toURI());
+        Input input = new ParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(
+                    nodes,
+                    123L,
+                    properties(
+                            "aMap.a",
+                            "aa",
+                            "aMap.b",
+                            "bb",
+                            "bMap.x",
+                            "xx",
+                            "bMap.y",
+                            "yy",
+                            "cMap.c",
+                            "cc",
+                            "name",
+                            "Mattias Persson"),
+                    labels("HACKER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldReadMapTypesWithNoEntry() throws Exception {
+        // GIVEN
+        var fileUrl = getClass().getResource("/parquet/map_empty.parquet");
+        var nodeFile = Path.of(fileUrl.toURI());
+        Input input = new ParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldReadMapTypesWithNullEntry() throws Exception {
+        // GIVEN
+        var fileUrl = getClass().getResource("/parquet/map_null.parquet");
+        var nodeFile = Path.of(fileUrl.toURI());
+        Input input = new ParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldReadMapTypesWithSingleEntry() throws Exception {
+        // GIVEN
+        var fileUrl = getClass().getResource("/parquet/map_single.parquet");
+        var nodeFile = Path.of(fileUrl.toURI());
+        Input input = new ParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 123L, properties("aMap.x", "abcd", "name", "Mattias Persson"), labels("HACKER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldFailOnDuplicatedNamePrefix() throws Exception {
+        // GIVEN
+        var fileUrl = getClass().getResource("/parquet/map_duplicate_names.parquet");
+        var nodeFile = Path.of(fileUrl.toURI());
+        // WHEN/THEN
+        try {
+            Input input = new ParquetInput(
+                    Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                    Map.of(),
+                    INTEGER,
+                    ';',
+                    groups,
+                    MONITOR);
+            fail("Should have failed");
+        } catch (DuplicatedColumnException e) {
+            // THEN
+            assertThat(e).hasMessageContaining("map_duplicate_names.parquet");
+        }
+    }
+
+    @Test
+    void shouldReadStructTypes() throws Exception {
+        // GIVEN
+        var fileUrl = getClass().getResource("/parquet/struct.parquet");
+        var nodeFile = Path.of(fileUrl.toURI());
+        System.out.println(nodeFile.toAbsolutePath());
+        Input input = new ParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(
+                    nodes,
+                    123L,
+                    properties("aStruct.a", "aa", "aStruct.b", "bb", "name", "Mattias Persson"),
+                    labels("HACKER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldReadMultipleStructTypes() throws Exception {
+        // GIVEN
+        var fileUrl = getClass().getResource("/parquet/struct_multiple.parquet");
+        var nodeFile = Path.of(fileUrl.toURI());
+        System.out.println(nodeFile.toAbsolutePath());
+        Input input = new ParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(
+                    nodes,
+                    123L,
+                    properties(
+                            "aStruct.a",
+                            "aa",
+                            "aStruct.b",
+                            "bb",
+                            "name",
+                            "Mattias Persson",
+                            "bStruct.x",
+                            "xx",
+                            "bStruct.y",
+                            12),
+                    labels("HACKER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
     void shouldProvideRelationshipsFromParquetInput() throws Exception {
         // GIVEN
         Path relationshipFile = createParquetFile(

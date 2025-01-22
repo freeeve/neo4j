@@ -169,10 +169,13 @@ public class ParquetInput implements Input {
                     var propertyNames = new HashSet<String>();
                     String previousGroupName = null;
                     var columns = metadata.getFileMetaData().getSchema().getColumns();
+                    Set<String> mapColumns = new HashSet<>();
+                    Set<String> structColumns = new HashSet<>();
                     // check for possible group / ID space definitions and register them
                     String fileName = nodeFile.getFileName().toString();
                     for (ColumnDescriptor columnDescriptor : columns) {
-                        var columnName = columnDescriptor.getPath()[0];
+                        String[] namePath = columnDescriptor.getPath();
+                        var columnName = namePath[0];
                         if (columnName.isBlank()) {
                             throw new InputException("column name must not be blank");
                         }
@@ -196,11 +199,17 @@ public class ParquetInput implements Input {
                                         "Cannot store composite IDs as properties, only individual part. Property %s / File: %s"
                                                 .formatted(propertyName, fileName));
                             }
-                            if (propertyNames.contains(propertyName)) {
+                            var firstPropertyNamePart =
+                                    propertyName.contains(".") ? propertyName.split("\\.")[0] : propertyName;
+
+                            if ((propertyNames.contains(propertyName) || propertyNames.contains(firstPropertyNamePart))
+                                    && !mapColumns.contains(propertyName)
+                                    && !structColumns.contains(propertyName)) {
                                 throw new DuplicatedColumnException("Duplicated header property %s found in file %s."
                                         .formatted(propertyName, fileName));
                             }
                             propertyNames.add(propertyName);
+
                             if (parquetColumn.logicalColumnType() == ParquetLogicalColumnType.ID) {
                                 groups.getOrCreate(parquetColumn.groupName());
                             }
@@ -217,7 +226,15 @@ public class ParquetInput implements Input {
                             if (parquetColumn.logicalColumnType() == ParquetLogicalColumnType.LABEL) {
                                 hasLabelColumn = true;
                             }
-                            currentColumnInfo.add(parquetColumn);
+                            // Avoid duplicate columns
+                            if (!mapColumns.contains(propertyName)) {
+                                currentColumnInfo.add(parquetColumn);
+                            }
+                            if (namePath.length > 1 && "key_value".equals(namePath[1])) {
+                                mapColumns.add(propertyName);
+                            } else if (namePath.length > 1) {
+                                structColumns.add(propertyName);
+                            }
                         } catch (IllegalArgumentException e) {
                             throw new InputException("Column name " + columnName
                                     + " is used as a special type but is unknown. Allowed types are "
@@ -237,6 +254,8 @@ public class ParquetInput implements Input {
                 var relationshipFileList = typeAndRelationshipFilesEntry.getValue().stream()
                         .flatMap(Arrays::stream)
                         .toList();
+                Set<String> mapColumns = new HashSet<>();
+                Set<String> structColumns = new HashSet<>();
                 for (Path relationshipFile : relationshipFileList) {
                     ParquetMetadata metadata = null;
                     try {
@@ -252,7 +271,8 @@ public class ParquetInput implements Input {
                             && !typeAndRelationshipFilesEntry.getKey().isBlank();
                     String fileName = relationshipFile.getFileName().toString();
                     for (ColumnDescriptor columnDescriptor : columns) {
-                        var columnName = columnDescriptor.getPath()[0];
+                        String[] namePath = columnDescriptor.getPath();
+                        var columnName = namePath[0];
                         try {
                             var parquetColumn = ParquetColumn.from(columnName, EntityType.RELATIONSHIP);
                             if (parquetColumn.isIgnoredColumn()) {
@@ -261,7 +281,9 @@ public class ParquetInput implements Input {
                             String propertyName = parquetColumn.propertyName() != null
                                     ? parquetColumn.propertyName()
                                     : parquetColumn.logicalColumnType().name();
-                            if (propertyNames.contains(propertyName)) {
+                            if (propertyNames.contains(propertyName)
+                                    && !mapColumns.contains(propertyName)
+                                    && !structColumns.contains(propertyName)) {
                                 throw new DuplicatedColumnException("Duplicated header property %s found in file %s."
                                         .formatted(propertyName, fileName));
                             }
@@ -287,7 +309,16 @@ public class ParquetInput implements Input {
                             if (parquetColumn.logicalColumnType() == ParquetLogicalColumnType.TYPE) {
                                 hasTypeColumn = true;
                             }
-                            currentColumnInfo.add(parquetColumn);
+                            // Avoid duplicate columns
+                            if (!mapColumns.contains(propertyName)) {
+                                currentColumnInfo.add(parquetColumn);
+                            }
+                            if (namePath.length > 1 && "key_value".equals(namePath[1])) {
+                                mapColumns.add(propertyName);
+                            }
+                            if (namePath.length > 1) {
+                                structColumns.add(propertyName);
+                            }
                         } catch (IllegalArgumentException e) {
                             throw new InputException("Column name " + columnName
                                     + " is used as a special type but is unknown. Allowed types are "

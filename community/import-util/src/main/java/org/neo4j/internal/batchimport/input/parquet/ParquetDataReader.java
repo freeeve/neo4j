@@ -23,8 +23,11 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import org.apache.parquet.ParquetReadOptions;
@@ -35,8 +38,11 @@ import org.apache.parquet.column.page.PageReadStore;
 import org.apache.parquet.example.DummyRecordConverter;
 import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.io.api.GroupConverter;
+import org.apache.parquet.schema.GroupType;
+import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
+import org.apache.parquet.schema.Type;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.internal.batchimport.input.Groups;
 
@@ -144,16 +150,95 @@ class ParquetDataReader implements Closeable {
             return rowIndex < rowCount;
         }
 
+        // Wrapper class for representing maps / structs and their
+        // content.
+        private static class MapLikeRecord {
+
+            private final String fieldName;
+            private Keys keys;
+            private Values values;
+
+            private MapLikeRecord(String fieldName) {
+                this.fieldName = fieldName;
+            }
+
+            private MapLikeRecord(String fieldName, Keys keys, Values values) {
+                this.fieldName = fieldName;
+                this.keys = keys;
+                this.values = values;
+            }
+
+            // Avoid passing around a custom type to the ParquetDataInputChunk
+            // by merging it down to a simple map.
+            private Map<String, Object> asMap() {
+                Map<String, Object> renderedMap = new HashMap<>();
+                for (int i = 0; i < keys.keys().size(); i++) {
+                    renderedMap.put(keys.keys.get(i), values.values().get(i));
+                }
+
+                return renderedMap;
+            }
+
+            // marker classes for map keys to be picked up by the next function
+            private record Keys(String fieldName, List<String> keys) {}
+
+            // marker classes for map values to be picked up by the next function
+            private record Values(String fieldName, List<Object> values) {}
+        }
+
         @Override
         public List<Object> next() {
             var result = new ArrayList<>();
-
+            var processedEmptyMaps = new HashSet<String>();
+            MapLikeRecord mapLikeRecord = null;
             for (ColumnReader columnReader : this.columnReaders) {
-                result.add(readValue(columnReader));
-                columnReader.consume();
-                if (columnReader.getCurrentRepetitionLevel() != 0) {
-                    throw new IllegalStateException("Unexpected repetition");
+                Object readValue = readValue(columnReader);
+                // we only get a direct Map value if it's empty
+                if (readValue instanceof Map emptyRecord) {
+                    if (!processedEmptyMaps.contains(
+                            columnReader.getDescriptor().getPath()[0])) {
+                        result.add(emptyRecord);
+                        processedEmptyMaps.add(columnReader.getDescriptor().getPath()[0]);
+                    }
+                } else if (readValue instanceof MapLikeRecord.Keys keys) {
+                    if (mapLikeRecord == null) {
+                        mapLikeRecord =
+                                new MapLikeRecord(columnReader.getDescriptor().getPath()[0]);
+                    } else if (!mapLikeRecord.fieldName.equals(keys.fieldName)) {
+                        result.add(mapLikeRecord.asMap());
+                        mapLikeRecord = new MapLikeRecord(keys.fieldName);
+                    }
+                    mapLikeRecord.keys = keys;
+                } else if (readValue instanceof MapLikeRecord.Values values) {
+                    if (mapLikeRecord == null) {
+                        mapLikeRecord =
+                                new MapLikeRecord(columnReader.getDescriptor().getPath()[0]);
+                    } else if (!mapLikeRecord.fieldName.equals(values.fieldName)) {
+                        result.add(mapLikeRecord.asMap());
+                        mapLikeRecord = new MapLikeRecord(values.fieldName);
+                    }
+                    mapLikeRecord.values = values;
+                } else if (readValue instanceof MapLikeRecord struct) {
+                    if (mapLikeRecord != null && mapLikeRecord.keys != null) {
+                        result.add(mapLikeRecord.asMap());
+                        mapLikeRecord = null;
+                    }
+                    result.add(struct.asMap());
+
+                } else {
+                    // when switching to a non-map-related column, we can be sure that
+                    // if there was a map before, it was read completely.
+                    // add mapRecord if there is something upfront setting the next value
+                    if (mapLikeRecord != null && mapLikeRecord.keys != null) {
+                        result.add(mapLikeRecord.asMap());
+                        mapLikeRecord = null;
+                    }
+                    result.add(readValue);
                 }
+            }
+            // add if map record is last
+            if (mapLikeRecord != null && mapLikeRecord.keys != null) {
+                result.add(mapLikeRecord.asMap());
             }
 
             this.rowIndex++;
@@ -161,25 +246,87 @@ class ParquetDataReader implements Closeable {
             return result;
         }
 
-        private static Object readValue(ColumnReader columnReader) {
+        /* This method does the `consume` call on the columnReader because the list
+         * processing requires it for every single value.
+         */
+        private Object readValue(ColumnReader columnReader) {
             ColumnDescriptor column = columnReader.getDescriptor();
             PrimitiveType primitiveType = column.getPrimitiveType();
             int maxDefinitionLevel = column.getMaxDefinitionLevel();
-
+            String fieldName = column.getPath()[0];
+            Type type = schema.getType(fieldName);
+            LogicalTypeAnnotation logicalType = type.getLogicalTypeAnnotation();
             if (columnReader.getCurrentDefinitionLevel() == maxDefinitionLevel) {
-                return switch (primitiveType.getPrimitiveTypeName()) {
-                    case BINARY, FIXED_LEN_BYTE_ARRAY, INT96 -> primitiveType
-                            .stringifier()
-                            .stringify(columnReader.getBinary());
-                    case BOOLEAN -> columnReader.getBoolean();
-                    case DOUBLE -> columnReader.getDouble();
-                    case FLOAT -> columnReader.getFloat();
-                    case INT32 -> columnReader.getInteger();
-                    case INT64 -> columnReader.getLong();
-                };
+                if (logicalType != null && logicalType.equals(LogicalTypeAnnotation.listType())) {
+                    var readValues = new ArrayList<>();
+                    for (var i = 0; i < columnReader.getTotalValueCount(); i++) {
+                        readValues.add(readPrimitiveType(columnReader, primitiveType));
+                        columnReader.consume();
+                    }
+                    return readValues;
+                }
+                if (logicalType != null && logicalType.equals(LogicalTypeAnnotation.mapType())) {
+                    // Initialize data structure for a map by fieldName
+                    // the data will come in as "all keys" and then "all values".
+                    // As a consequence, we need to return them separately and merge them
+                    // later into a Java map.
+                    if (column.getPath()[2].equals("key")) {
+                        var mapKeys = new MapLikeRecord.Keys(fieldName, new ArrayList<>());
+                        for (var i = 0; i < columnReader.getTotalValueCount(); i++) {
+                            String key = (String) readPrimitiveType(columnReader, primitiveType);
+                            mapKeys.keys().add(fieldName + "." + key);
+                            columnReader.consume();
+                        }
+                        return mapKeys;
+                    } else {
+                        var mapValues = new MapLikeRecord.Values(fieldName, new ArrayList<>());
+                        for (var i = 0; i < columnReader.getTotalValueCount(); i++) {
+                            Object value = readPrimitiveType(columnReader, primitiveType);
+                            mapValues.values().add(value);
+                            columnReader.consume();
+                        }
+                        return mapValues;
+                    }
+                }
+                if (type instanceof GroupType) {
+                    // The only groupType supported right now is a struct.
+                    // This could also represent _any_ complex type.
+                    var mapKeys = new MapLikeRecord.Keys(fieldName, new ArrayList<>());
+                    String propertyName = fieldName + "." + column.getPath()[1];
+                    mapKeys.keys().add(propertyName);
+                    var mapValues = new MapLikeRecord.Values(fieldName, new ArrayList<>());
+                    mapValues.values().add(readPrimitiveType(columnReader, primitiveType));
+                    return new MapLikeRecord(fieldName, mapKeys, mapValues);
+                } else {
+                    Object readValue = readPrimitiveType(columnReader, primitiveType);
+                    columnReader.consume();
+                    return readValue;
+                }
             } else {
+                columnReader.consume();
+                if (logicalType != null) {
+                    if (logicalType.equals(LogicalTypeAnnotation.listType())) {
+                        return List.of();
+                    }
+                    if (logicalType.equals(LogicalTypeAnnotation.mapType())) {
+                        return Map.of();
+                    }
+                }
                 return null;
             }
+        }
+
+        private static Object readPrimitiveType(ColumnReader columnReader, PrimitiveType primitiveType) {
+            return switch (primitiveType.getPrimitiveTypeName()) {
+                case BINARY, FIXED_LEN_BYTE_ARRAY, INT96 -> primitiveType
+                        .stringifier()
+                        .stringify(columnReader.getBinary());
+                case BOOLEAN -> columnReader.getBoolean();
+                case DOUBLE -> columnReader.getDouble();
+                case FLOAT -> columnReader.getFloat();
+                case INT32 -> columnReader.getInteger();
+                case INT64 -> columnReader.getLong();
+            };
         }
     }
 
