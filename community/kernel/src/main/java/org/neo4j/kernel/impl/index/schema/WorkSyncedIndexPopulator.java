@@ -46,7 +46,7 @@ public class WorkSyncedIndexPopulator extends IndexPopulator.Delegating {
     }
 
     @Override
-    public void add(Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext)
+    public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext)
             throws IndexEntryConflictException {
         if (updates.isEmpty()) {
             return;
@@ -67,7 +67,7 @@ public class WorkSyncedIndexPopulator extends IndexPopulator.Delegating {
     }
 
     private class IndexUpdateApply {
-        void process(Collection<? extends IndexEntryUpdate<?>> indexEntryUpdates, CursorContext cursorContext)
+        void process(Collection<? extends IndexEntryUpdate> indexEntryUpdates, CursorContext cursorContext)
                 throws Exception {
             WorkSyncedIndexPopulator.super.add(indexEntryUpdates, cursorContext);
         }
@@ -75,11 +75,11 @@ public class WorkSyncedIndexPopulator extends IndexPopulator.Delegating {
 
     private static class IndexUpdateWork implements Work<IndexUpdateApply, IndexUpdateWork> {
 
-        record OneWork(Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext) {}
+        record OneWork(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext) {}
 
         private final List<OneWork> works = new ArrayList<>(1);
 
-        IndexUpdateWork(Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext) {
+        IndexUpdateWork(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext) {
             works.add(new OneWork(updates, cursorContext));
         }
 

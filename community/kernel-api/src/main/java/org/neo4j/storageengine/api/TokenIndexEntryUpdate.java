@@ -20,16 +20,16 @@
 package org.neo4j.storageengine.api;
 
 import java.util.Arrays;
-import org.neo4j.internal.schema.SchemaDescriptorSupplier;
+import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.memory.HeapEstimator;
 
-public class TokenIndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplier> extends IndexEntryUpdate<INDEX_KEY> {
+public class TokenIndexEntryUpdate extends IndexEntryUpdate {
     private final int[] before;
     private final int[] values;
     private final boolean logical;
 
-    TokenIndexEntryUpdate(long entityId, INDEX_KEY index_key, int[] before, int[] values, boolean logical) {
-        super(entityId, index_key, UpdateMode.CHANGED);
+    TokenIndexEntryUpdate(long entityId, IndexDescriptor indexKey, int[] before, int[] values, boolean logical) {
+        super(entityId, indexKey, UpdateMode.CHANGED);
         this.before = before;
         this.values = values;
         this.logical = logical;
@@ -56,8 +56,8 @@ public class TokenIndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplier> e
     }
 
     @Override
-    protected boolean valueEquals(IndexEntryUpdate<?> o) {
-        if (!(o instanceof TokenIndexEntryUpdate<?> that)) {
+    protected boolean valueEquals(IndexEntryUpdate o) {
+        if (!(o instanceof TokenIndexEntryUpdate that)) {
             return false;
         }
         if (!Arrays.equals(before, that.before)) {
@@ -79,7 +79,7 @@ public class TokenIndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplier> e
     }
 
     @Override
-    public IndexEntryUpdate<INDEX_KEY> withEntityId(long entityId) {
+    public IndexEntryUpdate withEntityId(long entityId) {
         return IndexEntryUpdate.change(entityId, indexKey(), before, values);
     }
 }

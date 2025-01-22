@@ -51,10 +51,10 @@ public class FulltextIndexPopulator extends LuceneIndexPopulator<DatabaseIndex<F
     }
 
     @Override
-    public void add(Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext) {
+    public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext) {
         try {
-            for (IndexEntryUpdate<?> update : updates) {
-                final var valueUpdate = (ValueIndexEntryUpdate<?>) update;
+            for (var update : updates) {
+                final var valueUpdate = (ValueIndexEntryUpdate) update;
                 if (ignoreStrategy.ignore(valueUpdate.values())) {
                     continue;
                 }
@@ -84,15 +84,15 @@ public class FulltextIndexPopulator extends LuceneIndexPopulator<DatabaseIndex<F
     }
 
     @Override
-    protected Document updateAsDocument(ValueIndexEntryUpdate<?> update) {
+    protected Document updateAsDocument(ValueIndexEntryUpdate update) {
         return LuceneFulltextDocumentStructure.documentRepresentingProperties(
                 update.getEntityId(), propertyNames, update.values());
     }
 
     private class PopulatingFulltextIndexUpdater implements IndexUpdater {
         @Override
-        public void process(IndexEntryUpdate<?> update) {
-            ValueIndexEntryUpdate<?> valueUpdate = asValueUpdate(update);
+        public void process(IndexEntryUpdate update) {
+            var valueUpdate = asValueUpdate(update);
             if (ignoreStrategy.ignore(valueUpdate)) {
                 return;
             }

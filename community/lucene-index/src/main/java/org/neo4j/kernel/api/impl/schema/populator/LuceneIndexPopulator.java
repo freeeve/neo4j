@@ -76,7 +76,7 @@ public abstract class LuceneIndexPopulator<INDEX extends DatabaseIndex<?>> imple
     }
 
     @Override
-    public void add(Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext) {
+    public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext) {
         assert updatesForCorrectIndex(updates);
 
         try {
@@ -84,7 +84,7 @@ public abstract class LuceneIndexPopulator<INDEX extends DatabaseIndex<?>> imple
             // here
             // That is why we create a lazy Iterator and then Iterable
             writer.addDocuments(updates.size(), () -> updates.stream()
-                    .map(u -> (ValueIndexEntryUpdate<?>) u)
+                    .map(ValueIndexEntryUpdate.class::cast)
                     .filter(Predicate.not(ignoreStrategy::ignore))
                     .map(this::updateAsDocument)
                     .filter(Objects::nonNull)
@@ -94,7 +94,7 @@ public abstract class LuceneIndexPopulator<INDEX extends DatabaseIndex<?>> imple
         }
     }
 
-    protected abstract Document updateAsDocument(ValueIndexEntryUpdate<?> update);
+    protected abstract Document updateAsDocument(ValueIndexEntryUpdate update);
 
     @Override
     public void close(boolean populationCompletedSuccessfully, CursorContext cursorContext) {
@@ -119,7 +119,7 @@ public abstract class LuceneIndexPopulator<INDEX extends DatabaseIndex<?>> imple
     }
 
     @Override
-    public void includeSample(IndexEntryUpdate<?> update) {
+    public void includeSample(IndexEntryUpdate update) {
         // no-op
     }
 
@@ -136,8 +136,8 @@ public abstract class LuceneIndexPopulator<INDEX extends DatabaseIndex<?>> imple
         }
     }
 
-    private boolean updatesForCorrectIndex(Collection<? extends IndexEntryUpdate<?>> updates) {
-        for (IndexEntryUpdate<?> update : updates) {
+    private boolean updatesForCorrectIndex(Collection<? extends IndexEntryUpdate> updates) {
+        for (var update : updates) {
             if (!update.indexKey().schema().equals(luceneIndex.getDescriptor().schema())) {
                 return false;
             }

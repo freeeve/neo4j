@@ -33,7 +33,7 @@ class PhysicalToLogicalTokenChanges {
      *
      * @param update {@link TokenIndexEntryUpdate} containing physical before/after state.
      */
-    static LogicalTokenUpdates convertToAdditionsAndRemovals(TokenIndexEntryUpdate<?> update) {
+    static LogicalTokenUpdates convertToAdditionsAndRemovals(TokenIndexEntryUpdate update) {
         int beforeLength = update.beforeValues().length;
         int afterLength = update.values().length;
 

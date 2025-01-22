@@ -72,6 +72,7 @@ class TextIndexPopulatorTest {
 
     private DatabaseIndex<ValueIndexReader> index;
     private TextIndexPopulator populator;
+    private IndexDescriptor indexDescriptor;
     private final SchemaDescriptorSupplier labelSchemaDescriptor = () -> SchemaDescriptors.forLabel(0, 0);
 
     @BeforeEach
@@ -79,13 +80,13 @@ class TextIndexPopulatorTest {
         Path folder = testDir.directory("folder");
         PartitionedIndexStorage indexStorage = new PartitionedIndexStorage(dirFactory, fileSystem, folder);
 
-        IndexDescriptor descriptor = IndexPrototype.forSchema(labelSchemaDescriptor.schema())
+        indexDescriptor = IndexPrototype.forSchema(labelSchemaDescriptor.schema())
                 .withName("index")
                 .withIndexType(IndexType.TEXT)
                 .withIndexProvider(AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR)
                 .materialise(13)
                 .withIndexCapability(TextIndexProvider.CAPABILITY);
-        index = TextIndexBuilder.create(descriptor, writable(), Config.defaults(), NullLogProvider.getInstance())
+        index = TextIndexBuilder.create(indexDescriptor, writable(), Config.defaults(), NullLogProvider.getInstance())
                 .withIndexStorage(indexStorage)
                 .build();
     }
@@ -110,10 +111,8 @@ class TextIndexPopulatorTest {
     @Test
     void sampleIncludedUpdates() {
         populator = newPopulator();
-        List<IndexEntryUpdate<?>> updates = Arrays.asList(
-                add(1, labelSchemaDescriptor, "aaa"),
-                add(2, labelSchemaDescriptor, "bbb"),
-                add(3, labelSchemaDescriptor, "ccc"));
+        List<IndexEntryUpdate> updates = Arrays.asList(
+                add(1, indexDescriptor, "aaa"), add(2, indexDescriptor, "bbb"), add(3, indexDescriptor, "ccc"));
         populator.add(updates, CursorContext.NULL_CONTEXT);
 
         IndexSample sample = populator.sample(CursorContext.NULL_CONTEXT);
@@ -124,10 +123,8 @@ class TextIndexPopulatorTest {
     @Test
     void sampleIncludedUpdatesWithDuplicates() {
         populator = newPopulator();
-        List<IndexEntryUpdate<?>> updates = Arrays.asList(
-                add(1, labelSchemaDescriptor, "foo"),
-                add(2, labelSchemaDescriptor, "bar"),
-                add(3, labelSchemaDescriptor, "foo"));
+        List<IndexEntryUpdate> updates = Arrays.asList(
+                add(1, indexDescriptor, "foo"), add(2, indexDescriptor, "bar"), add(3, indexDescriptor, "foo"));
         populator.add(updates, CursorContext.NULL_CONTEXT);
 
         IndexSample sample = populator.sample(CursorContext.NULL_CONTEXT);
@@ -139,10 +136,8 @@ class TextIndexPopulatorTest {
     void addUpdates() throws Exception {
         populator = newPopulator();
 
-        List<IndexEntryUpdate<?>> updates = Arrays.asList(
-                add(1, labelSchemaDescriptor, "foo"),
-                add(2, labelSchemaDescriptor, "bar"),
-                add(42, labelSchemaDescriptor, "bar"));
+        List<IndexEntryUpdate> updates = Arrays.asList(
+                add(1, indexDescriptor, "foo"), add(2, indexDescriptor, "bar"), add(42, indexDescriptor, "bar"));
 
         populator.add(updates, CursorContext.NULL_CONTEXT);
 

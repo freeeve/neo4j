@@ -57,7 +57,7 @@ class FailedFulltextIndexPopulator extends IndexPopulator.Adapter {
     }
 
     @Override
-    public void add(Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext) {
+    public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext) {
         throw failedException();
     }
 
@@ -69,7 +69,7 @@ class FailedFulltextIndexPopulator extends IndexPopulator.Adapter {
     public IndexUpdater newPopulatingUpdater(CursorContext cursorContext) {
         return new IndexUpdater() {
             @Override
-            public void process(IndexEntryUpdate<?> update) {
+            public void process(IndexEntryUpdate update) {
                 throw failedException();
             }
 

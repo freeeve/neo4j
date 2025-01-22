@@ -46,7 +46,6 @@ import org.neo4j.internal.recordstorage.Command.NodeCommand;
 import org.neo4j.internal.recordstorage.Commands;
 import org.neo4j.internal.recordstorage.RecordStorageEngine;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
-import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.LabelSchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
@@ -292,12 +291,11 @@ class IndexWorkSyncTransactionApplicationStressIT {
         private final ConcurrentMap<Value, Set<Long>> index = new ConcurrentHashMap<>();
 
         @Override
-        public void applyUpdates(
-                Iterable<IndexEntryUpdate<IndexDescriptor>> updates, CursorContext cursorContext, boolean parallel) {
+        public void applyUpdates(Iterable<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel) {
             updates.forEach(rawUpdate -> {
                 // Only additions assumed
                 assert rawUpdate.updateMode() == UpdateMode.ADDED;
-                ValueIndexEntryUpdate<?> update = (ValueIndexEntryUpdate<?>) rawUpdate;
+                ValueIndexEntryUpdate update = (ValueIndexEntryUpdate) rawUpdate;
                 index.computeIfAbsent(update.values()[0], value -> ConcurrentHashMap.newKeySet())
                         .add(update.getEntityId());
             });

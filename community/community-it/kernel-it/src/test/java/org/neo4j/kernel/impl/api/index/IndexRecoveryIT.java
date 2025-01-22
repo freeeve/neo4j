@@ -64,7 +64,6 @@ import org.neo4j.graphdb.schema.Schema;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
-import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.UncloseableDelegatingFileSystemAbstraction;
@@ -72,7 +71,6 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexProvider;
@@ -80,7 +78,6 @@ import org.neo4j.kernel.api.index.IndexSample;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.MinimalIndexAccessor;
 import org.neo4j.kernel.extension.ExtensionFactory;
-import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.coreapi.TransactionImpl;
 import org.neo4j.kernel.impl.index.schema.CollectingIndexUpdater;
 import org.neo4j.kernel.impl.transaction.log.LogAppendEvent;
@@ -351,11 +348,11 @@ class IndexRecoveryIT {
                         any(),
                         any()))
                 .thenReturn(mockedAccessor);
-        createIndexAndAwaitPopulation();
+        var index = createIndexAndAwaitPopulation();
         // rotate logs
         rotateLogsAndCheckPoint();
         // make updates
-        Set<IndexEntryUpdate<?>> expectedUpdates = createSomeBananas(myLabel);
+        Set<IndexEntryUpdate> expectedUpdates = createSomeBananas(myLabel, index);
 
         // And Given
         killDb();
@@ -536,12 +533,13 @@ class IndexRecoveryIT {
         }
     }
 
-    private void createIndexAndAwaitPopulation() throws KernelException {
+    private IndexDescriptor createIndexAndAwaitPopulation() throws KernelException {
         IndexDescriptor index = createIndex();
         try (Transaction tx = db.beginTx()) {
             tx.schema().awaitIndexOnline(index.getName(), 1, MINUTES);
             tx.commit();
         }
+        return index;
     }
 
     private IndexDescriptor createIndex() throws KernelException {
@@ -553,18 +551,13 @@ class IndexRecoveryIT {
         }
     }
 
-    private Set<IndexEntryUpdate<?>> createSomeBananas(Label label) {
-        Set<IndexEntryUpdate<?>> updates = new HashSet<>();
+    private Set<IndexEntryUpdate> createSomeBananas(Label label, IndexDescriptor index) {
+        Set<IndexEntryUpdate> updates = new HashSet<>();
         try (Transaction tx = db.beginTx()) {
-            KernelTransaction ktx = ((InternalTransaction) tx).kernelTransaction();
-
-            int labelId = ktx.tokenRead().nodeLabel(label.name());
-            int propertyKeyId = ktx.tokenRead().propertyKey(key);
-            var schemaDescriptor = SchemaDescriptors.forLabel(labelId, propertyKeyId);
             for (int number : new int[] {4, 10}) {
                 Node node = tx.createNode(label);
                 node.setProperty(key, number);
-                updates.add(IndexEntryUpdate.add(node.getId(), () -> schemaDescriptor, Values.of(number)));
+                updates.add(IndexEntryUpdate.add(node.getId(), index, Values.of(number)));
             }
             tx.commit();
             return updates;
@@ -572,8 +565,8 @@ class IndexRecoveryIT {
     }
 
     public static class GatheringIndexWriter extends IndexAccessor.Adapter {
-        private final Set<IndexEntryUpdate<?>> regularUpdates = new HashSet<>();
-        private final Set<IndexEntryUpdate<?>> batchedUpdates = new HashSet<>();
+        private final Set<IndexEntryUpdate> regularUpdates = new HashSet<>();
+        private final Set<IndexEntryUpdate> batchedUpdates = new HashSet<>();
 
         @Override
         public IndexUpdater newUpdater(final IndexUpdateMode mode, CursorContext cursorContext, boolean parallel) {

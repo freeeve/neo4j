@@ -24,7 +24,6 @@ import org.eclipse.collections.api.list.primitive.IntList;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.batchimport.api.input.ApplicationMode;
-import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.values.storable.Value;
 
@@ -62,7 +61,7 @@ public interface SchemaMonitor {
         }
 
         @Override
-        public void indexUpdate(IndexEntryUpdate<IndexDescriptor> indexUpdate) {}
+        public void indexUpdate(IndexEntryUpdate indexUpdate) {}
 
         @Override
         public void reset() {}
@@ -90,7 +89,7 @@ public interface SchemaMonitor {
      * for updated entities where existing data is also read
      * @param indexUpdate index update to apply.
      */
-    void indexUpdate(IndexEntryUpdate<IndexDescriptor> indexUpdate);
+    void indexUpdate(IndexEntryUpdate indexUpdate);
 
     void reset();
 

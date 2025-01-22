@@ -70,7 +70,7 @@ public interface IndexPopulator extends MinimalIndexAccessor {
      * to violate that constraint.
      * @throws UncheckedIOException on I/O error.
      */
-    void add(Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext)
+    void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext)
             throws IndexEntryConflictException;
 
     /**
@@ -133,7 +133,7 @@ public interface IndexPopulator extends MinimalIndexAccessor {
      *
      * @param update update to include in sample
      */
-    void includeSample(IndexEntryUpdate<?> update);
+    void includeSample(IndexEntryUpdate update);
 
     /**
      * @return {@link IndexSample} from samples collected by {@link #includeSample(IndexEntryUpdate)} calls.
@@ -200,7 +200,7 @@ public interface IndexPopulator extends MinimalIndexAccessor {
         }
 
         @Override
-        public void add(Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext) {}
+        public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext) {}
 
         @Override
         public IndexUpdater newPopulatingUpdater(CursorContext cursorContext) {
@@ -221,7 +221,7 @@ public interface IndexPopulator extends MinimalIndexAccessor {
         public void markAsFailed(String failure) {}
 
         @Override
-        public void includeSample(IndexEntryUpdate<?> update) {}
+        public void includeSample(IndexEntryUpdate update) {}
 
         @Override
         public IndexSample sample(CursorContext cursorContext) {
@@ -252,7 +252,7 @@ public interface IndexPopulator extends MinimalIndexAccessor {
         }
 
         @Override
-        public void add(Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext)
+        public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext)
                 throws IndexEntryConflictException {
             delegate.add(updates, cursorContext);
         }
@@ -273,7 +273,7 @@ public interface IndexPopulator extends MinimalIndexAccessor {
         }
 
         @Override
-        public void includeSample(IndexEntryUpdate<?> update) {
+        public void includeSample(IndexEntryUpdate update) {
             delegate.includeSample(update);
         }
 

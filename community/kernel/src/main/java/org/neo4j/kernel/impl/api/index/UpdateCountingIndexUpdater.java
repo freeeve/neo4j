@@ -34,7 +34,7 @@ public class UpdateCountingIndexUpdater implements IndexUpdater {
     }
 
     @Override
-    public void process(IndexEntryUpdate<?> update) throws IndexEntryConflictException {
+    public void process(IndexEntryUpdate update) throws IndexEntryConflictException {
         delegate.process(update);
         updates++;
     }

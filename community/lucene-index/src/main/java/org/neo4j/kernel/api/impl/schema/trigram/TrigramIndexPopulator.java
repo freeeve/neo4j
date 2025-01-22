@@ -41,7 +41,7 @@ class TrigramIndexPopulator extends LuceneIndexPopulator<DatabaseIndex<ValueInde
     }
 
     @Override
-    protected Document updateAsDocument(ValueIndexEntryUpdate<?> update) {
+    protected Document updateAsDocument(ValueIndexEntryUpdate update) {
         var entityId = update.getEntityId();
         var value = update.values()[0];
         validator.validate(entityId, value);

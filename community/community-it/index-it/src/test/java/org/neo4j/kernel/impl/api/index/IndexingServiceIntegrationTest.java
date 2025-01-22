@@ -128,7 +128,7 @@ public class IndexingServiceIntegrationTest {
             var kernelTransaction = ((InternalTransaction) transaction).kernelTransaction();
             var indexDescriptor = kernelTransaction.schemaRead().indexGetForName(testConstraint);
             try (var cursorContext = contextFactory.create("tracePageCacheAccessOnIndexUpdatesApply")) {
-                Iterable<IndexEntryUpdate<IndexDescriptor>> updates = List.of(add(1, indexDescriptor, longValue(4)));
+                Iterable<IndexEntryUpdate> updates = List.of(add(1, indexDescriptor, longValue(4)));
                 indexingService.applyUpdates(updates, cursorContext, false);
 
                 PageCursorTracer cursorTracer = cursorContext.getCursorTracer();

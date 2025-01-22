@@ -53,11 +53,11 @@ abstract class SimpleRandomizedIndexAccessorCompatibility extends IndexAccessorC
         ValueType[] types = randomSetOfSupportedTypes();
 
         List<Value> values = generateValuesFromType(types, new HashSet<>(), 30_000);
-        List<ValueIndexEntryUpdate<?>> updates = generateUpdatesFromValues(values, new MutableLong());
+        List<ValueIndexEntryUpdate> updates = generateUpdatesFromValues(values, new MutableLong());
         updateAndCommit(updates);
 
         // when
-        for (ValueIndexEntryUpdate<?> update : updates) {
+        for (ValueIndexEntryUpdate update : updates) {
             // then
             List<Long> hits = query(PropertyIndexQuery.exact(0, update.values()[0]));
             assertEquals(1, hits.size(), hits.toString());
@@ -76,7 +76,7 @@ abstract class SimpleRandomizedIndexAccessorCompatibility extends IndexAccessorC
 
         // A couple of rounds of updates followed by lots of range verifications
         for (int i = 0; i < 5; i++) {
-            List<ValueIndexEntryUpdate<?>> updates = new ArrayList<>();
+            List<ValueIndexEntryUpdate> updates = new ArrayList<>();
             if (i == 0) {
                 // The initial batch of data can simply be additions
                 updates = generateUpdatesFromValues(generateValuesFromType(types, uniqueValues, 20_000), nextId);
@@ -185,8 +185,8 @@ abstract class SimpleRandomizedIndexAccessorCompatibility extends IndexAccessorC
         return value;
     }
 
-    private List<ValueIndexEntryUpdate<?>> generateUpdatesFromValues(List<Value> values, MutableLong nextId) {
-        List<ValueIndexEntryUpdate<?>> updates = new ArrayList<>();
+    private List<ValueIndexEntryUpdate> generateUpdatesFromValues(List<Value> values, MutableLong nextId) {
+        List<ValueIndexEntryUpdate> updates = new ArrayList<>();
         for (Value value : values) {
             var update = add(nextId.getAndIncrement(), descriptor, value);
             updates.add(update);

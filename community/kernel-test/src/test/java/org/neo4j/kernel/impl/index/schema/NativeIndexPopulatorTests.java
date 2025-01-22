@@ -37,7 +37,6 @@ import java.util.Iterator;
 import java.util.Random;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexUpdater;
@@ -91,7 +90,7 @@ abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
     void addShouldApplyAllUpdatesOnce() throws Exception {
         // given
         populator.create();
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = valueCreatorUtil.someUpdates(random);
+        ValueIndexEntryUpdate[] updates = valueCreatorUtil.someUpdates(random);
 
         // when
         populator.add(asList(updates), NULL_CONTEXT);
@@ -106,10 +105,10 @@ abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
     void updaterShouldApplyUpdates() throws Exception {
         // given
         populator.create();
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = valueCreatorUtil.someUpdates(random);
+        ValueIndexEntryUpdate[] updates = valueCreatorUtil.someUpdates(random);
         try (IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
             // when
-            for (ValueIndexEntryUpdate<IndexDescriptor> update : updates) {
+            for (ValueIndexEntryUpdate update : updates) {
                 updater.process(update);
             }
         }
@@ -138,7 +137,7 @@ abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
     void shouldApplyInterleavedUpdatesFromAddAndUpdater() throws Exception {
         // given
         populator.create();
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = valueCreatorUtil.someUpdates(random);
+        ValueIndexEntryUpdate[] updates = valueCreatorUtil.someUpdates(random);
 
         // when
         applyInterleaved(updates, populator);
@@ -155,7 +154,7 @@ abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
         populator.create();
         random.reset();
         Random updaterRandom = new Random(random.seed());
-        Iterator<ValueIndexEntryUpdate<IndexDescriptor>> updates = valueCreatorUtil.randomUpdateGenerator(random);
+        Iterator<ValueIndexEntryUpdate> updates = valueCreatorUtil.randomUpdateGenerator(random);
 
         // when
         int count = interleaveLargeAmountOfUpdates(updaterRandom, updates);
@@ -167,22 +166,20 @@ abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
         verifyUpdates(valueCreatorUtil.randomUpdateGenerator(random), count);
     }
 
-    private void verifyUpdates(Iterator<ValueIndexEntryUpdate<IndexDescriptor>> indexEntryUpdateIterator, int count)
-            throws IOException {
+    private void verifyUpdates(Iterator<ValueIndexEntryUpdate> indexEntryUpdateIterator, int count) throws IOException {
         @SuppressWarnings("unchecked")
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = new ValueIndexEntryUpdate[count];
+        ValueIndexEntryUpdate[] updates = new ValueIndexEntryUpdate[count];
         for (int i = 0; i < count; i++) {
             updates[i] = indexEntryUpdateIterator.next();
         }
         valueUtil.verifyUpdates(updates, this::getTree);
     }
 
-    void applyInterleaved(IndexEntryUpdate<IndexDescriptor>[] updates, IndexPopulator populator)
-            throws IndexEntryConflictException {
+    void applyInterleaved(IndexEntryUpdate[] updates, IndexPopulator populator) throws IndexEntryConflictException {
         boolean useUpdater = true;
-        Collection<IndexEntryUpdate<IndexDescriptor>> populatorBatch = new ArrayList<>();
+        Collection<IndexEntryUpdate> populatorBatch = new ArrayList<>();
         IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT);
-        for (IndexEntryUpdate<IndexDescriptor> update : updates) {
+        for (IndexEntryUpdate update : updates) {
             if (random.nextInt(100) < 20) {
                 if (useUpdater) {
                     updater.close();
@@ -206,8 +203,7 @@ abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
         }
     }
 
-    int interleaveLargeAmountOfUpdates(
-            Random updaterRandom, Iterator<? extends IndexEntryUpdate<IndexDescriptor>> updates)
+    int interleaveLargeAmountOfUpdates(Random updaterRandom, Iterator<? extends IndexEntryUpdate> updates)
             throws IndexEntryConflictException {
         int count = 0;
         for (int i = 0; i < LARGE_AMOUNT_OF_UPDATES; i++) {

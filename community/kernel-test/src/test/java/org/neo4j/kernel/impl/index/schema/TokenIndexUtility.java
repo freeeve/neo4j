@@ -92,10 +92,10 @@ public class TokenIndexUtility {
         return tree.seek(lowest, highest, NULL_CONTEXT);
     }
 
-    static List<TokenIndexEntryUpdate<?>> generateSomeRandomUpdates(
+    static List<TokenIndexEntryUpdate> generateSomeRandomUpdates(
             MutableLongObjectMap<int[]> entityTokens, RandomSupport random) {
         long currentScanId = 0;
-        List<TokenIndexEntryUpdate<?>> updates = new ArrayList<>();
+        List<TokenIndexEntryUpdate> updates = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             generateRandomUpdate(currentScanId, entityTokens, updates, random);
 
@@ -108,11 +108,11 @@ public class TokenIndexUtility {
     static void generateRandomUpdate(
             long entityId,
             MutableLongObjectMap<int[]> trackingState,
-            List<TokenIndexEntryUpdate<?>> updates,
+            List<TokenIndexEntryUpdate> updates,
             RandomSupport random) {
         int[] addTokens = generateRandomTokens(random);
         if (addTokens.length != 0) {
-            TokenIndexEntryUpdate<?> update = IndexEntryUpdate.change(entityId, null, EMPTY_INT_ARRAY, addTokens);
+            TokenIndexEntryUpdate update = IndexEntryUpdate.change(entityId, null, EMPTY_INT_ARRAY, addTokens);
             updates.add(update);
 
             // Add update to tracking structure

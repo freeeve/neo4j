@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
-import org.neo4j.internal.schema.SchemaDescriptorSupplier;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.UpdateMode;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
@@ -38,7 +37,7 @@ public interface IndexUpdateIgnoreStrategy {
      * @param update the update to process
      * @return true if update should be ignored by updater
      */
-    default <INDEX_KEY extends SchemaDescriptorSupplier> boolean ignore(ValueIndexEntryUpdate<INDEX_KEY> update) {
+    default boolean ignore(ValueIndexEntryUpdate update) {
         if (update.updateMode() == UpdateMode.CHANGED) {
             return ignore(update.beforeValues()) && ignore(update.values());
         }
@@ -53,8 +52,7 @@ public interface IndexUpdateIgnoreStrategy {
      * @param update a {@link ValueIndexEntryUpdate} to convert
      * @return an equivalent {@link ValueIndexEntryUpdate}
      */
-    default <INDEX_KEY extends SchemaDescriptorSupplier> ValueIndexEntryUpdate<INDEX_KEY> toEquivalentUpdate(
-            ValueIndexEntryUpdate<INDEX_KEY> update) {
+    default ValueIndexEntryUpdate toEquivalentUpdate(ValueIndexEntryUpdate update) {
         // Only CHANGED may need replacing
         if (update.updateMode() != UpdateMode.CHANGED) {
             return update;
@@ -95,13 +93,12 @@ public interface IndexUpdateIgnoreStrategy {
         }
 
         @Override
-        public <INDEX_KEY extends SchemaDescriptorSupplier> boolean ignore(ValueIndexEntryUpdate<INDEX_KEY> update) {
+        public boolean ignore(ValueIndexEntryUpdate update) {
             return false;
         }
 
         @Override
-        public <INDEX_KEY extends SchemaDescriptorSupplier> ValueIndexEntryUpdate<INDEX_KEY> toEquivalentUpdate(
-                ValueIndexEntryUpdate<INDEX_KEY> update) {
+        public ValueIndexEntryUpdate toEquivalentUpdate(ValueIndexEntryUpdate update) {
             return update;
         }
     };

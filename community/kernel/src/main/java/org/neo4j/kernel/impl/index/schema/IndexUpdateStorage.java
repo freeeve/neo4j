@@ -36,7 +36,7 @@ import org.neo4j.values.storable.Value;
  * Buffer {@link IndexEntryUpdate} by writing them out to a file. Can be read back in insert order through {@link #reader()}.
  */
 public class IndexUpdateStorage<KEY extends NativeIndexKey<KEY>>
-        extends SimpleEntryStorage<IndexEntryUpdate<?>, IndexUpdateCursor<KEY, NullValue>> {
+        extends SimpleEntryStorage<IndexEntryUpdate, IndexUpdateCursor<KEY, NullValue>> {
     private final IndexLayout<KEY> layout;
     private final KEY key1;
     private final KEY key2;
@@ -61,26 +61,21 @@ public class IndexUpdateStorage<KEY extends NativeIndexKey<KEY>>
     }
 
     @Override
-    public void add(IndexEntryUpdate<?> update, PageCursor pageCursor) throws IOException {
-        ValueIndexEntryUpdate<?> valueUpdate = (ValueIndexEntryUpdate<?>) update;
+    public void add(IndexEntryUpdate update, PageCursor pageCursor) throws IOException {
+        var valueUpdate = (ValueIndexEntryUpdate) update;
         final var entrySize = calculateEntrySize(valueUpdate);
         write(pageCursor, valueUpdate.updateMode(), entrySize);
     }
 
-    private int calculateEntrySize(ValueIndexEntryUpdate<?> update) {
+    private int calculateEntrySize(ValueIndexEntryUpdate update) {
         final var entityId = update.getEntityId();
         final var values = update.values();
         final var updateMode = update.updateMode();
-        switch (updateMode) {
-            case ADDED:
-                return TYPE_SIZE + added(key1, entityId, values);
-            case CHANGED:
-                return TYPE_SIZE + removed(key1, entityId, update.beforeValues()) + added(key2, entityId, values);
-            case REMOVED:
-                return TYPE_SIZE + removed(key1, entityId, values);
-            default:
-                throw new IllegalArgumentException("Unknown update mode " + updateMode);
-        }
+        return switch (updateMode) {
+            case ADDED -> TYPE_SIZE + added(key1, entityId, values);
+            case CHANGED -> TYPE_SIZE + removed(key1, entityId, update.beforeValues()) + added(key2, entityId, values);
+            case REMOVED -> TYPE_SIZE + removed(key1, entityId, values);
+        };
     }
 
     private int added(KEY key, long entityId, Value[] values) {

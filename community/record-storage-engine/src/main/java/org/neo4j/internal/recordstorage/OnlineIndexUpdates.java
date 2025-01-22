@@ -66,7 +66,7 @@ public class OnlineIndexUpdates implements IndexUpdates {
     private final CursorContext cursorContext;
     private final MemoryTracker memoryTracker;
     private final StoreCursors storeCursors;
-    private final Collection<IndexEntryUpdate<IndexDescriptor>> updates = new ArrayList<>();
+    private final Collection<IndexEntryUpdate> updates = new ArrayList<>();
     private StorageNodeCursor nodeCursor;
     private StorageRelationshipScanCursor relationshipCursor;
 
@@ -88,7 +88,7 @@ public class OnlineIndexUpdates implements IndexUpdates {
     }
 
     @Override
-    public Iterator<IndexEntryUpdate<IndexDescriptor>> iterator() {
+    public Iterator<IndexEntryUpdate> iterator() {
         return updates.iterator();
     }
 
@@ -266,7 +266,7 @@ public class OnlineIndexUpdates implements IndexUpdates {
     }
 
     @VisibleForTesting
-    protected Collection<IndexEntryUpdate<IndexDescriptor>> getUpdates() {
+    protected Collection<IndexEntryUpdate> getUpdates() {
         return updates;
     }
 

@@ -162,8 +162,8 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
         try {
             // when
             Value duplicate = supportedValue(1);
-            ValueIndexEntryUpdate<?> firstScanUpdate = ValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
-            ValueIndexEntryUpdate<?> secondScanUpdate = ValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
+            ValueIndexEntryUpdate firstScanUpdate = ValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
+            ValueIndexEntryUpdate secondScanUpdate = ValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
             assertThrows(IndexEntryConflictException.class, () -> {
                 populator.add(singleton(firstScanUpdate), CursorContext.NULL_CONTEXT);
                 populator.add(singleton(secondScanUpdate), CursorContext.NULL_CONTEXT);
@@ -181,8 +181,8 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
         try {
             // when
             Value duplicate = supportedValue(1);
-            ValueIndexEntryUpdate<?> firstExternalUpdate = ValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
-            ValueIndexEntryUpdate<?> secondExternalUpdate = ValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
+            ValueIndexEntryUpdate firstExternalUpdate = ValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
+            ValueIndexEntryUpdate secondExternalUpdate = ValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
             assertThrows(IndexEntryConflictException.class, () -> {
                 try (IndexUpdater updater = populator.newPopulatingUpdater(CursorContext.NULL_CONTEXT)) {
                     updater.process(firstExternalUpdate);
@@ -202,8 +202,8 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
         try {
             // when
             Value duplicate = supportedValue(1);
-            ValueIndexEntryUpdate<?> externalUpdate = ValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
-            ValueIndexEntryUpdate<?> scanUpdate = ValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
+            ValueIndexEntryUpdate externalUpdate = ValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
+            ValueIndexEntryUpdate scanUpdate = ValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
             assertThrows(IndexEntryConflictException.class, () -> {
                 try (IndexUpdater updater = populator.newPopulatingUpdater(CursorContext.NULL_CONTEXT)) {
                     updater.process(externalUpdate);
@@ -225,10 +225,9 @@ abstract class BlockBasedIndexPopulatorUpdatesTest<KEY extends NativeIndexKey<KE
             // when
             Value duplicate = supportedValue(1);
             Value unique = supportedValue(2);
-            ValueIndexEntryUpdate<?> firstScanUpdate = ValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
-            ValueIndexEntryUpdate<?> secondScanUpdate = ValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
-            ValueIndexEntryUpdate<?> externalUpdate =
-                    ValueIndexEntryUpdate.change(1, INDEX_DESCRIPTOR, duplicate, unique);
+            ValueIndexEntryUpdate firstScanUpdate = ValueIndexEntryUpdate.add(1, INDEX_DESCRIPTOR, duplicate);
+            ValueIndexEntryUpdate secondScanUpdate = ValueIndexEntryUpdate.add(2, INDEX_DESCRIPTOR, duplicate);
+            ValueIndexEntryUpdate externalUpdate = ValueIndexEntryUpdate.change(1, INDEX_DESCRIPTOR, duplicate, unique);
             populator.add(singleton(firstScanUpdate), CursorContext.NULL_CONTEXT);
             try (IndexUpdater updater = populator.newPopulatingUpdater(CursorContext.NULL_CONTEXT)) {
                 updater.process(externalUpdate);

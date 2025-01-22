@@ -161,7 +161,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
     @Test
     void shouldUpdateWithAllValues() throws Exception {
         // GIVEN
-        List<ValueIndexEntryUpdate<?>> updates = updates(valueSet1);
+        List<ValueIndexEntryUpdate> updates = updates(valueSet1);
         updateAndCommit(updates);
 
         // then
@@ -175,7 +175,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
     @Test
     void shouldScanAllValues() throws Exception {
         // GIVEN
-        List<ValueIndexEntryUpdate<?>> updates = updates(valueSet1);
+        List<ValueIndexEntryUpdate> updates = updates(valueSet1);
         updateAndCommit(updates);
         Long[] allNodes = valueSet1.stream().map(x -> x.nodeId).toArray(Long[]::new);
 
@@ -187,7 +187,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
     @Test
     void shouldScanAllValuesThatExistWithPropKey() throws Exception {
         // GIVEN
-        List<ValueIndexEntryUpdate<?>> updates = updates(valueSet1);
+        List<ValueIndexEntryUpdate> updates = updates(valueSet1);
         updateAndCommit(updates);
         Long[] allNodes = valueSet1.stream().map(x -> x.nodeId).toArray(Long[]::new);
 
@@ -320,7 +320,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
     private void testIndexRangeSeek(Supplier<? extends Value> generator) throws Exception {
         int count = random.nextInt(5, 10);
         List<Value> values = new ArrayList<>();
-        List<ValueIndexEntryUpdate<?>> updates = new ArrayList<>();
+        List<ValueIndexEntryUpdate> updates = new ArrayList<>();
         Set<Value> duplicateCheck = new HashSet<>();
         for (int i = 0; i < count; i++) {
             Value value;
@@ -875,7 +875,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
             assumeTrue(descriptor.getCapability().supportsOrdering(), "Assume support for order " + order);
         }
 
-        List<ValueIndexEntryUpdate<?>> additions =
+        List<ValueIndexEntryUpdate> additions =
                 Arrays.stream(objects).map(o -> add(1, descriptor, o)).collect(Collectors.toList());
         Collections.shuffle(additions, random.random());
         updateAndCommit(additions);
@@ -1099,7 +1099,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
         }
 
         private void doTestShouldHandleLargeAmountOfDuplicates(Object value) throws Exception {
-            List<ValueIndexEntryUpdate<?>> updates = new ArrayList<>();
+            List<ValueIndexEntryUpdate> updates = new ArrayList<>();
             List<Long> nodeIds = new ArrayList<>();
             for (long i = 0; i < 1000; i++) {
                 nodeIds.add(i);

@@ -106,8 +106,8 @@ class IndexUpdateSinkTest {
         verify(updater).close();
     }
 
-    private Collection<IndexEntryUpdate<?>> updates(int count) {
-        List<IndexEntryUpdate<?>> updates = new ArrayList<>();
+    private Collection<IndexEntryUpdate> updates(int count) {
+        List<IndexEntryUpdate> updates = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             updates.add(IndexEntryUpdate.add(i, descriptor, Values.intValue(i)));
         }

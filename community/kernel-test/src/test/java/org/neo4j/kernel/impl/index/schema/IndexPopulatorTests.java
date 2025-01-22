@@ -133,7 +133,7 @@ abstract class IndexPopulatorTests<KEY, VALUE, LAYOUT extends Layout<KEY, VALUE>
     void addShouldHandleEmptyCollection() throws Exception {
         // given
         populator.create();
-        List<IndexEntryUpdate<?>> updates = Collections.emptyList();
+        List<IndexEntryUpdate> updates = Collections.emptyList();
 
         // when
         populator.add(updates, NULL_CONTEXT);

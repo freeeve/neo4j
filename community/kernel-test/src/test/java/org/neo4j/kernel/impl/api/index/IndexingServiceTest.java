@@ -320,7 +320,7 @@ class IndexingServiceTest {
             }
 
             @Override
-            public void indexPopulationScanComplete() {
+            public void indexPopulationScanComplete(IndexDescriptor[] indexDescriptors) {
                 try {
                     populationLatch.await();
                 } catch (InterruptedException e) {
@@ -342,7 +342,7 @@ class IndexingServiceTest {
         populationStartBarrier.await();
         populationStartBarrier.release();
 
-        IndexEntryUpdate<?> value2 = add(2, "value2");
+        IndexEntryUpdate value2 = add(2, "value2");
         try (IndexUpdater updater = proxy.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
             updater.process(value2);
         }
@@ -798,9 +798,9 @@ class IndexingServiceTest {
         return true;
     }
 
-    private Iterable<IndexEntryUpdate<IndexDescriptor>> nodeIdsAsIndexUpdates(long... nodeIds) {
+    private Iterable<IndexEntryUpdate> nodeIdsAsIndexUpdates(long... nodeIds) {
         return () -> {
-            List<IndexEntryUpdate<IndexDescriptor>> updates = new ArrayList<>();
+            List<IndexEntryUpdate> updates = new ArrayList<>();
             for (long nodeId : nodeIds) {
                 updates.add(IndexEntryUpdate.add(nodeId, index, Values.of(1)));
             }
@@ -1861,11 +1861,11 @@ class IndexingServiceTest {
         return new Update(nodeId, new int[] {labelId}, prototype.schema().getPropertyId(), Values.of(propertyValue));
     }
 
-    private IndexEntryUpdate<IndexDescriptor> add(long nodeId, Object propertyValue) {
+    private IndexEntryUpdate add(long nodeId, Object propertyValue) {
         return IndexEntryUpdate.add(nodeId, index, Values.of(propertyValue));
     }
 
-    private static IndexEntryUpdate<IndexDescriptor> add(long nodeId, Object propertyValue, IndexDescriptor index) {
+    private static IndexEntryUpdate add(long nodeId, Object propertyValue, IndexDescriptor index) {
         return IndexEntryUpdate.add(nodeId, index, Values.of(propertyValue));
     }
 

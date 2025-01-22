@@ -41,6 +41,8 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
+import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptorSupplier;
 import org.neo4j.internal.schema.SchemaDescriptors;
@@ -69,20 +71,22 @@ class TextIndexPopulatingUpdaterIT {
     @Inject
     private TestDirectory testDir;
 
-    private static final SchemaDescriptorSupplier SCHEMA_DESCRIPTOR = () -> SchemaDescriptors.forLabel(1, 42);
+    private static final IndexDescriptor INDEX_DESCRIPTOR = IndexPrototype.forSchema(SchemaDescriptors.forLabel(1, 42))
+            .withName("index_1")
+            .materialise(1);
 
     @Test
     void shouldSampleAdditions() throws Exception {
         // Given
         var provider = createIndexProvider();
-        var populator = getPopulator(provider, SCHEMA_DESCRIPTOR);
+        var populator = getPopulator(provider, INDEX_DESCRIPTOR);
 
         // When
         try (var updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
-            updater.process(add(1, SCHEMA_DESCRIPTOR, "foo"));
-            updater.process(add(2, SCHEMA_DESCRIPTOR, "bar"));
-            updater.process(add(3, SCHEMA_DESCRIPTOR, "baz"));
-            updater.process(add(4, SCHEMA_DESCRIPTOR, "bar"));
+            updater.process(add(1, INDEX_DESCRIPTOR, "foo"));
+            updater.process(add(2, INDEX_DESCRIPTOR, "bar"));
+            updater.process(add(3, INDEX_DESCRIPTOR, "baz"));
+            updater.process(add(4, INDEX_DESCRIPTOR, "bar"));
         }
 
         // Then
@@ -93,15 +97,15 @@ class TextIndexPopulatingUpdaterIT {
     void shouldSampleUpdates() throws Exception {
         // Given
         var provider = createIndexProvider();
-        var populator = getPopulator(provider, SCHEMA_DESCRIPTOR);
+        var populator = getPopulator(provider, INDEX_DESCRIPTOR);
 
         // When
         try (var updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
-            updater.process(add(1, SCHEMA_DESCRIPTOR, "initial1"));
-            updater.process(add(2, SCHEMA_DESCRIPTOR, "initial2"));
-            updater.process(add(3, SCHEMA_DESCRIPTOR, "new2"));
-            updater.process(change(1, SCHEMA_DESCRIPTOR, "initial1", "new1"));
-            updater.process(change(1, SCHEMA_DESCRIPTOR, "initial2", "new2"));
+            updater.process(add(1, INDEX_DESCRIPTOR, "initial1"));
+            updater.process(add(2, INDEX_DESCRIPTOR, "initial2"));
+            updater.process(add(3, INDEX_DESCRIPTOR, "new2"));
+            updater.process(change(1, INDEX_DESCRIPTOR, "initial1", "new1"));
+            updater.process(change(1, INDEX_DESCRIPTOR, "initial2", "new2"));
         }
 
         // Then samples calculated with documents pending merge
@@ -112,17 +116,17 @@ class TextIndexPopulatingUpdaterIT {
     void shouldSampleRemovals() throws Exception {
         // Given
         var provider = createIndexProvider();
-        var populator = getPopulator(provider, SCHEMA_DESCRIPTOR);
+        var populator = getPopulator(provider, INDEX_DESCRIPTOR);
 
         // When
         try (var updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
-            updater.process(add(1, SCHEMA_DESCRIPTOR, "foo"));
-            updater.process(add(2, SCHEMA_DESCRIPTOR, "bar"));
-            updater.process(add(3, SCHEMA_DESCRIPTOR, "baz"));
-            updater.process(add(4, SCHEMA_DESCRIPTOR, "qux"));
-            updater.process(remove(1, SCHEMA_DESCRIPTOR, "foo"));
-            updater.process(remove(2, SCHEMA_DESCRIPTOR, "bar"));
-            updater.process(remove(4, SCHEMA_DESCRIPTOR, "qux"));
+            updater.process(add(1, INDEX_DESCRIPTOR, "foo"));
+            updater.process(add(2, INDEX_DESCRIPTOR, "bar"));
+            updater.process(add(3, INDEX_DESCRIPTOR, "baz"));
+            updater.process(add(4, INDEX_DESCRIPTOR, "qux"));
+            updater.process(remove(1, INDEX_DESCRIPTOR, "foo"));
+            updater.process(remove(2, INDEX_DESCRIPTOR, "bar"));
+            updater.process(remove(4, INDEX_DESCRIPTOR, "qux"));
         }
 
         // Then samples calculated with documents pending merge
@@ -133,7 +137,7 @@ class TextIndexPopulatingUpdaterIT {
     final void shouldIgnoreAddedUnsupportedValueTypes() throws Exception {
         // given  the population of an empty index
         final var externalUpdates =
-                generateUpdates(10, id -> IndexEntryUpdate.add(id, SCHEMA_DESCRIPTOR, unsupportedValue(id)));
+                generateUpdates(10, id -> IndexEntryUpdate.add(id, INDEX_DESCRIPTOR, unsupportedValue(id)));
         // when   processing the addition of unsupported value types
         // then   updates should not have been indexed
         test(List.of(), externalUpdates, 0);
@@ -143,7 +147,7 @@ class TextIndexPopulatingUpdaterIT {
     final void shouldIgnoreRemovedUnsupportedValueTypes() throws Exception {
         // given  the population of an empty index
         final var externalUpdates =
-                generateUpdates(10, id -> IndexEntryUpdate.remove(id, SCHEMA_DESCRIPTOR, unsupportedValue(id)));
+                generateUpdates(10, id -> IndexEntryUpdate.remove(id, INDEX_DESCRIPTOR, unsupportedValue(id)));
         // when   processing the removal of unsupported value types
         // then   updates should not have been indexed
         test(List.of(), externalUpdates, 0);
@@ -154,7 +158,7 @@ class TextIndexPopulatingUpdaterIT {
         // given  the population of an empty index
         final var externalUpdates = generateUpdates(
                 10,
-                id -> IndexEntryUpdate.change(id, SCHEMA_DESCRIPTOR, unsupportedValue(id), unsupportedValue(id + 1)));
+                id -> IndexEntryUpdate.change(id, INDEX_DESCRIPTOR, unsupportedValue(id), unsupportedValue(id + 1)));
         // when   processing the change between unsupported value types
         // then   updates should not have been indexed
         test(List.of(), externalUpdates, 0);
@@ -164,7 +168,7 @@ class TextIndexPopulatingUpdaterIT {
     final void shouldNotIgnoreChangesUnsupportedValueTypesToSupportedValueTypes() throws Exception {
         // given  the population of an empty index
         final var externalUpdates = generateUpdates(
-                10, id -> IndexEntryUpdate.change(id, SCHEMA_DESCRIPTOR, unsupportedValue(id), supportedValue(id)));
+                10, id -> IndexEntryUpdate.change(id, INDEX_DESCRIPTOR, unsupportedValue(id), supportedValue(id)));
         // when   processing the change from an unsupported to a supported value type
         // then   updates should have been indexed as additions
         test(List.of(), externalUpdates, externalUpdates.size());
@@ -174,22 +178,22 @@ class TextIndexPopulatingUpdaterIT {
     final void shouldNotIgnoreChangesSupportedValueTypesToUnsupportedValueTypes() throws Exception {
         // given  the population of an empty index
         final var internalUpdates =
-                generateUpdates(10, id1 -> IndexEntryUpdate.add(id1, SCHEMA_DESCRIPTOR, supportedValue(id1)));
+                generateUpdates(10, id1 -> IndexEntryUpdate.add(id1, INDEX_DESCRIPTOR, supportedValue(id1)));
         final var externalUpdates = generateUpdates(
-                10, id -> IndexEntryUpdate.change(id, SCHEMA_DESCRIPTOR, supportedValue(id), unsupportedValue(id)));
+                10, id -> IndexEntryUpdate.change(id, INDEX_DESCRIPTOR, supportedValue(id), unsupportedValue(id)));
         // when   processing the change from a supported to an unsupported value type
         // then   updates should have been indexed as removals
         test(internalUpdates, externalUpdates, 0);
     }
 
     private void test(
-            Collection<IndexEntryUpdate<?>> internalUpdates,
-            Collection<IndexEntryUpdate<?>> externalUpdates,
+            Collection<IndexEntryUpdate> internalUpdates,
+            Collection<IndexEntryUpdate> externalUpdates,
             long expectedIndexSize)
             throws Exception {
 
         final var provider = createIndexProvider();
-        final var populator = getPopulator(provider, SCHEMA_DESCRIPTOR);
+        final var populator = getPopulator(provider, INDEX_DESCRIPTOR);
         populator.add(internalUpdates, NULL_CONTEXT);
 
         try (var updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
@@ -210,7 +214,7 @@ class TextIndexPopulatingUpdaterIT {
         return Values.of(i);
     }
 
-    private Collection<IndexEntryUpdate<?>> generateUpdates(long n, LongFunction<IndexEntryUpdate<?>> updateFunction) {
+    private Collection<IndexEntryUpdate> generateUpdates(long n, LongFunction<IndexEntryUpdate> updateFunction) {
         return LongStream.range(0L, n).mapToObj(updateFunction).toList();
     }
 

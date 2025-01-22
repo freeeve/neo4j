@@ -122,7 +122,7 @@ abstract class BaseAccessorTilesTest<KEY extends NativeIndexKey<KEY>> {
         double yWidthMultiplier = curve.getTileWidth(1, curve.getMaxLevel()) / 2;
 
         List<Value> pointValues = new ArrayList<>();
-        List<IndexEntryUpdate<IndexDescriptor>> updates = new ArrayList<>();
+        List<IndexEntryUpdate> updates = new ArrayList<>();
         long nodeId = 1;
         for (int i = 0; i < nbrOfValues / 4; i++) {
             double x1 = (random.nextDouble() * 2 - 1) * xWidthMultiplier;
@@ -195,7 +195,7 @@ abstract class BaseAccessorTilesTest<KEY extends NativeIndexKey<KEY>> {
         int nbrOfValues = 10_000;
 
         List<PointValue> pointsInside = new ArrayList<>();
-        List<IndexEntryUpdate<IndexDescriptor>> updates = new ArrayList<>();
+        List<IndexEntryUpdate> updates = new ArrayList<>();
 
         for (int i = 0; i < nbrOfValues; i++) {
             double distanceMultiplier = random.nextDouble() * 2;
@@ -229,10 +229,7 @@ abstract class BaseAccessorTilesTest<KEY extends NativeIndexKey<KEY>> {
     }
 
     private long addPointsToLists(
-            List<Value> pointValues,
-            List<IndexEntryUpdate<IndexDescriptor>> updates,
-            long nodeId,
-            PointValue... values) {
+            List<Value> pointValues, List<IndexEntryUpdate> updates, long nodeId, PointValue... values) {
         for (PointValue value : values) {
             pointValues.add(value);
             updates.add(IndexEntryUpdate.add(nodeId++, descriptor, value));
@@ -250,9 +247,9 @@ abstract class BaseAccessorTilesTest<KEY extends NativeIndexKey<KEY>> {
         }
     }
 
-    void processAll(List<IndexEntryUpdate<IndexDescriptor>> updates) throws IndexEntryConflictException {
+    void processAll(List<IndexEntryUpdate> updates) throws IndexEntryConflictException {
         try (NativeIndexUpdater<KEY> updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-            for (IndexEntryUpdate<IndexDescriptor> update : updates) {
+            for (IndexEntryUpdate update : updates) {
                 updater.process(update);
             }
         }

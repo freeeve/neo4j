@@ -37,7 +37,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.index.internal.gbptree.Layout;
 import org.neo4j.index.internal.gbptree.Seeker;
-import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.io.memory.UnsafeDirectByteBufferAllocator;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
@@ -59,7 +58,7 @@ abstract class GenericBlockBasedIndexPopulatorTest<KEY extends GenericKey<KEY>>
             int size = populator.tree.keyValueSizeCap();
             Layout<KEY, NullValue> layout = layout();
             Value value = generateStringValueResultingInIndexEntrySize(layout, size);
-            IndexEntryUpdate<IndexDescriptor> update = IndexEntryUpdate.add(0, INDEX_DESCRIPTOR, value);
+            IndexEntryUpdate update = IndexEntryUpdate.add(0, INDEX_DESCRIPTOR, value);
             Race.ThrowingRunnable updateAction = () -> {
                 try (IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
                     updater.process(update);
@@ -95,7 +94,7 @@ abstract class GenericBlockBasedIndexPopulatorTest<KEY extends GenericKey<KEY>>
             int size = populator.tree.keyValueSizeCap();
             Layout<KEY, NullValue> layout = layout();
             Value value = generateStringValueResultingInIndexEntrySize(layout, size);
-            Collection<? extends IndexEntryUpdate<?>> data =
+            Collection<? extends IndexEntryUpdate> data =
                     singletonList(IndexEntryUpdate.add(0, INDEX_DESCRIPTOR, value));
             populator.add(data, NULL_CONTEXT);
             populator.scanCompleted(nullInstance, populationWorkScheduler, NULL_CONTEXT);

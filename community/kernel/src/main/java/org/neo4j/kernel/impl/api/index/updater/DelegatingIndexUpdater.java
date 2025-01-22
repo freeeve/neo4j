@@ -31,7 +31,7 @@ public class DelegatingIndexUpdater implements IndexUpdater {
     }
 
     @Override
-    public void process(IndexEntryUpdate<?> update) throws IndexEntryConflictException {
+    public void process(IndexEntryUpdate update) throws IndexEntryConflictException {
         delegate.process(update);
     }
 

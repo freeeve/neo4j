@@ -78,7 +78,7 @@ class TokenIndexPopulationTest {
     private IndexDescriptor tokenIndex;
     private final IndexPopulator tokenIndexPopulator = mock(IndexPopulator.class);
 
-    private final ArgumentCaptor<Collection<? extends IndexEntryUpdate<?>>> indexUpdates =
+    private final ArgumentCaptor<Collection<? extends IndexEntryUpdate>> indexUpdates =
             ArgumentCaptor.forClass(Collection.class);
 
     private MultipleIndexPopulator multipleIndexPopulator;
@@ -129,8 +129,8 @@ class TokenIndexPopulationTest {
 
         var indexUpdateBatches = indexUpdates.getAllValues();
         assertEquals(1, indexUpdateBatches.size());
-        Set<? extends IndexEntryUpdate<?>> indexEntryUpdates = new HashSet<>(indexUpdateBatches.get(0));
-        Set<? extends IndexEntryUpdate<?>> expectedUpdates = Set.of(
+        Set<? extends IndexEntryUpdate> indexEntryUpdates = new HashSet<>(indexUpdateBatches.get(0));
+        Set<? extends IndexEntryUpdate> expectedUpdates = Set.of(
                 IndexEntryUpdate.change(1, tokenIndex, new int[] {}, new int[] {123}),
                 IndexEntryUpdate.change(2, tokenIndex, new int[] {}, new int[] {123, 111}),
                 IndexEntryUpdate.change(3, tokenIndex, new int[] {}, new int[] {111}));

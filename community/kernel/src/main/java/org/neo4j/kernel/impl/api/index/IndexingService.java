@@ -605,8 +605,7 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
      * @throws KernelException potentially thrown from index updating.
      */
     @Override
-    public void applyUpdates(
-            Iterable<IndexEntryUpdate<IndexDescriptor>> updates, CursorContext cursorContext, boolean parallel)
+    public void applyUpdates(Iterable<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel)
             throws KernelException {
         if (state == State.NOT_STARTED) {
             // We're in recovery, which means we'll be telling indexes to apply with additional care for making
@@ -621,13 +620,13 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
     }
 
     private void apply(
-            Iterable<IndexEntryUpdate<IndexDescriptor>> updates,
+            Iterable<IndexEntryUpdate> updates,
             IndexUpdateMode updateMode,
             CursorContext cursorContext,
             boolean parallel)
             throws KernelException {
         try (IndexUpdaterMap updaterMap = indexMapRef.createIndexUpdaterMap(updateMode, parallel)) {
-            for (IndexEntryUpdate<IndexDescriptor> indexUpdate : updates) {
+            for (var indexUpdate : updates) {
                 processUpdate(updaterMap, indexUpdate, cursorContext);
             }
         }
@@ -651,7 +650,7 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
     }
 
     private static void processUpdate(
-            IndexUpdaterMap updaterMap, IndexEntryUpdate<IndexDescriptor> indexUpdate, CursorContext cursorContext)
+            IndexUpdaterMap updaterMap, IndexEntryUpdate indexUpdate, CursorContext cursorContext)
             throws IndexEntryConflictException {
         IndexUpdater updater = updaterMap.getUpdater(indexUpdate.indexKey(), cursorContext);
         if (updater != null) {

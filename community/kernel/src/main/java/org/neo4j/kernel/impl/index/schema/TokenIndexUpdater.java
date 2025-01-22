@@ -152,13 +152,13 @@ class TokenIndexUpdater implements IndexUpdater {
      * Calls to this method MUST be ordered by ascending entity id.
      */
     @Override
-    public void process(IndexEntryUpdate<?> update) throws IndexEntryConflictException {
+    public void process(IndexEntryUpdate update) throws IndexEntryConflictException {
         assertOpen();
         if (pendingUpdatesCursor == pendingUpdates.length) {
             flushPendingChanges();
         }
 
-        TokenIndexEntryUpdate<?> tokenUpdate = asTokenUpdate(update);
+        var tokenUpdate = asTokenUpdate(update);
         LogicalTokenUpdates logicalTokenUpdate =
                 PhysicalToLogicalTokenChanges.convertToAdditionsAndRemovals(tokenUpdate);
         pendingUpdates[pendingUpdatesCursor++] = logicalTokenUpdate;
@@ -196,7 +196,7 @@ class TokenIndexUpdater implements IndexUpdater {
         flushPendingRange(changes);
         pendingUpdatesCursor = 0;
 
-        if (parallel) {
+        if (changes != null) {
             for (Change change : changes) {
                 writeChange(change.key, change.value, change.addition);
             }

@@ -130,7 +130,7 @@ public class ImportIndexBuilder implements Closeable {
                 Config.defaults().get(index_populator_block_size).intValue());
     }
 
-    public void add(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
+    public void add(IndexEntryUpdate indexUpdate) {
         if (!excludedIndexes.contains(indexUpdate.indexKey())) {
             var builder = getIndexBuilder(indexUpdate.indexKey());
             builder.add(convertEntityId(indexUpdate));
@@ -142,7 +142,7 @@ public class ImportIndexBuilder implements Closeable {
      * (whether conflicting or not) must be known as a result.
      * @return {@code true} if the index update was applied w/o problems, otherwise {@code false}.
      */
-    public boolean addDirect(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
+    public boolean addDirect(IndexEntryUpdate indexUpdate) {
         if (!excludedIndexes.contains(indexUpdate.indexKey())) {
             var builder = getIndexBuilder(indexUpdate.indexKey());
             return builder.addDirect(convertEntityId(indexUpdate));
@@ -150,7 +150,7 @@ public class ImportIndexBuilder implements Closeable {
         return true;
     }
 
-    private IndexEntryUpdate<IndexDescriptor> convertEntityId(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
+    private IndexEntryUpdate convertEntityId(IndexEntryUpdate indexUpdate) {
         long entityId = indexUpdate.getEntityId();
         long convertedEntityId = indexedEntityIdConverter.applyAsLong(entityId);
         return entityId != convertedEntityId ? indexUpdate.withEntityId(convertedEntityId) : indexUpdate;
@@ -383,7 +383,7 @@ public class ImportIndexBuilder implements Closeable {
             this.accessor = accessor;
         }
 
-        void add(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
+        void add(IndexEntryUpdate indexUpdate) {
             if (indexUpdate.updateMode() == UpdateMode.ADDED) {
                 try {
                     populator.add(List.of(indexUpdate), NULL_CONTEXT);
@@ -396,7 +396,7 @@ public class ImportIndexBuilder implements Closeable {
             }
         }
 
-        boolean addDirect(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
+        boolean addDirect(IndexEntryUpdate indexUpdate) {
             assert indexUpdate.updateMode() == UpdateMode.ADDED || indexUpdate.updateMode() == UpdateMode.REMOVED;
             try (var updater = accessor.newUpdater(IndexUpdateMode.DIRECT, NULL_CONTEXT, true)) {
                 updater.process(indexUpdate);
@@ -421,14 +421,14 @@ public class ImportIndexBuilder implements Closeable {
     private static class IndexUpdatesBatch {
         private static final int BATCH_SIZE = 100;
 
-        private final List<IndexEntryUpdate<IndexDescriptor>> changes = new ArrayList<>();
+        private final List<IndexEntryUpdate> changes = new ArrayList<>();
         private final IndexAccessor accessor;
 
         IndexUpdatesBatch(IndexAccessor accessor) {
             this.accessor = accessor;
         }
 
-        void add(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
+        void add(IndexEntryUpdate indexUpdate) {
             changes.add(indexUpdate);
             if (changes.size() == BATCH_SIZE) {
                 flushChanges();

@@ -39,7 +39,7 @@ public class NullIndexUpdateSink extends IndexUpdateSink {
     public void enqueueTransactionBatchOfUpdates(
             DatabaseIndex<? extends IndexReader> index,
             IndexUpdater indexUpdater,
-            Collection<IndexEntryUpdate<?>> updates) {}
+            Collection<IndexEntryUpdate> updates) {}
 
     @Override
     public void awaitUpdateApplication() {}

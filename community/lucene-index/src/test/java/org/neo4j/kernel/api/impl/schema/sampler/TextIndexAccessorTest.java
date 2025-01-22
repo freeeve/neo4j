@@ -79,7 +79,6 @@ import org.neo4j.kernel.api.impl.schema.TextIndexBuilder;
 import org.neo4j.kernel.api.impl.schema.TextIndexProvider;
 import org.neo4j.kernel.api.index.IndexQueryHelper;
 import org.neo4j.kernel.api.index.IndexSampler;
-import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.index.schema.NodeValueIterator;
@@ -407,21 +406,21 @@ public class TextIndexAccessorTest {
         }
     }
 
-    private IndexEntryUpdate<?> add(long nodeId, Object value) {
+    private IndexEntryUpdate add(long nodeId, Object value) {
         return IndexQueryHelper.add(nodeId, index, value);
     }
 
-    private IndexEntryUpdate<?> remove(long nodeId, Object value) {
+    private IndexEntryUpdate remove(long nodeId, Object value) {
         return IndexQueryHelper.remove(nodeId, index, value);
     }
 
-    private IndexEntryUpdate<?> change(long nodeId, Object valueBefore, Object valueAfter) {
+    private IndexEntryUpdate change(long nodeId, Object valueBefore, Object valueAfter) {
         return IndexQueryHelper.change(nodeId, index, valueBefore, valueAfter);
     }
 
-    private void updateAndCommit(List<IndexEntryUpdate<?>> nodePropertyUpdates) throws IndexEntryConflictException {
-        try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
-            for (IndexEntryUpdate<?> update : nodePropertyUpdates) {
+    private void updateAndCommit(List<IndexEntryUpdate> nodePropertyUpdates) throws IndexEntryConflictException {
+        try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
+            for (var update : nodePropertyUpdates) {
                 updater.process(update);
             }
         }

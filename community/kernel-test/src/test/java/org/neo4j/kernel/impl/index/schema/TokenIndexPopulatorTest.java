@@ -107,7 +107,7 @@ class TokenIndexPopulatorTest extends IndexPopulatorTests<TokenScanKey, TokenSca
 
         populator.create();
 
-        List<TokenIndexEntryUpdate<?>> updates = TokenIndexUtility.generateSomeRandomUpdates(entityTokens, random);
+        List<TokenIndexEntryUpdate> updates = TokenIndexUtility.generateSomeRandomUpdates(entityTokens, random);
         // Add updates to populator
         populator.add(updates, NULL_CONTEXT);
 
@@ -124,10 +124,10 @@ class TokenIndexPopulatorTest extends IndexPopulatorTests<TokenScanKey, TokenSca
 
         populator.create();
 
-        List<TokenIndexEntryUpdate<?>> updates = TokenIndexUtility.generateSomeRandomUpdates(entityTokens, random);
+        List<TokenIndexEntryUpdate> updates = TokenIndexUtility.generateSomeRandomUpdates(entityTokens, random);
 
         try (IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
-            for (TokenIndexEntryUpdate<?> update : updates) {
+            for (TokenIndexEntryUpdate update : updates) {
                 updater.process(update);
             }
         }
@@ -166,7 +166,7 @@ class TokenIndexPopulatorTest extends IndexPopulatorTests<TokenScanKey, TokenSca
 
         while (currentScanId < numberOfEntities) {
             // Collect a batch of max 100 updates from scan
-            List<TokenIndexEntryUpdate<?>> updates = new ArrayList<>();
+            List<TokenIndexEntryUpdate> updates = new ArrayList<>();
             for (int i = 0; i < 100 && currentScanId < numberOfEntities; i++) {
                 TokenIndexUtility.generateRandomUpdate(currentScanId, entityTokens, updates, random);
 

@@ -27,7 +27,6 @@ import java.util.concurrent.ExecutionException;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.exceptions.UnderlyingStorageException;
 import org.neo4j.internal.helpers.collection.NestingIterator;
-import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexUpdateListener;
@@ -57,9 +56,9 @@ public class IndexUpdatesWorkSync {
     }
 
     public class Batch implements IndexUpdatesListener {
-        private final List<Iterable<IndexEntryUpdate<IndexDescriptor>>> updates = new ArrayList<>();
+        private final List<Iterable<IndexEntryUpdate>> updates = new ArrayList<>();
         private final CursorContext cursorContext;
-        private List<IndexEntryUpdate<IndexDescriptor>> singleUpdates;
+        private List<IndexEntryUpdate> singleUpdates;
         private AsyncApply apply;
 
         public Batch(CursorContext cursorContext) {
@@ -67,12 +66,12 @@ public class IndexUpdatesWorkSync {
         }
 
         @Override
-        public void indexUpdates(Iterable<IndexEntryUpdate<IndexDescriptor>> indexUpdates) {
+        public void indexUpdates(Iterable<IndexEntryUpdate> indexUpdates) {
             updates.add(indexUpdates);
         }
 
         @Override
-        public void indexUpdate(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
+        public void indexUpdate(IndexEntryUpdate indexUpdate) {
             if (singleUpdates == null) {
                 singleUpdates = new ArrayList<>();
             }
@@ -143,11 +142,11 @@ public class IndexUpdatesWorkSync {
      * Combines index updates from multiple transactions into one bigger job.
      */
     private static class IndexUpdatesWork implements Work<IndexUpdateListener, IndexUpdatesWork> {
-        record OneWork(Iterable<IndexEntryUpdate<IndexDescriptor>> updates, CursorContext cursorContext) {}
+        record OneWork(Iterable<IndexEntryUpdate> updates, CursorContext cursorContext) {}
 
         private final List<OneWork> works = new ArrayList<>(1);
 
-        IndexUpdatesWork(Iterable<IndexEntryUpdate<IndexDescriptor>> updates, CursorContext cursorContext) {
+        IndexUpdatesWork(Iterable<IndexEntryUpdate> updates, CursorContext cursorContext) {
             works.add(new OneWork(updates, cursorContext));
         }
 
@@ -169,12 +168,10 @@ public class IndexUpdatesWorkSync {
         }
     }
 
-    private static Iterable<IndexEntryUpdate<IndexDescriptor>> combinedUpdates(
-            List<Iterable<IndexEntryUpdate<IndexDescriptor>>> updates) {
+    private static Iterable<IndexEntryUpdate> combinedUpdates(List<Iterable<IndexEntryUpdate>> updates) {
         return () -> new NestingIterator<>(updates.iterator()) {
             @Override
-            protected Iterator<IndexEntryUpdate<IndexDescriptor>> createNestedIterator(
-                    Iterable<IndexEntryUpdate<IndexDescriptor>> item) {
+            protected Iterator<IndexEntryUpdate> createNestedIterator(Iterable<IndexEntryUpdate> item) {
                 return item.iterator();
             }
         };

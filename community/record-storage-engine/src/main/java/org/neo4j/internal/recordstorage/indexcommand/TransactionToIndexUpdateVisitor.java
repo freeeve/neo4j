@@ -179,19 +179,18 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
             IndexDescriptor descriptor, long entityId, ValueTuple values, EntityChange entityChange) {
         super.visitValueIndexUpdate(descriptor, entityId, values, entityChange);
         var key = new IndexRecordState.IndexEntityPair(descriptor.getId(), entityId);
-        ValueIndexEntryUpdate<IndexDescriptor> existingUpdate = indexRecordState.getValueUpdate(key);
+        ValueIndexEntryUpdate existingUpdate = indexRecordState.getValueUpdate(key);
 
-        var update = getValueUpdate(descriptor, entityId, values, entityChange, existingUpdate, key);
+        var update = getValueUpdate(descriptor, entityId, values, entityChange, existingUpdate);
         indexRecordState.putValueUpdate(key, update);
     }
 
-    private ValueIndexEntryUpdate<IndexDescriptor> getValueUpdate(
+    private ValueIndexEntryUpdate getValueUpdate(
             IndexDescriptor descriptor,
             long entityId,
             ValueTuple values,
             EntityChange entityChange,
-            ValueIndexEntryUpdate<IndexDescriptor> existingUpdate,
-            IndexRecordState.IndexEntityPair key) {
+            ValueIndexEntryUpdate existingUpdate) {
         if (entityChange == EntityChange.ADDED) {
             return existingUpdate == null
                     ? add(entityId, descriptor, values.getValues())

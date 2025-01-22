@@ -262,8 +262,8 @@ abstract class SimpleIndexPopulatorCompatibility extends PropertyIndexProviderCo
             // WHEN
             try (IndexUpdater updater =
                     accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
-                List<ValueIndexEntryUpdate<?>> updates = updates(valueSet2);
-                for (ValueIndexEntryUpdate<?> update : updates) {
+                List<ValueIndexEntryUpdate> updates = updates(valueSet2);
+                for (ValueIndexEntryUpdate update : updates) {
                     updater.process(update);
                 }
             }

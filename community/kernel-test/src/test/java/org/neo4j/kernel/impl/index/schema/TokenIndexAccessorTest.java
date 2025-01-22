@@ -122,11 +122,11 @@ public class TokenIndexAccessorTest extends IndexAccessorTests<TokenScanKey, Tok
     void shouldAddWithUpdater() throws IndexEntryConflictException, IOException {
         // Give
         MutableLongObjectMap<int[]> entityTokens = LongObjectMaps.mutable.empty();
-        List<TokenIndexEntryUpdate<?>> updates = generateSomeRandomUpdates(entityTokens, random);
+        List<TokenIndexEntryUpdate> updates = generateSomeRandomUpdates(entityTokens, random);
 
         // When
         try (IndexUpdater updater = accessor.newUpdater(ONLINE, NULL_CONTEXT, false)) {
-            for (TokenIndexEntryUpdate<?> update : updates) {
+            for (TokenIndexEntryUpdate update : updates) {
                 updater.process(update);
             }
         }
@@ -490,7 +490,7 @@ public class TokenIndexAccessorTest extends IndexAccessorTests<TokenScanKey, Tok
         accessor.close();
     }
 
-    private TokenIndexEntryUpdate<IndexDescriptor> simpleUpdate() {
+    private TokenIndexEntryUpdate simpleUpdate() {
         return TokenIndexEntryUpdate.change(0, indexDescriptor, EMPTY_INT_ARRAY, new int[] {0});
     }
 

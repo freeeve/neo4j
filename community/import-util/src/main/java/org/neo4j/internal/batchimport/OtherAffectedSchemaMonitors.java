@@ -289,7 +289,7 @@ public class OtherAffectedSchemaMonitors implements Supplier<SchemaMonitor>, Clo
          * @see #generateAndValidateUniquenessIndexUpdates(long, ViolationVisitor)
          */
         @Override
-        public void indexUpdate(IndexEntryUpdate<IndexDescriptor> indexUpdate) {
+        public void indexUpdate(IndexEntryUpdate indexUpdate) {
             // TODO can we make this general assumption here? It's probably good because the splitting of
             //  uniqueness index updates to just do the ADD part is _also_ in this monitor.
             if (indexUpdate.indexKey().isUnique() && indexUpdate.updateMode() == UpdateMode.CHANGED) {
@@ -341,7 +341,7 @@ public class OtherAffectedSchemaMonitors implements Supplier<SchemaMonitor>, Clo
             var indexes = schemaCache.getValueIndexesRelatedTo(
                     allEntityTokens.toSortedArray(), EMPTY_INT_ARRAY, propertyKeyTokens, true, entityType);
             if (!indexes.isEmpty()) {
-                List<IndexEntryUpdate<IndexDescriptor>> appliedAdditions = new ArrayList<>();
+                List<IndexEntryUpdate> appliedAdditions = new ArrayList<>();
                 boolean failed = false;
                 for (var index : indexes) {
                     if (index.isUnique()) {
@@ -366,12 +366,12 @@ public class OtherAffectedSchemaMonitors implements Supplier<SchemaMonitor>, Clo
             return true;
         }
 
-        private ValueIndexEntryUpdate<IndexDescriptor> asRemoval(IndexEntryUpdate<IndexDescriptor> update) {
-            var valueUpdate = (ValueIndexEntryUpdate<IndexDescriptor>) update;
+        private ValueIndexEntryUpdate asRemoval(IndexEntryUpdate update) {
+            var valueUpdate = (ValueIndexEntryUpdate) update;
             return ValueIndexEntryUpdate.remove(update.getEntityId(), update.indexKey(), valueUpdate.beforeValues());
         }
 
-        private IndexEntryUpdate<IndexDescriptor> constructIndexUpdate(long entityId, IndexDescriptor index) {
+        private IndexEntryUpdate constructIndexUpdate(long entityId, IndexDescriptor index) {
             var propertyIds = index.schema().getPropertyIds();
             Value[] values = new Value[propertyIds.length];
             for (int i = 0; i < propertyIds.length; i++) {

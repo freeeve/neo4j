@@ -678,18 +678,22 @@ public class MultiIndexPopulationConcurrentUpdatesIT {
                 try (Transaction transaction = db.beginTx()) {
                     Node node = transaction.getNodeById(update.getEntityId());
                     for (int labelId : labelsNameIdMap.values()) {
-                        LabelSchemaDescriptor schema = SchemaDescriptors.forLabel(labelId, propertyId);
-                        for (IndexEntryUpdate<?> indexUpdate :
-                                update.valueUpdatesForIndexKeys(Collections.singleton(() -> schema))) {
-                            ValueIndexEntryUpdate<?> valueUpdate = (ValueIndexEntryUpdate<?>) indexUpdate;
+                        var index = IndexPrototype.forSchema(SchemaDescriptors.forLabel(labelId, propertyId))
+                                .withName("0")
+                                .materialise(0);
+                        for (IndexEntryUpdate indexUpdate :
+                                update.valueUpdatesForIndexKeys(Collections.singleton(index))) {
+                            ValueIndexEntryUpdate valueUpdate = (ValueIndexEntryUpdate) indexUpdate;
                             switch (valueUpdate.updateMode()) {
                                 case CHANGED:
                                 case ADDED:
-                                    node.addLabel(Label.label(labelsIdNameMap.get(schema.getLabelId())));
+                                    node.addLabel(Label.label(
+                                            labelsIdNameMap.get(index.schema().getLabelId())));
                                     node.setProperty(NAME_PROPERTY, valueUpdate.values()[0].asObject());
                                     break;
                                 case REMOVED:
-                                    node.addLabel(Label.label(labelsIdNameMap.get(schema.getLabelId())));
+                                    node.addLabel(Label.label(
+                                            labelsIdNameMap.get(index.schema().getLabelId())));
                                     node.delete();
                                     break;
                                 default:
@@ -709,7 +713,7 @@ public class MultiIndexPopulationConcurrentUpdatesIT {
                             update.propertiesChanged(),
                             false,
                             EntityType.NODE);
-                    Iterable<IndexEntryUpdate<IndexDescriptor>> entryUpdates = update.valueUpdatesForIndexKeys(
+                    Iterable<IndexEntryUpdate> entryUpdates = update.valueUpdatesForIndexKeys(
                             relatedIndexes, reader, EntityType.NODE, NULL_CONTEXT, StoreCursors.NULL, INSTANCE);
                     indexService.applyUpdates(entryUpdates, NULL_CONTEXT, false);
                 }

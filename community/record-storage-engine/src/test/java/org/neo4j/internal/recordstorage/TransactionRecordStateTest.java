@@ -1762,18 +1762,18 @@ class TransactionRecordStateTest {
         assertEquals(types.length, cursor, "Not enough relationship group records found in chain for " + node);
     }
 
-    private Iterable<Iterable<IndexEntryUpdate<IndexDescriptor>>> indexUpdatesOf(
-            NeoStores neoStores, TransactionRecordState state) throws IOException, TransactionFailureException {
+    private Iterable<Iterable<IndexEntryUpdate>> indexUpdatesOf(NeoStores neoStores, TransactionRecordState state)
+            throws IOException, TransactionFailureException {
         return indexUpdatesOf(neoStores, transaction(storeCursors, state));
     }
 
-    private Iterable<Iterable<IndexEntryUpdate<IndexDescriptor>>> indexUpdatesOf(
+    private Iterable<Iterable<IndexEntryUpdate>> indexUpdatesOf(
             NeoStores neoStores, StorageEngineTransaction transaction) throws IOException {
         IndexUpdatesExtractor extractor = new IndexUpdatesExtractor(CommandSelector.NORMAL);
         transaction.commandBatch().accept(extractor);
 
         StorageReader reader = new RecordStorageReader(neoStores);
-        List<Iterable<IndexEntryUpdate<IndexDescriptor>>> updates = new ArrayList<>();
+        List<Iterable<IndexEntryUpdate>> updates = new ArrayList<>();
         OnlineIndexUpdates onlineIndexUpdates = new OnlineIndexUpdates(
                 neoStores.getNodeStore(),
                 schemaCache,

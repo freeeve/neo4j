@@ -238,9 +238,9 @@ abstract class IndexAccessorCompatibility extends PropertyIndexProviderCompatibi
      * Commit these updates to the index. Also store the values, which currently are stored for all types except geometry,
      * so therefore it's done explicitly here so that we can filter on them later.
      */
-    void updateAndCommit(Collection<ValueIndexEntryUpdate<?>> updates) throws IndexEntryConflictException {
+    void updateAndCommit(Collection<ValueIndexEntryUpdate> updates) throws IndexEntryConflictException {
         try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
-            for (ValueIndexEntryUpdate<?> update : updates) {
+            for (ValueIndexEntryUpdate update : updates) {
                 updater.process(update);
                 switch (update.updateMode()) {
                     case ADDED, CHANGED -> committedValues.put(update.getEntityId(), update.values());

@@ -60,13 +60,13 @@ public class PopulatingIndexProxy implements IndexProxy {
         return switch (mode) {
             case ONLINE, RECOVERY -> new PopulatingIndexUpdater() {
                 @Override
-                public void process(IndexEntryUpdate<?> update) {
+                public void process(IndexEntryUpdate update) {
                     job.update(update);
                 }
             };
             default -> new PopulatingIndexUpdater() {
                 @Override
-                public void process(IndexEntryUpdate<?> update) {
+                public void process(IndexEntryUpdate update) {
                     throw new IllegalArgumentException("Unsupported update mode: " + mode);
                 }
             };

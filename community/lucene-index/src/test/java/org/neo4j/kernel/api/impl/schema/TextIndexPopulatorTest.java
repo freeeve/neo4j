@@ -59,7 +59,6 @@ import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexQueryHelper;
-import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
@@ -258,15 +257,15 @@ class TextIndexPopulatorTest {
         }
     }
 
-    private IndexEntryUpdate<?> add(long nodeId, Object value) {
+    private IndexEntryUpdate add(long nodeId, Object value) {
         return IndexQueryHelper.add(nodeId, index, value);
     }
 
-    private IndexEntryUpdate<?> change(long nodeId, Object valueBefore, Object valueAfter) {
+    private IndexEntryUpdate change(long nodeId, Object valueBefore, Object valueAfter) {
         return IndexQueryHelper.change(nodeId, index, valueBefore, valueAfter);
     }
 
-    private IndexEntryUpdate<?> remove(long nodeId, Object removedValue) {
+    private IndexEntryUpdate remove(long nodeId, Object removedValue) {
         return IndexQueryHelper.remove(nodeId, index, removedValue);
     }
 
@@ -298,10 +297,10 @@ class TextIndexPopulatorTest {
         populator.add(singletonList(IndexQueryHelper.add(nodeId, index, value)), NULL_CONTEXT);
     }
 
-    private static void updatePopulator(IndexPopulator populator, Iterable<IndexEntryUpdate<?>> updates)
+    private static void updatePopulator(IndexPopulator populator, Iterable<IndexEntryUpdate> updates)
             throws IndexEntryConflictException {
-        try (IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
-            for (IndexEntryUpdate<?> update : updates) {
+        try (var updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
+            for (var update : updates) {
                 updater.process(update);
             }
         }

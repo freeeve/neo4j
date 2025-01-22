@@ -197,8 +197,7 @@ class FulltextIndexEntryUpdateTest {
         populatorTest(updates, List.of());
     }
 
-    private void populatorTest(Collection<ValueIndexEntryUpdate<IndexDescriptor>> updates, Iterable<Long> expectedIds)
-            throws Exception {
+    private void populatorTest(Collection<ValueIndexEntryUpdate> updates, Iterable<Long> expectedIds) throws Exception {
         final var populator = getPopulator();
         try {
             populator.add(updates, CursorContext.NULL_CONTEXT);
@@ -299,8 +298,8 @@ class FulltextIndexEntryUpdateTest {
         populatingUpdaterTest(updates, List.of());
     }
 
-    private void populatingUpdaterTest(
-            Iterable<ValueIndexEntryUpdate<IndexDescriptor>> updates, Iterable<Long> expectedIds) throws Exception {
+    private void populatingUpdaterTest(Iterable<ValueIndexEntryUpdate> updates, Iterable<Long> expectedIds)
+            throws Exception {
         final var populator = getPopulator();
         try (var updater = getPopulatingUpdater(populator)) {
             for (final var update : updates) {
@@ -403,8 +402,7 @@ class FulltextIndexEntryUpdateTest {
         updaterTest(updates, List.of());
     }
 
-    private void updaterTest(Iterable<ValueIndexEntryUpdate<IndexDescriptor>> updates, Iterable<Long> expectedIds)
-            throws Exception {
+    private void updaterTest(Iterable<ValueIndexEntryUpdate> updates, Iterable<Long> expectedIds) throws Exception {
         try (var accessor = getAccessor();
                 var updater = getUpdater(accessor)) {
             for (final var update : updates) {
@@ -414,8 +412,8 @@ class FulltextIndexEntryUpdateTest {
         assertIndexed(expectedIds);
     }
 
-    private static Collection<ValueIndexEntryUpdate<IndexDescriptor>> generateUpdates(
-            Collection<Long> ids, Function<Long, ValueIndexEntryUpdate<IndexDescriptor>> toUpdate) {
+    private static Collection<ValueIndexEntryUpdate> generateUpdates(
+            Collection<Long> ids, Function<Long, ValueIndexEntryUpdate> toUpdate) {
         return ids.stream().map(toUpdate).toList();
     }
 

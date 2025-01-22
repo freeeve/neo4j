@@ -64,7 +64,7 @@ public interface CommandVisitor {
 
     boolean visitGroupDegreeCommand(GroupDegreeCommand command) throws IOException;
 
-    boolean visitIndexUpdateCommand(IndexUpdateCommand command) throws IOException;
+    boolean visitIndexUpdateCommand(IndexUpdateCommand<?> command) throws IOException;
 
     /**
      * An empty implementation of a {@link CommandVisitor}. Allows you to implement only the methods you are
@@ -133,7 +133,7 @@ public interface CommandVisitor {
         }
 
         @Override
-        public boolean visitIndexUpdateCommand(IndexUpdateCommand command) {
+        public boolean visitIndexUpdateCommand(IndexUpdateCommand<?> command) {
             return false;
         }
     }

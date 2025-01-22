@@ -55,7 +55,6 @@ import org.neo4j.collection.PrimitiveLongCollections;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.QueryContext;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
-import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
@@ -94,7 +93,7 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
     @Test
     void shouldIndexAdd() throws Exception {
         // given
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = someUpdatesSingleType();
+        ValueIndexEntryUpdate[] updates = someUpdatesSingleType();
         try (IndexUpdater updater = accessor.newUpdater(ONLINE, NULL_CONTEXT, false)) {
             // when
             processAll(updater, updates);
@@ -108,13 +107,13 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
     @Test
     void shouldIndexChange() throws Exception {
         // given
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = someUpdatesSingleType();
+        ValueIndexEntryUpdate[] updates = someUpdatesSingleType();
         processAll(updates);
-        Iterator<ValueIndexEntryUpdate<IndexDescriptor>> generator =
+        Iterator<ValueIndexEntryUpdate> generator =
                 filter(skipExisting(updates), valueCreatorUtil.randomUpdateGenerator(random));
 
         for (int i = 0; i < updates.length; i++) {
-            ValueIndexEntryUpdate<IndexDescriptor> update = updates[i];
+            ValueIndexEntryUpdate update = updates[i];
             Value newValue = generator.next().values()[0];
             updates[i] = change(update.getEntityId(), indexDescriptor, update.values()[0], newValue);
         }
@@ -130,14 +129,13 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
     @Test
     void shouldIndexRemove() throws Exception {
         // given
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = someUpdatesSingleType();
+        ValueIndexEntryUpdate[] updates = someUpdatesSingleType();
         processAll(updates);
 
         for (int i = 0; i < updates.length; i++) {
             // when
-            ValueIndexEntryUpdate<IndexDescriptor> update = updates[i];
-            ValueIndexEntryUpdate<IndexDescriptor> remove =
-                    remove(update.getEntityId(), indexDescriptor, update.values());
+            ValueIndexEntryUpdate update = updates[i];
+            ValueIndexEntryUpdate remove = remove(update.getEntityId(), indexDescriptor, update.values());
             processAll(remove);
             forceAndCloseAccessor();
 
@@ -150,15 +148,14 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
     @Test
     void shouldHandleRandomUpdates() throws Exception {
         // given
-        Set<ValueIndexEntryUpdate<IndexDescriptor>> expectedData = new HashSet<>();
-        Iterator<ValueIndexEntryUpdate<IndexDescriptor>> newDataGenerator =
-                valueCreatorUtil.randomUpdateGenerator(random);
+        Set<ValueIndexEntryUpdate> expectedData = new HashSet<>();
+        Iterator<ValueIndexEntryUpdate> newDataGenerator = valueCreatorUtil.randomUpdateGenerator(random);
 
         // when
         int rounds = 50;
         for (int round = 0; round < rounds; round++) {
             // generate a batch of updates (add, change, remove)
-            ValueIndexEntryUpdate<IndexDescriptor>[] batch = generateRandomUpdates(
+            ValueIndexEntryUpdate[] batch = generateRandomUpdates(
                     expectedData, newDataGenerator, random.nextInt(5, 20), (float) round / rounds * 2);
             // apply to tree
             processAll(batch);
@@ -166,7 +163,6 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
             applyUpdatesToExpectedData(expectedData, batch);
             // verifyUpdates
             forceAndCloseAccessor();
-            //noinspection unchecked
             valueUtil.verifyUpdates(expectedData.toArray(new ValueIndexEntryUpdate[0]), this::getTree);
             setupAccessor();
         }
@@ -201,7 +197,7 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
         // given
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
             // when
-            ValueIndexEntryUpdate<IndexDescriptor> update =
+            ValueIndexEntryUpdate update =
                     valueCreatorUtil.randomUpdateGenerator(random).next();
             long count = reader.countIndexedEntities(
                     123,
@@ -217,12 +213,12 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
     @Test
     void shouldReturnCountOneForExistingData() throws Exception {
         // given
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = someUpdatesSingleType();
+        ValueIndexEntryUpdate[] updates = someUpdatesSingleType();
         processAll(updates);
 
         // when
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
-            for (ValueIndexEntryUpdate<IndexDescriptor> update : updates) {
+            for (ValueIndexEntryUpdate update : updates) {
                 long count = reader.countIndexedEntities(
                         update.getEntityId(),
                         NULL_CONTEXT,
@@ -234,7 +230,7 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
             }
 
             // and when
-            Iterator<ValueIndexEntryUpdate<IndexDescriptor>> generator =
+            Iterator<ValueIndexEntryUpdate> generator =
                     filter(skipExisting(updates), valueCreatorUtil.randomUpdateGenerator(random));
             long count = reader.countIndexedEntities(
                     123,
@@ -250,13 +246,13 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
     @Test
     void shouldReturnCountZeroForMismatchingData() throws Exception {
         // given
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = someUpdatesSingleTypeNoDuplicates();
+        ValueIndexEntryUpdate[] updates = someUpdatesSingleTypeNoDuplicates();
         processAll(updates);
 
         // when
         var reader = accessor.newValueReader(NO_USAGE_TRACKING);
 
-        for (ValueIndexEntryUpdate<IndexDescriptor> update : updates) {
+        for (ValueIndexEntryUpdate update : updates) {
             int[] propKeys = valueCreatorUtil.indexDescriptor().schema().getPropertyIds();
             long countWithMismatchingData =
                     reader.countIndexedEntities(update.getEntityId() + 1, NULL_CONTEXT, propKeys, update.values());
@@ -291,12 +287,12 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
     @Test
     void shouldReturnMatchingEntriesForExactPredicate() throws Exception {
         // given
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = someUpdatesSingleType();
+        ValueIndexEntryUpdate[] updates = someUpdatesSingleType();
         processAll(updates);
 
         // when
         var reader = accessor.newValueReader(NO_USAGE_TRACKING);
-        for (ValueIndexEntryUpdate<IndexDescriptor> update : updates) {
+        for (ValueIndexEntryUpdate update : updates) {
             Value value = update.values()[0];
             try (NodeValueIterator result = query(reader, PropertyIndexQuery.exact(0, value))) {
                 assertEntityIdHits(extractEntityIds(updates, in(value)), result);
@@ -307,7 +303,7 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
     @Test
     void shouldReturnNoEntriesForMismatchingExactPredicate() throws Exception {
         // given
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = someUpdatesSingleType();
+        ValueIndexEntryUpdate[] updates = someUpdatesSingleType();
         processAll(updates);
 
         // when
@@ -321,10 +317,10 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
     @Test
     void shouldHandleMultipleConsecutiveUpdaters() throws Exception {
         // given
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = someUpdatesSingleType();
+        ValueIndexEntryUpdate[] updates = someUpdatesSingleType();
 
         // when
-        for (ValueIndexEntryUpdate<IndexDescriptor> update : updates) {
+        for (ValueIndexEntryUpdate update : updates) {
             try (IndexUpdater updater = accessor.newUpdater(ONLINE, NULL_CONTEXT, false)) {
                 updater.process(update);
             }
@@ -338,7 +334,7 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
     @Test
     void forceShouldCheckpointTree() throws Exception {
         // given
-        ValueIndexEntryUpdate<IndexDescriptor>[] data = someUpdatesSingleType();
+        ValueIndexEntryUpdate[] data = someUpdatesSingleType();
         processAll(data);
 
         // when
@@ -349,11 +345,10 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
         valueUtil.verifyUpdates(data, this::getTree);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void closeShouldCloseTreeWithoutCheckpoint() throws Exception {
         // given
-        ValueIndexEntryUpdate<IndexDescriptor>[] data = someUpdatesSingleType();
+        ValueIndexEntryUpdate[] data = someUpdatesSingleType();
         processAll(data);
 
         // when
@@ -366,7 +361,7 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
     @Test
     void shouldSampleIndex() throws Exception {
         // given
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = someUpdatesSingleType();
+        ValueIndexEntryUpdate[] updates = someUpdatesSingleType();
         processAll(updates);
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING);
                 IndexSampler sampler = reader.createSampler()) {
@@ -383,7 +378,7 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
     @Test
     void shouldSeeAllEntriesInAllEntriesReader() throws Exception {
         // given
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = someUpdatesSingleType();
+        ValueIndexEntryUpdate[] updates = someUpdatesSingleType();
         processAll(updates);
 
         // when
@@ -426,16 +421,15 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
         assertFalse(fs.fileExists(indexFiles.getBase()));
     }
 
-    private Value generateUniqueValue(ValueIndexEntryUpdate<IndexDescriptor>[] updates) {
+    private Value generateUniqueValue(ValueIndexEntryUpdate[] updates) {
         return filter(skipExisting(updates), valueCreatorUtil.randomUpdateGenerator(random))
                 .next()
                 .values()[0];
     }
 
-    private static Predicate<ValueIndexEntryUpdate<IndexDescriptor>> skipExisting(
-            ValueIndexEntryUpdate<IndexDescriptor>[] existing) {
+    private static Predicate<ValueIndexEntryUpdate> skipExisting(ValueIndexEntryUpdate[] existing) {
         return update -> {
-            for (ValueIndexEntryUpdate<IndexDescriptor> e : existing) {
+            for (ValueIndexEntryUpdate e : existing) {
                 if (Arrays.equals(e.values(), update.values())) {
                     return false;
                 }
@@ -467,10 +461,10 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
                         Arrays.toString(expected), Arrays.toString(actual)));
     }
 
-    static long[] extractEntityIds(ValueIndexEntryUpdate<?>[] updates, Predicate<Value> valueFilter) {
+    static long[] extractEntityIds(ValueIndexEntryUpdate[] updates, Predicate<Value> valueFilter) {
         long[] entityIds = new long[updates.length];
         int cursor = 0;
-        for (ValueIndexEntryUpdate<?> update : updates) {
+        for (ValueIndexEntryUpdate update : updates) {
             if (valueFilter.test(update.values()[0])) {
                 entityIds[cursor++] = update.getEntityId();
             }
@@ -478,11 +472,10 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
         return Arrays.copyOf(entityIds, cursor);
     }
 
-    private void applyUpdatesToExpectedData(
-            Set<ValueIndexEntryUpdate<IndexDescriptor>> expectedData, ValueIndexEntryUpdate<IndexDescriptor>[] batch) {
-        for (ValueIndexEntryUpdate<IndexDescriptor> update : batch) {
-            ValueIndexEntryUpdate<IndexDescriptor> addition = null;
-            ValueIndexEntryUpdate<IndexDescriptor> removal = null;
+    private void applyUpdatesToExpectedData(Set<ValueIndexEntryUpdate> expectedData, ValueIndexEntryUpdate[] batch) {
+        for (ValueIndexEntryUpdate update : batch) {
+            ValueIndexEntryUpdate addition = null;
+            ValueIndexEntryUpdate removal = null;
             switch (update.updateMode()) {
                 case ADDED -> addition = valueCreatorUtil.add(update.getEntityId(), update.values()[0]);
                 case CHANGED -> {
@@ -503,25 +496,24 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
         }
     }
 
-    private ValueIndexEntryUpdate<IndexDescriptor>[] generateRandomUpdates(
-            Set<ValueIndexEntryUpdate<IndexDescriptor>> expectedData,
-            Iterator<ValueIndexEntryUpdate<IndexDescriptor>> newDataGenerator,
+    private ValueIndexEntryUpdate[] generateRandomUpdates(
+            Set<ValueIndexEntryUpdate> expectedData,
+            Iterator<ValueIndexEntryUpdate> newDataGenerator,
             int count,
             float removeFactor) {
-        @SuppressWarnings("unchecked")
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = new ValueIndexEntryUpdate[count];
+        ValueIndexEntryUpdate[] updates = new ValueIndexEntryUpdate[count];
         float addChangeRatio = 0.5f;
         for (int i = 0; i < count; i++) {
             float factor = random.nextFloat();
             if (!expectedData.isEmpty() && factor < removeFactor) {
                 // remove something
-                ValueIndexEntryUpdate<IndexDescriptor> toRemove = selectRandomItem(expectedData);
+                ValueIndexEntryUpdate toRemove = selectRandomItem(expectedData);
                 updates[i] = remove(toRemove.getEntityId(), indexDescriptor, toRemove.values());
             } else if (!expectedData.isEmpty() && factor < (1 - removeFactor) * addChangeRatio) {
                 // change
-                ValueIndexEntryUpdate<IndexDescriptor> toChange = selectRandomItem(expectedData);
+                ValueIndexEntryUpdate toChange = selectRandomItem(expectedData);
                 // use the data generator to generate values, even if the whole update as such won't be used
-                ValueIndexEntryUpdate<IndexDescriptor> updateContainingValue = newDataGenerator.next();
+                ValueIndexEntryUpdate updateContainingValue = newDataGenerator.next();
                 updates[i] = change(
                         toChange.getEntityId(), indexDescriptor, toChange.values(), updateContainingValue.values());
             } else {
@@ -532,16 +524,13 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
         return updates;
     }
 
-    @SuppressWarnings("unchecked")
-    private ValueIndexEntryUpdate<IndexDescriptor> selectRandomItem(
-            Set<ValueIndexEntryUpdate<IndexDescriptor>> expectedData) {
+    private ValueIndexEntryUpdate selectRandomItem(Set<ValueIndexEntryUpdate> expectedData) {
         return expectedData.toArray(new ValueIndexEntryUpdate[0])[random.nextInt(expectedData.size())];
     }
 
-    @SafeVarargs
-    final void processAll(ValueIndexEntryUpdate<IndexDescriptor>... updates) throws IndexEntryConflictException {
+    final void processAll(ValueIndexEntryUpdate... updates) throws IndexEntryConflictException {
         try (IndexUpdater updater = accessor.newUpdater(ONLINE, NULL_CONTEXT, false)) {
-            for (ValueIndexEntryUpdate<IndexDescriptor> update : updates) {
+            for (ValueIndexEntryUpdate update : updates) {
                 updater.process(update);
             }
         }
@@ -552,27 +541,27 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
         closeAccessor();
     }
 
-    private static void processAll(IndexUpdater updater, ValueIndexEntryUpdate<IndexDescriptor>[] updates)
+    private static void processAll(IndexUpdater updater, ValueIndexEntryUpdate[] updates)
             throws IndexEntryConflictException {
-        for (ValueIndexEntryUpdate<IndexDescriptor> update : updates) {
+        for (ValueIndexEntryUpdate update : updates) {
             updater.process(update);
         }
     }
 
-    private ValueIndexEntryUpdate<IndexDescriptor> simpleUpdate() {
+    private ValueIndexEntryUpdate simpleUpdate() {
         return ValueIndexEntryUpdate.add(0, indexDescriptor, of(0));
     }
 
-    ValueIndexEntryUpdate<IndexDescriptor>[] someUpdatesSingleType() {
+    ValueIndexEntryUpdate[] someUpdatesSingleType() {
         ValueType type = random.randomValues().among(valueCreatorUtil.supportedTypes());
         return valueCreatorUtil.someUpdates(random, new ValueType[] {type}, true);
     }
 
-    private ValueIndexEntryUpdate<IndexDescriptor>[] someUpdatesSingleTypeNoDuplicates() {
+    private ValueIndexEntryUpdate[] someUpdatesSingleTypeNoDuplicates() {
         return someUpdatesSingleTypeNoDuplicates(valueCreatorUtil.supportedTypes());
     }
 
-    ValueIndexEntryUpdate<IndexDescriptor>[] someUpdatesSingleTypeNoDuplicates(ValueType... types) {
+    ValueIndexEntryUpdate[] someUpdatesSingleTypeNoDuplicates(ValueType... types) {
         ValueType type;
         do {
             // Can not generate enough unique values of boolean

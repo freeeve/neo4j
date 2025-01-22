@@ -36,7 +36,6 @@ import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.internal.schema.IndexDescriptor;
-import org.neo4j.internal.schema.SchemaDescriptorSupplier;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
@@ -305,7 +304,7 @@ public abstract class AbstractLuceneIndexAccessor<READER extends ValueIndexReade
         }
 
         @Override
-        public void process(IndexEntryUpdate<?> update) {
+        public void process(IndexEntryUpdate update) {
             assert update.indexKey().schema().equals(descriptor.schema());
             final var valueUpdate = asValueUpdate(update);
 
@@ -333,8 +332,7 @@ public abstract class AbstractLuceneIndexAccessor<READER extends ValueIndexReade
         }
 
         @Override
-        public <INDEX_KEY extends SchemaDescriptorSupplier> ValueIndexEntryUpdate<INDEX_KEY> asValueUpdate(
-                IndexEntryUpdate<INDEX_KEY> update) {
+        public ValueIndexEntryUpdate asValueUpdate(IndexEntryUpdate update) {
             final var valueUpdate = IndexUpdater.super.asValueUpdate(update);
             return !ignoreStrategy.ignore(valueUpdate) ? ignoreStrategy.toEquivalentUpdate(valueUpdate) : null;
         }

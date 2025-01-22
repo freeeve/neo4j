@@ -26,7 +26,8 @@ import static org.neo4j.internal.schema.SchemaDescriptors.ANY_TOKEN_RELATIONSHIP
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.neo4j.internal.schema.SchemaDescriptorSupplier;
+import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.storageengine.api.EntityUpdates;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 
@@ -91,17 +92,21 @@ class EntityTokenUpdatesTest {
     private enum Entity {
         NODE {
             @Override
-            SchemaDescriptorSupplier getTokenIndex() {
-                return () -> ANY_TOKEN_NODE_SCHEMA_DESCRIPTOR;
+            IndexDescriptor getTokenIndex() {
+                return IndexPrototype.forSchema(ANY_TOKEN_NODE_SCHEMA_DESCRIPTOR)
+                        .withName("0")
+                        .materialise(0);
             }
         },
         RELATIONSHIP {
             @Override
-            SchemaDescriptorSupplier getTokenIndex() {
-                return () -> ANY_TOKEN_RELATIONSHIP_SCHEMA_DESCRIPTOR;
+            IndexDescriptor getTokenIndex() {
+                return IndexPrototype.forSchema(ANY_TOKEN_RELATIONSHIP_SCHEMA_DESCRIPTOR)
+                        .withName("1")
+                        .materialise(1);
             }
         };
 
-        abstract SchemaDescriptorSupplier getTokenIndex();
+        abstract IndexDescriptor getTokenIndex();
     }
 }

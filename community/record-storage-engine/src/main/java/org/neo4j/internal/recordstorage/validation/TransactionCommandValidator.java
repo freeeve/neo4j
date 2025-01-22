@@ -214,7 +214,7 @@ public class TransactionCommandValidator implements CommandVisitor, TransactionV
     }
 
     @Override
-    public boolean visitIndexUpdateCommand(IndexUpdateCommand command) {
+    public boolean visitIndexUpdateCommand(IndexUpdateCommand<?> command) {
         return false;
     }
 

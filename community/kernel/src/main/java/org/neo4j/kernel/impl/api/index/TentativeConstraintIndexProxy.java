@@ -72,7 +72,7 @@ public class TentativeConstraintIndexProxy extends AbstractDelegatingIndexProxy 
                     target.getDescriptor(),
                     cursorContext) {
                 @Override
-                public void process(IndexEntryUpdate<?> update) {
+                public void process(IndexEntryUpdate update) {
                     try {
                         super.process(update);
                     } catch (IndexEntryConflictException conflict) {

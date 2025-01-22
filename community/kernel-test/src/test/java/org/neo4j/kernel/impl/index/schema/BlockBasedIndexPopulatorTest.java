@@ -336,7 +336,7 @@ abstract class BlockBasedIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> {
         boolean closed = false;
         try {
             // when
-            Collection<IndexEntryUpdate<?>> updates = batchOfUpdates();
+            Collection<IndexEntryUpdate> updates = batchOfUpdates();
             populator.add(updates, NULL_CONTEXT);
             int nextId = updates.size();
             externalUpdates(populator, nextId, nextId + 10);
@@ -370,7 +370,7 @@ abstract class BlockBasedIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> {
         boolean closed = false;
         try {
             // when
-            Collection<IndexEntryUpdate<?>> updates = batchOfUpdates();
+            Collection<IndexEntryUpdate> updates = batchOfUpdates();
             populator.add(updates, NULL_CONTEXT);
             int nextId = updates.size();
             externalUpdates(populator, nextId, nextId + 10);
@@ -400,7 +400,7 @@ abstract class BlockBasedIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> {
         ThreadSafePeakMemoryTracker memoryTracker = new ThreadSafePeakMemoryTracker();
         ByteBufferFactory bufferFactory = new ByteBufferFactory(UnsafeDirectByteBufferAllocator::new, 100);
         BlockBasedIndexPopulator<KEY> populator = instantiatePopulator(NO_MONITOR, bufferFactory, memoryTracker);
-        Collection<IndexEntryUpdate<?>> populationUpdates = batchOfUpdates();
+        Collection<IndexEntryUpdate> populationUpdates = batchOfUpdates();
         populator.add(populationUpdates, NULL_CONTEXT);
 
         // when
@@ -575,19 +575,19 @@ abstract class BlockBasedIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> {
         return instantiatePopulator(monitor, heapBufferFactory(100), INSTANCE);
     }
 
-    private Collection<IndexEntryUpdate<?>> batchOfUpdates() {
-        List<IndexEntryUpdate<?>> updates = new ArrayList<>();
+    private Collection<IndexEntryUpdate> batchOfUpdates() {
+        List<IndexEntryUpdate> updates = new ArrayList<>();
         for (int i = 0; i < 50; i++) {
             updates.add(add(i));
         }
         return updates;
     }
 
-    private IndexEntryUpdate<IndexDescriptor> add(int i) {
+    private IndexEntryUpdate add(int i) {
         return IndexEntryUpdate.add(i, INDEX_DESCRIPTOR, supportedValue(i));
     }
 
-    private IndexEntryUpdate<IndexDescriptor> remove(int i) {
+    private IndexEntryUpdate remove(int i) {
         return IndexEntryUpdate.remove(i, INDEX_DESCRIPTOR, supportedValue(i));
     }
 

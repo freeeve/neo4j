@@ -39,11 +39,10 @@ class WorkSyncedIndexPopulatorTest {
         var populator = new WorkSyncedIndexPopulator(new NotThreadSafePopulator());
 
         var race = new Race();
-        race.addContestants(10, throwing(() -> {
-            populator.add(
-                    Collections.<IndexEntryUpdate<?>>singleton(Mockito.mock(IndexEntryUpdate.class)),
-                    CursorContext.NULL_CONTEXT);
-        }));
+        race.addContestants(
+                10,
+                throwing(() -> populator.add(
+                        Collections.singleton(Mockito.mock(IndexEntryUpdate.class)), CursorContext.NULL_CONTEXT)));
         race.go();
     }
 
@@ -51,7 +50,7 @@ class WorkSyncedIndexPopulatorTest {
         private final AtomicBoolean flag = new AtomicBoolean();
 
         @Override
-        public void add(Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext) {
+        public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext) {
             assertTrue(flag.compareAndSet(false, true), "Only one instance can flip flag at a time");
             assertTrue(flag.compareAndSet(true, false), "Only one instance can flip flag back at a time");
         }

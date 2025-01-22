@@ -184,9 +184,8 @@ class IndexTransactionApplierFactoryTest {
         public void dropIndex(IndexDescriptor index) {}
 
         @Override
-        public void applyUpdates(
-                Iterable<IndexEntryUpdate<IndexDescriptor>> updates, CursorContext cursorContext, boolean parallel) {
-            for (IndexEntryUpdate<IndexDescriptor> update : updates) {
+        public void applyUpdates(Iterable<IndexEntryUpdate> updates, CursorContext cursorContext, boolean parallel) {
+            for (var update : updates) {
                 assertEquals(expectedNodeIds[cursor], update.getEntityId());
                 cursor++;
             }

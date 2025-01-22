@@ -22,19 +22,21 @@ package org.neo4j.storageengine.api;
 import static java.lang.String.format;
 
 import java.util.Arrays;
+import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptorSupplier;
 import org.neo4j.memory.HeapEstimator;
 import org.neo4j.values.storable.Value;
 
-public class ValueIndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplier> extends IndexEntryUpdate<INDEX_KEY> {
+public class ValueIndexEntryUpdate extends IndexEntryUpdate {
     private final Value[] before;
     private final Value[] values;
 
-    ValueIndexEntryUpdate(long entityId, INDEX_KEY index_key, UpdateMode updateMode, Value[] values) {
-        this(entityId, index_key, updateMode, null, values);
+    ValueIndexEntryUpdate(long entityId, IndexDescriptor indexKey, UpdateMode updateMode, Value[] values) {
+        this(entityId, indexKey, updateMode, null, values);
     }
 
-    ValueIndexEntryUpdate(long entityId, INDEX_KEY indexKey, UpdateMode updateMode, Value[] before, Value[] values) {
+    ValueIndexEntryUpdate(
+            long entityId, IndexDescriptor indexKey, UpdateMode updateMode, Value[] before, Value[] values) {
         super(entityId, indexKey, updateMode);
         validateValuesLength(indexKey, before, values);
 
@@ -59,8 +61,8 @@ public class ValueIndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplier> e
     }
 
     @Override
-    protected boolean valueEquals(IndexEntryUpdate<?> o) {
-        if (!(o instanceof ValueIndexEntryUpdate<?> that)) {
+    protected boolean valueEquals(IndexEntryUpdate o) {
+        if (!(o instanceof ValueIndexEntryUpdate that)) {
             return false;
         }
         if (!Arrays.equals(before, that.before)) {
@@ -89,7 +91,7 @@ public class ValueIndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplier> e
     }
 
     @Override
-    public IndexEntryUpdate<INDEX_KEY> withEntityId(long entityId) {
+    public IndexEntryUpdate withEntityId(long entityId) {
         return switch (updateMode()) {
             case ADDED -> IndexEntryUpdate.add(entityId, indexKey(), values);
             case CHANGED -> IndexEntryUpdate.change(entityId, indexKey(), before, values);

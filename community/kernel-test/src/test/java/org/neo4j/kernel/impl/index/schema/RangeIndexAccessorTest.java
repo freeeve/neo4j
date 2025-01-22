@@ -201,10 +201,9 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
         // given
         int nUpdates = 10000;
         ValueType[] types = supportedTypesForGeometry();
-        Iterator<ValueIndexEntryUpdate<IndexDescriptor>> randomUpdateGenerator =
-                valueCreatorUtil.randomUpdateGenerator(random, types);
+        Iterator<ValueIndexEntryUpdate> randomUpdateGenerator = valueCreatorUtil.randomUpdateGenerator(random, types);
         //noinspection unchecked
-        ValueIndexEntryUpdate<IndexDescriptor>[] someUpdates = new ValueIndexEntryUpdate[nUpdates];
+        ValueIndexEntryUpdate[] someUpdates = new ValueIndexEntryUpdate[nUpdates];
         for (int i = 0; i < nUpdates; i++) {
             someUpdates[i] = randomUpdateGenerator.next();
         }

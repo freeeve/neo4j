@@ -49,7 +49,7 @@ class VectorIndexPopulator extends LuceneIndexPopulator<DatabaseIndex<VectorInde
     }
 
     @Override
-    protected Document updateAsDocument(ValueIndexEntryUpdate<?> update) {
+    protected Document updateAsDocument(ValueIndexEntryUpdate update) {
         final var entityId = update.getEntityId();
         final var candidate = VectorCandidate.maybeFrom(update.values()[0]);
         return documentStructure.createLuceneDocument(entityId, candidate, similarityFunction);

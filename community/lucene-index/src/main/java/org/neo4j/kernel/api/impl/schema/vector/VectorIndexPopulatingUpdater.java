@@ -21,7 +21,6 @@ package org.neo4j.kernel.api.impl.schema.vector;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import org.neo4j.internal.schema.SchemaDescriptorSupplier;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions.LuceneVectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
@@ -49,7 +48,7 @@ class VectorIndexPopulatingUpdater implements IndexUpdater {
     }
 
     @Override
-    public void process(IndexEntryUpdate<?> update) {
+    public void process(IndexEntryUpdate update) {
         final var valueUpdate = asValueUpdate(update);
         if (valueUpdate == null) {
             return;
@@ -75,8 +74,7 @@ class VectorIndexPopulatingUpdater implements IndexUpdater {
     }
 
     @Override
-    public <INDEX_KEY extends SchemaDescriptorSupplier> ValueIndexEntryUpdate<INDEX_KEY> asValueUpdate(
-            IndexEntryUpdate<INDEX_KEY> update) {
+    public ValueIndexEntryUpdate asValueUpdate(IndexEntryUpdate update) {
         final var valueUpdate = IndexUpdater.super.asValueUpdate(update);
         return !ignoreStrategy.ignore(valueUpdate) ? ignoreStrategy.toEquivalentUpdate(valueUpdate) : null;
     }

@@ -115,8 +115,7 @@ public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPop
         try {
             // when
             UNSUPPORTED_TYPES.forEach(unsupportedType -> {
-                IndexEntryUpdate<IndexDescriptor> update =
-                        IndexEntryUpdate.add(1, INDEX_DESCRIPTOR, random.nextValue(unsupportedType));
+                IndexEntryUpdate update = IndexEntryUpdate.add(1, INDEX_DESCRIPTOR, random.nextValue(unsupportedType));
                 populator.add(singleton(update), NULL_CONTEXT);
             });
             populator.scanCompleted(nullInstance, populationWorkScheduler, NULL_CONTEXT);
@@ -190,8 +189,7 @@ public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPop
         test(scanUpdateOrder, updates, updates.size());
     }
 
-    private void test(
-            ScanUpdateOrder scanUpdateOrder, Collection<IndexEntryUpdate<?>> updates, long expectedUpdateCount)
+    private void test(ScanUpdateOrder scanUpdateOrder, Collection<IndexEntryUpdate> updates, long expectedUpdateCount)
             throws Exception {
         try (var accessor = pointAccessor();
                 var reader = accessor.newAllEntriesValueReader(NULL_CONTEXT)) {
@@ -214,8 +212,8 @@ public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPop
         assertThat(sample.updates()).isEqualTo(expectedUpdateCount);
     }
 
-    private Collection<IndexEntryUpdate<?>> generateUpdatesToIgnore(
-            BiFunction<Long, Value, IndexEntryUpdate<?>> updateFunction) {
+    private Collection<IndexEntryUpdate> generateUpdatesToIgnore(
+            BiFunction<Long, Value, IndexEntryUpdate> updateFunction) {
         final var idGen = idGenerator();
         final var randomValues = random.randomValues();
         return UNSUPPORTED_TYPES.stream()

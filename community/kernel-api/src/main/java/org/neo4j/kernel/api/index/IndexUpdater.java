@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.api.index;
 
-import org.neo4j.internal.schema.SchemaDescriptorSupplier;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
@@ -34,23 +33,21 @@ import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
  * Each IndexUpdater is not thread-safe, and is assumed to be instantiated per transaction.
  */
 public interface IndexUpdater extends AutoCloseable {
-    void process(IndexEntryUpdate<?> update) throws IndexEntryConflictException;
+    void process(IndexEntryUpdate update) throws IndexEntryConflictException;
 
     default void yield() {}
 
-    default <INDEX_KEY extends SchemaDescriptorSupplier> ValueIndexEntryUpdate<INDEX_KEY> asValueUpdate(
-            IndexEntryUpdate<INDEX_KEY> update) {
-        if (update instanceof ValueIndexEntryUpdate) {
-            return (ValueIndexEntryUpdate<INDEX_KEY>) update;
+    default ValueIndexEntryUpdate asValueUpdate(IndexEntryUpdate update) {
+        if (update instanceof ValueIndexEntryUpdate valueUpdate) {
+            return valueUpdate;
         }
         throw new UnsupportedOperationException(
                 "Tried to process " + update + " with " + getClass().getSimpleName() + ", but this is not supported.");
     }
 
-    default <INDEX_KEY extends SchemaDescriptorSupplier> TokenIndexEntryUpdate<INDEX_KEY> asTokenUpdate(
-            IndexEntryUpdate<INDEX_KEY> update) {
-        if (update instanceof TokenIndexEntryUpdate) {
-            return (TokenIndexEntryUpdate<INDEX_KEY>) update;
+    default TokenIndexEntryUpdate asTokenUpdate(IndexEntryUpdate update) {
+        if (update instanceof TokenIndexEntryUpdate tokenUpdate) {
+            return tokenUpdate;
         }
         throw new UnsupportedOperationException(
                 "Tried to process " + update + " with " + getClass().getSimpleName() + ", but this is not supported.");

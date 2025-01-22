@@ -84,7 +84,7 @@ class PhysicalToLogicalTokenChangesTest {
     }
 
     private static void convertAndAssert(int[] before, int[] after, int[] expectedRemoved, int[] expectedAdded) {
-        TokenIndexEntryUpdate<?> update = TokenIndexEntryUpdate.change(0, null, before, after);
+        TokenIndexEntryUpdate update = TokenIndexEntryUpdate.change(0, null, before, after);
         PhysicalToLogicalTokenChanges.LogicalTokenUpdates logicalTokenUpdates =
                 PhysicalToLogicalTokenChanges.convertToAdditionsAndRemovals(update);
         assertThat(truncate(logicalTokenUpdates.removals())).containsExactly(expectedRemoved);
@@ -92,7 +92,7 @@ class PhysicalToLogicalTokenChangesTest {
     }
 
     private void assertIAE(int[] before, int[] after) {
-        TokenIndexEntryUpdate<?> update = TokenIndexEntryUpdate.change(0, null, before, after);
+        TokenIndexEntryUpdate update = TokenIndexEntryUpdate.change(0, null, before, after);
         assertThatThrownBy(() -> PhysicalToLogicalTokenChanges.convertToAdditionsAndRemovals(update))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Expected non-negative int value");

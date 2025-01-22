@@ -137,6 +137,8 @@ public class DatabaseCompositeIndexAccessorTest {
             IndexPrototype.forSchema(SchemaDescriptors.forLabel(0, PROP_ID1, PROP_ID2));
     private static final IndexPrototype UNIQUE_SCHEMA_INDEX_DESCRIPTOR =
             IndexPrototype.uniqueForSchema(SchemaDescriptors.forLabel(1, PROP_ID1, PROP_ID2));
+    private static final IndexDescriptor INDEX_DESCRIPTOR =
+            SCHEMA_INDEX_DESCRIPTOR.withName("2").materialise(0);
     private final JobScheduler jobScheduler = JobSchedulerFactory.createInitialisedScheduler();
 
     private Iterable<IndexProvider> providers;
@@ -371,22 +373,22 @@ public class DatabaseCompositeIndexAccessorTest {
         }
     }
 
-    private static IndexEntryUpdate<?> add(long nodeId, Object... values) {
-        return IndexQueryHelper.add(nodeId, SCHEMA_INDEX_DESCRIPTOR, values);
+    private static IndexEntryUpdate add(long nodeId, Object... values) {
+        return IndexQueryHelper.add(nodeId, INDEX_DESCRIPTOR, values);
     }
 
-    private static IndexEntryUpdate<?> remove(long nodeId, Object... values) {
-        return IndexQueryHelper.remove(nodeId, SCHEMA_INDEX_DESCRIPTOR, values);
+    private static IndexEntryUpdate remove(long nodeId, Object... values) {
+        return IndexQueryHelper.remove(nodeId, INDEX_DESCRIPTOR, values);
     }
 
-    private static IndexEntryUpdate<?> change(long nodeId, Object[] valuesBefore, Object[] valuesAfter) {
-        return IndexQueryHelper.change(nodeId, SCHEMA_INDEX_DESCRIPTOR, valuesBefore, valuesAfter);
+    private static IndexEntryUpdate change(long nodeId, Object[] valuesBefore, Object[] valuesAfter) {
+        return IndexQueryHelper.change(nodeId, INDEX_DESCRIPTOR, valuesBefore, valuesAfter);
     }
 
-    private static void updateAndCommit(IndexAccessor accessor, List<IndexEntryUpdate<?>> nodePropertyUpdates)
+    private static void updateAndCommit(IndexAccessor accessor, List<IndexEntryUpdate> nodePropertyUpdates)
             throws IndexEntryConflictException {
         try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
-            for (IndexEntryUpdate<?> update : nodePropertyUpdates) {
+            for (IndexEntryUpdate update : nodePropertyUpdates) {
                 updater.process(update);
             }
         }

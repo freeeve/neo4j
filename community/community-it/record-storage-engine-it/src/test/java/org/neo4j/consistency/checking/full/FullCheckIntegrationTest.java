@@ -607,10 +607,10 @@ public class FullCheckIntegrationTest {
                 try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
                     for (long nodeId : indexedNodes) {
                         EntityUpdates updates = fixture.nodeAsUpdates(nodeId);
-                        for (IndexEntryUpdate<?> update :
+                        for (IndexEntryUpdate update :
                                 updates.valueUpdatesForIndexKeys(singletonList(indexDescriptor))) {
                             updater.process(IndexEntryUpdate.remove(
-                                    nodeId, indexDescriptor, ((ValueIndexEntryUpdate<?>) update).values()));
+                                    nodeId, indexDescriptor, ((ValueIndexEntryUpdate) update).values()));
                         }
                     }
                 }
@@ -638,10 +638,10 @@ public class FullCheckIntegrationTest {
                 try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
                     for (long relId : indexedRelationships) {
                         EntityUpdates updates = fixture.relationshipAsUpdates(relId);
-                        for (IndexEntryUpdate<?> update :
+                        for (IndexEntryUpdate update :
                                 updates.valueUpdatesForIndexKeys(singletonList(indexDescriptor))) {
                             updater.process(IndexEntryUpdate.remove(
-                                    relId, indexDescriptor, ((ValueIndexEntryUpdate<?>) update).values()));
+                                    relId, indexDescriptor, ((ValueIndexEntryUpdate) update).values()));
                         }
                     }
                 }

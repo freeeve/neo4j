@@ -38,7 +38,7 @@ public class TextIndexPopulator extends LuceneIndexPopulator<DatabaseIndex<Value
     }
 
     @Override
-    protected Document updateAsDocument(ValueIndexEntryUpdate<?> update) {
+    protected Document updateAsDocument(ValueIndexEntryUpdate update) {
         return TextDocumentStructure.documentRepresentingProperties(update.getEntityId(), update.values());
     }
 

@@ -224,7 +224,7 @@ class OnlineIndexUpdatesTest {
         onlineIndexUpdates.feed(
                 nodeGroup(nodeCommand, propertyCommand), relationshipGroup(null), CommandSelector.NORMAL);
         assertTrue(onlineIndexUpdates.hasUpdates());
-        Iterator<IndexEntryUpdate<IndexDescriptor>> iterator = onlineIndexUpdates.iterator();
+        Iterator<IndexEntryUpdate> iterator = onlineIndexUpdates.iterator();
         assertEquals(iterator.next(), IndexEntryUpdate.remove(nodeId, indexDescriptor, propertyValue, null, null));
         assertFalse(iterator.hasNext());
     }
@@ -265,7 +265,7 @@ class OnlineIndexUpdatesTest {
         onlineIndexUpdates.feed(
                 nodeGroup(null), relationshipGroup(relationshipCommand, propertyCommand), CommandSelector.NORMAL);
         assertTrue(onlineIndexUpdates.hasUpdates());
-        Iterator<IndexEntryUpdate<IndexDescriptor>> iterator = onlineIndexUpdates.iterator();
+        Iterator<IndexEntryUpdate> iterator = onlineIndexUpdates.iterator();
         assertEquals(iterator.next(), IndexEntryUpdate.remove(relId, indexDescriptor, propertyValue, null, null));
         assertFalse(iterator.hasNext());
     }

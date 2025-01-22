@@ -93,7 +93,7 @@ abstract class NativeNonUniqueIndexPopulatorTest<KEY extends NativeIndexKey<KEY>
     void addShouldApplyDuplicateValues() throws Exception {
         // given
         populator.create();
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = valueCreatorUtil.someUpdatesWithDuplicateValues(random);
+        ValueIndexEntryUpdate[] updates = valueCreatorUtil.someUpdatesWithDuplicateValues(random);
 
         // when
         populator.add(asList(updates), NULL_CONTEXT);
@@ -108,10 +108,10 @@ abstract class NativeNonUniqueIndexPopulatorTest<KEY extends NativeIndexKey<KEY>
     void updaterShouldApplyDuplicateValues() throws Exception {
         // given
         populator.create();
-        ValueIndexEntryUpdate<IndexDescriptor>[] updates = valueCreatorUtil.someUpdatesWithDuplicateValues(random);
+        ValueIndexEntryUpdate[] updates = valueCreatorUtil.someUpdatesWithDuplicateValues(random);
         try (IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
             // when
-            for (ValueIndexEntryUpdate<IndexDescriptor> update : updates) {
+            for (ValueIndexEntryUpdate update : updates) {
                 updater.process(update);
             }
         }
@@ -127,9 +127,9 @@ abstract class NativeNonUniqueIndexPopulatorTest<KEY extends NativeIndexKey<KEY>
         // GIVEN
         try {
             populator.create();
-            ValueIndexEntryUpdate<IndexDescriptor>[] scanUpdates = valueCreatorUtil.someUpdates(random);
+            ValueIndexEntryUpdate[] scanUpdates = valueCreatorUtil.someUpdates(random);
             populator.add(asList(scanUpdates), NULL_CONTEXT);
-            Iterator<ValueIndexEntryUpdate<IndexDescriptor>> generator = valueCreatorUtil.randomUpdateGenerator(random);
+            Iterator<ValueIndexEntryUpdate> generator = valueCreatorUtil.randomUpdateGenerator(random);
             Value[] updates = new Value[5];
             updates[0] = generator.next().values()[0];
             updates[1] = generator.next().values()[0];
@@ -139,7 +139,7 @@ abstract class NativeNonUniqueIndexPopulatorTest<KEY extends NativeIndexKey<KEY>
             try (IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
                 long nodeId = 1000;
                 for (Value value : updates) {
-                    ValueIndexEntryUpdate<IndexDescriptor> update = valueCreatorUtil.add(nodeId++, value);
+                    ValueIndexEntryUpdate update = valueCreatorUtil.add(nodeId++, value);
                     updater.process(update);
                 }
             }

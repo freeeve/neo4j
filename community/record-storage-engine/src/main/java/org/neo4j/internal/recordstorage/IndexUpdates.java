@@ -21,13 +21,12 @@ package org.neo4j.internal.recordstorage;
 
 import org.neo4j.internal.recordstorage.Command.NodeCommand;
 import org.neo4j.internal.recordstorage.Command.RelationshipCommand;
-import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 
 /**
  * Set of updates ({@link IndexEntryUpdate}) to apply to indexes.
  */
-public interface IndexUpdates extends Iterable<IndexEntryUpdate<IndexDescriptor>>, AutoCloseable {
+public interface IndexUpdates extends Iterable<IndexEntryUpdate>, AutoCloseable {
     /**
      * Feeds updates raw material in the form of node/property commands, to create updates from.
      *

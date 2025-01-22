@@ -32,14 +32,14 @@ public class CollectingIndexUpdater implements IndexUpdater {
     private final Applier applier;
 
     private boolean closed;
-    private final Collection<IndexEntryUpdate<?>> updates = new ArrayList<>();
+    private final Collection<IndexEntryUpdate> updates = new ArrayList<>();
 
     public CollectingIndexUpdater(Applier applier) {
         this.applier = applier;
     }
 
     @Override
-    public void process(IndexEntryUpdate<?> update) {
+    public void process(IndexEntryUpdate update) {
         assertOpen();
         updates.add(update);
     }
@@ -61,6 +61,6 @@ public class CollectingIndexUpdater implements IndexUpdater {
     }
 
     public interface Applier {
-        void accept(Collection<IndexEntryUpdate<?>> updates) throws IndexEntryConflictException;
+        void accept(Collection<IndexEntryUpdate> updates) throws IndexEntryConflictException;
     }
 }

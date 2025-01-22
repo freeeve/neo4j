@@ -96,7 +96,7 @@ abstract class NativeUniqueIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> e
     void addShouldThrowOnDuplicateValues() throws IOException {
         // given
         populator.create();
-        IndexEntryUpdate<IndexDescriptor>[] updates = valueCreatorUtil.someUpdatesWithDuplicateValues(random);
+        IndexEntryUpdate[] updates = valueCreatorUtil.someUpdatesWithDuplicateValues(random);
 
         assertThrows(IndexEntryConflictException.class, () -> {
             populator.add(asList(updates), NULL_CONTEXT);
@@ -110,11 +110,11 @@ abstract class NativeUniqueIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> e
     void updaterShouldThrowOnDuplicateValues() throws Exception {
         // given
         populator.create();
-        IndexEntryUpdate<IndexDescriptor>[] updates = valueCreatorUtil.someUpdatesWithDuplicateValues(random);
+        IndexEntryUpdate[] updates = valueCreatorUtil.someUpdatesWithDuplicateValues(random);
         IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT);
 
         // when
-        for (IndexEntryUpdate<IndexDescriptor> update : updates) {
+        for (IndexEntryUpdate update : updates) {
             updater.process(update);
         }
         var e = assertThrows(Exception.class, () -> {
@@ -130,11 +130,11 @@ abstract class NativeUniqueIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> e
     void shouldSampleUpdates() throws Exception {
         // GIVEN
         populator.create();
-        IndexEntryUpdate<IndexDescriptor>[] updates = valueCreatorUtil.someUpdates(random);
+        IndexEntryUpdate[] updates = valueCreatorUtil.someUpdates(random);
 
         // WHEN
         populator.add(asList(updates), NULL_CONTEXT);
-        for (IndexEntryUpdate<IndexDescriptor> update : updates) {
+        for (IndexEntryUpdate update : updates) {
             populator.includeSample(update);
         }
         populator.scanCompleted(nullInstance, populationWorkScheduler, NULL_CONTEXT);

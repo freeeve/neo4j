@@ -53,7 +53,6 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
-import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
@@ -106,11 +105,11 @@ class IndexCRUDIT {
         try (Transaction tx = db.beginTx()) {
             KernelTransaction ktx = ((InternalTransaction) tx).kernelTransaction();
             TokenRead tokenRead = ktx.tokenRead();
-            int propertyKey1 = tokenRead.propertyKey(indexProperty);
             int label = tokenRead.nodeLabel(myLabel.name());
-            var descriptor = SchemaDescriptors.forLabel(label, propertyKey1);
+            IndexDescriptor indexDescriptor =
+                    ktx.schemaRead().indexesGetForLabel(label).next();
             assertThat(writer.updatesCommitted)
-                    .isEqualTo(asSet(IndexEntryUpdate.add(node.getId(), () -> descriptor, Values.of(value1))));
+                    .isEqualTo(asSet(IndexEntryUpdate.add(node.getId(), indexDescriptor, Values.of(value1))));
             tx.commit();
         }
         // We get two updates because we both add a label and a property to be indexed
@@ -145,11 +144,11 @@ class IndexCRUDIT {
         try (Transaction tx = db.beginTx()) {
             KernelTransaction ktx = ((InternalTransaction) tx).kernelTransaction();
             TokenRead tokenRead = ktx.tokenRead();
-            int propertyKey1 = tokenRead.propertyKey(indexProperty);
             int label = tokenRead.nodeLabel(myLabel.name());
-            var descriptor = SchemaDescriptors.forLabel(label, propertyKey1);
+            IndexDescriptor indexDescriptor =
+                    ktx.schemaRead().indexesGetForLabel(label).next();
             assertThat(writer.updatesCommitted)
-                    .isEqualTo(asSet(IndexEntryUpdate.add(node.getId(), () -> descriptor, Values.of(value))));
+                    .isEqualTo(asSet(IndexEntryUpdate.add(node.getId(), indexDescriptor, Values.of(value))));
             tx.commit();
         }
     }
@@ -217,14 +216,14 @@ class IndexCRUDIT {
     }
 
     private static class GatheringIndexWriter extends IndexAccessor.Adapter implements IndexPopulator {
-        private final Set<IndexEntryUpdate<?>> updatesCommitted = new HashSet<>();
+        private final Set<IndexEntryUpdate> updatesCommitted = new HashSet<>();
         private final Map<Object, Set<Long>> indexSamples = new HashMap<>();
 
         @Override
         public void create() {}
 
         @Override
-        public void add(Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext) {
+        public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext) {
             updatesCommitted.addAll(updates);
         }
 
@@ -245,8 +244,8 @@ class IndexCRUDIT {
         public void markAsFailed(String failure) {}
 
         @Override
-        public void includeSample(IndexEntryUpdate<?> update) {
-            addValueToSample(update.getEntityId(), ((ValueIndexEntryUpdate<?>) update).values()[0]);
+        public void includeSample(IndexEntryUpdate update) {
+            addValueToSample(update.getEntityId(), ((ValueIndexEntryUpdate) update).values()[0]);
         }
 
         @Override

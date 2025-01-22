@@ -416,7 +416,7 @@ public class TextIndexAccessorIT {
                 ElementIdMapper.PLACEHOLDER,
                 immutable.empty(),
                 StorageEngineIndexingBehaviour.EMPTY);
-        Collection<IndexEntryUpdate<IndexDescriptor>> initialData = new ArrayList<>();
+        Collection<IndexEntryUpdate> initialData = new ArrayList<>();
         populator.create();
         for (long id = 0; id < nodes; id++) {
             Value[] values = values(indexDescriptor, id);
@@ -456,7 +456,7 @@ public class TextIndexAccessorIT {
         for (int i = 0; i < rounds; i++) {
             try (IndexUpdater updater = index.newUpdater(IndexUpdateMode.RECOVERY, NULL_CONTEXT, false)) {
                 for (int j = 0; j < updatesPerRound; j++) {
-                    IndexEntryUpdate<?> update = randomUpdate(highEntityId, liveEntityIds, descriptor, random.random());
+                    var update = randomUpdate(highEntityId, liveEntityIds, descriptor, random.random());
                     updater.process(update);
                 }
             }
@@ -468,7 +468,7 @@ public class TextIndexAccessorIT {
         return liveEntityIds;
     }
 
-    private static IndexEntryUpdate<?> randomUpdate(
+    private static IndexEntryUpdate randomUpdate(
             MutableLong highEntityId, BitSet liveEntityIds, IndexDescriptor descriptor, Random random) {
         if (highEntityId.longValue() > 0 && random.nextInt(10) == 0) {
             long entityId = -1;

@@ -39,8 +39,8 @@ import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 import org.neo4j.collection.PrimitiveArrays;
 import org.neo4j.common.EntityType;
 import org.neo4j.internal.helpers.collection.Iterables;
+import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
-import org.neo4j.internal.schema.SchemaDescriptorSupplier;
 import org.neo4j.internal.schema.SchemaPatternMatchingType;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.memory.MemoryTracker;
@@ -175,9 +175,8 @@ public class EntityUpdates {
      * @param indexKeys The index keys to generate entry updates for
      * @return IndexEntryUpdates for all relevant index keys
      */
-    public <INDEX_KEY extends SchemaDescriptorSupplier> Iterable<IndexEntryUpdate<INDEX_KEY>> valueUpdatesForIndexKeys(
-            Iterable<INDEX_KEY> indexKeys) {
-        Iterable<INDEX_KEY> potentiallyRelevant =
+    public Iterable<IndexEntryUpdate> valueUpdatesForIndexKeys(Iterable<IndexDescriptor> indexKeys) {
+        Iterable<IndexDescriptor> potentiallyRelevant =
                 Iterables.filter(indexKey -> atLeastOneRelevantChange(indexKey.schema()), indexKeys);
 
         return gatherUpdatesForPotentials(potentiallyRelevant, true);
@@ -198,17 +197,17 @@ public class EntityUpdates {
      * @param type EntityType of the indexes
      * @return IndexEntryUpdates for all relevant index keys
      */
-    public <INDEX_KEY extends SchemaDescriptorSupplier> Iterable<IndexEntryUpdate<INDEX_KEY>> valueUpdatesForIndexKeys(
-            Iterable<INDEX_KEY> indexKeys,
+    public Iterable<IndexEntryUpdate> valueUpdatesForIndexKeys(
+            Iterable<IndexDescriptor> indexKeys,
             StorageReader reader,
             EntityType type,
             CursorContext cursorContext,
             StoreCursors storeCursors,
             MemoryTracker memoryTracker) {
-        List<INDEX_KEY> potentiallyRelevant = new ArrayList<>();
+        List<IndexDescriptor> potentiallyRelevant = new ArrayList<>();
         final MutableIntSet additionalPropertiesToLoad = new IntHashSet();
 
-        for (INDEX_KEY indexKey : indexKeys) {
+        for (var indexKey : indexKeys) {
             if (atLeastOneRelevantChange(indexKey.schema())) {
                 potentiallyRelevant.add(indexKey);
                 gatherPropsToLoad(indexKey.schema(), additionalPropertiesToLoad);
@@ -223,11 +222,10 @@ public class EntityUpdates {
     }
 
     @SuppressWarnings("ConstantConditions")
-    private <INDEX_KEY extends SchemaDescriptorSupplier>
-            Iterable<IndexEntryUpdate<INDEX_KEY>> gatherUpdatesForPotentials(
-                    Iterable<INDEX_KEY> potentiallyRelevant, boolean defaultToNoValue) {
-        List<IndexEntryUpdate<INDEX_KEY>> indexUpdates = new ArrayList<>();
-        for (INDEX_KEY indexKey : potentiallyRelevant) {
+    private Iterable<IndexEntryUpdate> gatherUpdatesForPotentials(
+            Iterable<IndexDescriptor> potentiallyRelevant, boolean defaultToNoValue) {
+        List<IndexEntryUpdate> indexUpdates = new ArrayList<>();
+        for (var indexKey : potentiallyRelevant) {
             SchemaDescriptor schema = indexKey.schema();
             boolean relevantBefore = relevantBefore(schema);
             boolean relevantAfter = relevantAfter(schema);
@@ -253,8 +251,7 @@ public class EntityUpdates {
      *
      * @param indexKey The index key to generate entry updates for
      */
-    public <INDEX_KEY extends SchemaDescriptorSupplier> Optional<IndexEntryUpdate<INDEX_KEY>> tokenUpdateForIndexKey(
-            INDEX_KEY indexKey) {
+    public Optional<IndexEntryUpdate> tokenUpdateForIndexKey(IndexDescriptor indexKey) {
         if (indexKey == null || Arrays.equals(entityTokensBefore, entityTokensAfter)) {
             return Optional.empty();
         }

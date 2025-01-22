@@ -58,7 +58,7 @@ public class IndexUpdateSink {
     public void enqueueTransactionBatchOfUpdates(
             DatabaseIndex<? extends IndexReader> index,
             IndexUpdater indexUpdater,
-            Collection<IndexEntryUpdate<?>> updates) {
+            Collection<IndexEntryUpdate> updates) {
         int numberOfUpdates = Math.min(updates.size(), eventuallyConsistentUpdateQueueLimit);
         try {
             updateQueueLimit.acquire(numberOfUpdates);

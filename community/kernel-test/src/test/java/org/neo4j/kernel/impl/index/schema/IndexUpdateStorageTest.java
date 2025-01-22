@@ -30,7 +30,8 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.neo4j.internal.schema.SchemaDescriptorSupplier;
+import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.UpdateMode;
@@ -43,7 +44,9 @@ import org.neo4j.test.utils.TestDirectory;
 @TestDirectoryExtension
 @ExtendWith(RandomExtension.class)
 class IndexUpdateStorageTest {
-    private static final SchemaDescriptorSupplier descriptor = () -> SchemaDescriptors.forLabel(1, 1);
+    private static final IndexDescriptor descriptor = IndexPrototype.forSchema(SchemaDescriptors.forLabel(1, 1))
+            .withName("1")
+            .materialise(23);
 
     @Inject
     protected TestDirectory directory;
@@ -64,7 +67,7 @@ class IndexUpdateStorageTest {
                 layout,
                 INSTANCE)) {
             // when
-            List<IndexEntryUpdate<SchemaDescriptorSupplier>> expected = generateSomeUpdates(0);
+            List<IndexEntryUpdate> expected = generateSomeUpdates(0);
             storeAll(storage, expected);
 
             // then
@@ -83,7 +86,7 @@ class IndexUpdateStorageTest {
                 layout,
                 INSTANCE)) {
             // when
-            List<IndexEntryUpdate<SchemaDescriptorSupplier>> expected = generateSomeUpdates(5);
+            List<IndexEntryUpdate> expected = generateSomeUpdates(5);
             storeAll(storage, expected);
 
             // then
@@ -102,7 +105,7 @@ class IndexUpdateStorageTest {
                 layout,
                 INSTANCE)) {
             // when
-            List<IndexEntryUpdate<SchemaDescriptorSupplier>> expected = generateSomeUpdates(1_000);
+            List<IndexEntryUpdate> expected = generateSomeUpdates(1_000);
             storeAll(storage, expected);
 
             // then
@@ -110,20 +113,18 @@ class IndexUpdateStorageTest {
         }
     }
 
-    private static void storeAll(
-            IndexUpdateStorage<RangeKey> storage, List<IndexEntryUpdate<SchemaDescriptorSupplier>> expected)
+    private static void storeAll(IndexUpdateStorage<RangeKey> storage, List<IndexEntryUpdate> expected)
             throws IOException {
-        for (IndexEntryUpdate<SchemaDescriptorSupplier> update : expected) {
+        for (IndexEntryUpdate update : expected) {
             storage.add(update);
         }
         storage.doneAdding();
     }
 
-    private static void verify(
-            List<IndexEntryUpdate<SchemaDescriptorSupplier>> expected, IndexUpdateStorage<RangeKey> storage)
+    private static void verify(List<IndexEntryUpdate> expected, IndexUpdateStorage<RangeKey> storage)
             throws IOException {
         try (IndexUpdateCursor<RangeKey, NullValue> reader = storage.reader()) {
-            for (IndexEntryUpdate<SchemaDescriptorSupplier> expectedUpdate : expected) {
+            for (IndexEntryUpdate expectedUpdate : expected) {
                 assertTrue(reader.next());
                 assertEquals(expectedUpdate, asUpdate(reader));
             }
@@ -131,7 +132,7 @@ class IndexUpdateStorageTest {
         }
     }
 
-    private static IndexEntryUpdate<SchemaDescriptorSupplier> asUpdate(IndexUpdateCursor<RangeKey, NullValue> reader) {
+    private static IndexEntryUpdate asUpdate(IndexUpdateCursor<RangeKey, NullValue> reader) {
         return switch (reader.updateMode()) {
             case ADDED -> IndexEntryUpdate.add(
                     reader.key().getEntityId(), descriptor, reader.key().asValue());
@@ -145,8 +146,8 @@ class IndexUpdateStorageTest {
         };
     }
 
-    private List<IndexEntryUpdate<SchemaDescriptorSupplier>> generateSomeUpdates(int count) {
-        List<IndexEntryUpdate<SchemaDescriptorSupplier>> updates = new ArrayList<>();
+    private List<IndexEntryUpdate> generateSomeUpdates(int count) {
+        List<IndexEntryUpdate> updates = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             long entityId = random.nextLong(10_000_000);
             switch (random.among(UpdateMode.MODES)) {

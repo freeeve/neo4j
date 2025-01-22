@@ -33,7 +33,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.PopulationProgress;
-import org.neo4j.internal.schema.SchemaDescriptorSupplier;
+import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.SchemaState;
 import org.neo4j.io.pagecache.context.CursorContext;
@@ -67,7 +67,8 @@ class IndexPopulationTest {
         // given
         NullLogProvider logProvider = NullLogProvider.getInstance();
         IndexStoreView storeView = emptyIndexStoreViewThatProcessUpdates();
-        OnlineIndexProxy onlineProxy = onlineIndexProxy();
+        IndexDescriptor indexDescriptor = TestIndexDescriptorFactory.forLabel(0, 0);
+        OnlineIndexProxy onlineProxy = onlineIndexProxy(indexDescriptor);
         FlippableIndexProxy flipper = new FlippableIndexProxy();
         flipper.setFlipTarget(() -> onlineProxy);
 
@@ -87,9 +88,10 @@ class IndexPopulationTest {
                         EMPTY_VISIBILITY_PROVIDER,
                         IndexMonitor.NO_MONITOR,
                         CursorContext.NULL_CONTEXT)) {
-            multipleIndexPopulator.queueConcurrentUpdate(someUpdate());
+            multipleIndexPopulator.queueConcurrentUpdate(someUpdate(indexDescriptor));
             multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY).run(StoreScan.NO_EXTERNAL_UPDATES);
-            multipleIndexPopulator.addPopulator(emptyPopulatorWithThrowingUpdater(), dummyIndex(), flipper);
+            multipleIndexPopulator.addPopulator(
+                    emptyPopulatorWithThrowingUpdater(), dummyIndex(indexDescriptor), flipper);
 
             // when
             multipleIndexPopulator.flipAfterStoreScan(CursorContext.NULL_CONTEXT, true);
@@ -100,9 +102,9 @@ class IndexPopulationTest {
         }
     }
 
-    private OnlineIndexProxy onlineIndexProxy() {
+    private OnlineIndexProxy onlineIndexProxy(IndexDescriptor indexDescriptor) {
         return new OnlineIndexProxy(
-                dummyIndex(), IndexAccessor.EMPTY, false, NO_USAGE_TRACKING, new DatabaseIndexStats());
+                dummyIndex(indexDescriptor), IndexAccessor.EMPTY, false, NO_USAGE_TRACKING, new DatabaseIndexStats());
     }
 
     private static IndexPopulator.Adapter emptyPopulatorWithThrowingUpdater() {
@@ -111,7 +113,7 @@ class IndexPopulationTest {
             public IndexUpdater newPopulatingUpdater(CursorContext cursorContext) {
                 return new IndexUpdater() {
                     @Override
-                    public void process(IndexEntryUpdate<?> update) throws IndexEntryConflictException {
+                    public void process(IndexEntryUpdate update) throws IndexEntryConflictException {
                         throw IndexEntryConflictException.indexEntryConflict(
                                 SchemaDescriptors.ANY_TOKEN_NODE_SCHEMA_DESCRIPTOR, 0, 1, Values.numberValue(0));
                     }
@@ -151,11 +153,11 @@ class IndexPopulationTest {
         };
     }
 
-    private IndexProxyStrategy dummyIndex() {
-        return new ValueIndexProxyStrategy(TestIndexDescriptorFactory.forLabel(0, 0), indexStatisticsStore, tokens);
+    private IndexProxyStrategy dummyIndex(IndexDescriptor indexDescriptor) {
+        return new ValueIndexProxyStrategy(indexDescriptor, indexStatisticsStore, tokens);
     }
 
-    private static ValueIndexEntryUpdate<SchemaDescriptorSupplier> someUpdate() {
-        return IndexEntryUpdate.add(0, () -> SchemaDescriptors.forLabel(0, 0), Values.numberValue(0));
+    private static ValueIndexEntryUpdate someUpdate(IndexDescriptor indexDescriptor) {
+        return IndexEntryUpdate.add(0, indexDescriptor, Values.numberValue(0));
     }
 }

@@ -22,7 +22,7 @@ package org.neo4j.storageengine.api;
 import static org.neo4j.internal.schema.SchemaUserDescription.TOKEN_ID_NAME_LOOKUP;
 
 import org.neo4j.common.TokenNameLookup;
-import org.neo4j.internal.schema.SchemaDescriptorSupplier;
+import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.values.storable.Value;
 
 /**
@@ -30,14 +30,13 @@ import org.neo4j.values.storable.Value;
  * update.
  * This is of use in populating indexes that might be relevant to node label and property combinations.
  *
- * @param <INDEX_KEY> {@link SchemaDescriptorSupplier} specifying the schema
  */
-public abstract class IndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplier> {
+public abstract class IndexEntryUpdate {
     private final long entityId;
     private final UpdateMode updateMode;
-    private final INDEX_KEY indexKey;
+    private final IndexDescriptor indexKey;
 
-    IndexEntryUpdate(long entityId, INDEX_KEY indexKey, UpdateMode updateMode) {
+    IndexEntryUpdate(long entityId, IndexDescriptor indexKey, UpdateMode updateMode) {
         this.entityId = entityId;
         this.indexKey = indexKey;
         this.updateMode = updateMode;
@@ -51,7 +50,7 @@ public abstract class IndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplie
         return updateMode;
     }
 
-    public INDEX_KEY indexKey() {
+    public IndexDescriptor indexKey() {
         return indexKey;
     }
 
@@ -64,7 +63,7 @@ public abstract class IndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplie
             return false;
         }
 
-        IndexEntryUpdate<?> that = (IndexEntryUpdate<?>) o;
+        IndexEntryUpdate that = (IndexEntryUpdate) o;
 
         if (entityId != that.entityId) {
             return false;
@@ -73,8 +72,7 @@ public abstract class IndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplie
             return false;
         }
 
-        boolean schemaEquals =
-                indexKey != null ? indexKey.schema().equals(that.indexKey.schema()) : that.indexKey == null;
+        boolean schemaEquals = indexKey != null ? indexKey.equals(that.indexKey) : that.indexKey == null;
         if (!schemaEquals) {
             return false;
         }
@@ -84,9 +82,9 @@ public abstract class IndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplie
 
     @Override
     public int hashCode() {
-        int result = (int) (entityId ^ (entityId >>> 32));
+        int result = Long.hashCode(entityId);
         result = 31 * result + (updateMode != null ? updateMode.hashCode() : 0);
-        result = 31 * result + (indexKey != null ? indexKey.schema().hashCode() : 0);
+        result = 31 * result + (indexKey != null ? indexKey.hashCode() : 0);
         result = 31 * result + valueHash();
         return result;
     }
@@ -108,7 +106,7 @@ public abstract class IndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplie
     /**
      * Need to align with {@link #valueHash() value hash code}.
      */
-    protected abstract boolean valueEquals(IndexEntryUpdate<?> that);
+    protected abstract boolean valueEquals(IndexEntryUpdate that);
 
     /**
      * Need to align with {@link #valueEquals(IndexEntryUpdate) value equals}.
@@ -124,36 +122,31 @@ public abstract class IndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplie
      * @param entityId new entity ID.
      * @return an instance just like this one, but with a different entity ID.
      */
-    public abstract IndexEntryUpdate<INDEX_KEY> withEntityId(long entityId);
+    public abstract IndexEntryUpdate withEntityId(long entityId);
 
     @Override
     public String toString() {
         return describe(TOKEN_ID_NAME_LOOKUP);
     }
 
-    public static <INDEX_KEY extends SchemaDescriptorSupplier> ValueIndexEntryUpdate<INDEX_KEY> add(
-            long entityId, INDEX_KEY indexKey, Value... values) {
-        return new ValueIndexEntryUpdate<>(entityId, indexKey, UpdateMode.ADDED, values);
+    public static ValueIndexEntryUpdate add(long entityId, IndexDescriptor indexKey, Value... values) {
+        return new ValueIndexEntryUpdate(entityId, indexKey, UpdateMode.ADDED, values);
     }
 
-    public static <INDEX_KEY extends SchemaDescriptorSupplier> ValueIndexEntryUpdate<INDEX_KEY> remove(
-            long entityId, INDEX_KEY indexKey, Value... values) {
-        return new ValueIndexEntryUpdate<>(entityId, indexKey, UpdateMode.REMOVED, values);
+    public static ValueIndexEntryUpdate remove(long entityId, IndexDescriptor indexKey, Value... values) {
+        return new ValueIndexEntryUpdate(entityId, indexKey, UpdateMode.REMOVED, values);
     }
 
-    public static <INDEX_KEY extends SchemaDescriptorSupplier> ValueIndexEntryUpdate<INDEX_KEY> change(
-            long entityId, INDEX_KEY indexKey, Value before, Value after) {
-        return new ValueIndexEntryUpdate<>(
+    public static ValueIndexEntryUpdate change(long entityId, IndexDescriptor indexKey, Value before, Value after) {
+        return new ValueIndexEntryUpdate(
                 entityId, indexKey, UpdateMode.CHANGED, new Value[] {before}, new Value[] {after});
     }
 
-    public static <INDEX_KEY extends SchemaDescriptorSupplier> ValueIndexEntryUpdate<INDEX_KEY> change(
-            long entityId, INDEX_KEY indexKey, Value[] before, Value[] after) {
-        return new ValueIndexEntryUpdate<>(entityId, indexKey, UpdateMode.CHANGED, before, after);
+    public static ValueIndexEntryUpdate change(long entityId, IndexDescriptor indexKey, Value[] before, Value[] after) {
+        return new ValueIndexEntryUpdate(entityId, indexKey, UpdateMode.CHANGED, before, after);
     }
 
-    public static <INDEX_KEY extends SchemaDescriptorSupplier> TokenIndexEntryUpdate<INDEX_KEY> change(
-            long entityId, INDEX_KEY indexKey, int[] before, int[] after) {
+    public static TokenIndexEntryUpdate change(long entityId, IndexDescriptor indexKey, int[] before, int[] after) {
         return change(entityId, indexKey, before, after, false);
     }
 
@@ -162,8 +155,8 @@ public abstract class IndexEntryUpdate<INDEX_KEY extends SchemaDescriptorSupplie
      *     means tokens to add, otherwise if {@code false} {@code before} means tokens before the
      *     change and {@code after} means tokens after the change.
      */
-    public static <INDEX_KEY extends SchemaDescriptorSupplier> TokenIndexEntryUpdate<INDEX_KEY> change(
-            long entityId, INDEX_KEY indexKey, int[] before, int[] after, boolean logical) {
-        return new TokenIndexEntryUpdate<>(entityId, indexKey, before, after, logical);
+    public static TokenIndexEntryUpdate change(
+            long entityId, IndexDescriptor indexKey, int[] before, int[] after, boolean logical) {
+        return new TokenIndexEntryUpdate(entityId, indexKey, before, after, logical);
     }
 }

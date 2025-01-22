@@ -78,11 +78,11 @@ public class TokenIndexPopulator extends TokenIndex implements IndexPopulator {
     }
 
     @Override
-    public void add(Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext)
+    public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext)
             throws IndexEntryConflictException {
         try (TokenIndexUpdater updater =
                 singleUpdater.initialize(index.writer(W_BATCHED_SINGLE_THREADED, cursorContext), false)) {
-            for (IndexEntryUpdate<?> update : updates) {
+            for (var update : updates) {
                 updater.process(update);
             }
         } catch (IOException e) {
@@ -144,7 +144,7 @@ public class TokenIndexPopulator extends TokenIndex implements IndexPopulator {
     }
 
     @Override
-    public void includeSample(IndexEntryUpdate<?> update) {
+    public void includeSample(IndexEntryUpdate update) {
         // We don't do sampling for token indexes since that information is available in other ways.
     }
 

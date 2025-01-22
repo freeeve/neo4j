@@ -295,12 +295,12 @@ abstract class PropertyIndexProviderCompatibilityTestSuite extends IndexProvider
                             Values.pointValue(CoordinateReferenceSystem.WGS_84, 9.21, 9.65)));
         }
 
-        List<ValueIndexEntryUpdate<?>> updates(List<NodeAndValue> values) {
+        List<ValueIndexEntryUpdate> updates(List<NodeAndValue> values) {
             return updates(values, 0);
         }
 
-        List<ValueIndexEntryUpdate<?>> updates(List<NodeAndValue> values, long nodeIdOffset) {
-            List<ValueIndexEntryUpdate<?>> updates = new ArrayList<>();
+        List<ValueIndexEntryUpdate> updates(List<NodeAndValue> values, long nodeIdOffset) {
+            List<ValueIndexEntryUpdate> updates = new ArrayList<>();
             values.forEach(entry ->
                     updates.add(ValueIndexEntryUpdate.add(nodeIdOffset + entry.nodeId, descriptor, entry.value)));
             return updates;

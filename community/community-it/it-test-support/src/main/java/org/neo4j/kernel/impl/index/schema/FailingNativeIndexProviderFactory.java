@@ -110,8 +110,7 @@ public class FailingNativeIndexProviderFactory extends BuiltInDelegatingIndexPro
                 if (failureTypes.contains(FailureType.POPULATION)) {
                     return new IndexPopulator.Delegating(actualPopulator) {
                         @Override
-                        public void add(
-                                Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext) {
+                        public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext) {
                             throw new RuntimeException(POPULATION_FAILURE_MESSAGE);
                         }
                     };
@@ -144,7 +143,7 @@ public class FailingNativeIndexProviderFactory extends BuiltInDelegatingIndexPro
                         IndexUpdater actualUpdater = actualAccessor.newUpdater(mode, cursorContext, parallel);
                         return new DelegatingIndexUpdater(actualUpdater) {
                             @Override
-                            public void process(IndexEntryUpdate<?> update) throws IndexEntryConflictException {
+                            public void process(IndexEntryUpdate update) throws IndexEntryConflictException {
                                 if (!failureTypes.contains(FailureType.SKIP_ONLINE_UPDATES)) {
                                     super.process(update);
                                 }

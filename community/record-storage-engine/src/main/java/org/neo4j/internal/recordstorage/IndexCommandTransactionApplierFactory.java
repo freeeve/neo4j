@@ -70,7 +70,7 @@ public class IndexCommandTransactionApplierFactory implements TransactionApplier
         private final IndexActivator indexActivator;
         private final CursorContext cursorContext;
         private final CommandSelector commandSelector;
-        private final List<IndexEntryUpdate<IndexDescriptor>> indexUpdates = new ArrayList<>();
+        private final List<IndexEntryUpdate> indexUpdates = new ArrayList<>();
 
         SingleTransactionApplier(
                 StorageEngineTransaction transaction,

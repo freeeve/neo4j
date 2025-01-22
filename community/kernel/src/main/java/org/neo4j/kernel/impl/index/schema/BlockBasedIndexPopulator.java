@@ -188,11 +188,11 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
     }
 
     @Override
-    public void add(Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext) {
+    public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext) {
         if (!updates.isEmpty()) {
             BlockStorage<KEY, NullValue> blockStorage = null;
-            for (IndexEntryUpdate<?> update : updates) {
-                ValueIndexEntryUpdate<?> valueUpdate = (ValueIndexEntryUpdate<?>) update;
+            for (var update : updates) {
+                var valueUpdate = (ValueIndexEntryUpdate) update;
                 if (ignoreStrategy.ignore(valueUpdate.values())) {
                     continue;
                 }
@@ -448,8 +448,8 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
             // Will need the reader from newReader, which a sub-class of this class implements
             return new DelegatingIndexUpdater(super.newPopulatingUpdater(cursorContext)) {
                 @Override
-                public void process(IndexEntryUpdate<?> update) throws IndexEntryConflictException {
-                    ValueIndexEntryUpdate<?> valueUpdate = asValueUpdate(update);
+                public void process(IndexEntryUpdate update) throws IndexEntryConflictException {
+                    var valueUpdate = asValueUpdate(update);
                     validateUpdate(valueUpdate);
                     if (ignoreStrategy.ignore(valueUpdate)) {
                         return;
@@ -464,9 +464,9 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
             private volatile boolean closed;
 
             @Override
-            public void process(IndexEntryUpdate<?> update) {
+            public void process(IndexEntryUpdate update) {
                 assertOpen();
-                ValueIndexEntryUpdate<?> valueUpdate = asValueUpdate(update);
+                var valueUpdate = asValueUpdate(update);
                 try {
                     validateUpdate(valueUpdate);
                     if (ignoreStrategy.ignore(valueUpdate)) {
@@ -474,7 +474,7 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
                     }
                     // A change might just be an add or a remove for indexes not supporting all value types.
                     // Let's do any necessary conversion now and store it as the actual update the index needs.
-                    valueUpdate = ignoreStrategy.toEquivalentUpdate((ValueIndexEntryUpdate<?>) update);
+                    valueUpdate = ignoreStrategy.toEquivalentUpdate((ValueIndexEntryUpdate) update);
                     externalUpdates.add(valueUpdate);
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
@@ -494,7 +494,7 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
         };
     }
 
-    private void validateUpdate(ValueIndexEntryUpdate<?> update) {
+    private void validateUpdate(ValueIndexEntryUpdate update) {
         if (update.updateMode() != UpdateMode.REMOVED) {
             validator.validate(update.getEntityId(), update.values());
         }

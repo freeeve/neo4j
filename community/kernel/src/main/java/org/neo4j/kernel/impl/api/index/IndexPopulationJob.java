@@ -153,7 +153,7 @@ public class IndexPopulationJob implements Runnable {
                 monitor.indexPopulationScanStarting(indexDescriptors);
                 multiPopulator.resetVisibility(cursorContext);
                 indexAllEntities(contextFactory);
-                monitor.indexPopulationScanComplete();
+                monitor.indexPopulationScanComplete(indexDescriptors);
                 if (stopped) {
                     multiPopulator.stop(cursorContext);
                     // We remain in POPULATING state
@@ -232,7 +232,7 @@ public class IndexPopulationJob implements Runnable {
      *
      * @param update {@link IndexEntryUpdate} to queue.
      */
-    public void update(IndexEntryUpdate<?> update) {
+    public void update(IndexEntryUpdate update) {
         multiPopulator.queueConcurrentUpdate(update);
     }
 

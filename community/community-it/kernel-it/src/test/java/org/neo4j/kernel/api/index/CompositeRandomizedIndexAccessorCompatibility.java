@@ -61,10 +61,10 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
         void testExactMatchOnRandomCompositeValues() throws Exception {
             // given
             ValueType[] types = randomSetOfSupportedTypes();
-            List<ValueIndexEntryUpdate<?>> updates = new ArrayList<>();
+            List<ValueIndexEntryUpdate> updates = new ArrayList<>();
             Set<ValueTuple> duplicateChecker = new HashSet<>();
             for (long id = 0; id < 30_000; id++) {
-                ValueIndexEntryUpdate<?> update;
+                ValueIndexEntryUpdate update;
                 do {
                     update = add(
                             id,
@@ -80,7 +80,7 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
 
             // when
             TokenNameLookup tokens = new InMemoryTokens();
-            for (ValueIndexEntryUpdate<?> update : updates) {
+            for (ValueIndexEntryUpdate update : updates) {
                 // then
                 List<Long> hits = query(
                         exact(100, update.values()[0]),
@@ -116,7 +116,7 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
             MutableLong nextId = new MutableLong();
 
             for (int i = 0; i < 5; i++) {
-                List<ValueIndexEntryUpdate<?>> updates = new ArrayList<>();
+                List<ValueIndexEntryUpdate> updates = new ArrayList<>();
                 if (i == 0) {
                     // The initial batch of data can simply be additions
                     updates = generateUpdatesFromValues(generateValuesFromType(types, uniqueValues, 20_000), nextId);
@@ -238,8 +238,8 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
             return value;
         }
 
-        private List<ValueIndexEntryUpdate<?>> generateUpdatesFromValues(List<ValueTuple> values, MutableLong nextId) {
-            List<ValueIndexEntryUpdate<?>> updates = new ArrayList<>();
+        private List<ValueIndexEntryUpdate> generateUpdatesFromValues(List<ValueTuple> values, MutableLong nextId) {
+            List<ValueIndexEntryUpdate> updates = new ArrayList<>();
             for (ValueTuple value : values) {
                 updates.add(add(nextId.getAndIncrement(), descriptor, value.getValues()));
             }

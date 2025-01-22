@@ -122,7 +122,7 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>> exte
     }
 
     @Override
-    public void add(Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext)
+    public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext)
             throws IndexEntryConflictException {
         processUpdates(updates, mainConflictDetector, cursorContext);
     }
@@ -174,7 +174,7 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>> exte
     }
 
     @Override
-    public void includeSample(IndexEntryUpdate<?> update) {
+    public void includeSample(IndexEntryUpdate update) {
         if (descriptor.isUnique()) {
             updateUniqueSample(update);
         }
@@ -204,21 +204,21 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>> exte
     }
 
     private void processUpdates(
-            Iterable<? extends IndexEntryUpdate<?>> indexEntryUpdates,
+            Iterable<? extends IndexEntryUpdate> indexEntryUpdates,
             ConflictDetectingValueMerger<KEY, Value[]> conflictDetector,
             CursorContext cursorContext)
             throws IndexEntryConflictException {
         try (Writer<KEY, NullValue> writer = tree.writer(W_BATCHED_SINGLE_THREADED, cursorContext)) {
-            for (IndexEntryUpdate<?> indexEntryUpdate : indexEntryUpdates) {
+            for (IndexEntryUpdate indexEntryUpdate : indexEntryUpdates) {
                 NativeIndexUpdater.processUpdate(
-                        treeKey, (ValueIndexEntryUpdate<?>) indexEntryUpdate, writer, conflictDetector, ignoreStrategy);
+                        treeKey, (ValueIndexEntryUpdate) indexEntryUpdate, writer, conflictDetector, ignoreStrategy);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    private void updateUniqueSample(IndexEntryUpdate<?> update) {
+    private void updateUniqueSample(IndexEntryUpdate update) {
         switch (update.updateMode()) {
             case ADDED:
                 uniqueSampler.increment(1);

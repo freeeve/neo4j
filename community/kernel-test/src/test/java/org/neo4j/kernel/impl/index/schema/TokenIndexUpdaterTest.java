@@ -128,7 +128,7 @@ class TokenIndexUpdaterTest {
 
             // WHEN
             for (int i = 0; i < NODE_COUNT * 3; i++) {
-                TokenIndexEntryUpdate<?> update = randomUpdate(expected);
+                TokenIndexEntryUpdate update = randomUpdate(expected);
                 writer.process(update);
             }
         }
@@ -244,7 +244,7 @@ class TokenIndexUpdaterTest {
         assertTreeHasKeysRepresentingIdRanges(expected);
     }
 
-    private TokenIndexEntryUpdate<?> randomUpdate(long[] expected) {
+    private TokenIndexEntryUpdate randomUpdate(long[] expected) {
         int nodeId = random.nextInt(expected.length);
         long labels = expected[nodeId];
         int[] before = getLabels(labels);

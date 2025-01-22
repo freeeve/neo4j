@@ -326,7 +326,7 @@ class RecordStorageEngineTest {
                 }
 
                 @Override
-                public boolean visitIndexUpdateCommand(IndexUpdateCommand command) throws IOException {
+                public boolean visitIndexUpdateCommand(IndexUpdateCommand<?> command) throws IOException {
                     return transactionApplier.visitIndexUpdateCommand(command);
                 }
 

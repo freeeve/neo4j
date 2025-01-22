@@ -132,7 +132,7 @@ class TextIndexPopulationIT {
         }
     }
 
-    private IndexEntryUpdate<?> add(long nodeId, Object value) {
+    private IndexEntryUpdate add(long nodeId, Object value) {
         return IndexEntryUpdate.add(nodeId, descriptor, Values.of(value));
     }
 }

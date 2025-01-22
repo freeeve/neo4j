@@ -202,9 +202,8 @@ public class IndexPopulationMissConcurrentUpdateIT {
                         StorageEngineIndexingBehaviour indexingBehaviour) {
                     return new IndexPopulator.Adapter() {
                         @Override
-                        public void add(
-                                Collection<? extends IndexEntryUpdate<?>> updates, CursorContext cursorContext) {
-                            for (IndexEntryUpdate<?> update : updates) {
+                        public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext) {
+                            for (IndexEntryUpdate update : updates) {
                                 boolean added = entitiesByScan.add(update.getEntityId());
                                 assertTrue(added); // scans should never see multiple updates from the same entityId
                                 if (update.getEntityId() > SCAN_BARRIER_NODE_ID_THRESHOLD) {
@@ -218,7 +217,7 @@ public class IndexPopulationMissConcurrentUpdateIT {
                         public IndexUpdater newPopulatingUpdater(CursorContext cursorContext) {
                             return new IndexUpdater() {
                                 @Override
-                                public void process(IndexEntryUpdate<?> update) {
+                                public void process(IndexEntryUpdate update) {
                                     boolean added = entitiesByUpdater.add(update.getEntityId());
                                     assertTrue(
                                             added); // we know that in this test we won't apply multiple updates for an

@@ -114,7 +114,7 @@ public class TransactionApplierFacade implements TransactionApplier {
     }
 
     @Override
-    public boolean visitIndexUpdateCommand(IndexUpdateCommand command) throws IOException {
+    public boolean visitIndexUpdateCommand(IndexUpdateCommand<?> command) throws IOException {
         return visit(command);
     }
 }

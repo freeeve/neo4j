@@ -60,7 +60,7 @@ class DeferredConflictCheckingIndexUpdaterTest {
                 .when(reader)
                 .query(any(), any(), any(), any(), any(), any());
         long nodeId = 0;
-        List<ValueIndexEntryUpdate<IndexDescriptor>> updates = new ArrayList<>();
+        List<ValueIndexEntryUpdate> updates = new ArrayList<>();
         updates.add(add(nodeId++, descriptor, tuple(10, 11)));
         updates.add(change(nodeId++, descriptor, tuple("abc", "def"), tuple("ghi", "klm")));
         updates.add(remove(nodeId++, descriptor, tuple(1001L, 1002L)));
@@ -69,14 +69,14 @@ class DeferredConflictCheckingIndexUpdaterTest {
         try (DeferredConflictCheckingIndexUpdater updater =
                 new DeferredConflictCheckingIndexUpdater(actual, () -> reader, descriptor, NULL_CONTEXT)) {
             // when
-            for (ValueIndexEntryUpdate<IndexDescriptor> update : updates) {
+            for (ValueIndexEntryUpdate update : updates) {
                 updater.process(update);
                 verify(actual).process(update);
             }
         }
 
         // then
-        for (ValueIndexEntryUpdate<IndexDescriptor> update : updates) {
+        for (ValueIndexEntryUpdate update : updates) {
             if (update.updateMode() == UpdateMode.ADDED || update.updateMode() == UpdateMode.CHANGED) {
                 Value[] tuple = update.values();
                 PropertyIndexQuery[] query = new PropertyIndexQuery[tuple.length];

@@ -30,7 +30,7 @@ class EventuallyConsistentIndexUpdater implements IndexUpdater {
     private final DatabaseIndex<? extends IndexReader> index;
     private final IndexUpdater indexUpdater;
     private final IndexUpdateSink indexUpdateSink;
-    private final List<IndexEntryUpdate<?>> updates = new ArrayList<>();
+    private final List<IndexEntryUpdate> updates = new ArrayList<>();
 
     EventuallyConsistentIndexUpdater(
             DatabaseIndex<? extends IndexReader> index, IndexUpdater indexUpdater, IndexUpdateSink indexUpdateSink) {
@@ -40,7 +40,7 @@ class EventuallyConsistentIndexUpdater implements IndexUpdater {
     }
 
     @Override
-    public void process(IndexEntryUpdate<?> update) {
+    public void process(IndexEntryUpdate update) {
         updates.add(update);
     }
 

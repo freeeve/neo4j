@@ -28,7 +28,6 @@ import java.util.Map;
 import org.neo4j.collection.trackable.HeapTrackingCollections;
 import org.neo4j.internal.recordstorage.LogCommandSerialization;
 import org.neo4j.internal.recordstorage.RecordState;
-import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
@@ -39,8 +38,8 @@ import org.neo4j.values.storable.Value;
 public class IndexRecordState implements RecordState {
 
     private final LogCommandSerialization serialization;
-    private final List<TokenIndexEntryUpdate<IndexDescriptor>> tokenIndexUpdates = new ArrayList<>();
-    private final Map<IndexEntityPair, ValueIndexEntryUpdate<IndexDescriptor>> valueIndexUpdates = new HashMap<>();
+    private final List<TokenIndexEntryUpdate> tokenIndexUpdates = new ArrayList<>();
+    private final Map<IndexEntityPair, ValueIndexEntryUpdate> valueIndexUpdates = new HashMap<>();
 
     public IndexRecordState(LogCommandSerialization serialization) {
         this.serialization = serialization;
@@ -62,7 +61,7 @@ public class IndexRecordState implements RecordState {
     private void extractTokenCommands(Collection<StorageCommand> target, MemoryTracker memoryTracker) {
         try (var tokenIndexIndexCommands =
                 HeapTrackingCollections.<TokenIndexUpdateCommand>newArrayList(memoryTracker)) {
-            for (TokenIndexEntryUpdate<IndexDescriptor> update : tokenIndexUpdates) {
+            for (var update : tokenIndexUpdates) {
                 tokenIndexIndexCommands.add(new TokenIndexUpdateCommand(
                         serialization,
                         update.updateMode(),
@@ -79,7 +78,7 @@ public class IndexRecordState implements RecordState {
 
     private void extractValueCommands(Collection<StorageCommand> target, MemoryTracker memoryTracker) {
         try (var valueIndexCommands = HeapTrackingCollections.<ValueIndexUpdateCommand>newArrayList(memoryTracker)) {
-            for (ValueIndexEntryUpdate<IndexDescriptor> update : valueIndexUpdates.values()) {
+            for (var update : valueIndexUpdates.values()) {
                 Value[] before = null;
                 if (update.updateMode() == UpdateMode.CHANGED) {
                     before = update.beforeValues();
@@ -98,19 +97,19 @@ public class IndexRecordState implements RecordState {
         }
     }
 
-    public void addTokenUpdate(TokenIndexEntryUpdate<IndexDescriptor> tokenIndexUpdate) {
+    public void addTokenUpdate(TokenIndexEntryUpdate tokenIndexUpdate) {
         tokenIndexUpdates.add(tokenIndexUpdate);
     }
 
-    public void putValueUpdate(IndexEntityPair key, ValueIndexEntryUpdate<IndexDescriptor> update) {
+    public void putValueUpdate(IndexEntityPair key, ValueIndexEntryUpdate update) {
         valueIndexUpdates.put(key, update);
     }
 
-    public ValueIndexEntryUpdate<IndexDescriptor> getValueUpdate(IndexEntityPair key) {
+    public ValueIndexEntryUpdate getValueUpdate(IndexEntityPair key) {
         return valueIndexUpdates.get(key);
     }
 
-    private static class IndexComamdComparator implements Comparator<IndexUpdateCommand> {
+    private static class IndexComamdComparator implements Comparator<IndexUpdateCommand<?>> {
 
         static final IndexComamdComparator INDEX_COMMANDS_COMPARATOR = new IndexComamdComparator();
 
@@ -126,5 +125,5 @@ public class IndexRecordState implements RecordState {
         }
     }
 
-    record IndexEntityPair(long indexId, long entityId) {}
+    public record IndexEntityPair(long indexId, long entityId) {}
 }
