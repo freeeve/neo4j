@@ -466,7 +466,6 @@ public class ImportCommand {
                 names = "--input-type",
                 showDefaultValue = ALWAYS,
                 paramLabel = "csv|parquet",
-                defaultValue = "csv",
                 description = "File type to import from. Can be csv or parquet. Defaults to csv.",
                 converter = FileInputTypeConverter.class)
         FileImporter.FileInputType fileInputType;
@@ -530,7 +529,7 @@ public class ImportCommand {
                             .withLogProvider(logProvider)
                             .withSchemaCommands(parseSchemaCommands(fileSystem, databaseConfig))
                             .withLogProvider(logProvider)
-                            .withFileInputType(fileInputType);
+                            .withFileInputType(resolveFileInputType(fileSystem));
                     if (incremental) {
                         importerBuilder.withCursorContextFactory(new CursorContextFactory(
                                 PageCacheTracer.NULL,
@@ -722,6 +721,26 @@ public class ImportCommand {
                     return super.forcedNumberOfNodeIdRanges();
                 }
             };
+        }
+
+        FileImporter.FileInputType resolveFileInputType(FileSystemAbstraction fs) {
+            if (fileInputType != null) {
+                return fileInputType;
+            }
+
+            if (nodes.stream()
+                    .flatMap(nodeFile -> stream(nodeFile.toPaths(fs)))
+                    .map(path -> path.getFileName()
+                            .toString()
+                            .toLowerCase(Locale.ROOT)
+                            .endsWith(".parquet"))
+                    .reduce((b1, b2) -> b1 && b2)
+                    .orElse(false)) {
+                return FileImporter.FileInputType.PARQUET;
+            }
+
+            // default to CSV and not throw an error for backward compatibility reasons
+            return FileImporter.FileInputType.CSV;
         }
 
         static class EscapedCharacterConverter implements ITypeConverter<Character> {

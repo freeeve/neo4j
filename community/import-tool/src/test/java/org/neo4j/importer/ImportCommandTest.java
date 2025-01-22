@@ -148,6 +148,50 @@ class ImportCommandTest {
     }
 
     @Test
+    void shouldDefaultToCsvInput() {
+        var command = new ImportCommand.Full(getExecutionContext());
+        var tempFileName = testDir.createFile("dummy").toString();
+        var requiredArgs = List.of("--nodes", tempFileName, "--relationships", tempFileName);
+        new CommandLine(command).parseArgs(requiredArgs.toArray(String[]::new));
+        var dummyFS = new SchemeFileSystemAbstraction(getExecutionContext().fs());
+        assertThat(command.resolveFileInputType(dummyFS)).isEqualTo(FileImporter.FileInputType.CSV);
+    }
+
+    @Test
+    void shouldDeriveFileInputTypeFromFileNamesParquet() {
+        var command = new ImportCommand.Full(getExecutionContext());
+        var f1Name = testDir.createFile("something.parquet").toString();
+        var f2Name = testDir.createFile("something_else.parquet").toString();
+        var tempFileNames = f1Name + "," + f2Name;
+        var requiredArgs = List.of("--nodes", tempFileNames, "--relationships", tempFileNames);
+        new CommandLine(command).parseArgs(requiredArgs.toArray(String[]::new));
+        var dummyFS = new SchemeFileSystemAbstraction(getExecutionContext().fs());
+        assertThat(command.resolveFileInputType(dummyFS)).isEqualTo(FileImporter.FileInputType.PARQUET);
+    }
+
+    @Test
+    void shouldDeriveFileInputTypeFromFileNamesCSV() {
+        var command = new ImportCommand.Full(getExecutionContext());
+        var f1Name = testDir.createFile("something.csv").toString();
+        var f2Name = testDir.createFile("something_else.csv").toString();
+        var tempFileNames = f1Name + "," + f2Name;
+        var requiredArgs = List.of("--nodes", tempFileNames, "--relationships", tempFileNames);
+        new CommandLine(command).parseArgs(requiredArgs.toArray(String[]::new));
+        var dummyFS = new SchemeFileSystemAbstraction(getExecutionContext().fs());
+        assertThat(command.resolveFileInputType(dummyFS)).isEqualTo(FileImporter.FileInputType.CSV);
+    }
+
+    @Test
+    void fileInputTypeParameterOverridesFileNameDetection() {
+        var command = new ImportCommand.Full(getExecutionContext());
+        var tempFileName = testDir.createFile("something.csv").toString();
+        var requiredArgs = List.of("--nodes", tempFileName, "--relationships", tempFileName, "--input-type", "parquet");
+        new CommandLine(command).parseArgs(requiredArgs.toArray(String[]::new));
+        var dummyFS = new SchemeFileSystemAbstraction(getExecutionContext().fs());
+        assertThat(command.resolveFileInputType(dummyFS)).isEqualTo(FileImporter.FileInputType.PARQUET);
+    }
+
+    @Test
     void shouldAllowDifferentCasingForInputType() {
         var tempFileName = testDir.createFile("dummy").toString();
         var requiredArgs = List.of("--nodes", tempFileName, "--relationships", tempFileName);
