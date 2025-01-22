@@ -648,7 +648,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
   }
 
   test(
-    "CALL IN TRANSACTIONS  ON ERROR RETRY REPORT STATUS AS <v> should fail semantic check if <v> has already been scoped"
+    "CALL IN TRANSACTIONS ON ERROR RETRY REPORT STATUS AS <v> should fail semantic check if <v> has already been scoped"
   ) {
     val query =
       """WITH {} AS v
