@@ -196,6 +196,13 @@ abstract class Expression extends ASTNode {
   }
 
   /**
+   * Return true is this expression contains an expression matching the provided predicate function.
+   */
+  def contains(f: PartialFunction[Expression, Boolean]): Boolean = this.folder.treeExists {
+    case e:Expression => f.isDefinedAt(e)
+  }
+
+  /**
    * Return true is this expression contains an aggregating expression.
    */
   def containsAggregate: Boolean = this.folder.treeExists {
