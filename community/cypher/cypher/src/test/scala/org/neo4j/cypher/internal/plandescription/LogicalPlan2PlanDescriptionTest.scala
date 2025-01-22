@@ -8423,7 +8423,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         id,
         "Repeat(Walk)",
         Seq(lhsPD, rhsPD),
-        List(details("(start) (...){0, } (end) WHERE end.prop=42")),
+        List(details("(start) (...){0, } (end) WHERE end.prop < 42")),
         Set("r", "a", "anon_2", "start", "end")
       )
     )
