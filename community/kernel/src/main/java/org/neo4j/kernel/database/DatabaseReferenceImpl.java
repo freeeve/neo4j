@@ -387,9 +387,17 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
             this.entityDetailStores = entityDetailStores;
         }
 
-        @Override
-        public Optional<NormalizedDatabaseName> namespace() {
-            return Optional.empty();
+        /**
+         * Creates a sharded property database reference in given namespace
+         */
+        public SPD(
+                NormalizedDatabaseName alias,
+                NormalizedDatabaseName namespace,
+                NamedDatabaseId namedDatabaseId,
+                Map<Integer, DatabaseReference> entityDetailStores,
+                boolean isPrimary) {
+            super(alias, namespace, namedDatabaseId, isPrimary);
+            this.entityDetailStores = entityDetailStores;
         }
 
         public Map<Integer, DatabaseReference> entityDetailStores() {

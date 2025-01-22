@@ -91,6 +91,26 @@ public final class CommunityTopologyGraphDbmsModelUtil {
         });
     }
 
+    public static Optional<Internal> createInternalSpdReference(Node alias, NamedDatabaseId targetedDatabase) {
+        return ignoreConcurrentDeletes(() -> {
+            var aliasName = new NormalizedDatabaseName(getPropertyOnNode(
+                    TopologyGraphDbmsModel.DATABASE_NAME, alias, TopologyGraphDbmsModel.NAME_PROPERTY, String.class));
+            var namespace = new NormalizedDatabaseName(getPropertyOnNode(
+                    TopologyGraphDbmsModel.DATABASE_NAME,
+                    alias,
+                    TopologyGraphDbmsModel.NAMESPACE_PROPERTY,
+                    String.class));
+            var primary = getPropertyOnNode(
+                    TopologyGraphDbmsModel.DATABASE_NAME,
+                    alias,
+                    TopologyGraphDbmsModel.PRIMARY_PROPERTY,
+                    Boolean.class);
+            // note: shards of this reference are disregarded and therefore omitted
+            return Optional.of(
+                    new DatabaseReferenceImpl.SPD(aliasName, namespace, targetedDatabase, Map.of(), primary));
+        });
+    }
+
     public static Optional<DatabaseReferenceImpl.External> createExternalReference(Node ref) {
         return ignoreConcurrentDeletes(() -> {
             var uriString = getPropertyOnNode(

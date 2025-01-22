@@ -268,9 +268,10 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
 
     private Set<DatabaseReference> getAllDatabaseReferencesInComposite(NormalizedDatabaseName compositeName) {
         var internalRefs = getAllInternalDatabaseReferencesInNamespace(compositeName.name());
+        var spdInternalRefs = getAllSpdDatabaseReferencesInNamespace(compositeName.name());
         var externalRefs = getAllExternalDatabaseReferencesInNamespace(compositeName.name());
-
-        return Stream.concat(internalRefs, externalRefs).collect(Collectors.toUnmodifiableSet());
+        return Stream.concat(Stream.concat(internalRefs, externalRefs), spdInternalRefs)
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     private Stream<DatabaseReferenceImpl.External> getAllExternalDatabaseReferencesInRoot() {
@@ -294,6 +295,16 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
                                 && node.getDegree(HAS_SHARD, Direction.INCOMING) == 0)
                         .map(CommunityTopologyGraphDbmsModelUtil::getDatabaseId)
                         .flatMap(db -> CommunityTopologyGraphDbmsModelUtil.createInternalReference(alias, db))
+                        .stream());
+    }
+
+    private Stream<DatabaseReferenceImpl.Internal> getAllSpdDatabaseReferencesInNamespace(String namespace) {
+        return getAliasNodesInNamespace(DATABASE_NAME_LABEL, namespace)
+                .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
+                        .filter(node -> !node.hasProperty(DATABASE_VIRTUAL_PROPERTY))
+                        .filter(node -> node.getDegree(HAS_SHARD, Direction.OUTGOING) > 0)
+                        .map(CommunityTopologyGraphDbmsModelUtil::getDatabaseId)
+                        .flatMap(db -> CommunityTopologyGraphDbmsModelUtil.createInternalSpdReference(alias, db))
                         .stream());
     }
 }
