@@ -71,7 +71,20 @@ object RuntimeMetadataValue {
   final val SHALLOW_SIZE: Long = HeapEstimator.shallowSizeOfInstance(classOf[RuntimeMetadataValue])
 
   def extract[A](value: AnyValue): A = {
-    value.asInstanceOf[RuntimeMetadataValue].value.asInstanceOf[A]
+    value match {
+      case rmv: RuntimeMetadataValue =>
+        try {
+          rmv.value.asInstanceOf[A]
+        } catch {
+          case e: ClassCastException =>
+            throw new IllegalStateException(
+              s"Runtime metadata value extraction failed; inner value was ${rmv.value}",
+              e
+            )
+        }
+      case _ =>
+        throw new IllegalStateException(s"Expected runtime metadata value but found: ${value.getTypeName}")
+    }
   }
 }
 
