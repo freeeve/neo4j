@@ -192,6 +192,42 @@ class LongArrayTest {
         }
     }
 
+    @ParameterizedTest
+    @ArgumentsSource(NumberArraysArgumentProvider.class)
+    void shouldBeAbleToGetSetFromArrayOfBuffersSizeOne(NumberArraysArgumentProvider.Factory factory) {
+        final var arrayLength = 134217728L; // the magic number came from an import that failed using the Cuckoo mapper
+        final var defaultValue = 0;
+        try (var numberArrayFactory = getNumberArrayFactory(factory);
+                var array = numberArrayFactory.newLongArray(arrayLength, defaultValue, INSTANCE)) {
+            // WHEN
+            final var index = arrayLength / 2;
+            final var value = 42;
+
+            assertThat(array.get(index)).isEqualTo(defaultValue); // any index value would trigger previous error
+
+            array.set(index, value);
+            assertThat(array.get(index)).isEqualTo(value);
+        }
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(NumberArraysArgumentProvider.class)
+    void shouldBeAbleToGetSetPositionInLastInternalBuffer(NumberArraysArgumentProvider.Factory factory) {
+        final var arrayLength = 536870912L; // the magic number came from an import that failed using the Cuckoo mapper
+        final var index = 404975176L; // the magic number is the capacity of the internal buffers
+        final var defaultValue = 0;
+        try (var numberArrayFactory = getNumberArrayFactory(factory);
+                var array = numberArrayFactory.newLongArray(arrayLength, defaultValue, INSTANCE)) {
+            // WHEN
+            final var value = 42;
+
+            assertThat(array.get(index)).isEqualTo(defaultValue); // any index value would trigger previous error
+
+            array.set(index, value);
+            assertThat(array.get(index)).isEqualTo(value);
+        }
+    }
+
     private NumberArrayFactory getNumberArrayFactory(NumberArraysArgumentProvider.Factory factory) {
         return factory.create(testDirectory.getFileSystem(), testDirectory.homePath());
     }

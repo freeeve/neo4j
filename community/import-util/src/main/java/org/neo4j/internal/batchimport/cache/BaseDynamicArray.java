@@ -159,10 +159,12 @@ abstract class BaseDynamicArray implements NumberArray, MemoryStatsVisitor.Visit
         if (buffer == null) {
             BufferFactory.AllocatedBuffer alloc;
             if (index == lastBufferIndex) {
-                alloc = bufferFactory.allocate((int) (totalSize % bufferSize), memoryTracker);
+                final var size = (int) (totalSize % bufferSize);
+                alloc = bufferFactory.allocate(size == 0 ? bufferSize : size, memoryTracker);
             } else {
                 alloc = bufferFactory.allocate(bufferSize, memoryTracker);
             }
+            //noinspection resource
             if (alloc.closeable() != null) {
                 closeables.add(alloc.closeable());
             }
