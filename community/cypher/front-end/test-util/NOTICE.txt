@@ -19,8 +19,12 @@ Third-party licenses
 --------------------
 
 Apache Software License, Version 2.0
+  Apache Commons Lang
   Byte Buddy (without dependencies)
   Byte Buddy agent
+  Jackson-annotations
+  Jackson-core
+  jackson-databind
   mockito-4.6
   openCypher TCK API
   openCypher TCK Features and Graphs
@@ -54,6 +58,14 @@ BSD License
   scalacheck
   test-interface
 
+Eclipse Distribution License - v 1.0
+  Eclipse Collections API
+  Eclipse Collections Main Library
+
+Eclipse Public License - v 1.0
+  Eclipse Collections API
+  Eclipse Collections Main Library
+
 Eclipse Public License v2.0
   JUnit Jupiter API
   JUnit Jupiter Engine
@@ -76,4 +88,15 @@ MIT License
   mockito-core
   pprint_2.13
   sourcecode_2.13
+
+Dependencies with multiple licenses
+-----------------------------------
+
+Eclipse Collections API
+  Eclipse Distribution License - v 1.0
+  Eclipse Public License - v 1.0
+
+Eclipse Collections Main Library
+  Eclipse Distribution License - v 1.0
+  Eclipse Public License - v 1.0
 
