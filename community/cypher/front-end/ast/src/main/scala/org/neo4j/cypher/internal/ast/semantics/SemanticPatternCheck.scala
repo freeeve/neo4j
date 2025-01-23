@@ -321,8 +321,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
         def checkContainedPatterns: SemanticCheck =
           pattern.folder.treeFold(SemanticCheck.success) {
             case quant: QuantifiedPath => acc =>
-                SkipChildren(acc chain SemanticError(
-                  "Quantified path patterns are not allowed to be nested.",
+                SkipChildren(acc chain SemanticError.nestedQPP(
                   quant.position
                 ))
             case shortestPaths: ShortestPathsPatternPart => acc =>

@@ -1193,6 +1193,21 @@ object SemanticError {
       position
     )
   }
+
+  def nestedQPP(position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I12)
+        .atPosition(position.offset, position.line, position.column)
+        .build())
+      .build()
+
+    SemanticError(
+      gql,
+      "Quantified path patterns are not allowed to be nested.",
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef
