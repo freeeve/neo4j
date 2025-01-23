@@ -415,11 +415,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
             quantifier.position
           )
         case IntervalQuantifier(Some(lower), Some(upper)) if upper.value < lower.value =>
-          error(
-            s"""A quantifier for a path pattern must not have a lower bound which exceeds its upper bound.
-               |In this case, the lower bound ${lower.value} is greater than the upper bound ${upper.value}.""".stripMargin,
-            quantifier.position
-          )
+          error(SemanticError.invalidQuantifier(lower.value, upper.value, quantifier.position))
         case IntervalQuantifier(_, Some(PathLengthQuantifier("0"))) =>
           SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
             "quantifier upperbound for a path pattern",

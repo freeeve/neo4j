@@ -592,7 +592,7 @@ object SemanticError {
     )
   }
 
-  def invalidQuantifier(variables: Seq[String], position: InputPosition): SemanticError = {
+  def invalidReferenceToGroupingExpression(variables: Seq[String], position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I18)
@@ -1265,6 +1265,20 @@ object SemanticError {
       s"""Juxtaposition is currently only supported for quantified path patterns.
          |$inThisCase
          |That is, neither of these is a quantified path pattern.""".stripMargin,
+      position
+    )
+  }
+
+  def invalidQuantifier(lower: Long, upper: Long, position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I17)
+        .atPosition(position.offset, position.line, position.column)
+        .build()).build()
+    SemanticError(
+      gql,
+      s"""A quantifier for a path pattern must not have a lower bound which exceeds its upper bound.
+         |In this case, the lower bound $lower is greater than the upper bound $upper.""".stripMargin,
       position
     )
   }

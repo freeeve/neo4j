@@ -252,9 +252,15 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
   }
 
   test("MATCH (x)((a)-[]->(b)){2,1} RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasError(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(22, 1, 23)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I17)
+          .atPosition(22, 1, 23)
+          .build()).build(),
       """A quantifier for a path pattern must not have a lower bound which exceeds its upper bound.
-        |In this case, the lower bound 2 is greater than the upper bound 1.""".stripMargin
+        |In this case, the lower bound 2 is greater than the upper bound 1.""".stripMargin,
+      InputPosition(22, 1, 23)
     )
   }
 

@@ -176,7 +176,7 @@ object ReturnItems {
     if (ambiguousAggregationExpressions.nonEmpty) {
       val variables = ambiguousAggregationExpressions.map(_.asCanonicalStringVal).toSeq
       val pos = ambiguousAggregationExpressions.head.position
-      Some(SemanticError.invalidQuantifier(variables, pos))
+      Some(SemanticError.invalidReferenceToGroupingExpression(variables, pos))
     } else {
       None
     }
