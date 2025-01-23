@@ -233,21 +233,21 @@ class PropertyPrivilegeAdministrationCommandParserTest extends AdministrationAnd
 
           test(s"$verb$immutableString SET PROPERTY { * } ON DEFAULT GRAPH $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case Cypher5 => _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
               case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
           test(s"$verb$immutableString SET PROPERTY { prop } ON DEFAULT GRAPH $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case Cypher5 => _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
               case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
           test(s"$verb$immutableString SET PROPERTY { prop } ON DEFAULT GRAPH NODES A,B $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case Cypher5 => _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
               case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }

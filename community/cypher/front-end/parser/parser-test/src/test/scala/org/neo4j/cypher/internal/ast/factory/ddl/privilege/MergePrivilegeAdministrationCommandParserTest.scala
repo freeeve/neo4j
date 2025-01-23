@@ -219,14 +219,14 @@ class MergePrivilegeAdministrationCommandParserTest extends AdministrationAndSch
 
           test(s"$verb$immutableString MERGE { * } ON DEFAULT GRAPH $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case Cypher5 => _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
               case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
           test(s"$verb$immutableString MERGE { prop1, prop2 } ON DEFAULT GRAPH RELATIONSHIP * $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case Cypher5 => _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
               case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }

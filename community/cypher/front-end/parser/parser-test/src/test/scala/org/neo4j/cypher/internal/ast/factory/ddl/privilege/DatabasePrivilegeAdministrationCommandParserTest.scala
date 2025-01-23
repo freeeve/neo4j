@@ -188,7 +188,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
               test(s"$verb$immutableString $privilege ON DEFAULT DATABASE $preposition role") {
                 failsParsing[Statements].in {
                   case Cypher5 =>
-                    _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
+                    _.withOldSyntax("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
                 }
               }
@@ -289,7 +289,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                 // both default and database name
                 failsParsing[Statements].in {
                   case Cypher5 =>
-                    _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
+                    _.withOldSyntax("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
                 }
               }
@@ -298,7 +298,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                 // both default and *
                 failsParsing[Statements].in {
                   case Cypher5 =>
-                    _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
+                    _.withOldSyntax("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
                 }
               }
@@ -398,7 +398,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           test(s"$verb$immutableString SHOW TRANSACTION (user) ON DEFAULT DATABASE $preposition role") {
             failsParsing[Statements].in {
               case Cypher5 =>
-                _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
+                _.withOldSyntax("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
               case _ => _.withSyntaxErrorContaining(
                   "Invalid input 'DEFAULT': expected 'DATABASE', 'HOME DATABASE' or 'DATABASES'"
                 )
@@ -488,7 +488,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           test(s"$verb$immutableString TERMINATE TRANSACTION (user) ON DEFAULT DATABASE $preposition role") {
             failsParsing[Statements].in {
               case Cypher5 =>
-                _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
+                _.withOldSyntax("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
               case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
             }
           }
@@ -618,7 +618,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           test(s"$verb$immutableString TRANSACTION MANAGEMENT ON DEFAULT DATABASE $preposition role") {
             failsParsing[Statements].in {
               case Cypher5 =>
-                _.withMessageStart("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
+                _.withOldSyntax("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
               case _ => _.withSyntaxErrorContaining(
                   "Invalid input 'DEFAULT': expected 'DATABASE', 'HOME DATABASE' or 'DATABASES'"
                 )

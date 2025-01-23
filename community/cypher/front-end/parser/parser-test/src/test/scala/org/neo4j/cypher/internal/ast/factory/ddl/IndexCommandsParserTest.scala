@@ -36,10 +36,10 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   test("CREATE INDEX ON :Person(name)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxError(
-          """Invalid create index syntax, use `CREATE INDEX FOR ...` instead. (line 1, column 14 (offset: 13))
-            |"CREATE INDEX ON :Person(name)"
-            |              ^""".stripMargin
+      case Cypher5 => _.withOldSyntaxWithPosition(
+          "Invalid create index syntax, use `CREATE INDEX FOR ...` instead.",
+          testName,
+          InputPosition(13, 1, 14)
         )
       case _ => _.withSyntaxError(
           """Invalid input ':': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 17 (offset: 16))
@@ -51,10 +51,10 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   test("CREATE INDEX ON :Person(name,age)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxError(
-          """Invalid create index syntax, use `CREATE INDEX FOR ...` instead. (line 1, column 14 (offset: 13))
-            |"CREATE INDEX ON :Person(name,age)"
-            |              ^""".stripMargin
+      case Cypher5 => _.withOldSyntaxWithPosition(
+          "Invalid create index syntax, use `CREATE INDEX FOR ...` instead.",
+          testName,
+          InputPosition(13, 1, 14)
         )
       case _ => _.withSyntaxError(
           """Invalid input ':': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 17 (offset: 16))
@@ -2918,10 +2918,10 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   test("DROP INDEX ON :Person(name)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxError(
-          """Indexes cannot be dropped by schema, please drop by name instead: DROP INDEX index_name. The index name can be found using SHOW INDEXES. (line 1, column 12 (offset: 11))
-            |"DROP INDEX ON :Person(name)"
-            |            ^""".stripMargin
+      case Cypher5 => _.withOldSyntaxWithPosition(
+          "Indexes cannot be dropped by schema, please drop by name instead: DROP INDEX index_name. The index name can be found using SHOW INDEXES.",
+          testName,
+          InputPosition(11, 1, 12)
         )
       case _ => _.withSyntaxError(
           """Invalid input ':': expected 'IF EXISTS' or <EOF> (line 1, column 15 (offset: 14))
@@ -2933,10 +2933,10 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   test("DROP INDEX ON :Person(name, age)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxError(
-          """Indexes cannot be dropped by schema, please drop by name instead: DROP INDEX index_name. The index name can be found using SHOW INDEXES. (line 1, column 12 (offset: 11))
-            |"DROP INDEX ON :Person(name, age)"
-            |            ^""".stripMargin
+      case Cypher5 => _.withOldSyntaxWithPosition(
+          "Indexes cannot be dropped by schema, please drop by name instead: DROP INDEX index_name. The index name can be found using SHOW INDEXES.",
+          testName,
+          InputPosition(11, 1, 12)
         )
       case _ => _.withSyntaxError(
           """Invalid input ':': expected 'IF EXISTS' or <EOF> (line 1, column 15 (offset: 14))
@@ -3100,10 +3100,10 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   test("DROP INDEX ON :if(exists)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxError(
-          """Indexes cannot be dropped by schema, please drop by name instead: DROP INDEX index_name. The index name can be found using SHOW INDEXES. (line 1, column 12 (offset: 11))
-            |"DROP INDEX ON :if(exists)"
-            |            ^""".stripMargin
+      case Cypher5 => _.withOldSyntaxWithPosition(
+          "Indexes cannot be dropped by schema, please drop by name instead: DROP INDEX index_name. The index name can be found using SHOW INDEXES.",
+          testName,
+          InputPosition(11, 1, 12)
         )
       case _ => _.withSyntaxError(
           """Invalid input ':': expected 'IF EXISTS' or <EOF> (line 1, column 15 (offset: 14))
@@ -3352,7 +3352,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   private def assertFailsOnBtree(failAsCreateCommand: Boolean = false) = {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining("Invalid index type b-tree, use range, point or text index instead.")
+      case Cypher5 => _.withOldSyntax("Invalid index type b-tree, use range, point or text index instead.")
       case _ if failAsCreateCommand =>
         _.withSyntaxErrorContaining(
           "Invalid input 'BTREE': expected 'ALIAS', 'CONSTRAINT', 'DATABASE', 'COMPOSITE DATABASE', 'IMMUTABLE', 'INDEX', " +

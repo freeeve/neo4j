@@ -29,12 +29,16 @@ import org.neo4j.cypher.internal.ast.test.util.VerifyStatementUseGraph.findUseGr
 import org.neo4j.cypher.internal.parser.ast.AstBuildingAntlrParser
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.SyntaxException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher
 import org.scalatest.matchers.must.Matchers.be
 import org.scalatest.matchers.must.Matchers.include
 import org.scalatest.matchers.must.Matchers.startWith
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.reflect.ClassTag
 import scala.util.Failure
@@ -96,6 +100,41 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
   def withEqualPositions: Self = addIfMultiParsers(haveEqualPositions(supportedParsers))
   def withSyntaxError(message: String): Self = throws[SyntaxException].withMessage(message)
   def withSyntaxErrorContaining(message: String): Self = throws[SyntaxException].withMessageContaining(message)
+
+  private val invalidSyntaxStatus =
+    gqlStatus(GqlStatusInfoCodes.STATUS_42001, "error: syntax error or access rule violation - invalid syntax")
+
+  def withSyntaxErrorContaining(message: String, causeGql: GqlStatusInfoCodes, causeStatusDescription: String): Self = {
+    throws[SyntaxException]
+    withError(throwable =>
+      throwable.asInstanceOf[Exception] should be(
+        gqlException(message, invalidSyntaxStatus.withCause(causeGql, causeStatusDescription), fuzzyMsg = true)
+      )
+    )
+  }
+
+  def withOldSyntax(message: String): Self = {
+    withSyntaxErrorContaining(
+      message,
+      GqlStatusInfoCodes.STATUS_42I52,
+      "error: syntax error or access rule violation - no longer valid syntax. " + message
+    )
+  }
+
+  def withOldSyntaxWithPosition(message: String, query: String, position: InputPosition): Self = {
+    // the + 1 is to compensate for the " at the start of the query text in the error message
+    val padding = " ".repeat(position.offset + 1)
+    val legacyMessage =
+      s"""$message (line ${position.line}, column ${position.column} (offset: ${position.offset}))
+         |"$query"
+         |$padding^""".stripMargin
+
+    withSyntaxErrorContaining(
+      legacyMessage,
+      GqlStatusInfoCodes.STATUS_42I52,
+      "error: syntax error or access rule violation - no longer valid syntax. " + message
+    )
+  }
 
   final private def and(matcher: Matcher[ParseResult]): Self =
     addAll(supportedParsers.map(asResultsMatcher(_, matcher)))

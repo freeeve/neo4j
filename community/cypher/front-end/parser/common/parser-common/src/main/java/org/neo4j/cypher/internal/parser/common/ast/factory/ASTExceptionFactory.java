@@ -80,19 +80,14 @@ public interface ASTExceptionFactory {
                 name);
     }
 
-    static String invalidHintIndexType(HintIndexType got) {
+    static String invalidHintIndexType() {
         final String HINT_TYPES = Arrays.stream(HintIndexType.values())
                 .filter(hintIndexType -> !(hintIndexType == HintIndexType.BTREE || hintIndexType == HintIndexType.ANY))
                 .map(Enum::name)
                 .collect(Collectors.collectingAndThen(Collectors.toList(), joiningLastDelimiter(", ", " or ")));
-        if (got == HintIndexType.BTREE) {
-            return String.format(
-                    "Index type %s is no longer supported for USING index hint. Use %s instead.",
-                    got.name(), HINT_TYPES);
-        } else {
-            return String.format(
-                    "Index type %s is not defined for USING index hint. Use %s instead.", got.name(), HINT_TYPES);
-        }
+        return String.format(
+                "Index type %s is no longer supported for USING index hint. Use %s instead.",
+                HintIndexType.BTREE, HINT_TYPES);
     }
 
     // ---------Helper functions

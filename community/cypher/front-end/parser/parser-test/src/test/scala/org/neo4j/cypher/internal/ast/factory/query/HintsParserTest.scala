@@ -45,8 +45,9 @@ class HintsParserTest extends AstParsingTestBase {
   test("MATCH (n) USING BTREE INDEX n:N(p)") {
     failsParsing[Statements].in {
       case Cypher5 =>
-        _.withMessageStart("Index type BTREE is no longer supported for USING index hint. Use TEXT, RANGE or POINT")
-          .throws[SyntaxException]
+        _.withOldSyntax(
+          "Index type BTREE is no longer supported for USING index hint. Use TEXT, RANGE or POINT instead."
+        )
       case _ => _.throws[SyntaxException].withMessageStart("Invalid input 'BTREE'")
     }
   }
@@ -54,8 +55,9 @@ class HintsParserTest extends AstParsingTestBase {
   test("MATCH (n) USING BTREE INDEX SEEK n:N(p)") {
     failsParsing[Statements].in {
       case Cypher5 =>
-        _.withMessageStart("Index type BTREE is no longer supported for USING index hint. Use TEXT, RANGE or POINT")
-          .throws[SyntaxException]
+        _.withOldSyntax(
+          "Index type BTREE is no longer supported for USING index hint. Use TEXT, RANGE or POINT instead."
+        )
       case _ => _.throws[SyntaxException].withMessageStart("Invalid input 'BTREE'")
     }
   }

@@ -2991,6 +2991,18 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "invalid call signature",
             ErrorClassification.CLIENT_ERROR),
+    // Used for syntax errors for features removed in Neo4j 5.0,
+    // which should have a helpful error message in Cypher 5 but the more general 42006 in Cypher 25.
+    // The full old message will be inserted as the msg parameter.
+    STATUS_42I52(
+            new GqlStatus("42I52"),
+            """
+                    { %s }""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "no longer valid syntax",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42N00(
             new GqlStatus("42N00"),
             """

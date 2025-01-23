@@ -185,6 +185,45 @@ class GqlExceptionMatcherTest extends CypherFunSuite {
     }
   }
 
+  test("should not pass on partial message without fuzzy") {
+    expectFailure {
+      val exception = the[MyException] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .build()
+        throw MyException(gql, "my scary failure")
+      }
+      exception should be(gqlException(
+        "scary",
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_00N50,
+          "note: successful completion - home database does not exist. The database `foo` does not exist. Verify that the spelling is correct or create the database for the command to take effect."
+        )
+      ))
+    }
+  }
+
+  test("should pass on partial message with fuzzy") {
+    expectSuccess {
+      val exception = the[MyException] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .build()
+        throw MyException(gql, "my scary failure")
+      }
+      exception should be(gqlException(
+        "scary",
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_00N50,
+          "note: successful completion - home database does not exist. The database `foo` does not exist. Verify that the spelling is correct or create the database for the command to take effect."
+        ),
+        fuzzyMsg = true
+      ))
+    }
+  }
+
   test("should not pass on incorrect exception type") {
     expectFailure {
       val exception = the[RuntimeException] thrownBy {

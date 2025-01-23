@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.parser.common.ast.factory.ASTExceptionFactory
 import org.neo4j.cypher.internal.parser.common.ast.factory.ConstraintType
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.AnyType
 import org.neo4j.cypher.internal.util.symbols.BooleanType
 import org.neo4j.cypher.internal.util.symbols.CTMap
@@ -2933,7 +2934,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT ON (node:Label) REQUIRE (node.prop) IS NODE KEY"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -2947,7 +2948,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT FOR (node:Label) ASSERT (node.prop) IS KEY"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(35, 1, 36))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 36 (offset: 35))
             |"CREATE CONSTRAINT FOR (node:Label) ASSERT (node.prop) IS KEY"
@@ -2960,7 +2961,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT ON (node:Label) ASSERT (node.prop) IS NODE KEY"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -2974,7 +2975,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint ON (node:Label) REQUIRE (node.prop1,node.prop2) IS KEY"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON (node:Label) REQUIRE (node.prop1,node.prop2) IS KEY"
@@ -2987,7 +2988,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint FOR (node:Label) ASSERT (node.prop1,node.prop2) IS NODE KEY"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(49, 1, 50))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 50 (offset: 49))
             |"CREATE CONSTRAINT my_constraint FOR (node:Label) ASSERT (node.prop1,node.prop2) IS NODE KEY"
@@ -3000,7 +3001,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint ON (node:Label) ASSERT (node.prop1,node.prop2) IS KEY"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON (node:Label) ASSERT (node.prop1,node.prop2) IS KEY"
@@ -3011,7 +3012,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT ON ()-[r1:R]-() REQUIRE (r2.prop) IS KEY") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3023,7 +3024,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT FOR ()-[r1:R]-() ASSERT (r2.prop) IS REL KEY") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(35, 1, 36))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 36 (offset: 35))
             |"CREATE CONSTRAINT FOR ()-[r1:R]-() ASSERT (r2.prop) IS REL KEY"
@@ -3034,7 +3035,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT ON ()-[r1:R]-() ASSERT (r2.prop) IS RELATIONSHIP KEY") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3048,7 +3049,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint ON ()<-[r1:R]-() REQUIRE (r2.prop) IS REL KEY"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON ()<-[r1:R]-() REQUIRE (r2.prop) IS REL KEY"
@@ -3061,7 +3062,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint FOR ()<-[r1:R]-() ASSERT (r2.prop) IS RELATIONSHIP KEY"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(50, 1, 51))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 51 (offset: 50))
             |"CREATE CONSTRAINT my_constraint FOR ()<-[r1:R]-() ASSERT (r2.prop) IS RELATIONSHIP KEY"
@@ -3074,7 +3075,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint ON ()<-[r1:R]-() ASSERT (r2.prop) IS KEY"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON ()<-[r1:R]-() ASSERT (r2.prop) IS KEY"
@@ -3087,7 +3088,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT ON (node:Label) REQUIRE node.prop IS NODE UNIQUE"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3101,7 +3102,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT FOR (node:Label) ASSERT node.prop IS NODE UNIQUE"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(35, 1, 36))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 36 (offset: 35))
             |"CREATE CONSTRAINT FOR (node:Label) ASSERT node.prop IS NODE UNIQUE"
@@ -3114,7 +3115,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT ON (node:Label) ASSERT node.prop IS UNIQUE"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3128,7 +3129,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint ON (node:Label) REQUIRE node.prop IS UNIQUE"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON (node:Label) REQUIRE node.prop IS UNIQUE"
@@ -3141,7 +3142,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint FOR (node:Label) ASSERT node.prop IS NODE UNIQUE"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(49, 1, 50))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 50 (offset: 49))
             |"CREATE CONSTRAINT my_constraint FOR (node:Label) ASSERT node.prop IS NODE UNIQUE"
@@ -3154,7 +3155,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint ON (node:Label) ASSERT node.prop IS NODE UNIQUE"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON (node:Label) ASSERT node.prop IS NODE UNIQUE"
@@ -3167,7 +3168,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT ON ()-[r1:R]->() REQUIRE (r2.prop1, r3.prop2) IS RELATIONSHIP UNIQUE"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3181,7 +3182,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT FOR ()-[r1:R]->() ASSERT (r2.prop1, r3.prop2) IS REL UNIQUE"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(36, 1, 37))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 37 (offset: 36))
             |"CREATE CONSTRAINT FOR ()-[r1:R]->() ASSERT (r2.prop1, r3.prop2) IS REL UNIQUE"
@@ -3194,7 +3195,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT ON ()-[r1:R]->() ASSERT (r2.prop1, r3.prop2) IS UNIQUE"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3208,7 +3209,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint IF NOT EXISTS ON ()-[r1:R]-() REQUIRE (r2.prop) IS REL UNIQUE"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(46, 1, 47))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'FOR' (line 1, column 47 (offset: 46))
             |"CREATE CONSTRAINT my_constraint IF NOT EXISTS ON ()-[r1:R]-() REQUIRE (r2.prop) IS REL UNIQUE"
@@ -3221,7 +3222,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint IF NOT EXISTS FOR ()-[r1:R]-() ASSERT (r2.prop) IS UNIQUE"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(63, 1, 64))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 64 (offset: 63))
             |"CREATE CONSTRAINT my_constraint IF NOT EXISTS FOR ()-[r1:R]-() ASSERT (r2.prop) IS UNIQUE"
@@ -3234,7 +3235,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint IF NOT EXISTS ON ()-[r1:R]-() ASSERT (r2.prop) IS RELATIONSHIP UNIQUE"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(46, 1, 47))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'FOR' (line 1, column 47 (offset: 46))
             |"CREATE CONSTRAINT my_constraint IF NOT EXISTS ON ()-[r1:R]-() ASSERT (r2.prop) IS RELATIONSHIP UNIQUE"
@@ -3245,7 +3246,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT ON (node:Label) REQUIRE node.prop IS NOT NULL") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3257,7 +3258,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT FOR (node:Label) ASSERT node.prop IS NOT NULL") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(35, 1, 36))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 36 (offset: 35))
             |"CREATE CONSTRAINT FOR (node:Label) ASSERT node.prop IS NOT NULL"
@@ -3268,7 +3269,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT ON (node:Label) ASSERT node.prop IS NOT NULL") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3282,7 +3283,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint ON (node:Label) REQUIRE (node.prop) IS NOT NULL"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON (node:Label) REQUIRE (node.prop) IS NOT NULL"
@@ -3295,7 +3296,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint FOR (node:Label) ASSERT (node.prop) IS NOT NULL"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(49, 1, 50))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 50 (offset: 49))
             |"CREATE CONSTRAINT my_constraint FOR (node:Label) ASSERT (node.prop) IS NOT NULL"
@@ -3308,7 +3309,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint ON (node:Label) ASSERT (node.prop) IS NOT NULL"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON (node:Label) ASSERT (node.prop) IS NOT NULL"
@@ -3319,7 +3320,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT ON ()-[r:R]-() REQUIRE r.prop IS NOT NULL") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3331,7 +3332,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT FOR ()-[r:R]-() ASSERT r.prop IS NOT NULL") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(34, 1, 35))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 35 (offset: 34))
             |"CREATE CONSTRAINT FOR ()-[r:R]-() ASSERT r.prop IS NOT NULL"
@@ -3342,7 +3343,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT ON ()-[r:R]-() ASSERT r.prop IS NOT NULL") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3356,7 +3357,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT `$my_constraint` ON ()-[r:R]-() REQUIRE r.prop IS NOT NULL"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(35, 1, 36))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 36 (offset: 35))
             |"CREATE CONSTRAINT `$my_constraint` ON ()-[r:R]-() REQUIRE r.prop IS NOT NULL"
@@ -3369,7 +3370,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT `$my_constraint` FOR ()-[r:R]-() ASSERT r.prop IS NOT NULL"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(51, 1, 52))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 52 (offset: 51))
             |"CREATE CONSTRAINT `$my_constraint` FOR ()-[r:R]-() ASSERT r.prop IS NOT NULL"
@@ -3382,7 +3383,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT `$my_constraint` ON ()-[r:R]-() ASSERT r.prop IS NOT NULL"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(35, 1, 36))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 36 (offset: 35))
             |"CREATE CONSTRAINT `$my_constraint` ON ()-[r:R]-() ASSERT r.prop IS NOT NULL"
@@ -3395,7 +3396,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT ON (node:Label) REQUIRE node.prop :: BOOLEAN"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3409,7 +3410,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT FOR (node:Label) ASSERT node.prop IS :: BOOLEAN"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(35, 1, 36))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 36 (offset: 35))
             |"CREATE CONSTRAINT FOR (node:Label) ASSERT node.prop IS :: BOOLEAN"
@@ -3422,7 +3423,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT ON (node:Label) ASSERT node.prop IS TYPED BOOLEAN"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3436,7 +3437,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint ON (node:Label) REQUIRE (node.prop) IS :: STRING"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON (node:Label) REQUIRE (node.prop) IS :: STRING"
@@ -3449,7 +3450,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint FOR (node:Label) ASSERT (node.prop) IS TYPED STRING"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(49, 1, 50))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 50 (offset: 49))
             |"CREATE CONSTRAINT my_constraint FOR (node:Label) ASSERT (node.prop) IS TYPED STRING"
@@ -3462,7 +3463,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint ON (node:Label) ASSERT (node.prop) :: STRING"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON (node:Label) ASSERT (node.prop) :: STRING"
@@ -3473,7 +3474,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT ON ()-[r:R]->() REQUIRE r.prop IS TYPED BOOLEAN") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3485,7 +3486,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT FOR ()-[r:R]->() ASSERT r.prop :: BOOLEAN") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(35, 1, 36))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 36 (offset: 35))
             |"CREATE CONSTRAINT FOR ()-[r:R]->() ASSERT r.prop :: BOOLEAN"
@@ -3496,7 +3497,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT ON ()-[r:R]->() ASSERT r.prop IS :: BOOLEAN") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3510,7 +3511,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint ON ()-[r:R]-() REQUIRE (r.prop) :: STRING"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnRequire (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnRequire, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON ()-[r:R]-() REQUIRE (r.prop) :: STRING"
@@ -3523,7 +3524,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint FOR ()-[r:R]-() ASSERT (r.prop) IS TYPED STRING"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssert, testName, InputPosition(48, 1, 49))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 49 (offset: 48))
             |"CREATE CONSTRAINT my_constraint FOR ()-[r:R]-() ASSERT (r.prop) IS TYPED STRING"
@@ -3536,7 +3537,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT my_constraint ON ()-[r:R]-() ASSERT (r.prop) IS :: STRING"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssert (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssert, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON ()-[r:R]-() ASSERT (r.prop) IS :: STRING"
@@ -3547,7 +3548,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT FOR (node:Label) ASSERT EXISTS (node.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssertExists, testName, InputPosition(35, 1, 36))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 36 (offset: 35))
             |"CREATE CONSTRAINT FOR (node:Label) ASSERT EXISTS (node.prop)"
@@ -3558,7 +3559,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT my_constraint FOR (node:Label) ASSERT EXISTS (node.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssertExists, testName, InputPosition(49, 1, 50))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 50 (offset: 49))
             |"CREATE CONSTRAINT my_constraint FOR (node:Label) ASSERT EXISTS (node.prop)"
@@ -3569,7 +3570,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT FOR ()-[r:R]-() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssertExists, testName, InputPosition(34, 1, 35))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 35 (offset: 34))
             |"CREATE CONSTRAINT FOR ()-[r:R]-() ASSERT EXISTS (r.prop)"
@@ -3580,7 +3581,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT `$my_constraint` FOR ()-[r:R]-() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageForAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageForAssertExists, testName, InputPosition(51, 1, 52))
       case _ => _.withSyntaxError(
           """Invalid input 'ASSERT': expected 'REQUIRE' (line 1, column 52 (offset: 51))
             |"CREATE CONSTRAINT `$my_constraint` FOR ()-[r:R]-() ASSERT EXISTS (r.prop)"
@@ -3591,7 +3592,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT ON (node:Label) ASSERT EXISTS (node.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3603,7 +3604,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT ON (node1:Label) ASSERT EXISTS node2.prop") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3615,7 +3616,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE OR REPLACE CONSTRAINT ON (node:Label) ASSERT EXISTS (node.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(29, 1, 30))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
@@ -3627,7 +3628,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE OR REPLACE CONSTRAINT IF NOT EXISTS ON (node:Label) ASSERT EXISTS (node.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(43, 1, 44))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'FOR' (line 1, column 44 (offset: 43))
             |"CREATE OR REPLACE CONSTRAINT IF NOT EXISTS ON (node:Label) ASSERT EXISTS (node.prop)"
@@ -3638,7 +3639,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT IF NOT EXISTS ON (node:Label) ASSERT EXISTS (node.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT IF NOT EXISTS ON (node:Label) ASSERT EXISTS (node.prop)"
@@ -3649,7 +3650,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT ON (node:Label) ASSERT EXISTS (node.prop) OPTIONS {}") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3674,7 +3675,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT ON ()-[r:R]-() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3686,7 +3687,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT ON ()-[r:R]->() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3698,7 +3699,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT ON ()<-[r:R]-() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3710,7 +3711,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT ON ()-[r1:R]-() ASSERT EXISTS r2.prop") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(18, 1, 19))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -3722,7 +3723,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE OR REPLACE CONSTRAINT ON ()<-[r:R]-() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(29, 1, 30))
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
@@ -3734,7 +3735,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE OR REPLACE CONSTRAINT IF NOT EXISTS ON ()-[r:R]-() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(43, 1, 44))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'FOR' (line 1, column 44 (offset: 43))
             |"CREATE OR REPLACE CONSTRAINT IF NOT EXISTS ON ()-[r:R]-() ASSERT EXISTS (r.prop)"
@@ -3745,7 +3746,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT IF NOT EXISTS ON ()-[r:R]->() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT IF NOT EXISTS ON ()-[r:R]->() ASSERT EXISTS (r.prop)"
@@ -3769,7 +3770,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT my_constraint ON (node:Label) ASSERT EXISTS (node.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON (node:Label) ASSERT EXISTS (node.prop)"
@@ -3780,7 +3781,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE OR REPLACE CONSTRAINT my_constraint ON (node:Label) ASSERT EXISTS (node.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(43, 1, 44))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 44 (offset: 43))
             |"CREATE OR REPLACE CONSTRAINT my_constraint ON (node:Label) ASSERT EXISTS (node.prop)"
@@ -3791,7 +3792,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE OR REPLACE CONSTRAINT my_constraint IF NOT EXISTS ON (node:Label) ASSERT EXISTS (node.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(57, 1, 58))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'FOR' (line 1, column 58 (offset: 57))
             |"CREATE OR REPLACE CONSTRAINT my_constraint IF NOT EXISTS ON (node:Label) ASSERT EXISTS (node.prop)"
@@ -3802,7 +3803,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT my_constraint IF NOT EXISTS ON (node:Label) ASSERT EXISTS (node.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(46, 1, 47))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'FOR' (line 1, column 47 (offset: 46))
             |"CREATE CONSTRAINT my_constraint IF NOT EXISTS ON (node:Label) ASSERT EXISTS (node.prop)"
@@ -3813,7 +3814,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT `$my_constraint` ON ()-[r:R]-() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(35, 1, 36))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 36 (offset: 35))
             |"CREATE CONSTRAINT `$my_constraint` ON ()-[r:R]-() ASSERT EXISTS (r.prop)"
@@ -3824,7 +3825,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT my_constraint ON ()-[r:R]-() ASSERT EXISTS (r.prop) OPTIONS {}") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON ()-[r:R]-() ASSERT EXISTS (r.prop) OPTIONS {}"
@@ -3835,7 +3836,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE OR REPLACE CONSTRAINT `$my_constraint` ON ()-[r:R]-() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(46, 1, 47))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 47 (offset: 46))
             |"CREATE OR REPLACE CONSTRAINT `$my_constraint` ON ()-[r:R]-() ASSERT EXISTS (r.prop)"
@@ -3846,7 +3847,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE OR REPLACE CONSTRAINT `$my_constraint` IF NOT EXISTS ON ()-[r:R]->() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(60, 1, 61))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'FOR' (line 1, column 61 (offset: 60))
             |"CREATE OR REPLACE CONSTRAINT `$my_constraint` IF NOT EXISTS ON ()-[r:R]->() ASSERT EXISTS (r.prop)"
@@ -3857,7 +3858,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT `$my_constraint` IF NOT EXISTS ON ()<-[r:R]-() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(49, 1, 50))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'FOR' (line 1, column 50 (offset: 49))
             |"CREATE CONSTRAINT `$my_constraint` IF NOT EXISTS ON ()<-[r:R]-() ASSERT EXISTS (r.prop)"
@@ -3910,7 +3911,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT $my_constraint ON ()-[r:R]-() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(33, 1, 34))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 34 (offset: 33))
             |"CREATE CONSTRAINT $my_constraint ON ()-[r:R]-() ASSERT EXISTS (r.prop)"
@@ -3921,7 +3922,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT my_constraint ON (node:Label) ASSERT EXISTS (node.prop) IS NOT NULL") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON (node:Label) ASSERT EXISTS (node.prop) IS NOT NULL"
@@ -3932,7 +3933,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT my_constraint ON ()-[r:R]-() ASSERT EXISTS (r.prop) IS NOT NULL") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(s"$errorMessageOnAssertExists (line")
+      case Cypher5 => _.withOldSyntaxWithPosition(errorMessageOnAssertExists, testName, InputPosition(32, 1, 33))
       case _ => _.withSyntaxError(
           """Invalid input 'ON': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 33 (offset: 32))
             |"CREATE CONSTRAINT my_constraint ON ()-[r:R]-() ASSERT EXISTS (r.prop) IS NOT NULL"
@@ -3996,7 +3997,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON (node:Label) ASSERT (node.prop) IS NODE KEY") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_KEY, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_KEY, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4004,7 +4005,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON (node1:Label) ASSERT node2.prop IS NODE KEY") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_KEY, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_KEY, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4012,7 +4013,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON (node:Label) ASSERT (node.prop1,node.prop2) IS NODE KEY") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_KEY, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_KEY, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4020,7 +4021,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON (node:Label) ASSERT node.prop IS UNIQUE") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_UNIQUE, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_UNIQUE, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4028,7 +4029,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON (node:Label) ASSERT (node.prop) IS UNIQUE") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_UNIQUE, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_UNIQUE, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4036,7 +4037,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON (node:Label) ASSERT (node.prop1,node.prop2) IS UNIQUE") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_UNIQUE, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_UNIQUE, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4044,7 +4045,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON (node:Label) ASSERT EXISTS (node.prop)") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_EXISTS, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_EXISTS, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4052,7 +4053,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON (node1:Label) ASSERT EXISTS node2.prop") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_EXISTS, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_EXISTS, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4060,7 +4061,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON ()-[r:R]-() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.REL_EXISTS, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.REL_EXISTS, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4068,7 +4069,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON ()-[r:R]->() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.REL_EXISTS, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.REL_EXISTS, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4076,7 +4077,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON ()<-[r:R]-() ASSERT EXISTS (r.prop)") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.REL_EXISTS, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.REL_EXISTS, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4084,7 +4085,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON ()-[r1:R]-() ASSERT EXISTS r2.prop") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.REL_EXISTS, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.REL_EXISTS, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4092,7 +4093,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON (node:Label) ASSERT (node.EXISTS) IS NODE KEY") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_KEY, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_KEY, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4100,7 +4101,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON (node:Label) ASSERT (node.EXISTS) IS UNIQUE") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_UNIQUE, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_UNIQUE, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4108,7 +4109,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON (node:Label) ASSERT EXISTS (node.EXISTS)") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_EXISTS, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.NODE_EXISTS, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4116,7 +4117,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON ()-[r:R]-() ASSERT EXISTS (r.EXISTS)") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropConstraint(ConstraintType.REL_EXISTS, false))
+        _.withOldSyntax(ASTExceptionFactory.invalidDropConstraint(ConstraintType.REL_EXISTS, false))
       case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
@@ -4155,42 +4156,42 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("DROP CONSTRAINT ON (node:Label) ASSERT (node.prop) IS NOT NULL") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropCommand)
+      case Cypher5 => _.withOldSyntax(ASTExceptionFactory.invalidDropCommand)
       case _       => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
 
   test("DROP CONSTRAINT ON (node:Label) ASSERT node.prop IS NOT NULL") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropCommand)
+      case Cypher5 => _.withOldSyntax(ASTExceptionFactory.invalidDropCommand)
       case _       => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
 
   test("DROP CONSTRAINT ON ()-[r:R]-() ASSERT (r.prop) IS NOT NULL") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropCommand)
+      case Cypher5 => _.withOldSyntax(ASTExceptionFactory.invalidDropCommand)
       case _       => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
 
   test("DROP CONSTRAINT ON ()-[r:R]-() ASSERT r.prop IS NOT NULL") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropCommand)
+      case Cypher5 => _.withOldSyntax(ASTExceptionFactory.invalidDropCommand)
       case _       => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
 
   test("DROP CONSTRAINT ON (n:L) ASSERT (n.p1, n.p2) IS NOT NULL") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropCommand)
+      case Cypher5 => _.withOldSyntax(ASTExceptionFactory.invalidDropCommand)
       case _       => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }
 
   test("DROP CONSTRAINT ON ()-[r:R]-() ASSERT (r.p1, r.p2) IS NOT NULL") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(ASTExceptionFactory.invalidDropCommand)
+      case Cypher5 => _.withOldSyntax(ASTExceptionFactory.invalidDropCommand)
       case _       => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
     }
   }

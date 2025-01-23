@@ -1418,7 +1418,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
   removedConstraintTypes.foreach(constraintTypeKeyword => {
     test(s"SHOW $constraintTypeKeyword CONSTRAINT") {
       failsParsing[Statements].in {
-        case Cypher5 => _.withSyntaxErrorContaining(
+        case Cypher5 => _.withOldSyntax(
             "`SHOW CONSTRAINTS` no longer allows the `EXISTS` keyword, please use `EXIST` or `PROPERTY EXISTENCE` instead."
           )
         case _ => // Expected will differ depending on type
@@ -1428,7 +1428,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
 
     test(s"USE db SHOW $constraintTypeKeyword CONSTRAINTS") {
       failsParsing[Statements].in {
-        case Cypher5 => _.withSyntaxErrorContaining(
+        case Cypher5 => _.withOldSyntax(
             "`SHOW CONSTRAINTS` no longer allows the `EXISTS` keyword, please use `EXIST` or `PROPERTY EXISTENCE` instead."
           )
         case _ => // Expected will differ depending on type
@@ -1438,7 +1438,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
 
     test(s"SHOW $constraintTypeKeyword CONSTRAINT BRIEF") {
       failsParsing[Statements].in {
-        case Cypher5 => _.withSyntaxErrorContaining(
+        case Cypher5 => _.withOldSyntax(
             "`SHOW CONSTRAINTS` no longer allows the `EXISTS` keyword, please use `EXIST` or `PROPERTY EXISTENCE` instead."
           )
         case _ => // Expected will differ depending on type
@@ -1448,7 +1448,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
 
     test(s"SHOW $constraintTypeKeyword CONSTRAINTS BRIEF OUTPUT") {
       failsParsing[Statements].in {
-        case Cypher5 => _.withSyntaxErrorContaining(
+        case Cypher5 => _.withOldSyntax(
             "`SHOW CONSTRAINTS` no longer allows the `EXISTS` keyword, please use `EXIST` or `PROPERTY EXISTENCE` instead."
           )
         case _ => // Expected will differ depending on type
@@ -1458,7 +1458,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
 
     test(s"SHOW $constraintTypeKeyword CONSTRAINTS VERBOSE") {
       failsParsing[Statements].in {
-        case Cypher5 => _.withSyntaxErrorContaining(
+        case Cypher5 => _.withOldSyntax(
             "`SHOW CONSTRAINTS` no longer allows the `EXISTS` keyword, please use `EXIST` or `PROPERTY EXISTENCE` instead."
           )
         case _ => // Expected will differ depending on type
@@ -1468,7 +1468,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
 
     test(s"SHOW $constraintTypeKeyword CONSTRAINT VERBOSE OUTPUT") {
       failsParsing[Statements].in {
-        case Cypher5 => _.withSyntaxErrorContaining(
+        case Cypher5 => _.withOldSyntax(
             "`SHOW CONSTRAINTS` no longer allows the `EXISTS` keyword, please use `EXIST` or `PROPERTY EXISTENCE` instead."
           )
         case _ => // Expected will differ depending on type
@@ -1723,7 +1723,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
     failOnBtree: Boolean = false
   ) = {
     failsParsing[Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           s"""`$command` no longer allows the `BRIEF` and `VERBOSE` keywords,
              |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -1761,7 +1761,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
 
   private def assertFailsOnBtree() = {
     failsParsing[Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining("Invalid index type b-tree, please omit the `BTREE` filter.")
+      case Cypher5 => _.withOldSyntax("Invalid index type b-tree, please omit the `BTREE` filter.")
       case _ => _.withSyntaxErrorContaining(
           "Invalid input 'BTREE': expected 'ALIAS', 'ALIASES', 'ALL', 'CONSTRAINT', 'CONSTRAINTS', 'DATABASE', 'DEFAULT DATABASE', 'HOME DATABASE', 'DATABASES', " +
             "'EXIST', 'EXISTENCE', 'FULLTEXT', 'FUNCTION', 'FUNCTIONS', 'BUILT IN', 'INDEX', 'INDEXES', 'KEY', 'LOOKUP', 'NODE', 'POINT', 'POPULATED', 'PRIVILEGE', 'PRIVILEGES', " +

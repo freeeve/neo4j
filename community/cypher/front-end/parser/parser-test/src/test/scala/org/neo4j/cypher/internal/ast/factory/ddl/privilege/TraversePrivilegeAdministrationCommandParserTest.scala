@@ -662,28 +662,28 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
 
           test(s"$verb$immutableString TRAVERSE ON DEFAULT GRAPH $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case Cypher5 => _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
               case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
           test(s"$verb$immutableString TRAVERSE ON DEFAULT GRAPH NODE A $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case Cypher5 => _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
               case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
           test(s"$verb$immutableString TRAVERSE ON DEFAULT GRAPH RELATIONSHIP * $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case Cypher5 => _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
               case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
           test(s"$verb$immutableString TRAVERSE ON DEFAULT GRAPH ELEMENT A $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case Cypher5 => _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
               case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }

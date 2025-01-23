@@ -184,21 +184,21 @@ class AllGraphPrivilegeAdministrationCommandParserTest extends AdministrationAnd
 
           test(s"$verb$immutableString ALL ON DEFAULT GRAPH $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case Cypher5 => _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
               case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
           test(s"$verb$immutableString ALL PRIVILEGES ON DEFAULT GRAPH $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case Cypher5 => _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
               case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
           test(s"$verb$immutableString ALL GRAPH PRIVILEGES ON DEFAULT GRAPH $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case Cypher5 => _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
               case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }

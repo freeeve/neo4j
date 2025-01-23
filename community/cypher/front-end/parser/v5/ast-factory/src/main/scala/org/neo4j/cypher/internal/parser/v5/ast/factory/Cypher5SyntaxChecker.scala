@@ -31,7 +31,6 @@ import org.neo4j.cypher.internal.parser.ast.util.Util.nodeChild
 import org.neo4j.cypher.internal.parser.ast.util.Util.pos
 import org.neo4j.cypher.internal.parser.common.ast.factory.ASTExceptionFactory
 import org.neo4j.cypher.internal.parser.common.ast.factory.ConstraintType
-import org.neo4j.cypher.internal.parser.common.ast.factory.HintIndexType
 import org.neo4j.cypher.internal.parser.v5.Cypher5Parser
 import org.neo4j.cypher.internal.parser.v5.Cypher5Parser.ConstraintExistsContext
 import org.neo4j.cypher.internal.parser.v5.Cypher5Parser.ConstraintIsNotNullContext
@@ -264,18 +263,24 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
 
   private def checkGraphScope(ctx: Cypher5Parser.GraphScopeContext): Unit = {
     if (ctx.DEFAULT() != null) {
+      val msg = "`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead."
+      val position = inputPosition(ctx.DEFAULT().getSymbol)
       _errors :+= exceptionFactory.syntaxException(
-        "`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.",
-        inputPosition(ctx.DEFAULT().getSymbol)
+        GqlHelper.getGql42001_42I52(msg, position.offset, position.line, position.column),
+        msg,
+        position
       )
     }
   }
 
   private def checkDatabaseScope(ctx: Cypher5Parser.DatabaseScopeContext): Unit = {
     if (ctx.DEFAULT() != null) {
+      val msg = "`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead."
+      val position = inputPosition(ctx.DEFAULT().getSymbol)
       _errors :+= exceptionFactory.syntaxException(
-        "`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.",
-        inputPosition(ctx.DEFAULT().getSymbol)
+        GqlHelper.getGql42001_42I52(msg, position.offset, position.line, position.column),
+        msg,
+        position
       )
     }
   }
@@ -325,11 +330,13 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
     }
     privilegeTarget match {
       case c: Cypher5Parser.DefaultTargetContext if c.DEFAULT() != null =>
-        val target =
-          if (c.GRAPH() != null) "GRAPH" else "DATABASE"
+        val target = if (c.GRAPH() != null) "GRAPH" else "DATABASE"
+        val msg = s"`ON DEFAULT $target` is not supported. Use `ON HOME $target` instead."
+        val position = inputPosition(privilegeTarget.start)
         _errors :+= exceptionFactory.syntaxException(
-          s"`ON DEFAULT $target` is not supported. Use `ON HOME $target` instead.",
-          inputPosition(privilegeTarget.start)
+          GqlHelper.getGql42001_42I52(msg, position.offset, position.line, position.column),
+          msg,
+          position
         )
       case _ =>
     }
@@ -380,15 +387,19 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
 
       if (containsFor && containsAssert) {
         // FOR ... ASSERT EXISTS ...
+        val position = inputPosition(assert.getSymbol)
         _errors :+= exceptionFactory.syntaxException(
+          GqlHelper.getGql42001_42I52(errorMessageForAssertExists, position.offset, position.line, position.column),
           errorMessageForAssertExists,
-          inputPosition(assert.getSymbol)
+          position
         )
       } else if (containsOn && containsAssert) {
         // ON ... ASSERT EXISTS ...
+        val position = inputPosition(ctx.ON().getSymbol)
         _errors :+= exceptionFactory.syntaxException(
+          GqlHelper.getGql42001_42I52(errorMessageOnAssertExists, position.offset, position.line, position.column),
           errorMessageOnAssertExists,
-          inputPosition(ctx.ON().getSymbol)
+          position
         )
       }
     }
@@ -401,21 +412,27 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
 
       if (containsOn && containsRequire) {
         // ON ... REQUIRE
+        val position = inputPosition(ctx.ON().getSymbol)
         _errors :+= exceptionFactory.syntaxException(
+          GqlHelper.getGql42001_42I52(errorMessageOnRequire, position.offset, position.line, position.column),
           errorMessageOnRequire,
-          inputPosition(ctx.ON().getSymbol)
+          position
         )
       } else if (containsFor && containsAssert) {
         // FOR ... ASSERT
+        val position = inputPosition(assert.getSymbol)
         _errors :+= exceptionFactory.syntaxException(
+          GqlHelper.getGql42001_42I52(errorMessageForAssert, position.offset, position.line, position.column),
           errorMessageForAssert,
-          inputPosition(assert.getSymbol)
+          position
         )
       } else if (containsOn && containsAssert) {
         // ON ... ASSERT
+        val position = inputPosition(ctx.ON().getSymbol)
         _errors :+= exceptionFactory.syntaxException(
+          GqlHelper.getGql42001_42I52(errorMessageOnAssert, position.offset, position.line, position.column),
           errorMessageOnAssert,
-          inputPosition(ctx.ON().getSymbol)
+          position
         )
       }
     }
@@ -529,9 +546,11 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
 
     val alwaysInvalidDropCommand = "Unsupported drop constraint command: Please delete the constraint by name instead"
     if (ctx.NULL() != null) {
+      val position = inputPosition(ctx.start)
       _errors :+= exceptionFactory.syntaxException(
+        GqlHelper.getGql42001_42I52(alwaysInvalidDropCommand, position.offset, position.line, position.column),
         alwaysInvalidDropCommand,
-        inputPosition(ctx.start)
+        position
       )
     }
 
@@ -541,38 +560,49 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
       def invalidPreviouslyAllowedDropConstraint(constraintType: String) =
         s"$constraintType constraints cannot be dropped by schema, please drop by name instead: DROP CONSTRAINT constraint_name. The constraint name can be found using SHOW CONSTRAINTS."
 
+      val position = inputPosition(ctx.start)
       if (ctx.commandNodePattern() != null) {
         if (ctx.EXISTS() != null) {
+          val msg = invalidPreviouslyAllowedDropConstraint("Node property existence")
           _errors :+= exceptionFactory.syntaxException(
-            invalidPreviouslyAllowedDropConstraint("Node property existence"),
-            inputPosition(ctx.start)
+            GqlHelper.getGql42001_42I52(msg, position.offset, position.line, position.column),
+            msg,
+            position
           )
         } else if (ctx.UNIQUE() != null) {
+          val msg = invalidPreviouslyAllowedDropConstraint("Uniqueness")
           _errors :+= exceptionFactory.syntaxException(
-            invalidPreviouslyAllowedDropConstraint("Uniqueness"),
-            inputPosition(ctx.start)
+            GqlHelper.getGql42001_42I52(msg, position.offset, position.line, position.column),
+            msg,
+            position
           )
         } else if (ctx.KEY() != null) {
+          val msg = invalidPreviouslyAllowedDropConstraint("Node key")
           _errors :+= exceptionFactory.syntaxException(
-            invalidPreviouslyAllowedDropConstraint("Node key"),
-            inputPosition(ctx.start)
+            GqlHelper.getGql42001_42I52(msg, position.offset, position.line, position.column),
+            msg,
+            position
           )
         } else {
           _errors :+= exceptionFactory.syntaxException(
+            GqlHelper.getGql42001_42I52(alwaysInvalidDropCommand, position.offset, position.line, position.column),
             alwaysInvalidDropCommand,
-            inputPosition(ctx.start)
+            position
           )
         }
       } else {
         if (ctx.EXISTS() != null) {
+          val msg = invalidPreviouslyAllowedDropConstraint("Relationship property existence")
           _errors :+= exceptionFactory.syntaxException(
-            invalidPreviouslyAllowedDropConstraint("Relationship property existence"),
-            inputPosition(ctx.start)
+            GqlHelper.getGql42001_42I52(msg, position.offset, position.line, position.column),
+            msg,
+            position
           )
         } else {
           _errors :+= exceptionFactory.syntaxException(
+            GqlHelper.getGql42001_42I52(alwaysInvalidDropCommand, position.offset, position.line, position.column),
             alwaysInvalidDropCommand,
-            inputPosition(ctx.start)
+            position
           )
         }
       }
@@ -582,9 +612,13 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
   private def checkShowConstraint(ctx: Cypher5Parser.ShowConstraintCommandContext): Unit = {
     ctx match {
       case c: Cypher5Parser.ShowConstraintOldExistsContext =>
+        val msg =
+          "`SHOW CONSTRAINTS` no longer allows the `EXISTS` keyword, please use `EXIST` or `PROPERTY EXISTENCE` instead."
+        val position = inputPosition(c.EXISTS().getSymbol)
         _errors :+= exceptionFactory.syntaxException(
-          "`SHOW CONSTRAINTS` no longer allows the `EXISTS` keyword, please use `EXIST` or `PROPERTY EXISTENCE` instead.",
-          inputPosition(c.EXISTS().getSymbol)
+          GqlHelper.getGql42001_42I52(msg, position.offset, position.line, position.column),
+          msg,
+          position
         )
       case _ =>
     }
@@ -592,9 +626,12 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
 
   private def checkShowIndex(ctx: Cypher5Parser.ShowIndexCommandContext): Unit = {
     if (ctx.BTREE() != null) {
+      val msg = "Invalid index type b-tree, please omit the `BTREE` filter."
+      val position = inputPosition(ctx.BTREE().getSymbol)
       _errors :+= exceptionFactory.syntaxException(
-        "Invalid index type b-tree, please omit the `BTREE` filter.",
-        inputPosition(ctx.BTREE().getSymbol)
+        GqlHelper.getGql42001_42I52(msg, position.offset, position.line, position.column),
+        msg,
+        position
       )
     }
   }
@@ -615,10 +652,13 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
           ""
       }
 
+      val msg = s"""`$command` no longer allows the `BRIEF` and `VERBOSE` keywords,
+                   |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+      val position = inputPosition(posSymbol)
       _errors :+= exceptionFactory.syntaxException(
-        s"""`$command` no longer allows the `BRIEF` and `VERBOSE` keywords,
-           |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin,
-        inputPosition(posSymbol)
+        GqlHelper.getGql42001_42I52(msg, position.offset, position.line, position.column),
+        msg,
+        position
       )
     }
   }
@@ -679,9 +719,12 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
   private def checkPeriodicCommitQueryHintFailure(ctx: Cypher5Parser.PeriodicCommitQueryHintFailureContext): Unit = {
     val periodic = ctx.PERIODIC().getSymbol
 
+    val msg = "The PERIODIC COMMIT query hint is no longer supported. Please use CALL { ... } IN TRANSACTIONS instead."
+    val position = inputPosition(periodic)
     _errors :+= exceptionFactory.syntaxException(
-      "The PERIODIC COMMIT query hint is no longer supported. Please use CALL { ... } IN TRANSACTIONS instead.",
-      inputPosition(periodic)
+      GqlHelper.getGql42001_42I52(msg, position.offset, position.line, position.column),
+      msg,
+      position
     )
   }
 
@@ -700,9 +743,12 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
         )
       }
       if (oldIndex != null) {
+        val msg = "Invalid create index syntax, use `CREATE INDEX FOR ...` instead."
+        val position = inputPosition(createIndex.ON().getSymbol)
         _errors :+= exceptionFactory.syntaxException(
-          "Invalid create index syntax, use `CREATE INDEX FOR ...` instead.",
-          inputPosition(createIndex.ON().getSymbol)
+          GqlHelper.getGql42001_42I52(msg, position.offset, position.line, position.column),
+          msg,
+          position
         )
       }
     }
@@ -728,9 +774,12 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
 
   private def checkCreateIndex(ctx: Cypher5Parser.CreateIndexContext): Unit = {
     if (ctx.BTREE() != null) {
+      val msg = "Invalid index type b-tree, use range, point or text index instead."
+      val position = inputPosition(ctx.BTREE().getSymbol)
       _errors :+= exceptionFactory.syntaxException(
-        "Invalid index type b-tree, use range, point or text index instead.",
-        inputPosition(ctx.BTREE().getSymbol)
+        GqlHelper.getGql42001_42I52(msg, position.offset, position.line, position.column),
+        msg,
+        position
       )
     }
   }
@@ -739,9 +788,13 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
     val indexName = ctx.symbolicNameOrStringParameter()
     if (indexName == null) {
       // old drop index by schema
+      val msg =
+        "Indexes cannot be dropped by schema, please drop by name instead: DROP INDEX index_name. The index name can be found using SHOW INDEXES."
+      val position = inputPosition(ctx.ON().getSymbol)
       _errors :+= exceptionFactory.syntaxException(
-        "Indexes cannot be dropped by schema, please drop by name instead: DROP INDEX index_name. The index name can be found using SHOW INDEXES.",
-        inputPosition(ctx.ON().getSymbol)
+        GqlHelper.getGql42001_42I52(msg, position.offset, position.line, position.column),
+        msg,
+        position
       )
     }
   }
@@ -798,9 +851,13 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
 
   private def checkHint(ctx: Cypher5Parser.HintContext): Unit = {
     nodeChild(ctx, 1).getSymbol.getType match {
-      case Cypher5Parser.BTREE => _errors :+= exceptionFactory.syntaxException(
-          ASTExceptionFactory.invalidHintIndexType(HintIndexType.BTREE),
-          pos(nodeChild(ctx, 1))
+      case Cypher5Parser.BTREE =>
+        val message = ASTExceptionFactory.invalidHintIndexType()
+        val position = pos(nodeChild(ctx, 1))
+        _errors :+= exceptionFactory.syntaxException(
+          GqlHelper.getGql42001_42I52(message, position.offset, position.line, position.column),
+          message,
+          position
         )
       case _ =>
     }

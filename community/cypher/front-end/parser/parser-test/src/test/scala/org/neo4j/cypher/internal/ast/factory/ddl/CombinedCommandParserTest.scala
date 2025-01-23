@@ -1943,7 +1943,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW CONSTRAINTS BRIEF SHOW CONSTRAINTS") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -1954,7 +1954,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW CONSTRAINTS VERBOSE SHOW CONSTRAINTS") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -1966,7 +1966,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW CONSTRAINTS SHOW CONSTRAINTS BRIEF") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -1977,7 +1977,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW CONSTRAINTS SHOW CONSTRAINTS VERBOSE") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -1989,7 +1989,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW CONSTRAINTS BRIEF SHOW CONSTRAINTS VERBOSE") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -2000,7 +2000,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW CONSTRAINTS BRIEF SHOW PROCEDURES") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -2011,7 +2011,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW CONSTRAINTS VERBOSE SHOW FUNCTIONS") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -2023,7 +2023,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW FUNCTIONS SHOW CONSTRAINTS BRIEF") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -2034,7 +2034,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW PROCEDURES SHOW CONSTRAINTS VERBOSE") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -2046,7 +2046,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW INDEXES BRIEF SHOW INDEXES") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -2057,7 +2057,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW INDEXES VERBOSE SHOW INDEXES") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -2069,7 +2069,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW INDEXES SHOW INDEXES BRIEF") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -2080,7 +2080,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW INDEXES SHOW INDEXES VERBOSE") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -2092,7 +2092,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW BTREE INDEXES VERBOSE SHOW BTREE INDEXES BRIEF") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -2107,7 +2107,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW INDEXES BRIEF SHOW PROCEDURES") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -2118,7 +2118,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW INDEXES VERBOSE SHOW FUNCTIONS") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -2129,7 +2129,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW FUNCTIONS SHOW INDEXES BRIEF") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
@@ -2140,7 +2140,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW PROCEDURES SHOW INDEXES VERBOSE") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining(
+      case Cypher5 => _.withOldSyntax(
           """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )

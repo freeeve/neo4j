@@ -129,7 +129,7 @@ class CreateDeletePrivilegeAdministrationCommandParserTest extends Administratio
               test(s"$verb$immutableString $createOrDelete ON DEFAULT GRAPH $preposition role") {
                 failsParsing[Statements].in {
                   case Cypher5 =>
-                    _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+                    _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
                 }
               }
@@ -137,7 +137,7 @@ class CreateDeletePrivilegeAdministrationCommandParserTest extends Administratio
               test(s"$verb$immutableString $createOrDelete ON DEFAULT GRAPH $preposition role1, role2") {
                 failsParsing[Statements].in {
                   case Cypher5 =>
-                    _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+                    _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
                 }
               }
@@ -145,7 +145,7 @@ class CreateDeletePrivilegeAdministrationCommandParserTest extends Administratio
               test(s"$verb$immutableString $createOrDelete ON DEFAULT GRAPH $preposition $$role1, role2") {
                 failsParsing[Statements].in {
                   case Cypher5 =>
-                    _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+                    _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
                 }
               }
@@ -153,7 +153,7 @@ class CreateDeletePrivilegeAdministrationCommandParserTest extends Administratio
               test(s"$verb$immutableString $createOrDelete ON DEFAULT GRAPH RELATIONSHIPS * $preposition role") {
                 failsParsing[Statements].in {
                   case Cypher5 =>
-                    _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+                    _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
                 }
               }

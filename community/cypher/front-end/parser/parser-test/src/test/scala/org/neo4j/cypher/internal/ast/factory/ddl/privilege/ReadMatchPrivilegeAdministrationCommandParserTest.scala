@@ -986,14 +986,14 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
 
           test(s"$verb$immutableString ${action.name} { prop } ON DEFAULT GRAPH $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case Cypher5 => _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
               case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }
 
           test(s"$verb$immutableString ${action.name} { prop } ON DEFAULT GRAPH NODE A $preposition role") {
             failsParsing[Statements].in {
-              case Cypher5 => _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+              case Cypher5 => _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
               case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
             }
           }

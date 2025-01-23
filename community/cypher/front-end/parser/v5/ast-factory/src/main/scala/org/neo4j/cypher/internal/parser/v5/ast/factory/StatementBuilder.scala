@@ -111,7 +111,6 @@ import org.neo4j.cypher.internal.parser.ast.util.Util.lastChild
 import org.neo4j.cypher.internal.parser.ast.util.Util.nodeChild
 import org.neo4j.cypher.internal.parser.ast.util.Util.pos
 import org.neo4j.cypher.internal.parser.common.ast.factory.ASTExceptionFactory
-import org.neo4j.cypher.internal.parser.common.ast.factory.HintIndexType
 import org.neo4j.cypher.internal.parser.v5.Cypher5Parser
 import org.neo4j.cypher.internal.parser.v5.Cypher5ParserListener
 import org.neo4j.cypher.internal.parser.v5.ast.factory.Cypher5AstUtil.nonEmptyPropertyKeyName
@@ -365,9 +364,13 @@ trait StatementBuilder extends Cypher5ParserListener {
     val secondToken = nodeChild(ctx, 1).getSymbol
     ctx.ast = secondToken.getType match {
       case Cypher5Parser.INDEX => indexHint(ctx, UsingAnyIndexType)
-      case Cypher5Parser.BTREE => throw exceptionFactory.syntaxException(
-          ASTExceptionFactory.invalidHintIndexType(HintIndexType.BTREE),
-          pos(secondToken)
+      case Cypher5Parser.BTREE =>
+        val message = ASTExceptionFactory.invalidHintIndexType()
+        val position = pos(secondToken)
+        throw exceptionFactory.syntaxException(
+          GqlHelper.getGql42001_42I52(message, position.offset, position.line, position.column),
+          message,
+          position
         )
       case Cypher5Parser.TEXT  => indexHint(ctx, UsingTextIndexType)
       case Cypher5Parser.RANGE => indexHint(ctx, UsingRangeIndexType)

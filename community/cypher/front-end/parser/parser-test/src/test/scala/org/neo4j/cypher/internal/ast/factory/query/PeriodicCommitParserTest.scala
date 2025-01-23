@@ -19,15 +19,17 @@ package org.neo4j.cypher.internal.ast.factory.query
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
+import org.neo4j.cypher.internal.util.InputPosition
 
 class PeriodicCommitParserTest extends AstParsingTestBase {
 
-  val message =
-    "The PERIODIC COMMIT query hint is no longer supported. Please use CALL { ... } IN TRANSACTIONS instead. (line 1, column 7 (offset: 6))"
+  private val message =
+    "The PERIODIC COMMIT query hint is no longer supported. Please use CALL { ... } IN TRANSACTIONS instead."
+  private val position = InputPosition(6, 1, 7)
 
   test("USING PERIODIC COMMIT LOAD CSV FROM 'foo' AS l RETURN l") {
     parsesIn[Statements] {
-      case Cypher5 => _.withMessageStart(message)
+      case Cypher5 => _.withOldSyntaxWithPosition(message, testName, position)
       case _ => _.withSyntaxError(
           """Invalid input 'USING': expected 'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WITH' or '{' (line 1, column 1 (offset: 0))
             |"USING PERIODIC COMMIT LOAD CSV FROM 'foo' AS l RETURN l"
@@ -38,7 +40,7 @@ class PeriodicCommitParserTest extends AstParsingTestBase {
 
   test("USING PERIODIC COMMIT 200 LOAD CSV FROM 'foo' AS l RETURN l") {
     parsesIn[Statements] {
-      case Cypher5 => _.withMessageStart(message)
+      case Cypher5 => _.withOldSyntaxWithPosition(message, testName, position)
       case _ => _.withSyntaxError(
           """Invalid input 'USING': expected 'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WITH' or '{' (line 1, column 1 (offset: 0))
             |"USING PERIODIC COMMIT 200 LOAD CSV FROM 'foo' AS l RETURN l"
@@ -49,7 +51,7 @@ class PeriodicCommitParserTest extends AstParsingTestBase {
 
   test("USING PERIODIC COMMIT RETURN 1") {
     parsesIn[Statements] {
-      case Cypher5 => _.withMessageStart(message)
+      case Cypher5 => _.withOldSyntaxWithPosition(message, testName, position)
       case _ => _.withSyntaxError(
           """Invalid input 'USING': expected 'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WITH' or '{' (line 1, column 1 (offset: 0))
             |"USING PERIODIC COMMIT RETURN 1"

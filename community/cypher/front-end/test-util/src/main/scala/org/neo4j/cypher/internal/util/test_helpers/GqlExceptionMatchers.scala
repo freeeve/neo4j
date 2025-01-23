@@ -152,12 +152,28 @@ trait GqlExceptionMatchers {
     GqlExceptionMatcher(code, statusDescription)
   }
 
-  def gqlException(legacyMsg: String, gqlMatcher: GqlExceptionMatcher): BeMatcher[Exception] =
+  def gqlException(
+    legacyMsg: String,
+    gqlMatcher: GqlExceptionMatcher,
+    fuzzyMsg: Boolean = false
+  ): BeMatcher[Exception] =
     BeMatcher {
       (ex: Exception) =>
         {
           val typeMatcher: Matcher[Exception] = be(a[ErrorGqlStatusObject])
-          val messageMatcher: Matcher[Exception] = have message legacyMsg
+          val messageMatcher: Matcher[Exception] = {
+            if (fuzzyMsg) {
+              Matcher { ex =>
+                MatchResult(
+                  ex.getMessage.contains(legacyMsg),
+                  s"Message '${ex.getMessage}' did not start with '$legacyMsg'",
+                  s"Message started with '$legacyMsg'"
+                )
+              }
+            } else {
+              have message legacyMsg
+            }
+          }
           val exceptionMatchResult = (typeMatcher and messageMatcher)(ex)
 
           if (!exceptionMatchResult.matches) {

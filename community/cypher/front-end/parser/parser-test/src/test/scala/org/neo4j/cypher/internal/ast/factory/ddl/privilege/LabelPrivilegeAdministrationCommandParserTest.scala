@@ -174,7 +174,7 @@ class LabelPrivilegeAdministrationCommandParserTest extends AdministrationAndSch
               test(s"$verb$immutableString $setOrRemove LABEL label ON DEFAULT GRAPH $preposition role") {
                 failsParsing[Statements].in {
                   case Cypher5 =>
-                    _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+                    _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
                 }
               }
@@ -182,7 +182,7 @@ class LabelPrivilegeAdministrationCommandParserTest extends AdministrationAndSch
               test(s"$verb$immutableString $setOrRemove LABEL * ON DEFAULT GRAPH $preposition role") {
                 failsParsing[Statements].in {
                   case Cypher5 =>
-                    _.withMessageStart("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
+                    _.withOldSyntax("`ON DEFAULT GRAPH` is not supported. Use `ON HOME GRAPH` instead.")
                   case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected ")
                 }
               }
