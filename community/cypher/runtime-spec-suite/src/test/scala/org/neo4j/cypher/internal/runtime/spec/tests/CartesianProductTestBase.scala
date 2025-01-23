@@ -891,11 +891,11 @@ abstract class CartesianProductTestBase[CONTEXT <: RuntimeContext](
       .build()
 
     val subscriber = TestSubscriber.concurrent
-    val result = execute(
+    val result = executeWithSubscriber(
       logicalQuery,
       runtime,
-      inputStream,
       subscriber,
+      inputStream,
       testPlanCombinationRewriterHints = Set(TestPlanCombinationRewriter.NoEager)
     )
 
@@ -949,11 +949,11 @@ abstract class CartesianProductTestBase[CONTEXT <: RuntimeContext](
       .build()
 
     val subscriber = TestSubscriber.concurrent
-    val result = execute(
+    val result = executeWithSubscriber(
       logicalQuery,
       runtime,
-      inputStream,
       subscriber,
+      inputStream,
       testPlanCombinationRewriterHints = Set(TestPlanCombinationRewriter.NoEager)
     )
 
