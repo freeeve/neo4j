@@ -297,7 +297,7 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
       """A quantified path pattern needs to have at least one relationship.
         |In this case, the quantified path pattern ((n) (m)){1, 5} consists of only nodes.""".stripMargin,
       InputPosition(6, 1, 7),
-      null, // not ported yet
+      GqlHelper.getGql42001_42I46(11, 1, 12),
       """Juxtaposition is currently only supported for quantified path patterns.
         |In this case, both (n) and (m) are single nodes.
         |That is, neither of these is a quantified path pattern.""".stripMargin,
@@ -512,42 +512,54 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
 
   // parenthesized path patterns
   test("MATCH ((a)-->(b)) (x) RETURN x") {
-    run().hasErrorMessages(
+    run().hasError(
+      GqlHelper.getGql42001_42I46(18, 1, 19),
       """Juxtaposition is currently only supported for quantified path patterns.
         |In this case, ((a)-->(b)) is a (non-quantified) parenthesized path pattern and (x) is a single node.
-        |That is, neither of these is a quantified path pattern.""".stripMargin
+        |That is, neither of these is a quantified path pattern.""".stripMargin,
+      InputPosition(18, 1, 19)
     )
   }
 
   test("MATCH (x) ((a)-->(b)) RETURN x") {
-    run().hasErrorMessages(
+    run().hasError(
+      GqlHelper.getGql42001_42I46(10, 1, 11),
       """Juxtaposition is currently only supported for quantified path patterns.
         |In this case, (x) is a single node and ((a)-->(b)) is a (non-quantified) parenthesized path pattern.
-        |That is, neither of these is a quantified path pattern.""".stripMargin
+        |That is, neither of these is a quantified path pattern.""".stripMargin,
+      InputPosition(10, 1, 11)
     )
   }
 
   test("MATCH ((a)-->(b)) (x)-->(y) RETURN x") {
-    run().hasErrorMessages(
+    run().hasError(
+      // This position is broken, but was not tested before
+      // See https://trello.com/c/UHY0i2h6/1349-position-for-relationship-chain-in-juxtaposition-is-wrong
+      GqlHelper.getGql42001_42I46(6, 1, 7),
       """Juxtaposition is currently only supported for quantified path patterns.
         |In this case, ((a)-->(b)) is a (non-quantified) parenthesized path pattern and (x)-->(y) is a simple path pattern.
-        |That is, neither of these is a quantified path pattern.""".stripMargin
+        |That is, neither of these is a quantified path pattern.""".stripMargin,
+      InputPosition(6, 1, 7)
     )
   }
 
   test("MATCH ((a)-->(b)) ((x)-->(y)) RETURN x") {
-    run().hasErrorMessages(
+    run().hasError(
+      GqlHelper.getGql42001_42I46(18, 1, 19),
       """Juxtaposition is currently only supported for quantified path patterns.
         |In this case, both ((a)-->(b)) and ((x)-->(y)) are (non-quantified) parenthesized path patterns.
-        |That is, neither of these is a quantified path pattern.""".stripMargin
+        |That is, neither of these is a quantified path pattern.""".stripMargin,
+      InputPosition(18, 1, 19)
     )
   }
 
   test("MATCH (x) (y) RETURN x") {
-    run().hasErrorMessages(
+    run().hasError(
+      GqlHelper.getGql42001_42I46(10, 1, 11),
       """Juxtaposition is currently only supported for quantified path patterns.
         |In this case, both (x) and (y) are single nodes.
-        |That is, neither of these is a quantified path pattern.""".stripMargin
+        |That is, neither of these is a quantified path pattern.""".stripMargin,
+      InputPosition(10, 1, 11)
     )
   }
 

@@ -396,12 +396,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
           } else {
             s"In this case, $aString is a $aTypeString and $bString is a $bTypeString."
           }
-        error(
-          s"""Juxtaposition is currently only supported for quantified path patterns.
-             |$inThisCase
-             |That is, neither of these is a quantified path pattern.""".stripMargin,
-          b.position
-        )
+        error(SemanticError.invalidNodePatternPair(inThisCase, b.position))
       case _ => SemanticCheck.success // we could get here with only one element in factors
     }.reduce(_ chain _)
   }

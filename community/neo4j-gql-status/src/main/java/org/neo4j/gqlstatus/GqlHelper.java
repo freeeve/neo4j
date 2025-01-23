@@ -496,6 +496,15 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql42001_42I46(int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I46)
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql42001_42I47(String msg, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withClassification(ErrorClassification.CLIENT_ERROR)

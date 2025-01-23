@@ -1258,6 +1258,16 @@ object SemanticError {
       position
     )
   }
+
+  def invalidNodePatternPair(inThisCase: String, position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42I46(position.offset, position.line, position.column),
+      s"""Juxtaposition is currently only supported for quantified path patterns.
+         |$inThisCase
+         |That is, neither of these is a quantified path pattern.""".stripMargin,
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef
