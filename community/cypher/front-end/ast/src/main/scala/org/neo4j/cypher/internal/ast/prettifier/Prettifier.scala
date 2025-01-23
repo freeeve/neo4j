@@ -692,7 +692,7 @@ case class Prettifier(
           case IfExistsInvalidSyntax | IfExistsDoNothing => " IF NOT EXISTS"
           case _                                         => ""
         }
-        s"${x.name} ${escapeName(name)}$ifExists${maybeCypherVersion}$formattedOptions${waitUntilComplete.name}"
+        s"${x.name} ${escapeName(name)}$ifExists$maybeCypherVersion$formattedOptions${waitUntilComplete.name}"
 
       case x @ DropDatabase(dbName, ifExists, _, aliasAction, additionalAction, waitUntilComplete) =>
         val maybeIfExists = if (ifExists) " IF EXISTS" else ""

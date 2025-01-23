@@ -2489,7 +2489,7 @@ class AstGenerator(
     secondaries <- oneOf(Left(intSecondaries), Right(paramSecondaries))
   } yield secondaries
 
-  def _defaultLanguage: Gen[CypherVersion] = oneOf(CypherVersion.Cypher5, CypherVersion.Cypher25)
+  def _defaultLanguage: Gen[CypherVersion] = oneOf(CypherVersion.values)
 
   // User commands
 

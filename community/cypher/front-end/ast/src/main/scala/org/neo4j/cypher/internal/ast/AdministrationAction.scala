@@ -172,8 +172,16 @@ case object SetDatabaseAccessAction extends DatabaseManagementAction("SET DATABA
 
 case object SetDefaultLanguageAction extends DatabaseManagementAction("SET DEFAULT LANGUAGE")
 
+/*
+ * This is an internal only sub-privilege of ALTER DATABASE, so we display it to the user as ALTER DATABASE since
+ * that is what they need to grant. ALTER DATABASE SET TOPOLOGY will check this.
+ */
 case object AlterDatabaseTopologyAction extends DatabaseManagementAction("ALTER DATABASE")
 
+/*
+ * This is an internal only sub-privilege of ALTER DATABASE, so we display it to the user as ALTER DATABASE since
+ * that is what they need to grant. ALTER DATABASE SET / REMOVE OPTION will check this.
+ */
 case object AlterDatabaseOptionsAction extends DatabaseManagementAction("ALTER DATABASE")
 
 case object CompositeDatabaseManagementActions extends DatabaseManagementAction("COMPOSITE DATABASE MANAGEMENT")

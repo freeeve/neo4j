@@ -507,7 +507,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
     }
   }
 
-  // Default version
+  // Default language
 
   test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 5") {
     parsesTo[Statements](CreateDatabase(
@@ -524,6 +524,39 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
     parsesTo[Statements](CreateDatabase(
       literalFoo,
       IfExistsThrowError,
+      NoOptions,
+      NoWait,
+      None,
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+    )(pos))
+  }
+
+  test("CREATE DATABASE foo IF NOT EXISTS DEFAULT LANGUAGE CYPHER 25 OPTIONS { txLogEnrichment:'FULL' }") {
+    parsesTo[Statements](CreateDatabase(
+      literalFoo,
+      IfExistsDoNothing,
+      OptionsMap(Map("txLogEnrichment" -> literalString("FULL"))),
+      NoWait,
+      None,
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+    )(pos))
+  }
+
+  test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 25 TOPOLOGY 1 PRIMARY WAIT") {
+    parsesTo[Statements](CreateDatabase(
+      literalFoo,
+      IfExistsThrowError,
+      NoOptions,
+      IndefiniteWait,
+      Some(Topology(Some(Left(1)), None)),
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+    )(pos))
+  }
+
+  test("CREATE OR REPLACE DATABASE foo DEFAULT LANGUAGE CYPHER 25 ") {
+    parsesTo[Statements](CreateDatabase(
+      literalFoo,
+      IfExistsReplace,
       NoOptions,
       NoWait,
       None,

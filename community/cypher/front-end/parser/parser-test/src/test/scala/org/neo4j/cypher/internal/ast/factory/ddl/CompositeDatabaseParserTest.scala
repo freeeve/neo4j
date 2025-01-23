@@ -187,7 +187,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
     )(pos))
   }
 
-  // Default version
+  // Default language
 
   test("CREATE COMPOSITE DATABASE foo DEFAULT LANGUAGE CYPHER 5") {
     parsesTo[Statements](CreateCompositeDatabase(

@@ -557,7 +557,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
     )
   }
 
-  // Default version
+  // Default language
 
   test("ALTER DATABASE foo SET DEFAULT LANGUAGE CYPHER 5") {
     parsesTo[Statements](AlterDatabase(
@@ -591,6 +591,45 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
       ifExists = true,
       None,
       None,
+      NoOptions,
+      Set.empty,
+      NoWait,
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+    )(pos))
+  }
+
+  test("ALTER DATABASE foo SET DEFAULT LANGUAGE CYPHER 25 SET ACCESS READ WRITE") {
+    parsesTo[Statements](AlterDatabase(
+      literalFoo,
+      ifExists = false,
+      Some(ReadWriteAccess),
+      None,
+      NoOptions,
+      Set.empty,
+      NoWait,
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+    )(pos))
+  }
+
+  test("ALTER DATABASE foo SET OPTION badger 'snake' SET DEFAULT LANGUAGE CYPHER 25 WAIT") {
+    parsesTo[Statements](AlterDatabase(
+      literalFoo,
+      ifExists = false,
+      None,
+      None,
+      OptionsMap(Map("badger" -> literalString("snake"))),
+      Set.empty,
+      IndefiniteWait,
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+    )(pos))
+  }
+
+  test("ALTER DATABASE foo IF EXISTS SET DEFAULT LANGUAGE CYPHER 25 SET TOPOLOGY 1 PRIMARY") {
+    parsesTo[Statements](AlterDatabase(
+      literalFoo,
+      ifExists = true,
+      None,
+      Some(Topology(Some(Left(1)), None)),
       NoOptions,
       Set.empty,
       NoWait,

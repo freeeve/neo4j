@@ -1164,7 +1164,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           .map(wrapInWait(_, dbName, waitUntilComplete))
           .map(plans.LogSystemCommand(_, prettifier.asString(c)))
 
-      // ALTER DATABASE foo [IF EXISTS] [SET ACCESS {READ ONLY | READ WRITE}] [SET TOPOLOGY n PRIMARY [m SECONDARY]] [SET OPTION key value] [REMOVE OPTION key]
+      // ALTER DATABASE foo [IF EXISTS] ...
       case c @ AlterDatabase(
           dbName,
           ifExists,
@@ -1177,11 +1177,11 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         ) =>
         // For a set of (predicate -> privilege); If the predicate is true, add the privilege to the set of required privileges
         val requiredPrivilegedActions: Seq[DbmsAction] = Seq(
-          // ALTER DATABASE foo SET TOPOLOGY requires 'ALTER DATABASE' privileges:
+          // ALTER DATABASE foo SET TOPOLOGY requires internal AlterDatabaseTopology privilege which can be granted by 'ALTER DATABASE':
           topology.nonEmpty -> AlterDatabaseTopologyAction,
-          // ALTER DATABASE foo SET OPTION ... requires 'ALTER DATABASE' privileges:
+          // ALTER DATABASE foo SET OPTION ... requires internal AlterDatabaseOptions privilege which can be granted by 'ALTER DATABASE':
           (options != NoOptions) -> AlterDatabaseOptionsAction,
-          // ALTER DATABASE foo REMOVE OPTION ... requires 'ALTER DATABASE' privileges:
+          // ALTER DATABASE foo REMOVE OPTION ... requires internal AlterDatabaseOptions privilege which can be granted by 'ALTER DATABASE':
           optionsToRemove.nonEmpty -> AlterDatabaseOptionsAction,
           // ALTER DATABASE foo SET ACCESS ... requires 'SET DATABASE ACCESS' privileges:
           access.nonEmpty -> SetDatabaseAccessAction,
