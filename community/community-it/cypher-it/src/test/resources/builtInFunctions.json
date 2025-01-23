@@ -970,7 +970,7 @@
     "argumentDescription": [
       {
         "name": "input",
-        "description": "A map optionally containing the following keys: 'years', 'quarters', 'months', 'weeks', 'days', 'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds', or 'nanoseconds'.",
+        "description": "A map optionally containing the following keys: 'years', 'months', 'weeks', 'days', 'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds', or 'nanoseconds'.",
         "type": "ANY",
         "isDeprecated": false
       }

@@ -53,7 +53,7 @@ class DurationFunction implements CallableUserFunction {
                     inputField(
                             "input",
                             Neo4jTypes.NTAny,
-                            "A map optionally containing the following keys: 'years', 'quarters', 'months', 'weeks', 'days', 'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds', or 'nanoseconds'.")),
+                            "A map optionally containing the following keys: 'years', 'months', 'weeks', 'days', 'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds', or 'nanoseconds'.")),
             Neo4jTypes.NTDuration,
             false,
             null,
