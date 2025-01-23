@@ -192,23 +192,29 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
 
   // minimum node count
   test("MATCH ((a)-[]->(b)){0,} RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasError(
+      GqlHelper.getGql42001_42N64(6, 1, 7),
       """A top-level path pattern in a `MATCH` clause must be written such that it always evaluates to at least one node pattern.
-        |In this case, `((a)-->(b)){0}` would result in an empty pattern.""".stripMargin
+        |In this case, `((a)-->(b)){0}` would result in an empty pattern.""".stripMargin,
+      InputPosition(6, 1, 7)
     )
   }
 
   test("MATCH ((a)-[]->(b))* RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasError(
+      GqlHelper.getGql42001_42N64(6, 1, 7),
       """A top-level path pattern in a `MATCH` clause must be written such that it always evaluates to at least one node pattern.
-        |In this case, `((a)-->(b)){0}` would result in an empty pattern.""".stripMargin
+        |In this case, `((a)-->(b)){0}` would result in an empty pattern.""".stripMargin,
+      InputPosition(6, 1, 7)
     )
   }
 
   test("MATCH ((a)-[]->(b)){0,}((c)-[]->(d)){0,} RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasError(
+      GqlHelper.getGql42001_42N64(6, 1, 7),
       """A top-level path pattern in a `MATCH` clause must be written such that it always evaluates to at least one node pattern.
-        |In this case, `((a)-->(b)){0} ((c)-->(d)){0}` would result in an empty pattern.""".stripMargin
+        |In this case, `((a)-->(b)){0} ((c)-->(d)){0}` would result in an empty pattern.""".stripMargin,
+      InputPosition(6, 1, 7)
     )
   }
 
@@ -276,20 +282,26 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
 
   // single node pattern
   test("MATCH ((n)){1, 5} RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasError(
+      GqlHelper.getGql42001_42N64(6, 1, 7),
       """A quantified path pattern needs to have at least one relationship.
-        |In this case, the quantified path pattern ((n)){1, 5} consists of only one node.""".stripMargin
+        |In this case, the quantified path pattern ((n)){1, 5} consists of only one node.""".stripMargin,
+      InputPosition(6, 1, 7)
     )
   }
 
   test("MATCH ((n) (m)){1, 5} RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      GqlHelper.getGql42001_42N64(6, 1, 7),
       // this is the error message that we ultimately expect
       """A quantified path pattern needs to have at least one relationship.
         |In this case, the quantified path pattern ((n) (m)){1, 5} consists of only nodes.""".stripMargin,
+      InputPosition(6, 1, 7),
+      null, // not ported yet
       """Juxtaposition is currently only supported for quantified path patterns.
         |In this case, both (n) and (m) are single nodes.
-        |That is, neither of these is a quantified path pattern.""".stripMargin
+        |That is, neither of these is a quantified path pattern.""".stripMargin,
+      InputPosition(11, 1, 12)
     )
   }
 

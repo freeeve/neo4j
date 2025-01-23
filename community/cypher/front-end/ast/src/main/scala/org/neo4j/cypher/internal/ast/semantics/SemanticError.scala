@@ -1236,6 +1236,28 @@ object SemanticError {
       position
     )
   }
+
+  def pathPatternNeedsAtLeastOnePattern(patternPart: String, position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42N64(position.offset, position.line, position.column),
+      s"""A top-level path pattern in a `MATCH` clause must be written such that it always evaluates to at least one node pattern.
+         |In this case, `$patternPart` would result in an empty pattern.""".stripMargin,
+      position
+    )
+  }
+
+  def qppNeedsAtLeastOneRelationship(
+    pattern: String,
+    nodeCountDescription: String,
+    position: InputPosition
+  ): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42N64(position.offset, position.line, position.column),
+      s"""A quantified path pattern needs to have at least one relationship.
+         |In this case, the quantified path pattern $pattern consists of only $nodeCountDescription.""".stripMargin,
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

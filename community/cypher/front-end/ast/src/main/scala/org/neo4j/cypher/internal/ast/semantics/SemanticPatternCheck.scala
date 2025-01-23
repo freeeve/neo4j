@@ -255,11 +255,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
         })
       }
       val stringifiedMinimalPatternPart = stringifier.patterns(minimalPatternPart)
-      error(
-        s"""A top-level path pattern in a `MATCH` clause must be written such that it always evaluates to at least one node pattern.
-           |In this case, `$stringifiedMinimalPatternPart` would result in an empty pattern.""".stripMargin,
-        x.position
-      )
+      error(SemanticError.pathPatternNeedsAtLeastOnePattern(stringifiedMinimalPatternPart, x.position))
     }
   }
 
@@ -343,11 +339,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
               case 1 => "one node"
               case _ => s"nodes"
             }
-            error(
-              s"""A quantified path pattern needs to have at least one relationship.
-                 |In this case, the quantified path pattern $patternStringified consists of only $nodeCountDescription.""".stripMargin,
-              q.position
-            )
+            error(SemanticError.qppNeedsAtLeastOneRelationship(patternStringified, nodeCountDescription, q.position))
           }
         val patternStringifier = PatternStringifier(stringifier)
         checkContext(ctx, patternStringifier.apply(q), "Quantified path patterns", element.position) chain
