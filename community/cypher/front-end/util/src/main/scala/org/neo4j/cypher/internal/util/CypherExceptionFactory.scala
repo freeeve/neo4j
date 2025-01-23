@@ -69,6 +69,26 @@ trait CypherExceptionFactory {
       .build()
     syntaxException(gql, legacyMessage, pos)
   }
+
+  def unsupportedPathSelectorInPathPattern(
+    selector: String,
+    pathPatternKind: String,
+    position: InputPosition
+  ): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N35)
+        .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.StringParam.selector, selector)
+        .build())
+      .build()
+
+    syntaxException(
+      gql,
+      s"Path selectors such as `$selector` are not supported within $pathPatternKind path patterns.",
+      position
+    )
+  }
 }
 
 case class Neo4jCypherExceptionFactory(queryText: String, preParserOffset: Option[InputPosition])

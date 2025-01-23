@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
 import org.neo4j.cypher.internal.expressions.PlusQuantifier
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class PatternPartWithSelectorParserTest extends AstParsingTestBase {
 
@@ -540,13 +541,12 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
     }
   }
 
-  // The tests below use `failsToParse[Clause]()OnlyJavaCC` because selectors in QPPs, PPPs, and update clauses are allowed by the grammar.
-  // They are rejected by the AST factory later, but ANTLR doesn't go that far yet.
-
   test("MATCH $selector (() ($selector (a)-[r]->(b))* ()-->())") {
-    selectors.foreach { case selector -> _ =>
+    selectors.foreach { case selector -> astSelector =>
       s"MATCH $selector (() ($selector (a)-[r]->(b))* ()-->())" should notParse[Clause].withSyntaxErrorContaining(
-        "Path selectors such as"
+        s"Path selectors such as `${astSelector.prettified}` are not supported within quantified path patterns.",
+        GqlStatusInfoCodes.STATUS_42N35,
+        s"error: syntax error or access rule violation - unsupported path selector in path pattern. The path selector ${astSelector.prettified} is not supported within quantified or parenthesized path patterns."
       )
     }
   }
@@ -577,15 +577,19 @@ class PatternPartWithSelectorParserTest extends AstParsingTestBase {
     Seq("+", "").foreach { quantifier =>
       test(s"MATCH ($selector (a)-[r]->(b))$quantifier") {
         val pathPatternKind = if (quantifier == "") "parenthesized" else "quantified"
-        failsParsing[Statements].withMessageStart(
-          s"Path selectors such as `${astSelector.prettified}` are not supported within $pathPatternKind path patterns."
+        failsParsing[Statements].withSyntaxErrorContaining(
+          s"Path selectors such as `${astSelector.prettified}` are not supported within $pathPatternKind path patterns.",
+          GqlStatusInfoCodes.STATUS_42N35,
+          s"error: syntax error or access rule violation - unsupported path selector in path pattern. The path selector ${astSelector.prettified} is not supported within quantified or parenthesized path patterns."
         )
       }
 
       if (quantifier == "+") {
         test(s"MATCH (() ($selector (a)-[r]->(b))$quantifier ()--())") {
-          failsParsing[Statements].withMessageStart(
-            s"Path selectors such as `${astSelector.prettified}` are not supported within quantified path patterns."
+          failsParsing[Statements].withSyntaxErrorContaining(
+            s"Path selectors such as `${astSelector.prettified}` are not supported within quantified path patterns.",
+            GqlStatusInfoCodes.STATUS_42N35,
+            s"error: syntax error or access rule violation - unsupported path selector in path pattern. The path selector ${astSelector.prettified} is not supported within quantified or parenthesized path patterns."
           )
         }
       }
