@@ -388,12 +388,12 @@ class ImportCommandTest {
 
         @ParameterizedTest
         @ValueSource(booleans = {true, false})
-        void filesWithoutLabels(boolean useURIs) {
+        void filesWithoutRelType(boolean useURIs) {
             final var foo = testDir.createFile("foo.csv");
             final var bar = testDir.createFile("bar.csv");
             final var pathStr = useURIs ? foo.toUri() + "," + bar.toUri() : foo + "," + bar;
             final var g = ImportCommand.parseRelationshipFilesGroup(pathStr);
-            assertThat(g.key).isEmpty();
+            assertThat(g.key).isNull();
             assertPathsFound(testDir, g, foo, bar);
         }
 

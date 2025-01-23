@@ -45,6 +45,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -1051,23 +1052,28 @@ public class ImportCommand {
 
     @VisibleForTesting
     static RelationshipFilesGroup parseRelationshipFilesGroup(String str) {
-        final var p = parseInputFilesGroup(str, String::trim);
+        final var p = parseInputFilesGroup(str, s -> s == null ? null : s.trim());
         return new RelationshipFilesGroup(p.getOne(), p.getTwo());
     }
 
     @VisibleForTesting
     static NodeFilesGroup parseNodeFilesGroup(String str) {
-        final var p = parseInputFilesGroup(str, s -> stream(s.split(":"))
-                .map(String::trim)
-                .filter(x -> !x.isEmpty())
-                .collect(toSet()));
+        final var p = parseInputFilesGroup(str, s -> {
+            if (s == null) {
+                return Collections.<String>emptySet();
+            }
+            return stream(s.split(":"))
+                    .map(String::trim)
+                    .filter(x -> !x.isEmpty())
+                    .collect(toSet());
+        });
         return new NodeFilesGroup(p.getOne(), p.getTwo());
     }
 
     private static <T> Pair<T, String> parseInputFilesGroup(String str, Function<String, ? extends T> keyParser) {
         final var i = str.indexOf('=');
         if (i < 0) {
-            return pair(keyParser.apply(""), str);
+            return pair(keyParser.apply(null), str);
         }
         if (i == 0 || i == str.length() - 1) {
             throw new IllegalArgumentException("illegal `=` position: " + str);
