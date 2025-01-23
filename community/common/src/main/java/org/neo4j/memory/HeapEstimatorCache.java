@@ -42,8 +42,10 @@ public interface HeapEstimatorCache {
 
     HeapEstimatorCache newWithSameSettings();
 
-    class NoHeapEstimatorCache implements HeapEstimatorCache {
+    final class NoHeapEstimatorCache implements HeapEstimatorCache {
         public static final NoHeapEstimatorCache INSTANCE = new NoHeapEstimatorCache();
+
+        private NoHeapEstimatorCache() {}
 
         @Override
         public long estimatedHeapUsage(Measurable measurable, long estimate) {
