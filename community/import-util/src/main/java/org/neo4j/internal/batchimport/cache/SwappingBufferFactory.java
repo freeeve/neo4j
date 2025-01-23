@@ -35,6 +35,7 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.lang3.SystemUtils;
 import org.neo4j.internal.unsafe.UnsafeUtil;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
@@ -53,6 +54,11 @@ class SwappingBufferFactory implements BufferFactory, AutoCloseable {
     private final StoreChannel channel;
     private final FileSystemAbstraction fs;
     private final Path file;
+    private static final boolean FORCE_UNMAP;
+
+    static {
+        FORCE_UNMAP = UnsafeUtil.unsafeByteBufferAccessAvailable() && SystemUtils.IS_OS_WINDOWS;
+    }
 
     SwappingBufferFactory(FileSystemAbstraction fs, Path workDirectory) throws IOException {
         this.fs = fs;
@@ -82,14 +88,19 @@ class SwappingBufferFactory implements BufferFactory, AutoCloseable {
     public AllocatedBuffer allocate(int size, MemoryTracker memoryTracker) {
         try {
             long start = currentEnd.getAndAdd(size);
-            MappedByteBuffer mapped = channel.map(FileChannel.MapMode.PRIVATE, start, size);
+            final MappedByteBuffer mapped = channel.map(FileChannel.MapMode.PRIVATE, start, size);
 
-            AutoCloseable closeable = null;
+            AutoCloseable closeable = FORCE_UNMAP ? (() -> UnsafeUtil.invokeCleaner(mapped)) : null;
             if (UnsafeUtil.isCheckNativeAccessEnabled()) {
                 // We need to track it in UnsafeUtil, otherwise all the access checks will fail
                 long address = getDirectByteBufferAddress(mapped);
                 UnsafeUtil.addAllocatedPointer(address, size);
-                closeable = () -> UnsafeUtil.removeAllocatedPointer(address);
+                closeable = () -> {
+                    if (FORCE_UNMAP) {
+                        UnsafeUtil.invokeCleaner(mapped);
+                    }
+                    UnsafeUtil.removeAllocatedPointer(address);
+                };
             }
 
             return new AllocatedBuffer(mapped, closeable);
