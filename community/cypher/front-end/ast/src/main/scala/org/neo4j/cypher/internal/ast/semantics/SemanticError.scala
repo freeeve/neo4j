@@ -1208,6 +1208,34 @@ object SemanticError {
       position
     )
   }
+
+  def shortestPathInsideQPP(position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42N69(
+        "shortestPath",
+        "quantified path pattern",
+        position.offset,
+        position.line,
+        position.column
+      ),
+      "shortestPath(...) is only allowed as a top-level element and not inside a quantified path pattern",
+      position
+    )
+  }
+
+  def shortestPathInsideParenthesizedPathPattern(shortestPathFunc: String, position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42N69(
+        shortestPathFunc,
+        "parenthesized path pattern",
+        position.offset,
+        position.line,
+        position.column
+      ),
+      s"$shortestPathFunc(...) is only allowed as a top-level element and not inside a parenthesized path pattern",
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

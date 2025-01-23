@@ -325,10 +325,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
                   quant.position
                 ))
             case shortestPaths: ShortestPathsPatternPart => acc =>
-                SkipChildren(acc chain SemanticError(
-                  "shortestPath(...) is only allowed as a top-level element and not inside a quantified path pattern",
-                  shortestPaths.position
-                ))
+                SkipChildren(acc chain SemanticError.shortestPathInsideQPP(shortestPaths.position))
             case rel @ RelationshipPattern(_, _, Some(_), _, _, _) => acc =>
                 SkipChildren(acc chain SemanticError.invalidUseOfVariableLengthRelationship(
                   "a quantified path pattern",
@@ -372,10 +369,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
           // An AnonymousPatternPart can currently only be a ShortestPathsPatternPart or a PatternPartWithSelector.
           patternPart match {
             case shortestPaths: ShortestPathsPatternPart =>
-              SemanticError(
-                s"${shortestPaths.name}(...) is only allowed as a top-level element and not inside a parenthesized path pattern",
-                shortestPaths.position
-              )
+              SemanticError.shortestPathInsideParenthesizedPathPattern(shortestPaths.name, shortestPaths.position)
             case _ => success
           }
 

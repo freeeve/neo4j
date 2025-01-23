@@ -699,6 +699,19 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql42001_42N69(
+            String shortestPathFunc, String expression, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N69)
+                        .withClassification(ErrorClassification.CLIENT_ERROR)
+                        .atPosition(offset, line, column)
+                        .withParam(GqlParams.StringParam.fun, shortestPathFunc)
+                        .withParam(GqlParams.StringParam.expr, expression)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql42001_42N71(int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .atPosition(offset, line, column)

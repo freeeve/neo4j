@@ -137,10 +137,25 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
 
   // nested shortest path
   test("MATCH (p = shortestPath((a)-[]->(b)))+ RETURN p") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      null, // Not ported yet
       "Assigning a path in a quantified path pattern is not yet supported.",
+      InputPosition(7, 1, 8),
+      GqlHelper.getGql42001_42N69("shortestPath", "quantified path pattern", 11, 1, 12),
       "shortestPath(...) is only allowed as a top-level element and not inside a quantified path pattern",
-      "Mixing variable-length relationships ('-[*]-') with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*') is not allowed."
+      InputPosition(11, 1, 12),
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(27, 1, 28)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I41)
+          .atPosition(27, 1, 28)
+          .withParam(
+            GqlParams.StringParam.value,
+            "combination with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*')"
+          )
+          .build())
+        .build(),
+      "Mixing variable-length relationships ('-[*]-') with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*') is not allowed.",
+      InputPosition(27, 1, 28)
     )
   }
 
@@ -156,9 +171,11 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
   }
 
   test("MATCH (shortestPath((a)-[]->(b))) RETURN count(*)") {
-    run().hasErrorMessages(
+    run().hasError(
+      GqlHelper.getGql42001_42N69("shortestPath", "parenthesized path pattern", 7, 1, 8),
       // this is the error message that we ultimately expect
-      "shortestPath(...) is only allowed as a top-level element and not inside a parenthesized path pattern"
+      "shortestPath(...) is only allowed as a top-level element and not inside a parenthesized path pattern",
+      InputPosition(7, 1, 8)
     )
   }
 
