@@ -27,6 +27,7 @@ import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 public class BackgroundFlusher implements AutoCloseable {
     private volatile boolean enabled;
     private volatile boolean halted;
+    private volatile boolean singleFlush;
     private final Thread flusher;
 
     public BackgroundFlusher(PageCache pageCache, long frequencyMillis) {
@@ -42,7 +43,12 @@ public class BackgroundFlusher implements AutoCloseable {
                         Thread.sleep(100);
                     }
                     if (enabled && !halted) {
+                        boolean singleFlush = this.singleFlush;
+                        this.singleFlush = false;
                         pageCache.flush(DatabaseFlushEvent.NULL);
+                        if (singleFlush) {
+                            enabled = false;
+                        }
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -55,14 +61,33 @@ public class BackgroundFlusher implements AutoCloseable {
         this.flusher.start();
     }
 
+    /**
+     * Enables continuous {@link PageCache#flush(DatabaseFlushEvent)} in the background thread
+     * that this instance manages.
+     */
     public void enable() {
         enabled = true;
     }
 
+    /**
+     * Enables a single {@link PageCache#flush(DatabaseFlushEvent)} in the background thread
+     * that this instance manages.
+     */
+    public void enableSingle() {
+        singleFlush = true;
+        enabled = true;
+    }
+
+    /**
+     * Disables continuous flushing, previously enabled via {@link #enable()}.
+     */
     public void disable() {
         enabled = false;
     }
 
+    /**
+     * Awaits any current flush and stopping of the background thread.
+     */
     @Override
     public void close() {
         halted = true;
