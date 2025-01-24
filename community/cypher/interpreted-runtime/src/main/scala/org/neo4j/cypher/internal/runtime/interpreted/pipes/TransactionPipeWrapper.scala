@@ -434,8 +434,8 @@ object TransactionPipeWrapper {
       case (OnErrorRetryThenFail, Some(retryLogic)) =>
         new OnErrorRetryThenFailTxPipe(outerId, inner, concurrentAccess, retryLogic)
 
-      case other =>
-        throw new UnsupportedOperationException(s"Unsupported error behaviour $other with retry logic $retryLogic")
+      case _ =>
+        throw new UnsupportedOperationException(s"Unsupported error behaviour $error with retry logic $retryLogic")
     }
   }
 
