@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
+import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.scalatest.LoneElement
@@ -93,13 +94,7 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
         |RETURN *""".stripMargin
 
     run(q).hasError(
-      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(29, 3, 12)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
-          .atPosition(29, 3, 12)
-          .withParam(GqlParams.StringParam.variable, "p")
-          .build())
-        .build(),
+      GqlHelper.getGql42001_42N59("p", 29, 3, 12),
       """Variable `p` already declared""".stripMargin,
       InputPosition(29, 3, 12)
     )

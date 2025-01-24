@@ -629,7 +629,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
   private def ensureNoPathVariable(pattern: PatternPart): SemanticCheck =
     pattern match {
       case n: NamedPatternPart =>
-        error("Assigning a path in a quantified path pattern is not yet supported.", n.position)
+        error(SemanticError.pathBoundInQPP(n.position))
       case _ => SemanticCheck.success
     }
 

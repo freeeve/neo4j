@@ -1074,13 +1074,7 @@ object SemanticError {
 
   def variableAlreadyDeclared(variableName: String, position: InputPosition, legacyMessage: String): SemanticError = {
     SemanticError(
-      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(position.offset, position.line, position.column)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
-          .atPosition(position.offset, position.line, position.column)
-          .withParam(GqlParams.StringParam.variable, variableName)
-          .build())
-        .build(),
+      GqlHelper.getGql42001_42N59(variableName, position.offset, position.line, position.column),
       legacyMessage,
       position
     )
@@ -1281,6 +1275,11 @@ object SemanticError {
          |In this case, the lower bound $lower is greater than the upper bound $upper.""".stripMargin,
       position
     )
+  }
+
+  def pathBoundInQPP(position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N34(position.offset, position.line, position.column)
+    SemanticError(gql, "Assigning a path in a quantified path pattern is not yet supported.", position)
   }
 }
 

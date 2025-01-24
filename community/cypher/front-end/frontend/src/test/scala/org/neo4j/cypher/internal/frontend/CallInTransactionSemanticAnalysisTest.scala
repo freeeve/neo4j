@@ -18,13 +18,10 @@ package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlHelper.getGql22003
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42I25
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N71
-import org.neo4j.gqlstatus.GqlParams
-import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
@@ -629,13 +626,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |} IN TRANSACTIONS ON ERROR CONTINUE REPORT STATUS AS v RETURN v
         |""".stripMargin
     run(query).hasError(
-      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(85, 4, 54)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
-          .atPosition(85, 4, 54)
-          .withParam(GqlParams.StringParam.variable, "v")
-          .build())
-        .build(),
+      GqlHelper.getGql42001_42N59("v", 85, 4, 54),
       "Variable `v` already declared",
       p(85, 4, 54)
     )

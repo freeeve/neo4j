@@ -86,13 +86,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   test("Should not allow duplicate variable name in CREATE") {
     run("CREATE (n), (n) RETURN 1 as one")
       .hasError(
-        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-          .atPosition(13, 1, 14)
-          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
-            .atPosition(13, 1, 14)
-            .withParam(GqlParams.StringParam.variable, "n")
-            .build())
-          .build(),
+        GqlHelper.getGql42001_42N59("n", 13, 1, 14),
         "Variable `n` already declared",
         p(13, 1, 14)
       )

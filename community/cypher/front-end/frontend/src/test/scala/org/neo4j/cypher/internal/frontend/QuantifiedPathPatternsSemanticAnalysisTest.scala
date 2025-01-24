@@ -62,8 +62,10 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
   }
 
   test("MATCH (p = (a)-[]->(b))+ RETURN p") {
-    run().hasErrorMessages(
-      "Assigning a path in a quantified path pattern is not yet supported."
+    run().hasError(
+      GqlHelper.getGql42001_42N34(7, 1, 8),
+      "Assigning a path in a quantified path pattern is not yet supported.",
+      InputPosition(7, 1, 8)
     )
   }
 
@@ -79,66 +81,72 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
     )
   }
 
+  // A few of the positions of the variable p in the following tests are broken
+  // See https://trello.com/c/UHY0i2h6/1349-position-for-relationship-chain-in-juxtaposition-is-wrong
+
   test("MATCH (p = (a)--(b))+ (p = (c)--(d))+ RETURN p") {
-    run().hasErrorMessages(
-      "The variable `p` occurs in multiple quantified path patterns and needs to be renamed.",
-      "Assigning a path in a quantified path pattern is not yet supported.",
-      "Variable `p` already declared"
-    ).hasErrors(
-      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(6, 1, 7)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
-          .atPosition(6, 1, 7)
-          .withParam(GqlParams.StringParam.variable, "p")
-          .build())
-        .build(),
+    run().hasErrors(
+      GqlHelper.getGql42001_42N59("p", 6, 1, 7),
       "The variable `p` occurs in multiple quantified path patterns and needs to be renamed.",
       InputPosition(6, 1, 7),
-      null,
+      GqlHelper.getGql42001_42N34(7, 1, 8),
       "Assigning a path in a quantified path pattern is not yet supported.",
       InputPosition(7, 1, 8),
-      null,
+      GqlHelper.getGql42001_42N34(23, 1, 24),
       "Assigning a path in a quantified path pattern is not yet supported.",
       InputPosition(23, 1, 24),
-      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(22, 1, 23)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
-          .atPosition(22, 1, 23)
-          .withParam(GqlParams.StringParam.variable, "p")
-          .build())
-        .build(),
+      GqlHelper.getGql42001_42N59("p", 22, 1, 23),
       "Variable `p` already declared",
       InputPosition(22, 1, 23)
     )
   }
 
   test("MATCH (p = (a)--(b))+ (p = (c)--(d)) RETURN p") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      GqlHelper.getGql42001_42N34(7, 1, 8),
       "Assigning a path in a quantified path pattern is not yet supported.",
+      InputPosition(7, 1, 8),
+      GqlHelper.getGql42001_42N59("p", 23, 1, 24),
       "Variable `p` already declared",
-      "Sub-path assignment is currently not supported."
+      InputPosition(23, 1, 24),
+      GqlHelper.getGql42001_42N42(23, 1, 24),
+      "Sub-path assignment is currently not supported.",
+      InputPosition(23, 1, 24)
     )
   }
 
   test("MATCH (p = (a)--(b))+ MATCH (p = (c)--(d))+ RETURN p") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      GqlHelper.getGql42001_42N34(7, 1, 8),
       "Assigning a path in a quantified path pattern is not yet supported.",
+      InputPosition(7, 1, 8),
+      GqlHelper.getGql42001_42N34(29, 1, 30),
+      "Assigning a path in a quantified path pattern is not yet supported.",
+      InputPosition(29, 1, 30),
+      GqlHelper.getGql42001_42N59("p", 28, 1, 29),
       "The variable `p` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern.",
-      "Variable `p` already declared"
+      InputPosition(28, 1, 29),
+      GqlHelper.getGql42001_42N59("p", 28, 1, 29),
+      "Variable `p` already declared",
+      InputPosition(28, 1, 29)
     )
   }
 
   test("MATCH p = (p = (a)--(b))+ (c)--(d) RETURN p") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      GqlHelper.getGql42001_42N34(11, 1, 12),
       "Assigning a path in a quantified path pattern is not yet supported.",
-      "Variable `p` already declared"
+      InputPosition(11, 1, 12),
+      GqlHelper.getGql42001_42N59("p", 6, 1, 7),
+      "Variable `p` already declared",
+      InputPosition(6, 1, 7)
     )
   }
 
   // nested shortest path
   test("MATCH (p = shortestPath((a)-[]->(b)))+ RETURN p") {
     run().hasErrors(
-      null, // Not ported yet
+      GqlHelper.getGql42001_42N34(7, 1, 8),
       "Assigning a path in a quantified path pattern is not yet supported.",
       InputPosition(7, 1, 8),
       GqlHelper.getGql42001_42N69("shortestPath", "quantified path pattern", 11, 1, 12),
@@ -445,22 +453,10 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
       "The variable `r` occurs both inside and outside a quantified path pattern and needs to be renamed.",
       "Variable `r` already declared"
     ).hasErrors(
-      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(17, 1, 18)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
-          .atPosition(17, 1, 18)
-          .withParam(GqlParams.StringParam.variable, "r")
-          .build())
-        .build(),
+      GqlHelper.getGql42001_42N59("r", 17, 1, 18),
       "The variable `r` occurs both inside and outside a quantified path pattern and needs to be renamed.",
       InputPosition(17, 1, 18),
-      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(17, 1, 18)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
-          .atPosition(17, 1, 18)
-          .withParam(GqlParams.StringParam.variable, "r")
-          .build())
-        .build(),
+      GqlHelper.getGql42001_42N59("r", 17, 1, 18),
       "Variable `r` already declared",
       InputPosition(17, 1, 18)
     )
@@ -487,22 +483,10 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
       "The variable `a` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern.",
       "Variable `a` already declared"
     ).hasErrors(
-      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(31, 1, 32)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
-          .atPosition(31, 1, 32)
-          .withParam(GqlParams.StringParam.variable, "a")
-          .build())
-        .build(),
+      GqlHelper.getGql42001_42N59("a", 31, 1, 32),
       "The variable `a` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern.",
       InputPosition(31, 1, 32),
-      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(31, 1, 32)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N59)
-          .atPosition(31, 1, 32)
-          .withParam(GqlParams.StringParam.variable, "a")
-          .build())
-        .build(),
+      GqlHelper.getGql42001_42N59("a", 31, 1, 32),
       "Variable `a` already declared",
       InputPosition(31, 1, 32)
     )
