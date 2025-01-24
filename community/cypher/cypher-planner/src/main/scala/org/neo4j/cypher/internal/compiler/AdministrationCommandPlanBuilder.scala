@@ -1188,7 +1188,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           dbName,
           Some(plans.AssertManagementActionNotBlocked(StartDatabaseAction))
         )
-        val plan = wrapInWait(plans.StartDatabase(assertAllowed, dbName), dbName, waitUntilComplete)
+        val assertNoShard = plans.AssertNotShardTarget(assertAllowed, dbName, "START DATABASE", "start")
+        val plan = wrapInWait(plans.StartDatabase(assertNoShard, dbName), dbName, waitUntilComplete)
         Some(plans.LogSystemCommand(plan, prettifier.asString(c)))
 
       // STOP DATABASE foo

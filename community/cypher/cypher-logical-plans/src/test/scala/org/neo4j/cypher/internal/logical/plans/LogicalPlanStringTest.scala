@@ -330,7 +330,8 @@ object LogicalPlanStringTest {
       classOf[ErrorExpression],
       classOf[CatalogName],
       classOf[ListSet[_]],
-      classOf[AssertSecurityDisabled]
+      classOf[AssertSecurityDisabled],
+      classOf[AssertNotShardTarget]
     )
 
     val whiteListedMethodNames: Set[String] = Set(
