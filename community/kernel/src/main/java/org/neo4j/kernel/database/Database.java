@@ -345,7 +345,6 @@ public class Database extends AbstractDatabase {
                 databaseConfig);
         databasePageCache = new DatabasePageCache(globalPageCache, ioController, versionStorage, databaseConfig);
 
-        life.add(versionStorage);
         life.add(onShutdown(() -> databaseLockManager.close()));
         life.add(new LockerLifecycleAdapter(fileLockerService.createDatabaseLocker(fs, databaseLayout)));
         life.add(databaseConfig);
@@ -385,8 +384,8 @@ public class Database extends AbstractDatabase {
         otherDatabaseMemoryTracker = otherDatabasePool.getPoolMemoryTracker();
         databaseDependencies.satisfyDependency(new DatabaseMemoryTrackers(otherDatabaseMemoryTracker));
 
-        life.add(onShutdown(versionStorage::close));
         life.add(new PageCacheLifecycle(databasePageCache));
+        life.add(versionStorage);
         life.add(initializeExtensions(databaseDependencies));
         life.add(initializeIndexProviderMap(databaseDependencies));
 
@@ -573,6 +572,7 @@ public class Database extends AbstractDatabase {
                 leaseService,
                 cursorContextFactory);
 
+        life.add(kernelModule.kernelAPI());
         kernelModule.satisfyDependencies(databaseDependencies);
 
         this.kernelModule = kernelModule;
@@ -599,8 +599,8 @@ public class Database extends AbstractDatabase {
         life.add(onStart(this::registerUpgradeListener));
         life.add(databaseHealth);
 
-        life.add(checkpointerLifecycle);
-        life.setLast(databaseAvailabilityGuard);
+        life.setLast(new DatabaseLifeShutdownCoordinator(
+                databaseAvailabilityGuard, kernelModule.kernelTransactions(), checkpointerLifecycle));
 
         databaseDependencies.resolveDependency(DbmsDiagnosticsManager.class).dumpDatabaseDiagnostics(this);
 
@@ -1006,7 +1006,7 @@ public class Database extends AbstractDatabase {
             databaseDependencies.satisfyDependency(ApplyEnrichmentStrategy.NO_ENRICHMENT);
         }
 
-        KernelTransactions kernelTransactions = life.add(kernelTransactionsFactory.create(
+        KernelTransactions kernelTransactions = kernelTransactionsFactory.create(
                 databaseConfig,
                 databaseLockManager,
                 constraintIndexCreator,
@@ -1046,7 +1046,7 @@ public class Database extends AbstractDatabase {
                 transactionValidatorFactory,
                 internalLogProvider,
                 mode,
-                databaseMonitors));
+                databaseMonitors);
 
         var transactionMonitor = buildTransactionMonitor(kernelTransactions, transactionIdStore, databaseConfig);
 
@@ -1058,8 +1058,6 @@ public class Database extends AbstractDatabase {
                 databaseConfig,
                 storageEngine,
                 transactionExecutionMonitor);
-
-        life.add(kernel);
 
         final StoreFileListing fileListing =
                 new StoreFileListing(databaseLayout, logFiles, indexingService, storageEngine);

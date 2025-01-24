@@ -21,6 +21,7 @@ package org.neo4j.kernel.database;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.shutdown_terminated_transaction_wait_timeout;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.configuration.GraphDatabaseSettings.shutdown_transaction_end_timeout;
@@ -131,6 +132,63 @@ class DatabaseTransactionShutdownIT {
                     .isInstanceOf(TransientTransactionFailureException.class)
                     .hasMessageContaining("The database is not currently available to serve your request");
         }
+    }
+
+    @Test
+    void shutdownCoordinatorIsTheLastComponentInDatabaseLifecycle() {
+        setUp(Clocks.nanoClock());
+
+        var database = db.getDependencyResolver().resolveDependency(Database.class);
+        var databaseLife = database.getLife();
+        // coordinator is the one that make sure the guards are in correct state and no more transactions are allowed so
+        // it SHOULD be the last one standing
+        assertThat(databaseLife.getLifecycleInstances().getLast()).isInstanceOf(DatabaseLifeShutdownCoordinator.class);
+    }
+
+    @Test
+    void stoppingOnlyCoordinatorMakesImpossibleToStartTransactions() throws Exception {
+        setUp(Clocks.nanoClock());
+
+        var database = db.getDependencyResolver().resolveDependency(Database.class);
+        var databaseLife = database.getLife();
+        databaseLife.getLifecycleInstances().getLast().stop();
+
+        assertThatThrownBy(() -> {
+                    try (var tx = db.beginTx()) {}
+                })
+                .isInstanceOf(TransactionFailureException.class);
+    }
+
+    @Test
+    void stoppingOnlyCoordinatorMakesOngoingTransactionTerminated() throws Exception {
+        setUp(Clocks.nanoClock());
+
+        var database = db.getDependencyResolver().resolveDependency(Database.class);
+        var databaseLife = database.getLife();
+
+        try (var tx = db.beginTx()) {
+            TransactionImpl internalTransaction = (TransactionImpl) tx;
+            KernelTransaction kernelTransaction = internalTransaction.kernelTransaction();
+
+            databaseLife.getLifecycleInstances().getLast().stop();
+
+            assertTrue(kernelTransaction.isTerminated());
+            assertThatThrownBy(tx::createNode).isInstanceOf(TransactionTerminatedException.class);
+        }
+    }
+
+    @Test
+    void shutdownOnlyCoordinatorMakesImpossibleToStartTransactions() throws Exception {
+        setUp(Clocks.nanoClock());
+
+        var database = db.getDependencyResolver().resolveDependency(Database.class);
+        var databaseLife = database.getLife();
+        databaseLife.getLifecycleInstances().getLast().shutdown();
+
+        assertThatThrownBy(() -> {
+                    try (var tx = db.beginTx()) {}
+                })
+                .isInstanceOf(DatabaseShutdownException.class);
     }
 
     @Test

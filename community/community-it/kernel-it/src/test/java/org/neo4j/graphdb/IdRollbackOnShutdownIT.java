@@ -33,7 +33,7 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.database.Database;
-import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointerLifecycle;
+import org.neo4j.kernel.database.DatabaseLifeShutdownCoordinator;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.kernel.lifecycle.LifecycleStatus;
@@ -70,7 +70,7 @@ class IdRollbackOnShutdownIT {
 
         // When
         life.addLifecycleListener((instance, from, to) -> {
-            if (instance instanceof CheckpointerLifecycle
+            if (instance instanceof DatabaseLifeShutdownCoordinator
                     && LifecycleStatus.SHUTTING_DOWN == from
                     && LifecycleStatus.SHUTDOWN == to) {
                 waitShutdown.release();
