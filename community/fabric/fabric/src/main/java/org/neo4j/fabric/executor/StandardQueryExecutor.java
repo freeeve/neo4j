@@ -79,8 +79,11 @@ class StandardQueryExecutor extends SingleQueryFragmentExecutor {
 
     FragmentResult run(Record argument) {
         var prepareResult = prepare(fragment, argument);
-        MapValue parameters =
-                addParamsFromRecord(queryParams(), prepareResult.argumentValues(), asJava(fragment.parameters()));
+        MapValue parameters = addParamsFromRecord(
+                queryParams(),
+                prepareResult.argumentValues(),
+                asJava(fragment.parameters()),
+                prepareResult.graphWithNotification().graph().name().name());
         List<NotificationImplementation> notifications = new ArrayList<>();
         if (prepareResult.graphWithNotification().notification().isDefined()) {
             notifications.add(
@@ -142,14 +145,15 @@ class StandardQueryExecutor extends SingleQueryFragmentExecutor {
         return StatementResults.toFragmentResult(result);
     }
 
-    private MapValue addParamsFromRecord(MapValue params, Map<String, AnyValue> record, Map<String, String> bindings) {
+    private MapValue addParamsFromRecord(
+            MapValue params, Map<String, AnyValue> record, Map<String, String> bindings, String graphName) {
         int resultSize = params.size() + bindings.size();
         if (resultSize == 0) {
             return VirtualValues.EMPTY_MAP;
         }
         MapValueBuilder builder = new MapValueBuilder(resultSize);
         params.foreach(builder::add);
-        bindings.forEach((var, par) -> builder.add(par, validateValue(record.get(var))));
+        bindings.forEach((var, par) -> builder.add(par, validateValue(record.get(var), var, graphName)));
         return builder.build();
     }
 }

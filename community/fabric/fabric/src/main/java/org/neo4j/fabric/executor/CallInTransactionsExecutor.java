@@ -238,7 +238,7 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
             return StatementResults.emptyFragment();
         }
 
-        MapValue params = addParamsFromInputRows();
+        MapValue params = addParamsFromInputRows(batchGraph.name().name());
 
         var result = doExecuteFragment(
                 innerFragment,
@@ -318,12 +318,12 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
         return outputRecord;
     }
 
-    private MapValue addParamsFromInputRows() {
+    private MapValue addParamsFromInputRows(String graphName) {
         List<String> bindings = asJava(innerFragment.argumentColumns());
 
         var rowListBuilder = ListValueBuilder.newListBuilder(inputRowsBuffer.size());
         for (int i = 0; i < inputRowsBuffer.size(); i++) {
-            MapValue rowParams = rowToParams(inputRowsBuffer.get(i), bindings, i);
+            MapValue rowParams = rowToParams(inputRowsBuffer.get(i), bindings, i, graphName);
             rowListBuilder.add(rowParams);
         }
         var rows = rowListBuilder.build();
@@ -334,10 +334,10 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
         return builder.build();
     }
 
-    private MapValue rowToParams(BufferedInputRow inputRow, List<String> bindings, int rowId) {
+    private MapValue rowToParams(BufferedInputRow inputRow, List<String> bindings, int rowId, String graphName) {
         MapValueBuilder builder = new MapValueBuilder(bindings.size() + 1);
         bindings.forEach(
-                var -> builder.add(var, validateValue(inputRow.argumentValues().get(var))));
+                var -> builder.add(var, validateValue(inputRow.argumentValues().get(var), var, graphName)));
         builder.add(Fragment.Apply$.MODULE$.CALL_IN_TX_ROW_ID(), Values.intValue(rowId));
         return builder.build();
     }

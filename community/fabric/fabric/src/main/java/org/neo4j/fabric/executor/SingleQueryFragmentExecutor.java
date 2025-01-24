@@ -327,19 +327,13 @@ abstract class SingleQueryFragmentExecutor {
         }
     }
 
-    AnyValue validateValue(AnyValue value) {
+    AnyValue validateValue(AnyValue value, String variable, String graphName) {
         if (value instanceof VirtualNodeValue) {
-            throw new FabricException(
-                    Status.Statement.TypeError,
-                    "Importing node values in remote subqueries is currently not supported");
+            throw FabricException.importingValuesInRemoteSubqueries("node", variable, graphName);
         } else if (value instanceof VirtualRelationshipValue) {
-            throw new FabricException(
-                    Status.Statement.TypeError,
-                    "Importing relationship values in remote subqueries is currently not supported");
+            throw FabricException.importingValuesInRemoteSubqueries("relationship", variable, graphName);
         } else if (value instanceof PathValue) {
-            throw new FabricException(
-                    Status.Statement.TypeError,
-                    "Importing path values in remote subqueries is currently not supported");
+            throw FabricException.importingValuesInRemoteSubqueries("path", variable, graphName);
         } else {
             return value;
         }

@@ -226,6 +226,19 @@ public class FabricException extends GqlRuntimeException implements Status.HasSt
                         databaseName, Status.General.DatabaseUnavailable.code().description()));
     }
 
+    public static FabricException importingValuesInRemoteSubqueries(
+            String entityType, String variable, String graphName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N16)
+                .withParam(GqlParams.StringParam.expr, variable)
+                .withParam(GqlParams.StringParam.graph, graphName)
+                .build();
+
+        return new FabricException(
+                gql,
+                Status.Statement.TypeError,
+                String.format("Importing %s values in remote subqueries is currently not supported", entityType));
+    }
+
     @Override
     public Status status() {
         return statusCode;
