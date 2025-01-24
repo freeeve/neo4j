@@ -203,7 +203,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     // Logic
     private final TransactionEventListeners transactionEventListeners;
     private final ConstraintIndexCreator constraintIndexCreator;
-    private final StorageEngine storageEngine;
+    protected final StorageEngine storageEngine;
     private final TransactionTracer transactionTracer;
     private final Pool<KernelTransactionImplementation> pool;
 
@@ -223,7 +223,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     private final ConstraintSemantics constraintSemantics;
     private final TransactionMemoryPool transactionMemoryPool;
     protected final LogProvider logProvider;
-    private final CursorContextFactory contextFactory;
+    protected final CursorContextFactory contextFactory;
     private final EntityLocks entityLocks;
     private final KernelProcedures.ForTransactionScope procedures;
     private final KernelSchemaRead schemaRead;
@@ -272,7 +272,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     private volatile TraceProvider traceProvider;
     private volatile TransactionInitializationTrace initializationTrace;
     private final MemoryTracker memoryTracker;
-    private final LocalConfig config;
+    protected final LocalConfig config;
     private volatile long transactionHeapBytesLimit;
     private volatile long transactionLocalRetries;
     private final ExecutionContextFactory executionContextFactory;
@@ -290,6 +290,8 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
 
     private KernelTransactionMonitor kernelTransactionMonitor;
     private final StoreCursors transactionalCursors;
+    protected final DefaultPooledCursors cursorFactory;
+
     private final AvailabilityGuard availabilityGuard;
 
     private final KernelTransactions kernelTransactions;
@@ -305,6 +307,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     private final DatabaseSerialGuard databaseSerialGuard;
     private final SerialExecutionGuard serialExecutionGuard;
     private boolean failedCleanup = false;
+    protected final boolean multiVersioned;
 
     public KernelTransactionImplementation(
             Config externalConfig,
@@ -351,6 +354,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
             TopologyGraphDbmsModel.HostedOnMode mode,
             AvailabilityGuard availabilityGuard) {
         this.logProvider = logProvider;
+        this.multiVersioned = multiVersioned;
         this.availabilityGuard = availabilityGuard;
         this.closed = true;
         this.timeout = TransactionTimeout.NO_TIMEOUT;
@@ -392,12 +396,11 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         this.transactionalCursors = storageEngine.createStorageCursors(CursorContext.NULL_CONTEXT);
         this.lockClient = ParallelAccessCheck.maybeWrapLockClient(lockManager.newClient());
         StorageLocks storageLocks = storageEngine.createStorageLocks(lockClient);
-        DefaultPooledCursors cursors = new DefaultPooledCursors(
-                storageReader, transactionalCursors, config, storageEngine.indexingBehaviour(), multiVersioned);
+        cursorFactory = createCursors(storageReader, transactionalCursors, config, storageEngine, multiVersioned);
         this.securityAuthorizationHandler = new SecurityAuthorizationHandler(securityLog);
         var kernelToken = new KernelToken(storageReader, commandCreationContext, this, tokenHolders, logProvider);
         this.queryContext = new TransactionQueryContext(
-                this::dataRead, cursors, this, this::cursorContext, memoryTracker, indexingService.getMonitor());
+                this::dataRead, cursorFactory, this, this::cursorContext, memoryTracker, indexingService.getMonitor());
         this.entityLocks = new EntityLocks(
                 storageLocks, currentStatement::lockTracer, lockClient, this::assertOpenWithParallelAccessCheck);
         this.procedures =
@@ -415,7 +418,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         this.kernelRead = new KernelRead(
                 storageReader,
                 kernelToken,
-                cursors,
+                cursorFactory,
                 transactionalCursors,
                 entityLocks,
                 queryContext,
@@ -455,7 +458,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                 this,
                 schemaRead,
                 kernelToken,
-                cursors,
+                this.cursorFactory,
                 constraintIndexCreator,
                 constraintSemantics,
                 indexingService,
@@ -477,6 +480,16 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         this.transactionEventListeners = new TransactionEventListeners(transactionEventListeners, this, storageReader);
         this.txStateWriter = createChunkWriter(multiVersioned);
         registerConfigChangeListeners(config);
+    }
+
+    protected DefaultPooledCursors createCursors(
+            StorageReader storageReader,
+            StoreCursors transactionalCursors,
+            LocalConfig config,
+            StorageEngine storageEngine,
+            boolean multiVersioned) {
+        return new DefaultPooledCursors(
+                storageReader, transactionalCursors, config, storageEngine.indexingBehaviour(), multiVersioned);
     }
 
     private void assertOpenWithParallelAccessCheck() {

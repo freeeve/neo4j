@@ -21,4 +21,4 @@ package org.neo4j.kernel.impl.newapi;
 
 import org.neo4j.internal.kernel.api.RelationshipTypeIndexCursor;
 
-interface InternalRelationshipTypeIndexCursor extends InternalTokenIndexCursor, RelationshipTypeIndexCursor {}
+public interface InternalRelationshipTypeIndexCursor extends InternalTokenIndexCursor, RelationshipTypeIndexCursor {}

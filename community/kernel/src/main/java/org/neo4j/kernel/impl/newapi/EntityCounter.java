@@ -29,7 +29,9 @@ import java.util.function.Predicate;
 import org.neo4j.common.EntityType;
 import org.neo4j.counts.CountsVisitor;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.InternalIndexState;
+import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.RelationshipCursor;
 import org.neo4j.internal.kernel.api.RelationshipIndexCursor;
@@ -67,7 +69,7 @@ final class EntityCounter {
             int labelId,
             AccessMode accessMode,
             StorageReader storageReader,
-            DefaultPooledCursors cursors,
+            CursorFactory cursors,
             CursorContext cursorContext,
             MemoryTracker memoryTracker,
             Read read,
@@ -115,11 +117,7 @@ final class EntityCounter {
     }
 
     private static long countNodesByScan(
-            int labelId,
-            DefaultPooledCursors cursors,
-            CursorContext cursorContext,
-            MemoryTracker memoryTracker,
-            Read read) {
+            int labelId, CursorFactory cursors, CursorContext cursorContext, MemoryTracker memoryTracker, Read read) {
         // We have a restriction on what part of the graph can be traversed, that can affect nodes with the
         // specified label.
         // This disables the count store entirely.
@@ -128,7 +126,7 @@ final class EntityCounter {
         // nodes with the label can be traversed.
         long count = 0;
         // DefaultNodeCursor already contains traversal checks within next()
-        try (DefaultNodeCursor nodes = cursors.allocateNodeCursor(cursorContext, memoryTracker)) {
+        try (NodeCursor nodes = cursors.allocateNodeCursor(cursorContext, memoryTracker)) {
             read.allNodesScan(nodes);
             while (nodes.next()) {
                 if (labelId == TokenConstants.ANY_LABEL || nodes.hasLabel(labelId)) {
@@ -145,7 +143,7 @@ final class EntityCounter {
             int endLabelId,
             AccessMode accessMode,
             StorageReader storageReader,
-            DefaultPooledCursors cursors,
+            CursorFactory cursors,
             Read read,
             CursorContext cursorContext,
             MemoryTracker memoryTracker,
@@ -191,7 +189,7 @@ final class EntityCounter {
             int startLabelId,
             int typeId,
             int endLabelId,
-            DefaultPooledCursors cursors,
+            CursorFactory cursors,
             Read read,
             SchemaRead schemaRead,
             CursorContext cursorContext,
@@ -204,8 +202,8 @@ final class EntityCounter {
                     long count = 0;
                     try (var relationshipsWithType =
                                     cursors.allocateRelationshipTypeIndexCursor(cursorContext, memoryTracker);
-                            DefaultNodeCursor sourceNode = cursors.allocateNodeCursor(cursorContext, memoryTracker);
-                            DefaultNodeCursor targetNode = cursors.allocateNodeCursor(cursorContext, memoryTracker)) {
+                            NodeCursor sourceNode = cursors.allocateNodeCursor(cursorContext, memoryTracker);
+                            NodeCursor targetNode = cursors.allocateNodeCursor(cursorContext, memoryTracker)) {
                         var session = read.tokenReadSession(index);
                         read.relationshipTypeScan(
                                 session,
@@ -225,8 +223,8 @@ final class EntityCounter {
 
         long count;
         try (var rels = cursors.allocateRelationshipScanCursor(cursorContext, memoryTracker);
-                DefaultNodeCursor sourceNode = cursors.allocateFullAccessNodeCursor(cursorContext, memoryTracker);
-                DefaultNodeCursor targetNode = cursors.allocateFullAccessNodeCursor(cursorContext, memoryTracker)) {
+                NodeCursor sourceNode = cursors.allocateFullAccessNodeCursor(cursorContext, memoryTracker);
+                NodeCursor targetNode = cursors.allocateFullAccessNodeCursor(cursorContext, memoryTracker)) {
             read.allRelationshipsScan(rels);
             Predicate<RelationshipScanCursor> predicate =
                     typeId == TokenConstants.ANY_RELATIONSHIP_TYPE ? alwaysTrue() : CursorPredicates.hasType(typeId);
@@ -248,8 +246,8 @@ final class EntityCounter {
 
     private static long countRelationshipsWithEndLabels(
             RelationshipIndexCursor relationship,
-            DefaultNodeCursor sourceNode,
-            DefaultNodeCursor targetNode,
+            NodeCursor sourceNode,
+            NodeCursor targetNode,
             int startLabelId,
             int endLabelId) {
         long internalCount = 0;
@@ -264,8 +262,8 @@ final class EntityCounter {
 
     private static long countRelationshipsWithEndLabels(
             RelationshipScanCursor relationship,
-            DefaultNodeCursor sourceNode,
-            DefaultNodeCursor targetNode,
+            NodeCursor sourceNode,
+            NodeCursor targetNode,
             int startLabelId,
             int endLabelId) {
         long internalCount = 0;
@@ -279,8 +277,8 @@ final class EntityCounter {
 
     private static boolean matchesLabels(
             RelationshipCursor relationship,
-            DefaultNodeCursor sourceNode,
-            DefaultNodeCursor targetNode,
+            NodeCursor sourceNode,
+            NodeCursor targetNode,
             int startLabelId,
             int endLabelId) {
         relationship.source(sourceNode);

@@ -34,14 +34,14 @@ import org.neo4j.storageengine.api.cursor.StoreCursors;
  * A clear differentiator between internal and external cursor is that external cursors are up for pooling
  * (in some scenarios), but internal cursors are owned by its external cursor only.
  */
-class InternalCursorFactory {
-    private final StorageReader storageReader;
-    private final StoreCursors storeCursors;
-    private final CursorContext cursorContext;
-    private final MemoryTracker memoryTracker;
-    private final boolean applyAccessModeToTxState;
+public class InternalCursorFactory {
+    protected final StorageReader storageReader;
+    protected final StoreCursors storeCursors;
+    protected final CursorContext cursorContext;
+    protected final MemoryTracker memoryTracker;
+    protected final boolean applyAccessModeToTxState;
 
-    InternalCursorFactory(
+    protected InternalCursorFactory(
             StorageReader storageReader,
             StoreCursors storeCursors,
             CursorContext cursorContext,
@@ -54,7 +54,7 @@ class InternalCursorFactory {
         this.applyAccessModeToTxState = applyAccessModeToTxState;
     }
 
-    StorageNodeCursor allocateStorageNodeCursor() {
+    protected StorageNodeCursor allocateStorageNodeCursor() {
         return storageReader.allocateNodeCursor(cursorContext, storeCursors, memoryTracker);
     }
 
@@ -66,21 +66,21 @@ class InternalCursorFactory {
         return storageReader.allocatePropertyCursor(cursorContext, storeCursors, memoryTracker);
     }
 
-    DefaultNodeCursor allocateNodeCursor() {
+    public DefaultNodeCursor allocateNodeCursor() {
         return new DefaultNodeCursor(c -> {}, allocateStorageNodeCursor(), this, applyAccessModeToTxState);
     }
 
-    FullAccessNodeCursor allocateFullAccessNodeCursor() {
+    protected DefaultNodeCursor allocateFullAccessNodeCursor() {
         return new FullAccessNodeCursor(
                 c -> {}, storageReader.allocateNodeCursor(cursorContext, storeCursors, memoryTracker));
     }
 
-    FullAccessRelationshipScanCursor allocateFullAccessRelationshipScanCursor() {
+    protected DefaultRelationshipScanCursor allocateFullAccessRelationshipScanCursor() {
         return new FullAccessRelationshipScanCursor(
                 c -> {}, storageReader.allocateRelationshipScanCursor(cursorContext, storeCursors, memoryTracker));
     }
 
-    DefaultPropertyCursor allocatePropertyCursor() {
+    protected TraceablePropertyCursor allocatePropertyCursor() {
         return new DefaultPropertyCursor(
                 c -> {},
                 storageReader.allocatePropertyCursor(cursorContext, storeCursors, memoryTracker),

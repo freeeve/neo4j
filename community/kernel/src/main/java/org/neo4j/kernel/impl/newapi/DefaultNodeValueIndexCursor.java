@@ -36,7 +36,7 @@ class DefaultNodeValueIndexCursor extends DefaultEntityValueIndexCursor<DefaultN
     private final InternalCursorFactory internalCursors;
     private final boolean applyAccessModeToTxState;
     private DefaultNodeCursor securityNodeCursor;
-    private DefaultPropertyCursor securityPropertyCursor;
+    private TraceablePropertyCursor securityPropertyCursor;
     private int[] propertyIds;
 
     DefaultNodeValueIndexCursor(

@@ -31,7 +31,7 @@ import org.neo4j.storageengine.api.AllRelationshipsScan;
 import org.neo4j.storageengine.api.LongReference;
 import org.neo4j.storageengine.api.StorageRelationshipScanCursor;
 
-class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<DefaultRelationshipScanCursor>
+public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<DefaultRelationshipScanCursor>
         implements RelationshipScanCursor {
     private final StorageRelationshipScanCursor storeCursor;
     private final InternalCursorFactory internalCursors;
@@ -41,7 +41,7 @@ class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<DefaultRel
     private LongIterator addedRelationships;
     private DefaultNodeCursor securityNodeCursor;
 
-    DefaultRelationshipScanCursor(
+    protected DefaultRelationshipScanCursor(
             CursorPool<DefaultRelationshipScanCursor> pool,
             StorageRelationshipScanCursor storeCursor,
             InternalCursorFactory internalCursors,

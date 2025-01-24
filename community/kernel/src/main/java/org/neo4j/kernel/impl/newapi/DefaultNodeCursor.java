@@ -52,7 +52,7 @@ import org.neo4j.storageengine.api.txstate.NodeState;
 import org.neo4j.storageengine.util.EagerDegrees;
 import org.neo4j.storageengine.util.SingleDegree;
 
-class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> implements NodeCursor {
+public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> implements NodeCursor {
     final StorageNodeCursor storeCursor;
     private final InternalCursorFactory internalCursors;
     private final boolean applyAccessModeToTxState;
@@ -70,7 +70,7 @@ class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> implement
     private long single;
     private boolean isSingle;
 
-    DefaultNodeCursor(
+    protected DefaultNodeCursor(
             CursorPool<DefaultNodeCursor> pool,
             StorageNodeCursor storeCursor,
             InternalCursorFactory internalCursors,
@@ -162,11 +162,15 @@ class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> implement
             return Labels.from(txState.augmentLabels(labels, txState.getNodeState(storeCursor.entityReference())));
         } else {
             // Nothing in tx state, just read the data.
-            var defaultPropertyCursor = (DefaultPropertyCursor) propertyCursor;
-            int[] labels = storeCursor.labelsAndProperties(defaultPropertyCursor.storeCursor, selection);
-            defaultPropertyCursor.initNode(this, selection, read, false, txStateHolder, accessModeProvider);
-            return Labels.from(labels);
+            return readLabelsAndProperties(propertyCursor, selection);
         }
+    }
+
+    protected TokenSet readLabelsAndProperties(PropertyCursor propertyCursor, PropertySelection selection) {
+        var defaultPropertyCursor = (DefaultPropertyCursor) propertyCursor;
+        int[] labels = storeCursor.labelsAndProperties(defaultPropertyCursor.storeCursor, selection);
+        defaultPropertyCursor.initNode(this, selection, read, false, txStateHolder, accessModeProvider);
+        return Labels.from(labels);
     }
 
     /**

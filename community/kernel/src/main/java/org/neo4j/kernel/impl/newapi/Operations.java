@@ -197,12 +197,14 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     private final boolean alwaysUseLatestIndexProvider;
     private final TransactionStateBehaviour transactionStateBehaviour;
     private DefaultNodeCursor nodeCursor;
-    private DefaultNodeCursor restrictedNodeCursor;
-    private DefaultPropertyCursor propertyCursor;
-    private DefaultPropertyCursor restrictedPropertyCursor;
-    private DefaultRelationshipScanCursor relationshipCursor;
+    private NodeCursor restrictedNodeCursor;
+    private PropertyCursor propertyCursor;
+    private PropertyCursor restrictedPropertyCursor;
+    private RelationshipScanCursor relationshipCursor;
+    private RelationshipScanCursor restrictedRelationshipCursor;
 
-    private DefaultRelationshipScanCursor restrictedRelationshipCursor;
+    private CursorContext cursorContext;
+    private boolean hasCursors; // have we initialize cursors for this transaction ?
 
     public Operations(
             KernelRead kernelRead,
@@ -248,13 +250,20 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     }
 
     public void initialize(CursorContext cursorContext) {
-        this.nodeCursor = cursors.allocateFullAccessNodeCursor(cursorContext, memoryTracker);
-        this.propertyCursor = cursors.allocateFullAccessPropertyCursor(cursorContext, memoryTracker);
-        this.relationshipCursor = cursors.allocateFullAccessRelationshipScanCursor(cursorContext, memoryTracker);
-        this.restrictedNodeCursor = cursors.allocateNodeCursor(cursorContext, memoryTracker);
-        this.restrictedPropertyCursor = cursors.allocatePropertyCursor(cursorContext, memoryTracker);
-        this.restrictedRelationshipCursor =
-                (DefaultRelationshipScanCursor) cursors.allocateRelationshipScanCursor(cursorContext, memoryTracker);
+        this.cursorContext = cursorContext;
+        this.hasCursors = false;
+    }
+
+    private void ensureCursors() {
+        if (!this.hasCursors) {
+            this.nodeCursor = cursors.allocateFullAccessNodeCursor(cursorContext, memoryTracker);
+            this.propertyCursor = cursors.allocateFullAccessPropertyCursor(cursorContext, memoryTracker);
+            this.relationshipCursor = cursors.allocateFullAccessRelationshipScanCursor(cursorContext, memoryTracker);
+            this.restrictedNodeCursor = cursors.allocateNodeCursor(cursorContext, memoryTracker);
+            this.restrictedPropertyCursor = cursors.allocatePropertyCursor(cursorContext, memoryTracker);
+            this.restrictedRelationshipCursor = cursors.allocateRelationshipScanCursor(cursorContext, memoryTracker);
+            this.hasCursors = true;
+        }
     }
 
     private <E extends Exception> long internalNodeCreate(
@@ -273,11 +282,13 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     @Override
     public long nodeCreate() {
+        ensureCursors();
         return internalNodeCreate(commandCreationContext, null);
     }
 
     @Override
     public void nodeWithSpecificIdCreate(long nodeId) throws EntityAlreadyExistsException {
+        ensureCursors();
         internalNodeCreate(() -> nodeId, this::assertNodeDoesntExist);
         ktx.needsHighIdTracking();
     }
@@ -321,12 +332,14 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     @Override
     public long nodeCreateWithLabels(int[] labels) throws ConstraintValidationException {
+        ensureCursors();
         return internalNodeCreateWithLabels(commandCreationContext, labels, null);
     }
 
     @Override
     public void nodeWithSpecificIdCreateWithLabels(long nodeId, int[] labels)
             throws EntityAlreadyExistsException, ConstraintValidationException {
+        ensureCursors();
         internalNodeCreateWithLabels(() -> nodeId, labels, this::assertNodeDoesntExist);
         ktx.needsHighIdTracking();
     }
@@ -344,6 +357,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     @Override
     public boolean nodeDelete(long node) {
+        ensureCursors();
         ktx.assertOpen();
         return nodeDelete(node, true);
     }
@@ -351,6 +365,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     @Override
     public int nodeDetachDelete(long nodeId) {
         ktx.assertOpen();
+        ensureCursors();
         storageLocks.acquireNodeDeletionLock(ktx.txState(), ktx.lockTracer(), nodeId);
         NodeCursor nodeCursor = ktx.ambientNodeCursor();
         ktx.dataRead().singleNode(nodeId, nodeCursor);
@@ -424,6 +439,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     @Override
     public long relationshipCreate(long sourceNode, int relationshipType, long targetNode)
             throws EntityNotFoundException {
+        ensureCursors();
         return internalRelationshipCreate(commandCreationContext, sourceNode, relationshipType, targetNode, null);
     }
 
@@ -431,6 +447,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     public void relationshipWithSpecificIdCreate(
             long relationshipId, long sourceNode, int relationshipType, long targetNode)
             throws EntityAlreadyExistsException, EntityNotFoundException {
+        ensureCursors();
         internalRelationshipCreate(
                 (sourceNode1, targetNode1, relationshipType1, sourceNodeAddedInTx, targetNodeAddedInTx) ->
                         relationshipId,
@@ -444,6 +461,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     @Override
     public boolean relationshipDelete(long relationship) {
         ktx.assertOpen();
+        ensureCursors();
         TransactionState txState = ktx.txState();
         var relationshipIsAddedInThisBatch = txState.relationshipIsAddedInThisBatch(relationship);
         if (relationshipIsAddedInThisBatch) {
@@ -495,6 +513,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     @Override
     public boolean nodeAddLabel(long node, int nodeLabel)
             throws EntityNotFoundException, ConstraintValidationException {
+        ktx.assertOpen();
+        ensureCursors();
         sharedSchemaLock(ResourceType.LABEL, nodeLabel);
         sharedTokenSchemaLock(ResourceType.LABEL);
         acquireExclusiveNodeLock(node);
@@ -776,7 +796,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             assertOnlineAndLock(constraint, index, propertyValues);
 
             kernelRead.nodeIndexSeekWithFreshIndexReader(
-                    valueCursor, unboundedRelatedContext, indexReaders.createReader(), propertyValues);
+                    (EntityIndexSeekClient) valueCursor,
+                    unboundedRelatedContext,
+                    indexReaders.createReader(),
+                    propertyValues);
             while (valueCursor.next()) {
                 if (valueCursor.nodeReference() != modifiedNode) {
                     existingNodeId = valueCursor.nodeReference();
@@ -877,7 +900,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             assertOnlineAndLock(constraint, index, propertyValues);
 
             kernelRead.relationshipIndexSeekWithFreshIndexReader(
-                    valueCursor, unboundedRelatedContext, indexReaders.createReader(), propertyValues);
+                    (EntityIndexSeekClient) valueCursor,
+                    unboundedRelatedContext,
+                    indexReaders.createReader(),
+                    propertyValues);
             while (valueCursor.next()) {
                 if (valueCursor.relationshipReference() != modifiedRel) {
                     existingRelationshipId = valueCursor.relationshipReference();
@@ -934,7 +960,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         acquireExclusiveNodeLock(node);
         storageLocks.acquireNodeLabelChangeLock(ktx.lockTracer(), node, labelId);
         ktx.assertOpen();
-
+        ensureCursors();
         singleNode(node);
 
         if (!nodeCursor.hasLabel(labelId)) {
@@ -968,6 +994,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         assert value != NO_VALUE;
         acquireExclusiveNodeLock(node);
         ktx.assertOpen();
+        ensureCursors();
 
         singleNode(node);
         int[] labels = nodeCursor
@@ -1019,8 +1046,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         //      benefit from being done more bulky on the whole change instead.
 
         assert intersect(addedLabels.toSortedArray(), removedLabels.toSortedArray()).length == 0;
-
         ktx.assertOpen();
+        ensureCursors();
 
         // lock
         if (!addedLabels.isEmpty() || !removedLabels.isEmpty()) {
@@ -1242,7 +1269,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         //      benefit from being done more bulky on the whole change instead.
 
         ktx.assertOpen();
-
+        ensureCursors();
         // lock
         acquireExclusiveRelationshipLock(relationship);
         if (properties.isEmpty()) {
@@ -1454,6 +1481,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     public Value nodeRemoveProperty(long node, int propertyKey) throws EntityNotFoundException {
         acquireExclusiveNodeLock(node);
         ktx.assertOpen();
+        ensureCursors();
         singleNode(node);
         Value existingValue = readNodeProperty(propertyKey);
 
@@ -1482,6 +1510,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             throws EntityNotFoundException, ConstraintValidationException {
         acquireExclusiveRelationshipLock(relationship);
         ktx.assertOpen();
+        ensureCursors();
         singleRelationship(relationship);
         int type = acquireSharedRelationshipTypeLock();
         Value existingValue = readRelationshipProperty(propertyKey);
@@ -1543,6 +1572,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     public Value relationshipRemoveProperty(long relationship, int propertyKey) throws EntityNotFoundException {
         acquireExclusiveRelationshipLock(relationship);
         ktx.assertOpen();
+        ensureCursors();
         singleRelationship(relationship);
         Value existingValue = readRelationshipProperty(propertyKey);
 
@@ -1614,7 +1644,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             restrictedRelationshipCursor.close();
             restrictedRelationshipCursor = null;
         }
-
+        hasCursors = false;
         cursors.assertClosed();
         cursors.release();
     }
@@ -1623,15 +1653,18 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         return token;
     }
 
-    public DefaultNodeCursor nodeCursor() {
+    public NodeCursor nodeCursor() {
+        ensureCursors();
         return restrictedNodeCursor;
     }
 
-    public DefaultRelationshipScanCursor relationshipCursor() {
+    public RelationshipScanCursor relationshipCursor() {
+        ensureCursors();
         return restrictedRelationshipCursor;
     }
 
-    public DefaultPropertyCursor propertyCursor() {
+    public PropertyCursor propertyCursor() {
+        ensureCursors();
         return restrictedPropertyCursor;
     }
 
@@ -1655,6 +1688,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     @Override
     public IndexDescriptor indexCreate(IndexPrototype prototype) throws KernelException {
+        ensureCursors();
         // can use index provider
         prototype = useLatestIndexProviderVersion(prototype);
 
@@ -1739,6 +1773,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     // Note: this will be sneakily executed by an internal transaction, so no additional locking is required.
     public IndexDescriptor indexUniqueCreate(IndexPrototype prototype) {
+        ensureCursors();
         return indexDoCreate(prototype);
     }
 
@@ -1782,6 +1817,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     @Override
     public void indexDrop(IndexDescriptor index) throws SchemaKernelException {
+        ensureCursors();
         if (index == IndexDescriptor.NO_INDEX) {
             throw DropIndexFailureException.noIndexSpecified();
         }
@@ -1821,6 +1857,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     @Override
     public void indexDrop(String indexName) throws SchemaKernelException {
+        ensureCursors();
         exclusiveSchemaNameLock(indexName);
         IndexDescriptor index = schemaRead.indexGetForName(indexName);
         if (index == IndexDescriptor.NO_INDEX) {
@@ -1839,6 +1876,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     @Override
     public ConstraintDescriptor uniquePropertyConstraintCreate(IndexPrototype prototype) throws KernelException {
+        ensureCursors();
         SchemaDescriptor schema = prototype.schema();
 
         if (schema.entityType() == RELATIONSHIP) {
@@ -2115,6 +2153,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         exclusiveSchemaLock(schema);
         ktx.assertOpen();
+        ensureCursors();
         prototype = useLatestIndexProviderVersion(prototype);
         KeyConstraintDescriptor constraint = ConstraintDescriptorFactory.keyForSchema(schema, prototype.getIndexType());
 
@@ -2205,7 +2244,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     @Override
     public ConstraintDescriptor nodePropertyExistenceConstraintCreate(
             LabelSchemaDescriptor schema, String name, boolean isDependent) throws KernelException {
-
+        ensureCursors();
         ConstraintDescriptor constraint = lockAndValidatePropertyExistenceConstraint(schema, name, isDependent);
 
         // enforce constraints
@@ -2265,7 +2304,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     @Override
     public ConstraintDescriptor relationshipPropertyExistenceConstraintCreate(
             RelationTypeSchemaDescriptor schema, String name, boolean isDependent) throws KernelException {
-
+        ensureCursors();
         ConstraintDescriptor constraint = lockAndValidatePropertyExistenceConstraint(schema, name, isDependent);
 
         // enforce constraints
@@ -2335,6 +2374,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     public ConstraintDescriptor propertyTypeConstraintCreate(
             SchemaDescriptor schema, String name, PropertyTypeSet propertyType, boolean isDependent)
             throws KernelException {
+        ensureCursors();
         if (schema.getPropertyIds().length != 1) {
             throw new UnsupportedOperationException("Composite property type constraints are not supported.");
         }
@@ -2363,7 +2403,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             int endpointLabelId,
             EndpointType endpointType)
             throws KernelException {
-
+        ensureCursors();
         if (!relationshipEndpointLabelAndNodeLabelExistenceConstraintsEnabled) {
             // To be able to test rolling upgrades we allow relationship endpoint label constraint even when the flag is
             // off
@@ -2453,7 +2493,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     @Override
     public ConstraintDescriptor nodeLabelExistenceConstraintCreate(
             NodeLabelExistenceSchemaDescriptor schema, String name, int requiredLabelId) throws KernelException {
-
+        ensureCursors();
         if (!relationshipEndpointLabelAndNodeLabelExistenceConstraintsEnabled) {
             // To be able to test rolling upgrades we allow node label existence constraint even when the flag is off
             // But the supported version is glorious future which effectively blocks the creation except for in tests
@@ -2581,6 +2621,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     @Override
     public void constraintDrop(String name, boolean canDropDependent) throws SchemaKernelException {
+        ensureCursors();
         exclusiveSchemaNameLock(name);
         ConstraintDescriptor constraint = schemaRead.constraintGetForName(name);
         if (constraint == null) {
@@ -2592,6 +2633,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     @Override
     public void constraintDrop(ConstraintDescriptor constraint, boolean canDropDependent) throws SchemaKernelException {
+        ensureCursors();
         // Lock
         SchemaDescriptor schema = constraint.schema();
         exclusiveLock(schema.keyType(), schema.lockingKeys());
@@ -2747,6 +2789,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             ConstraintIndexCreator.PropertyExistenceEnforcer propertyExistenceEnforcer)
             throws KernelException {
         try {
+            ensureCursors();
             if (schemaRead.constraintExists(constraint)) {
                 throw AlreadyConstrainedException.cannotCreateConstraint(constraint, token);
             }

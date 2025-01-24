@@ -28,6 +28,7 @@ import java.util.List;
 import org.neo4j.common.EntityType;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.kernel.api.Cursor;
+import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.internal.kernel.api.IndexReadSession;
 import org.neo4j.internal.kernel.api.InternalIndexState;
@@ -92,7 +93,7 @@ import org.neo4j.values.storable.Value;
  */
 public final class KernelRead implements Read {
     private final StorageReader storageReader;
-    private final DefaultPooledCursors cursors;
+    private final CursorFactory cursors;
     private final IndexingService indexingService;
     private final MemoryTracker memoryTracker;
     private final IndexReaderCache<ValueIndexReader> valueIndexReaderCache;
@@ -113,7 +114,7 @@ public final class KernelRead implements Read {
     public KernelRead(
             StorageReader storageReader,
             TokenRead tokenRead,
-            DefaultPooledCursors cursors,
+            CursorFactory cursors,
             StoreCursors storageCursors,
             Locks entityLocks,
             QueryContext queryContext,
@@ -307,7 +308,7 @@ public final class KernelRead implements Read {
         // if not found upgrade to exclusive and try again
         entityLocks.acquireSharedIndexEntryLock(indexEntryId);
         try (IndexReaders readers = new IndexReaders(index, this)) {
-            DefaultRelationshipValueIndexCursor indexCursor = (DefaultRelationshipValueIndexCursor) cursor;
+            EntityIndexSeekClient indexCursor = (EntityIndexSeekClient) cursor;
             relationshipIndexSeekWithFreshIndexReader(
                     indexCursor, queryContext.cursorContext(), readers.createReader(), predicates);
             if (!cursor.next()) {
@@ -331,7 +332,7 @@ public final class KernelRead implements Read {
     }
 
     public void nodeIndexSeekWithFreshIndexReader(
-            DefaultNodeValueIndexCursor cursor,
+            EntityIndexSeekClient cursor,
             CursorContext cursorContext,
             ValueIndexReader indexReader,
             PropertyIndexQuery.ExactPredicate... query)
@@ -341,7 +342,7 @@ public final class KernelRead implements Read {
     }
 
     public void relationshipIndexSeekWithFreshIndexReader(
-            DefaultRelationshipValueIndexCursor cursor,
+            EntityIndexSeekClient cursor,
             CursorContext cursorContext,
             ValueIndexReader indexReader,
             PropertyIndexQuery.ExactPredicate... query)
@@ -635,7 +636,7 @@ public final class KernelRead implements Read {
 
         var tokenSession = (DefaultTokenReadSession) session;
 
-        var indexCursor = (InternalRelationshipTypeIndexCursor) cursor;
+        var indexCursor = (InternalTokenIndexCursor) cursor;
         indexCursor.initState(this, txStateHolder, accessModeProvider);
         tokenSession.reader().query(indexCursor, constraints, query, cursorContext);
     }
@@ -785,7 +786,7 @@ public final class KernelRead implements Read {
         } else if (!existsInNodeStore) {
             return false;
         } else {
-            try (DefaultNodeCursor node = cursors.allocateNodeCursor(queryContext.cursorContext(), memoryTracker)) {
+            try (NodeCursor node = cursors.allocateNodeCursor(queryContext.cursorContext(), memoryTracker)) {
                 singleNode(reference, node);
                 return node.next();
             }
@@ -810,11 +811,10 @@ public final class KernelRead implements Read {
         performCheckBeforeOperation();
         if (txStateHolder.hasTxStateWithChanges()) {
             if (applyAccessModeToTxState) {
-                try (DefaultNodeCursor nodeCursor =
-                        cursors.allocateNodeCursor(queryContext.cursorContext(), memoryTracker)) {
+                try (NodeCursor nodeCursor = cursors.allocateNodeCursor(queryContext.cursorContext(), memoryTracker)) {
                     singleNode(node, nodeCursor);
                     nodeCursor.next();
-                    try (DefaultPropertyCursor propertyCursor =
+                    try (PropertyCursor propertyCursor =
                             cursors.allocatePropertyCursor(queryContext.cursorContext(), memoryTracker)) {
                         nodeCursor.properties(propertyCursor, PropertySelection.selection(propertyKeyId));
                         return propertyCursor.allowed(propertyKeyId)

@@ -35,7 +35,7 @@ import org.neo4j.storageengine.api.LongReference;
 import org.neo4j.storageengine.api.RelationshipSelection;
 import org.neo4j.storageengine.api.StorageRelationshipTraversalCursor;
 
-class DefaultRelationshipTraversalCursor extends DefaultRelationshipCursor<DefaultRelationshipTraversalCursor>
+public class DefaultRelationshipTraversalCursor extends DefaultRelationshipCursor<DefaultRelationshipTraversalCursor>
         implements RelationshipTraversalCursor {
     private final StorageRelationshipTraversalCursor storeCursor;
     private final InternalCursorFactory internalCursors;
@@ -47,7 +47,7 @@ class DefaultRelationshipTraversalCursor extends DefaultRelationshipCursor<Defau
 
     private long neighbourNodeReference;
 
-    DefaultRelationshipTraversalCursor(
+    protected DefaultRelationshipTraversalCursor(
             CursorPool<DefaultRelationshipTraversalCursor> pool,
             StorageRelationshipTraversalCursor storeCursor,
             InternalCursorFactory internalCursors,

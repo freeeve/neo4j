@@ -31,4 +31,8 @@ public interface PropertyCursor extends Cursor {
     ValueGroup propertyType();
 
     Value propertyValue();
+
+    boolean allowed(int propertyKey);
+
+    boolean allowed(int[] propertyKeys, int[] labels);
 }

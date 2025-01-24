@@ -19,11 +19,6 @@
  */
 package org.neo4j.kernel.impl.newapi;
 
-/**
- * Simple pool which accepts cursors.
- *
- * @param <T> Type of cursors accepted
- */
-public interface CursorPool<T> {
-    void accept(T t);
-}
+import org.neo4j.internal.kernel.api.PropertyCursor;
+
+public interface TraceablePropertyCursor extends PropertyCursor, TraceableCursor {}

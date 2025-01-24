@@ -37,7 +37,7 @@ class DefaultRelationshipValueIndexCursor extends DefaultEntityValueIndexCursor<
         implements RelationshipValueIndexCursor {
     private final InternalCursorFactory internalCursors;
     private final DefaultRelationshipScanCursor relationshipScanCursor;
-    private DefaultPropertyCursor securityPropertyCursor;
+    private TraceablePropertyCursor securityPropertyCursor;
     private int[] propertyIds;
 
     DefaultRelationshipValueIndexCursor(

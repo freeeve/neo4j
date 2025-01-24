@@ -59,7 +59,7 @@ public class DefaultNodeBasedRelationshipTypeIndexCursor
     private long nodeFromIndex;
     private ReadState readState;
 
-    DefaultNodeBasedRelationshipTypeIndexCursor(
+    protected DefaultNodeBasedRelationshipTypeIndexCursor(
             CursorPool<DefaultNodeBasedRelationshipTypeIndexCursor> pool,
             DefaultNodeCursor nodeCursor,
             DefaultRelationshipTraversalCursor relationshipTraversalCursor) {

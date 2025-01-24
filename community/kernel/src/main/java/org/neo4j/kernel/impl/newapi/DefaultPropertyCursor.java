@@ -19,15 +19,11 @@
  */
 package org.neo4j.kernel.impl.newapi;
 
-import static org.neo4j.kernel.api.StatementConstants.NO_SUCH_ENTITY;
-import static org.neo4j.storageengine.api.LongReference.NULL_REFERENCE;
-import static org.neo4j.storageengine.api.PropertySelection.ALL_PROPERTIES;
 import static org.neo4j.token.api.TokenConstants.NO_TOKEN;
 
 import java.util.Iterator;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
-import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.RelTypeSupplier;
 import org.neo4j.internal.kernel.api.TokenSet;
@@ -45,7 +41,7 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 
 public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCursor>
-        implements PropertyCursor, Supplier<TokenSet>, RelTypeSupplier {
+        implements TraceablePropertyCursor, Supplier<TokenSet>, RelTypeSupplier {
     private static final int NODE = -2;
     final StoragePropertyCursor storeCursor;
     private final InternalCursorFactory internalCursors;
@@ -53,8 +49,8 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
     private Read read;
     private AccessModeProvider accessModeProvider;
     private StoragePropertyCursor securityPropertyCursor;
-    private FullAccessNodeCursor securityNodeCursor;
-    private FullAccessRelationshipScanCursor securityRelCursor;
+    private DefaultNodeCursor securityNodeCursor;
+    private DefaultRelationshipScanCursor securityRelCursor;
     private EntityState propertiesState;
     private Iterator<StorageProperty> txStateChangedProperties;
     private StorageProperty txStateValue;
@@ -221,15 +217,6 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
         }
     }
 
-    void initEmptyRelationship() {
-        init(ALL_PROPERTIES, null, null);
-        storeCursor.initRelationshipProperties(NULL_REFERENCE, ALL_PROPERTIES);
-        this.entityReference = NO_SUCH_ENTITY;
-
-        this.propertiesState = null;
-        this.txStateChangedProperties = null;
-    }
-
     private void init(PropertySelection selection, Read read, AccessModeProvider accessModeProvider) {
         this.selection = selection;
         this.read = read;
@@ -238,7 +225,8 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
         this.type = NO_TOKEN;
     }
 
-    boolean allowed(int[] propertyKeys, int[] labels) {
+    @Override
+    public boolean allowed(int[] propertyKeys, int[] labels) {
         AccessMode accessMode = accessModeProvider.getAccessMode();
         if (isNode()) {
             return accessMode.allowsReadNodeProperties(
@@ -253,7 +241,8 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
         return true;
     }
 
-    protected boolean allowed(int propertyKey) {
+    @Override
+    public boolean allowed(int propertyKey) {
         AccessMode accessMode = accessModeProvider.getAccessMode();
         if (isNode()) {
             return accessMode.allowsReadNodeProperty(this, propertyKey, securityPropertyProvider);
