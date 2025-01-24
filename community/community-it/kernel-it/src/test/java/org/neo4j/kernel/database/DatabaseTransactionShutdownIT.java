@@ -239,7 +239,9 @@ class DatabaseTransactionShutdownIT {
             latch.countDown();
             while (!done.get()) {
                 try (Transaction tx = db.beginTx()) {
-                } catch (DatabaseShutdownException | TransactionFailureException ignored) {
+                } catch (DatabaseShutdownException
+                        | TransactionFailureException
+                        | TransientTransactionFailureException ignored) {
                 }
             }
         });
