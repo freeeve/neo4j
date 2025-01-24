@@ -119,6 +119,7 @@ import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.importer.FileImporter.CsvImportException;
 import org.neo4j.internal.batchimport.cache.idmapping.string.DuplicateInputIdException;
 import org.neo4j.internal.batchimport.input.InputException;
+import org.neo4j.internal.batchimport.input.MissingRelationshipDataException;
 import org.neo4j.internal.batchimport.input.csv.Type;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.helpers.collection.Iterators;
@@ -2510,6 +2511,55 @@ class ImportCommandTest {
         assertThatThrownBy(() -> runImport("--nodes=s3://boom/time.csv"))
                 .isInstanceOf(ProviderMismatchException.class)
                 .hasMessageContaining("No storage system found for scheme: s3");
+    }
+
+    @Test
+    void shouldDefaultToNoLabelTokenIfNeitherSpecifiedNorInArgument() throws Exception {
+        // i.e. --nodes=/path1,/path2... AND the header doesn't specify any :LABEL
+
+        // given
+        var nodes = createAndWriteFile("nodes.csv", Charset.defaultCharset(), writer -> {
+            writer.println(":ID,p1:int");
+            writer.println("A,10");
+        });
+
+        // when
+        runImport("--nodes", nodes.toString());
+
+        // then
+        var dbms = dbmsService();
+        try {
+            var db = dbms.database(DEFAULT_DATABASE_NAME);
+            try (var tx = db.beginTx()) {
+                try (var iterator = tx.getAllNodes().iterator()) {
+                    var node = iterator.next();
+                    assertThat(node.getProperty("p1")).isEqualTo(10L);
+                    assertThat(node.getLabels().iterator().hasNext()).isFalse();
+                }
+            }
+        } finally {
+            dbms.shutdown();
+        }
+    }
+
+    @Test
+    void shouldDefaultToNoRelationshipTypeTokenIfNeitherSpecifiedNorInArgument() throws Exception {
+        // i.e. --relationships=/path1,/path2... AND the header doesn't specify any :TYPE
+
+        // given
+        var nodes = createAndWriteFile("nodes.csv", Charset.defaultCharset(), writer -> {
+            writer.println(":ID");
+            writer.println("A");
+            writer.println("B");
+        });
+        var relationships = createAndWriteFile("relationships.csv", Charset.defaultCharset(), writer -> {
+            writer.println(":START_ID,:END_ID,p1:int");
+            writer.println("A,B,10");
+        });
+
+        // when/then
+        assertThatThrownBy(() -> runImport("--nodes", nodes.toString(), "--relationships", relationships.toString()))
+                .hasRootCauseInstanceOf(MissingRelationshipDataException.class);
     }
 
     private static void assertContains(String linesType, List<String> lines, String string) {
