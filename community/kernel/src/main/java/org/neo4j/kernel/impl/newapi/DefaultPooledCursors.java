@@ -48,8 +48,6 @@ public class DefaultPooledCursors extends DefaultCursors implements CursorFactor
     private DefaultPropertyCursor propertyCursor;
     private FullAccessPropertyCursor fullAccessPropertyCursor;
     private DefaultNodeValueIndexCursor nodeValueIndexCursor;
-    private FullAccessNodeValueIndexCursor fullAccessNodeValueIndexCursor;
-    private FullAccessRelationshipValueIndexCursor fullAccessRelationshipValueIndexCursor;
     private DefaultNodeLabelIndexCursor nodeLabelIndexCursor;
     private DefaultNodeLabelIndexCursor fullAccessNodeLabelIndexCursor;
     private DefaultRelationshipValueIndexCursor relationshipValueIndexCursor;
@@ -295,50 +293,6 @@ public class DefaultPooledCursors extends DefaultCursors implements CursorFactor
     }
 
     @Override
-    public FullAccessNodeValueIndexCursor allocateFullAccessNodeValueIndexCursor(
-            CursorContext cursorContext, MemoryTracker memoryTracker) {
-        if (fullAccessNodeValueIndexCursor == null) {
-            return trace(new FullAccessNodeValueIndexCursor(this::acceptFullAccess));
-        }
-
-        try {
-            return acquire(fullAccessNodeValueIndexCursor);
-        } finally {
-            fullAccessNodeValueIndexCursor = null;
-        }
-    }
-
-    private void acceptFullAccess(DefaultNodeValueIndexCursor cursor) {
-        if (fullAccessNodeValueIndexCursor != null) {
-            fullAccessNodeValueIndexCursor.release();
-        }
-        cursor.removeTracer();
-        fullAccessNodeValueIndexCursor = (FullAccessNodeValueIndexCursor) cursor;
-    }
-
-    @Override
-    public FullAccessRelationshipValueIndexCursor allocateFullAccessRelationshipValueIndexCursor(
-            CursorContext cursorContext, MemoryTracker memoryTracker) {
-        if (fullAccessRelationshipValueIndexCursor == null) {
-            return trace(new FullAccessRelationshipValueIndexCursor(this::acceptFullAccess));
-        }
-
-        try {
-            return acquire(fullAccessRelationshipValueIndexCursor);
-        } finally {
-            fullAccessRelationshipValueIndexCursor = null;
-        }
-    }
-
-    private void acceptFullAccess(DefaultRelationshipValueIndexCursor cursor) {
-        if (fullAccessRelationshipValueIndexCursor != null) {
-            fullAccessRelationshipValueIndexCursor.release();
-        }
-        cursor.removeTracer();
-        fullAccessRelationshipValueIndexCursor = (FullAccessRelationshipValueIndexCursor) cursor;
-    }
-
-    @Override
     public DefaultNodeLabelIndexCursor allocateNodeLabelIndexCursor(
             CursorContext cursorContext, MemoryTracker memoryTracker) {
         if (nodeLabelIndexCursor == null) {
@@ -512,12 +466,6 @@ public class DefaultPooledCursors extends DefaultCursors implements CursorFactor
         if (nodeValueIndexCursor != null) {
             nodeValueIndexCursor.release();
         }
-        if (fullAccessNodeValueIndexCursor != null) {
-            fullAccessNodeValueIndexCursor.release();
-        }
-        if (fullAccessRelationshipValueIndexCursor != null) {
-            fullAccessRelationshipValueIndexCursor.release();
-        }
         if (nodeLabelIndexCursor != null) {
             nodeLabelIndexCursor.release();
         }
@@ -542,13 +490,11 @@ public class DefaultPooledCursors extends DefaultCursors implements CursorFactor
         propertyCursor = null;
         fullAccessPropertyCursor = null;
         nodeValueIndexCursor = null;
-        fullAccessNodeValueIndexCursor = null;
         nodeLabelIndexCursor = null;
         fullAccessNodeLabelIndexCursor = null;
         relationshipValueIndexCursor = null;
         relationshipTypeIndexCursor = null;
         fullAccessRelationshipTypeIndexCursor = null;
-        fullAccessRelationshipValueIndexCursor = null;
     }
 
     private InternalCursorFactory newInternalCursors(CursorContext cursorContext, MemoryTracker memoryTracker) {

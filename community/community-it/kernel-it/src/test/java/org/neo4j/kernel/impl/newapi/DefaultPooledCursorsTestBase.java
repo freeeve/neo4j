@@ -28,7 +28,6 @@ import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.api.RelationshipSelection.ALL_RELATIONSHIPS;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import org.junit.jupiter.api.Test;
 import org.neo4j.common.EntityType;
@@ -55,7 +54,6 @@ import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
-import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.memory.EmptyMemoryTracker;
 
@@ -223,29 +221,6 @@ public abstract class DefaultPooledCursorsTestBase<G extends KernelAPIReadTestSu
     }
 
     @Test
-    void shouldReuseFullAccessNodeValueIndexCursor() throws Exception {
-        int prop = token.propertyKey("prop");
-        IndexDescriptor indexDescriptor = tx.schemaRead().indexGetForName(NODE_PROP_INDEX_NAME);
-        Predicates.awaitEx(() -> tx.schemaRead().indexGetState(indexDescriptor) == ONLINE, 1, MINUTES);
-        IndexReadSession indexSession = tx.dataRead().indexReadSession(indexDescriptor);
-
-        NodeValueIndexCursor c1 =
-                cursors.allocateFullAccessNodeValueIndexCursor(NULL_CONTEXT, EmptyMemoryTracker.INSTANCE);
-        read.nodeIndexSeek(
-                tx.queryContext(),
-                indexSession,
-                c1,
-                IndexQueryConstraints.unconstrained(),
-                PropertyIndexQuery.exact(prop, "zero"));
-        c1.close();
-
-        NodeValueIndexCursor c2 =
-                cursors.allocateFullAccessNodeValueIndexCursor(NULL_CONTEXT, EmptyMemoryTracker.INSTANCE);
-        assertThat(c1).isSameAs(c2);
-        c2.close();
-    }
-
-    @Test
     void shouldReuseNodeLabelIndexCursor() throws Exception {
         try (KernelTransaction tx = beginTransaction()) {
             NodeLabelIndexCursor c1 = tx.cursors().allocateNodeLabelIndexCursor(NULL_CONTEXT);
@@ -324,38 +299,6 @@ public abstract class DefaultPooledCursorsTestBase<G extends KernelAPIReadTestSu
                 cursors.allocateRelationshipValueIndexCursor(NULL_CONTEXT, EmptyMemoryTracker.INSTANCE);
         assertThat(c1).isSameAs(c2);
         c2.close();
-    }
-
-    @Test
-    void shouldNotReuseReleasedRelationshipValueIndexCursor() throws Exception {
-        RelationshipValueIndexCursor c1;
-        KernelTransaction tx = beginTransaction();
-        try (tx) {
-            c1 = tx.cursors().allocateFullAccessRelationshipValueIndexCursor(NULL_CONTEXT, EmptyMemoryTracker.INSTANCE);
-            c1.close();
-            tx.commit();
-        }
-
-        // Find the same transaction again to test re-use
-        ArrayList<KernelTransaction> txs = new ArrayList<>();
-        try {
-            for (int i = 0; i < 10; i++) {
-                KernelTransaction tx1 = beginTransaction();
-                txs.add(tx1);
-                if (tx1 != tx) {
-                    continue;
-                }
-
-                RelationshipValueIndexCursor c2 = tx1.cursors()
-                        .allocateFullAccessRelationshipValueIndexCursor(NULL_CONTEXT, EmptyMemoryTracker.INSTANCE);
-                // We should not have been able to get the same cursor again, it should have been released properly
-                assertThat(c1).isNotSameAs(c2);
-                c2.close();
-                break;
-            }
-        } finally {
-            IOUtils.closeAllUnchecked(txs);
-        }
     }
 
     private static int[] array(int... elements) {

@@ -187,16 +187,6 @@ object SimpleInternalExpressionEvaluator {
       memoryTracker: MemoryTracker
     ): NodeValueIndexCursor = null
 
-    override def allocateFullAccessNodeValueIndexCursor(
-      cursorContext: CursorContext,
-      memoryTracker: MemoryTracker
-    ): NodeValueIndexCursor = null
-
-    override def allocateFullAccessRelationshipValueIndexCursor(
-      cursorContext: CursorContext,
-      memoryTracker: MemoryTracker
-    ): RelationshipValueIndexCursor = null
-
     override def allocateNodeLabelIndexCursor(
       cursorContext: CursorContext,
       memoryTracker: MemoryTracker

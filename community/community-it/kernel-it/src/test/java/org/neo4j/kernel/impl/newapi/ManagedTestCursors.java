@@ -124,14 +124,6 @@ public class ManagedTestCursors implements CursorFactory {
     }
 
     @Override
-    public NodeValueIndexCursor allocateFullAccessNodeValueIndexCursor(
-            CursorContext cursorContext, MemoryTracker memoryTracker) {
-        NodeValueIndexCursor n = cursors.allocateFullAccessNodeValueIndexCursor(cursorContext, memoryTracker);
-        allCursors.add(n);
-        return n;
-    }
-
-    @Override
     public NodeLabelIndexCursor allocateNodeLabelIndexCursor(CursorContext cursorContext, MemoryTracker memoryTracker) {
         NodeLabelIndexCursor n = cursors.allocateNodeLabelIndexCursor(cursorContext, memoryTracker);
         allCursors.add(n);
@@ -149,15 +141,6 @@ public class ManagedTestCursors implements CursorFactory {
     public RelationshipValueIndexCursor allocateRelationshipValueIndexCursor(
             CursorContext cursorContext, MemoryTracker memoryTracker) {
         RelationshipValueIndexCursor n = cursors.allocateRelationshipValueIndexCursor(cursorContext, memoryTracker);
-        allCursors.add(n);
-        return n;
-    }
-
-    @Override
-    public RelationshipValueIndexCursor allocateFullAccessRelationshipValueIndexCursor(
-            CursorContext cursorContext, MemoryTracker memoryTracker) {
-        RelationshipValueIndexCursor n =
-                cursors.allocateFullAccessRelationshipValueIndexCursor(cursorContext, memoryTracker);
         allCursors.add(n);
         return n;
     }

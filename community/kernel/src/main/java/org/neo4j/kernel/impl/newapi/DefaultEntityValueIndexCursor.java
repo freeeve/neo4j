@@ -113,7 +113,7 @@ abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexPr
             tracer.onIndexSeek();
         }
 
-        shortcutSecurity = setupSecurity(descriptor);
+        shortcutSecurity = canAccessAllDescribedEntities(descriptor);
 
         if (!indexIncludesTransactionState && txStateHolder.hasTxStateWithChanges() && query.length > 0) {
             // Extract out the equality queries
@@ -221,10 +221,6 @@ abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexPr
 
     protected abstract boolean doStoreValuePassesQueryFilter(
             long reference, PropertySelection propertySelection, PropertyIndexQuery[] query);
-
-    protected boolean allowsAll() {
-        return false;
-    }
 
     @Override
     public final boolean needsValues() {
@@ -479,10 +475,6 @@ abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexPr
 
     final void readEntity(EntityReader entityReader) {
         entityReader.read(read);
-    }
-
-    private boolean setupSecurity(IndexDescriptor descriptor) {
-        return allowsAll() || canAccessAllDescribedEntities(descriptor);
     }
 
     private static int[] indexQueryKeys(PropertyIndexQuery[] query) {
