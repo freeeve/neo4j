@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier.Extension
-import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
@@ -93,6 +92,7 @@ import org.neo4j.cypher.internal.logical.plans.NFA.RelationshipExpansionPredicat
 import org.neo4j.cypher.internal.logical.plans.NFA.RelationshipExpansionTransition
 import org.neo4j.cypher.internal.logical.plans.NFA.State
 import org.neo4j.cypher.internal.logical.plans.NFA.Transition
+import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Mapping
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
@@ -1554,7 +1554,7 @@ object LogicalPlanToPlanBuilderString {
     previouslyBoundRelationships: Set[LogicalVariable],
     previouslyBoundRelationshipGroups: Set[LogicalVariable],
     reverseGroupVariableProjections: Boolean,
-    endNodePredicate: Option[Ands]
+    endNodePredicate: Option[EndNodePredicates]
   ) =
     call(
       "TrailParameters",
@@ -1570,7 +1570,7 @@ object LogicalPlanToPlanBuilderString {
       previouslyBoundRelationships,
       previouslyBoundRelationshipGroups,
       reverseGroupVariableProjections + ", " +
-        endNodePredicate.map(expressionStringifier(_))
+        endNodePredicate.map(p => s"EndNodePredicates(${p.zeroRepetition},${p.otherRepetitions})")
     )
 
   private def walkParametersString(
@@ -1582,7 +1582,7 @@ object LogicalPlanToPlanBuilderString {
     groupNodes: Set[VariableGrouping],
     groupRelationships: Set[VariableGrouping],
     reverseGroupVariableProjections: Boolean,
-    endNodePredicate: Option[Ands]
+    endNodePredicate: Option[EndNodePredicates]
   ) =
     call(
       "WalkParameters",
@@ -1595,7 +1595,7 @@ object LogicalPlanToPlanBuilderString {
       groupNodes,
       groupRelationships,
       reverseGroupVariableProjections + ", " +
-        endNodePredicate.map(expressionStringifier(_))
+        endNodePredicate.map(p => s"EndNodePredicates(${p.zeroRepetition},${p.otherRepetitions})")
     )
 
   private def setPropertiesParam(items: Seq[(PropertyKeyName, Expression)]): Param =

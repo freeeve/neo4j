@@ -64,6 +64,7 @@ import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.DisallowSameNod
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.SameNodeMode
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan.VERBOSE_TO_STRING
 import org.neo4j.cypher.internal.logical.plans.Prober.Probe
+import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.LengthBounds
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Mapping
 import org.neo4j.cypher.internal.macros.AssertMacros
@@ -4192,6 +4193,10 @@ sealed abstract class Repeat(idGen: IdGen)
   override val distinctness: Distinctness = NotDistinct
 }
 
+object Repeat {
+  case class EndNodePredicates(zeroRepetition: Ands, otherRepetitions: Ands)
+}
+
 /**
  * Repeated pattern expansion with a unique constraint on relationships.
  * Used to solve queries like: `(start) [(innerStart)-->(innerEnd)]{i, j} (end)`
@@ -4229,7 +4234,7 @@ case class RepeatTrail(
   previouslyBoundRelationships: Set[LogicalVariable],
   previouslyBoundRelationshipGroups: Set[LogicalVariable],
   reverseGroupVariableProjections: Boolean,
-  endNodePredicate: Option[Ands]
+  endNodePredicate: Option[EndNodePredicates]
 )(implicit idGen: IdGen) extends Repeat(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(left = newLHS)(idGen)
   override def withRhs(newRHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(right = newRHS)(idGen)
@@ -4276,7 +4281,7 @@ case class RepeatWalk(
   override val nodeVariableGroupings: Set[VariableGrouping],
   override val relationshipVariableGroupings: Set[VariableGrouping],
   reverseGroupVariableProjections: Boolean,
-  endNodePredicate: Option[Ands]
+  endNodePredicate: Option[EndNodePredicates]
 )(implicit idGen: IdGen) extends Repeat(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(left = newLHS)(idGen)
   override def withRhs(newRHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(right = newRHS)(idGen)

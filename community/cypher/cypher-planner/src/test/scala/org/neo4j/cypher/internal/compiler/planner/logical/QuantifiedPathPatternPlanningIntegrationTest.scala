@@ -63,6 +63,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExistsExpression
+import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Trail
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
@@ -928,7 +929,10 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = true,
-      endNodePredicate = Some(ands(equals(varFor("n"), varFor("a"))))
+      endNodePredicate = Some(EndNodePredicates(
+        ands(equals(varFor("anon_0"), varFor("a"))),
+        ands(equals(varFor("n"), varFor("a")))
+      ))
     )
 
     plan should equal(
@@ -1174,7 +1178,10 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = Some(ands(equals(varFor("m_inner"), varFor("m"))))
+      endNodePredicate = Some(EndNodePredicates(
+        ands(equals(varFor("anon_0"), varFor("m"))),
+        ands(equals(varFor("m_inner"), varFor("m")))
+      ))
     )
 
     plan should equal(
@@ -1466,7 +1473,10 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = Some(ands(hasLabels("y", "C")))
+      endNodePredicate = Some(EndNodePredicates(
+        ands(hasLabels("c", "C")),
+        ands(hasLabels("y", "C"))
+      ))
     )
 
     plan shouldBe planner.subPlanBuilder()
@@ -1538,7 +1548,10 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set("r2"),
       reverseGroupVariableProjections = true,
-      endNodePredicate = Some(ands(hasLabels("n", "A"), hasLabels("n", "N")))
+      endNodePredicate = Some(EndNodePredicates(
+        ands(hasLabels("e", "A"), hasLabels("n", "N")),
+        ands(hasLabels("n", "A"), hasLabels("n", "N"))
+      ))
     )
 
     val p_r2_q_trail = TrailParameters(
@@ -1554,7 +1567,10 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = Some(ands(hasLabels("q", "B"), hasLabels("q", "Q")))
+      endNodePredicate = Some(EndNodePredicates(
+        ands(hasLabels("b", "B"), hasLabels("q", "Q")),
+        ands(hasLabels("q", "B"), hasLabels("q", "Q"))
+      ))
     )
 
     plan shouldBe planner.subPlanBuilder()
@@ -1672,7 +1688,10 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        endNodePredicate = Some(ands(hasLabels("b", "B")))
+        endNodePredicate = Some(EndNodePredicates(
+          ands(hasLabels("end", "B")),
+          ands(hasLabels("b", "B"))
+        ))
       )
 
     plan shouldEqual planner.subPlanBuilder()
@@ -1721,7 +1740,10 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        endNodePredicate = Some(ands(hasLabels("c", "B")))
+        endNodePredicate = Some(EndNodePredicates(
+          ands(hasLabels("end", "B")),
+          ands(hasLabels("c", "B"))
+        ))
       )
 
     plan shouldEqual planner.subPlanBuilder()
@@ -3135,7 +3157,10 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = Some(ands(hasLabels("inner2", "A")))
+      endNodePredicate = Some(EndNodePredicates(
+        ands(hasLabels("n2", "A")),
+        ands(hasLabels("inner2", "A"))
+      ))
     )
 
     plan should equal(
@@ -3185,7 +3210,10 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = Some(ands(equals(varFor("inner2"), varFor("n2"))))
+      endNodePredicate = Some(EndNodePredicates(
+        ands(equals(varFor("anon_0"), varFor("n2"))),
+        ands(equals(varFor("inner2"), varFor("n2")))
+      ))
     )
 
     plan should equal(
@@ -3237,7 +3265,10 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = Some(ands(hasLabels("inner2", "A")))
+      endNodePredicate = Some(EndNodePredicates(
+        ands(hasLabels("n2", "A")),
+        ands(hasLabels("inner2", "A"))
+      ))
     )
 
     plan should equal(

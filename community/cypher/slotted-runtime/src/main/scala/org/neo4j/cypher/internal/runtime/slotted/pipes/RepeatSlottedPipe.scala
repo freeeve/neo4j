@@ -33,11 +33,12 @@ import org.neo4j.cypher.internal.runtime.PrefetchingIterator
 import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.RuntimeMetadataValue
 import org.neo4j.cypher.internal.runtime.WritableRow
-import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.PipeWithSource
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.EndNodeCommandPredicates
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.emptyLists
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.testEndNodePredicate
 import org.neo4j.cypher.internal.runtime.slotted.SlottedRow
 import org.neo4j.cypher.internal.runtime.slotted.expressions.TrailState
 import org.neo4j.cypher.internal.runtime.slotted.helpers.NullChecker
@@ -49,7 +50,6 @@ import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.memory.HeapEstimator
 import org.neo4j.memory.Measurable
 import org.neo4j.memory.MemoryTracker
-import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.ListValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
 import org.neo4j.values.virtual.VirtualValues
@@ -119,7 +119,7 @@ case class RepeatSlottedPipe(
   rhsSlots: SlotConfiguration,
   argumentSize: SlotConfiguration.Size,
   reverseGroupVariableProjections: Boolean,
-  maybeEndNodePredicate: Option[Expression]
+  maybeEndNodePredicate: Option[EndNodeCommandPredicates]
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) {
 
   private[this] val emptyGroupNodes = emptyLists(groupNodes.length)
@@ -229,7 +229,7 @@ case class RepeatSlottedPipe(
 
     val tracker = state.memoryTrackerForOperatorProvider.memoryTrackerForOperator(id.x)
     input.flatMap { outerRow =>
-      def newResultRowWithEmptyGroups(innerEndNode: Long): Some[SlottedRow] = {
+      def newResultRowWithEmptyGroups(innerEndNode: Long): SlottedRow = {
         val resultRow = SlottedRow(slots)
         resultRow.copyFrom(outerRow, argumentSize.nLongs, argumentSize.nReferences)
         RepeatSlottedPipe.writeResultColumnsWithProvidedGroups(
@@ -241,7 +241,7 @@ case class RepeatSlottedPipe(
           groupRelationships,
           endOffset
         )
-        Some(resultRow)
+        resultRow
       }
 
       def newResultRow(
@@ -288,11 +288,25 @@ case class RepeatSlottedPipe(
             stack.close()
           }
 
-          @tailrec
-          def produceNext(): Option[CypherRow] = {
+          private def allocateZeroRepetitionResultRowOrNull(): CypherRow = {
             if (emitFirst) {
               emitFirst = false
-              newResultRowWithEmptyGroups(startNode)
+              val resultRow = newResultRowWithEmptyGroups(startNode)
+              if (testEndNodePredicate(endNodePredicate, resultRow, state, isZeroRep = true)) {
+                resultRow
+              } else {
+                null
+              }
+            } else {
+              null
+            }
+          }
+
+          @tailrec
+          def produceNext(): Option[CypherRow] = {
+            val firstRowOrNull = allocateZeroRepetitionResultRowOrNull()
+            if (firstRowOrNull != null) {
+              Some(firstRowOrNull)
             } else if (innerResult.hasNext) {
               val row = innerResult.next()
               val innerEndNode = row.getLongAt(innerEndSlot.offset)
@@ -301,8 +315,12 @@ case class RepeatSlottedPipe(
               }
               // if iterated long enough emit, otherwise recurse
               if (
-                stackHead.iterations >= repetition.min &&
-                (endNodePredicate == null || (endNodePredicate(row, state) eq Values.TRUE))
+                stackHead.iterations >= repetition.min && testEndNodePredicate(
+                  endNodePredicate,
+                  row,
+                  state,
+                  isZeroRep = false
+                )
               ) {
                 newResultRow(row, stackHead.groupNodes, stackHead.groupRelationships, innerEndNode)
               } else {
@@ -327,7 +345,9 @@ case class RepeatSlottedPipe(
               innerResult = if (endNodePredicate == null)
                 inner.createResults(innerState)
               else
-                inner.createResults(innerState).filter(row => endNodePredicate(row, state) eq Values.TRUE)
+                inner.createResults(innerState).filter(row =>
+                  testEndNodePredicate(endNodePredicate, row, state, isZeroRep = false)
+                )
               produceNext()
             } else {
               if (stackHead != null) {

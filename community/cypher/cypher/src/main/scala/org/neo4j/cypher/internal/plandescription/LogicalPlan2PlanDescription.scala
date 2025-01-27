@@ -229,6 +229,7 @@ import org.neo4j.cypher.internal.logical.plans.RelationshipCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
+import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.logical.plans.RepeatOptions
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
@@ -3191,7 +3192,7 @@ case class LogicalPlan2PlanDescription(
     repetition: Repetition,
     start: LogicalVariable,
     end: LogicalVariable,
-    endNodePredicate: Option[Ands]
+    endNodePredicate: Option[EndNodePredicates]
   ): PrettyString = {
     val repString = repetition match {
       case Repetition(min, Limited(n)) =>
@@ -3199,7 +3200,8 @@ case class LogicalPlan2PlanDescription(
       case Repetition(min, Unlimited) =>
         pretty"{${asPrettyString.raw(min.toString)}, }"
     }
-    val endNodePredicateString = endNodePredicate.map(p => pretty" WHERE ${asPrettyString(p)}").getOrElse(pretty"")
+    val endNodePredicateString =
+      endNodePredicate.map(p => pretty" WHERE ${asPrettyString(p.zeroRepetition)}").getOrElse(pretty"")
     pretty"(${asPrettyString(start.name)}) (...)$repString (${asPrettyString(end.name)})$endNodePredicateString"
   }
 

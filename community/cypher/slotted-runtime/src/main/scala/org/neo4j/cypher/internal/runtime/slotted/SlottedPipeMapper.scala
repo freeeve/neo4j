@@ -217,6 +217,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.ProduceResultsPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ProjectionPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RelationshipTypes
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.EndNodeCommandPredicates
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.SetDynamicPropertyOperation
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.SetPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.SetPropertiesOperation
@@ -2040,7 +2041,12 @@ class SlottedPipeMapper(
           rhsSlots,
           argumentSize,
           reverseGroupVariableProjections,
-          maybeEndNodePredicate = endNodePredicate.map(e => expressionConverters.toCommandExpression(id, e))
+          maybeEndNodePredicate = endNodePredicate.map(p =>
+            EndNodeCommandPredicates(
+              expressionConverters.toCommandExpression(id, p.zeroRepetition),
+              expressionConverters.toCommandExpression(id, p.otherRepetitions)
+            )
+          )
         )(id = id)
 
       case RepeatWalk(
@@ -2072,7 +2078,12 @@ class SlottedPipeMapper(
           rhsSlots,
           argumentSize,
           reverseGroupVariableProjections,
-          maybeEndNodePredicate = endNodePredicate.map(e => expressionConverters.toCommandExpression(id, e))
+          maybeEndNodePredicate = endNodePredicate.map(p =>
+            EndNodeCommandPredicates(
+              expressionConverters.toCommandExpression(id, p.zeroRepetition),
+              expressionConverters.toCommandExpression(id, p.otherRepetitions)
+            )
+          )
         )(id = id)
 
       case _ =>

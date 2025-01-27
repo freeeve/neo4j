@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
 import org.neo4j.cypher.internal.util.attribution.Attributes
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -94,7 +95,10 @@ class RepeatEndNodePredicateRewriterTest extends CypherFunSuite with LogicalPlan
       .allNodeScan("a")
       .build()
 
-    val newEndNodePredicate = ands(equals(varFor("m_i"), varFor("a")))
+    val newEndNodePredicate = EndNodePredicates(
+      ands(equals(varFor(`TRAIL (a) ((n)-[r]-(m))+ (b)`.end), varFor("a"))),
+      ands(equals(varFor(`TRAIL (a) ((n)-[r]-(m))+ (b)`.innerEnd), varFor("a")))
+    )
     val rewrittenTrailParams = `TRAIL (a) ((n)-[r]-(m))+ (b)`.copy(endNodePredicate = Some(newEndNodePredicate))
     val after = subPlanBuilder
       .repeatTrail(rewrittenTrailParams)
@@ -117,7 +121,10 @@ class RepeatEndNodePredicateRewriterTest extends CypherFunSuite with LogicalPlan
       .allNodeScan("a")
       .build()
 
-    val newEndNodePredicate = ands(equals(varFor("m_i"), varFor("a")))
+    val newEndNodePredicate = EndNodePredicates(
+      ands(equals(varFor(`TRAIL (a) ((n)-[r]-(m))+ (b)`.end), varFor("a"))),
+      ands(equals(varFor(`TRAIL (a) ((n)-[r]-(m))+ (b)`.innerEnd), varFor("a")))
+    )
     val rewrittenWalkParams = `WALK (a) ((n)-[r]-(m))+ (b)`.copy(endNodePredicate = Some(newEndNodePredicate))
     val after = subPlanBuilder
       .repeatWalk(rewrittenWalkParams)

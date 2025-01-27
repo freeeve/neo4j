@@ -718,7 +718,8 @@ class VarLengthPlanningIntegrationTest
           "anon_0",
           Set(),
           Set(("r", "r")),
-          reverseGroupVariableProjections = true
+          reverseGroupVariableProjections = true,
+          None
         ))
         .|.expandAll("(anon_1)<-[r:R]-(anon_0)")
         .|.argument("anon_1")

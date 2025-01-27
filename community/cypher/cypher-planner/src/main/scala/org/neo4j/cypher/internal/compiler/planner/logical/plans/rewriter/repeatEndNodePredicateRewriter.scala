@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.expressions.PathExpression
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
 import org.neo4j.cypher.internal.logical.plans.Selection
@@ -73,12 +74,21 @@ case class repeatEndNodePredicateRewriter(attributes: Attributes[LogicalPlan]) e
     predicates.endoRewrite(rewriter)
   }
 
-  private def mergeEndNodePredicates(prevEndNodePredicates: Option[Ands], endNodePredicates: Ands): Ands = {
+  private def mergeEndNodePredicates(
+    prevEndNodePredicates: Option[EndNodePredicates],
+    endNodePredicates: Ands,
+    pushedDownEndNodePredicates: Ands
+  ): EndNodePredicates = {
     val newEndNodePredicates = prevEndNodePredicates match {
       case Some(predicates) =>
-        Ands(endNodePredicates.exprs ++ predicates.exprs)(endNodePredicates.position)
+        val mergedEndNodePredicates =
+          Ands(endNodePredicates.exprs ++ predicates.zeroRepetition.exprs)(pushedDownEndNodePredicates.position)
+        val mergedPushedDownEndNodePredicates = Ands(
+          pushedDownEndNodePredicates.exprs ++ predicates.otherRepetitions.exprs
+        )(pushedDownEndNodePredicates.position)
+        EndNodePredicates(mergedEndNodePredicates, mergedPushedDownEndNodePredicates)
       case None =>
-        Ands(endNodePredicates.exprs)(endNodePredicates.position)
+        EndNodePredicates(endNodePredicates, pushedDownEndNodePredicates)
     }
     newEndNodePredicates
   }
@@ -129,8 +139,8 @@ case class repeatEndNodePredicateRewriter(attributes: Attributes[LogicalPlan]) e
           )
         ) =>
         if (!isRewritable(predicates, nodeVariableGroupings, relationshipVariableGroupings, end.name)) {
-          val rewrittenAnds = renameEnd(innerEnd, end, predicates)
-          val newEndNodePredicates = mergeEndNodePredicates(existingEndNodePredicate, rewrittenAnds)
+          val rewrittenPredicates = renameEnd(innerEnd, end, predicates)
+          val newEndNodePredicates = mergeEndNodePredicates(existingEndNodePredicate, predicates, rewrittenPredicates)
           val id = attributes.copy(s.id).id()
           r.copy(endNodePredicate = Some(newEndNodePredicates))(SameId(id))
         } else {
@@ -154,8 +164,8 @@ case class repeatEndNodePredicateRewriter(attributes: Attributes[LogicalPlan]) e
           )
         ) =>
         if (!isRewritable(predicates, nodeVariableGroupings, relationshipVariableGroupings, end.name)) {
-          val rewrittenAnds = renameEnd(innerEnd, end, predicates)
-          val newEndNodePredicates = mergeEndNodePredicates(existingEndNodePredicates, rewrittenAnds)
+          val rewrittenPredicates = renameEnd(innerEnd, end, predicates)
+          val newEndNodePredicates = mergeEndNodePredicates(existingEndNodePredicates, predicates, rewrittenPredicates)
           val id = attributes.copy(s.id).id()
           r.copy(endNodePredicate = Some(newEndNodePredicates))(SameId(id))
         } else {

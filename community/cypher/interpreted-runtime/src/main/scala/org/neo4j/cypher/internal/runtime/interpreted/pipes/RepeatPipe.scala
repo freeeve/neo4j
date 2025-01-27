@@ -30,10 +30,12 @@ import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IsNoValue
 import org.neo4j.cypher.internal.runtime.PrefetchingIterator
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.EndNodeCommandPredicates
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.TrailModeConstraint
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.TraversalModeConstraint
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.WalkModeConstraint
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.emptyLists
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.testEndNodePredicate
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.exceptions.InternalException
@@ -104,7 +106,7 @@ case class RepeatPipe(
   groupRelationships: Set[VariableGrouping],
   uniquenessConstraint: TraversalModeConstraint,
   reverseGroupVariableProjections: Boolean,
-  maybeEndNodePredicate: Option[Expression]
+  maybeEndNodePredicate: Option[EndNodeCommandPredicates]
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) {
 
   private val groupNodeNames = groupNodes.toArray.sortBy(_.singleton.name)
@@ -232,6 +234,21 @@ case class RepeatPipe(
             private var stackHead: LegacyRepeatState = _
             private var emitFirst = repetition.min == 0
 
+            private def allocateZeroRepetitionResultRowOrNull(): CypherRow = {
+              if (emitFirst) {
+                emitFirst = false
+                val resultRow =
+                  outerRow.copyWith(computeNewEntries(emptyGroupNodes, emptyGroupRelationships, startNode))
+                if (testEndNodePredicate(endNodePredicate, resultRow, state, isZeroRep = true)) {
+                  resultRow
+                } else {
+                  null
+                }
+              } else {
+                null
+              }
+            }
+
             override protected[this] def closeMore(): Unit = {
               if (stackHead != null) {
                 stackHead.close()
@@ -242,11 +259,9 @@ case class RepeatPipe(
 
             @tailrec
             def produceNext(): Option[CypherRow] = {
-              if (emitFirst) {
-                emitFirst = false
-                val resultRow =
-                  outerRow.copyWith(computeNewEntries(emptyGroupNodes, emptyGroupRelationships, startNode))
-                Some(resultRow)
+              val firstRowOrNull = allocateZeroRepetitionResultRowOrNull()
+              if (firstRowOrNull != null) {
+                Some(firstRowOrNull)
               } else if (innerResult.hasNext) {
                 val row = innerResult.next()
                 val innerEndNode = castOrFail[VirtualNodeValue](row.getByName(innerEnd))
@@ -259,8 +274,12 @@ case class RepeatPipe(
                 }
                 // if iterated long enough emit, otherwise recurse
                 if (
-                  stackHead.iterations >= repetition.min &&
-                  (endNodePredicate == null || (endNodePredicate(row, state) eq Values.TRUE))
+                  stackHead.iterations >= repetition.min && testEndNodePredicate(
+                    endNodePredicate,
+                    row,
+                    state,
+                    isZeroRep = false
+                  )
                 ) {
                   val resultRow = row.copyWith(computeNewEntries(newGroupNodes, newGroupRels, innerEndNode))
                   Some(resultRow)
@@ -349,4 +368,21 @@ object RepeatPipe {
   ) extends TraversalModeConstraint
 
   case object WalkModeConstraint extends TraversalModeConstraint
+
+  case class EndNodeCommandPredicates(zeroRepetition: Expression, otherRepetitions: Expression)
+
+  def testEndNodePredicate(
+    endNodePredicate: EndNodeCommandPredicates,
+    row: CypherRow,
+    state: QueryState,
+    isZeroRep: Boolean
+  ): Boolean = {
+    endNodePredicate == null || {
+      val result = if (isZeroRep)
+        endNodePredicate.zeroRepetition(row, state)
+      else
+        endNodePredicate.otherRepetitions(row, state)
+      result eq Values.TRUE
+    }
+  }
 }

@@ -349,6 +349,7 @@ import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.RenameRole
 import org.neo4j.cypher.internal.logical.plans.RenameServer
 import org.neo4j.cypher.internal.logical.plans.RenameUser
+import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.logical.plans.RepeatOptions
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
@@ -8287,7 +8288,10 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
   }
 
   test("Repeat(Trail)") {
-    val endNodePredicate = Some(Ands(Seq(LessThan(prop("end", "prop"), number("42"))(pos)))(pos))
+    val endNodePredicate = Some(EndNodePredicates(
+      Ands(Seq(LessThan(prop("end", "prop"), number("42"))(pos)))(pos),
+      Ands(Seq(LessThan(prop("inner_end", "prop"), number("42"))(pos)))(pos)
+    ))
 
     assertGood(
       attach(
@@ -8397,7 +8401,10 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
   }
 
   test("Repeat(Walk)") {
-    val endNodePredicate = Some(Ands(Seq(LessThan(prop("end", "prop"), number("42"))(pos)))(pos))
+    val endNodePredicate = Some(EndNodePredicates(
+      Ands(Seq(LessThan(prop("end", "prop"), number("42"))(pos)))(pos),
+      Ands(Seq(LessThan(prop("inner_end", "prop"), number("42"))(pos)))(pos)
+    ))
 
     assertGood(
       attach(

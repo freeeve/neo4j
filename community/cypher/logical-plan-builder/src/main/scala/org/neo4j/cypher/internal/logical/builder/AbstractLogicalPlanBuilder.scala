@@ -220,6 +220,7 @@ import org.neo4j.cypher.internal.logical.plans.RelationshipIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
+import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.logical.plans.RepeatOptions
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
@@ -3382,7 +3383,7 @@ object AbstractLogicalPlanBuilder {
     previouslyBoundRelationships: Set[String],
     previouslyBoundRelationshipGroups: Set[String],
     reverseGroupVariableProjections: Boolean,
-    endNodePredicate: Option[Ands]
+    endNodePredicate: Option[EndNodePredicates]
   )
 
   case class WalkParameters(
@@ -3395,7 +3396,7 @@ object AbstractLogicalPlanBuilder {
     groupNodes: Set[(String, String)],
     groupRelationships: Set[(String, String)],
     reverseGroupVariableProjections: Boolean,
-    endNodePredicate: Option[Ands]
+    endNodePredicate: Option[EndNodePredicates]
   )
 
   def createPattern(
