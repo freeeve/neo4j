@@ -34,7 +34,6 @@ import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
-import org.neo4j.cypher.internal.planner.spi.DatabaseMode.SHARDED
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.EffectiveCardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.LabelAndRelTypeInfos
@@ -102,7 +101,6 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
         context.logicalPlanIdGen
       )),
       Some(RemoveUnusedGroupVariablesRewriter),
-      Option.when(context.planContext.databaseMode == SHARDED)(MergeRemoteBatchPropertiesRewriter),
       Option.when(context.config.gpmShortestToLegacyShortestEnabled())(
         StatefulShortestToFindShortestRewriter(
           solveds,

@@ -29,8 +29,6 @@ import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.AndedPropertyInequalitiesRemoved
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.CardinalityRewriter
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.LogicalPlanRewritten
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.MergeRemoteBatchPropertiesRewriter
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RemoteBatchPropertiesFilterMergeRewriter
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.LogicalPlanContainsEagerIfNeeded
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.InsertCachedProperties.PropertyUsages
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.InsertCachedProperties.PropertyUsagesAndRenamings
@@ -144,7 +142,10 @@ case class InsertCachedProperties(pushdownPropertyReads: Boolean)
       ))
 
     if (
-      context.materializedEntitiesMode || remoteBatchPropertiesImplementation == RemoteBatchPropertiesImplementation.PLANNER
+      context.materializedEntitiesMode || (
+        context.planContext.databaseMode == DatabaseMode.SHARDED &&
+          remoteBatchPropertiesImplementation == RemoteBatchPropertiesImplementation.PLANNER
+      )
     ) {
       // When working with materialized entities only, caching properties is not useful.
       // Moreover, the runtime implementation of CachedProperty does not work with virtual entities.
@@ -153,13 +154,10 @@ case class InsertCachedProperties(pushdownPropertyReads: Boolean)
 
     val logicalPlan =
       // always push down property reads in a sharded properties database
-      if (
-        pushdownPropertyReads ||
-        context.planContext.databaseMode == DatabaseMode.SHARDED && remoteBatchPropertiesImplementation == RemoteBatchPropertiesImplementation.REWRITER
-      ) {
+      if (pushdownPropertyReads) {
         val effectiveCardinalities = from.planningAttributes.effectiveCardinalities
         val attributes = from.planningAttributes.asAttributes(context.logicalPlanIdGen)
-        val newPlan = PushdownPropertyReads.pushdown(
+        PushdownPropertyReads.pushdown(
           from.logicalPlan,
           effectiveCardinalities,
           attributes,
@@ -167,11 +165,6 @@ case class InsertCachedProperties(pushdownPropertyReads: Boolean)
           if (from.logicalPlan.readOnly) context.planContext.databaseMode else DatabaseMode.SINGLE,
           context.cancellationChecker
         )
-        if (context.config.cachePropertiesForEntitiesWithFilter())
-          newPlan.endoRewrite(RemoteBatchPropertiesFilterMergeRewriter)
-            .endoRewrite(MergeRemoteBatchPropertiesRewriter)
-        else
-          newPlan
       } else {
         from.logicalPlan
       }

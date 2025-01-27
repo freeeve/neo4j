@@ -1512,7 +1512,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
 
     public enum RemoteBatchPropertiesImplementation {
         PLANNER,
-        REWRITER,
         SKIP_REMOTE_BATCHING
     }
 
@@ -1522,7 +1521,7 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             newBuilder(
                             "internal.cypher.remote_batch_properties_implementation",
                             ofEnum(RemoteBatchPropertiesImplementation.class),
-                            RemoteBatchPropertiesImplementation.REWRITER)
+                            RemoteBatchPropertiesImplementation.PLANNER)
                     .build();
 
     @Internal

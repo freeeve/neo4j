@@ -37,11 +37,13 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
+import org.neo4j.cypher.internal.ir.ast.IRExpression
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
 import org.neo4j.cypher.internal.logical.plans.CanGetValue
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
 import org.neo4j.cypher.internal.logical.plans.RewrittenExpressions
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.SHARDED
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
@@ -51,6 +53,7 @@ import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
+import org.neo4j.cypher.internal.util.topDown
 
 sealed trait RemoteBatchingStrategy {
 
@@ -270,7 +273,7 @@ object RemoteBatchingStrategy {
       propsAccessForPredsMap: PropertyAccessInPredicates,
       contextualPropertyAccess: ContextualPropertyAccess
     ): Boolean = {
-      val allHorizonAcceses = contextualPropertyAccess.horizon
+      val allHorizonAcceses = contextualPropertyAccess.horizon ++ contextualPropertyAccess.interestingOrder
       val propertyAccess = PropertyAccess(
         propertyPredicate.variable,
         propertyPredicate.propertyKeyName.name
@@ -416,7 +419,7 @@ object RemoteBatchingStrategy {
     ) = {
       val alreadyCachedProperties =
         context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(inputPlan.id)
-      bottomUp.apply(
+      topDown.apply(
         rewriter = Rewriter.lift {
           case property @ Property(logicalVariable: LogicalVariable, propertyKeyName)
             if inputPlan.availableSymbols.contains(logicalVariable) =>
@@ -427,6 +430,10 @@ object RemoteBatchingStrategy {
               propertyKeyName,
               property.position
             ).getOrElse(property)
+        },
+        stopper = {
+          case _: IRExpression => true // This gets planned in the SubQueryExpressionSolvers instead.
+          case _               => false
         },
         cancellation = context.staticComponents.cancellationChecker
       )
@@ -544,6 +551,7 @@ object RemoteBatchingStrategy {
         context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(input.id)
 
       expressions.folder.treeFold(Set[CachedProperty]()) {
+        case _: NestedPlanExpression => set => SkipChildren(set)
         case cachedProperty: CachedProperty
           if !alreadyCachedProperties.contains(cachedProperty.entityVariable, cachedProperty.propertyKey) =>
           set =>

@@ -164,6 +164,32 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest
       )
       .build()
   }
+
+  test("Should be able to handle ExistsIRExpressions") {
+    val query =
+      """
+        |MATCH (person:Person)
+        |      WITH DISTINCT person
+        |      WHERE EXISTS {
+        |        MATCH (person)-[:HAS_DOG]->(dog:Dog)
+        |        WHERE person.firstName = dog.name
+        |      }
+        |      RETURN person.firstName as name
+        |""".stripMargin
+
+    planner.plan(query) should
+      equal(planner
+        .planBuilder()
+        .produceResults("name")
+        .projection("cacheN[person.firstName] AS name")
+        .semiApply()
+        .|.filter("cacheN[person.firstName] = cacheN[dog.name]", "dog:Dog")
+        .|.remoteBatchProperties("cacheNFromStore[person.firstName]", "cacheNFromStore[dog.name]")
+        .|.expandAll("(person)-[anon_0:HAS_DOG]->(dog)")
+        .|.argument("person")
+        .nodeByLabelScan("person", "Person", IndexOrderAscending)
+        .build())
+  }
 }
 
 class ParallelRuntimeRemoteBatchPropertiesPlanningIntegrationTest
@@ -266,6 +292,16 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       isUnique = true
     )
     .setExecutionModel(executionModel)
+    .setLabelCardinality("Dog", 10)
+    .setRelationshipCardinality("()-[:HAS_DOG]->()", 10)
+    .setRelationshipCardinality("(:Person)-[:HAS_DOG]->()", 10)
+    .setRelationshipCardinality("()-[:HAS_DOG]->(:Person)", 10)
+    .setRelationshipCardinality("(:Person)-[:HAS_DOG]->(:Person)", 10)
+    .setRelationshipCardinality("(:Person)-[:HAS_DOG]->(:Dog)", 10)
+    .setRelationshipCardinality("()-[:FRIEND]->()", 10)
+    .setRelationshipCardinality("(:Person)-[:FRIEND]->()", 10)
+    .setRelationshipCardinality("()-[:FRIEND]->(:Person)", 10)
+    .setRelationshipCardinality("(:Person)-[:FRIEND]->(:Person)", 10)
     .build()
 
   test("should batch node properties") {

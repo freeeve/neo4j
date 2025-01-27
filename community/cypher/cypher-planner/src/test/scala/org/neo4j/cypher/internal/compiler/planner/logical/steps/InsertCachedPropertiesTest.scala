@@ -2932,7 +2932,7 @@ class InsertCachedPropertiesTest extends CypherFunSuite with PlanMatchHelp with 
     cachePropertiesForEntities: Boolean = true,
     databaseMode: DatabaseMode = DatabaseMode.SINGLE,
     remoteBatchPropertiesImplementation: RemoteBatchPropertiesImplementation =
-      RemoteBatchPropertiesImplementation.REWRITER
+      RemoteBatchPropertiesImplementation.PLANNER
   ): (LogicalPlan, SemanticTable) = {
     val state = LogicalPlanState(InitialState("", IDPPlannerName, new AnonymousVariableNameGenerator))
       .withSemanticTable(initialTable)

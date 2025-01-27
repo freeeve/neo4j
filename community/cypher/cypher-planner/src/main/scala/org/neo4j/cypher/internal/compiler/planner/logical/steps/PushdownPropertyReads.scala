@@ -47,7 +47,6 @@ import org.neo4j.cypher.internal.logical.plans.OrderedAggregation
 import org.neo4j.cypher.internal.logical.plans.OrderedUnion
 import org.neo4j.cypher.internal.logical.plans.ProjectingPlan
 import org.neo4j.cypher.internal.logical.plans.RelationshipIndexLeafPlan
-import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RollUpApply
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.SetNodeProperties
@@ -459,7 +458,7 @@ case object PushdownPropertyReads {
         }
         dataBaseMode match {
           case DatabaseMode.SHARDED =>
-            RemoteBatchProperties(lp, copiedProperties)(attributes.copy(lp.id))
+            lp
           case _ =>
             CacheProperties(lp, copiedProperties)(attributes.copy(lp.id))
         }
