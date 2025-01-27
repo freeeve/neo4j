@@ -19,10 +19,11 @@
  */
 package org.neo4j.storageengine.api.txstate.validation;
 
+import static org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_25N11;
+
 import java.util.Arrays;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.TransientFailureException;
 import org.neo4j.io.layout.DatabaseFile;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseFile;
@@ -32,63 +33,30 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class TransactionConflictException extends TransientFailureException {
 
     private static final String GENERIC_MESSAGE = "Transaction conflict validation failed.";
+    private static final ErrorGqlStatusObject GQL_STATUS =
+            ErrorGqlStatusObjectImplementation.from(STATUS_25N11).build();
     private DatabaseFile databaseFile;
     private long observedVersion;
     private long highestClosed;
 
-    private TransactionConflictException(
-            ErrorGqlStatusObject gqlStatusObject,
-            DatabaseFile databaseFile,
-            VersionContext versionContext,
-            long pageId) {
-        super(gqlStatusObject, createMessage(databaseFile.getName(), pageId, versionContext));
-
+    public TransactionConflictException(DatabaseFile databaseFile, VersionContext versionContext, long pageId) {
+        super(GQL_STATUS, createMessage(databaseFile.getName(), pageId, versionContext));
         this.databaseFile = databaseFile;
         this.observedVersion = versionContext.chainHeadVersion();
         this.highestClosed = versionContext.highestClosed();
     }
 
-    private TransactionConflictException(ErrorGqlStatusObject gqlStatusObject, String message, Exception cause) {
-        super(gqlStatusObject, message, cause);
+    public TransactionConflictException(String message, Exception cause) {
+        super(GQL_STATUS, message, cause);
     }
 
-    private TransactionConflictException(ErrorGqlStatusObject gqlStatusObject, Exception cause) {
-        this(gqlStatusObject, GENERIC_MESSAGE, cause);
+    public TransactionConflictException(Exception cause) {
+        this(GENERIC_MESSAGE, cause);
     }
 
-    private TransactionConflictException(
-            ErrorGqlStatusObject gqlStatusObject, RecordDatabaseFile databaseFile, long pageId) {
-        super(gqlStatusObject, createPageIdPagedMessage(databaseFile.getName(), pageId));
-
+    public TransactionConflictException(RecordDatabaseFile databaseFile, long pageId) {
+        super(GQL_STATUS, createPageIdPagedMessage(databaseFile.getName(), pageId));
         this.databaseFile = databaseFile;
-    }
-
-    public static TransactionConflictException transactionConflict(Exception e) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                .build();
-        return new TransactionConflictException(gql, e);
-    }
-
-    public static TransactionConflictException transactionConflict(RecordDatabaseFile databaseFile, long pageId) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                .build();
-        return new TransactionConflictException(gql, databaseFile, pageId);
-    }
-
-    public static TransactionConflictException transactionConflict(
-            RecordDatabaseFile databaseFile, VersionContext versionContext, long pageId) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                .build();
-        return new TransactionConflictException(gql, databaseFile, versionContext, pageId);
-    }
-
-    public static TransactionConflictException concurrentModification(Exception e) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N11)
-                .build();
-        return new TransactionConflictException(
-                gql,
-                "Concurrent modification exception. Constraint to be removed already removed by another transaction.",
-                e);
     }
 
     @Override

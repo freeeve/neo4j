@@ -100,7 +100,7 @@ public class TransactionCommandValidator implements CommandVisitor, TransactionV
         } catch (TransactionConflictException tce) {
             throw tce;
         } catch (Exception e) {
-            throw TransactionConflictException.transactionConflict(e);
+            throw new TransactionConflictException(e);
         } finally {
             closeCursors();
         }
@@ -256,7 +256,7 @@ public class TransactionCommandValidator implements CommandVisitor, TransactionV
         long resourceId = pageId | ((long) position << PAGE_ID_BITS);
         if (failFast) {
             if (!validationLockClient.tryExclusiveLock(PAGE, resourceId)) {
-                throw TransactionConflictException.transactionConflict(storeType.getDatabaseFile(), pageId);
+                throw new TransactionConflictException(storeType.getDatabaseFile(), pageId);
             }
         } else {
             validationLockClient.acquireExclusive(lockTracer, PAGE, resourceId);
@@ -264,8 +264,7 @@ public class TransactionCommandValidator implements CommandVisitor, TransactionV
         if (pageCursor.next(pageId)) {
             if (versionContext.invisibleHeadObserved()) {
                 transactionMonitor.transactionValidationFailure(storeType.getDatabaseFile());
-                throw TransactionConflictException.transactionConflict(
-                        storeType.getDatabaseFile(), versionContext, pageId);
+                throw new TransactionConflictException(storeType.getDatabaseFile(), versionContext, pageId);
             }
         }
         checkedStorePages.add(pageId);

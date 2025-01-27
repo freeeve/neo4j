@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.exceptions.CypherExecutionException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.gqlstatus.DiagnosticRecord;
 import org.neo4j.gqlstatus.ErrorClassification;
@@ -35,7 +36,6 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.DatabaseShutdownException;
 import org.neo4j.kernel.DeadlockDetectedException;
 import org.neo4j.kernel.api.exceptions.Status;
-import org.neo4j.storageengine.api.txstate.validation.TransactionConflictException;
 
 class ErrorTest {
     @Test
@@ -187,7 +187,7 @@ class ErrorTest {
         @Test
         void shouldHandleGqlErrorWithCause() {
             // Given
-            var cause = transactionConflictException();
+            var cause = gqlException();
             var ex = invalidArgumentException(cause);
 
             // When
@@ -214,7 +214,7 @@ class ErrorTest {
         @Test
         void shouldHandleExceptionCausedGqlErrorCause() {
             // Given
-            var cause = transactionConflictException();
+            var cause = gqlException();
             var gqlEx = invalidArgumentException(cause);
             var ex = new RuntimeException("Something is rotten", gqlEx);
 
@@ -255,8 +255,8 @@ class ErrorTest {
             return new InvalidArgumentException(gql, "Can't specify both allowed and denied databases", exceptionCause);
         }
 
-        static TransactionConflictException transactionConflictException() {
-            return TransactionConflictException.concurrentModification(null);
+        static CypherExecutionException gqlException() {
+            return CypherExecutionException.createEntity("foo", "bar");
         }
     }
 }
