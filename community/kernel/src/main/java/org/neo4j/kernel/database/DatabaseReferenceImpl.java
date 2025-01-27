@@ -359,6 +359,14 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
     }
 
     public static final class SPD extends DatabaseReferenceImpl.Internal {
+        public static String graphShardName(String databaseName) {
+            return String.format("%s-g000", databaseName);
+        }
+
+        public static String propertyShardName(String databaseName, int index) {
+            return String.format("%s-p%03d", databaseName, index);
+        }
+
         private static final Pattern pattern = Pattern.compile("(.)+(-shard-)([0-9][0-9])");
 
         public static String shardName(String databaseName, int index) {
