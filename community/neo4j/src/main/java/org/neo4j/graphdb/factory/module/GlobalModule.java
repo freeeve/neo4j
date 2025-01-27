@@ -298,9 +298,7 @@ public class GlobalModule {
     }
 
     private <T> T tryResolveOrCreate(Class<T> clazz, Supplier<T> newInstanceMethod) {
-        return externalDependencyResolver.containsDependency(clazz)
-                ? externalDependencyResolver.resolveDependency(clazz)
-                : newInstanceMethod.get();
+        return externalDependencyResolver.resolveOptionalDependency(clazz).orElseGet(newInstanceMethod);
     }
 
     protected FileLockerService createFileLockerService() {

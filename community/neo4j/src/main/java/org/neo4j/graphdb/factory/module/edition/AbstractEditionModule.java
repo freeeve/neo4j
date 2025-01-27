@@ -250,7 +250,7 @@ public abstract class AbstractEditionModule {
 
     public static <T> T tryResolveOrCreate(
             Class<T> clazz, DependencyResolver dependencies, Supplier<T> newInstanceMethod) {
-        return dependencies.containsDependency(clazz) ? dependencies.resolveDependency(clazz) : newInstanceMethod.get();
+        return dependencies.resolveOptionalDependency(clazz).orElseGet(newInstanceMethod);
     }
 
     public static IdContextFactory createIdContextFactory(GlobalModule globalModule) {

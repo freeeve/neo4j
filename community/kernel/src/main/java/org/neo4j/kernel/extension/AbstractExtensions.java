@@ -25,6 +25,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.exceptions.UnsatisfiedDependencyException;
@@ -99,6 +100,15 @@ public abstract class AbstractExtensions implements DependencyResolver, Lifecycl
                 .filter(type::isInstance)
                 .map(type::cast)
                 .toList();
+    }
+
+    @Override
+    public <T> Optional<T> resolveOptionalDependency(Class<T> type) {
+        Iterable<T> typeDependencies = resolveTypeDependencies(type);
+        if (!typeDependencies.iterator().hasNext()) {
+            return Optional.empty();
+        }
+        return Optional.of(SelectionStrategy.SINGLE.select(type, typeDependencies));
     }
 
     @Override

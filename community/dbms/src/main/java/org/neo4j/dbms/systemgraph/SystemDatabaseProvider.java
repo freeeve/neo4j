@@ -60,10 +60,7 @@ public interface SystemDatabaseProvider {
 
     static <T> Optional<T> dependency(DependencyResolver dependencies, Class<T> type)
             throws SystemDatabaseUnavailableException {
-        if (dependencies.containsDependency(type)) {
-            return Optional.of(dependencies.resolveDependency(type));
-        }
-        return Optional.empty();
+        return dependencies.resolveOptionalDependency(type);
     }
 
     private static <T> Optional<T> query(

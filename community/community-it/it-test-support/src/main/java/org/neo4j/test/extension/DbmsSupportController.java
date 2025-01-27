@@ -203,9 +203,8 @@ public class DbmsSupportController {
     private static void injectInstance(Object testInstance, List<Field> injectables, DependencyResolver dependencies) {
         for (Field injectable : injectables) {
             var fieldType = injectable.getType();
-            if (dependencies.containsDependency(fieldType)) {
-                setField(testInstance, injectable, dependencies.resolveDependency(fieldType));
-            }
+            var possibleDependency = dependencies.resolveOptionalDependency(fieldType);
+            possibleDependency.ifPresent(o -> setField(testInstance, injectable, o));
         }
     }
 

@@ -62,16 +62,14 @@ public class DefaultDatabaseDetailsExtrasProvider {
 
     private static Optional<Long> fetchLastAppendIndex(Optional<? extends DatabaseContext> context) {
         return context.map(DatabaseContext::dependencies)
-                .filter(dependencies -> dependencies.containsDependency(MetadataProvider.class))
-                .map(dependencies -> dependencies.resolveDependency(MetadataProvider.class))
+                .flatMap(dependencyResolver -> dependencyResolver.resolveOptionalDependency(MetadataProvider.class))
                 .flatMap(applyIndexProvider ->
                         Optional.of(applyIndexProvider.getLastCommittedBatch().appendIndex()));
     }
 
     private static Optional<Long> fetchLastCommittedTxId(Optional<? extends DatabaseContext> context) {
         return context.map(DatabaseContext::dependencies)
-                .filter(dependencies -> dependencies.containsDependency(TransactionIdStore.class))
-                .map(dependencies -> dependencies.resolveDependency(TransactionIdStore.class))
+                .flatMap(dependencyResolver -> dependencyResolver.resolveOptionalDependency(TransactionIdStore.class))
                 .flatMap(transactionIdStore -> {
                     try {
                         return Optional.of(transactionIdStore.getLastCommittedTransactionId());
@@ -93,8 +91,7 @@ public class DefaultDatabaseDetailsExtrasProvider {
 
     private static Optional<ExternalStoreId> fetchExternalStoreId(Optional<? extends DatabaseContext> context) {
         return context.map(DatabaseContext::dependencies)
-                .filter(dependencies -> dependencies.containsDependency(StoreIdProvider.class))
-                .map(dependencies -> dependencies.resolveDependency(StoreIdProvider.class))
+                .flatMap(dependencyResolver -> dependencyResolver.resolveOptionalDependency(StoreIdProvider.class))
                 .flatMap(storeIdProvider -> {
                     try {
                         return Optional.of(storeIdProvider.getExternalStoreId());

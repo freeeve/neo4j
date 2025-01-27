@@ -389,11 +389,13 @@ public class LogFilesBuilder {
         if (appendIndexProvider != null) {
             return appendIndexProvider::getLastAppendIndex;
         }
-        if (dependencies != null && dependencies.containsDependency(MetadataProvider.class)) {
-            MetadataProvider metadataProvider = resolveDependency(MetadataProvider.class);
-            return metadataProvider::getLastAppendIndex;
+        if (dependencies == null) {
+            return null;
         }
-        return null;
+        return dependencies
+                .resolveOptionalDependency(MetadataProvider.class)
+                .map(provider -> (LastAppendIndexProvider) provider::getLastAppendIndex)
+                .orElse(null);
     }
 
     private LastAppendIndexProvider lastAppendIndexProvider(LastAppendIndexProvider availableProvider) {
@@ -452,10 +454,12 @@ public class LogFilesBuilder {
         if (nativeAccess != null) {
             return nativeAccess;
         }
-        if (dependencies != null && dependencies.containsDependency(NativeAccess.class)) {
-            return dependencies.resolveDependency(NativeAccess.class);
+        if (dependencies == null) {
+            return NativeAccessProvider.getNativeAccess();
         }
-        return NativeAccessProvider.getNativeAccess();
+        return dependencies
+                .resolveOptionalDependency(NativeAccess.class)
+                .orElseGet(NativeAccessProvider::getNativeAccess);
     }
 
     private int getBufferSizeBytes() {
@@ -539,12 +543,12 @@ public class LogFilesBuilder {
         if (logFileVersionTracker != null) {
             return logFileVersionTracker;
         }
-
-        if (dependencies != null && dependencies.containsDependency(LogFileVersionTracker.class)) {
-            return resolveDependency(LogFileVersionTracker.class);
+        if (dependencies == null) {
+            return LogFileVersionTracker.NO_OP;
         }
-
-        return LogFileVersionTracker.NO_OP;
+        return dependencies
+                .resolveOptionalDependency(LogFileVersionTracker.class)
+                .orElse(LogFileVersionTracker.NO_OP);
     }
 
     private LastAppendIndexLogFilesProvider lastAppendIndexLogFilesProvider(

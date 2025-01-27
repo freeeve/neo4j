@@ -24,6 +24,7 @@ import static org.apache.commons.lang3.ClassUtils.getAllSuperclasses;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.multimap.set.MutableSetMultimap;
@@ -64,9 +65,9 @@ public class Dependencies implements DependencyResolver, DependencySatisfier {
 
     @Override
     public <T> T resolveDependency(Class<T> type, SelectionStrategy selector) {
-        RichIterable<Object> options = typeDependencies.get(type);
-        if (options.notEmpty()) {
-            return selector.select(type, (Iterable<T>) options);
+        var value = resolveLocalDependency(type, selector);
+        if (value != null) {
+            return value;
         }
 
         // Try parent
@@ -76,6 +77,21 @@ public class Dependencies implements DependencyResolver, DependencySatisfier {
 
         // Out of options
         throw new UnsatisfiedDependencyException(type);
+    }
+
+    @Override
+    public <T> Optional<T> resolveOptionalDependency(Class<T> type) {
+        var value = resolveLocalDependency(type, SelectionStrategy.SINGLE);
+        if (value != null) {
+            return Optional.of(value);
+        }
+
+        // Try parent
+        if (parent != null) {
+            return parent.resolveOptionalDependency(type);
+        }
+
+        return Optional.empty();
     }
 
     @Override
@@ -114,6 +130,14 @@ public class Dependencies implements DependencyResolver, DependencySatisfier {
             return parent.containsDependency(type);
         }
         return false;
+    }
+
+    private <T> T resolveLocalDependency(Class<T> type, SelectionStrategy selector) {
+        RichIterable<Object> options = typeDependencies.get(type);
+        if (options.notEmpty()) {
+            return selector.select(type, (Iterable<T>) options);
+        }
+        return null;
     }
 
     private <T> void addInterfaces(Class<?> type, T dependency) {

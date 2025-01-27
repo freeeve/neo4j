@@ -19,6 +19,7 @@
  */
 package org.neo4j.common;
 
+import java.util.Optional;
 import org.neo4j.exceptions.UnsatisfiedDependencyException;
 
 public class EmptyDependencyResolver implements DependencyResolver {
@@ -26,6 +27,11 @@ public class EmptyDependencyResolver implements DependencyResolver {
     public static final DependencyResolver EMPTY_RESOLVER = new EmptyDependencyResolver();
 
     private EmptyDependencyResolver() {}
+
+    @Override
+    public <T> Optional<T> resolveOptionalDependency(Class<T> type) {
+        return Optional.empty();
+    }
 
     @Override
     public <T> T resolveDependency(Class<T> type, SelectionStrategy selector) {

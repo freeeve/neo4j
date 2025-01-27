@@ -22,6 +22,7 @@ package org.neo4j.common;
 import static org.neo4j.common.DependencyResolver.SelectionStrategy.SINGLE;
 
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.neo4j.exceptions.UnsatisfiedDependencyException;
 
@@ -43,6 +44,16 @@ public interface DependencyResolver {
     default <T> T resolveDependency(Class<T> type) {
         return resolveDependency(type, SINGLE);
     }
+
+    /**
+     * Tries to resolve an optional dependency that matches a given class. {@link SelectionStrategy#SINGLE Single} selection strategy is always used to select dependencies
+     * among available candidates.
+     *
+     * @param type the type of {@link Class} that the returned instance must implement.
+     * @param <T> the type that the returned instance must implement
+     * @return optional with the resolved dependency for the given type or empty optional if dependency not found.
+     */
+    <T> Optional<T> resolveOptionalDependency(Class<T> type);
 
     /**
      * Tries to resolve a dependency that matches a given class. All candidates are fed to the

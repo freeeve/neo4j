@@ -180,10 +180,8 @@ public class CommunityQueryRouterBootstrap extends CommonQueryRouterBootstrap {
         registerWithLifecycle(new TransactionMonitorScheduler(txMonitor, jobScheduler, transactionCheckInterval, null));
         var routerTxManager = new RouterTransactionManager(txMonitor, config);
         dependencies.satisfyDependency(routerTxManager);
-        TransactionManager compositeTxManager = null;
-        if (dependencies.containsDependency(TransactionManager.class)) {
-            compositeTxManager = dependencies.resolveDependency(TransactionManager.class);
-        }
+        var compositeTxManager =
+                dependencies.resolveOptionalDependency(TransactionManager.class).orElse(null);
         var transactionLookup = new TransactionLookup(routerTxManager, compositeTxManager);
         dependencies.satisfyDependency(transactionLookup);
         var queryRouterLog = getLogService().getInternalLog(QueryRouter.class);

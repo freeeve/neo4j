@@ -28,6 +28,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.neo4j.collection.factory.CollectionsFactory;
+import org.neo4j.collection.factory.OnHeapCollectionsFactory;
 import org.neo4j.exceptions.UnsatisfiedDependencyException;
 
 class DependenciesTest {
@@ -141,5 +143,29 @@ class DependenciesTest {
         dependencies.satisfyDependency(bar);
 
         assertThrows(IllegalArgumentException.class, () -> dependencies.resolveDependency(List.class));
+    }
+
+    @Test
+    void resolveOptionalDependency() {
+        Dependencies dependencies = new Dependencies();
+        dependencies.satisfyDependency(OnHeapCollectionsFactory.INSTANCE);
+
+        assertThat(dependencies.resolveOptionalDependency(CollectionsFactory.class))
+                .isPresent()
+                .contains(OnHeapCollectionsFactory.INSTANCE);
+        assertThat(dependencies.resolveOptionalDependency(RawIterator.class)).isEmpty();
+    }
+
+    @Test
+    void resolveOptionalDependencyFromParent() {
+        Dependencies parent = new Dependencies();
+        parent.satisfyDependency(OnHeapCollectionsFactory.INSTANCE);
+        var localDependencies = new Dependencies(parent);
+
+        assertThat(localDependencies.resolveOptionalDependency(CollectionsFactory.class))
+                .isPresent()
+                .contains(OnHeapCollectionsFactory.INSTANCE);
+        assertThat(localDependencies.resolveOptionalDependency(RawIterator.class))
+                .isEmpty();
     }
 }

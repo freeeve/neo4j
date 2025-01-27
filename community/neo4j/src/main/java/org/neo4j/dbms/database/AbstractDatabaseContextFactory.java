@@ -83,11 +83,7 @@ public abstract class AbstractDatabaseContextFactory<CONTEXT, OPTIONS>
     private static Optional<VersionContextSupplier.Factory> externalVersionContextSupplierFactory(
             GlobalModule globalModule) {
         var externalDependencies = globalModule.getExternalDependencyResolver();
-        var klass = VersionContextSupplier.Factory.class;
-        if (externalDependencies.containsDependency(klass)) {
-            return Optional.of(externalDependencies.resolveDependency(klass));
-        }
-        return Optional.empty();
+        return externalDependencies.resolveOptionalDependency(VersionContextSupplier.Factory.class);
     }
 
     private static VersionContextSupplier.Factory internalVersionContextSupplierFactory(DatabaseConfig databaseConfig) {

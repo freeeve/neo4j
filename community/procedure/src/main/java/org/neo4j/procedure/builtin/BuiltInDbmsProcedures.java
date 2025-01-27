@@ -231,13 +231,13 @@ public class BuiltInDbmsProcedures {
         // There cannot be a query that is at the same in Composite caches and Query router caches.
         // The reason is that Composite queries don't go through Query Router at all.
         long clearedRouterAndCompositeQueries = 0;
-        if (graph.getDependencyResolver().containsDependency(FabricExecutor.class)) {
-            FabricExecutor fabricExecutor = graph.getDependencyResolver().resolveDependency(FabricExecutor.class);
-            clearedRouterAndCompositeQueries = fabricExecutor.clearQueryCachesForDatabase(graph.databaseName());
+        var optionalExecutor = graph.getDependencyResolver().resolveOptionalDependency(FabricExecutor.class);
+        if (optionalExecutor.isPresent()) {
+            clearedRouterAndCompositeQueries = optionalExecutor.get().clearQueryCachesForDatabase(graph.databaseName());
         }
-        if (graph.getDependencyResolver().containsDependency(QueryRouter.class)) {
-            QueryRouter queryRouter = graph.getDependencyResolver().resolveDependency(QueryRouter.class);
-            clearedRouterAndCompositeQueries += queryRouter.clearQueryCachesForDatabase(graph.databaseName());
+        var optionalRouter = graph.getDependencyResolver().resolveOptionalDependency(QueryRouter.class);
+        if (optionalRouter.isPresent()) {
+            clearedRouterAndCompositeQueries += optionalRouter.get().clearQueryCachesForDatabase(graph.databaseName());
         }
 
         if (kernelTransaction.isSPDTransaction()) {

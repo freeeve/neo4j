@@ -395,9 +395,9 @@ public class Database extends AbstractDatabase {
 
         // The CatalogManager has to update the dependency on TransactionIdStore when the system database is started
         // Note: CatalogManager does not exist in community edition if we use the new query router stack
-        if (this.isSystem() && databaseDependencies.containsDependency(AbstractCatalogManager.class)) {
-            var catalogManager = databaseDependencies.resolveDependency(AbstractCatalogManager.class);
-            life.add(catalogManager);
+        if (this.isSystem()) {
+            var optionalCatalogManager = databaseDependencies.resolveOptionalDependency(AbstractCatalogManager.class);
+            optionalCatalogManager.ifPresent(c -> life.add(c));
         }
     }
 
