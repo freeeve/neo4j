@@ -741,7 +741,11 @@ case class Match(
 
   override def clauseSpecificSemanticCheck: SemanticCheck =
     noImplicitJoinsInQuantifiedPathPatterns chain
-      SemanticPatternCheck.check(Pattern.SemanticContext.Match, pattern) ifOkChain {
+      SemanticPatternCheck.check(
+        Pattern.SemanticContext.Match,
+        pattern,
+        matchMode.requiresDifferentRelationships
+      ) ifOkChain {
         hints.semanticCheck chain
           uniqueHints chain
           checkMatchMode chain

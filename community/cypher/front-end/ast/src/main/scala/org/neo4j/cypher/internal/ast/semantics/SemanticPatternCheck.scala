@@ -90,20 +90,45 @@ import org.neo4j.cypher.internal.util.topDown
 object SemanticPatternCheck extends SemanticAnalysisTooling {
 
   def check(ctx: SemanticContext, pattern: Pattern): SemanticCheck =
+    check(ctx, pattern, requireDifferentRelationships = true)
+
+  def check(ctx: SemanticContext, pattern: Pattern, requireDifferentRelationships: Boolean): SemanticCheck =
     semanticCheckFold(pattern.patternParts)(declareVariables(ctx)) chain
       semanticCheckFold(pattern.patternParts)(check(ctx)) ifOkChain
       semanticCheckFold(pattern.patternParts)(checkMinimumNodeCount) ifOkChain
       when(ctx != SemanticContext.Create && ctx != SemanticContext.Insert) {
-        ensureNoIllegalReferencesOut(pattern) chain
-          ensureNoRepeatedRelationships(pattern) chain
-          ensureNoRepeatedVarLengthRelationships(pattern)
+        var checkPipeline =
+          ensureNoIllegalReferencesOut(pattern)
+
+        if (requireDifferentRelationships) {
+          checkPipeline = checkPipeline chain
+            ensureNoRepeatedRelationships(pattern) chain
+            ensureNoRepeatedVarLengthRelationships(pattern)
+        }
+
+        checkPipeline
       }
 
   def check(ctx: SemanticContext, pattern: RelationshipsPattern): SemanticCheck =
-    declareVariables(ctx, pattern.element) chain
-      check(ctx, pattern.element) chain
-      ensureNoRepeatedRelationships(pattern) chain
-      ensureNoRepeatedVarLengthRelationships(pattern)
+    check(ctx, pattern, requireDifferentRelationships = true)
+
+  def check(
+    ctx: SemanticContext,
+    pattern: RelationshipsPattern,
+    requireDifferentRelationships: Boolean
+  ): SemanticCheck = {
+    var checkPipeline =
+      declareVariables(ctx, pattern.element) chain
+        check(ctx, pattern.element)
+
+    if (requireDifferentRelationships) {
+      checkPipeline = checkPipeline chain
+        ensureNoRepeatedRelationships(pattern) chain
+        ensureNoRepeatedVarLengthRelationships(pattern)
+    }
+
+    checkPipeline
+  }
 
   def declareVariables(ctx: SemanticContext)(part: PatternPart): SemanticCheck =
     part match {
