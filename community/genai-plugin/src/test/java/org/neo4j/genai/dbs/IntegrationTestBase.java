@@ -300,7 +300,7 @@ abstract class IntegrationTestBase {
     @MethodSource("providers")
     final void getVectorsWithoutVectorResult(String provider, String baseUrl, boolean useToken) {
         Map<String, Object> conf = new HashMap<>();
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
         Helper.testResult(
                 database,
                 "CALL genai.vector.external.get($host, $collectionName, [$id1], $conf)",
@@ -329,7 +329,7 @@ abstract class IntegrationTestBase {
     final void queryVectors(String provider, String baseUrl, boolean useToken) {
         Map<String, Object> conf = new HashMap<>(
                 Map.of(RequestConfig.Keys.ALL_RESULTS.key(), true, RowMappingConfig.Keys.FIELDS.key(), FIELDS));
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
         Helper.testResult(
                 database,
                 "CALL genai.vector.external.query($host, $collectionName, [0.2, 0.1, 0.9, 0.7], null, 5, $conf) "
@@ -358,7 +358,7 @@ abstract class IntegrationTestBase {
     final void queryVectorsWithFilter(String provider, String baseUrl, boolean useToken) {
         Map<String, Object> conf = new HashMap<>(
                 Map.of(RequestConfig.Keys.ALL_RESULTS.key(), true, RowMappingConfig.Keys.FIELDS.key(), FIELDS));
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
         Helper.testResult(
                 database,
                 """
@@ -383,7 +383,7 @@ abstract class IntegrationTestBase {
     @MethodSource("providers")
     final void queryVectorsWithoutVectorResult(String provider, String baseUrl, boolean useToken) {
         Map<String, Object> conf = new HashMap<>(Map.of(RowMappingConfig.Keys.FIELDS.key(), FIELDS));
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
         Helper.testResult(
                 database,
                 "CALL genai.vector.external.query($host, $collectionName, [0.2, 0.1, 0.9, 0.7], null, 5, $conf) "
@@ -416,7 +416,7 @@ abstract class IntegrationTestBase {
     final void queryVectorsWithYield(String provider, String baseUrl, boolean useToken) {
         Map<String, Object> conf = new HashMap<>(
                 Map.of(RequestConfig.Keys.ALL_RESULTS.key(), true, RowMappingConfig.Keys.FIELDS.key(), FIELDS));
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
         Helper.testResult(
                 database,
                 "CALL genai.vector.external.query($host, $collectionName, [0.2, 0.1, 0.9, 0.7], null, 5, $conf) "
@@ -433,7 +433,7 @@ abstract class IntegrationTestBase {
     final void queryVectorsWithLimit(String provider, String baseUrl, boolean useToken) {
         Map<String, Object> conf = new HashMap<>(
                 Map.of(RequestConfig.Keys.ALL_RESULTS.key(), true, RowMappingConfig.Keys.FIELDS.key(), FIELDS));
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
         Helper.testResult(
                 database,
                 """
@@ -462,7 +462,7 @@ abstract class IntegrationTestBase {
                         "foo",
                         EntityMappingConfig.Keys.MODE.key(),
                         EntityMappingConfig.MappingMode.CREATE_IF_MISSING.toString())));
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
 
         Helper.testResult(
                 database,
@@ -533,7 +533,7 @@ abstract class IntegrationTestBase {
                         EntityMappingConfig.Keys.NODE_LABEL.key(), "Test",
                         EntityMappingConfig.Keys.ENTITY.key(), "myId",
                         EntityMappingConfig.Keys.METADATA.key(), "foo")));
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
         Helper.testResult(
                 database,
                 "CALL genai.vector.external.queryAndUpdate($host, $collectionName, [0.2, 0.1, 0.9, 0.7], null, 5, $conf) "
@@ -576,7 +576,7 @@ abstract class IntegrationTestBase {
                         EntityMappingConfig.Keys.ENTITY.key(), "myId",
                         EntityMappingConfig.Keys.METADATA.key(), "foo")));
 
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
         Helper.testResult(
                 database,
                 "CALL genai.vector.external.queryAndUpdate($host, $collectionName, [0.2, 0.1, 0.9, 0.7], null, 5, $conf) "
@@ -652,7 +652,7 @@ abstract class IntegrationTestBase {
                         EntityMappingConfig.Keys.ENTITY.key(), "myId",
                         EntityMappingConfig.Keys.METADATA.key(), "foo")));
 
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
 
         Helper.testResult(
                 database,
@@ -696,7 +696,7 @@ abstract class IntegrationTestBase {
                         EntityMappingConfig.Keys.ENTITY.key(), "readID",
                         EntityMappingConfig.Keys.METADATA.key(), "foo")));
 
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
 
         Helper.testResult(
                 database,
@@ -736,7 +736,7 @@ abstract class IntegrationTestBase {
                         EntityMappingConfig.Keys.METADATA.key(),
                         "foo")));
 
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
 
         Helper.testResult(
                 database,
@@ -780,7 +780,7 @@ abstract class IntegrationTestBase {
     @MethodSource("providers")
     final void createCollection(String provider, String baseUrl, boolean useToken) throws Exception {
         Map<String, Object> conf = new HashMap<>();
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
 
         Helper.testResult(
                 database,
@@ -805,7 +805,7 @@ abstract class IntegrationTestBase {
     final void deleteCollection(String provider, String baseUrl, boolean useToken) throws Exception {
 
         Map<String, Object> conf = new HashMap<>();
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
 
         // delete collection aka "when"
         Helper.testResult(
@@ -833,7 +833,7 @@ abstract class IntegrationTestBase {
     final void queryWithAllResults(String provider, String baseUrl, boolean useToken) {
         Map<String, Object> conf = new HashMap<>(
                 Map.of(RequestConfig.Keys.ALL_RESULTS.key(), true, RowMappingConfig.Keys.FIELDS.key(), FIELDS));
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
 
         Helper.testResult(
                 database,
@@ -869,7 +869,7 @@ abstract class IntegrationTestBase {
     final void deleteVector(String provider, String baseUrl, boolean useToken) throws Exception {
 
         Map<String, Object> conf = new HashMap<>();
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
 
         createVectorForDeletion(provider);
         Helper.testResult(
@@ -921,7 +921,7 @@ abstract class IntegrationTestBase {
     final void createNewVectors(String provider, String baseUrl, boolean useToken) throws Exception {
 
         Map<String, Object> conf = new HashMap<>();
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
 
         Helper.testResult(
                 database,
@@ -953,7 +953,7 @@ abstract class IntegrationTestBase {
     @MethodSource("providers")
     final void upsertExistingVectors(String provider, String baseUrl, boolean useToken) throws Exception {
         Map<String, Object> conf = new HashMap<>();
-        configureAdminAuth(provider, useToken, conf);
+        configureAdminAuthAndWait(provider, useToken, conf);
 
         // initial entry
         Helper.testResult(
@@ -1006,11 +1006,13 @@ abstract class IntegrationTestBase {
         assertThatVectorHasBeenUpserted(provider);
     }
 
-    private void configureAdminAuth(String provider, boolean useToken, Map<String, Object> conf) {
+    private void configureAdminAuthAndWait(String provider, boolean useToken, Map<String, Object> conf) {
         if (useToken) {
             conf.put(RequestConfig.Keys.TOKEN.key(), getAdminKey(provider));
         } else {
             conf.put(RequestConfig.Keys.HEADERS.key(), getAdminAuth(provider));
         }
+        // add wait parameter for qdrant
+        conf.put("wait", true);
     }
 }

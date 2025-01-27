@@ -773,8 +773,8 @@ final class ProvidersIT extends IntegrationTestBase {
                     .contains("\"payload\":{\"bla\":\"blubb\"}")
                     .contains("\"vector\":[0.5,0.5,0.5,0.5]");
             // clean up new vector
-            var deleteVectorRequest = HttpRequest.newBuilder(
-                            URI.create(QDRANT_BASE_URL + "/collections/" + COLLECTION_NAME + "/points/delete"))
+            var deleteVectorRequest = HttpRequest.newBuilder(URI.create(
+                            QDRANT_BASE_URL + "/collections/" + COLLECTION_NAME + "/points/delete?wait=true"))
                     .header("Authorization", "Bearer " + ADMIN_KEY)
                     .POST(HttpRequest.BodyPublishers.ofString(
                             JsonUtils.getObjectMapper().writeValueAsString(Map.of("points", List.of(ID_5)))))
