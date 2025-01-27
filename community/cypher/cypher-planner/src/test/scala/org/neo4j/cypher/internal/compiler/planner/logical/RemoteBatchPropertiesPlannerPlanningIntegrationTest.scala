@@ -1537,7 +1537,9 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       .expandAll("(expertCandidatePerson)<-[anon_4:POST_HAS_CREATOR]-(message)")
       .filter("shortestPathDistance >= 3")
       .aggregation(Seq("expertCandidatePerson AS expertCandidatePerson"), Seq("min(anon_10) AS shortestPathDistance"))
-      .nodeHashJoin("expertCandidatePerson")
+      .nodeHashJoin("anon_1")
+      .|.expandAll("(expertCandidatePerson)-[anon_0:IS_LOCATED_IN]->(anon_1)")
+      .|.filter("expertCandidatePerson:Person")
       // we are testing that we run this operator
       .|.bfsPruningVarExpand(
         "(startPerson)-[:KNOWS*1..4]-(expertCandidatePerson)",
@@ -1550,8 +1552,6 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
         getValue = Map("id" -> DoNotGetValue),
         unique = true
       )
-      .filter("expertCandidatePerson:Person")
-      .expandAll("(anon_1)<-[anon_0:IS_LOCATED_IN]-(expertCandidatePerson)")
       .filter("anon_1:City")
       .expandAll("(anon_3)<-[anon_2:IS_PART_OF]-(anon_1)")
       .nodeIndexOperator(
