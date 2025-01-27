@@ -180,6 +180,12 @@ public record DatabaseAllocationHints(Set<Hint<?>> hints) {
                 .findFirst();
     }
 
+    public DatabaseAllocationHints multiply(int multiplier) {
+        return new DatabaseAllocationHints(hints.stream()
+                .map(hint -> hint instanceof DatabaseWeight weight ? weight.multiply(multiplier) : hint)
+                .collect(Collectors.toSet()));
+    }
+
     public MapValue toMapValue() {
         if (hints.isEmpty()) {
             return MapValue.EMPTY;

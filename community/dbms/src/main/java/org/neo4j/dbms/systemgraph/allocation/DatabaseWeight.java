@@ -40,6 +40,13 @@ public record DatabaseWeight(int weight) implements DatabaseAllocationHints.Hint
         }
     }
 
+    public DatabaseWeight multiply(int multiplier) {
+        if (multiplier < 0) {
+            throw new IllegalArgumentException("A database's weight must be a positive integer");
+        }
+        return new DatabaseWeight(weight * multiplier);
+    }
+
     @Override
     public Integer getValue() {
         return weight;
