@@ -138,7 +138,7 @@ case class repeatEndNodePredicateRewriter(attributes: Attributes[LogicalPlan]) e
             existingEndNodePredicate
           )
         ) =>
-        if (!isRewritable(predicates, nodeVariableGroupings, relationshipVariableGroupings, end.name)) {
+        if (isRewritable(predicates, nodeVariableGroupings, relationshipVariableGroupings, end.name)) {
           val rewrittenPredicates = renameEnd(innerEnd, end, predicates)
           val newEndNodePredicates = mergeEndNodePredicates(existingEndNodePredicate, predicates, rewrittenPredicates)
           val id = attributes.copy(s.id).id()
@@ -163,7 +163,7 @@ case class repeatEndNodePredicateRewriter(attributes: Attributes[LogicalPlan]) e
             existingEndNodePredicates
           )
         ) =>
-        if (!isRewritable(predicates, nodeVariableGroupings, relationshipVariableGroupings, end.name)) {
+        if (isRewritable(predicates, nodeVariableGroupings, relationshipVariableGroupings, end.name)) {
           val rewrittenPredicates = renameEnd(innerEnd, end, predicates)
           val newEndNodePredicates = mergeEndNodePredicates(existingEndNodePredicates, predicates, rewrittenPredicates)
           val id = attributes.copy(s.id).id()
