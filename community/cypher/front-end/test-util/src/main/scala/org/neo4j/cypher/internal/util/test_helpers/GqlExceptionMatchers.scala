@@ -21,13 +21,14 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.scalatest.matchers.BeMatcher
 import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher
-import org.scalatest.matchers.must.Matchers.have
 import org.scalatest.matchers.should.Matchers.a
 import org.scalatest.matchers.should.Matchers.be
 
 import scala.jdk.OptionConverters.RichOptional
 
 trait GqlExceptionMatchers {
+
+  implicit val windowsSafe: WindowsStringSafe.type = WindowsStringSafe
 
   case class GqlExceptionMatcher(
     code: GqlStatusInfoCodes,
@@ -165,13 +166,19 @@ trait GqlExceptionMatchers {
             if (fuzzyMsg) {
               Matcher { ex =>
                 MatchResult(
-                  ex.getMessage.contains(legacyMsg),
+                  ex.getMessage.replace("\r\n", "\n").contains(legacyMsg.replace("\r\n", "\n")),
                   s"Message '${ex.getMessage}' did not start with '$legacyMsg'",
                   s"Message started with '$legacyMsg'"
                 )
               }
             } else {
-              have message legacyMsg
+              Matcher { ex =>
+                MatchResult(
+                  ex.getMessage.equals(legacyMsg),
+                  s"Message '${ex.getMessage}' did not equals '$legacyMsg'",
+                  s"Message equals '$legacyMsg'"
+                )
+              }
             }
           }
           val exceptionMatchResult = (typeMatcher and messageMatcher)(ex)
