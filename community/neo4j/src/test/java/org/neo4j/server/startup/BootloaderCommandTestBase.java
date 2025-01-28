@@ -205,6 +205,7 @@ abstract class BootloaderCommandTestBase {
                             .setPermissions(
                                     AclEntryPermission.READ_DATA,
                                     AclEntryPermission.WRITE_DATA,
+                                    AclEntryPermission.DELETE,
                                     AclEntryPermission.READ_ATTRIBUTES,
                                     AclEntryPermission.WRITE_ATTRIBUTES,
                                     AclEntryPermission.READ_NAMED_ATTRS,

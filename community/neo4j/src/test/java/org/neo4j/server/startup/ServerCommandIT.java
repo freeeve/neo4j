@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -159,6 +160,7 @@ abstract class ServerCommandIT extends ServerProcessTestBase {
                         "Warning at 1:18: The element type \"Configuration\" must be terminated by the matching end-tag \"</Configuration>\".");
     }
 
+    @Disabled("Testing windows services needs a new test infrastructure")
     @Test
     @EnabledOnOs(OS.WINDOWS)
     void startShouldBeAllowedWithWarningsOnInvalidServerLog4jConfigOnWindows() throws IOException {
@@ -179,6 +181,7 @@ abstract class ServerCommandIT extends ServerProcessTestBase {
         assertThat(err.toString()).contains("WARNING: Using incubator modules: jdk.incubator.vector");
     }
 
+    @Disabled("Testing windows services needs a new test infrastructure")
     @EnabledOnOs(OS.WINDOWS)
     @Test
     void shouldBeAbleToStartAndStopRealServerOnWindows() {
@@ -193,6 +196,7 @@ abstract class ServerCommandIT extends ServerProcessTestBase {
         assertThat(err.toString()).isEmpty();
     }
 
+    @Disabled("Testing windows services needs a new test infrastructure")
     @EnabledOnOs(OS.WINDOWS)
     @Test
     void shouldBeAbleToUpdateRealServerOnWindows() throws InterruptedException, IOException {
