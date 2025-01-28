@@ -101,5 +101,47 @@ class ConnectedComponentsTest extends CypherFunSuite {
     ))
   }
 
+  test("(a)-[r]->(b), (c)-[r]->(d) has one connected components") {
+    val connected = connectedComponents(Vector(
+      ComponentPart(varFor("a"), varFor("r"), varFor("b")),
+      ComponentPart(varFor("c"), varFor("r"), varFor("d"))
+    ))
+
+    connected shouldBe Vector(ConnectedComponent(
+      ComponentPart(varFor("a"), varFor("r"), varFor("b")),
+      ComponentPart(varFor("c"), varFor("r"), varFor("d"))
+    ))
+  }
+
+  test("(a)-[r]->(b), (c)-[rr]->(d) has two connected components") {
+    val disconnected = connectedComponents(Vector(
+      ComponentPart(varFor("a"), varFor("r"), varFor("b")),
+      ComponentPart(varFor("c"), varFor("rr"), varFor("d"))
+    ))
+
+    disconnected shouldBe Vector(
+      ConnectedComponent(ComponentPart(varFor("a"), varFor("r"), varFor("b"))),
+      ConnectedComponent(ComponentPart(varFor("c"), varFor("rr"), varFor("d")))
+    )
+  }
+
+  test("(a)-[r]->(b), (a)-[rr]->(c), (d)-[r]->(e), (f)-[rrr]->(g) has two connected components") {
+    val components = connectedComponents(Vector(
+      ComponentPart(varFor("a"), varFor("r"), varFor("b")),
+      ComponentPart(varFor("a"), varFor("rr"), varFor("c")),
+      ComponentPart(varFor("d"), varFor("r"), varFor("e")),
+      ComponentPart(varFor("f"), varFor("rrr"), varFor("g"))
+    ))
+
+    components shouldBe Vector(
+      ConnectedComponent(
+        ComponentPart(varFor("a"), varFor("r"), varFor("b")),
+        ComponentPart(varFor("a"), varFor("rr"), varFor("c")),
+        ComponentPart(varFor("d"), varFor("r"), varFor("e"))
+      ),
+      ConnectedComponent(ComponentPart(varFor("f"), varFor("rrr"), varFor("g")))
+    )
+  }
+
   private def varFor(name: String): LogicalVariable = Variable(name)(null, Variable.isIsolatedDefault)
 }

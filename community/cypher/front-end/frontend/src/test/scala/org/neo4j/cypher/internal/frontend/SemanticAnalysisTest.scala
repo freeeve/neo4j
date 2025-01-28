@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.frontend.SemanticAnalysisTest.gql42N29
 import org.neo4j.cypher.internal.frontend.SemanticAnalysisTest.gql42NA5
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
-import org.neo4j.cypher.internal.util.CartesianProductNotification
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.RepeatedRelationshipReference
@@ -1241,11 +1240,6 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         p(10, 1, 11),
         "r",
         "()-[r]-(), ()-[r]-()"
-      ),
-      CartesianProductNotification(
-        p(0, 1, 1),
-        Set.empty,
-        "()-[r]-(), ()-[r]-()"
       )
     )
   }
@@ -1255,11 +1249,6 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
       RepeatedRelationshipReference(
         p(14, 1, 15),
         "r",
-        "p = ()-[r]-(), q = ()-[r]-()"
-      ),
-      CartesianProductNotification(
-        p(0, 1, 1),
-        Set.empty,
         "p = ()-[r]-(), q = ()-[r]-()"
       )
     )
