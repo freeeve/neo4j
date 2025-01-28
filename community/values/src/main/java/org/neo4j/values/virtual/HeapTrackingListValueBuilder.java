@@ -19,7 +19,6 @@
  */
 package org.neo4j.values.virtual;
 
-import static org.neo4j.memory.HeapEstimator.DEFAULT_HEAP_ESTIMATOR_CACHE_SHALLOW_SIZE;
 import static org.neo4j.memory.HeapEstimator.SCOPED_MEMORY_TRACKER_SHALLOW_SIZE;
 import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
@@ -35,7 +34,7 @@ public class HeapTrackingListValueBuilder implements AutoCloseable {
     /**
      * Start building a list of unknown size with heap tracking
      * Values added to the list will have their heap usage estimated and tracked in the give memory tracker.
-     *
+     * <p>
      * Caveat: When calling build() the ownership of the internal heap-tracking list will be transferred
      * to the returned ListValue, and it will carry the heap usage accumulated by the builder as its payload size.
      * But to be accounted for, this ListValue will need to be measured and allocated in a memory tracker.
@@ -51,8 +50,6 @@ public class HeapTrackingListValueBuilder implements AutoCloseable {
     }
 
     private static final long SHALLOW_SIZE = shallowSizeOfInstance(HeapTrackingListValueBuilder.class);
-    private static final long COMBINED_SHALLOW_SIZE =
-            SHALLOW_SIZE + SCOPED_MEMORY_TRACKER_SHALLOW_SIZE + DEFAULT_HEAP_ESTIMATOR_CACHE_SHALLOW_SIZE;
 
     // We wait to track memory (bytes) below this threshold (see `unAllocatedHeapSize`).
     private static final long HEAP_SIZE_ALLOCATION_THRESHOLD = 4096;
@@ -120,12 +117,7 @@ public class HeapTrackingListValueBuilder implements AutoCloseable {
     private long payloadSize() {
         // The shallow size should not be transferred to the ListValue (but the ScopedMemoryTracker is)
         // Note if the scopedMemoryTracker is an EmptyMemoryTracker then we might get a negative value here
-        return Math.max(
-                unAllocatedHeapSize
-                        + scopedMemoryTracker.estimatedHeapMemory()
-                        - SHALLOW_SIZE
-                        - DEFAULT_HEAP_ESTIMATOR_CACHE_SHALLOW_SIZE,
-                0L);
+        return Math.max(unAllocatedHeapSize + scopedMemoryTracker.estimatedHeapMemory() - SHALLOW_SIZE, 0L);
     }
 
     @VisibleForTesting
