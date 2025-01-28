@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.eclipse.collections.impl.set.mutable.MutableSetFactoryImpl;
+import org.neo4j.cloud.storage.StoragePath;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.connectors.BoltConnector;
@@ -155,6 +156,16 @@ public abstract class AbstractAdminCommand extends AbstractCommand {
         } catch (IOException e) {
             throw new CommandFailedException(format("Path '%s' does not exist.", p), e);
         }
+    }
+
+    protected Path normalizeAndValidateIfStoragePathDirectory(Path path) throws CommandFailedException {
+        final var normalized = path.normalize();
+        if (normalized instanceof StoragePath storagePath && !storagePath.isDirectory()) {
+            throw new CommandFailedException("The path '%s' is not a directory - please add a terminal '/' to your path"
+                    .formatted(storagePath.toUri()));
+        }
+
+        return normalized;
     }
 
     protected static Set<String> getDbNames(Config config, FileSystemAbstraction fs, DatabaseNamePattern database)

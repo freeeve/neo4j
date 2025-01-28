@@ -139,7 +139,7 @@ public class DumpCommand extends AbstractAdminCommand {
 
             Path storagePath = null;
             if (target.toDir != null) {
-                storagePath = fs.resolve(target.toDir);
+                storagePath = normalizeAndValidateIfStoragePathDirectory(fs.resolve(target.toDir));
                 if (!fs.isDirectory(storagePath)) {
                     throw new CommandFailedException(target.toDir + " is not an existing directory");
                 }

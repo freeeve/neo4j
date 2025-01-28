@@ -147,7 +147,7 @@ public class LoadCommand extends AbstractAdminCommand {
                 var fs = new SchemeFileSystemAbstraction(ctx.fs(), config, logProvider)) {
             Path sourcePath = null;
             if (source.path != null) {
-                sourcePath = fs.resolve(source.path);
+                sourcePath = normalizeAndValidateIfStoragePathDirectory(fs.resolve(source.path));
                 if (!fs.isDirectory(sourcePath)) {
                     throw new CommandFailedException(source.path + " is not an existing directory");
                 }
@@ -267,7 +267,7 @@ public class LoadCommand extends AbstractAdminCommand {
                     if (dbName.archives.isEmpty()) {
                         throw new CommandFailedException("No matching archives found");
                     }
-                    dumpPath = dbName.archives.get(0);
+                    dumpPath = dbName.archives.getFirst();
                     if (!fs.fileExists(dumpPath)) {
                         // fail early as loadDumpExecutor.execute will create directories
                         throw new CommandFailedException("Archive does not exist: " + dumpPath);
