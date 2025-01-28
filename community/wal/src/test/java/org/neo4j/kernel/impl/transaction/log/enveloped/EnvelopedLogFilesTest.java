@@ -26,11 +26,14 @@ import static org.neo4j.kernel.impl.transaction.log.enveloped.LogsRepository.BAS
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
@@ -44,8 +47,9 @@ import org.neo4j.test.utils.TestDirectory;
 class EnvelopedLogFilesTest {
 
     private static final String EIGHT_BYTES_MESSAGE = "message!";
+    public static final int writeBufferedBlocks = 2;
     private final int segmentBlockSize = 256;
-    private final int totalSegments = 2;
+    private final int totalSegments = 3;
     private final int totalFileDataSize = segmentBlockSize * (totalSegments - 1);
 
     @Inject
@@ -86,7 +90,7 @@ class EnvelopedLogFilesTest {
                                 preFileChecksum,
                                 KernelVersion.GLORIOUS_FUTURE),
                 segmentBlockSize,
-                2,
+                writeBufferedBlocks,
                 totalSegments,
                 EmptyMemoryTracker.INSTANCE);
     }
@@ -136,7 +140,7 @@ class EnvelopedLogFilesTest {
     @Test
     void shouldReadCorrectlyFromFileStartingWithNotANewEnvelope() throws IOException {
         var smallData = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
-        var largeData = new byte[(int) (segmentBlockSize * 1.5)];
+        var largeData = new byte[(int) (segmentBlockSize * (totalSegments - 0.5))];
 
         envelopedLogFiles.initialise();
 
@@ -157,7 +161,7 @@ class EnvelopedLogFilesTest {
     @Test
     void shouldReadCorrectlyFromFileContainingEntrySpanningMultipleFiles() throws IOException {
         var smallData = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
-        var largeData = new byte[(int) (segmentBlockSize * 3.5)];
+        var largeData = new byte[(int) (segmentBlockSize * ((2 * totalSegments) - 0.5))];
 
         envelopedLogFiles.initialise();
 
@@ -187,6 +191,7 @@ class EnvelopedLogFilesTest {
             baseData[0] = (byte) i; // set unique data index
             writeData(writeChannel, baseData);
         }
+        writeChannel.prepareForFlush().flush();
 
         for (int i = 0; i < 20; i++) {
             try (var readChannel = envelopedLogFiles.openReadChannel(i)) {
@@ -205,7 +210,7 @@ class EnvelopedLogFilesTest {
     }
 
     @Test
-    void shouldFindFileContainingIndexDirectlyEvenAFterPrune() throws IOException {
+    void shouldFindFileContainingIndexDirectlyEvenAfterPrune() throws IOException {
         var baseData = new byte[segmentBlockSize / 3];
 
         envelopedLogFiles.initialise();
@@ -216,6 +221,7 @@ class EnvelopedLogFilesTest {
             baseData[0] = (byte) i; // set unique data index
             writeData(writeChannel, baseData);
         }
+        writeChannel.prepareForFlush().flush();
 
         long prunedIndex = envelopedLogFiles.prune(20);
 
@@ -240,7 +246,7 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.initialise();
 
         var data = EIGHT_BYTES_MESSAGE.getBytes();
-        var largeData = new byte[segmentBlockSize / 2];
+        var largeData = new byte[totalFileDataSize / 2];
         writeData(envelopedLogFiles.currentWriteChannel(), largeData);
         writeData(envelopedLogFiles.currentWriteChannel(), largeData); // spills over to next file
         writeData(envelopedLogFiles.currentWriteChannel(), data);
@@ -270,23 +276,28 @@ class EnvelopedLogFilesTest {
 
         var writeChannel = envelopedLogFiles.currentWriteChannel();
 
-        for (int i = 0; i < 20; i++) {
-            baseData[0] = (byte) i; // set unique data index
+        int maxIndex = 0;
+        while (mirroringRepository.logVersionsRange().to() < 10) {
+            baseData[0] = (byte) maxIndex++; // set unique data index
             writeData(writeChannel, baseData);
         }
-        assertThat(mirroringRepository.logVersionsRange().to()).isEqualTo(10);
-
+        writeChannel.prepareForFlush().flush();
+        // rollback by one as new logic won't create a new file until it has to
+        // Subsequent logic will overwrite that last envelope/file
+        --maxIndex;
         // create pre-allocated files
         for (int i = 10; i < 20; i++) {
             try (var channel = mirroringRepository.createWriteChannel(i).channel()) {
                 var zeros = ByteBuffer.wrap(new byte[segmentBlockSize]);
-                channel.writeAll(zeros);
-                channel.writeAll(zeros);
+                for (int j = 0; j < totalSegments; ++j) {
+                    channel.writeAll(zeros);
+                    zeros.position(0);
+                }
                 channel.flush();
             }
         }
 
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < maxIndex; i++) {
             try (var readChannel = envelopedLogFiles.openReadChannel(i)) {
                 var currentLogHeader = readChannel.logHeader();
                 var readData = new byte[baseData.length];
@@ -308,7 +319,9 @@ class EnvelopedLogFilesTest {
             try (var channel = mirroringRepository.createWriteChannel(i).channel()) {
                 var zeros = ByteBuffer.wrap(new byte[segmentBlockSize]);
                 channel.writeAll(zeros);
+                zeros.position(0);
                 channel.writeAll(zeros);
+                zeros.position(0);
                 channel.flush();
             }
         }
@@ -331,7 +344,9 @@ class EnvelopedLogFilesTest {
             try (var channel = mirroringRepository.createWriteChannel(i).channel()) {
                 var zeros = ByteBuffer.wrap(new byte[segmentBlockSize]);
                 channel.writeAll(zeros);
+                zeros.position(0);
                 channel.writeAll(zeros);
+                zeros.position(0);
                 channel.flush();
             }
         }
@@ -392,12 +407,15 @@ class EnvelopedLogFilesTest {
         try (var reader = envelopedLogFiles.openReadChannel()) {
             reader.alignWithStartEntry();
             assertThat(reader.entryIndex()).isEqualTo(0); // points to first entry
+            LogHeader currentLogHeader = null;
             for (int i = 0; i < 3; i++) {
                 assertThat(reader.entryIndex()).isEqualTo(i);
-                assertThat(reader.getLogVersion()).isEqualTo(i);
                 var logHeader = reader.logHeader();
-                int expectedPrevIndex = i - 1;
-                assertThat(logHeader).matches(metadata -> metadata.getLastAppendIndex() == expectedPrevIndex);
+                if (logHeader != currentLogHeader) {
+                    currentLogHeader = logHeader;
+                    int expectedPrevIndex = i - 1;
+                    assertThat(logHeader).matches(metadata -> metadata.getLastAppendIndex() == expectedPrevIndex);
+                }
                 reader.goToNextEntry();
             }
         }
@@ -430,7 +448,7 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.initialise();
 
         var data = EIGHT_BYTES_MESSAGE.getBytes();
-        var largeData = new byte[segmentBlockSize / 2];
+        var largeData = new byte[totalFileDataSize / 2];
         writeData(envelopedLogFiles.currentWriteChannel(), largeData);
         writeData(envelopedLogFiles.currentWriteChannel(), largeData); // spills over to next file
         writeData(envelopedLogFiles.currentWriteChannel(), data);
@@ -519,7 +537,7 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.initialise();
 
         var data = EIGHT_BYTES_MESSAGE.getBytes();
-        var largeData = new byte[segmentBlockSize / 2];
+        var largeData = new byte[totalFileDataSize / 2];
         writeData(envelopedLogFiles.currentWriteChannel(), largeData);
         writeData(envelopedLogFiles.currentWriteChannel(), largeData); // spills over to next file
         writeData(envelopedLogFiles.currentWriteChannel(), data);
@@ -543,7 +561,7 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.initialise();
 
         var data = EIGHT_BYTES_MESSAGE.getBytes();
-        var largeData = new byte[segmentBlockSize / 2];
+        var largeData = new byte[totalFileDataSize / 2];
         writeData(envelopedLogFiles.currentWriteChannel(), largeData);
         writeData(envelopedLogFiles.currentWriteChannel(), largeData); // spills over to next file
         writeData(envelopedLogFiles.currentWriteChannel(), data);
@@ -567,7 +585,7 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.initialise();
 
         var data = EIGHT_BYTES_MESSAGE.getBytes();
-        var largeData = new byte[segmentBlockSize - 20];
+        var largeData = new byte[totalFileDataSize - 20];
         writeData(envelopedLogFiles.currentWriteChannel(), largeData);
         writeData(envelopedLogFiles.currentWriteChannel(), largeData);
         envelopedLogFiles.currentWriteChannel().prepareForFlush().flush();
@@ -727,6 +745,118 @@ class EnvelopedLogFilesTest {
             reader.read(ByteBuffer.wrap(readData));
             assertThat(new String(readData)).isEqualTo(message2);
             assertThat(reader.entryIndex()).isEqualTo(1);
+        }
+    }
+
+    // Generate a wide range of message sizes to exercise corner cases
+    private int shuffledMessageSize(int index) {
+        return 1 + ((97 * index) % (3 * segmentBlockSize));
+    }
+
+    @Test
+    void positionsShouldMatchWhenReadingAndWritingManyPacketSizes() throws IOException {
+        assertThat(mirroringRepository.isEmpty()).isTrue();
+        envelopedLogFiles.initialise();
+
+        final var N = 1000;
+        var positions = new ArrayList<Pair<Long, Long>>();
+        try (var writeChannel = envelopedLogFiles.currentWriteChannel()) {
+            for (int count = 0; count < N; ++count) {
+                var messageSize = shuffledMessageSize(count);
+                var data = new byte[messageSize];
+                data[0] = (byte) (count & 0xFF);
+                data[messageSize - 1] = data[0];
+                writeData(writeChannel, data);
+                writeChannel.prepareForFlush().flush();
+                positions.add(Pair.of(mirroringRepository.logVersionsRange().to(), writeChannel.position()));
+            }
+        }
+
+        try (var reader = envelopedLogFiles.openReadChannel()) {
+            for (int count = 0; count < N; ++count) {
+                var messageSize = shuffledMessageSize(count);
+                var readData = new byte[messageSize];
+                reader.read(ByteBuffer.wrap(readData));
+                assertThat(readData[0]).isEqualTo((byte) (count & 0xFF));
+                assertThat(readData[messageSize - 1]).isEqualTo(readData[0]);
+                var pos = Pair.of(reader.getLogVersion(), reader.position());
+                assertThat(pos).isEqualTo(positions.get(count));
+            }
+        }
+    }
+
+    @Test
+    void readPositionsShouldBeValidSeekPoints() throws IOException {
+        assertThat(mirroringRepository.isEmpty()).isTrue();
+        envelopedLogFiles.initialise();
+        final var N = 1000;
+        try (var writeChannel = envelopedLogFiles.currentWriteChannel()) {
+            for (int count = 0; count < N; ++count) {
+                var messageSize = shuffledMessageSize(count);
+                var data = new byte[messageSize];
+                data[0] = (byte) (count & 0xFF);
+                data[messageSize - 1] = data[0];
+                writeData(writeChannel, data);
+                writeChannel.prepareForFlush().flush();
+            }
+        }
+
+        var positions = new ArrayList<Pair<Long, Long>>();
+        positions.add(Pair.of(0L, (long) segmentBlockSize));
+        try (var reader = envelopedLogFiles.openReadChannel()) {
+            for (int count = 0; count < N; ++count) {
+                var messageSize = shuffledMessageSize(count);
+                var readData = new byte[messageSize];
+                reader.read(ByteBuffer.wrap(readData));
+                assertThat(readData[0]).isEqualTo((byte) (count & 0xFF));
+                assertThat(readData[messageSize - 1]).isEqualTo(readData[0]);
+                positions.add(Pair.of(reader.getLogVersion(), reader.position()));
+            }
+        }
+        positions.removeLast();
+
+        verifyReadingAtPositions(positions);
+    }
+
+    @Test
+    void writePositionsShouldBeValidSeekPoints() throws IOException {
+        assertThat(mirroringRepository.isEmpty()).isTrue();
+        envelopedLogFiles.initialise();
+
+        var positions = new ArrayList<Pair<Long, Long>>();
+        positions.add(Pair.of(0L, (long) segmentBlockSize));
+        final var N = 1000;
+        try (var writeChannel = envelopedLogFiles.currentWriteChannel()) {
+            for (int count = 0; count < N; ++count) {
+                var messageSize = shuffledMessageSize(count);
+                var data = new byte[messageSize];
+                data[0] = (byte) (count & 0xFF);
+                data[messageSize - 1] = data[0];
+                writeData(writeChannel, data);
+                writeChannel.prepareForFlush().flush();
+                positions.add(Pair.of(mirroringRepository.logVersionsRange().to(), writeChannel.position()));
+            }
+        }
+        positions.removeLast();
+
+        verifyReadingAtPositions(positions);
+    }
+
+    private void verifyReadingAtPositions(ArrayList<Pair<Long, Long>> positions) throws IOException {
+        int readCount = 0;
+        for (var pos : positions) {
+            var channel = mirroringRepository.openReadChannel(pos.first());
+            try (var reader = envelopedLogFiles.envelopedReadChannel(channel, pos.first())) {
+                var posMarker = new LogPositionMarker();
+                posMarker.mark(pos.first(), pos.other());
+                reader.setLogPosition(posMarker);
+                var messageSize = shuffledMessageSize(readCount);
+                var readData = new byte[messageSize];
+                reader.get(readData, messageSize);
+                assertThat(readData[0]).isEqualTo((byte) (readCount & 0xFF));
+                assertThat(readData[messageSize - 1]).isEqualTo(readData[0]);
+                readCount++;
+            }
         }
     }
 
