@@ -310,13 +310,13 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         writer.prepareForFlush().flush();
         if (currentVersion != targetVersion) {
             var oldChannel = channel;
-            // TODO: BASE_TX_CHECKSUM is only used when creating a new file, which should never happen during a
-            // TODO: truncation. We should make this dependency more clear.
-            channel = createLogChannelForVersion(
-                    targetVersion, context::appendIndex, context.getKernelVersionProvider(), BASE_TX_CHECKSUM);
-
+            channel = createLogChannelForExistingVersion(targetVersion);
             writer.setChannel(channel, channelAllocator.readLogHeaderForVersion(targetVersion));
             oldChannel.close();
+
+            if (logVersionRepository != null) {
+                logVersionRepository.setCurrentLogVersion(targetVersion);
+            }
 
             // delete newer files
             for (long i = currentVersion; i > targetVersion; i--) {

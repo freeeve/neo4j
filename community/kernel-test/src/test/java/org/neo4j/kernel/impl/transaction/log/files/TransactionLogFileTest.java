@@ -32,6 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.neo4j.kernel.KernelVersion.DEFAULT_BOOTSTRAP_VERSION;
+import static org.neo4j.kernel.KernelVersion.GLORIOUS_FUTURE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.writeLogHeader;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
@@ -42,10 +43,13 @@ import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_I
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -57,11 +61,15 @@ import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.eclipse.collections.impl.factory.primitive.LongObjectMaps;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.mockito.stubbing.Answer;
+import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.internal.nativeimpl.ErrorTranslator;
 import org.neo4j.internal.nativeimpl.NativeAccess;
 import org.neo4j.internal.nativeimpl.NativeCallResult;
@@ -777,6 +785,69 @@ class TransactionLogFileTest {
         listAssert.element(1).satisfies(pos -> assertEndLogPosition(logFile, lowestLogVersion + 1, (LogPosition) pos));
     }
 
+    @Test
+    void envelopedTruncateToEarlierVersionsShouldDeleteLaterLogs() throws IOException {
+        // TODO MERGELOG Test can be removed once enveloped merge logs are activated
+        truncateToEarlierVersionsShouldDeleteLaterLogs(GLORIOUS_FUTURE);
+    }
+
+    @ParameterizedTest
+    @KernelVersionSource(atLeast = "5.0")
+    void truncateToEarlierVersionsShouldDeleteLaterLogs(KernelVersion kernelVersion) throws IOException {
+        final var deleted = new HashSet<Long>();
+        logFileVersionTracker = new LogFileVersionTracker() {
+            @Override
+            public void logDeleted(long version) {
+                deleted.add(version);
+            }
+
+            @Override
+            public void logCompleted(LogPosition endLogPosition) {}
+        };
+
+        final var logFiles = buildLogFiles(kernelVersion);
+        life.start();
+        life.add(logFiles);
+
+        final var logFile = logFiles.getLogFile();
+
+        final var lowestLogVersion = logFile.getLowestLogVersion();
+        logFile.rotate(); // lowestLogVersion + 1
+        var writer = logFile.getTransactionLogWriter();
+        final var filePos = writer.getCurrentPosition(); // truncate to here
+        logFile.rotate(); // lowestLogVersion + 2 will be deleted
+        logFile.rotate(); // lowestLogVersion + 3 will be deleted
+
+        assertDoesNotThrow(() -> logFile.truncate(filePos));
+        assertThat(logFile.getCurrentLogVersion()).isEqualTo(filePos.getLogVersion());
+        assertThat(deleted).isEqualTo(Set.of(lowestLogVersion + 2L, lowestLogVersion + 3));
+    }
+
+    @Test
+    void envelopedTruncateShouldThrowIfVersionMissing() throws IOException {
+        // TODO MERGELOG  Test can be removed once enveloped merge logs are activated
+        truncateShouldThrowIfVersionMissing(GLORIOUS_FUTURE);
+    }
+
+    @ParameterizedTest
+    @KernelVersionSource(atLeast = "5.0")
+    void truncateShouldThrowIfVersionMissing(KernelVersion kernelVersion) throws IOException {
+        final var logFiles = buildLogFiles(kernelVersion);
+        life.start();
+        life.add(logFiles);
+
+        final var logFile = logFiles.getLogFile();
+
+        final var lowestLogVersion = logFile.getLowestLogVersion();
+        var writer = logFile.getTransactionLogWriter();
+        final var filePos = writer.getCurrentPosition(); // truncate to here
+        logFile.rotate();
+        logFile.rotate();
+        logFile.delete(lowestLogVersion); // delete target version
+
+        assertThrows(NoSuchFileException.class, () -> logFile.truncate(filePos));
+    }
+
     @ParameterizedTest
     @KernelVersionSource(atLeast = "5.0")
     void ensureErrorsInLogFileVersionTrackerDontEscapeIntoLogFile(KernelVersion kernelVersion) throws IOException {
@@ -821,15 +892,24 @@ class TransactionLogFileTest {
     }
 
     private LogFiles buildLogFiles(KernelVersion kernelVersion) throws IOException {
-        return LogFilesBuilder.builder(databaseLayout, wrappingFileSystem, () -> kernelVersion)
+        var builder = LogFilesBuilder.builder(databaseLayout, wrappingFileSystem, () -> kernelVersion)
                 .withRotationThreshold(rotationThreshold)
                 .withTransactionIdStore(transactionIdStore)
                 .withLogVersionRepository(logVersionRepository)
                 .withLogFileVersionTracker(logFileVersionTracker)
                 .withAppendIndexProvider(appendIndexProvider)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
-                .withStoreId(STORE_ID)
-                .build();
+                .withStoreId(STORE_ID);
+        if (kernelVersion == KernelVersion.GLORIOUS_FUTURE) {
+            final var futureEnabledConf = Config.newBuilder()
+                    .set(
+                            GraphDatabaseInternalSettings.latest_runtime_version,
+                            DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion())
+                    .set(GraphDatabaseInternalSettings.latest_kernel_version, GLORIOUS_FUTURE.version())
+                    .build();
+            builder.withConfig(futureEnabledConf);
+        }
+        return builder.build();
     }
 
     private static byte[] someBytes(int length) {
