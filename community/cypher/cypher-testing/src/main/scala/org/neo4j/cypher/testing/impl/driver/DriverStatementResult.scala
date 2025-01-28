@@ -19,7 +19,9 @@
  */
 package org.neo4j.cypher.testing.impl.driver
 
+import org.neo4j.cypher.testing.api.ConsumedResult
 import org.neo4j.cypher.testing.api.StatementResult
+import org.neo4j.cypher.testing.api.ValueMapper
 import org.neo4j.cypher.testing.impl.shared.GqlStatusObjImpl
 import org.neo4j.cypher.testing.impl.shared.NotificationImpl
 import org.neo4j.driver
@@ -40,14 +42,19 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 
 case class DriverStatementResult(private val driverResult: Result) extends StatementResult {
 
-  override def columns(): Seq[String] = driverResult.keys().asScala.toList
+  override def columns(): Seq[String] = driverResult.keys().asScala.toSeq
 
-  override def records(): Seq[Record] = driverResult.list().asScala.toList.map(toValue)
+  override def records(): Seq[Record] = driverResult.list(toValue).asScala.toSeq
 
   private def toValue(record: driver.Record): Map[String, AnyRef] =
     record.asMap[AnyRef](DriverRecordConverter.convertValue).asScala.toMap
 
   override def consume(): Unit = driverResult.consume()
+
+  override def consume(valueMapper: ValueMapper): ConsumedResult = {
+    val headers = driverResult.keys()
+    ConsumedResult(headers, driverResult.list(valueMapper.driverRecordsMapper))
+  }
 
   override def getNotifications(): List[Notification] =
     driverResult.consume().notifications().asScala.toList

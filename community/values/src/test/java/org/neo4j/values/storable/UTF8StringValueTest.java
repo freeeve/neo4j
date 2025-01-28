@@ -32,6 +32,7 @@ import static org.neo4j.values.utils.AnyValueTestUtil.assertEqual;
 import org.junit.jupiter.api.Test;
 
 class UTF8StringValueTest {
+
     @Test
     void shouldHandleDifferentTypesOfStrings() {
         for (String string : STRINGS) {

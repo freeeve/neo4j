@@ -34,7 +34,7 @@ import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N57
 
-import scala.collection.compat.immutable.ArraySeq
+import scala.collection.immutable.ArraySeq
 
 class CountTest extends SemanticFunSuite {
 

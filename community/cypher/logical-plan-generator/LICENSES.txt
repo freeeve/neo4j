@@ -30,13 +30,10 @@ Apache Software License, Version 2.0
   Javassist
   Jettison
   magnolia
-  openCypher TCK API
-  openCypher TCK Features and Graphs
   org.apiguardian:apiguardian-api
   org.opentest4j:opentest4j
   Reflections
   Scala Reflect
-  scala-collection-compat
   scala-collection-contrib
   scala-xml
   scalacheck-1.16
@@ -1472,18 +1469,7 @@ version.
 
 ------------------------------------------------------------------------------
 MIT License
-  Cucumber Expressions
-  Cucumber Tag Expressions
-  Cucumber-JVM: Core
-  Cucumber-JVM: Docstring
-  Cucumber-JVM: Gherkin
-  Cucumber-JVM: Gherkin Vintage
-  Cucumber-JVM: Plugin
-  DataTable
-  fastparse_2.13
-  geny_2.13
   SLF4J API Module
-  sourcecode_2.13
 ------------------------------------------------------------------------------
 
 The MIT License

@@ -46,7 +46,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropert
 import org.scalacheck.Gen
 import org.scalacheck.Shrink
 
-import scala.collection.compat.immutable.ArraySeq
+import scala.collection.immutable.ArraySeq
 
 class LiteralsParserTest extends AstParsingTestBase
     with CypherScalaCheckDrivenPropertyChecks {

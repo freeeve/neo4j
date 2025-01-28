@@ -58,6 +58,8 @@ Apache Software License, Version 2.0
   Arrow Format
   Arrow Memory - Core
   Arrow Vectors
+  AssertJ Core
+  Awaitility
   Caffeine cache
   Core :: ALPN :: Java Server
   Core :: ALPN :: Server
@@ -76,9 +78,11 @@ Apache Software License, Version 2.0
   EE8 :: Security
   EE8 :: Servlet
   EE8 :: WebApp
+  error-prone annotations
   fastinfoset
   FindBugs-jsr305
   FlatBuffers Java API
+  Google Guice - Core Library
   Guava InternalFutureFailureAccess and InternalFutures
   Guava ListenableFuture only
   Guava: Google Core Libraries for Java
@@ -89,6 +93,7 @@ Apache Software License, Version 2.0
   io.grpc:grpc-protobuf
   io.grpc:grpc-stub
   IPAddress
+  J2ObjC Annotations
   Jackson datatype: JSR310
   Jackson module: Old JAXB Annotations (javax.xml.bind)
   Jackson-annotations
@@ -97,6 +102,7 @@ Apache Software License, Version 2.0
   Jackson-JAXRS: base
   Jackson-JAXRS: JSON
   Jakarta Bean Validation API
+  Jakarta Dependency Injection
   Java Concurrency Tools Core Library
   Java Native Access
   Javassist
@@ -126,14 +132,12 @@ Apache Software License, Version 2.0
   Netty/Transport/Native/KQueue
   Netty/Transport/Native/Unix/Common
   Non-Blocking Reactive Foundation for the JVM
-  openCypher TCK API
   openCypher TCK Features and Graphs
   org.apiguardian:apiguardian-api
   org.opentest4j:opentest4j
   picocli
   proto-google-common-protos
   Scala Reflect
-  scala-collection-compat
   scala-collection-contrib
   snappy-java
   Strategic Blue Parquet Floor
@@ -145,6 +149,9 @@ BSD - Scala License
 BSD License
   ANTLR 4 Runtime
   asm
+  asm-analysis
+  asm-tree
+  asm-util
   Protocol Buffers [Core]
   Protocol Buffers [Util]
   Zstandard
@@ -216,27 +223,42 @@ GNU General Public License, version 2 with the Classpath Exception
   ServiceLocator Default Implementation
 
 MIT License
+  Checker Qual
+  Cucumber CiEnvironment
   Cucumber Expressions
+  Cucumber HTML Formatter
+  Cucumber Messages
+  Cucumber Query
   Cucumber Tag Expressions
   Cucumber-JVM: Core
   Cucumber-JVM: Docstring
   Cucumber-JVM: Gherkin
-  Cucumber-JVM: Gherkin Vintage
+  Cucumber-JVM: Gherkin Messages
+  Cucumber-JVM: Guice
+  Cucumber-JVM: JUnit 5 - JUnit Platform Engine
   Cucumber-JVM: Plugin
-  DataTable
+  Cucumber-JVN: DataTable
+  cucumber-scala
   fastparse_2.13
   geny_2.13
+  Gherkin
   jersey-container-servlet
   jersey-container-servlet-core
   jersey-core-client
   jersey-inject-hk2
+  JUnit XML Formatter
   SLF4J API Module
   sourcecode_2.13
+  TestNG XML Formatter
 
 MIT No Attribution License
   reactive-streams
 
+Mozilla Public License, Version 2.0
+  kiama
+
 Unlicense
+  AOP alliance
   jersey-container-servlet
   jersey-container-servlet-core
   jersey-core-client

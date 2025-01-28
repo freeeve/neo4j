@@ -33,7 +33,7 @@ import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.State
 import org.neo4j.memory.EmptyMemoryTracker
 import org.neo4j.memory.LocalMemoryTracker
 
-import scala.collection.compat.immutable.ArraySeq
+import scala.collection.immutable.ArraySeq
 
 class TwoWaySignpostTest extends CypherFunSuite {
   private val meter = MemoryMeter.builder.build

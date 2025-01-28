@@ -29,7 +29,7 @@ import org.neo4j.memory.EmptyMemoryTracker
 import org.neo4j.memory.LocalMemoryTracker
 import org.neo4j.memory.MemoryTracker
 
-import scala.collection.compat.immutable.ArraySeq
+import scala.collection.immutable.ArraySeq
 
 class NodeStateTest extends CypherFunSuite {
   private val meter = MemoryMeter.builder.build

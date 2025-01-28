@@ -1587,7 +1587,7 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
         Cypher5("5"),
         Cypher25("25");
 
-        private final String versionName;
+        public final String versionName;
 
         CypherVersion(String versionName) {
             this.versionName = versionName;

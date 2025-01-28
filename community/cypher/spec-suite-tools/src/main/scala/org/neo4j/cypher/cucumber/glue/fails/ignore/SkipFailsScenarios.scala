@@ -1,0 +1,37 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.cypher.cucumber.glue.fails.ignore
+
+import com.google.inject.Inject
+import io.cucumber.scala.EN
+import io.cucumber.scala.ScalaDsl
+import io.cucumber.scala.Scenario
+import org.junit.jupiter.api.Assumptions.assumeFalse
+import org.neo4j.cypher.cucumber.glue.regular.Expectations
+
+/**
+ * This cucumber "glue" can be included to ignore scenarios that are expected to fail.
+ */
+class SkipFailsScenarios @Inject() (denyList: Expectations) extends ScalaDsl with EN {
+
+  Before(Int.MinValue) { scenario: Scenario =>
+    assumeFalse(denyList.fails(scenario), "Scenario ignored because of @fails tag")
+  }
+}

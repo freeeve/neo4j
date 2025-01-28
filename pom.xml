@@ -163,6 +163,8 @@
     <junit.platform.version>1.11.4</junit.platform.version>
     <mockito.version>5.15.2</mockito.version>
     <opencypher.version>1.0.0-M23</opencypher.version>
+    <cucumber.version>7.20.1</cucumber.version>
+    <cucumber.scala.version>8.25.1</cucumber.scala.version>
     <caffeine.version>3.1.8</caffeine.version>
     <required.maven.version>3.8.2</required.maven.version>
     <jackson.version>2.18.2</jackson.version>
@@ -343,7 +345,6 @@
             </statelessTestsetReporter>
             <forkCount>${forkCounts}</forkCount>
             <trimStackTrace>false</trimStackTrace>
-            <reuseForks>true</reuseForks>
             <argLine>${test.runner.jvm.settings}</argLine>
             <runOrder>random</runOrder>
             <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory"/>
@@ -1042,6 +1043,7 @@
       </activation>
       <properties>
         <forkCounts>1C</forkCounts>
+        <reuseForks>true</reuseForks>
         <parallel.tests>true</parallel.tests>
       </properties>
     </profile>
@@ -1931,6 +1933,18 @@
             <artifactId>error_prone_annotations</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>io.cucumber</groupId>
+        <artifactId>cucumber-bom</artifactId>
+        <version>${cucumber.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.cucumber</groupId>
+        <artifactId>cucumber-scala_${scala.binary.version}</artifactId>
+        <version>${cucumber.scala.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

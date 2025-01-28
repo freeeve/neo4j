@@ -29,7 +29,7 @@ import org.scalacheck.Gen
 
 import java.util.concurrent.atomic.AtomicLong
 
-import scala.collection.compat.immutable.ArraySeq
+import scala.collection.immutable.ArraySeq
 import scala.collection.mutable.ArrayBuffer
 
 class SlotConfigurationPropertyTest extends CypherFunSuite with CypherScalaCheckDrivenPropertyChecks {

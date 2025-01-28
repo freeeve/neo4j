@@ -28,6 +28,7 @@ import org.neo4j.cypher.testing.api.CypherExecutor
 import org.neo4j.cypher.testing.api.CypherExecutorFactory
 import org.neo4j.dbms.api.DatabaseManagementService
 import org.neo4j.driver.AuthToken
+import org.neo4j.driver.AuthTokens
 import org.neo4j.driver.Driver
 import org.neo4j.driver.GraphDatabase
 import org.neo4j.driver.NotificationConfig
@@ -45,21 +46,17 @@ case class DriverCypherExecutorFactory(
   private var notificationConfig = NotificationConfig.defaultConfig()
 
   val driver: Driver = {
-    val connectorPortRegister =
-      databaseManagementService.database(config.get(GraphDatabaseSettings.initial_default_database)).asInstanceOf[
-        GraphDatabaseAPI
-      ]
-        .getDependencyResolver.resolveDependency(classOf[ConnectorPortRegister])
+    val connectorPortRegister = databaseManagementService
+      .database(config.get(GraphDatabaseSettings.initial_default_database)).asInstanceOf[GraphDatabaseAPI]
+      .getDependencyResolver
+      .resolveDependency(classOf[ConnectorPortRegister])
 
     val boltURI =
       if (config.get(BoltConnector.enabled))
         URI.create(s"neo4j://${connectorPortRegister.getLocalAddress(ConnectorType.BOLT)}/")
       else throw new IllegalStateException("Bolt connector is not configured")
     val driverConfig = org.neo4j.driver.Config.builder().withTelemetryDisabled(true).build()
-    token.map(t => GraphDatabase.driver(boltURI, t, driverConfig)).getOrElse(GraphDatabase.driver(
-      boltURI,
-      driverConfig
-    ))
+    GraphDatabase.driver(boltURI, token.getOrElse(AuthTokens.none()), driverConfig)
   }
 
   def setNotificationConfig(config: NotificationConfig): Unit =

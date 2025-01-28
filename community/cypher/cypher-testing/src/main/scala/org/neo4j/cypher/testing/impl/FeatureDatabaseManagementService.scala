@@ -106,8 +106,8 @@ object FeatureDatabaseManagementService {
 }
 
 case class FeatureDatabaseManagementService(
-  private val databaseManagementService: DatabaseManagementService,
-  val executorFactory: CypherExecutorFactory,
+  databaseManagementService: DatabaseManagementService,
+  executorFactory: CypherExecutorFactory,
   private val databaseName: Option[String] = None,
   private val notificationConfig: NotificationConfig = NotificationConfig.defaultConfig()
 ) {
@@ -118,9 +118,8 @@ case class FeatureDatabaseManagementService(
     IndexType.RANGE,
     IndexType.FULLTEXT
   )
-  def closeFactory(): Unit = executorFactory.close()
 
-  private val database: GraphDatabaseFacade =
+  val database: GraphDatabaseFacade =
     databaseManagementService.database(databaseName.getOrElse(DEFAULT_DATABASE_NAME)).asInstanceOf[GraphDatabaseFacade]
 
   private val cypherExecutor = createExecutor()
@@ -165,16 +164,11 @@ case class FeatureDatabaseManagementService(
     database.getDependencyResolver.resolveDependency(classOf[KernelTransactions]).terminateTransactions()
   }
 
-  def dropIndexesAndConstraints(): Unit = {
-    val tx = database.beginTx()
-    try {
-      val schema = tx.schema()
-      schema.getConstraints.forEach(c => c.drop());
-      schema.getIndexes.forEach(i => if (shouldDrop(i)) i.drop());
-      tx.commit()
-    } finally {
-      tx.close()
-    }
+  def dropIndexesAndConstraints(): Unit = Using.resource(database.beginTx()) { tx =>
+    val schema = tx.schema()
+    schema.getConstraints.forEach(c => c.drop());
+    schema.getIndexes.forEach(i => if (shouldDrop(i)) i.drop());
+    tx.commit()
   }
 
   private def shouldDrop(index: IndexDefinition): Boolean = {
@@ -213,6 +207,18 @@ case class FeatureDatabaseManagementService(
       execute(statement, converter)
     }
   }
+
+  /**
+   * Returns a new [[FeatureDatabaseManagementService]] towards the same dbms but with a new executor.
+   * Driver executors (sessions) are not thread safe, this is needed to re-use from different threads.
+   */
+  def withNewExecutor(): FeatureDatabaseManagementService = {
+    cypherExecutor.close()
+    FeatureDatabaseManagementService(databaseManagementService, executorFactory, databaseName, notificationConfig)
+  }
+
+  def closeExecutor(): Unit = cypherExecutor.close()
+  def closeExecutorFactory(): Unit = executorFactory.close()
 
   def shutdown(): Unit = {
     cypherExecutor.close()

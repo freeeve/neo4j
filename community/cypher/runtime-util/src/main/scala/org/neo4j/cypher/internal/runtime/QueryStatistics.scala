@@ -197,20 +197,21 @@ object QueryStatistics {
         transactionsStarted = q.getTransactionsStarted,
         transactionsRolledBack = q.getTransactionsRolledBack
       )
-    case _ =>
-      QueryStatistics(
-        nodesCreated = statistics.getNodesCreated,
-        nodesDeleted = statistics.getNodesDeleted,
-        relationshipsCreated = statistics.getRelationshipsCreated,
-        relationshipsDeleted = statistics.getRelationshipsDeleted,
-        propertiesSet = statistics.getPropertiesSet,
-        labelsAdded = statistics.getLabelsAdded,
-        labelsRemoved = statistics.getLabelsRemoved,
-        indexesAdded = statistics.getIndexesAdded,
-        indexesRemoved = statistics.getIndexesRemoved,
-        nodePropUniquenessConstraintsAdded = statistics.getConstraintsAdded,
-        constraintsRemoved = statistics.getConstraintsRemoved,
-        systemUpdates = statistics.getSystemUpdates
-      )
+    case _ => withoutExtended(statistics)
   }
+
+  def withoutExtended(statistics: org.neo4j.graphdb.QueryStatistics): QueryStatistics = QueryStatistics(
+    nodesCreated = statistics.getNodesCreated,
+    nodesDeleted = statistics.getNodesDeleted,
+    relationshipsCreated = statistics.getRelationshipsCreated,
+    relationshipsDeleted = statistics.getRelationshipsDeleted,
+    propertiesSet = statistics.getPropertiesSet,
+    labelsAdded = statistics.getLabelsAdded,
+    labelsRemoved = statistics.getLabelsRemoved,
+    indexesAdded = statistics.getIndexesAdded,
+    indexesRemoved = statistics.getIndexesRemoved,
+    nodePropUniquenessConstraintsAdded = statistics.getConstraintsAdded,
+    constraintsRemoved = statistics.getConstraintsRemoved,
+    systemUpdates = statistics.getSystemUpdates
+  )
 }

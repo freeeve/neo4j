@@ -1,0 +1,394 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.cypher.cucumber
+
+import io.cucumber.core.backend.ObjectFactory
+import io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME
+import io.cucumber.junit.platform.engine.Constants.JUNIT_PLATFORM_LONG_NAMING_STRATEGY_EXAMPLE_NAME_PROPERTY_NAME
+import io.cucumber.junit.platform.engine.Constants.JUNIT_PLATFORM_NAMING_STRATEGY_PROPERTY_NAME
+import io.cucumber.junit.platform.engine.Constants.OBJECT_FACTORY_PROPERTY_NAME
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.platform.engine.TestExecutionResult
+import org.junit.platform.engine.discovery.DiscoverySelectors
+import org.junit.platform.launcher.EngineFilter
+import org.junit.platform.launcher.TestExecutionListener
+import org.junit.platform.launcher.TestIdentifier
+import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder
+import org.junit.platform.launcher.core.LauncherFactory
+import org.junit.platform.launcher.listeners.SummaryGeneratingListener
+import org.neo4j.cypher.cucumber.CypherCucumberTest.TestConfiguration
+import org.neo4j.cypher.cucumber.glue.regular.GuiceObjectFactory
+import org.neo4j.cypher.cucumber.glue.regular.InjectedTestConf
+import org.neo4j.cypher.cucumber.glue.regular.TestConf
+import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.scalatest.LoneElement
+
+import java.io.ByteArrayOutputStream
+import java.io.PrintWriter
+import java.lang.reflect.Modifier
+import java.util
+import java.util.Collections
+import java.util.ServiceLoader
+import java.util.function.Consumer
+
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.util.Try
+
+class CypherCucumberTest extends CypherFunSuite with LoneElement {
+
+  test("cucumber based cypher tests can fail and pass in various ways") {
+    val request = LauncherDiscoveryRequestBuilder.request()
+      .filters(EngineFilter.includeEngines("cucumber"))
+      .selectors(DiscoverySelectors.selectClasspathResource("test/features"))
+      .configurationParameter(GLUE_PROPERTY_NAME, CypherCucumber.Glue.IgnoreFailTaggedScenarios)
+      .configurationParameter(JUNIT_PLATFORM_NAMING_STRATEGY_PROPERTY_NAME, "long")
+      .configurationParameter(JUNIT_PLATFORM_LONG_NAMING_STRATEGY_EXAMPLE_NAME_PROPERTY_NAME, "number")
+      .configurationParameter(OBJECT_FACTORY_PROPERTY_NAME, classOf[TestConfiguration.ObjectFactory].getName)
+      .build()
+
+    val launcher = LauncherFactory.create()
+    val summaryListener = new SummaryGeneratingListener()
+    val passingListener = new CypherCucumberTest.TestListener
+    launcher.registerTestExecutionListeners(summaryListener, passingListener)
+    launcher.execute(request)
+
+    val summary = summaryListener.getSummary
+
+    // Passing tests should pass
+    assertThat(passingListener.passing.toArray(new Array[String](0)).sorted)
+      .describedAs("Tests that are expected to succeed actually succeeds")
+      .containsExactly(
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.1",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.10",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.11",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.12",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.13",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.14",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.15",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.16",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.17",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.18",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.19",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.2",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.20",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.21",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.3",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.4",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.5",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.6",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.7",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.8",
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.9"
+      )
+
+    // Failing tests should fail in the correct way
+    val sortedFailures = summary.getFailures.asScala.view
+      .map(f => CypherCucumberTest.Failure(f.getTestIdentifier.getDisplayName, f.getException))
+      .sortBy(_.testName)
+      .toArray
+    assertThat(sortedFailures)
+      .describedAs("Failing tests should fail in the correct way")
+      .satisfiesExactly(
+        wrongResultOrdered("[001] Incorrect result value ordered"),
+        wrongResultAnyOrder("[002] Incorrect result value any order"),
+        wrongResultOrderedAnyListOrder(
+          "[003] Incorrect result value ordered, any list order - Examples - Example #1.1"
+        ),
+        wrongResultOrderedAnyListOrder(
+          "[003] Incorrect result value ordered, any list order - Examples - Example #1.2"
+        ),
+        wrongResultOrderedAnyListOrder(
+          "[003] Incorrect result value ordered, any list order - Examples - Example #1.3"
+        ),
+        wrongResultAnyOrderAnyListOrder(
+          "[004] Incorrect result value any order, any list order - Examples - Example #1.1"
+        ),
+        wrongResultAnyOrderAnyListOrder(
+          "[004] Incorrect result value any order, any list order - Examples - Example #1.2"
+        ),
+        wrongResultAnyOrderAnyListOrder(
+          "[004] Incorrect result value any order, any list order - Examples - Example #1.3"
+        ),
+        wrongResultOrdered("[005] Incorrect row count ordered"),
+        wrongResultAnyOrder("[006] Incorrect row count any order"),
+        wrongResultOrderedAnyListOrder("[007] Incorrect row count ordered, any list order"),
+        wrongResultAnyOrderAnyListOrder("[008] Incorrect row count any order, any list order"),
+        wrongHeaders("[009] Incorrect result headers ordered"),
+        wrongHeaders("[010] Incorrect result headers any order"),
+        wrongHeaders("[011] Incorrect result headers ordered, any list order"),
+        wrongHeaders("[012] Incorrect result headers any order, any list order"),
+        wrongSideEffects("[013] Incorrect side effects - Examples - Example #1.1"),
+        wrongSideEffects("[013] Incorrect side effects - Examples - Example #1.10"),
+        wrongSideEffects("[013] Incorrect side effects - Examples - Example #1.11"),
+        wrongSideEffects("[013] Incorrect side effects - Examples - Example #1.12"),
+        wrongSideEffects("[013] Incorrect side effects - Examples - Example #1.13"),
+        wrongSideEffects("[013] Incorrect side effects - Examples - Example #1.14"),
+        wrongSideEffects("[013] Incorrect side effects - Examples - Example #1.2"),
+        wrongSideEffects("[013] Incorrect side effects - Examples - Example #1.3"),
+        wrongSideEffects("[013] Incorrect side effects - Examples - Example #1.4"),
+        wrongSideEffects("[013] Incorrect side effects - Examples - Example #1.5"),
+        wrongSideEffects("[013] Incorrect side effects - Examples - Example #1.6"),
+        wrongSideEffects("[013] Incorrect side effects - Examples - Example #1.7"),
+        wrongSideEffects("[013] Incorrect side effects - Examples - Example #1.8"),
+        wrongSideEffects("[013] Incorrect side effects - Examples - Example #1.9"),
+        queryFailedCompile("[014] Query failure - Examples - Example #1.1"),
+        queryFailedRuntime("[014] Query failure - Examples - Example #1.2"),
+        wrongConf("[015] Incorrect config"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.1"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.10"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.11"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.12"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.13"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.14"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.15"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.16"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.17"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.18"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.19"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.2"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.20"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.21"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.22"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.23"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.3"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.4"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.5"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.6"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.7"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.8"),
+        wrongResultOrdered("[017] Most storable types can fail in cucumber tests - Examples - Example #1.9"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.1"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.10"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.11"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.12"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.13"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.14"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.15"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.16"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.17"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.18"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.19"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.2"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.20"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.21"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.22"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.23"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.3"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.4"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.5"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.6"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.7"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.8"),
+        wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.9"),
+        wrongConfTag("[019] Incorrect conf tag")
+      )
+
+    val summaryOutputStream = new ByteArrayOutputStream()
+    val summaryString = new PrintWriter(summaryOutputStream)
+    summary.printTo(summaryString)
+    summaryString.flush()
+
+    withClue(summaryOutputStream.toString) {
+      summary.getTestsSucceededCount shouldBe 21
+      summary.getContainersFailedCount shouldBe 0
+      summary.getTestsFoundCount shouldBe 101
+      summary.getTestsFailedCount shouldBe 80
+      summary.getTestsAbortedCount shouldBe 0
+      summary.getTestsSkippedCount shouldBe 0
+    }
+  }
+
+  test("object factories have correct names") {
+    val testConfs = ServiceLoader.load(classOf[ObjectFactory]).stream().toList.asScala.toSeq
+      .map(_.get())
+      .collect { case factory: GuiceObjectFactory if Try(factory.getInstance(classOf[TestConf])).isSuccess => factory }
+      .map(f => f.getClass.getName -> f.getInstance(classOf[TestConf]))
+      .toMap
+
+    // It's important that the ObjectFactoryName match the correct config.
+    testConfs.toMap shouldBe Map(
+      classOf[CypherCucumberTest.TestConfiguration.ObjectFactory].getName -> CypherCucumberTest.TestConfiguration.conf,
+      TestConf.Cypher25Bolt.ObjectFactoryName -> TestConf.Cypher25Bolt.conf,
+      TestConf.Default.ObjectFactoryName -> TestConf.Default.conf,
+      TestConf.DefaultBolt.ObjectFactoryName -> TestConf.DefaultBolt.conf,
+      TestConf.Legacy.ObjectFactoryName -> TestConf.Legacy.conf,
+      TestConf.Parallel.ObjectFactoryName -> TestConf.Parallel.conf,
+      TestConf.ParallelBolt.ObjectFactoryName -> TestConf.ParallelBolt.conf,
+      TestConf.Pipelined.ObjectFactoryName -> TestConf.Pipelined.conf,
+      TestConf.PipelinedFallback.ObjectFactoryName -> TestConf.PipelinedFallback.conf,
+      TestConf.Slotted.ObjectFactoryName -> TestConf.Slotted.conf,
+      TestConf.SlottedCompiled.ObjectFactoryName -> TestConf.SlottedCompiled.conf,
+      TestConf.SpdBolt.ObjectFactoryName -> TestConf.SpdBolt.conf,
+      TestConf.SpdParallel.ObjectFactoryName -> TestConf.SpdParallel.conf
+    )
+
+    // Additional smoke test
+    testConfs.view.mapValues(_.preparserPrefix.trim).toMap shouldBe Map(
+      classOf[CypherCucumberTest.TestConfiguration.ObjectFactory].getName -> "CYPHER runtime=legacy",
+      TestConf.Cypher25Bolt.ObjectFactoryName -> "",
+      TestConf.Default.ObjectFactoryName -> "",
+      TestConf.DefaultBolt.ObjectFactoryName -> "",
+      TestConf.Legacy.ObjectFactoryName -> "CYPHER runtime=legacy",
+      TestConf.Parallel.ObjectFactoryName -> "CYPHER runtime=parallel",
+      TestConf.ParallelBolt.ObjectFactoryName -> "CYPHER runtime=parallel",
+      TestConf.Pipelined.ObjectFactoryName -> "CYPHER runtime=pipelined",
+      TestConf.PipelinedFallback.ObjectFactoryName -> "CYPHER runtime=pipelined interpretedPipesFallback=all",
+      TestConf.Slotted.ObjectFactoryName -> "CYPHER runtime=slotted",
+      TestConf.SlottedCompiled.ObjectFactoryName -> "CYPHER runtime=slotted expressionEngine=compiled",
+      TestConf.SpdBolt.ObjectFactoryName -> "",
+      TestConf.SpdParallel.ObjectFactoryName -> "CYPHER runtime=parallel"
+    )
+  }
+
+  test("remember to add test coverage of the glue to avoid false positives") {
+    val covered = Set(
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.resultShouldBeInOrderIgnoringListOrder(io.cucumber.datatable.DataTable)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.resultShouldBeInAnyOrder(io.cucumber.datatable.DataTable)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.parametersAre(scala.collection.immutable.Map)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.givenCsvFile(java.lang.String,io.cucumber.datatable.DataTable)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.havingExecuted(java.lang.String)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.executingQuery(java.lang.String)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.registerProcedure(java.lang.String,io.cucumber.datatable.DataTable)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.executingControlQuery(java.lang.String)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.resultShouldBeInOrder(io.cucumber.datatable.DataTable)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.sideEffectsShouldBe(io.cucumber.datatable.DataTable)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.resultShouldBeInAnyOrderIgnoringListOrder(io.cucumber.datatable.DataTable)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.errorShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedError)",
+      "private java.lang.String org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.readNamedGraphCypher(java.lang.String)"
+    )
+    val methods = classOf[CypherCucumberSteps].getDeclaredMethods
+      .filter(c => !Modifier.isStatic(c.getModifiers))
+      .map(_.toString)
+      .toSet
+    if (methods != covered) {
+      fail(
+        s"""
+           |You might want to add test coverage in "cucumber based cypher tests can fail and pass in various ways"
+           |of the following methods to avoid false positives:
+           |
+           |${methods.diff(covered).mkString("\n")}
+           |""".stripMargin
+      )
+    }
+  }
+
+  def wrongResultOrdered(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(failure.throwable)
+      .hasMessageContainingAll("Incorrect query result.", "Expected results (in order):", "CYPHER runtime=legacy")
+  }
+
+  def wrongResultAnyOrder(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(failure.throwable)
+      .hasMessageContainingAll("Incorrect query result.", "Expected results (in any order):", "CYPHER runtime=legacy")
+  }
+
+  def wrongResultOrderedAnyListOrder(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(failure.throwable)
+      .hasMessageContainingAll(
+        "Incorrect query result.",
+        "Expected results (rows in order, ignoring element order of lists):",
+        "runtime=legacy"
+      )
+  }
+
+  def wrongResultAnyOrderAnyListOrder(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(failure.throwable)
+      .hasMessageContainingAll(
+        "Incorrect query result.",
+        "Expected results (rows in any order, ignoring element order of lists):",
+        "CYPHER runtime=legacy"
+      )
+  }
+
+  def wrongHeaders(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(failure.throwable).hasMessageContaining("Result has correct headers")
+  }
+
+  def wrongSideEffects(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(failure.throwable).hasMessageContaining("Incorrect side effects")
+  }
+
+  def queryFailedCompile(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(failure.throwable)
+      .hasMessageContainingAll(
+        "Query failed but was expected to succeed.",
+        "Phase: compile time",
+        "CYPHER runtime=legacy"
+      )
+  }
+
+  def queryFailedRuntime(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(failure.throwable)
+      .hasMessageContainingAll("Query failed but was expected to succeed.", "Phase: runtime", "CYPHER runtime=legacy")
+  }
+
+  def wrongConf(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(failure.throwable).hasMessageContaining("make.sure.im.there.*")
+  }
+
+  def wrongConfTag(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(
+      failure.throwable
+    ).hasMessageContaining("Unrecognized setting. No declared setting with name: incorrect.conf")
+  }
+}
+
+object CypherCucumberTest {
+
+  object TestConfiguration extends InjectedTestConf {
+
+    final override val conf: TestConf = TestConf(
+      neo4jConf = Map(
+        "dbms.security.procedures.unrestricted" -> "make.sure.im.there.*"
+      ),
+      useEnterprise = false,
+      tagContext = Set("cypher-5"),
+      preparserOptions = Map("runtime" -> "legacy")
+    )
+    final class ObjectFactory extends GuiceObjectFactory(injector)
+  }
+
+  case class Failure(testName: String, throwable: Throwable) {
+
+    override def toString: String =
+      s"Failure(testName = $testName, throwable: ${throwable.getClass.getSimpleName})"
+  }
+
+  class TestListener extends TestExecutionListener {
+    val passing = Collections.synchronizedList(new util.ArrayList[String]())
+
+    override def executionFinished(id: TestIdentifier, result: TestExecutionResult): Unit = result.getStatus match {
+      case TestExecutionResult.Status.SUCCESSFUL => if (id.isTest) passing.add(id.getDisplayName)
+      case _                                     =>
+    }
+  }
+
+}

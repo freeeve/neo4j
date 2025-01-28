@@ -19,7 +19,9 @@
  */
 package org.neo4j.cypher.testing.impl.http
 
+import org.neo4j.cypher.testing.api.ConsumedResult
 import org.neo4j.cypher.testing.api.StatementResult
+import org.neo4j.cypher.testing.api.ValueMapper
 import org.neo4j.cypher.testing.impl.http.HttpStatementResult.Notification
 import org.neo4j.cypher.testing.impl.http.HttpStatementResult.Result
 import org.neo4j.cypher.testing.impl.shared.NotificationImpl
@@ -42,6 +44,8 @@ case class HttpStatementResult(result: Result, notifications: Seq[Notification])
   override def columns(): Seq[String] = cols
 
   override def records(): Seq[Record] = result.data.map(r => cols.zip(r.row).toMap)
+
+  override def consume(valueMapper: ValueMapper): ConsumedResult = ???
 
   override def consume(): Unit = ()
 

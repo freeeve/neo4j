@@ -32,6 +32,8 @@ trait StatementResult extends AutoCloseable {
 
   def consume(): Unit = {}
 
+  def consume(valueMapper: ValueMapper): ConsumedResult
+
   def iterator(): Iterator[Map[String, AnyRef]]
 
   def getNotifications(): Iterable[Notification]
@@ -40,3 +42,18 @@ trait StatementResult extends AutoCloseable {
 
   override def close(): Unit
 }
+
+/** Custom result value converter.  */
+trait ValueMapper {
+  def driverRecordsMapper: java.util.function.Function[org.neo4j.driver.Record, java.util.List[AnyRef]]
+  def mapJavaValue(value: AnyRef): AnyRef
+}
+
+/**
+ * These uses java std lib classes to be as close to the original results as possible.
+ * The intention is to avoid bugs when converting values.
+ */
+case class ConsumedResult(
+  headers: java.util.List[String],
+  rows: java.util.List[java.util.List[AnyRef]]
+)

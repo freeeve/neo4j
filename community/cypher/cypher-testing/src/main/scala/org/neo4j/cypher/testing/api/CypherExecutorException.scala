@@ -76,7 +76,8 @@ object CypherExecutorException {
       try {
         code
       } catch {
-        case t: Throwable => throw asExecutorException(t).getOrElse(t)
+        case t: Throwable =>
+          throw asExecutorException(t).getOrElse(t)
       }
 
     def statusOf(code: String): Option[Status] =

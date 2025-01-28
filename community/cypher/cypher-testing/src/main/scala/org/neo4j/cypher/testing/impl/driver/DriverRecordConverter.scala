@@ -89,5 +89,4 @@ object DriverRecordConverter {
 
   private def convertList(driverValue: util.List[AnyRef]): Seq[AnyRef] =
     driverValue.asScala.map(convertValue).toList
-
 }

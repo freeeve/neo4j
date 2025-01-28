@@ -22,14 +22,36 @@ import org.junit.platform.engine.support.hierarchical.ParallelExecutionConfigura
 
 /**
  * Custom parallel execution configuration for feature tests.
+ * Tries to use all cores for test execution.
  */
-class FeatureTestParallelConfig extends ParallelExecutionConfigurationStrategy {
+class HighParallelismParallelStrategy extends ParallelExecutionConfigurationStrategy {
 
   override def createConfiguration(
     configurationParameters: ConfigurationParameters
   ): ParallelExecutionConfiguration = {
     new ParallelExecutionConfiguration {
       private val parallelism = Runtime.getRuntime.availableProcessors()
+      override def getParallelism: Int = parallelism
+      override def getMinimumRunnable: Int = 0
+      override def getMaxPoolSize: Int = parallelism + 256
+      override def getCorePoolSize: Int = parallelism
+      override def getKeepAliveSeconds: Int = 30
+    }
+  }
+}
+
+/**
+ * Custom parallel execution configuration for feature tests with parallel loads.
+ * Do not use all available processors for test execution.
+ * Reduces memory needs and allow more room for the db to work in parallel.
+ */
+class LowParallelismParallelStrategy extends ParallelExecutionConfigurationStrategy {
+
+  override def createConfiguration(
+    configurationParameters: ConfigurationParameters
+  ): ParallelExecutionConfiguration = {
+    new ParallelExecutionConfiguration {
+      private val parallelism = math.max(1, (3 * Runtime.getRuntime.availableProcessors()) / 4)
       override def getParallelism: Int = parallelism
       override def getMinimumRunnable: Int = 0
       override def getMaxPoolSize: Int = parallelism + 256

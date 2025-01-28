@@ -1,0 +1,244 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.cypher.cucumber.glue.regular
+
+import com.google.inject.Inject
+import com.google.inject.Provider
+import io.cucumber.scala.Scenario
+import org.assertj.core.api.Assertions.assertThat
+import org.awaitility.Awaitility.await
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.neo4j.configuration.Config
+import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
+import org.neo4j.cypher.cucumber.CypherCucumber.Tag.ConfPrefix
+import org.neo4j.cypher.cucumber.glue.regular.TestConf.Settings
+import org.neo4j.cypher.cucumber.util.KernelOperation
+import org.neo4j.cypher.testing.impl.FeatureDatabaseManagementService
+import org.neo4j.cypher.testing.impl.driver.DriverCypherExecutorFactory
+import org.neo4j.cypher.testing.impl.embedded.EmbeddedCypherExecutorFactory
+import org.neo4j.dbms.api.DatabaseManagementService
+import org.neo4j.graphdb.Result
+import org.neo4j.kernel.impl.factory.GraphDatabaseFacade
+import org.neo4j.test.TestDatabaseManagementServiceBuilder
+import org.neo4j.util.Preconditions.checkState
+
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.TimeUnit
+
+import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.util.Try
+import scala.util.Using
+
+trait Executors {
+
+  /** Acquire a query executor for the specified scenario. The acquired [[DbAccessor]]s must be released. */
+  def acquire(scenario: Scenario): DbAccessor
+
+  /** Release an acquired [[DbAccessor]]. */
+  def release(dbms: DbAccessor): Unit
+
+  /** Start the [[Executors]] service. */
+  def start(): Unit
+
+  /** Shutdown the [[Executors]] service. */
+  def shutdown(): Unit
+}
+
+case class DbAccessor(dbms: FeatureDatabaseManagementService, extraSettings: Settings) {
+  def isCompatible(extraSettings: Settings): Boolean = this.extraSettings == extraSettings
+}
+
+trait ExecutorPool extends Executors {
+  private[this] val executors = new ArrayBlockingQueue[Option[DbAccessor]](ExecutorPool.PoolSize)
+  @volatile private[this] var started = false
+
+  def conf: TestConf
+
+  final override def acquire(scenario: Scenario): DbAccessor = {
+    checkState(started, "ExecutorPool is not started")
+
+    val extraSettings = extraSettingsFor(scenario)
+    executors.poll(5, TimeUnit.MINUTES) match {
+      case Some(executor) =>
+        try {
+          if (executor.isCompatible(extraSettings)) {
+            DbAccessor(executor.dbms.withNewExecutor(), executor.extraSettings)
+          } else {
+            executor.dbms.shutdown()
+            createExecutor(extraSettings)
+          }
+        } catch {
+          case t: Throwable =>
+            Try(executor.dbms.shutdown())
+            executors.offer(None)
+            throw t
+        }
+      case None =>
+        try {
+          createExecutor(extraSettings)
+        } catch {
+          case t: Throwable =>
+            executors.offer(None)
+            throw t
+        }
+      case null =>
+        throw new IllegalStateException(s"Timed out while waiting for executor (not supposed to happen)")
+    }
+  }
+
+  final override def release(executor: DbAccessor): Unit = {
+    checkState(started, "ExecutorPool is not started")
+    try {
+      // We do cleanup on release to make sure the correct test fails if it stopped the db.
+      assertTrue(executor.dbms.database.isAvailable, "Database is not available after test")
+      executor.dbms.dropIndexesAndConstraints()
+      executor.dbms.terminateAllTransactions() // Can we fail test if there are open transactions instead?
+      // executor.dbms.clearQueryCaches() We could clear cache, but why
+      KernelOperation.detachDeleteAllNodes(executor.dbms.database)
+      executor.dbms.closeExecutor()
+      executors.offer(Some(executor))
+    } catch {
+      case t: Throwable =>
+        Try(executor.dbms.shutdown())
+        executors.offer(None)
+        throw t
+    }
+  }
+
+  private def createExecutor(extraSettings: Settings): DbAccessor = {
+    accessorFrom(startDbms(extraSettings), extraSettings, None)
+  }
+
+  override def start(): Unit = {
+    checkState(!started, "Tried starting already started ExecutorPool")
+    while (executors.offer(None)) {}
+    started = true
+  }
+
+  override def shutdown(): Unit = this.synchronized {
+    checkState(started, "Tried stopping already stopped ExecutorPool")
+    started = false
+    executors.parallelStream().forEach(_.foreach(a => Try(a.dbms.shutdown())))
+    executors.clear()
+  }
+
+  protected def startDbms(extraSettings: Settings): DatabaseManagementService = {
+    val dbmsBuilder = if (conf.useEnterprise) {
+      val cls = getClass.getClassLoader.loadClass("com.neo4j.test.TestEnterpriseDatabaseManagementServiceBuilder")
+      cls.getDeclaredConstructor().newInstance().asInstanceOf[TestDatabaseManagementServiceBuilder]
+    } else {
+      new TestDatabaseManagementServiceBuilder()
+    }
+    dbmsBuilder.impermanent().setConfigRaw((conf.neo4jConf ++ extraSettings).asJava).build()
+  }
+
+  final private def accessorFrom(
+    dbms: DatabaseManagementService,
+    extraSettings: Settings,
+    dbName: Option[String]
+  ): DbAccessor = {
+    val neo4jConf = dbms.database(dbName.getOrElse("neo4j")).asInstanceOf[GraphDatabaseFacade]
+      .getDependencyResolver
+      .resolveDependency(classOf[Config])
+    val executorFactory =
+      if (conf.useBolt) DriverCypherExecutorFactory(dbms, neo4jConf)
+      else EmbeddedCypherExecutorFactory(dbms, neo4jConf)
+
+    DbAccessor(
+      dbms = FeatureDatabaseManagementService(dbms, executorFactory, dbName),
+      extraSettings = extraSettings
+    )
+  }
+
+  private def extraSettingsFor(scenario: Scenario): Settings = {
+    val tags = scenario.getSourceTagNames
+    if (!tags.isEmpty && tags.stream().anyMatch(tag => tag.startsWith(ConfPrefix))) {
+      tags.asScala.view
+        .collect {
+          case tag if tag.startsWith(ConfPrefix) =>
+            val equalsIndex = tag.indexOf("=")
+            tag.substring(ConfPrefix.length, equalsIndex) -> tag.substring(equalsIndex + 1)
+        }
+        .toMap
+    } else {
+      Map.empty
+    }
+  }
+}
+
+@com.google.inject.Singleton
+final class DefaultExecutorPool @Inject() (override val conf: TestConf) extends ExecutorPool
+
+@com.google.inject.Singleton
+final class SpdExecutorPool @Inject() (override val conf: TestConf) extends ExecutorPool {
+
+  override protected def startDbms(extraSettings: Settings): DatabaseManagementService = {
+    val dbms = super.startDbms(extraSettings)
+    val systemDb = dbms.database(SYSTEM_DATABASE_NAME)
+
+    val spdAvailabilityQuery = "CALL internal.dbms.spd.available()"
+    val emptyMap = java.util.Map.of[String, AnyRef]()
+
+    // Wait until the SPD is available
+    await()
+      .atMost(60, TimeUnit.SECONDS)
+      .pollDelay(1, TimeUnit.SECONDS)
+      .pollInSameThread
+      .untilAsserted { () =>
+        assertThat(systemDb.executeTransactionally(spdAvailabilityQuery, emptyMap, (r: Result) => r.stream().toList))
+          .containsExactly(java.util.Map.of("available", java.lang.Boolean.TRUE, "detail", "All started"))
+      }
+
+    // Create lookup indexes that could not be created when the database was created
+    val dbs = dbms.listDatabases().stream()
+      .filter(dbName => !dbName.equals(SYSTEM_DATABASE_NAME) && !dbName.contains("shard"))
+      .map(dbName => dbms.database(dbName))
+      .toList
+
+    dbs.forEach { db =>
+      db.executeTransactionally("CREATE LOOKUP INDEX node_label_lookup_index FOR (n) ON EACH labels(n)")
+      db.executeTransactionally("CREATE LOOKUP INDEX rel_type_lookup_index FOR ()-[r]-() ON EACH type(r)")
+    }
+
+    dbs.forEach { db =>
+      Using.resource(db.beginTx())(tx => tx.schema().awaitIndexesOnline(60, TimeUnit.SECONDS))
+    }
+    dbms
+  }
+}
+
+@com.google.inject.Singleton()
+class ExecutorsProvider @com.google.inject.Inject() (conf: TestConf) extends Provider[Executors] {
+
+  override def get(): Executors = {
+    if (conf.useSpd) new SpdExecutorPool(conf)
+    else new DefaultExecutorPool(conf)
+  }
+}
+
+final class ExecutorsStartAndShutown @Inject() (executors: Executors) extends BeforeAndAfterAll {
+  override def beforeAll(): Unit = executors.start()
+  override def afterAll(): Unit = executors.shutdown()
+}
+
+object ExecutorPool {
+  val PoolSize = math.max(1, Runtime.getRuntime.availableProcessors())
+}

@@ -11,12 +11,9 @@ Apache Software License, Version 2.0
   Jackson-core
   jackson-databind
   mockito-4.6
-  openCypher TCK API
-  openCypher TCK Features and Graphs
   org.apiguardian:apiguardian-api
   org.opentest4j:opentest4j
   Scala Reflect
-  scala-collection-compat
   scala-xml
   scalacheck-1.16
   scalactic
@@ -708,20 +705,9 @@ version(s), and exceptions or additional permissions here}."
 ------------------------------------------------------------------------------
 MIT License
   co.helmethair:scalatest-junit-runner
-  Cucumber Expressions
-  Cucumber Tag Expressions
-  Cucumber-JVM: Core
-  Cucumber-JVM: Docstring
-  Cucumber-JVM: Gherkin
-  Cucumber-JVM: Gherkin Vintage
-  Cucumber-JVM: Plugin
-  DataTable
   fansi_2.13
-  fastparse_2.13
-  geny_2.13
   mockito-core
   pprint_2.13
-  sourcecode_2.13
 ------------------------------------------------------------------------------
 
 The MIT License

@@ -1,9 +1,0 @@
-import common.txt
-
-// Test setup uses self-reference in CREATE, which is no longer supported. Need to update TCK tests?
-Feature "WithSkipLimit1 - Skip": Scenario "Handle dependencies across WITH with SKIP"
-Feature "With2 - Forward single expression": Scenario "Forwarding a property to express a join"
-Feature "WithSkipLimit2 - Limit": Scenario "Handle dependencies across WITH with LIMIT"
-
-Feature "Merge7 - Merge relationships - on match": Scenario "Copying properties from node with ON MATCH"
-Feature "Merge6 - Merge relationships - on create": Scenario "Copying properties from node with ON CREATE"
