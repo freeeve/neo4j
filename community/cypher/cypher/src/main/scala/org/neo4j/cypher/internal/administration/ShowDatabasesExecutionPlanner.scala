@@ -169,7 +169,8 @@ case class ShowDatabasesExecutionPlanner(
            |d.name as dbNameProperty,
            |d.$DATABASE_DEFAULT_PROPERTY as default,
            |homeDbName,
-           |coalesce( homeDbName in collect(a.$displayNameProperty) + [d.name], false ) as home
+           |// Keep old display name for home database check until home database have been updated for graph references
+           |coalesce( homeDbName in collect(a.$DISPLAY_NAME_PROPERTY) + [d.name], false ) as home
            |$verboseColumns
            |
            |WITH name AS $NAME_COL,
