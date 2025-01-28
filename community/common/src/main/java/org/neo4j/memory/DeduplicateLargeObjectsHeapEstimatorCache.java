@@ -83,6 +83,13 @@ public class DeduplicateLargeObjectsHeapEstimatorCache implements HeapEstimatorC
         return new DeduplicateLargeObjectsHeapEstimatorCache(sizeLimit, largeObjectThreshold);
     }
 
+    @Override
+    public String toString() {
+        return String.format(
+                "%s:%08x,size:%d,thres:%d",
+                getClass().getSimpleName(), System.identityHashCode(this), sizeLimit, largeObjectThreshold);
+    }
+
     private int find(Measurable measurable, long estimate) {
         // Linear search
         for (int i = 0; i < currentSize; i++) {
@@ -92,7 +99,9 @@ public class DeduplicateLargeObjectsHeapEstimatorCache implements HeapEstimatorC
                     cacheHits[i] = newHits;
                 }
                 if (DEBUG_LOG_ENABLED) {
-                    log("Cache hit %s at %d with estimate %d: %d", refString(measurable), i, estimate, newHits);
+                    log(
+                            "[%s] Cache hit %s at %d with estimate %d: %d",
+                            this, refString(measurable), i, estimate, newHits);
                 }
                 return i;
             }
@@ -108,7 +117,7 @@ public class DeduplicateLargeObjectsHeapEstimatorCache implements HeapEstimatorC
             cacheHits[size] = 1;
             currentSize++;
             if (DEBUG_LOG_ENABLED) {
-                log("Inserted  %s at %d with estimate %d", refString(measurable), size, estimate);
+                log("[%s] Inserted  %s at %d with estimate %d", this, refString(measurable), size, estimate);
             }
         } else {
             evictAndReplace(measurable, estimate, size);
@@ -138,11 +147,11 @@ public class DeduplicateLargeObjectsHeapEstimatorCache implements HeapEstimatorC
         }
         if (DEBUG_LOG_ENABLED) {
             log(
-                    "Evicted   %s at %d with estimate %d",
-                    refString(cacheRefs[minHitsIndex]), minHitsIndex, minHitsEstimate);
-            log("Inserted  %s at %d with estimate %d", refString(measurable), minHitsIndex, estimate);
+                    "[%s] Evicted   %s at %d with estimate %d",
+                    this, refString(cacheRefs[minHitsIndex]), minHitsIndex, minHitsEstimate);
+            log("[%s] Inserted  %s at %d with estimate %d", this, refString(measurable), minHitsIndex, estimate);
             if (estimate < minHitsEstimate) {
-                log(" ! Evicted object had larger estimate by %d", minHitsEstimate - estimate);
+                log("[%s] ! Evicted object had larger estimate by %d", this, minHitsEstimate - estimate);
             }
         }
         // Replace the candidate
@@ -153,7 +162,7 @@ public class DeduplicateLargeObjectsHeapEstimatorCache implements HeapEstimatorC
 
     @VisibleForTesting
     public static String refString(Measurable measurable) {
-        return measurable.getClass().getName() + "@" + Integer.toHexString(measurable.hashCode());
+        return String.format("%s:%08x", measurable.getClass().getName(), System.identityHashCode(measurable));
     }
 
     private static void log(String format, Object... args) {

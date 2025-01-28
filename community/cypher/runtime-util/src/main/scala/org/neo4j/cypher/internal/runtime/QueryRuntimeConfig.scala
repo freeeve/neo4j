@@ -26,7 +26,12 @@ import org.neo4j.memory.HeapEstimatorCacheConfig
 
 case class QueryRuntimeConfig(
   heapEstimatorCacheConfig: HeapEstimatorCacheConfig
-)
+) {
+
+  def withHeapEstimatorCacheConfig(heapEstimatorCacheConfig: HeapEstimatorCacheConfig): QueryRuntimeConfig = {
+    copy(heapEstimatorCacheConfig = heapEstimatorCacheConfig)
+  }
+}
 
 object QueryRuntimeConfig {
 
