@@ -342,12 +342,7 @@ case class RepeatSlottedPipe(
               }
 
               val innerState = state.withInitialContext(rhsInitialRow)
-              innerResult = if (endNodePredicate == null)
-                inner.createResults(innerState)
-              else
-                inner.createResults(innerState).filter(row =>
-                  testEndNodePredicate(endNodePredicate, row, state, isZeroRep = false)
-                )
+              innerResult = inner.createResults(innerState)
               produceNext()
             } else {
               if (stackHead != null) {

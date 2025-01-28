@@ -1060,6 +1060,39 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
     ))
   }
 
+  test("should work with end node predicate") {
+    // (n1:START) → (n2) → (n3) → (n4)
+    val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
+
+    val endNodePredicates = EndNodePredicates(
+      ands(notEquals(id(varFor(`(me) [(a)-[r]->(b)]{0,2} (you)`.end)), literalInt(n2.getId))),
+      ands(notEquals(id(varFor(`(me) [(a)-[r]->(b)]{0,2} (you)`.innerEnd)), literalInt(n2.getId)))
+    )
+    val `(me) [(a)-[r]->(b)]{0,2} (you) WHERE id(you) <> id(n2)` = `(me) [(a)-[r]->(b)]{0,2} (you)`
+      .copy(endNodePredicate = Some(endNodePredicates))
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("me", "you", "a", "b", "r")
+      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
+      .repeatTrail(`(me) [(a)-[r]->(b)]{0,2} (you) WHERE id(you) <> id(n2)`)
+      .|.filterExpression(isRepeatTrailUnique("r_inner"))
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.argument("me", "a_inner")
+      .nodeByLabelScan("me", "START", IndexOrderNone)
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("me", "you", "a", "b", "r").withRows(inAnyOrder(
+      Seq(
+        Array(n1, n1, emptyList(), emptyList(), emptyList()),
+        Array(n1, n3, listOf(n1, n2), listOf(n2, n3), listOf(r12, r23))
+      )
+    ))
+  }
+
   test("should work with filter on rhs 1") {
     // (n1:START) → (n2) → (n3) → (n4)
     val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
