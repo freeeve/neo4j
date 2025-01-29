@@ -32,20 +32,6 @@ import org.neo4j.kernel.api.exceptions.InvalidArgumentsException;
 import org.neo4j.kernel.api.exceptions.Status;
 
 class ExceptionsTest {
-    @Test
-    void testCompositeExceptionWithSomePrimaryErrors() {
-        var primary1 = new FabricException(Status.General.UnknownError, "msg-1");
-        var primary2 = new FabricException(Status.General.UnknownError, "msg-2");
-        var secondary = new FabricSecondaryException(
-                Status.General.UnknownError,
-                "msg-3",
-                new IllegalStateException("msg-4"),
-                new FabricException(Status.General.UnknownError, "msg-5"));
-
-        var reactorException = reactor.core.Exceptions.multiple(primary1, primary2, secondary);
-        var transformedException = Exceptions.transformUnexpectedError(Status.General.UnknownError, reactorException);
-        assertThat(unpackExceptionMessages(transformedException)).contains("msg-1", "msg-2");
-    }
 
     @Test
     void testGqlFallbackUnexpectedError() {
@@ -64,25 +50,6 @@ class ExceptionsTest {
         assertThat(transformedException).isInstanceOf(ErrorGqlStatusObject.class);
         var transformedExceptionGql = (ErrorGqlStatusObject) transformedException;
         assertThat(transformedExceptionGql.gqlStatus()).isEqualTo("25N06");
-    }
-
-    @Test
-    void testCompositeExceptionWithOnlySecondaryErrors() {
-        var sharedPrimary = new FabricException(Status.General.UnknownError, "msg-1");
-
-        var secondary1 = new FabricSecondaryException(
-                Status.General.UnknownError, "msg-2", new IllegalStateException("msg-3"), sharedPrimary);
-        var secondary2 = new FabricSecondaryException(
-                Status.General.UnknownError,
-                "msg-4",
-                new IllegalStateException("msg-5"),
-                new FabricException(Status.General.UnknownError, "msg-6"));
-        var secondary3 = new FabricSecondaryException(
-                Status.General.UnknownError, "msg-7", new IllegalStateException("msg-8"), sharedPrimary);
-
-        var reactorException = reactor.core.Exceptions.multiple(secondary1, secondary2, secondary3);
-        var transformedException = Exceptions.transformUnexpectedError(Status.General.UnknownError, reactorException);
-        assertThat(unpackExceptionMessages(transformedException)).contains("msg-1", "msg-6");
     }
 
     @Test

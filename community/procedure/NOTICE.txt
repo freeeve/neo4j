@@ -77,7 +77,6 @@ Apache Software License, Version 2.0
   Netty/Transport/Native/Epoll
   Netty/Transport/Native/KQueue
   Netty/Transport/Native/Unix/Common
-  Non-Blocking Reactive Foundation for the JVM
   picocli
   Scala Reflect
   scala-collection-contrib
@@ -119,9 +118,6 @@ GNU General Public License, version 2 with the Classpath Exception
 
 MIT License
   SLF4J API Module
-
-MIT No Attribution License
-  reactive-streams
 
 Mozilla Public License, Version 2.0
   kiama
