@@ -19,6 +19,8 @@
  */
 package org.neo4j.memory;
 
+import org.github.jamm.Unmetered;
+
 public interface HeapEstimatorCache {
     /**
      * Gives an estimation of the heap usage in bytes for the given value,
@@ -42,6 +44,7 @@ public interface HeapEstimatorCache {
 
     HeapEstimatorCache newWithSameSettings();
 
+    @Unmetered
     final class NoHeapEstimatorCache implements HeapEstimatorCache {
         public static final NoHeapEstimatorCache INSTANCE = new NoHeapEstimatorCache();
 
