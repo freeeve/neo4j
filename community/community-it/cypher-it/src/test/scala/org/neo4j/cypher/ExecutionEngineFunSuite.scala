@@ -134,10 +134,4 @@ abstract class ExecutionEngineWithoutRestartFunSuite
       graph.createLookupIndex(isNodeIndex = false)
     }
   }
-
-  private def clearProcedures(): Unit = {
-    val procs = globalProcedures
-    registeredCallables.foreach(procs.unregister)
-    registeredCallables.clear()
-  }
 }

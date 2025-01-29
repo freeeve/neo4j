@@ -474,6 +474,12 @@ trait GraphDatabaseTestSupport
     func
   }
 
+  protected def clearProcedures(): Unit = {
+    val procs = globalProcedures
+    registeredCallables.foreach(procs.unregister)
+    registeredCallables.clear()
+  }
+
   def getUserFunctionHandle(qualifiedName: String): UserFunctionHandle = {
     globalProcedures.getCurrentView.function(asQualifiedName(qualifiedName), QueryLanguage.CYPHER_5)
   }

@@ -28,14 +28,17 @@ import org.neo4j.cypher.util.CacheCountsTestSupport
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_01N02
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException
 import org.neo4j.internal.kernel.api.procs.Neo4jTypes
+import org.neo4j.internal.kernel.api.procs.ProcedureSignature
 import org.neo4j.kernel.api.ResourceMonitor
 import org.neo4j.kernel.api.procedure.CallableProcedure.BasicProcedure
 import org.neo4j.kernel.api.procedure.Context
 import org.neo4j.notifications.StandardGqlStatusObject
 import org.neo4j.values.AnyValue
+import org.scalatest.LoneElement
 
 class CypherQueryCachesTest extends CypherFunSuite with GraphDatabaseTestSupport with ExecutionEngineTestSupport
-    with CacheCountsTestSupport {
+    with CacheCountsTestSupport
+    with LoneElement {
 
   test("updateStrategy is honoured by all caches") {
     val stats = eengine.queryCaches.statistics()
@@ -300,16 +303,45 @@ class CypherQueryCachesTest extends CypherFunSuite with GraphDatabaseTestSupport
     result.gqlStatusObjects.map(_.gqlStatus) should contain(STATUS_01N02.getStatusString)
   }
 
-  test("Logical plan cache does only cache its own notifications") {
-    // This query fails in Cypher 25.
-    // To get test coverage there we could create a dummy notification activated by preparser options I believe.
-    val result1 = execute("CREATE (a {f\\u0085oo:1})")
+  test("Query cache does only cache its own notifications") {
+    def registerTestProcedure(deprecated: Boolean): Unit = registerProcedure("test.deprecated") { builder =>
+      builder.out(ProcedureSignature.VOID)
+      if (deprecated) builder.deprecatedBy("this procedure is deprecated")
+      new BasicProcedure(builder.build) {
+        override def apply(
+          ctx: Context,
+          input: Array[AnyValue],
+          resourceMonitor: ResourceMonitor
+        ): ResourceRawIterator[Array[AnyValue], ProcedureException] = ResourceRawIterator.empty()
+      }
+    }
+
+    registerTestProcedure(deprecated = true)
+
+    val result1 = execute("call test.deprecated")
+    result1.notifications.loneElement.getDescription should include("The query used a deprecated procedure")
+    result1.gqlStatusObjects.size shouldBe 2
+
+    // If we wrongly cache the notification from the above query, then the 2nd query will also get it.
+
+    clearProcedures()
+    registerTestProcedure(deprecated = false)
+
+    val result2 = execute("call test.deprecated")
+    result2.notifications should be(empty)
+    result2.gqlStatusObjects should be(List(StandardGqlStatusObject.OMITTED_RESULT))
+  }
+
+  // There's no convenient way to test this in Cypher 25.
+  // But notifications are not cached as far as I can see, so I hope we can live without that coverage.
+  test("Logical plan cache does only cache its own notifications cypher 5") {
+    val result1 = execute("CYPHER 5 CREATE (a {f\\u0085oo:1})")
     result1.notifications.size shouldBe 1
     result1.gqlStatusObjects.size shouldBe 2
     // If we wrongly cache the notification from the above query in the logical plan cache, then
     // the 2nd query will also get it. It will miss the String cache but hit the AST cache and
     // thus get the cached logical plan
-    val result2 = execute("CREATE (a {`f\\u0085oo`:1})")
+    val result2 = execute("CYPHER 5 CREATE (a {`f\\u0085oo`:1})")
     result2.notifications should be(empty)
     result2.gqlStatusObjects should be(List(StandardGqlStatusObject.OMITTED_RESULT))
   }
