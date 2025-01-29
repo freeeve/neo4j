@@ -50,7 +50,6 @@ import org.neo4j.test.utils.TestDirectory;
 
 public class Neo4jWithSocket {
     static final String NEO4J_WITH_SOCKET = "org.neo4j.bolt.transport.Neo4jWithSocket";
-    private static final Path LISTEN_FILE = Path.of("/tmp/loopy.sock");
 
     private Consumer<Map<Setting<?>, Object>> configure;
     private final TestDirectory testDirectory;
@@ -59,6 +58,7 @@ public class Neo4jWithSocket {
     private Path workingDirectory;
     private ConnectorPortRegister connectorRegister;
     private DatabaseManagementService managementService;
+    private Path listenFile;
 
     private Config config;
 
@@ -90,6 +90,7 @@ public class Neo4jWithSocket {
     public void init(TestInfo testInfo) throws IOException {
         var testName = testInfo.getTestMethod().get().getName();
         workingDirectory = testDirectory.directory(testName);
+        listenFile = Path.of("/tmp", testName);
 
         ensureDatabase(settings -> {});
     }
@@ -169,7 +170,7 @@ public class Neo4jWithSocket {
         settings.put(BoltConnector.encryption_level, DISABLED);
         if (!SystemUtils.IS_OS_WINDOWS) {
             settings.put(BoltConnectorInternalSettings.enable_loopback_auth, true);
-            settings.put(BoltConnectorInternalSettings.unsupported_loopback_listen_file, LISTEN_FILE);
+            settings.put(BoltConnectorInternalSettings.unsupported_loopback_listen_file, listenFile);
             settings.put(BoltConnectorInternalSettings.unsupported_loopback_delete, true);
         }
         settings.put(BoltConnectorInternalSettings.enable_local_connector, true);
@@ -187,7 +188,7 @@ public class Neo4jWithSocket {
     }
 
     public Path lookupUnixConnector() {
-        return LISTEN_FILE;
+        return listenFile;
     }
 
     public String lookupLocalConnector() {
