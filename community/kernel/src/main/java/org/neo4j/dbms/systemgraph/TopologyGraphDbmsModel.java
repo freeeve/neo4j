@@ -214,7 +214,7 @@ public interface TopologyGraphDbmsModel {
     String SSL_ENFORCED = "ssl_enforced";
     String CONNECTION_TIMEOUT = "connection_timeout";
     String CONNECTION_MAX_LIFETIME = "connection_max_lifetime";
-    String CONNECTION_POOL_AQUISITION_TIMEOUT = "connection_pool_acquisition_timeout";
+    String CONNECTION_POOL_ACQUISITION_TIMEOUT = "connection_pool_acquisition_timeout";
     String CONNECTION_POOL_IDLE_TEST = "connection_pool_idle_test";
     String CONNECTION_POOL_MAX_SIZE = "connection_pool_max_size";
     String LOGGING_LEVEL = "logging_level";
@@ -273,9 +273,19 @@ public interface TopologyGraphDbmsModel {
     RelationshipType HAS_ALLOCATION_HINTS_RELATIONSHIP = RelationshipType.withName("HAS_ALLOCATION_HINTS");
 
     /**
+     * Fetches all known database references
+     */
+    Set<DatabaseReference> getAllDatabaseReferences();
+
+    /**
+     * Fetches all known composite database references
+     */
+    Set<DatabaseReferenceImpl.Composite> getAllCompositeDatabaseReferences();
+
+    /**
      * Fetches the {@link NamedDatabaseId} corresponding to the provided alias, if one exists in this DBMS.
      * <p>
-     * Note: The returned id will have its *true* name (primary alias), rather than the provided databaseName, which may be an (secondary) alias.
+     * Note: The returned id will have its *true* name (primary alias), rather than the provided databaseName, which may be a (secondary) alias.
      *
      * @param databaseName the database alias to resolve a {@link NamedDatabaseId} for.
      * @return the corresponding {@link NamedDatabaseId}
@@ -289,26 +299,6 @@ public interface TopologyGraphDbmsModel {
      * @return the corresponding {@link NamedDatabaseId}
      */
     Optional<NamedDatabaseId> getDatabaseIdByUUID(UUID uuid);
-
-    /**
-     * Fetches all known database references
-     */
-    Set<DatabaseReference> getAllDatabaseReferences();
-
-    /**
-     * Fetches all known internal database references
-     */
-    Set<DatabaseReferenceImpl.Internal> getAllInternalDatabaseReferences();
-
-    /**
-     * Fetches all known external database references
-     */
-    Set<DatabaseReferenceImpl.External> getAllExternalDatabaseReferences();
-
-    /**
-     * Fetches all known composite database references
-     */
-    Set<DatabaseReferenceImpl.Composite> getAllCompositeDatabaseReferences();
 
     /**
      * Fetches the {@link DatabaseReference} corresponding to the provided name.

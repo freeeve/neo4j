@@ -114,18 +114,6 @@ public class MapCachingDatabaseReferenceRepository implements DatabaseReferenceR
     }
 
     @Override
-    public Set<DatabaseReferenceImpl.Internal> getInternalDatabaseReferences() {
-        // Can't cache getAll call
-        return delegate.getInternalDatabaseReferences();
-    }
-
-    @Override
-    public Set<DatabaseReferenceImpl.External> getExternalDatabaseReferences() {
-        // Can't cache getAll call
-        return delegate.getExternalDatabaseReferences();
-    }
-
-    @Override
     public Set<DatabaseReferenceImpl.Composite> getCompositeDatabaseReferences() {
         // Can't cache getAll call
         return delegate.getCompositeDatabaseReferences();

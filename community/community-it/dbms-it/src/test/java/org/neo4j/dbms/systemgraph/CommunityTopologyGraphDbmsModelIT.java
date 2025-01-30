@@ -60,73 +60,6 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
     }
 
     @Test
-    void canReturnAllInternalDatabaseReferences() {
-        // given
-        var fooDb = newDatabase(b -> b.withDatabase("foo"));
-        var barDb = newDatabase(b -> b.withDatabase("bar"));
-        createInternalReferenceForDatabase(tx, "foo", true, fooDb);
-        // reference should be returned without default alias too
-        // createInternalReferenceForDatabase(tx, "bar", true, barDb);
-        createInternalReferenceForDatabase(tx, "fooAlias", false, fooDb);
-        createInternalReferenceForDatabase(tx, "fooOtherAlias", false, fooDb);
-        createInternalReferenceForDatabase(tx, "barAlias", false, barDb);
-
-        var expected = Set.of(
-                new DatabaseReferenceImpl.Internal(name("foo"), fooDb, true),
-                new DatabaseReferenceImpl.Internal(name("bar"), barDb, true),
-                new DatabaseReferenceImpl.Internal(name("fooAlias"), fooDb, false),
-                new DatabaseReferenceImpl.Internal(name("fooOtherAlias"), fooDb, false),
-                new DatabaseReferenceImpl.Internal(name("barAlias"), barDb, false));
-
-        // when
-        var aliases = dbmsModel().getAllInternalDatabaseReferences();
-
-        // then
-        assertThat(aliases).isEqualTo(expected);
-        assertThat(dbmsModel().getDatabaseRefByAlias(fooDb.name()))
-                .hasValue(new DatabaseReferenceImpl.Internal(name(fooDb), fooDb, true));
-        // since no reference was explicitly created this is empty - this in artefact of the test setup
-        assertThat(dbmsModel().getDatabaseRefByAlias(barDb.name())).isEmpty();
-        assertThat(dbmsModel().getDatabaseRefByAlias("fooAlias"))
-                .hasValue(new DatabaseReferenceImpl.Internal(name("fooAlias"), fooDb, false));
-        assertThat(dbmsModel().getDatabaseRefByAlias("fooOtherAlias"))
-                .hasValue(new DatabaseReferenceImpl.Internal(name("fooOtherAlias"), fooDb, false));
-        assertThat(dbmsModel().getDatabaseRefByAlias("barAlias"))
-                .hasValue(new DatabaseReferenceImpl.Internal(name("barAlias"), barDb, false));
-    }
-
-    @Test
-    void canReturnAllExternalDatabaseReferences() {
-        // given
-        var remoteAddress = new SocketAddress("my.neo4j.com", 7687);
-        var remoteNeo4j = new RemoteUri("neo4j", List.of(remoteAddress), null);
-        var fooId = randomUUID();
-        var fooOtherId = randomUUID();
-        var barId = randomUUID();
-        createExternalReferenceForDatabase(tx, "fooAlias", "foo", remoteNeo4j, fooId);
-        createExternalReferenceForDatabase(tx, "fooOtherAlias", "foo", remoteNeo4j, fooOtherId);
-        createExternalReferenceForDatabase(tx, "barAlias", "bar", remoteNeo4j, barId);
-
-        var expected = Set.of(
-                new DatabaseReferenceImpl.External(name("foo"), name("fooAlias"), remoteNeo4j, fooId),
-                new DatabaseReferenceImpl.External(name("foo"), name("fooOtherAlias"), remoteNeo4j, fooOtherId),
-                new DatabaseReferenceImpl.External(name("bar"), name("barAlias"), remoteNeo4j, barId));
-
-        // when
-        var aliases = dbmsModel().getAllExternalDatabaseReferences();
-
-        // then
-        assertThat(aliases).isEqualTo(expected);
-        assertThat(dbmsModel().getDatabaseRefByAlias("fooAlias"))
-                .hasValue(new DatabaseReferenceImpl.External(name("foo"), name("fooAlias"), remoteNeo4j, fooId));
-        assertThat(dbmsModel().getDatabaseRefByAlias("fooOtherAlias"))
-                .hasValue(new DatabaseReferenceImpl.External(
-                        name("foo"), name("fooOtherAlias"), remoteNeo4j, fooOtherId));
-        assertThat(dbmsModel().getDatabaseRefByAlias("barAlias"))
-                .hasValue(new DatabaseReferenceImpl.External(name("bar"), name("barAlias"), remoteNeo4j, barId));
-    }
-
-    @Test
     void canReturnAllCompositeDatabaseReferences() {
         // given
         var remoteAddress = new SocketAddress("my.neo4j.com", 7687);
@@ -173,13 +106,6 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
                                 name("rem5"), name("remAlias3"), compDb2Name, remoteNeo4j, remAliasId5)));
 
         assertThat(dbmsModel().getAllCompositeDatabaseReferences()).isEqualTo(Set.of(comp1Ref, comp2Ref));
-        assertThat(dbmsModel().getAllInternalDatabaseReferences())
-                .isEqualTo(Set.of(
-                        new DatabaseReferenceImpl.Internal(name("loc"), locDb, true),
-                        new DatabaseReferenceImpl.Internal(name("locAlias"), locDb, false)));
-        assertThat(dbmsModel().getAllExternalDatabaseReferences())
-                .isEqualTo(Set.of(
-                        new DatabaseReferenceImpl.External(name("rem1"), name("remAlias"), remoteNeo4j, remAliasId1)));
 
         assertThat(dbmsModel().getDatabaseRefByAlias(compDb1.name())).hasValue(comp1Ref);
         assertThat(dbmsModel().getDatabaseRefByAlias(compDb2.name())).hasValue(comp2Ref);
@@ -231,8 +157,6 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
         var barRef = new DatabaseReferenceImpl.SPD(name(bar), bar, barShards);
 
         assertThat(dbmsModel().getAllDatabaseReferences())
-                .containsExactlyInAnyOrder(fooRef, foo0Ref, foo1Ref, barRef, bar0Ref, bar1Ref, bar2Ref, bar3Ref);
-        assertThat(dbmsModel().getAllInternalDatabaseReferences())
                 .containsExactlyInAnyOrder(fooRef, foo0Ref, foo1Ref, barRef, bar0Ref, bar1Ref, bar2Ref, bar3Ref);
         assertThat(dbmsModel().getDatabaseRefByAlias(foo.name())).hasValue(fooRef);
         assertThat(dbmsModel().getDatabaseRefByAlias(bar.name())).hasValue(barRef);

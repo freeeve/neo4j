@@ -181,16 +181,6 @@ public final class TestDatabaseReferenceRepository {
         }
 
         @Override
-        public Set<DatabaseReferenceImpl.Internal> getInternalDatabaseReferences() {
-            return getDatabaseReferences(DatabaseReferenceImpl.Internal.class);
-        }
-
-        @Override
-        public Set<DatabaseReferenceImpl.External> getExternalDatabaseReferences() {
-            return getDatabaseReferences(DatabaseReferenceImpl.External.class);
-        }
-
-        @Override
         public Set<DatabaseReferenceImpl.Composite> getCompositeDatabaseReferences() {
             return getDatabaseReferences(DatabaseReferenceImpl.Composite.class);
         }

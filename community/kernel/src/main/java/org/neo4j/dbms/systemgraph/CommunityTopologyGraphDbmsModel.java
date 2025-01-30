@@ -86,22 +86,6 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     }
 
     @Override
-    public Set<DatabaseReferenceImpl.Internal> getAllInternalDatabaseReferences() {
-        var primaryRefs = CommunityTopologyGraphDbmsModelUtil.getAllPrimaryStandardDatabaseReferencesInRoot(tx);
-        var internalAliasRefs = getAllInternalDatabaseReferencesInRoot();
-        var spdGraphShardRefs = getAllSPDGraphShardReferencesInRoot();
-        var spdPropertyShardRefs = getAllSPDPropertyShardReferencesInRoot();
-        return Stream.of(primaryRefs, internalAliasRefs, spdGraphShardRefs, spdPropertyShardRefs)
-                .flatMap(s -> s)
-                .collect(Collectors.toUnmodifiableSet());
-    }
-
-    @Override
-    public Set<DatabaseReferenceImpl.External> getAllExternalDatabaseReferences() {
-        return getAllExternalDatabaseReferencesInRoot().collect(Collectors.toUnmodifiableSet());
-    }
-
-    @Override
     public Set<DatabaseReferenceImpl.Composite> getAllCompositeDatabaseReferences() {
         return getAllCompositeDatabaseReferencesInRoot().collect(Collectors.toUnmodifiableSet());
     }

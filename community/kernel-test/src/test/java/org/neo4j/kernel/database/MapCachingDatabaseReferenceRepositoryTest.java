@@ -111,17 +111,11 @@ public class MapCachingDatabaseReferenceRepositoryTest {
     @Test
     void shouldNotCacheGetAllLookups() {
         databaseRefRepo.getAllDatabaseReferences();
-        databaseRefRepo.getInternalDatabaseReferences();
-        databaseRefRepo.getExternalDatabaseReferences();
         databaseRefRepo.getCompositeDatabaseReferences();
         databaseRefRepo.getAllDatabaseReferences();
-        databaseRefRepo.getInternalDatabaseReferences();
-        databaseRefRepo.getExternalDatabaseReferences();
         databaseRefRepo.getCompositeDatabaseReferences();
 
         verify(delegate, atLeast(2)).getAllDatabaseReferences();
-        verify(delegate, atLeast(2)).getInternalDatabaseReferences();
-        verify(delegate, atLeast(2)).getExternalDatabaseReferences();
         verify(delegate, atLeast(2)).getCompositeDatabaseReferences();
     }
 

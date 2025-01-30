@@ -23,8 +23,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.neo4j.kernel.database.DatabaseReferenceImpl.Composite;
-import org.neo4j.kernel.database.DatabaseReferenceImpl.External;
-import org.neo4j.kernel.database.DatabaseReferenceImpl.Internal;
 
 /**
  * Implementations of this interface allow for the retrieval of {@link DatabaseReference}s for databases which have not yet been dropped.
@@ -58,17 +56,6 @@ public interface DatabaseReferenceRepository {
     }
 
     /**
-     * Given a database alias, return the corresponding {@link DatabaseReferenceImpl.External} from the system database, if one exists.
-     *
-     * Note that this reference must not point to a database hosted on this DBMS.
-     */
-    default Optional<DatabaseReferenceImpl.External> getExternalByAlias(NormalizedDatabaseName databaseAlias) {
-        return getByAlias(databaseAlias)
-                .filter(DatabaseReferenceImpl.External.class::isInstance)
-                .map(DatabaseReferenceImpl.External.class::cast);
-    }
-
-    /**
      * Given a string representation of a database name, return the corresponding {@link DatabaseReference} from the system database, if one exists.
      */
     default Optional<DatabaseReference> getByAlias(String databaseName) {
@@ -85,28 +72,9 @@ public interface DatabaseReferenceRepository {
     }
 
     /**
-     * Given a database name, return the corresponding {@link DatabaseReferenceImpl.External} from the system database, if one exists.
-     *
-     * Note that this reference must not point to a database hosted on this DBMS.
-     */
-    default Optional<DatabaseReferenceImpl.External> getExternalByAlias(String databaseName) {
-        return getExternalByAlias(new NormalizedDatabaseName(databaseName));
-    }
-
-    /**
      *  Fetch all known {@link DatabaseReference}es.
      */
     Set<DatabaseReference> getAllDatabaseReferences();
-
-    /**
-     * Fetch all known {@link Internal} references
-     */
-    Set<Internal> getInternalDatabaseReferences();
-
-    /**
-     * Fetch all known {@link  External} references
-     */
-    Set<External> getExternalDatabaseReferences();
 
     /**
      * Fetch all known {@link  Composite} references

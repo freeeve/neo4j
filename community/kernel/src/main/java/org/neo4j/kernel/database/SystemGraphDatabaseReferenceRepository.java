@@ -86,16 +86,6 @@ public class SystemGraphDatabaseReferenceRepository implements DatabaseReference
     }
 
     @Override
-    public Set<DatabaseReferenceImpl.Internal> getInternalDatabaseReferences() {
-        return execute(TopologyGraphDbmsModel::getAllInternalDatabaseReferences);
-    }
-
-    @Override
-    public Set<DatabaseReferenceImpl.External> getExternalDatabaseReferences() {
-        return execute(TopologyGraphDbmsModel::getAllExternalDatabaseReferences);
-    }
-
-    @Override
     public Set<DatabaseReferenceImpl.Composite> getCompositeDatabaseReferences() {
         return execute(TopologyGraphDbmsModel::getAllCompositeDatabaseReferences);
     }
