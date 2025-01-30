@@ -296,28 +296,12 @@ trait GraphIcing {
       createNodeIndex(None, label, Seq(property), IndexType.TEXT)
     }
 
-    def createTextNodeIndexWithProvider(
-      label: String,
-      property: String,
-      provider: String
-    ): IndexDefinition = {
-      createNodeIndex(None, label, Seq(property), IndexType.TEXT, maybeProvider = Some(provider))
-    }
-
     def createTextNodeIndexWithName(name: String, label: String, property: String): IndexDefinition = {
       createNodeIndex(Some(name), label, Seq(property), IndexType.TEXT)
     }
 
     def createTextRelationshipIndex(relType: String, property: String): IndexDefinition = {
       createRelationshipIndex(None, relType, Seq(property), IndexType.TEXT)
-    }
-
-    def createTextRelationshipIndexWithProvider(
-      relType: String,
-      property: String,
-      provider: String
-    ): IndexDefinition = {
-      createRelationshipIndex(None, relType, Seq(property), IndexType.TEXT, maybeProvider = Some(provider))
     }
 
     def createTextRelationshipIndexWithName(name: String, relType: String, property: String): IndexDefinition = {
