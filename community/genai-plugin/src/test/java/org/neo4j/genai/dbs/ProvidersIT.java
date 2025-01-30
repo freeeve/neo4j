@@ -209,6 +209,22 @@ final class ProvidersIT extends IntegrationTestBase {
         }
     }
 
+    @Test
+    void shouldHandleQdrantCreateCollectionErrors() {
+        try (Transaction tx = database.beginTx()) {
+            var query =
+                    "CALL genai.vector.external.createCollection($url, $collectionName, 'Wurstsalat', 4, {token: $token})";
+            var result = tx.execute(
+                    query,
+                    Map.of("url", QDRANT_BASE_URL, "token", ADMIN_KEY, "collectionName", "aRandomNewCollection"));
+            assertThatExceptionOfType(QueryExecutionException.class)
+                    .isThrownBy(result::hasNext)
+                    .withRootCauseInstanceOf(GenAIProcedureException.class)
+                    .withStackTraceContaining(
+                            "Format error in JSON body: data did not match any variant of untagged enum VectorsConfig at line 1 column 46");
+        }
+    }
+
     static void setupWeaviate() throws AuthException {
         WEAVIATE_BASE_URL = "http://" + WEAVIATE_CONTAINER.getHttpHostAddress();
         WEAVIATE_CLIENT =

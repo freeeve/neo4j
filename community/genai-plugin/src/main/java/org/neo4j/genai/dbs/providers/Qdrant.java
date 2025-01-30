@@ -41,6 +41,7 @@ import org.neo4j.genai.dbs.VectorDatabaseRequest;
 import org.neo4j.genai.dbs.VectorDatabases;
 import org.neo4j.genai.dbs.VectorDatabases.ProcedureArguments;
 import org.neo4j.genai.dbs.VectorDatabases.StatusDTO;
+import org.neo4j.genai.util.GenAIProcedureException;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.JsonUtils;
 
@@ -224,10 +225,12 @@ public final class Qdrant implements VectorDatabaseProvider {
             try {
                 var body = JsonUtils.getObjectMapper()
                         .writeValueAsString(Map.of(
-                                "size",
-                                additionalArguments.get("size"),
-                                "distance",
-                                additionalArguments.get("similarity")));
+                                "vectors",
+                                Map.of(
+                                        "size",
+                                        additionalArguments.get("size"),
+                                        "distance",
+                                        additionalArguments.get("similarity"))));
                 return httpRequestBuilder
                         .PUT(HttpRequest.BodyPublishers.ofString(body))
                         .build();
@@ -322,6 +325,28 @@ public final class Qdrant implements VectorDatabaseProvider {
 
         return new VectorDatabaseRequest<T>(
                 target, commonRequestBuilder.andThen(HttpRequest.Builder::build), responseTransformer);
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Override
+    public BiFunction<Integer, String, Optional<GenAIProcedureException>> getProviderSpecificStatusHandler(
+            String collection) {
+        return (statusCode, message) -> {
+            if (statusCode == 400) {
+                try {
+                    var response = JsonUtils.getObjectMapper().readValue(message, JsonUtils.TYPE_REF_MAP_STRING_OBJECT);
+                    var status = response.get("status");
+                    if (status instanceof Map m && m.containsKey("error")) {
+                        return Optional.of(new GenAIProcedureException((String) m.get("error")));
+                    }
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+                return Optional.of(new GenAIProcedureException(message));
+            }
+
+            return Optional.empty();
+        };
     }
 
     private record Result(URI target, Function<HttpRequest.Builder, HttpRequest> requestCustomizer) {}

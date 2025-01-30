@@ -164,7 +164,9 @@ public class VectorDatabases {
                 request.target(),
                 request.requestCustomizer(),
                 request.responseTransformer(),
-                IntSets.immutable.of(200, 201)));
+                IntSets.immutable.of(200, 201),
+                IntObjectMaps.immutable.empty(),
+                provider.getProviderSpecificStatusHandler(collection)));
     }
 
     @Internal
