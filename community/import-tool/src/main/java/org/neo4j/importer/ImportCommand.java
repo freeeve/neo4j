@@ -464,7 +464,6 @@ public class ImportCommand {
 
         @Option(
                 names = "--input-type",
-                showDefaultValue = ALWAYS,
                 paramLabel = "csv|parquet",
                 description = "File type to import from. Can be csv or parquet. Defaults to csv.",
                 converter = FileInputTypeConverter.class)
