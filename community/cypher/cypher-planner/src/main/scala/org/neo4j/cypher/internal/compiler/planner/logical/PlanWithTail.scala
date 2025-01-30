@@ -143,7 +143,6 @@ private case class SPDPlanWithTailStrategy(
   ): BestPlans = {
     val updatedContext = context.withModifiedPlannerState(_
       .withAccessedProperties(PropertyAccessHelper.findLocalPropertyAccesses(tailQuery))
-      .withContextualPropertyAccess(PropertyAccessHelper.findGlobalPropertyAccessesWithContext(tailQuery))
       .withOuterPlan(lhsPlan)
       .withPreviouslyCachedProperties(
         context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(lhsPlan.id)

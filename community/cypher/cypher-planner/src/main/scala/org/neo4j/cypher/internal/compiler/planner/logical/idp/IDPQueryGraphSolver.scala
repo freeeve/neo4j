@@ -191,27 +191,33 @@ case class IDPQueryGraphSolver(
     context: LogicalPlanningContext,
     kit: QueryPlannerKit,
     parentQueryGraph: QueryGraph
-  ): Seq[PlannedComponent] =
+  ): Seq[PlannedComponent] = {
+    def updatedContext(qg: QueryGraph) = {
+      if (context.staticComponents.planContext.databaseMode == DatabaseMode.SHARDED) {
+        val relatedPredicates = parentQueryGraph.selections.flatPredicatesSet.diff(
+          qg.selections.flatPredicatesSet
+        ).filter(_.dependencies.exists(qg.dependencies.contains))
+        val propertyAccessInRelatedQueryQueryGraph = PropertyAccessHelper.findPropertyAccesses(relatedPredicates.toSeq)
+        val updatedContextualPropertyAccess = context.plannerState.contextualPropertyAccess.copy(
+          propertyAccessInOtherComponents = propertyAccessInRelatedQueryQueryGraph
+        )
+        context.withModifiedPlannerState(_.withContextualPropertyAccess(updatedContextualPropertyAccess))
+      } else
+        context
+    }
+
     components.map { qg =>
-      val relatedPredicates = parentQueryGraph.selections.flatPredicatesSet.diff(
-        qg.selections.flatPredicatesSet
-      ).filter(_.dependencies.exists(qg.dependencies.contains))
-      val updatedPropertyAccessInCurrentQueryGraph = PropertyAccessHelper.findPropertyAccesses(Seq(qg))
-      val propertyAccessInRelatedQueryQueryGraph = PropertyAccessHelper.findPropertyAccesses(relatedPredicates.toSeq)
-      val updatedContextualPropertyAccess = context.plannerState.contextualPropertyAccess.copy(
-        queryGraph = updatedPropertyAccessInCurrentQueryGraph,
-        propertyAccessInOtherComponents = propertyAccessInRelatedQueryQueryGraph
-      )
       PlannedComponent(
         qg,
         singleComponentSolver.planComponent(
           qg,
-          context.withModifiedPlannerState(_.withContextualPropertyAccess(updatedContextualPropertyAccess)),
+          updatedContext(qg),
           kit,
           interestingOrderConfig
         )
       )
     }
+  }
 
   private def planEmptyComponent(
     queryGraph: QueryGraph,
