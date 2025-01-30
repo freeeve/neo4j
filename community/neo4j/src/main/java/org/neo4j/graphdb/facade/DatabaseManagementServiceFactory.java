@@ -159,7 +159,8 @@ public class DatabaseManagementServiceFactory {
         globalDependencies.satisfyDependency(edition.getSystemGraphComponents());
 
         var databaseContextProvider = edition.createDatabaseContextProvider(globalModule);
-        var systemDatabaseProvider = new ContextBasedSystemDatabaseProvider(databaseContextProvider);
+        var systemDatabaseProvider = new ContextBasedSystemDatabaseProvider(
+                databaseContextProvider, globalModule.getDatabaseEventListeners());
         globalDependencies.satisfyDependency(systemDatabaseProvider);
         edition.createGlobalReadOnlyChecker(
                 systemDatabaseProvider, databaseContextProvider.databaseIdRepository(), globalModule);

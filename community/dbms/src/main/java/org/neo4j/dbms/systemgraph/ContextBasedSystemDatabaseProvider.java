@@ -22,25 +22,47 @@ package org.neo4j.dbms.systemgraph;
 import java.util.Optional;
 import org.neo4j.dbms.database.DatabaseContext;
 import org.neo4j.dbms.database.DatabaseContextProvider;
+import org.neo4j.function.Suppliers;
+import org.neo4j.graphdb.event.DatabaseEventContext;
+import org.neo4j.graphdb.event.DatabaseEventListenerAdapter;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.kernel.monitoring.DatabaseEventListeners;
 
-public class ContextBasedSystemDatabaseProvider implements SystemDatabaseProvider {
+public class ContextBasedSystemDatabaseProvider extends DatabaseEventListenerAdapter implements SystemDatabaseProvider {
     private final DatabaseContextProvider<? extends DatabaseContext> databaseContextProvider;
 
+    private volatile Suppliers.Lazy<DatabaseContext> contextCache;
+    private volatile Suppliers.Lazy<GraphDatabaseAPI> databaseCache;
+
     public ContextBasedSystemDatabaseProvider(
-            DatabaseContextProvider<? extends DatabaseContext> databaseContextProvider) {
+            DatabaseContextProvider<? extends DatabaseContext> databaseContextProvider,
+            DatabaseEventListeners databaseEventListeners) {
         this.databaseContextProvider = databaseContextProvider;
+        resetCache();
+        databaseEventListeners.registerDatabaseEventListener(this);
     }
 
     @Override
     public GraphDatabaseAPI database() throws SystemDatabaseUnavailableException {
-        return databaseContext().databaseFacade();
+        return databaseCache.get();
     }
 
     @Override
     public <T> Optional<T> dependency(Class<T> type) throws SystemDatabaseUnavailableException {
-        return SystemDatabaseProvider.dependency(databaseContext().dependencies(), type);
+        return SystemDatabaseProvider.dependency(contextCache.get().dependencies(), type);
+    }
+
+    @Override
+    public void databaseCreate(DatabaseEventContext eventContext) {
+        if (eventContext.getDatabaseName().equals(NamedDatabaseId.SYSTEM_DATABASE_NAME)) {
+            resetCache();
+        }
+    }
+
+    private void resetCache() {
+        contextCache = Suppliers.lazySingleton(this::databaseContext);
+        databaseCache = Suppliers.lazySingleton(() -> contextCache.get().databaseFacade());
     }
 
     private DatabaseContext databaseContext() {
