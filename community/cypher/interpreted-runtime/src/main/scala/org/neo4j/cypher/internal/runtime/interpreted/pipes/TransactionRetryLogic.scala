@@ -27,6 +27,9 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExponentialBackoffRet
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExponentialBackoffRetryLogic.RETRY_DELAY_MULTIPLIER
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionRetryLogic.RetryState
 
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+import java.util.Locale
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.TimeUnit.SECONDS
 
@@ -45,6 +48,8 @@ object TransactionRetryLogic {
     def shouldRetryAgain(): Boolean
     def nanosUntilRetry(): Long
 
+    def abortedReason: String
+
     override def compareTo(other: RetryState): Int = {
       java.lang.Long.compare(retryTimestamp, other.retryTimestamp)
     }
@@ -53,6 +58,7 @@ object TransactionRetryLogic {
 
 trait TransactionRetryLogic {
   def newRetryState(): RetryState
+  def abortedReason: String
 }
 
 /**
@@ -87,6 +93,14 @@ case class ExponentialBackoffRetryLogic(
     val min = delayNanos - jitter
     val max = delayNanos + jitter
     ThreadLocalRandom.current.nextLong(min, max + 1)
+  }
+
+  private[this] val decimalFormat = new DecimalFormat("0.###", DecimalFormatSymbols.getInstance(Locale.ROOT))
+
+  override def abortedReason: String = {
+    val timeoutInSeconds = maxRetryTimeNanos.toDouble / SECONDS.toNanos(1)
+    val timeoutString = decimalFormat.format(timeoutInSeconds)
+    String.format("Retry timed out with a maximum retry duration of %s seconds", timeoutString)
   }
 }
 
@@ -132,5 +146,8 @@ object ExponentialBackoffRetryLogic {
       val nanosUntilRetry = ts - now
       nanosUntilRetry
     }
+
+    override def abortedReason: String =
+      config.abortedReason
   }
 }

@@ -138,9 +138,9 @@ object InterpretedRuntime extends CypherRuntime[RuntimeContext] {
 
   private def doCalculateTransactionMode(plan: LogicalPlan): QueryTransactionMode = {
     plan.folder.treeFold[QueryTransactionMode](StartsNoTransactions) {
-      case TransactionApply(_, _, _, TransactionConcurrency.Concurrent(_), _, _) =>
+      case TransactionApply(_, _, _, TransactionConcurrency.Concurrent(_), _, _, _) =>
         _ => SkipChildren(StartsConcurrentTransactions)
-      case TransactionForeach(_, _, _, TransactionConcurrency.Concurrent(_), _, _) =>
+      case TransactionForeach(_, _, _, TransactionConcurrency.Concurrent(_), _, _, _) =>
         _ => SkipChildren(StartsConcurrentTransactions)
       case _: TransactionApply | _: TransactionForeach =>
         _ => TraverseChildren(StartsSerialTransactions)

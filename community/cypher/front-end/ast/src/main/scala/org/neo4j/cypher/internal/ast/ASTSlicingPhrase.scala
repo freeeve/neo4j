@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
+import org.neo4j.cypher.internal.expressions.DoubleLiteral
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.IntegerLiteral
 import org.neo4j.cypher.internal.expressions.Literal
@@ -30,6 +31,7 @@ import org.neo4j.cypher.internal.expressions.PathExpression
 import org.neo4j.cypher.internal.expressions.SubqueryExpression
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.symbols.CTInteger
+import org.neo4j.cypher.internal.util.symbols.CTNumber
 
 // Skip/Limit
 trait ASTSlicingPhrase extends SemanticCheckable with SemanticAnalysisTooling {
@@ -63,6 +65,35 @@ object ASTSlicingPhrase extends SemanticAnalysisTooling {
       literalShouldBeUnsignedInteger(expression, name, acceptsZero) chain
       SemanticExpressionCheck.simple(expression) chain
       expectType(CTInteger.covariant, expression)
+
+  /**
+   * Checks that the given expression
+   *
+   *  - contains no variable references
+   *  - does not try to read the graph
+   *  - is a CTNumber
+   *  - is non-negative, positive or anything, depending on `acceptsZero` and `acceptsNegative`
+   *
+   * @param expression      the expression to check
+   * @param name            the name of the construct. Used for error messages.
+   * @param acceptsZero     if `true` then 0 is an accepted value, otherwise not.
+   * @param acceptsNegative if `true` then negative values are accepted, otherwise not.
+   * @return a SemanticCheck
+   */
+  def checkExpressionIsStaticNumber(
+    expression: Expression,
+    name: String,
+    acceptsZero: Boolean,
+    acceptsNegative: Boolean
+  ): SemanticCheck =
+    // We need to check doesNotTouchTheGraph first. If we find a SubqueryExpression we already have an error,
+    // and it would not be safe to run containsNoVariables, since these SubqueryExpression haven't computed their
+    // scopeDependencies yet. Therefore we use `ifOkChain`.
+    doesNotTouchTheGraph(expression, name) ifOkChain
+      containsNoVariables(expression, name) chain
+      literalShouldBeNumber(expression, name, acceptsZero, acceptsNegative) chain
+      SemanticExpressionCheck.simple(expression) chain
+      expectType(CTNumber.covariant, expression)
 
   private def containsNoVariables(expression: Expression, name: String): SemanticCheck = {
     val deps = expression.dependencies
@@ -104,6 +135,48 @@ object ASTSlicingPhrase extends SemanticAnalysisTooling {
           SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
             name,
             "INTEGER",
+            lowerBound,
+            Long.MaxValue,
+            lit.asCanonicalStringVal,
+            s"Invalid input. '${lit.asCanonicalStringVal}' is not a valid value. Must be a $accepted integer.",
+            lit.position
+          )
+        case _ => SemanticCheck.success
+      }
+    } catch {
+      case _: NumberFormatException =>
+        // We rely on getting a SemanticError from SemanticExpressionCheck.simple(expression)
+        SemanticCheck.success
+    }
+  }
+
+  private def literalShouldBeNumber(
+    expression: Expression,
+    name: String,
+    acceptsZero: Boolean,
+    acceptsNegative: Boolean
+  ): SemanticCheck = {
+    try {
+      expression match {
+        case i: IntegerLiteral if i.value > 0                      => SemanticCheck.success
+        case i: IntegerLiteral if i.value == 0 && acceptsZero      => SemanticCheck.success
+        case i: IntegerLiteral if i.value < 0 && acceptsNegative   => SemanticCheck.success
+        case i: DoubleLiteral if i.value > 0.0d                    => SemanticCheck.success
+        case i: DoubleLiteral if i.value == 0.0d && acceptsZero    => SemanticCheck.success
+        case i: DoubleLiteral if i.value < 0.0d && acceptsNegative => SemanticCheck.success
+        case lit: Literal =>
+          val accepted = (acceptsZero, acceptsNegative) match {
+            case (true, true)   => ""
+            case (true, false)  => "non-negative"
+            case (false, true)  => "non-zero"
+            case (false, false) => "positive"
+          }
+          // TODO: This range doesn't make sense for Double
+          val lowerBound =
+            if (acceptsNegative) Long.MinValue else if (acceptsZero) 0 else 1
+          SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
+            name,
+            "NUMBER",
             lowerBound,
             Long.MaxValue,
             lit.asCanonicalStringVal,

@@ -105,6 +105,10 @@ import org.neo4j.cypher.internal.ast.StopDatabaseAction
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.TextIndexes
 import org.neo4j.cypher.internal.ast.TraverseAction
 import org.neo4j.cypher.internal.ast.UniqueConstraints
@@ -119,6 +123,7 @@ import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.CachedProperty
+import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
@@ -7901,7 +7906,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           batchSize = number("100"),
           concurrency = TransactionConcurrency.Serial,
           onErrorBehaviour = OnErrorContinue,
-          maybeReportAs = None
+          maybeReportAs = None,
+          maybeRetryParameters = None
         ),
         2345.0
       ),
@@ -7924,7 +7930,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           batchSize = number("100"),
           concurrency = TransactionConcurrency.Serial,
           onErrorBehaviour = OnErrorBreak,
-          maybeReportAs = Some(varFor("status"))
+          maybeReportAs = Some(varFor("status")),
+          maybeRetryParameters = None
         ),
         2345.0
       ),
@@ -7947,7 +7954,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           batchSize = number("100"),
           concurrency = TransactionConcurrency.Concurrent(Some(number("5"))),
           onErrorBehaviour = OnErrorContinue,
-          maybeReportAs = None
+          maybeReportAs = None,
+          maybeRetryParameters = None
         ),
         2345.0
       ),
@@ -7970,7 +7978,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           batchSize = number("100"),
           concurrency = TransactionConcurrency.Concurrent(None),
           onErrorBehaviour = OnErrorContinue,
-          maybeReportAs = None
+          maybeReportAs = None,
+          maybeRetryParameters = None
         ),
         2345.0
       ),
@@ -7993,7 +8002,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           batchSize = number("100"),
           concurrency = TransactionConcurrency.Serial,
           onErrorBehaviour = OnErrorFail,
-          maybeReportAs = None
+          maybeReportAs = None,
+          maybeRetryParameters = None
         ),
         2345.0
       ),
@@ -8016,7 +8026,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           batchSize = number("100"),
           concurrency = TransactionConcurrency.Concurrent(Some(number("5"))),
           onErrorBehaviour = OnErrorFail,
-          maybeReportAs = Some(varFor("status"))
+          maybeReportAs = Some(varFor("status")),
+          maybeRetryParameters = None
         ),
         2345.0
       ),
@@ -8039,7 +8050,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           batchSize = number("100"),
           concurrency = TransactionConcurrency.Concurrent(None),
           onErrorBehaviour = OnErrorFail,
-          maybeReportAs = None
+          maybeReportAs = None,
+          maybeRetryParameters = None
         ),
         2345.0
       ),
@@ -8062,7 +8074,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           batchSize = number("100"),
           concurrency = TransactionConcurrency.Concurrent(Some(number("5"))),
           onErrorBehaviour = OnErrorFail,
-          maybeReportAs = None
+          maybeReportAs = None,
+          maybeRetryParameters = None
         ),
         2345.0
       ),
@@ -8072,6 +8085,104 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         TwoChildren(lhsPD, rhsPD),
         Seq(details("IN 5 CONCURRENT TRANSACTIONS OF 100 ROWS ON ERROR FAIL")),
         Set("a", "b")
+      )
+    )
+  }
+
+  test("TransactionApply with default retry") {
+    assertGood(
+      attach(
+        TransactionApply(
+          lhsLP,
+          rhsLP,
+          batchSize = number("100"),
+          concurrency = TransactionConcurrency.Serial,
+          onErrorBehaviour = OnErrorRetryThenFail,
+          maybeReportAs = None,
+          maybeRetryParameters = None
+        ),
+        2345.0
+      ),
+      planDescription(
+        id,
+        "TransactionApply",
+        TwoChildren(lhsPD, rhsPD),
+        Seq(details("IN TRANSACTIONS OF 100 ROWS ON ERROR RETRY THEN FAIL")),
+        Set("a", "b")
+      )
+    )
+  }
+
+  test("TransactionApply with specific retry") {
+    assertGood(
+      attach(
+        TransactionApply(
+          lhsLP,
+          rhsLP,
+          batchSize = number("100"),
+          concurrency = TransactionConcurrency.Serial,
+          onErrorBehaviour = OnErrorRetryThenBreak,
+          maybeReportAs = None,
+          maybeRetryParameters = Some(InTransactionsRetryParameters(Some(float("1.5")))(pos))
+        ),
+        2345.0
+      ),
+      planDescription(
+        id,
+        "TransactionApply",
+        TwoChildren(lhsPD, rhsPD),
+        Seq(details("IN TRANSACTIONS OF 100 ROWS ON ERROR RETRY FOR 1.5 SECONDS THEN BREAK")),
+        Set("a", "b")
+      )
+    )
+  }
+
+  test("TransactionForeach with default retry") {
+    assertGood(
+      attach(
+        TransactionForeach(
+          lhsLP,
+          rhsLP,
+          batchSize = number("100"),
+          concurrency = TransactionConcurrency.Serial,
+          onErrorBehaviour = OnErrorRetryThenFail,
+          maybeReportAs = None,
+          maybeRetryParameters = None
+        ),
+        2345.0
+      ),
+      planDescription(
+        id,
+        "TransactionForeach",
+        TwoChildren(lhsPD, rhsPD),
+        Seq(details("IN TRANSACTIONS OF 100 ROWS ON ERROR RETRY THEN FAIL")),
+        Set("a")
+      )
+    )
+  }
+
+  test("TransactionForeach with specific retry") {
+    assertGood(
+      attach(
+        TransactionForeach(
+          lhsLP,
+          rhsLP,
+          batchSize = number("100"),
+          concurrency = TransactionConcurrency.Serial,
+          onErrorBehaviour = OnErrorRetryThenContinue,
+          maybeReportAs = Some(varFor("status")),
+          maybeRetryParameters = Some(InTransactionsRetryParameters(Some(float("1.5")))(pos))
+        ),
+        2345.0
+      ),
+      planDescription(
+        id,
+        "TransactionForeach",
+        TwoChildren(lhsPD, rhsPD),
+        Seq(
+          details("IN TRANSACTIONS OF 100 ROWS ON ERROR RETRY FOR 1.5 SECONDS THEN CONTINUE REPORT STATUS AS status")
+        ),
+        Set("a", "status")
       )
     )
   }
@@ -8570,6 +8681,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
   private def key(name: String): PropertyKeyName = PropertyKeyName(name)(pos)
 
   private def number(i: String): SignedDecimalIntegerLiteral = SignedDecimalIntegerLiteral(i)(pos)
+  private def float(i: String): DecimalDoubleLiteral = DecimalDoubleLiteral(i)(pos)
 
   private def stringLiteral(s: String): StringLiteral = StringLiteral(s)(pos.withInputLength(0))
 }

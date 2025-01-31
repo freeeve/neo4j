@@ -35,7 +35,8 @@ abstract class AbstractTransactionApplyPipe(
   source: Pipe,
   inner: Pipe,
   batchSize: Expression,
-  onErrorBehaviour: InTransactionsOnErrorBehaviour
+  onErrorBehaviour: InTransactionsOnErrorBehaviour,
+  retryPolicy: TransactionRetryPolicy
 ) extends PipeWithSource(source) {
 
   protected def withStatus(output: ClosingIterator[CypherRow], status: TransactionStatus): ClosingIterator[CypherRow]
@@ -77,8 +78,10 @@ case class TransactionApplyPipe(
   batchSize: Expression,
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
   nullableVariables: Set[String],
-  statusVariableOpt: Option[String]
-)(val id: Id = Id.INVALID_ID) extends AbstractTransactionApplyPipe(source, inner, batchSize, onErrorBehaviour) {
+  statusVariableOpt: Option[String],
+  retryPolicy: TransactionRetryPolicy
+)(val id: Id = Id.INVALID_ID)
+    extends AbstractTransactionApplyPipe(source, inner, batchSize, onErrorBehaviour, retryPolicy) {
 
   private lazy val nullEntries: Seq[(String, AnyValue)] = {
     nullableVariables.toIndexedSeq.map(name => name -> Values.NO_VALUE)

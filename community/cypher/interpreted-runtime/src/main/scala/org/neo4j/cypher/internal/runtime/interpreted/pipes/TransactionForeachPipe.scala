@@ -38,7 +38,8 @@ abstract class AbstractTransactionForeachPipe(
   source: Pipe,
   inner: Pipe,
   batchSize: Expression,
-  onErrorBehaviour: InTransactionsOnErrorBehaviour
+  onErrorBehaviour: InTransactionsOnErrorBehaviour,
+  retryPolicy: TransactionRetryPolicy
 ) extends PipeWithSource(source) {
 
   protected def withStatus(output: ClosingIterator[CypherRow], status: TransactionStatus): ClosingIterator[CypherRow]
@@ -73,10 +74,11 @@ case class TransactionForeachPipe(
   inner: Pipe,
   batchSize: Expression,
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
-  statusVariableOpt: Option[String]
+  statusVariableOpt: Option[String],
+  retryPolicy: TransactionRetryPolicy
 )(
   val id: Id = Id.INVALID_ID
-) extends AbstractTransactionForeachPipe(source, inner, batchSize, onErrorBehaviour) {
+) extends AbstractTransactionForeachPipe(source, inner, batchSize, onErrorBehaviour, retryPolicy) {
 
   override protected def withStatus(
     output: ClosingIterator[CypherRow],

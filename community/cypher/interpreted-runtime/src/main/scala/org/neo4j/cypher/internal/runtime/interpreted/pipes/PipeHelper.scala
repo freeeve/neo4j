@@ -23,7 +23,10 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expres
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.NumericHelper
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.values.storable.FloatingPointValue
+import org.neo4j.values.storable.NumberValue
 import org.neo4j.values.storable.Value
+
+import java.util.concurrent.TimeUnit
 
 object PipeHelper {
 
@@ -65,5 +68,27 @@ object PipeHelper {
       fail(res)
     }
     res
+  }
+
+  def evaluateStaticSecondsToNanosOrThrow(
+    exp: Expression,
+    minValue: Long,
+    state: QueryState,
+    prefix: String,
+    suffix: String
+  ): Long = {
+    def fail(n: Double, value: NumberValue): Unit = {
+      val prettyValue = value.prettyPrint()
+      throw InvalidArgumentException.invalidValuePrefixSuffix(minValue, String.valueOf(n), prefix, suffix, prettyValue)
+    }
+
+    val number = NumericHelper.evaluateStaticallyKnownNumber(exp, state)
+    val d = number.doubleValue()
+
+    if (d < minValue) {
+      fail(d, number)
+    }
+    // TODO: Make overflow safe?
+    (d * TimeUnit.SECONDS.toNanos(1).toDouble).toLong
   }
 }

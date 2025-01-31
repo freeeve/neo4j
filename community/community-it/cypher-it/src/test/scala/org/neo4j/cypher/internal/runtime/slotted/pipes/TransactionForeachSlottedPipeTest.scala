@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.physicalplanning.SlotConfigurationBuilder
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.interpreted.QueryStateTestSupport
 import org.neo4j.cypher.internal.runtime.interpreted.commands.LiteralHelper.literal
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionRetryPolicy.DoNotRetry
 import org.neo4j.cypher.internal.runtime.slotted.SlottedCypherRowFactory
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.kernel.api.KernelTransaction.Type.IMPLICIT
@@ -44,7 +45,7 @@ class TransactionForeachSlottedPipeTest extends GraphDatabaseFunSuite with Query
     val lhs = FakeSlottedPipe(slots, Seq(Map(), Map(), Map()))
     val rhs = FakeSlottedPipe(slots, Seq(Map(), Map()), new FailingNextIterable(Map(), Map()), Seq(Map()))
 
-    val pipe = TransactionForeachSlottedPipe(lhs, rhs, literal(1), OnErrorFail, slots.getSlot("status"))()
+    val pipe = TransactionForeachSlottedPipe(lhs, rhs, literal(1), OnErrorFail, slots.getSlot("status"), DoNotRetry)()
 
     withQueryState(IMPLICIT) { state =>
       state.setExecutionContextFactory(SlottedCypherRowFactory(slots, slots.size()))
@@ -72,7 +73,7 @@ class TransactionForeachSlottedPipeTest extends GraphDatabaseFunSuite with Query
     val lhs = FakeSlottedPipe(slots, Seq(Map(), Map(), Map()))
     val rhs = FakeSlottedPipe(slots, Seq(Map(), Map()), new FailingNextIterable(Map(), Map()), Seq(Map(), Map()))
 
-    val pipe = TransactionForeachSlottedPipe(lhs, rhs, literal(1), OnErrorBreak, slots.getSlot("status"))()
+    val pipe = TransactionForeachSlottedPipe(lhs, rhs, literal(1), OnErrorBreak, slots.getSlot("status"), DoNotRetry)()
 
     withQueryState(IMPLICIT) { state =>
       state.setExecutionContextFactory(SlottedCypherRowFactory(slots, slots.size()))
@@ -108,7 +109,8 @@ class TransactionForeachSlottedPipeTest extends GraphDatabaseFunSuite with Query
       new FailingNextIterable(Map())
     )
 
-    val pipe = TransactionForeachSlottedPipe(lhs, rhs, literal(1), OnErrorContinue, slots.getSlot("status"))()
+    val pipe =
+      TransactionForeachSlottedPipe(lhs, rhs, literal(1), OnErrorContinue, slots.getSlot("status"), DoNotRetry)()
 
     withQueryState(IMPLICIT) { state =>
       state.setExecutionContextFactory(SlottedCypherRowFactory(slots, slots.size()))

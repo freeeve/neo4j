@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.physicalplanning.SlotConfigurationBuilder
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.interpreted.QueryStateTestSupport
 import org.neo4j.cypher.internal.runtime.interpreted.commands.LiteralHelper.literal
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionRetryPolicy.DoNotRetry
 import org.neo4j.cypher.internal.runtime.slotted.SlottedCypherRowFactory
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.kernel.api.KernelTransaction.Type.IMPLICIT
@@ -56,7 +57,8 @@ class TransactionApplySlottedPipeTest extends GraphDatabaseFunSuite with QuerySt
       OnErrorFail,
       Set.empty,
       slots.getSlot("status"),
-      SlotConfiguration.Size.zero
+      SlotConfiguration.Size.zero,
+      DoNotRetry
     )()
 
     withQueryState(IMPLICIT) { state =>
@@ -94,7 +96,8 @@ class TransactionApplySlottedPipeTest extends GraphDatabaseFunSuite with QuerySt
       OnErrorBreak,
       Set.empty,
       slots.getSlot("status"),
-      SlotConfiguration.Size.zero
+      SlotConfiguration.Size.zero,
+      DoNotRetry
     )()
 
     withQueryState(IMPLICIT) { state =>
@@ -140,7 +143,8 @@ class TransactionApplySlottedPipeTest extends GraphDatabaseFunSuite with QuerySt
       OnErrorContinue,
       Set.empty,
       slots.getSlot("status"),
-      SlotConfiguration.Size.zero
+      SlotConfiguration.Size.zero,
+      DoNotRetry
     )()
 
     withQueryState(IMPLICIT) { state =>

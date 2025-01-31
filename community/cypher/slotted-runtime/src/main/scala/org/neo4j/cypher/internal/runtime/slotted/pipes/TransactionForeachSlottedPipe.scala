@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expres
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.AbstractTransactionForeachPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionForeachPipe.toStatusMap
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionRetryPolicy
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionStatus
 import org.neo4j.cypher.internal.util.attribution.Id
 
@@ -35,8 +36,10 @@ case class TransactionForeachSlottedPipe(
   inner: Pipe,
   batchSize: Expression,
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
-  statusSlot: Option[Slot]
-)(val id: Id = Id.INVALID_ID) extends AbstractTransactionForeachPipe(source, inner, batchSize, onErrorBehaviour) {
+  statusSlot: Option[Slot],
+  retryPolicy: TransactionRetryPolicy
+)(val id: Id = Id.INVALID_ID)
+    extends AbstractTransactionForeachPipe(source, inner, batchSize, onErrorBehaviour, retryPolicy) {
   private[this] val statusOffsetOpt = statusSlot.map(_.offset)
 
   override protected def withStatus(

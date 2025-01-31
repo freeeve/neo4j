@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.expressions
 import org.neo4j.cypher.internal.expressions.Ands
@@ -2765,7 +2766,8 @@ case class LogicalPlan2PlanDescription(
     batchSize: Expression,
     concurrency: TransactionConcurrency,
     onErrorBehaviour: InTransactionsOnErrorBehaviour,
-    maybeReportAs: Option[LogicalVariable]
+    maybeReportAs: Option[LogicalVariable],
+    maybeRetryParameters: Option[InTransactionsRetryParameters]
   ) = {
     val concurrencyParams = concurrency match {
       case TransactionConcurrency.Concurrent(None)              => "CONCURRENT "
@@ -2773,19 +2775,23 @@ case class LogicalPlan2PlanDescription(
       case _                                                    => ""
     }
     val errorParams = onErrorBehaviour match {
-      case OnErrorContinue          => " ON ERROR CONTINUE"
-      case OnErrorBreak             => " ON ERROR BREAK"
-      case OnErrorFail              => " ON ERROR FAIL"
-      case OnErrorRetryThenContinue => " ON ERROR RETRY THEN CONTINUE"
-      case OnErrorRetryThenBreak    => " ON ERROR RETRY THEN BREAK"
-      case OnErrorRetryThenFail     => " ON ERROR RETRY THEN FAIL"
+      case OnErrorContinue          => (" ON ERROR CONTINUE", "")
+      case OnErrorBreak             => (" ON ERROR BREAK", "")
+      case OnErrorFail              => (" ON ERROR FAIL", "")
+      case OnErrorRetryThenContinue => (" ON ERROR RETRY ", "THEN CONTINUE")
+      case OnErrorRetryThenBreak    => (" ON ERROR RETRY ", "THEN BREAK")
+      case OnErrorRetryThenFail     => (" ON ERROR RETRY ", "THEN FAIL")
     }
     val reportParams = maybeReportAs.fold("")(status => s" REPORT STATUS AS ${status.name}")
+    val retryParams = maybeRetryParameters.fold("")(_.timeout match {
+      case Some(timeout) => s"FOR ${asPrettyString(timeout)} SECONDS "
+      case _             => ""
+    })
 
     Details(
       pretty"IN ${asPrettyString.raw(concurrencyParams)}TRANSACTIONS OF ${asPrettyString(
           batchSize
-        )} ROWS${asPrettyString.raw(errorParams)}${asPrettyString.raw(reportParams)}"
+        )} ROWS${asPrettyString.raw(errorParams._1)}${asPrettyString.raw(retryParams)}${asPrettyString.raw(errorParams._2)}${asPrettyString.raw(reportParams)}"
     )
   }
 
@@ -2992,8 +2998,8 @@ case class LogicalPlan2PlanDescription(
       case _: SemiApply =>
         PlanDescriptionImpl(id, "SemiApply", children, Seq.empty, variables, withRawCardinalities, withDistinctness)
 
-      case TransactionForeach(_, _, batchSize, concurrency, onErrorBehaviour, maybeReportAs) =>
-        val details = callInTxsDetails(batchSize, concurrency, onErrorBehaviour, maybeReportAs)
+      case TransactionForeach(_, _, batchSize, concurrency, onErrorBehaviour, maybeReportAs, maybeRetryParameters) =>
+        val details = callInTxsDetails(batchSize, concurrency, onErrorBehaviour, maybeReportAs, maybeRetryParameters)
         PlanDescriptionImpl(
           id,
           "TransactionForeach",
@@ -3004,8 +3010,8 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case TransactionApply(_, _, batchSize, concurrency, onErrorBehaviour, maybeReportAs) =>
-        val details = callInTxsDetails(batchSize, concurrency, onErrorBehaviour, maybeReportAs)
+      case TransactionApply(_, _, batchSize, concurrency, onErrorBehaviour, maybeReportAs, maybeRetryParameters) =>
+        val details = callInTxsDetails(batchSize, concurrency, onErrorBehaviour, maybeReportAs, maybeRetryParameters)
         PlanDescriptionImpl(
           id,
           "TransactionApply",

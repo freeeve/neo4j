@@ -33,6 +33,11 @@ import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.EntityTransformer
 import org.neo4j.cypher.internal.runtime.QueryStatistics
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.NotApplicable
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.NotRetryable
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.RetryTimeout
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.ShouldRetry
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.shouldRetry
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper.CypherRowEntityTransformer
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper.assertTransactionStateIsEmpty
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper.logError
@@ -70,11 +75,11 @@ trait TransactionPipeWrapper {
     val status = processBatch(state, outerRows.rows)(_ => ())
     status match {
       case rollback: Rollback =>
-        val retry = shouldRetry(rollback.failure, outerRows)
-        onRollback(rollback, retry)
-        TransactionResult(rollback, None, shouldRetry = retry)
+        val retry = decideRetry(rollback.failure, outerRows)
+        onRollback(rollback, shouldRetry(retry))
+        TransactionResult(rollback, None, retryDecision = retry)
       case _ =>
-        TransactionResult(status, None, shouldRetry = false)
+        TransactionResult(status, None, retryDecision = NotApplicable)
     }
   }
 
@@ -101,15 +106,15 @@ trait TransactionPipeWrapper {
     }
 
     status match {
-      case commit: Commit => TransactionResult(commit, Some(innerResult), shouldRetry = false)
+      case commit: Commit => TransactionResult(commit, Some(innerResult), retryDecision = NotApplicable)
       case rollback: Rollback =>
         innerResult.close()
-        val retry = shouldRetry(rollback.failure, outerRows)
-        onRollback(rollback, retry)
-        TransactionResult(rollback, None, shouldRetry = retry)
+        val retry = decideRetry(rollback.failure, outerRows)
+        onRollback(rollback, retry eq ShouldRetry)
+        TransactionResult(rollback, None, retryDecision = retry)
       case other =>
         innerResult.close()
-        TransactionResult(other, None, shouldRetry = false)
+        TransactionResult(other, None, retryDecision = NotApplicable)
     }
   }
 
@@ -124,10 +129,9 @@ trait TransactionPipeWrapper {
 
   /**
    * If retries are enabled and the given throwable is a retryable error,
-   * update the retry state of the batch and return true if the batch should be retried.
-   * NOTE: As it updates the retry state of the batch it should only be called once for every retried execution!
+   * check the next retry state of the batch and decide if the batch should be retried.
    */
-  protected def shouldRetry(throwable: Throwable, batch: TransactionBatch): Boolean
+  protected def decideRetry(throwable: Throwable, batch: TransactionBatch): RetryDecision
 
   /**
    * Evaluates inner pipe in a new transaction.
@@ -220,7 +224,7 @@ class OnErrorContinueTxPipe(val outerId: Id, val inner: Pipe, val concurrentAcce
 
   override protected def shouldBreak: Boolean = false
 
-  override protected def shouldRetry(throwable: Throwable, batch: TransactionBatch): Boolean = false
+  override protected def decideRetry(throwable: Throwable, batch: TransactionBatch): RetryDecision = NotApplicable
 }
 
 // NOTE! Keeps state that is not safe to re-use between queries. Create a new instance for each query.
@@ -230,7 +234,7 @@ class OnErrorBreakTxPipe(val outerId: Id, val inner: Pipe, val concurrentAccess:
 
   override protected def shouldBreak: Boolean = { break }
 
-  override protected def shouldRetry(throwable: Throwable, batch: TransactionBatch): Boolean = false
+  override protected def decideRetry(throwable: Throwable, batch: TransactionBatch): RetryDecision = NotApplicable
 
   override protected def processBatch(
     state: QueryState,
@@ -256,7 +260,7 @@ class OnErrorFailTxPipe(val outerId: Id, val inner: Pipe, val concurrentAccess: 
 
   override def shouldBreak: Boolean = false
 
-  override def shouldRetry(throwable: Throwable, batch: TransactionBatch): Boolean = false
+  override def decideRetry(throwable: Throwable, batch: TransactionBatch): RetryDecision = NotApplicable
 
   override def processBatch(
     state: QueryState,
@@ -298,11 +302,26 @@ trait OnErrorRetryTxPipe {
 
   def retryLogic: TransactionRetryLogic
 
-  override def shouldRetry(throwable: Throwable, batch: TransactionBatch): Boolean = {
-    // NOTE: This updates the retry state of the batch so should only be called once per retried execution!
-    val isRetryable = RetryableCypherError.isRetryable(throwable)
-    isRetryable && batch.shouldRetryAgain()
+  override def decideRetry(throwable: Throwable, batch: TransactionBatch): RetryDecision = {
+    RetryableCypherError.isRetryable(throwable) match {
+      case true if batch.shouldRetryAgain() =>
+        ShouldRetry
+      case true =>
+        RetryTimeout
+      case false =>
+        NotRetryable
+    }
   }
+}
+
+sealed trait RetryDecision
+
+object RetryDecision {
+  def shouldRetry(decision: RetryDecision): Boolean = decision eq ShouldRetry
+  case object ShouldRetry extends RetryDecision
+  case object RetryTimeout extends RetryDecision
+  case object NotRetryable extends RetryDecision
+  case object NotApplicable extends RetryDecision
 }
 
 sealed trait TransactionStatus {
@@ -340,13 +359,13 @@ sealed trait TransactionBatch {
     rows.close()
   }
 
-  def hasRetried: Boolean
   def computeNextRetryState(retryLogic: TransactionRetryLogic): RetryableTransactionBatch
   def shouldRetryAgain(): Boolean
+  def retriedCount: Int
+  def abortedReason: String
 }
 
 class FreshTransactionBatch(val rows: EagerBuffer[CypherRow]) extends TransactionBatch {
-  override def hasRetried: Boolean = false
 
   override def computeNextRetryState(retryLogic: TransactionRetryLogic): RetryableTransactionBatch = {
     val firstState = retryLogic.newRetryState()
@@ -358,6 +377,11 @@ class FreshTransactionBatch(val rows: EagerBuffer[CypherRow]) extends Transactio
   override def shouldRetryAgain(): Boolean =
     // a fresh batch should always be retried at least once if retries are enabled
     true
+
+  override def retriedCount: Int = 0
+
+  override def abortedReason: String =
+    throw new UnsupportedOperationException("abortedReason is not supported for FreshTransactionBatch")
 }
 
 class RetryableTransactionBatch(
@@ -365,8 +389,6 @@ class RetryableTransactionBatch(
   private val retryState: RetryState, // Used in the retry priority queue to compare batches scheduled for retry
   private val nextRetryState: RetryState // Used by tasks to see if we shouldRetryAgain on failure
 ) extends TransactionBatch {
-
-  def hasRetried: Boolean = true
 
   def computeNextRetryState(retryLogic: TransactionRetryLogic): RetryableTransactionBatch = {
     new RetryableTransactionBatch(rows, nextRetryState, nextRetryState.computeNextRetryState())
@@ -379,6 +401,11 @@ class RetryableTransactionBatch(
   def shouldRetryAgain(): Boolean = {
     nextRetryState.shouldRetryAgain()
   }
+
+  override def retriedCount: Int = retryState.retryCount
+
+  override def abortedReason: String =
+    retryState.abortedReason
 
   override def toString: String =
     s"RetryableTransactionBatch(rowCount=${rows.size()}, retryState=$retryState, nextRetryState=$nextRetryState)"
@@ -400,7 +427,7 @@ object TransactionBatch {
 case class TransactionResult(
   status: TransactionStatus,
   committedResults: Option[EagerBuffer[CypherRow]],
-  shouldRetry: Boolean
+  retryDecision: RetryDecision
 )
 
 object TransactionPipeWrapper {
@@ -489,5 +516,25 @@ object TransactionPipeWrapper {
     val outerTxId = state.query.transactionalContext.userTransactionId
     val log = state.query.logProvider.getLog(getClass)
     log.info(s"Recover error in inner transaction $innerTxId (outer transaction $outerTxId)", t)
+  }
+
+  def evaluateRetryTimeoutNanos(
+    retryTimeout: Option[Expression],
+    state: QueryState,
+    defaultTimeoutInNanos: Long
+  ): Long = {
+    retryTimeout match {
+      case Some(t) =>
+        PipeHelper.evaluateStaticSecondsToNanosOrThrow(
+          t,
+          minValue = 0L,
+          state,
+          "FOR ... SECONDS",
+          ""
+        )
+
+      case None =>
+        defaultTimeoutInNanos
+    }
   }
 }

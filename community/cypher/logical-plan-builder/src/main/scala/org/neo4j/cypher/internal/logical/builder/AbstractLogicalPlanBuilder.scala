@@ -23,6 +23,7 @@ import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.expressions.ASTCachedProperty
 import org.neo4j.cypher.internal.expressions.Ands
@@ -3014,7 +3015,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     batchSize: Long = TransactionForeach.defaultBatchSize,
     concurrency: TransactionConcurrency = TransactionConcurrency.Serial,
     onErrorBehaviour: InTransactionsOnErrorBehaviour = OnErrorFail,
-    maybeReportAs: Option[String] = None
+    maybeReportAs: Option[String] = None,
+    maybeRetryParameters: Option[InTransactionsRetryParameters] = None
   ): IMPL =
     appendAtCurrentIndent(BinaryOperator((lhs, rhs) =>
       TransactionForeach(
@@ -3023,7 +3025,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         literalInt(batchSize),
         concurrency,
         onErrorBehaviour,
-        maybeReportAs.map(varFor)
+        maybeReportAs.map(varFor),
+        maybeRetryParameters
       )(_)
     ))
 
@@ -3037,7 +3040,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     batchSize: Long = TransactionForeach.defaultBatchSize,
     concurrency: TransactionConcurrency = TransactionConcurrency.Serial,
     onErrorBehaviour: InTransactionsOnErrorBehaviour = OnErrorFail,
-    maybeReportAs: Option[String] = None
+    maybeReportAs: Option[String] = None,
+    maybeRetryParameters: Option[InTransactionsRetryParameters] = None
   ): IMPL =
     appendAtCurrentIndent(BinaryOperator((lhs, rhs) =>
       TransactionApply(
@@ -3046,7 +3050,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         literalInt(batchSize),
         concurrency,
         onErrorBehaviour,
-        maybeReportAs.map(varFor)
+        maybeReportAs.map(varFor),
+        maybeRetryParameters
       )(_)
     ))
 

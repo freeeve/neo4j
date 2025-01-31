@@ -22,25 +22,35 @@ package org.neo4j.exceptions;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.kernel.api.exceptions.Status;
 
-public class QueryExecutionTimeoutException extends Neo4jException {
-    public QueryExecutionTimeoutException(String message, Throwable cause) {
+public class TransactionRetryAbortedException extends Neo4jException {
+    public TransactionRetryAbortedException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public QueryExecutionTimeoutException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+    public TransactionRetryAbortedException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
     }
 
-    public QueryExecutionTimeoutException(String message) {
+    public TransactionRetryAbortedException(String message) {
         super(message);
     }
 
-    public QueryExecutionTimeoutException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    public TransactionRetryAbortedException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
 
     @Override
     public Status status() {
         return Status.Statement.ExecutionTimeout;
+    }
+
+    public static TransactionRetryAbortedException transactionRetryAborted(
+            Throwable cause, int retriedCount, String reason) {
+        // TODO: Add GQL status object
+        return new TransactionRetryAbortedException(
+                String.format(
+                        "Transaction retry aborted after %d attempts. %s. Last failed with cause: %s",
+                        retriedCount, reason, cause.getMessage()),
+                cause);
     }
 }

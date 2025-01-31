@@ -30,8 +30,12 @@ import org.neo4j.cypher.internal.ast.ShowSettingsClause
 import org.neo4j.cypher.internal.ast.ShowTransactionsClause
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsErrorParameters
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsParameters
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsReportParameters
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause
 import org.neo4j.cypher.internal.ast.Union.UnionMapping
 import org.neo4j.cypher.internal.ast.UsingIndexHint
@@ -980,8 +984,20 @@ case class LogicalPlanProducer(
   }
 
   private def computeErrorBehaviour(maybeErrorParams: Option[InTransactionsErrorParameters])
-    : InTransactionsOnErrorBehaviour = {
-    maybeErrorParams.map(_.behaviour).getOrElse(TransactionForeach.defaultOnErrorBehaviour)
+    : (InTransactionsOnErrorBehaviour, Option[InTransactionsRetryParameters]) = {
+    maybeErrorParams match {
+      case Some(InTransactionsErrorParameters(
+          behaviour @ (OnErrorRetryThenContinue | OnErrorRetryThenBreak | OnErrorRetryThenFail),
+          retryParams
+        )) =>
+        (behaviour, retryParams)
+      case Some(InTransactionsErrorParameters(behaviour, None)) =>
+        (behaviour, None)
+      case None =>
+        (TransactionForeach.defaultOnErrorBehaviour, None)
+      case _ =>
+        throw new IllegalArgumentException("Invalid combination of error parameters and retry parameters")
+    }
   }
 
   private def computeMaybeReportAs(maybeReportParams: Option[InTransactionsReportParameters])
@@ -1070,13 +1086,15 @@ case class LogicalPlanProducer(
       if (yielding) {
         inTransactionsParameters match {
           case Some(InTransactionsParameters(batchParams, concurrencyParams, errorParams, reportParams)) =>
+            val (errorBehaviour, retryParams) = computeErrorBehaviour(errorParams)
             TransactionApply(
               left,
               right,
               computeBatchSize(batchParams.map(_.batchSize)),
               computeConcurrency(concurrencyParams.map(_.concurrency)),
-              computeErrorBehaviour(errorParams),
-              computeMaybeReportAs(reportParams)
+              errorBehaviour,
+              computeMaybeReportAs(reportParams),
+              retryParams
             )
           case None =>
             if (!correlated && solvedRight.readOnly) {
@@ -1088,13 +1106,15 @@ case class LogicalPlanProducer(
       } else {
         inTransactionsParameters match {
           case Some(InTransactionsParameters(batchParams, concurrencyParams, errorParams, reportParams)) =>
+            val (errorBehaviour, retryParams) = computeErrorBehaviour(errorParams)
             TransactionForeach(
               left,
               right,
               computeBatchSize(batchParams.map(_.batchSize)),
               computeConcurrency(concurrencyParams.map(_.concurrency)),
-              computeErrorBehaviour(errorParams),
-              computeMaybeReportAs(reportParams)
+              errorBehaviour,
+              computeMaybeReportAs(reportParams),
+              retryParams
             )
           case None => SubqueryForeach(left, right)
         }

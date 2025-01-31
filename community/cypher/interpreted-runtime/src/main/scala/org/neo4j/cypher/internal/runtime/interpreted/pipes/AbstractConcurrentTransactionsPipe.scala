@@ -31,11 +31,15 @@ import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.PrefetchingIterator
 import org.neo4j.cypher.internal.runtime.debug.DebugSupport
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExponentialBackoffRetryLogic.DEFAULT_MAX_RETRY_TIME_NANOS
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.NotRetryable
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.RetryTimeout
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper.evaluateBatchSize
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper.evaluateConcurrency
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper.evaluateRetryTimeoutNanos
 import org.neo4j.cypher.internal.runtime.memory.TransactionWorkerThreadDelegatingMemoryTracker
 import org.neo4j.exceptions.CypherExecutionInterruptedException
-import org.neo4j.exceptions.QueryExecutionTimeoutException
+import org.neo4j.exceptions.TransactionRetryAbortedException
 import org.neo4j.kernel.impl.util.collection.EagerBuffer
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.scheduler.CallableExecutor
@@ -50,16 +54,25 @@ abstract class AbstractConcurrentTransactionsPipe(
   inner: Pipe,
   batchSize: Expression,
   concurrency: Option[Expression],
-  onErrorBehaviour: InTransactionsOnErrorBehaviour
+  onErrorBehaviour: InTransactionsOnErrorBehaviour,
+  retryPolicy: TransactionRetryPolicy
 ) extends PipeWithSource(source) {
 
-  private[this] val retryLogic: Option[TransactionRetryLogic] = onErrorBehaviour match {
+  private def createRetryLogic(state: QueryState): Option[TransactionRetryLogic] = onErrorBehaviour match {
     case OnErrorRetryThenContinue | OnErrorRetryThenBreak | OnErrorRetryThenFail =>
-      Some(new ExponentialBackoffRetryLogic())
+      retryPolicy match {
+        case TransactionRetryPolicy.RetryFor(maybeDurationInSeconds) =>
+          // TODO: Integrate with config setting from QueryRuntimeConfig when that is merged
+          // state.query.getConfig.get("...")
+          val maxRetryTimeNanos = evaluateRetryTimeoutNanos(maybeDurationInSeconds, state, DEFAULT_MAX_RETRY_TIME_NANOS)
+          Some(new ExponentialBackoffRetryLogic(maxRetryTimeNanos))
+
+        case _ =>
+          throw new IllegalArgumentException(s"Unsupported retry policy $retryPolicy")
+      }
+
     case _ => None
   }
-
-  private def supportsRetries: Boolean = retryLogic.nonEmpty
 
   protected def withStatus(output: ClosingIterator[CypherRow], status: TransactionStatus): ClosingIterator[CypherRow]
   protected def nullRows(value: EagerBuffer[CypherRow], state: QueryState): ClosingIterator[CypherRow]
@@ -81,6 +94,7 @@ abstract class AbstractConcurrentTransactionsPipe(
     // in ExecutingQuery becomes thread-safe
     state.query.transactionalContext.kernelExecutingQuery.upgradeToConcurrentAccess()
 
+    val retryLogic = createRetryLogic(state)
     val innerPipeInTx = TransactionPipeWrapper(onErrorBehaviour, id, inner, concurrentAccess = true, retryLogic)
     val batchSizeLong = evaluateBatchSize(batchSize, state)
     val concurrencyLong = evaluateConcurrency(concurrency, state)
@@ -125,7 +139,7 @@ abstract class AbstractConcurrentTransactionsPipe(
     private[this] var pendingTaskCount: Int = 0 // NOTE: Only read and written by the main thread
     private[this] val activeTaskCount: AtomicInteger = new AtomicInteger(0)
 
-    override def closeMore(): Unit = {
+    final override def closeMore(): Unit = {
       input.close()
       if (currentOutputIterator != null) {
         currentOutputIterator.close()
@@ -133,7 +147,7 @@ abstract class AbstractConcurrentTransactionsPipe(
       drainOutputQueue()
     }
 
-    override def produceNext(): Option[CypherRow] = {
+    final override def produceNext(): Option[CypherRow] = {
       logMessageWithVerboseStatus("-- PRODUCE NEXT --")
 
       maybeEnqueueTasks()
@@ -148,7 +162,7 @@ abstract class AbstractConcurrentTransactionsPipe(
             if (taskResult != null) {
               pendingTaskCount -= 1
               updateStatisticsAndProfileInformation(taskResult)
-              val error = taskResult.error
+              val error = taskResult.nonRecoverableError
               if (error != null && shouldReportError(error)) {
                 try {
                   drainOutputQueue(error)
@@ -171,6 +185,8 @@ abstract class AbstractConcurrentTransactionsPipe(
     }
 
     final protected def hasPendingTasks: Boolean = pendingTaskCount > 0
+
+    // NOTE: protected methods not declared final can be overridden by RetryConcurrentTransactionsIterator
     protected def awaitPendingRetries(): Boolean = false
 
     protected def pollOutputQueue(): TaskOutputResult = {
@@ -195,7 +211,7 @@ abstract class AbstractConcurrentTransactionsPipe(
     final protected def drainOutputQueue(error: Throwable = null): Unit = {
       while (pendingTaskCount > 0) {
         val taskOutputResult = outputQueue.take()
-        val newError = taskOutputResult.error
+        val newError = taskOutputResult.nonRecoverableError
         if (DebugSupport.DEBUG_CONCURRENT_TRANSACTIONS) {
           DebugSupport.CONCURRENT_TRANSACTIONS.log(
             "Drained %s",
@@ -333,7 +349,7 @@ abstract class AbstractConcurrentTransactionsPipe(
 
     // We have a limit to the retry queue size, so we switch to prioritize retry batches over new input batches
     // to avoid running out of heap in case we get a lot of failed batches.
-    private[this] val retryQueueSizeLimit = inputQueueMaxCapacity
+    private[this] val retryQueueSizeLimit = inputQueueMaxCapacity // TODO: Make this configurable
 
     private[this] val retryQueue =
       new util.PriorityQueue[RetryableTransactionBatch](inputQueueMaxCapacity, RetryableTransactionBatch.comparator)
@@ -413,7 +429,7 @@ abstract class AbstractConcurrentTransactionsPipe(
         val batch = taskResult.retryBatch
         taskResult.status match {
           case _: Commit =>
-            checkOnlyWhenAssertionsAreEnabled(batch.hasRetried, "Expected the batch to have been retried")
+            checkOnlyWhenAssertionsAreEnabled(batch.retriedCount > 0, "Expected the batch to have been retried")
 
           case _ =>
             val retryableBatch = batch.computeNextRetryState(retryLogic)
@@ -445,7 +461,7 @@ abstract class AbstractConcurrentTransactionsPipe(
             e.toString,
             e.getStackTrace.mkString("\n")
           )
-          outputResult = TaskOutputResult(NonRecoverableError, null, error = e)
+          outputResult = TaskOutputResult(NonRecoverableError, null, nonRecoverableError = e)
           throw e
       } finally {
         try {
@@ -463,6 +479,42 @@ abstract class AbstractConcurrentTransactionsPipe(
     }
 
     protected def consumeBatch(): TaskOutputResult
+
+    private[pipes] def handleRetry(
+      retryDecision: RetryDecision,
+      resultStatus: TransactionStatus,
+      onErrorBehaviour: InTransactionsOnErrorBehaviour,
+      batch: TransactionBatch
+    ): (TransactionStatus, Throwable) = {
+      (resultStatus, onErrorBehaviour, retryDecision) match {
+        case (r @ Rollback(_, failure, _, _), OnErrorRetryThenFail, RetryTimeout) =>
+          (
+            r,
+            TransactionRetryAbortedException.transactionRetryAborted(
+              failure,
+              batch.retriedCount,
+              batch.abortedReason
+            )
+          )
+
+        case (r @ Rollback(_, failure, _, _), OnErrorFail | OnErrorRetryThenFail, NotRetryable) =>
+          (r, failure)
+
+        case (r @ Rollback(_, failure, _, _), OnErrorRetryThenBreak | OnErrorRetryThenContinue, RetryTimeout) =>
+          (
+            r.copy(failure =
+              TransactionRetryAbortedException.transactionRetryAborted(
+                failure,
+                batch.retriedCount,
+                batch.abortedReason
+              )
+            ),
+            null
+          )
+
+        case (status, _, _) => (status, null)
+      }
+    }
 
     private def initializeMemoryTracker(): Unit = {
       var memoryTracker = TransactionWorkerThreadDelegatingMemoryTracker.threadLocalExecutionContextMemoryTracker.get
@@ -507,30 +559,27 @@ abstract class AbstractConcurrentTransactionsPipe(
       val innerResult: TransactionResult = innerPipe.createResults(state, batch, memoryTracker)
       DebugSupport.CONCURRENT_TRANSACTIONS_WORKER.log("[%s] Have results", this)
 
-      val shouldRetry = innerResult.shouldRetry
+      val retryDecision = innerResult.retryDecision
+      val shouldRetry = RetryDecision.shouldRetry(retryDecision)
+      val (transactionStatus, nonRecoverableErrorOrNull) =
+        handleRetry(retryDecision, innerResult.status, onErrorBehaviour, batch)
 
-      // TODO: We should probably record the errors on OnErrorRetry and add as suppressed errors on timeout, so that
-      //       a cause of repeated failures can be found in the stack trace.
-      // Or maybe just a failure count is enough.
-      val error = innerResult.status match {
-        case Rollback(_, failure, _, _) if onErrorBehaviour eq OnErrorFail => failure
-        case Rollback(_, failure, _, _) if supportsRetries && !shouldRetry =>
-          QueryExecutionTimeoutException.transactionRetryTimeout(failure)
-        case _ => null
-      }
-
-      val resultsWithStatus = innerResult.committedResults match {
+      val resultsWithStatusIteratorOrNull = innerResult.committedResults match {
         case Some(result) =>
           batch.close()
-          withStatus(result.autoClosingIterator().asClosingIterator, innerResult.status)
-        case _ if onErrorBehaviour eq OnErrorFail => null
-        case _ if shouldRetry                     => null
-        // NOTE: nullRows closes batch.rows by using an autoClosingIterator
-        case _ => withStatus(nullRows(batch.rows, state), innerResult.status)
+          withStatus(result.autoClosingIterator().asClosingIterator, transactionStatus)
+        case _ if nonRecoverableErrorOrNull != null =>
+          batch.close()
+          null
+        case _ if shouldRetry =>
+          null
+        case _ =>
+          // NOTE: nullRows closes batch.rows by using an autoClosingIterator
+          withStatus(nullRows(batch.rows, state), transactionStatus)
       }
 
       val retryBatchOrNull = if (shouldRetry) batch else null
-      TaskOutputResult(innerResult.status, resultsWithStatus, error, retryBatchOrNull)
+      TaskOutputResult(transactionStatus, resultsWithStatusIteratorOrNull, nonRecoverableErrorOrNull, retryBatchOrNull)
     }
   }
 
@@ -552,35 +601,35 @@ abstract class AbstractConcurrentTransactionsPipe(
       val result = innerPipe.consume(state, batch)
       DebugSupport.CONCURRENT_TRANSACTIONS_WORKER.log("[%s] Have results", this)
 
-      val status = result.status
-      val shouldRetry = result.shouldRetry
+      val retryDecision = result.retryDecision
+      val shouldRetry = RetryDecision.shouldRetry(retryDecision)
+      val (transactionStatus, nonRecoverableErrorOrNull) =
+        handleRetry(retryDecision, result.status, onErrorBehaviour, batch)
 
-      val error = status match {
-        case Rollback(_, failure, _, _) if onErrorBehaviour eq OnErrorFail => failure
-        case Rollback(_, failure, _, _) if supportsRetries && !shouldRetry =>
-          QueryExecutionTimeoutException.transactionRetryTimeout(failure)
-        case _ => null
-      }
-      val resultsWithStatus = if (shouldRetry || (onErrorBehaviour eq OnErrorFail) && error != null) {
-        null
-      } else {
-        val output = batch.rows.autoClosingIterator().asClosingIterator
-        withStatus(output, status)
-      }
+      val resultsWithStatusIteratorOrNull =
+        if (nonRecoverableErrorOrNull != null) {
+          batch.close()
+          null
+        } else if (shouldRetry) {
+          null
+        } else {
+          val output = batch.rows.autoClosingIterator().asClosingIterator
+          withStatus(output, transactionStatus)
+        }
       val retryBatchOrNull = if (shouldRetry) batch else null
-      TaskOutputResult(status, resultsWithStatus, error, retryBatchOrNull)
+      TaskOutputResult(transactionStatus, resultsWithStatusIteratorOrNull, nonRecoverableErrorOrNull, retryBatchOrNull)
     }
   }
 
   case class TaskOutputResult(
     status: TransactionStatus,
     outputIterator: ClosingIterator[CypherRow] = null,
-    error: Throwable = null,
+    nonRecoverableError: Throwable = null,
     retryBatch: TransactionBatch = null
   ) {
 
     override def toString: String = {
-      s"TaskOutputResult(status=$status, error=$error, retryBatch=$retryBatch)"
+      s"TaskOutputResult(status=$status, nonRecoverableError=$nonRecoverableError, retryBatch=$retryBatch)"
     }
   }
 }

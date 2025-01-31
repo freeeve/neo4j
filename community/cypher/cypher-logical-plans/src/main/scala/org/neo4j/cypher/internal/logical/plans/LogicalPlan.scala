@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.GraphReference
 import org.neo4j.cypher.internal.ast.ShowColumn
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.expressions.ASTCachedProperty
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.CachedProperty
@@ -4318,7 +4319,8 @@ case class TransactionApply(
   batchSize: Expression,
   concurrency: TransactionConcurrency,
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
-  maybeReportAs: Option[LogicalVariable]
+  maybeReportAs: Option[LogicalVariable],
+  maybeRetryParameters: Option[InTransactionsRetryParameters]
 )(
   implicit idGen: IdGen
 ) extends LogicalBinaryPlan(idGen) with ApplyPlan {
@@ -4379,7 +4381,8 @@ case class TransactionForeach(
   batchSize: Expression,
   concurrency: TransactionConcurrency,
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
-  maybeReportAs: Option[LogicalVariable]
+  maybeReportAs: Option[LogicalVariable],
+  maybeRetryParameters: Option[InTransactionsRetryParameters]
 )(
   implicit idGen: IdGen
 ) extends LogicalBinaryPlan(idGen) with ApplyPlan {

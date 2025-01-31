@@ -40,8 +40,9 @@ abstract class AbstractConcurrentTransactionsLegacyPipe(
   batchSize: Expression,
   concurrency: Option[Expression],
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
-  statusVariableOpt: Option[String]
-) extends AbstractConcurrentTransactionsPipe(source, inner, batchSize, concurrency, onErrorBehaviour) {
+  statusVariableOpt: Option[String],
+  retryPolicy: TransactionRetryPolicy
+) extends AbstractConcurrentTransactionsPipe(source, inner, batchSize, concurrency, onErrorBehaviour, retryPolicy) {
 
   override protected def withStatus(
     output: ClosingIterator[CypherRow],
@@ -59,7 +60,8 @@ case class ConcurrentTransactionApplyLegacyPipe(
   concurrency: Option[Expression],
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
   nullableVariables: Set[String],
-  statusVariableOpt: Option[String]
+  statusVariableOpt: Option[String],
+  retryPolicy: TransactionRetryPolicy
 )(val id: Id = Id.INVALID_ID)
     extends AbstractConcurrentTransactionsLegacyPipe(
       source,
@@ -67,7 +69,8 @@ case class ConcurrentTransactionApplyLegacyPipe(
       batchSize,
       concurrency,
       onErrorBehaviour,
-      statusVariableOpt
+      statusVariableOpt,
+      retryPolicy
     ) {
 
   private lazy val nullEntries: Seq[(String, AnyValue)] = {
@@ -91,7 +94,14 @@ case class ConcurrentTransactionApplyLegacyPipe(
     outputQueue: ArrayBlockingQueue[TaskOutputResult],
     activeTaskCount: AtomicInteger
   ): Runnable = {
-    new ConcurrentTransactionApplyResultsTask(innerPipe, batch, memoryTracker, state, outputQueue, activeTaskCount)
+    new ConcurrentTransactionApplyResultsTask(
+      innerPipe,
+      batch,
+      memoryTracker,
+      state,
+      outputQueue,
+      activeTaskCount
+    )
   }
 }
 
@@ -101,7 +111,8 @@ case class ConcurrentTransactionForeachLegacyPipe(
   batchSize: Expression,
   concurrency: Option[Expression],
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
-  statusVariableOpt: Option[String]
+  statusVariableOpt: Option[String],
+  retryPolicy: TransactionRetryPolicy
 )(val id: Id = Id.INVALID_ID)
     extends AbstractConcurrentTransactionsLegacyPipe(
       source,
@@ -109,7 +120,8 @@ case class ConcurrentTransactionForeachLegacyPipe(
       batchSize,
       concurrency,
       onErrorBehaviour,
-      statusVariableOpt
+      statusVariableOpt,
+      retryPolicy
     ) {
 
   override protected def nullRows(lhs: EagerBuffer[CypherRow], state: QueryState): ClosingIterator[CypherRow] = {
@@ -124,6 +136,13 @@ case class ConcurrentTransactionForeachLegacyPipe(
     outputQueue: ArrayBlockingQueue[TaskOutputResult],
     activeTaskCount: AtomicInteger
   ): Runnable = {
-    new ConcurrentTransactionForeachResultsTask(innerPipe, batch, memoryTracker, state, outputQueue, activeTaskCount)
+    new ConcurrentTransactionForeachResultsTask(
+      innerPipe,
+      batch,
+      memoryTracker,
+      state,
+      outputQueue,
+      activeTaskCount
+    )
   }
 }

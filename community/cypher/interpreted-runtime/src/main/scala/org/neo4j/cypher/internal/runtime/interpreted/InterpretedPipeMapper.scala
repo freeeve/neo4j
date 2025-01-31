@@ -342,6 +342,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.Top1WithTiesPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TopNPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionApplyPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionForeachPipe
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionRetryPolicy.computeTransactionRetryPolicy
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TraversalPredicates
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TriadicSelectionPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.UndirectedAllRelationshipsScanPipe
@@ -1999,13 +2000,26 @@ case class InterpretedPipeMapper(
       case SubqueryForeach(_, _) =>
         SubqueryForeachPipe(lhs, rhs)(id = id)
 
-      case TransactionForeach(_, _, batchSize, TransactionConcurrency.Serial, onErrorBehaviour, maybeReportAs) =>
+      case TransactionForeach(
+          _,
+          _,
+          batchSize,
+          TransactionConcurrency.Serial,
+          onErrorBehaviour,
+          maybeReportAs,
+          maybeRetryParameters
+        ) =>
         TransactionForeachPipe(
           lhs,
           rhs,
           buildExpression(batchSize),
           onErrorBehaviour,
-          maybeReportAs.map(_.name)
+          maybeReportAs.map(_.name),
+          computeTransactionRetryPolicy(
+            onErrorBehaviour,
+            maybeRetryParameters,
+            expressionConverters.toCommandExpression(id, _)
+          )
         )(id = id)
 
       case TransactionApply(
@@ -2014,7 +2028,8 @@ case class InterpretedPipeMapper(
           batchSize,
           TransactionConcurrency.Serial,
           onErrorBehaviour,
-          maybeReportAs
+          maybeReportAs,
+          maybeRetryParameters
         ) =>
         TransactionApplyPipe(
           lhs,
@@ -2022,7 +2037,12 @@ case class InterpretedPipeMapper(
           buildExpression(batchSize),
           onErrorBehaviour,
           rhsPlan.availableSymbols.map(_.name) -- lhsPlan.availableSymbols.map(_.name),
-          maybeReportAs.map(_.name)
+          maybeReportAs.map(_.name),
+          computeTransactionRetryPolicy(
+            onErrorBehaviour,
+            maybeRetryParameters,
+            expressionConverters.toCommandExpression(id, _)
+          )
         )(id = id)
 
       case TransactionForeach(
@@ -2031,7 +2051,8 @@ case class InterpretedPipeMapper(
           batchSize,
           TransactionConcurrency.Concurrent(maybeConcurrency),
           onErrorBehaviour,
-          maybeReportAs
+          maybeReportAs,
+          maybeRetryParameters
         ) =>
         ConcurrentTransactionForeachLegacyPipe(
           lhs,
@@ -2039,7 +2060,12 @@ case class InterpretedPipeMapper(
           buildExpression(batchSize),
           maybeConcurrency.map(expressionConverters.toCommandExpression(id, _)),
           onErrorBehaviour,
-          maybeReportAs.map(_.name)
+          maybeReportAs.map(_.name),
+          computeTransactionRetryPolicy(
+            onErrorBehaviour,
+            maybeRetryParameters,
+            expressionConverters.toCommandExpression(id, _)
+          )
         )(id = id)
 
       case TransactionApply(
@@ -2048,7 +2074,8 @@ case class InterpretedPipeMapper(
           batchSize,
           TransactionConcurrency.Concurrent(maybeConcurrency),
           onErrorBehaviour,
-          maybeReportAs
+          maybeReportAs,
+          maybeRetryParameters
         ) =>
         ConcurrentTransactionApplyLegacyPipe(
           lhs,
@@ -2057,7 +2084,12 @@ case class InterpretedPipeMapper(
           maybeConcurrency.map(expressionConverters.toCommandExpression(id, _)),
           onErrorBehaviour,
           rhsPlan.availableSymbols.map(_.name) -- lhsPlan.availableSymbols.map(_.name),
-          maybeReportAs.map(_.name)
+          maybeReportAs.map(_.name),
+          computeTransactionRetryPolicy(
+            onErrorBehaviour,
+            maybeRetryParameters,
+            expressionConverters.toCommandExpression(id, _)
+          )
         )(id = id)
 
       case RepeatTrail(

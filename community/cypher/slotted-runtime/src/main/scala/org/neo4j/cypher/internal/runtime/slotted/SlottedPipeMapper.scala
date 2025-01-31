@@ -225,6 +225,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.SetPropertyOperation
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Top1Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Top1WithTiesPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TopNPipe
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionRetryPolicy.computeTransactionRetryPolicy
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TraversalPredicates
 import org.neo4j.cypher.internal.runtime.slotted
 import org.neo4j.cypher.internal.runtime.slotted.SlottedPipeMapper.DistinctAllPrimitive
@@ -1863,13 +1864,26 @@ class SlottedPipeMapper(
           ))
         ForeachSlottedApplyPipe(lhs, rhs, innerVariableSlot, convertExpressions(expression))(id)
 
-      case TransactionForeach(_, _, batchSize, TransactionConcurrency.Serial, onErrorBehaviour, maybeReportAs) =>
+      case TransactionForeach(
+          _,
+          _,
+          batchSize,
+          TransactionConcurrency.Serial,
+          onErrorBehaviour,
+          maybeReportAs,
+          maybeRetryParameters
+        ) =>
         TransactionForeachSlottedPipe(
           lhs,
           rhs,
           expressionConverters.toCommandExpression(id, batchSize),
           onErrorBehaviour,
-          maybeReportAs.map(v => slots(v).slot)
+          maybeReportAs.map(v => slots(v).slot),
+          computeTransactionRetryPolicy(
+            onErrorBehaviour,
+            maybeRetryParameters,
+            expressionConverters.toCommandExpression(id, _)
+          )
         )(id = id)
 
       case TransactionApply(
@@ -1878,7 +1892,8 @@ class SlottedPipeMapper(
           batchSize,
           TransactionConcurrency.Serial,
           onErrorBehaviour,
-          maybeReportAs
+          maybeReportAs,
+          maybeRetryParameters
         ) =>
         TransactionApplySlottedPipe(
           lhs,
@@ -1887,7 +1902,12 @@ class SlottedPipeMapper(
           onErrorBehaviour,
           (rhsPlan.availableSymbols.map(_.name) -- lhsPlan.availableSymbols.map(_.name)).map(n => slots(n).slot),
           maybeReportAs.map(n => slots(n).slot),
-          argumentSize
+          argumentSize,
+          computeTransactionRetryPolicy(
+            onErrorBehaviour,
+            maybeRetryParameters,
+            expressionConverters.toCommandExpression(id, _)
+          )
         )(id = id)
 
       case TransactionForeach(
@@ -1896,7 +1916,8 @@ class SlottedPipeMapper(
           batchSize,
           TransactionConcurrency.Concurrent(maybeConcurrency),
           onErrorBehaviour,
-          maybeReportAs
+          maybeReportAs,
+          maybeRetryParameters
         ) =>
         ConcurrentTransactionForeachSlottedPipe(
           lhs,
@@ -1904,7 +1925,12 @@ class SlottedPipeMapper(
           expressionConverters.toCommandExpression(id, batchSize),
           maybeConcurrency.map(expressionConverters.toCommandExpression(id, _)),
           onErrorBehaviour,
-          maybeReportAs.map(n => slots(n).slot)
+          maybeReportAs.map(n => slots(n).slot),
+          computeTransactionRetryPolicy(
+            onErrorBehaviour,
+            maybeRetryParameters,
+            expressionConverters.toCommandExpression(id, _)
+          )
         )(id = id)
 
       case TransactionApply(
@@ -1913,7 +1939,8 @@ class SlottedPipeMapper(
           batchSize,
           TransactionConcurrency.Concurrent(maybeConcurrency),
           onErrorBehaviour,
-          maybeReportAs
+          maybeReportAs,
+          maybeRetryParameters
         ) =>
         ConcurrentTransactionApplySlottedPipe(
           lhs,
@@ -1923,7 +1950,12 @@ class SlottedPipeMapper(
           onErrorBehaviour,
           (rhsPlan.availableSymbols.map(_.name) -- lhsPlan.availableSymbols.map(_.name)).map(n => slots(n).slot),
           maybeReportAs.map(n => slots(n).slot),
-          argumentSize
+          argumentSize,
+          computeTransactionRetryPolicy(
+            onErrorBehaviour,
+            maybeRetryParameters,
+            expressionConverters.toCommandExpression(id, _)
+          )
         )(id = id)
 
       case SelectOrSemiApply(_, _, expression) =>
