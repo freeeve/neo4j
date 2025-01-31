@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaultContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
@@ -355,6 +356,7 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
     val check = check1 chain check2
 
     val context = new SemanticCheckContext {
+      override def cypherVersion: CypherVersion = CypherVersion.Default
       override def errorMessageProvider: ErrorMessageProvider = new ErrorMessageProvider {
         override def createMissingPropertyLabelHintError(
           operatorDescription: String,

@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.expressions.Expression.SemanticContext
 import org.neo4j.cypher.internal.util.EmptyErrorMessageProvider
@@ -206,6 +207,7 @@ object SemanticCheckResult {
 }
 
 trait SemanticCheckContext {
+  def cypherVersion: CypherVersion
   def errorMessageProvider: ErrorMessageProvider
   def sessionDatabaseReference: DatabaseReference
 }
@@ -213,11 +215,13 @@ trait SemanticCheckContext {
 object SemanticCheckContext {
 
   def default: SemanticCheckContext = new SemanticCheckContext {
+    override def cypherVersion: CypherVersion = CypherVersion.Default
     override def errorMessageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider
     override def sessionDatabaseReference: DatabaseReference = null
   }
 
   def empty: SemanticCheckContext = new SemanticCheckContext {
+    override def cypherVersion: CypherVersion = CypherVersion.Default
     override def errorMessageProvider: ErrorMessageProvider = EmptyErrorMessageProvider
     override def sessionDatabaseReference: DatabaseReference = null
   }

@@ -586,7 +586,9 @@ object ClauseConverters extends LabelExpressionConversion {
     val selections = asSelections(clause.where)
 
     val (accWithMaybeHorizon, remainingSelections) =
-      if (hasPatternOverlapOnInteriorVars && !clause.optional) {
+      if (acc.currentQueryGraph.containsUpdates) {
+        (addHorizon(acc), selections)
+      } else if (hasPatternOverlapOnInteriorVars && !clause.optional) {
         val boundPatternNodes = acc.currentQueryGraph.patternNodes
         // These are the selections we can safely solve before a horizon
         val (selectionsSolvableBeforeHorizon, otherSelections) =

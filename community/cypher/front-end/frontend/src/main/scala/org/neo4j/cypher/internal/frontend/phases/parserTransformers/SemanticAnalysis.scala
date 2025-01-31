@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
@@ -58,6 +59,8 @@ case class SemanticAnalysis(warn: Boolean, features: SemanticFeature*)
         .semanticCheckHasRunOnce(from.maybeSemanticTable.isDefined)
 
     val checkContext = new SemanticCheckContext {
+      override def cypherVersion: CypherVersion = context.cypherVersion
+
       override def errorMessageProvider: ErrorMessageProvider = context.errorMessageProvider
 
       override def sessionDatabaseReference: DatabaseReference = context.sessionDatabase

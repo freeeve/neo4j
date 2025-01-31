@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.logical.generator
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.generator.AstGenerator.zeroOrMore
@@ -702,6 +703,7 @@ class LogicalPlanGenerator(
           val errors = SemanticExpressionCheck.check(Results, e).run(
             semanticState,
             new SemanticCheckContext {
+              override def cypherVersion: CypherVersion = CypherVersion.Default
               override def errorMessageProvider: ErrorMessageProvider = MessageUtilProvider
               override def sessionDatabaseReference: DatabaseReference = null
             }
