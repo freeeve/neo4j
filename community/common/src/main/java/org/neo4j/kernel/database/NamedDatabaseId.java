@@ -45,14 +45,16 @@ public class NamedDatabaseId implements Comparable<NamedDatabaseId> {
     }
 
     NamedDatabaseId(String name, DatabaseId databaseId) {
-        requireNonNull(databaseId, "DatabaseId should be not null.");
-        requireNonNull(name, "Database name should be not null.");
-        this.databaseId = databaseId;
+        this.databaseId = requireNonNull(databaseId, "DatabaseId should be not null.");
         this.name = NormalizedDatabaseName.normalize(name);
     }
 
     public String name() {
         return name;
+    }
+
+    public NormalizedDatabaseName normalizedName() {
+        return new NormalizedDatabaseName(name);
     }
 
     public DatabaseId databaseId() {

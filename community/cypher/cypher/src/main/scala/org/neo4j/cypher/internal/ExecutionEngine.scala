@@ -413,7 +413,7 @@ abstract class ExecutionEngine(
             /**
            * @return the full normalized name of the dataspace, including the namespace.
            */
-            override def fullName(): NormalizedDatabaseName = new NormalizedDatabaseName(context.databaseId().name())
+            override def fullName(): NormalizedDatabaseName = context.databaseId().normalizedName()
 
             /**
            * @return true if this reference points to a Composite database, otherwise false
