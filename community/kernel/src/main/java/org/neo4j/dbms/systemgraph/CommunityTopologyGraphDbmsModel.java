@@ -139,8 +139,8 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
 
     @Override
     public Optional<DriverSettings> getDriverSettings(String databaseName, String namespace) {
-        databaseName = new NormalizedDatabaseName(databaseName).name();
-        namespace = new NormalizedDatabaseName(namespace).name();
+        databaseName = NormalizedDatabaseName.normalize(databaseName);
+        namespace = NormalizedDatabaseName.normalize(namespace);
         return tx.findNodes(REMOTE_DATABASE_LABEL, NAME_PROPERTY, databaseName, NAMESPACE_PROPERTY, namespace).stream()
                 .findFirst()
                 .flatMap(CommunityTopologyGraphDbmsModelUtil::getDriverSettings);
@@ -148,8 +148,8 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
 
     @Override
     public Optional<Map<String, Object>> getAliasProperties(String databaseName, String namespace) {
-        databaseName = new NormalizedDatabaseName(databaseName).name();
-        namespace = new NormalizedDatabaseName(namespace).name();
+        databaseName = NormalizedDatabaseName.normalize(databaseName);
+        namespace = NormalizedDatabaseName.normalize(namespace);
         return getAliasNodeInNamespace(namespace, databaseName)
                 .findFirst()
                 .flatMap(CommunityTopologyGraphDbmsModelUtil::getAliasProperties);

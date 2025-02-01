@@ -53,7 +53,7 @@ public class PlainDatabaseLayout implements DatabaseLayout {
     private final String databaseName;
 
     protected PlainDatabaseLayout(Neo4jLayout neo4jLayout, String databaseName) {
-        var normalizedName = new NormalizedDatabaseName(databaseName).name();
+        var normalizedName = NormalizedDatabaseName.normalize(databaseName);
         this.neo4jLayout = neo4jLayout;
         this.databaseDirectory =
                 FileUtils.getCanonicalFile(neo4jLayout.databasesDirectory().resolve(normalizedName));

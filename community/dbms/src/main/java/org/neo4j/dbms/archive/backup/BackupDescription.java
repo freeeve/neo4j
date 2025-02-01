@@ -72,7 +72,7 @@ public class BackupDescription implements Comparable<BackupDescription> {
             long lowestAppendIndex,
             long highestAppendIndex,
             String metadataScript) {
-        this.databaseName = new NormalizedDatabaseName(databaseName).name();
+        this.databaseName = NormalizedDatabaseName.normalize(databaseName);
         this.storeId = storeId;
         this.databaseId = databaseId;
         this.backupTime = backupTime.truncatedTo(ChronoUnit.SECONDS);

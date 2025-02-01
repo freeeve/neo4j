@@ -41,7 +41,7 @@ public class DatabaseNamePattern {
         this.regexPattern = ConfigPatternBuilder.optionalPatternFromConfigString(
                 name.toLowerCase(Locale.ROOT), Pattern.CASE_INSENSITIVE);
         this.databaseName = name;
-        this.normalizedDatabaseName = new NormalizedDatabaseName(name).name();
+        this.normalizedDatabaseName = NormalizedDatabaseName.normalize(name);
     }
 
     public boolean matches(String value) {

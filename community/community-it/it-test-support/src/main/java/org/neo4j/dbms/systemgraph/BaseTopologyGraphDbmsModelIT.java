@@ -320,7 +320,7 @@ public abstract class BaseTopologyGraphDbmsModelIT {
 
         public DatabaseNodeBuilder withDatabase(String databaseName) {
             return withDatabase(
-                    DatabaseIdFactory.from(new NormalizedDatabaseName(databaseName).name(), UUID.randomUUID()));
+                    DatabaseIdFactory.from(NormalizedDatabaseName.normalize(databaseName), UUID.randomUUID()));
         }
 
         public DatabaseNodeBuilder withDatabase(NamedDatabaseId namedDatabaseId) {
@@ -507,7 +507,7 @@ public abstract class BaseTopologyGraphDbmsModelIT {
         var databaseNode = findDatabase(databaseId, tx);
         var referenceNode = tx.createNode(DATABASE_NAME_LABEL);
         referenceNode.setProperty(PRIMARY_PROPERTY, primary);
-        referenceNode.setProperty(DATABASE_NAME_PROPERTY, new NormalizedDatabaseName(name).name());
+        referenceNode.setProperty(DATABASE_NAME_PROPERTY, NormalizedDatabaseName.normalize(name));
         referenceNode.setProperty(NAMESPACE_PROPERTY, namespace);
         referenceNode.createRelationshipTo(databaseNode, TARGETS_RELATIONSHIP);
         return referenceNode;
@@ -518,8 +518,8 @@ public abstract class BaseTopologyGraphDbmsModelIT {
         var referenceNode = tx.createNode(REMOTE_DATABASE_LABEL, DATABASE_NAME_LABEL);
         referenceNode.setProperty(PRIMARY_PROPERTY, false);
         referenceNode.setProperty(NAMESPACE_PROPERTY, DEFAULT_NAMESPACE);
-        referenceNode.setProperty(DATABASE_NAME_PROPERTY, new NormalizedDatabaseName(name).name());
-        referenceNode.setProperty(TARGET_NAME_PROPERTY, new NormalizedDatabaseName(targetName).name());
+        referenceNode.setProperty(DATABASE_NAME_PROPERTY, NormalizedDatabaseName.normalize(name));
+        referenceNode.setProperty(TARGET_NAME_PROPERTY, NormalizedDatabaseName.normalize(targetName));
         var uriString =
                 String.format("%s://%s", uri.getScheme(), uri.getAddresses().get(0));
         referenceNode.setProperty(URL_PROPERTY, uriString);

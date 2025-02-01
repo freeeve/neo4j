@@ -23,7 +23,7 @@ import org.neo4j.kernel.database.NormalizedDatabaseName
 
 class RemoveDuplicateUseClausesTest extends CypherFunSuite with RewritePhaseTest with AstConstructionTestSupport {
 
-  val sessionDatabaseName: String = new NormalizedDatabaseName("sessionDb").name()
+  val sessionDatabaseName: String = NormalizedDatabaseName.normalize("sessionDb");
   override def sessionDatabase: String = sessionDatabaseName
   override def targetsComposite: Boolean = true
 

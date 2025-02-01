@@ -267,7 +267,7 @@ object AdministrationCommandRuntime {
     val homeDatabaseFields = defaultDatabase.map {
       case RemoveHomeDatabaseAction => NameFields(s"${internalPrefix}homeDatabase", Values.NO_VALUE, IdentityConverter)
       case SetHomeDatabaseAction(name) =>
-        getNameFields("homeDatabase", name.asLegacyName, s => new NormalizedDatabaseName(s).name())
+        getNameFields("homeDatabase", name.asLegacyName, s => NormalizedDatabaseName.normalize(s))
     }
     val userNameFields = getNameFields("username", userName)
     val nonPasswordParameterNames = Array(
@@ -395,7 +395,7 @@ object AdministrationCommandRuntime {
     val homeDatabaseFields = homeDatabase.map {
       case RemoveHomeDatabaseAction => NameFields(s"${internalPrefix}homeDatabase", Values.NO_VALUE, IdentityConverter)
       case SetHomeDatabaseAction(name) =>
-        getNameFields("homeDatabase", name.asLegacyName, s => new NormalizedDatabaseName(s).name())
+        getNameFields("homeDatabase", name.asLegacyName, s => NormalizedDatabaseName.normalize(s))
     }
     val nonPasswordParameterNames = Array(userNameFields.nameKey) ++ homeDatabaseFields.map(_.nameKey) ++
       Array(setAuthKey, removeAuthKey, removeNativeKey, enforceAuthKey)
@@ -735,7 +735,7 @@ object AdministrationCommandRuntime {
     fromCreateDb: Boolean = false
   ): DatabaseNameFields = {
     // NOTE: valueMapper and backtick are used in different order, ensure that valueMapper doesn't affect backticks
-    val valueMapper: String => String = new NormalizedDatabaseName(_).name()
+    val valueMapper: String => String = NormalizedDatabaseName.normalize(_)
     def backtick(s: String) = ExpressionStringifier().backtick(s)
     name match {
       case name @ NamespacedName(_, None) =>
