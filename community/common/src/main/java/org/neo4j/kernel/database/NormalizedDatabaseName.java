@@ -23,7 +23,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Locale;
 
-public record NormalizedDatabaseName(String name) {
+public record NormalizedDatabaseName(String name) implements Comparable<NormalizedDatabaseName> {
     public static String normalize(String name) {
         requireNonNull(name, "Database name should be not null.");
         return name.toLowerCase(Locale.ROOT);
@@ -31,5 +31,10 @@ public record NormalizedDatabaseName(String name) {
 
     public NormalizedDatabaseName(String name) {
         this.name = normalize(name);
+    }
+
+    @Override
+    public int compareTo(NormalizedDatabaseName other) {
+        return name.compareTo(other.name);
     }
 }
