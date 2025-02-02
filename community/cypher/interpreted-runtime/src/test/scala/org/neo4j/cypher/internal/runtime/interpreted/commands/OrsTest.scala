@@ -30,7 +30,6 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.Not
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.Ors
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.Predicate
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.True
-import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class OrsTest extends CypherFunSuite {
@@ -60,7 +59,7 @@ class OrsTest extends CypherFunSuite {
     ors(nullPredicate, T).isMatch(ctx, state) should equal(IsTrue)
   }
 
-  private def ors(predicate: Predicate, predicates: Predicate*) = Ors(NonEmptyList(predicate, predicates: _*))
+  private def ors(predicate: Predicate, predicates: Predicate*) = Ors((predicate +: predicates).toArray)
   private def T = True()
   private def F = Not(True())
 }

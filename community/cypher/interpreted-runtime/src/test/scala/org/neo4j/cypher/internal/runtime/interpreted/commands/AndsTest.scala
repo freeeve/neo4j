@@ -30,7 +30,6 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.IsUnkno
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.Not
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.Predicate
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.True
-import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class AndsTest extends CypherFunSuite {
@@ -61,7 +60,7 @@ class AndsTest extends CypherFunSuite {
     ands(nullPredicate, F).isMatch(ctx, state) should equal(IsFalse)
   }
 
-  private def ands(predicate: Predicate, predicates: Predicate*) = Ands(NonEmptyList(predicate, predicates: _*))
+  private def ands(predicate: Predicate, predicates: Predicate*) = Ands((predicate +: predicates).toArray)
   private def T = True()
   private def F = Not(True())
 }

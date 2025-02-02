@@ -136,14 +136,14 @@ case class MaterializedEntitiesExpressionConverter(tokenContext: ReadTokenContex
     val entity = self.toCommandExpression(id, e.expression)
     val hasLabelPredicates =
       e.labels.map(l => MaterializedEntityHasLabel(entity, KeyToken.Unresolved(l.name, TokenType.Label)))
-    Some(predicates.Ands(hasLabelPredicates: _*))
+    Some(predicates.Ands(hasLabelPredicates.toArray))
   }
 
   private def hasTypes(id: Id, e: expressions.HasTypes, self: ExpressionConverters): Option[Predicate] = {
     val entity = self.toCommandExpression(id, e.expression)
     val hasTypePredicates =
       e.types.map(t => MaterializedEntityHasType(entity, KeyToken.Unresolved(t.name, TokenType.RelType)))
-    Some(predicates.Ands(hasTypePredicates: _*))
+    Some(predicates.Ands(hasTypePredicates.toArray))
   }
 
   private def hasLabelsOrTypes(
@@ -153,7 +153,7 @@ case class MaterializedEntitiesExpressionConverter(tokenContext: ReadTokenContex
   ): Option[Predicate] = {
     val entity = self.toCommandExpression(id, e.entityExpression)
     val hasLabelOrTypePredicates = e.labelsOrTypes.map(lOrT => MaterializedEntityHasLabelOrType(entity, lOrT.name))
-    Some(predicates.Ands(hasLabelOrTypePredicates: _*))
+    Some(predicates.Ands(hasLabelOrTypePredicates.toArray))
   }
 }
 

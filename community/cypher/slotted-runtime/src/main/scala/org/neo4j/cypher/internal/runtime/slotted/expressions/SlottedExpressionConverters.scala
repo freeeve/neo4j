@@ -68,7 +68,6 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.SlottedGroupingExpression
 import org.neo4j.cypher.internal.runtime.slotted.pipes.SlottedGroupingExpression1
 import org.neo4j.cypher.internal.runtime.slotted.pipes.SlottedGroupingExpression2
 import org.neo4j.cypher.internal.runtime.slotted.pipes.SlottedGroupingExpression3
-import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.attribution.Id
 
 object SlottedExpressionConverters {
@@ -462,7 +461,7 @@ case class SlottedExpressionConverters(physicalPlan: PhysicalPlan, maybeOwningPi
         e.lateLabels.map { labelName =>
           HasLabelFromSlotLate(e.offset, labelName): Predicate
         }
-    commands.predicates.Ands(preds.toSeq: _*)
+    commands.predicates.Ands(preds.toArray)
   }
 
   private def hasAnyLabelsFromSlot(e: physicalplanning.ast.HasAnyLabelFromSlot): Predicate = {
@@ -471,7 +470,7 @@ case class SlottedExpressionConverters(physicalPlan: PhysicalPlan, maybeOwningPi
 
     if (e.lateLabels.isEmpty) fromToken
     else if (e.resolvedLabelTokens.isEmpty) late
-    else commands.predicates.Ors(NonEmptyList.from(Seq(fromToken, late)))
+    else commands.predicates.Ors(Array(fromToken, late))
   }
 
   private def hasTypesFromSlot(e: physicalplanning.ast.HasTypesFromSlot): Predicate = {
@@ -482,7 +481,7 @@ case class SlottedExpressionConverters(physicalPlan: PhysicalPlan, maybeOwningPi
         e.lateTypes.map { typeName =>
           HasTypeFromSlotLate(e.offset, typeName): Predicate
         }
-    commands.predicates.Ands(preds.toSeq: _*)
+    commands.predicates.Ands(preds.toArray)
   }
 
   def toCommandProjectedPath(

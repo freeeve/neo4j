@@ -165,7 +165,6 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyLabel
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyPropertyKey
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
-import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.exceptions.InternalException
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarity
@@ -219,17 +218,17 @@ case class CommunityExpressionConverter(
       case e: internal.expressions.Variable               => variable(e)
       case e: ExpressionVariable                          => commands.expressions.ExpressionVariable.of(e)
       case e: internal.expressions.Or =>
-        predicates.Ors(NonEmptyList(self.toCommandPredicate(id, e.lhs), self.toCommandPredicate(id, e.rhs)))
+        predicates.Ors(Array(self.toCommandPredicate(id, e.lhs), self.toCommandPredicate(id, e.rhs)))
       case e: internal.expressions.Xor =>
         predicates.Xor(self.toCommandPredicate(id, e.lhs), self.toCommandPredicate(id, e.rhs))
       case e: internal.expressions.And =>
-        predicates.Ands(self.toCommandPredicate(id, e.lhs), self.toCommandPredicate(id, e.rhs))
+        predicates.Ands(Array(self.toCommandPredicate(id, e.lhs), self.toCommandPredicate(id, e.rhs)))
       case e: internal.expressions.Ands =>
-        predicates.Ands(NonEmptyList.from(e.exprs.map(self.toCommandPredicate(id, _))))
+        predicates.Ands.fromPredicates(e.exprs.map(self.toCommandPredicate(id, _)).toSeq)
       case e: internal.expressions.AndsReorderable =>
         val trackerIndex = selectivityTrackerRegistrator.register()
         predicates.AndsWithSelectivityTracking(e.exprs.toVector.map(self.toCommandPredicate(id, _)), trackerIndex)
-      case e: internal.expressions.Ors => predicates.Ors(NonEmptyList.from(e.exprs.map(self.toCommandPredicate(id, _))))
+      case e: internal.expressions.Ors => predicates.Ors(e.exprs.map(self.toCommandPredicate(id, _)).toArray)
       case e: internal.expressions.Not => predicates.Not(self.toCommandPredicate(id, e.rhs))
       case e: internal.expressions.Equals =>
         predicates.Equals(self.toCommandExpression(id, e.lhs), self.toCommandExpression(id, e.rhs))
@@ -431,7 +430,7 @@ case class CommunityExpressionConverter(
           .AndedPropertyComparablePredicates(
             variable(e.variable),
             toCommandProperty(id, e.property, self),
-            e.inequalities.map(e => inequalityExpression(id, e, self))
+            e.inequalities.map(e => inequalityExpression(id, e, self)).toIndexedSeq.toArray
           )
       case e: DesugaredMapProjection => commands.expressions
           .DesugaredMapProjection(
@@ -915,7 +914,7 @@ case class CommunityExpressionConverter(
       l =>
         predicates.HasLabelOrType(self.toCommandExpression(id, e.entityExpression), l.name): Predicate
     }
-    commands.predicates.Ands(preds: _*)
+    commands.predicates.Ands(preds.toArray)
   }
 
   private def hasLabels(id: Id, e: internal.expressions.HasLabels, self: ExpressionConverters): Predicate = {
@@ -926,7 +925,7 @@ case class CommunityExpressionConverter(
           LazyLabel(l, tokenContext)
         ): Predicate
     }
-    commands.predicates.Ands(preds: _*)
+    commands.predicates.Ands(preds.toArray)
   }
 
   private def hasDynamicLabels(
@@ -967,7 +966,7 @@ case class CommunityExpressionConverter(
           commands.values.KeyToken.Unresolved(l.name, commands.values.TokenType.RelType)
         ): Predicate
     }
-    commands.predicates.Ands(preds: _*)
+    commands.predicates.Ands(preds.toArray)
   }
 
   private def hasDynamicType(

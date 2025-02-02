@@ -26,13 +26,8 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expres
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Variable
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.VariableCommand
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
-import org.neo4j.cypher.internal.util.NonEmptyList
 
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
-
-case class Ands(predicates: NonEmptyList[Predicate]) extends CompositeBooleanPredicate {
+case class Ands(predicates: Array[Predicate]) extends CompositeBooleanPredicate {
   override def shouldExitWhen = IsFalse
   override def andWith(other: Predicate): Predicate = Ands(predicates :+ other)
   override def rewrite(f: Expression => Expression): Expression = f(Ands(predicates.map(_.rewriteAsPredicate(f))))
@@ -49,17 +44,17 @@ case class Ands(predicates: NonEmptyList[Predicate]) extends CompositeBooleanPre
 
 object Ands {
 
-  def apply(predicates: Predicate*): Predicate = predicates.filterNot(_ == True()).toList match {
-    case Nil            => True()
-    case single :: Nil  => single
-    case manyPredicates => Ands(NonEmptyList.from(manyPredicates))
+  def fromPredicates(predicates: Seq[Predicate]): Predicate = predicates.filterNot(_ == True()).toList match {
+    case Nil           => True()
+    case single :: Nil => single
+    case _             => Ands(predicates.toArray)
   }
 }
 
 case class AndedPropertyComparablePredicates(
   ident: VariableCommand,
   prop: Expression,
-  override val predicates: NonEmptyList[ComparablePredicate]
+  override val predicates: Array[Predicate]
 ) extends CompositeBooleanPredicate {
 
   // some rewriters change the type of this, and we can't allow that
@@ -85,33 +80,26 @@ case class AndsWithSelectivityTracking(predicates: Vector[Predicate], trackerInd
 
   def isMatch(ctx: ReadableRow, state: QueryState): IsMatchResult = {
     val selectivityTracker: SelectivityTracker = state.selectivityTrackerStorage.get(trackerIndex, predicates.length)
-    val result = selectivityTracker.getOrder().foldLeft(Try[IsMatchResult](IsTrue)) {
-      (previousValue, predicateIndex) =>
-        previousValue match {
-          case Success(IsFalse) => previousValue
-          case _ =>
-            Try(predicates(predicateIndex).isMatch(ctx, state)) match {
-              case result @ Success(IsFalse) =>
-                selectivityTracker.onPredicateResult(predicateIndex, isTrue = false)
-                result
+    val order = selectivityTracker.getOrder()
 
-              case result =>
-                selectivityTracker.onPredicateResult(predicateIndex, isTrue = true)
-                result match {
-                  case Success(IsUnknown) if previousValue.isSuccess => result
-                  case Failure(_) if previousValue.isSuccess         => result
-                  case _                                             => previousValue
-                }
-            }
-        }
+    var i = 0
+    var seenNull = false
+    while (i < order.length) {
+      val predicateIndex = order(i)
+      val result = predicates(predicateIndex).isMatch(ctx, state)
+      if (result eq IsFalse) {
+        selectivityTracker.onPredicateResult(predicateIndex, isTrue = false)
+        return IsFalse
+      } else if (result eq IsUnknown) {
+        selectivityTracker.onPredicateResult(predicateIndex, isTrue = true)
+        seenNull = true
+      } else {
+        selectivityTracker.onPredicateResult(predicateIndex, isTrue = true)
+      }
+      i += 1
     }
-
     selectivityTracker.onRowFinished()
-
-    result match {
-      case Failure(e)      => throw e
-      case Success(option) => option
-    }
+    if (seenNull) IsUnknown else IsTrue
   }
 
   override def children: Seq[AstNode[_]] = predicates

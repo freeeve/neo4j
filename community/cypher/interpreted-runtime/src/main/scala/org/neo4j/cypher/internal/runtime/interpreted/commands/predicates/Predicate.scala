@@ -37,7 +37,6 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.values.KeyToken
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyLabel
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.util.DeprecatedBooleanCoercion
-import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.operations.CypherFunctions
 import org.neo4j.cypher.operations.CypherTypeValueMapper
@@ -56,10 +55,6 @@ import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
 
 import java.util.regex.Pattern
-
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
 
 sealed trait IsMatchResult {
   def negate: IsMatchResult
@@ -130,20 +125,16 @@ abstract class Predicate extends Expression {
     }
 
   def isTrue(ctx: ReadableRow, state: QueryState): Boolean = isMatch(ctx, state) eq IsTrue
-  def andWith(other: Predicate): Predicate = Ands(this, other)
+  def andWith(other: Predicate): Predicate = Ands(Array(this, other))
   def isMatch(ctx: ReadableRow, state: QueryState): IsMatchResult
 
   def andWith(preds: Predicate*): Predicate =
     if (preds.isEmpty) this else preds.fold(this)(_ andWith _)
 }
 
-object Predicate {
-  def fromSeq(in: Seq[Predicate]): Predicate = in.reduceOption(_ andWith _).getOrElse(True())
-}
-
 abstract class CompositeBooleanPredicate extends Predicate {
 
-  def predicates: NonEmptyList[Predicate]
+  def predicates: Array[Predicate]
 
   def shouldExitWhen: IsMatchResult
 
@@ -155,25 +146,18 @@ abstract class CompositeBooleanPredicate extends Predicate {
    * superceded by exit predicates (false for AND and true for OR).
    */
   override def isMatch(ctx: ReadableRow, state: QueryState): IsMatchResult = {
-    predicates.foldLeft[Try[IsMatchResult]](Success(shouldExitWhen.negate)) { (previousValue, predicate) =>
-      previousValue match {
-        // if a previous evaluation was true (false) the OR (AND) result is determined
-        case Success(result) if result == shouldExitWhen => previousValue
-        case _ =>
-          Try(predicate.isMatch(ctx, state)) match {
-            // Handle null only for non error cases
-            case Success(IsUnknown) if previousValue.isSuccess => Success(IsUnknown)
-            // If we get the exit case (false for AND and true for OR) ignore any error cases
-            case Success(result) if result == shouldExitWhen => Success(shouldExitWhen)
-            // errors or non-exit cases propagate as normal
-            case Failure(e) if previousValue.isSuccess => Failure(e)
-            case _                                     => previousValue
-          }
+    var i = 0
+    var seenNull = false
+    while (i < predicates.length) {
+      val result = predicates(i).isMatch(ctx, state)
+      if (result eq shouldExitWhen) {
+        return shouldExitWhen
+      } else if (result eq IsUnknown) {
+        seenNull = true
       }
-    } match {
-      case Failure(e)      => throw e
-      case Success(option) => option
+      i += 1
     }
+    if (seenNull) IsUnknown else shouldExitWhen.negate
   }
 
   override def arguments: Seq[Expression] = predicates.toIndexedSeq

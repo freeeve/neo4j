@@ -781,7 +781,21 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     an[org.neo4j.exceptions.ArithmeticException] should be thrownBy consume(runtimeResult)
   }
 
-  test("AND: should return FALSE if at least one predicate is FALSE") {
+  test("AND: should return FALSE if first predicate is FALSE") {
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("y")
+      .projection("FALSE AND 1/x > 1 AND TRUE AND FALSE AS y")
+      .input(variables = Seq("x"))
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime, inputValues(Array[Any](1), Array[Any](0), Array[Any](1)))
+
+    runtimeResult should beColumns("y").withRows(singleColumn(List(false, false, false)))
+  }
+
+  test("AND: should return fail if first predicate fails I") {
 
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -792,10 +806,10 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
 
     val runtimeResult = execute(logicalQuery, runtime, inputValues(Array[Any](1), Array[Any](0), Array[Any](1)))
 
-    runtimeResult should beColumns("y").withRows(singleColumn(List(false, false, false)))
+    an[org.neo4j.exceptions.ArithmeticException] should be thrownBy consume(runtimeResult)
   }
 
-  test("AND: should fail if one predicate fails and no other is FALSE") {
+  test("AND: should fail l if first predicate fails II") {
 
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -895,7 +909,21 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     an[org.neo4j.exceptions.ArithmeticException] should be thrownBy consume(runtimeResult)
   }
 
-  test("OR: should return TRUE if at least one predicate is TRUE") {
+  test("OR: should not fail if first predicate is TRUE") {
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("y")
+      .projection("TRUE OR 1/x > 0 OR FALSE OR TRUE AS y")
+      .input(variables = Seq("x"))
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime, inputValues(Array[Any](1), Array[Any](0), Array[Any](1)))
+
+    runtimeResult should beColumns("y").withRows(singleColumn(List(true, true, true)))
+  }
+
+  test("OR: should fail if first predicate fails I") {
 
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -906,10 +934,10 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
 
     val runtimeResult = execute(logicalQuery, runtime, inputValues(Array[Any](1), Array[Any](0), Array[Any](1)))
 
-    runtimeResult should beColumns("y").withRows(singleColumn(List(true, true, true)))
+    an[org.neo4j.exceptions.ArithmeticException] should be thrownBy consume(runtimeResult)
   }
 
-  test("OR: should fail if one predicate fails and no other is FALSE") {
+  test("OR: should fail if first predicate fails II") {
 
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -1430,7 +1458,8 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
       .argument()
       .build()
 
-    execute(query, runtime) should beColumns("var1").withSingleRow(false)
+    val runtimeResult = execute(query, runtime)
+    an[org.neo4j.exceptions.CypherTypeException] should be thrownBy consume(runtimeResult)
   }
 }
 
