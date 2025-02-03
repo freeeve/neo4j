@@ -4184,6 +4184,7 @@ sealed abstract class Repeat(idGen: IdGen)
   def innerStart: LogicalVariable
   def innerEnd: LogicalVariable
   def reverseGroupVariableProjections: Boolean
+  def endNodePredicate: Option[EndNodePredicates]
 
   override val localAvailableSymbols: Set[LogicalVariable] =
     left.localAvailableSymbols + end + start ++ nodeVariableGroupings.map(_.group) ++ relationshipVariableGroupings.map(

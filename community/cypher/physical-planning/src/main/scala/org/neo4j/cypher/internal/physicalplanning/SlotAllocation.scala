@@ -559,6 +559,20 @@ class SingleQuerySlotAllocator private[physicalplanning] (
       case _: ApplyPlan if !comingFromLeft =>
         (acc: Accumulator) => SkipChildren(acc)
 
+      case r: Repeat if r.endNodePredicate.isDefined =>
+        val endNodePredicate = r.endNodePredicate.get
+        if (!comingFromLeft) {
+          (_: Accumulator) =>
+            TraverseChildren(Accumulator(doNotTraverseExpression =
+              Some(endNodePredicate.zeroRepetition)
+            ))
+        } else {
+          (_: Accumulator) =>
+            TraverseChildren(Accumulator(doNotTraverseExpression =
+              Some(endNodePredicate.otherRepetitions)
+            ))
+        }
+
       case e: Expression =>
         (acc: Accumulator) =>
           allocateExpressionsInternal(e, slots, semanticTable, plan.id, cancellationChecker, acc)
