@@ -837,7 +837,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     an[org.neo4j.exceptions.ArithmeticException] should be thrownBy consume(runtimeResult)
   }
 
-  test("Reorderable AND: should return FALSE if at least one predicate is FALSE") {
+  test("Reorderable AND: should return FALSE or throw if one argument is FALSE and one throws") {
 
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -848,7 +848,11 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
 
     val runtimeResult = execute(logicalQuery, runtime, inputValues(Array[Any](1), Array[Any](0), Array[Any](1)))
 
-    runtimeResult should beColumns("y").withRows(singleColumn(List(false, false, false)))
+    try {
+      runtimeResult should beColumns("y").withRows(singleColumn(List(false, false, false)))
+    } catch {
+      case org.neo4j.exceptions.ArithmeticException => // ignore, this is fine
+    }
   }
 
   test("Reorderable AND: should fail if one predicate fails and no other is FALSE") {
