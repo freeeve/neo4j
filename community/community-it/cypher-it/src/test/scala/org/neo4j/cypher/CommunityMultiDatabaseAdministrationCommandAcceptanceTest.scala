@@ -20,10 +20,11 @@
 package org.neo4j.cypher
 
 import org.neo4j.configuration.Config
-import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
+import org.neo4j.configuration.GraphDatabaseSettings.cypher_hints_error
 import org.neo4j.configuration.GraphDatabaseSettings.initial_default_database
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.DatabaseStatus
 import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
 import org.neo4j.dbms.database.DatabaseContext
@@ -215,7 +216,10 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
     val result = execute("SHOW DEFAULT DATABASE")
 
     // THEN
-    result.toList should be(List(homeOrDefaultDb("123abc")))
+    result.toList should be(List(
+      // Show database/alias returns the database and alias names escaped, if needed, from Cypher 25
+      homeOrDefaultDb(if (CypherVersion.Default == CypherVersion.Cypher5) "123abc" else "`123abc`")
+    ))
   }
 
   test("should show correct default database for switch of default database") {
@@ -869,7 +873,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
 
   test("should fail with enterprise-only runtime") {
     // GIVEN
-    val config = Config.defaults(GraphDatabaseSettings.cypher_hints_error, TRUE)
+    val config = Config.defaults(cypher_hints_error, TRUE)
     setup(config)
 
     // WHEN
