@@ -187,9 +187,10 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
       nBatches: Int,
       retryTimeoutSeconds: Double = DEFAULT_RETRY_TIMEOUT_SECONDS,
       errorsForBatch: Int => Int = _ => 0, // Batch number => Number of errors to inject for that batch
-      delaysForBatch: Int => Long = _ => 0L // Batch number => Delay in nanos when executing that batch
+      delaysForBatch: Int => Long = _ => 0L, // Batch number => Delay in nanos when executing that batch
+      exceptionFactory: String => Throwable = TestTransientErrorFactory
     ): TestCaseConfig = {
-      val errorProbe = createErrorProbe(sizeHint, params.batchSize, errorsForBatch, delaysForBatch)
+      val errorProbe = createErrorProbe(sizeHint, params.batchSize, errorsForBatch, delaysForBatch, exceptionFactory)
       TestCaseConfig(params, nBatches, retryTimeoutSeconds, errorProbe)
     }
 
@@ -201,7 +202,8 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
 
   object ErrorMessageExpectation {
     case object NoError extends ErrorMessageExpectation
-    case class ErrorWithPrefix(prefix: String) extends ErrorMessageExpectation
+    case class TransientErrorWithPrefix(prefix: String) extends ErrorMessageExpectation
+    case class ClientErrorWithPrefix(prefix: String) extends ErrorMessageExpectation
   }
 
   case class TestCaseExpectation(
@@ -224,14 +226,20 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
       // TODO: Verify that the maximum duration is correctly present in the message
     }
 
+    private def verifyNonRetryableException(result: RecordingRuntimeResult): Unit = {
+      val exception = intercept[TestClientError](result.awaitAll())
+      exception.getMessage should startWith(testClientErrorPrefix)
+    }
+
     def verify(result: RecordingRuntimeResult): Unit = {
       val parametersClue =
         s"Failed test parameters:\nval params = ${config.params.codeString}\nval nBatches = ${config.nBatches}\nval retryTimeoutSeconds = ${config.retryTimeoutSeconds}\n\n"
       withClue(parametersClue) {
         expectedOuterFailure match {
-          case ErrorMessageExpectation.ErrorWithPrefix(_) =>
-            // NOTE: We assume we only test timeout for now
+          case ErrorMessageExpectation.TransientErrorWithPrefix(_) =>
             verifyTimeoutException(result)
+          case ErrorMessageExpectation.ClientErrorWithPrefix(_) =>
+            verifyNonRetryableException(result)
           case _ =>
             val resultTable = result.table()
             verifyResult(resultTable)
@@ -239,9 +247,9 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
 
         // Verify transaction statistics
         val queryStatistics = result.runtimeResult.queryStatistics().asInstanceOf[ExtendedQueryStatistics]
-        transactionsStarted.assert(queryStatistics.getTransactionsStarted)
-        transactionsCommitted.assert(queryStatistics.getTransactionsCommitted)
-        transactionsRolledBack.assert(queryStatistics.getTransactionsRolledBack)
+        transactionsStarted.assert(queryStatistics.getTransactionsStarted, "transactions started")
+        transactionsCommitted.assert(queryStatistics.getTransactionsCommitted, "transactions committed")
+        transactionsRolledBack.assert(queryStatistics.getTransactionsRolledBack, "transactions rolled back")
       }
     }
 
@@ -281,10 +289,13 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
           withClue("Error message: ") {
             val expected = batchesExpectedErrorStatus(batch)
             expected.foreach {
-              case ErrorMessageExpectation.ErrorWithPrefix(expectedMessage) =>
+              case ErrorMessageExpectation.TransientErrorWithPrefix(expectedMessage) =>
                 val es = errorMessage.asInstanceOf[TextValue].stringValue()
                 es should startWith(transactionRetryAbortedPrefix)
                 es should include(expectedMessage)
+              case ErrorMessageExpectation.ClientErrorWithPrefix(expectedMessage) =>
+                val es = errorMessage.asInstanceOf[TextValue].stringValue()
+                es should startWith(expectedMessage)
               case ErrorMessageExpectation.NoError =>
                 errorMessage shouldBe Values.NO_VALUE
             }
@@ -304,9 +315,9 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
       TestCaseExpectation(
         config,
         Some(nResultRows),
-        transactionsStarted = Exactly(config.nBatches, "transactions started"),
-        transactionsCommitted = Exactly(config.nBatches, "transactions committed"),
-        transactionsRolledBack = Exactly(0, "transactions rolled back"),
+        transactionsStarted = Exactly(config.nBatches),
+        transactionsCommitted = Exactly(config.nBatches),
+        transactionsRolledBack = Exactly(0),
         expectedOuterFailure = ErrorMessageExpectation.NoError,
         batchesExpectedStartedStatus = TrueForAllBatches,
         batchesExpectedCommittedStatus = TrueForAllBatches,
@@ -332,9 +343,9 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
           TestCaseExpectation(
             config,
             Some(nResultRows),
-            transactionsStarted = AtLeast(config.nBatches + nFailedBatches, "transactions started"),
-            transactionsCommitted = Exactly(config.nBatches - nFailedBatches, "transactions committed"),
-            transactionsRolledBack = AtLeast(nFailedBatches * 2, "transactions rolled back"),
+            transactionsStarted = AtLeast(config.nBatches + nFailedBatches),
+            transactionsCommitted = Exactly(config.nBatches - nFailedBatches),
+            transactionsRolledBack = AtLeast(nFailedBatches * 2),
             expectedOuterFailure = ErrorMessageExpectation.NoError,
             batchesExpectedStartedStatus = TrueForAllBatches,
             batchesExpectedCommittedStatus = (b: Int) => Some(!failedBatchesSet.contains(b)),
@@ -342,7 +353,7 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
               (b: Int) =>
                 Some(
                   if (failedBatchesSet.contains(b))
-                    ErrorMessageExpectation.ErrorWithPrefix(errorMessage)
+                    ErrorMessageExpectation.TransientErrorWithPrefix(errorMessage)
                   else ErrorMessageExpectation.NoError
                 )
           )
@@ -351,13 +362,14 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
             config,
             Some(nResultRows),
             transactionsStarted = NoExpectation,
-            transactionsCommitted = AtMost(config.nBatches - nFailedBatches, "transactions committed"),
-            transactionsRolledBack = AtLeast(nFailedBatches * 2, "transactions rolled back"),
-            expectedOuterFailure =
-              if ((eb eq OnErrorRetryThenFail) && failedBatches.nonEmpty)
-                ErrorMessageExpectation.ErrorWithPrefix(errorMessage)
-              else
-                ErrorMessageExpectation.NoError,
+            transactionsCommitted = AtMost(config.nBatches - nFailedBatches),
+            transactionsRolledBack = AtLeast(nFailedBatches * 2),
+            expectedOuterFailure = eb match {
+              case OnErrorRetryThenFail if failedBatches.nonEmpty =>
+                ErrorMessageExpectation.TransientErrorWithPrefix(errorMessage)
+              case _ =>
+                ErrorMessageExpectation.NoError
+            },
             batchesExpectedStartedStatus = {
               if (nFailedBatches == 1) {
                 (b: Int) =>
@@ -373,7 +385,76 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
             batchesExpectedErrorStatus =
               if (nFailedBatches == 1) {
                 (b: Int) =>
-                  if (failedBatchesSet.contains(b)) Some(ErrorMessageExpectation.ErrorWithPrefix(errorMessage))
+                  if (failedBatchesSet.contains(b)) Some(ErrorMessageExpectation.TransientErrorWithPrefix(errorMessage))
+                  else None
+              } else {
+                NoExpectationForAllBatches
+              }
+          )
+      }
+    }
+
+    def expectFailedBatchesNonRetryable(
+      config: TestCaseConfig,
+      errorMessage: String,
+      failedBatches: Int*
+    ): TestCaseExpectation = {
+      val nResultRows = config.nRows
+      val nFailedBatches = failedBatches.size
+      val failedBatchesSet = failedBatches.toSet
+      config.params.onErrorBehaviour match {
+        case OnErrorRetryThenContinue =>
+          TestCaseExpectation(
+            config,
+            Some(nResultRows),
+            transactionsStarted = Exactly(config.nBatches),
+            transactionsCommitted = Exactly(config.nBatches - nFailedBatches),
+            transactionsRolledBack = Exactly(nFailedBatches),
+            expectedOuterFailure = ErrorMessageExpectation.NoError,
+            batchesExpectedStartedStatus = TrueForAllBatches,
+            batchesExpectedCommittedStatus = (b: Int) => Some(!failedBatchesSet.contains(b)),
+            batchesExpectedErrorStatus =
+              (b: Int) =>
+                Some(
+                  if (failedBatchesSet.contains(b))
+                    ErrorMessageExpectation.ClientErrorWithPrefix(errorMessage)
+                  else ErrorMessageExpectation.NoError
+                )
+          )
+        case eb @ (OnErrorRetryThenBreak | OnErrorRetryThenFail) =>
+          TestCaseExpectation(
+            config,
+            Some(nResultRows),
+            transactionsStarted = NoExpectation,
+            transactionsCommitted = AtMost(config.nBatches - nFailedBatches),
+            transactionsRolledBack = eb match {
+              case OnErrorRetryThenBreak =>
+                AtLeast(nFailedBatches)
+              case OnErrorRetryThenFail =>
+                AtLeast(1)
+            },
+            expectedOuterFailure = eb match {
+              case OnErrorRetryThenFail if failedBatches.nonEmpty =>
+                ErrorMessageExpectation.ClientErrorWithPrefix(errorMessage)
+              case _ =>
+                ErrorMessageExpectation.NoError
+            },
+            batchesExpectedStartedStatus = {
+              if (nFailedBatches == 1) {
+                (b: Int) =>
+                  if (failedBatchesSet.contains(b)) Some(true) else None
+              } else {
+                NoExpectationForAllBatches
+              }
+            },
+            batchesExpectedCommittedStatus = {
+              (b: Int) =>
+                if (failedBatchesSet.contains(b)) Some(false) else None
+            },
+            batchesExpectedErrorStatus =
+              if (nFailedBatches == 1) {
+                (b: Int) =>
+                  if (failedBatchesSet.contains(b)) Some(ErrorMessageExpectation.ClientErrorWithPrefix(errorMessage))
                   else None
               } else {
                 NoExpectationForAllBatches
@@ -465,12 +546,24 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
       )
       val result = runTest(config)
       val expectedFailed = (0 until nBatches).filter(_ % 3 == 1).toArray
-      // TODO: We cannot expect all the other batches to succeed if we have too many batches in the retry queue
       TestCaseExpectation.expectFailedBatchesAtLeastOneRetry(
         config,
         errorMessage = testTransientErrorPrefix,
         expectedFailed: _*
       ).verify(result)
+    }
+
+    test(s"Transaction retry should fail and not retry client errors: $params") {
+      val nBatches = defaultNumberOfBatches
+      val failedBatchNumber = nBatches / 2
+      val config = TestCaseConfig.withErrors(
+        params,
+        nBatches,
+        errorsForBatch = (b: Int) => if (b == failedBatchNumber) 1 else 0,
+        exceptionFactory = TestClientErrorFactory
+      )
+      val result = runTest(config)
+      TestCaseExpectation.expectFailedBatchesNonRetryable(config, testClientErrorPrefix, failedBatchNumber).verify(result)
     }
   }
 
@@ -492,10 +585,11 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
     nRows: Int,
     batchSize: Int,
     errorsToThrowForBatch: Int => Int,
-    delayInNanosForBatch: Int => Long
+    delayInNanosForBatch: Int => Long,
+    exceptionFactory: String => Throwable = TestTransientErrorFactory
   ): Prober.Probe = {
     if (batchSize == 1) {
-      new ErrorInjectionProbe(nRows, errorsToThrowForBatch, delayInNanosForBatch, getRowNumberByVariable(inputVarName))
+      new ErrorInjectionProbe(nRows, errorsToThrowForBatch, delayInNanosForBatch, getRowNumberByVariable(inputVarName), exceptionFactory)
     } else {
       val middleIndex = (batchSize + 1) / 2
       val errorsToThrowForRow = (row: Int) => {
@@ -512,7 +606,7 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
           0
         }
       }
-      new ErrorInjectionProbe(nRows, errorsToThrowForRow, delayInNanosForRow, getRowNumberByVariable(inputVarName))
+      new ErrorInjectionProbe(nRows, errorsToThrowForRow, delayInNanosForRow, getRowNumberByVariable(inputVarName), exceptionFactory)
     }
   }
 
@@ -589,11 +683,20 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
   final val testTransientErrorPrefix = "TestTransientError:"
   final val testClientErrorPrefix = "TestClientError:"
 
+  final private val TestTransientErrorFactory = (messageSuffix: String) => {
+    new TestTransientError(s"$testTransientErrorPrefix $messageSuffix")
+  }
+
+  final private val TestClientErrorFactory = (messageSuffix: String) => {
+    new TestClientError(s"$testClientErrorPrefix $messageSuffix")
+  }
+
   class ErrorInjectionProbe(
     nRows: Int,
     errorsToThrowForRow: Int => Int, // Row number => Number of errors to inject
     delayInNanosForRow: Int => Long, // Row number => Delay in nanos before retry
-    rowNumberFromCypherRow: AnyRef => Int // Cypher Row => Row number
+    rowNumberFromCypherRow: AnyRef => Int, // Cypher Row => Row number
+    exceptionFactory: String => Throwable
   ) extends Prober.Probe {
     // NOTE: We assume only one thread at a time will access the same array element,
     // and that thread visibility is guaranteed by the scheduler
@@ -613,10 +716,9 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
         if (tc < ec) {
           tc += 1
           thrownCounts(i) = tc
-          val message =
-            s"$testTransientErrorPrefix Error on row $i ($tc thrown, ${ec - tc} left) on thread ${Thread.currentThread().getName}"
+          val messageSuffix = s"Error on row $i ($tc thrown, ${ec - tc} left) on thread ${Thread.currentThread().getName}"
           // print(message + "\n")
-          throw new TestTransientError(message)
+          throw exceptionFactory(messageSuffix)
         }
       }
     }
@@ -659,45 +761,45 @@ object TransactionRetryTestBase {
   final val DEFAULT_RETRY_TIMEOUT_SECONDS: Double = 0.1
 
   sealed trait ExpectedRange {
-    def assert(value: Int): Unit
+    def assert(value: Int, clue: String = ""): Unit
   }
 
   object ExpectedRange {
 
     case object NoExpectation extends ExpectedRange {
-      def assert(value: Int): Unit = {}
+      def assert(value: Int, clue: String = ""): Unit = {}
     }
 
-    case class Exactly(n: Int, clue: String = "") extends ExpectedRange {
+    case class Exactly(n: Int) extends ExpectedRange {
 
-      def assert(value: Int): Unit = {
+      def assert(value: Int, clue: String = ""): Unit = {
         withClue(s"Expected exactly $n, but was $value $clue: ") {
           value shouldBe n
         }
       }
     }
 
-    case class AtLeast(n: Int, clue: String = "") extends ExpectedRange {
+    case class AtLeast(n: Int) extends ExpectedRange {
 
-      def assert(value: Int): Unit = {
+      def assert(value: Int, clue: String = ""): Unit = {
         withClue(s"Expected at least $n, but was $value $clue: ") {
           value should be >= n
         }
       }
     }
 
-    case class AtMost(n: Int, clue: String = "") extends ExpectedRange {
+    case class AtMost(n: Int) extends ExpectedRange {
 
-      def assert(value: Int): Unit = {
+      def assert(value: Int, clue: String = ""): Unit = {
         withClue(s"Expected at most $n, but was $value $clue: ") {
           value should be <= n
         }
       }
     }
 
-    case class Between(min: Int, max: Int, clue: String = "") extends ExpectedRange {
+    case class Between(min: Int, max: Int) extends ExpectedRange {
 
-      def assert(value: Int): Unit = {
+      def assert(value: Int, clue: String = ""): Unit = {
         withClue(s"Expected between $min and $max, but was $value $clue: ") {
           value should (be <= max and be >= min)
         }
