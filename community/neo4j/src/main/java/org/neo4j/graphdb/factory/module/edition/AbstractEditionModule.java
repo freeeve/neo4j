@@ -140,7 +140,7 @@ public abstract class AbstractEditionModule {
 
     public abstract SystemGraphComponents getSystemGraphComponents();
 
-    public abstract void createSecurityModule(GlobalModule globalModule);
+    public abstract void createSecurityModule(GlobalModule globalModule, SystemDatabaseProvider systemDatabaseProvider);
 
     public abstract DatabaseReferenceRepository getDatabaseReferenceRepo();
 

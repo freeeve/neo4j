@@ -116,7 +116,7 @@ public class SystemDatabaseRunner implements Resource {
             edition.createDefaultDatabaseResolver(systemDatabaseProvider);
             globalDependencies.satisfyDependency(edition.getDefaultDatabaseResolver());
 
-            edition.createSecurityModule(globalModule);
+            edition.createSecurityModule(globalModule, systemDatabaseProvider);
             SecurityProvider securityProvider = edition.getSecurityProvider();
             globalDependencies.satisfyDependencies(securityProvider.authManager());
 

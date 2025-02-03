@@ -335,7 +335,7 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
     }
 
     @Override
-    public void createSecurityModule(GlobalModule globalModule) {
+    public void createSecurityModule(GlobalModule globalModule, SystemDatabaseProvider systemDatabaseProvider) {
         setSecurityProvider(makeSecurityModule(globalModule));
     }
 

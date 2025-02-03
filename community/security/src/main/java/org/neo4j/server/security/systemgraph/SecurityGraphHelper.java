@@ -29,8 +29,8 @@ import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecur
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.neo4j.dbms.database.DatabaseContextProvider;
-import org.neo4j.function.Suppliers;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
@@ -42,18 +42,17 @@ import org.neo4j.kernel.impl.security.User;
 import org.neo4j.server.security.FormatException;
 import org.neo4j.server.security.SecureHasher;
 import org.neo4j.server.security.SystemGraphCredential;
+import org.neo4j.util.VisibleForTesting;
 
 public class SecurityGraphHelper {
     public static final String NATIVE_AUTH = AuthToken.NATIVE_REALM;
 
     protected final AbstractSecurityLog securityLog;
-    protected final Suppliers.Lazy<GraphDatabaseService> systemSupplier;
+    protected final Supplier<GraphDatabaseService> systemSupplier;
     protected final SecureHasher secureHasher;
 
     public SecurityGraphHelper(
-            Suppliers.Lazy<GraphDatabaseService> systemSupplier,
-            SecureHasher secureHasher,
-            AbstractSecurityLog securityLog) {
+            Supplier<GraphDatabaseService> systemSupplier, SecureHasher secureHasher, AbstractSecurityLog securityLog) {
         this.systemSupplier = systemSupplier;
         this.secureHasher = secureHasher;
         this.securityLog = securityLog;
@@ -63,13 +62,14 @@ public class SecurityGraphHelper {
         return systemSupplier.get();
     }
 
-    public static Suppliers.Lazy<GraphDatabaseService> makeSystemSupplier(
+    @VisibleForTesting
+    public static Supplier<GraphDatabaseService> makeSystemSupplier(
             DatabaseContextProvider<?> databaseContextProvider) {
-        return Suppliers.lazySingleton(() -> databaseContextProvider
+        return () -> databaseContextProvider
                 .getDatabaseContext(NAMED_SYSTEM_DATABASE_ID)
                 .orElseThrow(() ->
                         new AuthProviderFailedException("No database called `" + SYSTEM_DATABASE_NAME + "` was found."))
-                .databaseFacade());
+                .databaseFacade();
     }
 
     /**

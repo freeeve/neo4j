@@ -189,7 +189,7 @@ public class DatabaseManagementServiceFactory {
 
         edition.registerDatabaseInitializers(globalModule, systemDatabaseProvider);
 
-        edition.createSecurityModule(globalModule);
+        edition.createSecurityModule(globalModule, systemDatabaseProvider);
         SecurityProvider securityProvider = edition.getSecurityProvider();
         globalDependencies.satisfyDependencies(securityProvider.authManager());
 
