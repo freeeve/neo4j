@@ -23,6 +23,7 @@ import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.expressions.ASTCachedProperty
@@ -299,6 +300,8 @@ import org.neo4j.cypher.internal.util.topDown
 import org.neo4j.graphdb.schema.IndexType
 
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.SECONDS
 
 /**
  * Used by [[AbstractLogicalPlanBuilder]] to resolve tokens and procedures
@@ -3030,6 +3033,23 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       )(_)
     ))
 
+  def transactionForeachWithRetry(
+    batchSize: Long = TransactionForeach.defaultBatchSize,
+    concurrency: TransactionConcurrency = TransactionConcurrency.Serial,
+    onErrorBehaviour: InTransactionsOnErrorBehaviour = OnErrorRetryThenFail,
+    maybeReportAs: Option[String] = None,
+    maybeRetryTimeout: Option[FiniteDuration] = None
+  ): IMPL = {
+    val maybeDurationExpr = maybeRetryTimeout.map(t => DecimalDoubleLiteral(t.toUnit(SECONDS).toString)(pos))
+    transactionForeach(
+      batchSize,
+      concurrency,
+      onErrorBehaviour,
+      maybeReportAs,
+      Some(InTransactionsRetryParameters(maybeDurationExpr)(pos))
+    )
+  }
+
   def transactionApply(
     batchSize: Long,
     concurrency: Int
@@ -3054,6 +3074,23 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         maybeRetryParameters
       )(_)
     ))
+
+  def transactionApplyWithRetry(
+    batchSize: Long = TransactionForeach.defaultBatchSize,
+    concurrency: TransactionConcurrency = TransactionConcurrency.Serial,
+    onErrorBehaviour: InTransactionsOnErrorBehaviour = OnErrorRetryThenFail,
+    maybeReportAs: Option[String] = None,
+    maybeRetryTimeout: Option[FiniteDuration] = None
+  ): IMPL = {
+    val maybeDurationExpr = maybeRetryTimeout.map(t => DecimalDoubleLiteral(t.toUnit(SECONDS).toString)(pos))
+    transactionApply(
+      batchSize,
+      concurrency,
+      onErrorBehaviour,
+      maybeReportAs,
+      Some(InTransactionsRetryParameters(maybeDurationExpr)(pos))
+    )
+  }
 
   def repeatTrail(
     trailParameters: TrailParameters

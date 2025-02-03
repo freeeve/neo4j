@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.logical.plans
 
 import org.apache.commons.text.StringEscapeUtils
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier.Extension
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
@@ -1499,10 +1500,10 @@ object LogicalPlanToPlanBuilderString {
           fieldTerminatorStr
         ).mkString(", ")
       case Eager(_, reasons) => reasons.map(eagernessReasonStr).mkString("ListSet(", ", ", ")")
-      case TransactionForeach(_, _, batchSize, concurrency, onErrorBehaviour, maybeReportAs) =>
-        callInTxParams(batchSize, concurrency, onErrorBehaviour, maybeReportAs)
-      case TransactionApply(_, _, batchSize, concurrency, onErrorBehaviour, maybeReportAs) =>
-        callInTxParams(batchSize, concurrency, onErrorBehaviour, maybeReportAs)
+      case TransactionForeach(_, _, batchSize, concurrency, onErrorBehaviour, maybeReportAs, maybeRetryParameters) =>
+        callInTxParams(batchSize, concurrency, onErrorBehaviour, maybeReportAs, maybeRetryParameters)
+      case TransactionApply(_, _, batchSize, concurrency, onErrorBehaviour, maybeReportAs, maybeRetryParameters) =>
+        callInTxParams(batchSize, concurrency, onErrorBehaviour, maybeReportAs, maybeRetryParameters)
       case RunQueryAt(_, query, graphReference, parameters, importsAsParameters, columns) =>
         val escapedQuery = StringEscapeUtils.escapeJava(query)
         val parametersString =
@@ -2199,7 +2200,8 @@ object LogicalPlanToPlanBuilderString {
     batchSize: Expression,
     concurrency: TransactionConcurrency,
     onErrorBehaviour: InTransactionsOnErrorBehaviour,
-    maybeReportAs: Option[LogicalVariable]
+    maybeReportAs: Option[LogicalVariable],
+    maybeRetryParams: Option[InTransactionsRetryParameters]
   ): String = {
     val params =
       Seq(
@@ -2209,7 +2211,13 @@ object LogicalPlanToPlanBuilderString {
           case c                                                    => c.toString
         },
         onErrorBehaviour.toString
-      ) ++ maybeReportAs.map(_.name)
+      ) ++ maybeReportAs.map(_.name) ++
+        Seq((maybeRetryParams match {
+          case Some(InTransactionsRetryParameters(Some(timeoutExpr))) =>
+            s"maybeRetryParameters = Some(InTransactionsRetryParameters(Some(DecimalDoubleLiteral(\"${expressionStringifier(timeoutExpr)}\")(InputPosition.NONE)))(InputPosition.NONE))"
+          case _ =>
+            "maybeRetryParameters = None"
+        }))
     params.mkString(", ")
   }
 }

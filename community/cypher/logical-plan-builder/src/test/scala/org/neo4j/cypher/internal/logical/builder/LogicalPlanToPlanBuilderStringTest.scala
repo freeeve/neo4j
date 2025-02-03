@@ -23,6 +23,8 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -86,6 +88,8 @@ import org.neo4j.graphdb.schema.IndexType
 import java.lang.reflect.Modifier
 
 import scala.collection.mutable
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.MILLISECONDS
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interpreter.IMain
 import scala.tools.nsc.interpreter.shell.ReplReporterImpl
@@ -2857,6 +2861,36 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
   )
 
   testPlan(
+    "transactionForeachWithRetry",
+    new TestPlanBuilder()
+      .produceResults("x")
+      .transactionForeachWithRetry(
+        onErrorBehaviour = OnErrorRetryThenContinue,
+        maybeRetryTimeout = Some(FiniteDuration(250, MILLISECONDS))
+      )
+      .|.emptyResult()
+      .|.create(createNode("y"))
+      .|.argument("x")
+      .allNodeScan("x")
+      .build()
+  )
+
+  testPlan(
+    "transactionApplyWithRetry",
+    new TestPlanBuilder()
+      .produceResults("x")
+      .transactionApplyWithRetry(
+        onErrorBehaviour = OnErrorRetryThenBreak,
+        maybeRetryTimeout = Some(FiniteDuration(1500, MILLISECONDS))
+      )
+      .|.emptyResult()
+      .|.create(createNode("y"))
+      .|.argument("x")
+      .allNodeScan("x")
+      .build()
+  )
+
+  testPlan(
     "transactionApply",
     new TestPlanBuilder()
       .produceResults("x", "y")
@@ -3048,6 +3082,9 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
             |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
             |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
             |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
+            |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
+            |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
+            |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createPattern
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
@@ -3072,6 +3109,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
             |import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
+            |import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
             |import org.neo4j.cypher.internal.expressions.SemanticDirection.{INCOMING, OUTGOING, BOTH}
             |import org.neo4j.cypher.internal.expressions.LabelName
             |import org.neo4j.cypher.internal.expressions.RelTypeName
@@ -3113,7 +3151,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
    * This is done via reflection.
    */
   test("all the tests exist") {
-    val methodsWeCantTest = Set(
+    val methodsWeCannotTest = Set(
       "filterExpression",
       "filterExpressionOrString",
       "appendAtCurrentIndent",
@@ -3151,7 +3189,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         name.substring(0, end)
       }
 
-      m.filter(_.nonEmpty).toSet[String] -- methodsWeCantTest -- testedOperators should be(empty)
+      m.filter(_.nonEmpty).toSet[String] -- methodsWeCannotTest -- testedOperators should be(empty)
     }
   }
 
