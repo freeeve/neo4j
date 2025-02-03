@@ -118,8 +118,8 @@ public class BatchingMultipleIndexPopulatorTest {
 
         IndexEntryUpdate update1 = add(1, index1, "foo");
         IndexEntryUpdate update2 = add(2, index1, "bar");
-        batchingPopulator.queueConcurrentUpdate(update1);
-        batchingPopulator.queueConcurrentUpdate(update2);
+        batchingPopulator.queueConcurrentUpdate(update1, CursorContext.NULL_CONTEXT);
+        batchingPopulator.queueConcurrentUpdate(update2, CursorContext.NULL_CONTEXT);
 
         assertThat(batchingPopulator.needToApplyExternalUpdates()).isFalse();
 
@@ -166,9 +166,9 @@ public class BatchingMultipleIndexPopulatorTest {
         IndexEntryUpdate update1 = add(1, index1, "foo");
         IndexEntryUpdate update2 = add(2, index42, "bar");
         IndexEntryUpdate update3 = add(3, index1, "baz");
-        batchingPopulator.queueConcurrentUpdate(update1);
-        batchingPopulator.queueConcurrentUpdate(update2);
-        batchingPopulator.queueConcurrentUpdate(update3);
+        batchingPopulator.queueConcurrentUpdate(update1, CursorContext.NULL_CONTEXT);
+        batchingPopulator.queueConcurrentUpdate(update2, CursorContext.NULL_CONTEXT);
+        batchingPopulator.queueConcurrentUpdate(update3, CursorContext.NULL_CONTEXT);
 
         batchingPopulator.applyExternalUpdates(42);
 

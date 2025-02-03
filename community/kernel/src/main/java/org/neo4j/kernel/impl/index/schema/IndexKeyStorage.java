@@ -46,7 +46,7 @@ class IndexKeyStorage<KEY extends NativeIndexKey<KEY>>
     }
 
     @Override
-    void add(KEY key, PageCursor pageCursor) throws IOException {
+    protected void add(KEY key, PageCursor pageCursor) throws IOException {
         int entrySize = TYPE_SIZE + BlockEntry.keySize(layout, key);
         prepareWrite(entrySize);
         pageCursor.putByte(KEY_TYPE);
@@ -54,7 +54,7 @@ class IndexKeyStorage<KEY extends NativeIndexKey<KEY>>
     }
 
     @Override
-    KeyEntryCursor<KEY> reader(PageCursor pageCursor) {
+    protected KeyEntryCursor<KEY> reader(PageCursor pageCursor) {
         return new KeyEntryCursor<>(pageCursor, layout);
     }
 

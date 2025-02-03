@@ -230,10 +230,11 @@ public class IndexPopulationJob implements Runnable {
      * A transaction happened that produced the given updates. Let this job incorporate its data,
      * feeding it to the {@link IndexPopulator}.
      *
-     * @param update {@link IndexEntryUpdate} to queue.
+     * @param update        {@link IndexEntryUpdate} to queue.
+     * @param cursorContext
      */
-    public void update(IndexEntryUpdate update) {
-        multiPopulator.queueConcurrentUpdate(update);
+    public void queueConcurrentUpdate(IndexEntryUpdate update, CursorContext cursorContext) {
+        multiPopulator.queueConcurrentUpdate(update, cursorContext);
     }
 
     @Override

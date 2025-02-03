@@ -19,28 +19,47 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
-import static org.neo4j.kernel.impl.index.schema.NativeIndexUpdater.initializeKeyFromUpdate;
+import static org.neo4j.io.IOUtils.closeAllUnchecked;
 
+import java.io.Closeable;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicLong;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.ReadAheadChannel;
+import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.memory.ByteBufferFactory;
-import org.neo4j.io.pagecache.PageCursor;
+import org.neo4j.io.memory.ScopedBuffer;
+import org.neo4j.io.pagecache.ByteArrayPageCursor;
 import org.neo4j.memory.MemoryTracker;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
-import org.neo4j.storageengine.api.UpdateMode;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
-import org.neo4j.values.storable.Value;
 
 /**
- * Buffer {@link IndexEntryUpdate} by writing them out to a file. Can be read back in insert order through {@link #reader()}.
+ * Buffer index update instructions by writing them out to a file. Can be read back in insert order through {@link #reader()}.
  */
-public class IndexUpdateStorage<KEY extends NativeIndexKey<KEY>>
-        extends SimpleEntryStorage<IndexEntryUpdate, IndexUpdateCursor<KEY, NullValue>> {
+public class IndexUpdateStorage<KEY extends NativeIndexKey<KEY>> implements Closeable {
+
+    static final byte STOP_TYPE = -1;
+
+    private static final int TYPE_SIZE = Byte.BYTES;
+    private static final int VERSION_SIZE = Long.BYTES;
+    private static final byte[] NO_ENTRIES = {STOP_TYPE};
+
+    private final Path file;
+    private final FileSystemAbstraction fs;
+    private final int blockSize;
+    private final MemoryTracker memoryTracker;
+    private final ByteBufferFactory.Allocator byteBufferFactory;
     private final IndexLayout<KEY> layout;
-    private final KEY key1;
-    private final KEY key2;
-    private final NullValue value = NullValue.INSTANCE;
+
+    private volatile boolean allocated;
+    private ScopedBuffer scopedBuffer;
+    private ByteBuffer buffer;
+    private ByteArrayPageCursor pageCursor;
+    private StoreChannel storeChannel;
+
+    private final AtomicLong count = new AtomicLong();
 
     IndexUpdateStorage(
             FileSystemAbstraction fs,
@@ -49,48 +68,88 @@ public class IndexUpdateStorage<KEY extends NativeIndexKey<KEY>>
             int blockSize,
             IndexLayout<KEY> layout,
             MemoryTracker memoryTracker) {
-        super(fs, file, byteBufferFactory, blockSize, memoryTracker);
+        this.fs = fs;
+        this.file = file;
+        this.byteBufferFactory = byteBufferFactory;
+        this.blockSize = blockSize;
+        this.memoryTracker = memoryTracker;
+
         this.layout = layout;
-        this.key1 = layout.newKey();
-        this.key2 = layout.newKey();
+    }
+
+    void add(boolean addition, KEY key, long version) throws IOException {
+        allocateResources();
+        ensureCapacity(entrySize(key));
+        pageCursor.putByte((byte) (addition ? 1 : 0));
+        pageCursor.putLong(version);
+        BlockEntry.write(pageCursor, layout, key);
+        count.incrementAndGet();
+    }
+
+    IndexUpdateCursor<KEY> reader() throws IOException {
+        if (!allocated) {
+            return new IndexUpdateCursor<>(ByteArrayPageCursor.wrap(NO_ENTRIES), layout);
+        }
+
+        var channel = new ReadAheadChannel<>(fs.read(file), byteBufferFactory.allocate(blockSize, memoryTracker));
+        return new IndexUpdateCursor<>(new ReadableChannelPageCursor(channel), layout);
+    }
+
+    long count() {
+        return count.get();
+    }
+
+    void doneAdding() throws IOException {
+        if (!allocated) {
+            return;
+        }
+        ensureCapacity(TYPE_SIZE);
+        pageCursor.putByte(STOP_TYPE);
+        flush();
     }
 
     @Override
-    public IndexUpdateCursor<KEY, NullValue> reader(PageCursor pageCursor) {
-        return new IndexUpdateCursor<>(pageCursor, layout);
+    public void close() throws IOException {
+        if (allocated) {
+            closeAllUnchecked(pageCursor, storeChannel, scopedBuffer, this::deleteFile, () -> allocated = false);
+        } else {
+            if (fs.fileExists(file)) {
+                fs.deleteFile(file);
+            }
+        }
     }
 
-    @Override
-    public void add(IndexEntryUpdate update, PageCursor pageCursor) throws IOException {
-        var valueUpdate = (ValueIndexEntryUpdate) update;
-        final var entrySize = calculateEntrySize(valueUpdate);
-        write(pageCursor, valueUpdate.updateMode(), entrySize);
+    private int entrySize(KEY key) {
+        return TYPE_SIZE + VERSION_SIZE + BlockEntry.keySize(layout, key);
     }
 
-    private int calculateEntrySize(ValueIndexEntryUpdate update) {
-        final var entityId = update.getEntityId();
-        final var values = update.values();
-        final var updateMode = update.updateMode();
-        return switch (updateMode) {
-            case ADDED -> TYPE_SIZE + added(key1, entityId, values);
-            case CHANGED -> TYPE_SIZE + removed(key1, entityId, update.beforeValues()) + added(key2, entityId, values);
-            case REMOVED -> TYPE_SIZE + removed(key1, entityId, values);
-        };
+    private void ensureCapacity(int entrySize) throws IOException {
+        if (entrySize > buffer.remaining()) {
+            flush();
+        }
     }
 
-    private int added(KEY key, long entityId, Value[] values) {
-        initializeKeyFromUpdate(key, entityId, values);
-        return BlockEntry.entrySize(layout, key, value);
+    private void flush() throws IOException {
+        buffer.flip();
+        storeChannel.writeAll(buffer);
+        buffer.clear();
     }
 
-    private int removed(KEY key, long entityId, Value[] values) {
-        initializeKeyFromUpdate(key, entityId, values);
-        return BlockEntry.keySize(layout, key);
+    private void allocateResources() throws IOException {
+        if (!allocated) {
+            this.scopedBuffer = byteBufferFactory.allocate(blockSize, memoryTracker);
+            this.buffer = scopedBuffer.getBuffer();
+            this.pageCursor = new ByteArrayPageCursor(buffer);
+            this.storeChannel = fs.write(file);
+            this.allocated = true;
+        }
     }
 
-    private void write(PageCursor pageCursor, UpdateMode updateMode, int entrySize) throws IOException {
-        prepareWrite(entrySize);
-        pageCursor.putByte((byte) updateMode.ordinal());
-        IndexUpdateEntry.write(pageCursor, layout, updateMode, key1, key2, value);
+    private void deleteFile() {
+        try {
+            fs.deleteFile(file);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

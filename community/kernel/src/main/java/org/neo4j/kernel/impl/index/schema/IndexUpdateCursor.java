@@ -21,61 +21,51 @@ package org.neo4j.kernel.impl.index.schema;
 
 import static org.neo4j.kernel.impl.index.schema.IndexUpdateStorage.STOP_TYPE;
 
+import java.io.Closeable;
 import java.io.IOException;
 import org.neo4j.index.internal.gbptree.Layout;
 import org.neo4j.io.pagecache.PageCursor;
-import org.neo4j.storageengine.api.UpdateMode;
 
 /**
- * Cursor over serialized {@link org.neo4j.storageengine.api.IndexEntryUpdate} represented by {@link UpdateMode}, 2x{@link KEY} and {@link VALUE}.
+ * Cursor over serialized index update instructions.
  * Reads the updates in sequential order. Field instances are reused, so consumer is responsible for creating copies if result needs to be cached.
  */
-public class IndexUpdateCursor<KEY, VALUE> implements BlockEntryCursor<KEY, VALUE> {
+public class IndexUpdateCursor<KEY> implements Closeable {
     private final PageCursor cursor;
-    private final Layout<KEY, VALUE> layout;
+    private final Layout<KEY, NullValue> layout;
 
-    // Fields for the last entry
-    private UpdateMode updateMode;
-    private final KEY key1;
-    private final KEY key2;
-    private final VALUE value;
+    private boolean addition;
+    private long version;
+    private final KEY key;
 
-    IndexUpdateCursor(PageCursor cursor, Layout<KEY, VALUE> layout) {
+    IndexUpdateCursor(PageCursor cursor, Layout<KEY, NullValue> layout) {
         this.cursor = cursor;
         this.layout = layout;
-        this.key1 = layout.newKey();
-        this.key2 = layout.newKey();
-        this.value = layout.newValue();
+        this.key = layout.newKey();
     }
 
-    @Override
     public boolean next() throws IOException {
         byte updateModeType = cursor.getByte();
         if (updateModeType == STOP_TYPE) {
             return false;
         }
 
-        updateMode = UpdateMode.MODES[updateModeType];
-        IndexUpdateEntry.read(cursor, layout, updateMode, key1, key2, value);
+        addition = updateModeType == 1;
+        version = cursor.getLong();
+        BlockEntry.read(cursor, layout, key);
         return true;
     }
 
-    @Override
     public KEY key() {
-        return key1;
+        return key;
     }
 
-    @Override
-    public VALUE value() {
-        return value;
+    public boolean addition() {
+        return addition;
     }
 
-    public KEY key2() {
-        return key2;
-    }
-
-    public UpdateMode updateMode() {
-        return updateMode;
+    public long version() {
+        return version;
     }
 
     @Override

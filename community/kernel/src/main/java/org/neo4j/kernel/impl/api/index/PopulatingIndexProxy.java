@@ -61,7 +61,7 @@ public class PopulatingIndexProxy implements IndexProxy {
             case ONLINE, RECOVERY -> new PopulatingIndexUpdater() {
                 @Override
                 public void process(IndexEntryUpdate update) {
-                    job.update(update);
+                    job.queueConcurrentUpdate(update, cursorContext);
                 }
             };
             default -> new PopulatingIndexUpdater() {

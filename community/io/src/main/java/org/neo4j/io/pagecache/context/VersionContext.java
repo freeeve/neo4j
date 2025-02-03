@@ -157,4 +157,12 @@ public interface VersionContext {
      * @return true is context haven't changed since provided stamp was taken
      */
     boolean validateStamp(int stamp);
+
+    /**
+     * Create related version context, with the same state as this context,
+     * that can be updated independently and/or safely passed to another thread
+     */
+    default VersionContext createRelatedContext() {
+        return this;
+    }
 }

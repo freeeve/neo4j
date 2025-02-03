@@ -40,7 +40,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.neo4j.common.Subject.AUTH_DISABLED;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
-import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.kernel.api.index.IndexQueryHelper.add;
 import static org.neo4j.kernel.impl.api.TransactionVisibilityProvider.EMPTY_VISIBILITY_PROVIDER;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
@@ -63,7 +62,6 @@ import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.SchemaState;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
-import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.exceptions.index.ExceptionDuringFlipKernelException;
 import org.neo4j.kernel.api.exceptions.index.IndexProxyAlreadyClosedKernelException;
 import org.neo4j.kernel.api.index.IndexPopulator;
@@ -87,8 +85,6 @@ import org.neo4j.values.storable.Values;
 
 @ExtendWith({RandomExtension.class, JobSchedulerExtension.class})
 class MultipleIndexPopulatorTest {
-    private static final CursorContextFactory CONTEXT_FACTORY =
-            new CursorContextFactory(PageCacheTracer.NULL, EMPTY_CONTEXT_SUPPLIER);
 
     @Inject
     private RandomSupport random;
@@ -122,7 +118,7 @@ class MultipleIndexPopulatorTest {
                 schemaState,
                 jobScheduler,
                 tokens,
-                CONTEXT_FACTORY,
+                CursorContextFactory.NULL_CONTEXT_FACTORY,
                 INSTANCE,
                 "",
                 AUTH_DISABLED,
@@ -234,7 +230,7 @@ class MultipleIndexPopulatorTest {
 
         multipleIndexPopulator.stop(populationToCancel, NULL_CONTEXT);
 
-        multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY);
+        multipleIndexPopulator.createStoreScan(CursorContextFactory.NULL_CONTEXT_FACTORY);
 
         assertTrue(multipleIndexPopulator.hasPopulators());
 
@@ -255,7 +251,7 @@ class MultipleIndexPopulatorTest {
 
         multipleIndexPopulator.stop(populationToCancel, NULL_CONTEXT);
 
-        multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY);
+        multipleIndexPopulator.createStoreScan(CursorContextFactory.NULL_CONTEXT_FACTORY);
 
         assertTrue(multipleIndexPopulator.hasPopulators());
 
@@ -273,7 +269,7 @@ class MultipleIndexPopulatorTest {
         addPopulator(indexPopulator2, 2);
 
         multipleIndexPopulator.create(NULL_CONTEXT);
-        multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY);
+        multipleIndexPopulator.createStoreScan(CursorContextFactory.NULL_CONTEXT_FACTORY);
 
         verify(indexStoreView)
                 .visitNodes(
@@ -401,7 +397,7 @@ class MultipleIndexPopulatorTest {
 
         when(indexPopulator1.sample(any(CursorContext.class))).thenThrow(getSampleError());
 
-        multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY);
+        multipleIndexPopulator.createStoreScan(CursorContextFactory.NULL_CONTEXT_FACTORY);
         multipleIndexPopulator.flipAfterStoreScan(NULL_CONTEXT, true);
 
         verify(indexPopulator1).close(false, NULL_CONTEXT);
@@ -425,10 +421,9 @@ class MultipleIndexPopulatorTest {
 
         doThrow(getPopulatorException()).when(indexPopulator2).newPopulatingUpdater(any());
 
-        IndexUpdater multipleIndexUpdater = multipleIndexPopulator.newPopulatingUpdater(NULL_CONTEXT);
+        var multipleIndexUpdater = multipleIndexPopulator.newPopulatingUpdater(NULL_CONTEXT, NULL_CONTEXT);
         IndexEntryUpdate propertyUpdate = createIndexEntryUpdate(index1);
         multipleIndexUpdater.process(propertyUpdate);
-
         checkPopulatorFailure(indexPopulator2);
         verify(indexUpdater1).process(propertyUpdate);
     }
@@ -440,7 +435,7 @@ class MultipleIndexPopulatorTest {
 
         addPopulator(indexPopulator1, 2);
 
-        IndexUpdater multipleIndexUpdater = multipleIndexPopulator.newPopulatingUpdater(NULL_CONTEXT);
+        var multipleIndexUpdater = multipleIndexPopulator.newPopulatingUpdater(NULL_CONTEXT, NULL_CONTEXT);
 
         IndexEntryUpdate propertyUpdate = createIndexEntryUpdate(index1);
         multipleIndexUpdater.process(propertyUpdate);
@@ -458,7 +453,7 @@ class MultipleIndexPopulatorTest {
 
         doThrow(getPopulatorException()).when(indexUpdater1).process(propertyUpdate);
 
-        IndexUpdater multipleIndexUpdater = multipleIndexPopulator.newPopulatingUpdater(NULL_CONTEXT);
+        var multipleIndexUpdater = multipleIndexPopulator.newPopulatingUpdater(NULL_CONTEXT, NULL_CONTEXT);
 
         multipleIndexUpdater.process(propertyUpdate);
 
@@ -477,7 +472,7 @@ class MultipleIndexPopulatorTest {
 
         doThrow(getPopulatorException()).when(updater).process(any(IndexEntryUpdate.class));
 
-        IndexUpdater multipleIndexUpdater = multipleIndexPopulator.newPopulatingUpdater(NULL_CONTEXT);
+        var multipleIndexUpdater = multipleIndexPopulator.newPopulatingUpdater(NULL_CONTEXT, NULL_CONTEXT);
 
         multipleIndexUpdater.process(update1);
         multipleIndexUpdater.process(update2);
@@ -504,7 +499,7 @@ class MultipleIndexPopulatorTest {
         IndexSample sample = new IndexSample(indexSize, uniqueValues, sampleSize, updates);
         when(indexPopulator.sample(any(CursorContext.class))).thenReturn(sample);
 
-        multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY);
+        multipleIndexPopulator.createStoreScan(CursorContextFactory.NULL_CONTEXT_FACTORY);
         multipleIndexPopulator.flipAfterStoreScan(NULL_CONTEXT, true);
 
         verify(indexPopulator).close(true, NULL_CONTEXT);
@@ -524,13 +519,13 @@ class MultipleIndexPopulatorTest {
         IndexDescriptor indexDescriptor = IndexPrototype.forSchema(SchemaDescriptors.forLabel(0, 1))
                 .withName("name")
                 .materialise(99);
-        multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY);
+        multipleIndexPopulator.createStoreScan(CursorContextFactory.NULL_CONTEXT_FACTORY);
         boolean full = false;
 
         // when
         for (int i = 0; !full && i < roughlyNumUpdates * 2; i++) {
             var largeUpdate = IndexEntryUpdate.add(i, indexDescriptor, largeStringValue);
-            multipleIndexPopulator.queueConcurrentUpdate(largeUpdate);
+            multipleIndexPopulator.queueConcurrentUpdate(largeUpdate, NULL_CONTEXT);
             full = multipleIndexPopulator.needToApplyExternalUpdates();
             if (full) {
                 multipleIndexPopulator.applyExternalUpdates(Long.MAX_VALUE);
@@ -557,8 +552,8 @@ class MultipleIndexPopulatorTest {
         // when external updates comes in
         var lowUpdate = IndexEntryUpdate.add(10, indexDescriptor, intValue(99));
         var highUpdate = IndexEntryUpdate.add(20, indexDescriptor, intValue(101));
-        multipleIndexPopulator.queueConcurrentUpdate(lowUpdate);
-        multipleIndexPopulator.queueConcurrentUpdate(highUpdate);
+        multipleIndexPopulator.queueConcurrentUpdate(lowUpdate, NULL_CONTEXT);
+        multipleIndexPopulator.queueConcurrentUpdate(highUpdate, NULL_CONTEXT);
 
         // and we ask to apply them, given an entity in between the two
         multipleIndexPopulator.applyExternalUpdates(15);
@@ -612,7 +607,7 @@ class MultipleIndexPopulatorTest {
                 mock(FlippableIndexProxy.class));
 
         // when
-        multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY);
+        multipleIndexPopulator.createStoreScan(CursorContextFactory.NULL_CONTEXT_FACTORY);
 
         // then
         verify(indexStoreView)
@@ -628,7 +623,7 @@ class MultipleIndexPopulatorTest {
         multipleIndexPopulator.create(NULL_CONTEXT);
 
         // when
-        StoreScan storeScan = multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY);
+        StoreScan storeScan = multipleIndexPopulator.createStoreScan(CursorContextFactory.NULL_CONTEXT_FACTORY);
         storeScan.run(StoreScan.NO_EXTERNAL_UPDATES);
         cancelAction.accept(population1);
         verify(actualStoreScan, never()).stop();

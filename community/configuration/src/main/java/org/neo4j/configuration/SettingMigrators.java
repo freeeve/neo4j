@@ -253,7 +253,9 @@ public final class SettingMigrators {
                 "dbms.tx_state.off_heap.block_cache_size",
                 "db.tx_state.memory_allocation",
                 "dbms.tx_state.memory_allocation",
-                "dbms.tx_state.max_off_heap_memory");
+                "dbms.tx_state.max_off_heap_memory",
+                "unsupported.dbms.index.population_print_debug",
+                "internal.dbms.index.population_print_debug");
 
         private static final Collection<Mapping> LEGACY_UNSUPPORTED_SETTINGS_MAPPING = List.of(
                 new Mapping("dbms.capabilities.blocked", "internal.dbms.capabilities.blocked"),
@@ -484,8 +486,6 @@ public final class SettingMigrators {
                 new Mapping(
                         "unsupported.dbms.index.population_batch_max_byte_size",
                         "internal.dbms.index.population_batch_max_byte_size"),
-                new Mapping(
-                        "unsupported.dbms.index.population_print_debug", "internal.dbms.index.population_print_debug"),
                 new Mapping(
                         "unsupported.dbms.index.population_queue_threshold",
                         "internal.dbms.index.population_queue_threshold"),

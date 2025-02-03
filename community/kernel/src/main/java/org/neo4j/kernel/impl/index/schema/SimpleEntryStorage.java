@@ -141,18 +141,18 @@ public abstract class SimpleEntryStorage<ENTRY, CURSOR> implements Closeable {
      * DON'T CALL THIS METHOD DIRECTLY. Instead, use {@link #add(Object)}.
      * Write entry to pageCursor. Implementor of this method is responsible for calling {@link #prepareWrite(int)} before actually start writing.
      */
-    abstract void add(ENTRY entry, PageCursor pageCursor) throws IOException;
+    protected abstract void add(ENTRY entry, PageCursor pageCursor) throws IOException;
 
     /**
      * DON'T CALL THIS METHOD DIRECTLY. Instead use {@link #reader()}.
      * Return {@link CURSOR} responsible for deserializing wrapping provided {@link PageCursor}, pointing to head of file.
      */
-    abstract CURSOR reader(PageCursor pageCursor) throws IOException;
+    protected abstract CURSOR reader(PageCursor pageCursor) throws IOException;
 
     /**
      * DON'T CALL THIS METHOD DIRECTLY. Only used by subclasses.
      */
-    void prepareWrite(int entrySize) throws IOException {
+    protected void prepareWrite(int entrySize) throws IOException {
         if (entrySize > buffer.remaining()) {
             flush();
         }

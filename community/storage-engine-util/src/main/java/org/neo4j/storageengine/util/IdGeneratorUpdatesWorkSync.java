@@ -208,8 +208,8 @@ public class IdGeneratorUpdatesWorkSync {
         public void apply(IdGenerator idGenerator) {
             for (ChangedIds changes : this.changeList) {
                 // work units are applied in parallel and shouldn't share the same context
-                try (var marker = idGenerator.transactionalMarker(
-                        changes.cursorContext.createRelatedContext(ID_GENERATOR_BATCH_APPLIER_TAG))) {
+                try (var relatedContext = changes.cursorContext.createRelatedContext(ID_GENERATOR_BATCH_APPLIER_TAG);
+                        var marker = idGenerator.transactionalMarker(relatedContext)) {
                     changes.accept(marker);
                 }
             }

@@ -51,6 +51,28 @@ public class TransactionVersionContext implements VersionContext {
         this.oldestTransactionIdFactory = oldestIdFactory;
     }
 
+    private TransactionVersionContext(
+            TransactionIdSnapshotFactory transactionIdSnapshotFactory,
+            OldestTransactionIdFactory oldestTransactionIdFactory,
+            long transactionId,
+            long appendIndex,
+            TransactionIdSnapshot transactionIds,
+            long oldestTransactionId,
+            long headChain,
+            boolean dirty,
+            boolean nonVisibleHead,
+            int currentStamp) {
+        this(transactionIdSnapshotFactory, oldestTransactionIdFactory);
+        this.transactionId = transactionId;
+        this.appendIndex = appendIndex;
+        this.transactionIds = transactionIds;
+        this.oldestTransactionId = oldestTransactionId;
+        this.headChain = headChain;
+        this.dirty = dirty;
+        this.nonVisibleHead = nonVisibleHead;
+        this.currentStamp = currentStamp;
+    }
+
     @Override
     public void initRead() {
         refreshVisibilityBoundaries();
@@ -154,6 +176,21 @@ public class TransactionVersionContext implements VersionContext {
     @Override
     public boolean validateStamp(int stamp) {
         return currentStamp == stamp;
+    }
+
+    @Override
+    public VersionContext createRelatedContext() {
+        return new TransactionVersionContext(
+                transactionIdSnapshotFactory,
+                oldestTransactionIdFactory,
+                transactionId,
+                appendIndex,
+                transactionIds,
+                oldestTransactionId,
+                headChain,
+                dirty,
+                nonVisibleHead,
+                currentStamp);
     }
 
     @Override

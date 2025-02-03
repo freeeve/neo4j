@@ -19,27 +19,28 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.io.memory.ByteBufferFactory.heapBufferFactory;
+import static org.neo4j.kernel.impl.index.schema.NativeIndexUpdater.initializeKeyFromUpdate;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptors;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.UpdateMode;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
+import org.neo4j.values.storable.Value;
 
 @TestDirectoryExtension
 @ExtendWith(RandomExtension.class)
@@ -67,7 +68,7 @@ class IndexUpdateStorageTest {
                 layout,
                 INSTANCE)) {
             // when
-            List<IndexEntryUpdate> expected = generateSomeUpdates(0);
+            var expected = generateSomeUpdates(0);
             storeAll(storage, expected);
 
             // then
@@ -86,7 +87,7 @@ class IndexUpdateStorageTest {
                 layout,
                 INSTANCE)) {
             // when
-            List<IndexEntryUpdate> expected = generateSomeUpdates(5);
+            var expected = generateSomeUpdates(5);
             storeAll(storage, expected);
 
             // then
@@ -105,7 +106,7 @@ class IndexUpdateStorageTest {
                 layout,
                 INSTANCE)) {
             // when
-            List<IndexEntryUpdate> expected = generateSomeUpdates(1_000);
+            var expected = generateSomeUpdates(1_000);
             storeAll(storage, expected);
 
             // then
@@ -113,51 +114,46 @@ class IndexUpdateStorageTest {
         }
     }
 
-    private static void storeAll(IndexUpdateStorage<RangeKey> storage, List<IndexEntryUpdate> expected)
+    private static void storeAll(IndexUpdateStorage<RangeKey> storage, List<UpdateInstruction> expected)
             throws IOException {
-        for (IndexEntryUpdate update : expected) {
-            storage.add(update);
+        for (var update : expected) {
+            storage.add(update.addition, update.key, update.version);
         }
         storage.doneAdding();
     }
 
-    private static void verify(List<IndexEntryUpdate> expected, IndexUpdateStorage<RangeKey> storage)
-            throws IOException {
-        try (IndexUpdateCursor<RangeKey, NullValue> reader = storage.reader()) {
-            for (IndexEntryUpdate expectedUpdate : expected) {
+    private void verify(List<UpdateInstruction> expected, IndexUpdateStorage<RangeKey> storage) throws IOException {
+        try (var reader = storage.reader()) {
+            for (var expectedUpdate : expected) {
                 assertTrue(reader.next());
-                assertEquals(expectedUpdate, asUpdate(reader));
+                Assertions.assertThat(reader.addition()).isEqualTo(expectedUpdate.addition);
+                Assertions.assertThat(reader.version()).isEqualTo(expectedUpdate.version);
+                Assertions.assertThat(reader.key()).usingComparator(layout).isEqualTo(expectedUpdate.key);
             }
             assertFalse(reader.next());
         }
     }
 
-    private static IndexEntryUpdate asUpdate(IndexUpdateCursor<RangeKey, NullValue> reader) {
-        return switch (reader.updateMode()) {
-            case ADDED -> IndexEntryUpdate.add(
-                    reader.key().getEntityId(), descriptor, reader.key().asValue());
-            case CHANGED -> IndexEntryUpdate.change(
-                    reader.key().getEntityId(),
-                    descriptor,
-                    reader.key().asValue(),
-                    reader.key2().asValue());
-            case REMOVED -> IndexEntryUpdate.remove(
-                    reader.key().getEntityId(), descriptor, reader.key().asValue());
-        };
-    }
-
-    private List<IndexEntryUpdate> generateSomeUpdates(int count) {
-        List<IndexEntryUpdate> updates = new ArrayList<>();
+    private List<UpdateInstruction> generateSomeUpdates(int count) {
+        var updates = new ArrayList<UpdateInstruction>();
         for (int i = 0; i < count; i++) {
             long entityId = random.nextLong(10_000_000);
+            var key = layout.newKey();
+            initializeKeyFromUpdate(key, entityId, new Value[] {random.nextValue()});
+            long version = random.nextLong(Long.MAX_VALUE);
             switch (random.among(UpdateMode.MODES)) {
-                case ADDED -> updates.add(IndexEntryUpdate.add(entityId, descriptor, random.nextValue()));
-                case REMOVED -> updates.add(IndexEntryUpdate.remove(entityId, descriptor, random.nextValue()));
-                case CHANGED -> updates.add(
-                        IndexEntryUpdate.change(entityId, descriptor, random.nextValue(), random.nextValue()));
-                default -> throw new IllegalArgumentException();
+                case ADDED -> updates.add(new UpdateInstruction(true, key, version));
+                case REMOVED -> updates.add(new UpdateInstruction(false, key, version));
+                case CHANGED -> {
+                    updates.add(new UpdateInstruction(true, key, version));
+                    var oldKey = layout.newKey();
+                    initializeKeyFromUpdate(oldKey, entityId, new Value[] {random.nextValue()});
+                    updates.add(new UpdateInstruction(false, oldKey, version));
+                }
             }
         }
         return updates;
     }
+
+    private record UpdateInstruction(boolean addition, RangeKey key, long version) {}
 }

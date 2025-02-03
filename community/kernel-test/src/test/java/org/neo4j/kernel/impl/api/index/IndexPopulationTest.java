@@ -88,7 +88,7 @@ class IndexPopulationTest {
                         EMPTY_VISIBILITY_PROVIDER,
                         IndexMonitor.NO_MONITOR,
                         CursorContext.NULL_CONTEXT)) {
-            multipleIndexPopulator.queueConcurrentUpdate(someUpdate(indexDescriptor));
+            multipleIndexPopulator.queueConcurrentUpdate(someUpdate(indexDescriptor), CursorContext.NULL_CONTEXT);
             multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY).run(StoreScan.NO_EXTERNAL_UPDATES);
             multipleIndexPopulator.addPopulator(
                     emptyPopulatorWithThrowingUpdater(), dummyIndex(indexDescriptor), flipper);

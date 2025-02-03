@@ -1043,12 +1043,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description("Printing debug information on index population")
-    public static final Setting<Boolean> index_population_print_debug = newBuilder(
-                    "internal.dbms.index.population_print_debug", BOOL, false)
-            .build();
-
-    @Internal
     @Description("Queue size for index population batched updates")
     public static final Setting<Integer> index_population_queue_threshold = newBuilder(
                     "internal.dbms.index.population_queue_threshold", INT, 20_000)

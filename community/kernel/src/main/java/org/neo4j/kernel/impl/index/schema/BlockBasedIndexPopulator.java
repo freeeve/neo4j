@@ -97,6 +97,7 @@ import org.neo4j.values.storable.Value;
  */
 public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> extends NativeIndexPopulator<KEY> {
     public static final Monitor NO_MONITOR = new Monitor.Adapter();
+    public static final String POPULATION_EXTERNAL_UPDATES_TAG = "BlockBasedIndexPopulator.externalUpdatesFlush";
 
     private final boolean archiveFailedIndex;
     private final MemoryTracker memoryTracker;
@@ -335,17 +336,15 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
     private void writeExternalUpdatesToTree(
             RecordingConflictDetector<KEY> recordingConflictDetector, CursorContext cursorContext)
             throws IOException, IndexEntryConflictException {
-        try (Writer<KEY, NullValue> writer = tree.writer(W_BATCHED_SINGLE_THREADED, cursorContext);
-                IndexUpdateCursor<KEY, NullValue> updates = externalUpdates.reader()) {
+        try (var localContext = cursorContext.createRelatedContext(POPULATION_EXTERNAL_UPDATES_TAG);
+                var writer = tree.writer(W_BATCHED_SINGLE_THREADED, localContext);
+                var updates = externalUpdates.reader()) {
             while (updates.next() && !cancellation.cancelled()) {
-                switch (updates.updateMode()) {
-                    case ADDED -> writeToTree(writer, recordingConflictDetector, updates.key());
-                    case REMOVED -> writer.remove(updates.key());
-                    case CHANGED -> {
-                        writer.remove(updates.key());
-                        writeToTree(writer, recordingConflictDetector, updates.key2());
-                    }
-                    default -> throw new IllegalArgumentException("Unknown update mode " + updates.updateMode());
+                localContext.getVersionContext().initWrite(updates.version());
+                if (updates.addition()) {
+                    writeToTree(writer, recordingConflictDetector, updates.key());
+                } else {
+                    writer.remove(updates.key());
                 }
                 numberOfAppliedExternalUpdates.incrementAndGet();
                 numberOfIndexUpdatesSinceSample.incrementAndGet();
@@ -445,53 +444,10 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
     @Override
     public IndexUpdater newPopulatingUpdater(CursorContext cursorContext) {
         if (scanCompleted) {
-            // Will need the reader from newReader, which a sub-class of this class implements
-            return new DelegatingIndexUpdater(super.newPopulatingUpdater(cursorContext)) {
-                @Override
-                public void process(IndexEntryUpdate update) throws IndexEntryConflictException {
-                    var valueUpdate = asValueUpdate(update);
-                    validateUpdate(valueUpdate);
-                    if (ignoreStrategy.ignore(valueUpdate)) {
-                        return;
-                    }
-                    numberOfIndexUpdatesSinceSample.incrementAndGet();
-                    super.process(valueUpdate);
-                }
-            };
+            return new AfterScanIndexUpdater(super.newPopulatingUpdater(cursorContext));
         }
 
-        return new IndexUpdater() {
-            private volatile boolean closed;
-
-            @Override
-            public void process(IndexEntryUpdate update) {
-                assertOpen();
-                var valueUpdate = asValueUpdate(update);
-                try {
-                    validateUpdate(valueUpdate);
-                    if (ignoreStrategy.ignore(valueUpdate)) {
-                        return;
-                    }
-                    // A change might just be an add or a remove for indexes not supporting all value types.
-                    // Let's do any necessary conversion now and store it as the actual update the index needs.
-                    valueUpdate = ignoreStrategy.toEquivalentUpdate((ValueIndexEntryUpdate) update);
-                    externalUpdates.add(valueUpdate);
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
-                }
-            }
-
-            @Override
-            public void close() {
-                closed = true;
-            }
-
-            private void assertOpen() {
-                if (closed) {
-                    throw new IllegalStateException("Updater has been closed");
-                }
-            }
-        };
+        return new ConcurrentUpdatesIndexUpdater(cursorContext);
     }
 
     private void validateUpdate(ValueIndexEntryUpdate update) {
@@ -742,6 +698,77 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
 
             @Override
             public void scanCompletedEnded() {}
+        }
+    }
+
+    private class AfterScanIndexUpdater extends DelegatingIndexUpdater {
+        public AfterScanIndexUpdater(IndexUpdater delegate) {
+            super(delegate);
+        }
+
+        @Override
+        public void process(IndexEntryUpdate update) throws IndexEntryConflictException {
+            var valueUpdate = asValueUpdate(update);
+            validateUpdate(valueUpdate);
+            if (ignoreStrategy.ignore(valueUpdate)) {
+                return;
+            }
+            numberOfIndexUpdatesSinceSample.incrementAndGet();
+            super.process(valueUpdate);
+        }
+    }
+
+    private class ConcurrentUpdatesIndexUpdater implements IndexUpdater {
+        private final CursorContext cursorContext;
+        private final KEY key;
+        private volatile boolean closed;
+
+        public ConcurrentUpdatesIndexUpdater(CursorContext cursorContext) {
+            this.cursorContext = cursorContext;
+            this.key = layout.newKey();
+        }
+
+        @Override
+        public void process(IndexEntryUpdate update) {
+            assertOpen();
+            try {
+                var valueUpdate = asValueUpdate(update);
+                validateUpdate(valueUpdate);
+                if (ignoreStrategy.ignore(valueUpdate)) {
+                    return;
+                }
+                // A change might just be an add or a remove for indexes not supporting all value types.
+                // Let's do any necessary conversion now and store it as the actual update the index needs.
+                processExternalUpdate(ignoreStrategy.toEquivalentUpdate(valueUpdate));
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+
+        private void processExternalUpdate(ValueIndexEntryUpdate update) throws IOException {
+            long entityId = update.getEntityId();
+            long version = this.cursorContext.getVersionContext().committingTransactionId();
+            initializeKeyFromUpdate(key, entityId, update.values());
+            switch (update.updateMode()) {
+                case ADDED -> externalUpdates.add(true, key, version);
+                case REMOVED -> externalUpdates.add(false, key, version);
+                case CHANGED -> {
+                    externalUpdates.add(true, key, version);
+                    initializeKeyFromUpdate(key, entityId, update.beforeValues());
+                    externalUpdates.add(false, key, version);
+                }
+            }
+        }
+
+        @Override
+        public void close() {
+            closed = true;
+        }
+
+        private void assertOpen() {
+            if (closed) {
+                throw new IllegalStateException("Updater has been closed");
+            }
         }
     }
 }

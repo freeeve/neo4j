@@ -759,7 +759,9 @@ class IndexPopulationJobTest {
 
         void add(ValueIndexEntryUpdate update) {
             if (update.getEntityId() == 2) {
-                job.update(IndexEntryUpdate.change(nodeToChange, index, previousValue, newValue));
+                job.queueConcurrentUpdate(
+                        IndexEntryUpdate.change(nodeToChange, index, previousValue, newValue),
+                        CursorContext.NULL_CONTEXT);
             }
             added.add(Pair.of(update.getEntityId(), update.values()[0].asObjectCopy()));
         }
@@ -818,7 +820,8 @@ class IndexPopulationJobTest {
 
         void add(ValueIndexEntryUpdate update) {
             if (update.getEntityId() == 2) {
-                job.update(IndexEntryUpdate.remove(nodeToDelete, index, valueToDelete));
+                job.queueConcurrentUpdate(
+                        IndexEntryUpdate.remove(nodeToDelete, index, valueToDelete), CursorContext.NULL_CONTEXT);
             }
             added.put(update.getEntityId(), update.values()[0].asObjectCopy());
         }
