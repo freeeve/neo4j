@@ -37,6 +37,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.database.DatabaseReferenceImpl;
 import org.neo4j.kernel.database.NamedDatabaseId;
+import org.neo4j.kernel.database.NormalizedCatalogEntry;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
 
 public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsModelIT {
@@ -107,13 +108,16 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
 
         assertThat(dbmsModel().getAllCompositeDatabaseReferences()).isEqualTo(Set.of(comp1Ref, comp2Ref));
 
-        assertThat(dbmsModel().getDatabaseRefByAlias(compDb1.name())).hasValue(comp1Ref);
-        assertThat(dbmsModel().getDatabaseRefByAlias(compDb2.name())).hasValue(comp2Ref);
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(compDb1.name())))
+                .hasValue(comp1Ref);
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(compDb2.name())))
+                .hasValue(comp2Ref);
         // since no reference was explicitly created this is empty - this in artefact of the test setup
-        assertThat(dbmsModel().getDatabaseRefByAlias(locDb.name())).isEmpty();
-        assertThat(dbmsModel().getDatabaseRefByAlias("locAlias"))
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(locDb.name())))
+                .isEmpty();
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry("locAlias")))
                 .hasValue(new DatabaseReferenceImpl.Internal(name("locAlias"), locDb, false));
-        assertThat(dbmsModel().getDatabaseRefByAlias("remAlias"))
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry("remAlias")))
                 .hasValue(new DatabaseReferenceImpl.External(name("rem1"), name("remAlias"), remoteNeo4j, remAliasId1));
     }
 
@@ -158,19 +162,21 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
 
         assertThat(dbmsModel().getAllDatabaseReferences())
                 .containsExactlyInAnyOrder(fooRef, foo0Ref, foo1Ref, barRef, bar0Ref, bar1Ref, bar2Ref, bar3Ref);
-        assertThat(dbmsModel().getDatabaseRefByAlias(foo.name())).hasValue(fooRef);
-        assertThat(dbmsModel().getDatabaseRefByAlias(bar.name())).hasValue(barRef);
-        assertThat(dbmsModel().getDatabaseRefByAlias(foo0.name()))
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(foo.name())))
+                .hasValue(fooRef);
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(bar.name())))
+                .hasValue(barRef);
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(foo0.name())))
                 .hasValue(fooRef.entityDetailStores().get(0));
-        assertThat(dbmsModel().getDatabaseRefByAlias(foo1.name()))
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(foo1.name())))
                 .hasValue(fooRef.entityDetailStores().get(1));
-        assertThat(dbmsModel().getDatabaseRefByAlias(bar0.name()))
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(bar0.name())))
                 .hasValue(barRef.entityDetailStores().get(0));
-        assertThat(dbmsModel().getDatabaseRefByAlias(bar1.name()))
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(bar1.name())))
                 .hasValue(barRef.entityDetailStores().get(1));
-        assertThat(dbmsModel().getDatabaseRefByAlias(bar2.name()))
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(bar2.name())))
                 .hasValue(barRef.entityDetailStores().get(2));
-        assertThat(dbmsModel().getDatabaseRefByAlias(bar3.name()))
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(bar3.name())))
                 .hasValue(barRef.entityDetailStores().get(3));
     }
 

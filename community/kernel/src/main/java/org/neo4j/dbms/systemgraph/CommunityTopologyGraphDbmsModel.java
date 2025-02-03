@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
@@ -56,7 +55,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
 
     @Override
     public Optional<NamedDatabaseId> getDatabaseIdByAlias(String databaseName) {
-        return CommunityTopologyGraphDbmsModelUtil.getDatabaseIdByAlias(tx, databaseName)
+        return CommunityTopologyGraphDbmsModelUtil.getDatabaseIdByAliasInRoot(tx, databaseName)
                 .or(() ->
                         CommunityTopologyGraphDbmsModelUtil.getDatabaseIdBy(tx, DATABASE_NAME_PROPERTY, databaseName));
     }
@@ -91,19 +90,6 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     }
 
     @Override
-    public Optional<DatabaseReference> getDatabaseRefByAlias(String databaseName) {
-        var normalizedDatabaseName = new NormalizedDatabaseName(databaseName).name();
-        // A uniqueness constraint at the Cypher level should prevent two references from ever having the same name, but
-        // in case they do, we simply prefer the internal reference.
-        return Optional.<DatabaseReference>empty()
-                .or(() -> getCompositeDatabaseReferenceInRoot(normalizedDatabaseName))
-                .or(() -> getSPDGraphShardReferenceInRoot(normalizedDatabaseName))
-                .or(() -> getSPDPropertyShardReferenceInRoot(normalizedDatabaseName))
-                .or(() -> CommunityTopologyGraphDbmsModelUtil.getInternalDatabaseReference(tx, normalizedDatabaseName))
-                .or(() -> CommunityTopologyGraphDbmsModelUtil.getExternalDatabaseReference(tx, normalizedDatabaseName));
-    }
-
-    @Override
     public Optional<DatabaseReference> getDatabaseRefByAlias(NormalizedCatalogEntry catalogEntry) {
         if (catalogEntry.compositeDb().isPresent()) {
             return resolveConstituent(catalogEntry.compositeDb().get(), catalogEntry.databaseAlias());
@@ -114,8 +100,10 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
 
     private Optional<DatabaseReference> resolveConstituent(String composite, String constituent) {
         return Optional.<DatabaseReference>empty()
-                .or(() -> CommunityTopologyGraphDbmsModelUtil.getInternalDatabaseReference(tx, composite, constituent))
-                .or(() -> CommunityTopologyGraphDbmsModelUtil.getExternalDatabaseReference(tx, composite, constituent));
+                .or(() -> CommunityTopologyGraphDbmsModelUtil.getInternalDatabaseReferenceInRoot(
+                        tx, composite, constituent))
+                .or(() -> CommunityTopologyGraphDbmsModelUtil.getExternalDatabaseReferenceInRoot(
+                        tx, composite, constituent));
     }
 
     private Optional<DatabaseReference> resolveRootReference(String normalizedDatabaseAlias) {
@@ -123,9 +111,30 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
                 .or(() -> getCompositeDatabaseReferenceInRoot(normalizedDatabaseAlias))
                 .or(() -> getSPDGraphShardReferenceInRoot(normalizedDatabaseAlias))
                 .or(() -> getSPDPropertyShardReferenceInRoot(normalizedDatabaseAlias))
-                .or(() -> CommunityTopologyGraphDbmsModelUtil.getInternalDatabaseReference(tx, normalizedDatabaseAlias))
-                .or(() ->
-                        CommunityTopologyGraphDbmsModelUtil.getExternalDatabaseReference(tx, normalizedDatabaseAlias));
+                .or(() -> CommunityTopologyGraphDbmsModelUtil.getInternalDatabaseReferenceInRoot(
+                        tx, normalizedDatabaseAlias))
+                .or(() -> CommunityTopologyGraphDbmsModelUtil.getExternalDatabaseReferenceInRoot(
+                        tx, normalizedDatabaseAlias));
+    }
+
+    private Stream<Node> getAllAliasNodesInRoot() {
+        return getAllAliasNodesInNamespace(DEFAULT_NAMESPACE);
+    }
+
+    private Stream<Node> getAllAliasNodesInNamespace(String namespace) {
+        return tx.findNodes(DATABASE_NAME_LABEL, NAMESPACE_PROPERTY, namespace).stream();
+    }
+
+    private Stream<Node> getRemoteAliasNodesInNamespace(String namespace) {
+        return tx.findNodes(REMOTE_DATABASE_LABEL, NAMESPACE_PROPERTY, namespace).stream();
+    }
+
+    private Stream<Node> getAliasNodeInNamespace(String namespace, String databaseName) {
+        return tx.findNodes(DATABASE_NAME_LABEL, NAMESPACE_PROPERTY, namespace, NAME_PROPERTY, databaseName).stream();
+    }
+
+    private Stream<Node> getAliasNodeInRoot(String databaseName) {
+        return getAliasNodeInNamespace(DEFAULT_NAMESPACE, databaseName);
     }
 
     @Override
@@ -141,7 +150,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     public Optional<Map<String, Object>> getAliasProperties(String databaseName, String namespace) {
         databaseName = new NormalizedDatabaseName(databaseName).name();
         namespace = new NormalizedDatabaseName(namespace).name();
-        return tx.findNodes(DATABASE_NAME_LABEL, NAME_PROPERTY, databaseName, NAMESPACE_PROPERTY, namespace).stream()
+        return getAliasNodeInNamespace(namespace, databaseName)
                 .findFirst()
                 .flatMap(CommunityTopologyGraphDbmsModelUtil::getAliasProperties);
     }
@@ -158,7 +167,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     }
 
     private Stream<DatabaseReferenceImpl.Composite> getAllCompositeDatabaseReferencesInRoot() {
-        return getAliasNodesInNamespace(DATABASE_NAME_LABEL, DEFAULT_NAMESPACE)
+        return getAllAliasNodesInRoot()
                 .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
                         .filter(db -> db.hasLabel(COMPOSITE_DATABASE_LABEL))
                         .flatMap(db -> createCompositeReference(alias, db))
@@ -166,7 +175,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     }
 
     private Optional<DatabaseReferenceImpl.Composite> getCompositeDatabaseReferenceInRoot(String databaseName) {
-        return getAliasNodesInNamespace(DATABASE_NAME_LABEL, DEFAULT_NAMESPACE, databaseName)
+        return getAliasNodeInRoot(databaseName)
                 .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
                         .filter(db -> db.hasLabel(COMPOSITE_DATABASE_LABEL))
                         .flatMap(db -> createCompositeReference(alias, db))
@@ -185,7 +194,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     }
 
     private Stream<DatabaseReferenceImpl.SPD> getAllSPDGraphShardReferencesInRoot() {
-        return getAliasNodesInNamespace(DATABASE_NAME_LABEL, DEFAULT_NAMESPACE)
+        return getAllAliasNodesInRoot()
                 .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
                         .filter(db -> db.getDegree(HAS_SHARD, Direction.OUTGOING) > 0)
                         .flatMap(db -> createSPDGraphShardReference(alias, db))
@@ -193,7 +202,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     }
 
     private Optional<DatabaseReferenceImpl.SPD> getSPDGraphShardReferenceInRoot(String databaseName) {
-        return getAliasNodesInNamespace(DATABASE_NAME_LABEL, DEFAULT_NAMESPACE, databaseName)
+        return getAliasNodeInRoot(databaseName)
                 .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
                         .filter(db -> db.getDegree(HAS_SHARD, Direction.OUTGOING) > 0)
                         .flatMap(db -> createSPDGraphShardReference(alias, db))
@@ -202,7 +211,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     }
 
     private Stream<DatabaseReferenceImpl.SPDShard> getAllSPDPropertyShardReferencesInRoot() {
-        return getAliasNodesInNamespace(DATABASE_NAME_LABEL, DEFAULT_NAMESPACE)
+        return getAllAliasNodesInRoot()
                 .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
                         .filter(db -> db.getDegree(HAS_SHARD, Direction.INCOMING) > 0)
                         .flatMap(db -> createSPDPropertyShardReference(alias, db))
@@ -210,7 +219,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     }
 
     private Optional<DatabaseReferenceImpl.SPDShard> getSPDPropertyShardReferenceInRoot(String databaseName) {
-        return getAliasNodesInNamespace(DATABASE_NAME_LABEL, DEFAULT_NAMESPACE, databaseName)
+        return getAliasNodeInRoot(databaseName)
                 .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
                         .filter(db -> db.getDegree(HAS_SHARD, Direction.INCOMING) > 0)
                         .flatMap(db -> createSPDPropertyShardReference(alias, db))
@@ -226,10 +235,10 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
                             db.getRelationships(Direction.OUTGOING, TopologyGraphDbmsModel.HAS_SHARD)
                                     .spliterator(),
                             false)
-                    .flatMap(rel ->
-                            getDatabaseRefByAlias((String) rel.getEndNode().getProperty(DATABASE_NAME_PROPERTY))
-                                    .map(ref -> Pair.of((int) rel.getProperty(HAS_SHARD_INDEX_PROPERTY), ref))
-                                    .stream())
+                    .flatMap(rel -> getDatabaseRefByAlias(
+                            new NormalizedCatalogEntry((String) rel.getEndNode().getProperty(DATABASE_NAME_PROPERTY)))
+                            .map(ref -> Pair.of((int) rel.getProperty(HAS_SHARD_INDEX_PROPERTY), ref))
+                            .stream())
                     .collect(Collectors.toMap(Pair::first, Pair::other));
             return Optional.of(new DatabaseReferenceImpl.SPD(aliasName, databaseId, shards));
         });
@@ -240,14 +249,6 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
                         alias, CommunityTopologyGraphDbmsModelUtil.getDatabaseId(db))
                 .flatMap(internal -> CommunityTopologyGraphDbmsModelUtil.readOwningDatabase(db)
                         .map(internal::asShard));
-    }
-
-    private Stream<Node> getAliasNodesInNamespace(Label label, String namespace) {
-        return tx.findNodes(label, NAMESPACE_PROPERTY, namespace).stream();
-    }
-
-    private Stream<Node> getAliasNodesInNamespace(Label label, String namespace, String databaseName) {
-        return tx.findNodes(label, NAMESPACE_PROPERTY, namespace, NAME_PROPERTY, databaseName).stream();
     }
 
     private Set<DatabaseReference> getAllDatabaseReferencesInComposite(NormalizedDatabaseName compositeName) {
@@ -263,7 +264,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     }
 
     private Stream<DatabaseReferenceImpl.External> getAllExternalDatabaseReferencesInNamespace(String namespace) {
-        return getAliasNodesInNamespace(REMOTE_DATABASE_LABEL, namespace)
+        return getRemoteAliasNodesInNamespace(namespace)
                 .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.createExternalReference(alias).stream());
     }
 
@@ -272,7 +273,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     }
 
     private Stream<DatabaseReferenceImpl.Internal> getAllInternalDatabaseReferencesInNamespace(String namespace) {
-        return getAliasNodesInNamespace(DATABASE_NAME_LABEL, namespace)
+        return getAllAliasNodesInNamespace(namespace)
                 .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
                         .filter(node -> !node.hasProperty(DATABASE_VIRTUAL_PROPERTY))
                         .filter(node -> node.getDegree(HAS_SHARD, Direction.OUTGOING) == 0
@@ -283,7 +284,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     }
 
     private Stream<DatabaseReferenceImpl.Internal> getAllSpdDatabaseReferencesInNamespace(String namespace) {
-        return getAliasNodesInNamespace(DATABASE_NAME_LABEL, namespace)
+        return getAllAliasNodesInNamespace(namespace)
                 .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
                         .filter(node -> !node.hasProperty(DATABASE_VIRTUAL_PROPERTY))
                         .filter(node -> node.getDegree(HAS_SHARD, Direction.OUTGOING) > 0)

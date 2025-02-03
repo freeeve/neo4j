@@ -54,11 +54,7 @@ public class SystemGraphDatabaseReferenceRepository implements DatabaseReference
 
     @Override
     public Optional<DatabaseReference> getByAlias(NormalizedDatabaseName databaseAlias) {
-        if (Objects.equals(SYSTEM_DATABASE_NAME, databaseAlias.name())) {
-            return Optional.of(SYSTEM_DATABASE_REFERENCE);
-        }
-
-        return execute(model -> model.getDatabaseRefByAlias(normalizeCatalogName(databaseAlias.name())));
+        return getByAlias(new NormalizedCatalogEntry(normalizeCatalogName(databaseAlias.name())));
     }
 
     @Override
@@ -67,8 +63,8 @@ public class SystemGraphDatabaseReferenceRepository implements DatabaseReference
             return Optional.of(SYSTEM_DATABASE_REFERENCE);
         }
 
-        return execute(
-                model -> model.getDatabaseIdByUUID(databaseId).flatMap(id -> model.getDatabaseRefByAlias(id.name())));
+        return execute(model -> model.getDatabaseIdByUUID(databaseId)
+                .flatMap(id -> model.getDatabaseRefByAlias(new NormalizedCatalogEntry(id.name()))));
     }
 
     private String normalizeCatalogName(String databaseAlias) {

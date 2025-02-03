@@ -302,14 +302,6 @@ public interface TopologyGraphDbmsModel {
     Optional<NamedDatabaseId> getDatabaseIdByUUID(UUID uuid);
 
     /**
-     * Fetches the {@link DatabaseReference} corresponding to the provided name.
-     *
-     * @param databaseName the database alias to resolve a {@link DatabaseReference} for.
-     * @return the corresponding {@link DatabaseReference}
-     */
-    Optional<DatabaseReference> getDatabaseRefByAlias(String databaseName);
-
-    /**
      * Fetches the {@link DatabaseReference} corresponding to the provided catalog entry.
      *
      * @param catalogEntry the catalog entry to resolve a {@link DatabaseReference} for.

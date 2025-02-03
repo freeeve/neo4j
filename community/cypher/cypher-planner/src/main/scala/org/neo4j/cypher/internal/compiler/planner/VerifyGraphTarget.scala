@@ -134,7 +134,13 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
     if (!allowCompositeQueries && catalogName.names().size() > 1) {
       notificationLogger.log(DeprecatedDatabaseNameNotification(catalogName.qualifiedNameString, Option.empty))
     }
-    toScala(databaseReferenceRepository.getInternalByAlias(normalizedDatabaseName)) match {
+
+    val resolvedAlias = if (catalogName.resolveStrictly) {
+      databaseReferenceRepository.getByAlias(NormalizedCatalogEntry.fromList(catalogName.names()))
+    } else {
+      databaseReferenceRepository.getByAlias(normalizedDatabaseName)
+    }
+    toScala(resolvedAlias) match {
       case None
         if !allowCompositeQueries || !isConstituent(
           databaseReferenceRepository,

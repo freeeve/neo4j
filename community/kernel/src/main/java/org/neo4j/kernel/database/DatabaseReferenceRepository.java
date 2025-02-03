@@ -45,30 +45,10 @@ public interface DatabaseReferenceRepository {
     Optional<DatabaseReference> getByUuid(UUID databaseId);
 
     /**
-     * Given a database alias, return the corresponding {@link DatabaseReferenceImpl.Internal} from the system database, if one exists.
-     *
-     * Note that this reference must point to a database hosted on this DBMS.
-     */
-    default Optional<DatabaseReferenceImpl.Internal> getInternalByAlias(NormalizedDatabaseName databaseAlias) {
-        return getByAlias(databaseAlias)
-                .filter(DatabaseReferenceImpl.Internal.class::isInstance)
-                .map(DatabaseReferenceImpl.Internal.class::cast);
-    }
-
-    /**
      * Given a string representation of a database name, return the corresponding {@link DatabaseReference} from the system database, if one exists.
      */
     default Optional<DatabaseReference> getByAlias(String databaseName) {
         return getByAlias(new NormalizedDatabaseName(databaseName));
-    }
-
-    /**
-     * Given a database name, return the corresponding {@link DatabaseReferenceImpl.Internal} from the system database, if one exists.
-     *
-     * Note that this reference must point to a database hosted on this DBMS.
-     */
-    default Optional<DatabaseReferenceImpl.Internal> getInternalByAlias(String databaseName) {
-        return getInternalByAlias(new NormalizedDatabaseName(databaseName));
     }
 
     /**

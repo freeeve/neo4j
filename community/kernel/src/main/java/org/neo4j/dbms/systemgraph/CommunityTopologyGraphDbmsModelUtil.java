@@ -21,6 +21,8 @@ package org.neo4j.dbms.systemgraph;
 
 import static org.neo4j.dbms.systemgraph.DriverSettings.Keys.CONNECTION_POOL_ACQUISITION_TIMEOUT;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_DATABASE_LABEL;
 
 import java.net.URI;
 import java.util.List;
@@ -251,44 +253,45 @@ public final class CommunityTopologyGraphDbmsModelUtil {
         return builder.build();
     }
 
-    static Optional<DatabaseReference> getInternalDatabaseReference(Transaction tx, String databaseName) {
-        var aliasNode = findAliasNodeInDefaultNamespace(tx, databaseName);
-        return aliasNode.flatMap(alias -> getTargetedDatabase(alias).flatMap(db -> createInternalReference(alias, db)));
+    static Optional<DatabaseReference> getInternalDatabaseReferenceInRoot(Transaction tx, String databaseName) {
+        return getInternalDatabaseReferenceInRoot(tx, DEFAULT_NAMESPACE, databaseName);
     }
 
-    static Optional<DatabaseReference> getInternalDatabaseReference(
+    static Optional<DatabaseReference> getInternalDatabaseReferenceInRoot(
             Transaction tx, String namespace, String databaseName) {
         return findAliasNodeInNamespace(tx, namespace, databaseName)
-                .filter(node -> !node.hasLabel(TopologyGraphDbmsModel.REMOTE_DATABASE_LABEL))
+                .filter(node -> !node.hasLabel(REMOTE_DATABASE_LABEL))
                 .flatMap(alias -> getTargetedDatabase(alias).flatMap(db -> createInternalReference(alias, db)));
+    }
+
+    static Optional<DatabaseReference> getExternalDatabaseReferenceInRoot(Transaction tx, String databaseName) {
+        return getExternalDatabaseReferenceInRoot(tx, DEFAULT_NAMESPACE, databaseName);
+    }
+
+    static Optional<DatabaseReference> getExternalDatabaseReferenceInRoot(
+            Transaction tx, String namespace, String databaseName) {
+        return findAliasNodeInNamespace(tx, namespace, databaseName)
+                .filter(node -> node.hasLabel(REMOTE_DATABASE_LABEL))
+                .flatMap(CommunityTopologyGraphDbmsModelUtil::createExternalReference);
     }
 
     private static Optional<Node> findAliasNodeInNamespace(Transaction tx, String namespace, String databaseName) {
         try (var nodes = tx.findNodes(
                 TopologyGraphDbmsModel.DATABASE_NAME_LABEL, TopologyGraphDbmsModel.NAME_PROPERTY, databaseName)) {
             return nodes.stream()
-                    .filter(node -> node.getProperty(TopologyGraphDbmsModel.NAMESPACE_PROPERTY)
+                    .filter(n -> getOptionalPropertyOnNode(
+                                    TopologyGraphDbmsModel.DATABASE_NAME,
+                                    n,
+                                    TopologyGraphDbmsModel.NAMESPACE_PROPERTY,
+                                    String.class)
+                            .orElse(TopologyGraphDbmsModel.DEFAULT_NAMESPACE)
                             .equals(namespace))
                     .findFirst();
         }
     }
 
-    static Optional<DatabaseReference> getExternalDatabaseReference(Transaction tx, String databaseName) {
-        var aliasNode = findAliasNodeInDefaultNamespace(tx, databaseName);
-        return aliasNode
-                .filter(node -> node.hasLabel(TopologyGraphDbmsModel.REMOTE_DATABASE_LABEL))
-                .flatMap(CommunityTopologyGraphDbmsModelUtil::createExternalReference);
-    }
-
-    static Optional<DatabaseReference> getExternalDatabaseReference(
-            Transaction tx, String namespace, String databaseName) {
-        return findAliasNodeInNamespace(tx, namespace, databaseName)
-                .filter(node -> node.hasLabel(TopologyGraphDbmsModel.REMOTE_DATABASE_LABEL))
-                .flatMap(CommunityTopologyGraphDbmsModelUtil::createExternalReference);
-    }
-
-    static Optional<NamedDatabaseId> getDatabaseIdByAlias(Transaction tx, String databaseName) {
-        return findAliasNodeInDefaultNamespace(tx, databaseName)
+    static Optional<NamedDatabaseId> getDatabaseIdByAliasInRoot(Transaction tx, String databaseName) {
+        return findAliasNodeInNamespace(tx, DEFAULT_NAMESPACE, databaseName)
                 .flatMap(CommunityTopologyGraphDbmsModelUtil::getTargetedDatabase);
     }
 
@@ -383,21 +386,6 @@ public final class CommunityTopologyGraphDbmsModelUtil {
         return type.cast(value);
     }
 
-    private static Optional<Node> findAliasNodeInDefaultNamespace(Transaction tx, String databaseName) {
-        try (var nodes = tx.findNodes(
-                TopologyGraphDbmsModel.DATABASE_NAME_LABEL, TopologyGraphDbmsModel.NAME_PROPERTY, databaseName)) {
-            return nodes.stream()
-                    .filter(n -> getOptionalPropertyOnNode(
-                                    TopologyGraphDbmsModel.DATABASE_NAME,
-                                    n,
-                                    TopologyGraphDbmsModel.NAMESPACE_PROPERTY,
-                                    String.class)
-                            .orElse(TopologyGraphDbmsModel.DEFAULT_NAMESPACE)
-                            .equals(TopologyGraphDbmsModel.DEFAULT_NAMESPACE))
-                    .findFirst();
-        }
-    }
-
     static <T> Optional<T> ignoreConcurrentDeletes(Supplier<Optional<T>> operation) {
         try {
             return operation.get();
@@ -415,8 +403,10 @@ public final class CommunityTopologyGraphDbmsModelUtil {
             if (relationships.isEmpty()) {
                 return Optional.of(aliasNode.getProperty(DATABASE_NAME_PROPERTY).toString());
             } else {
-                return Optional.of(
-                        relationships.get(0).getProperty(DATABASE_NAME_PROPERTY).toString());
+                return Optional.of(relationships
+                        .getFirst()
+                        .getProperty(DATABASE_NAME_PROPERTY)
+                        .toString());
             }
         });
     }
