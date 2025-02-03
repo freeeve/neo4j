@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher
 
+import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.cypher.internal.javacompat.NotificationTestSupport.TestFunctions
 import org.neo4j.cypher.internal.javacompat.NotificationTestSupport.TestProcedures
 import org.neo4j.cypher.internal.options.CypherVersion
@@ -374,19 +375,19 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         ),
         TestGqlStatusObject(
           STATUS_01N51.getStatusString,
-          "warn: relationship type does not exist. The relationship type `A` does not exist. Verify that the spelling is correct.",
+          "warn: relationship type does not exist. The relationship type `A` does not exist in database `neo4j`. Verify that the spelling is correct.",
           SeverityLevel.WARNING,
           NotificationClassification.UNRECOGNIZED
         ),
         TestGqlStatusObject(
           STATUS_01N51.getStatusString,
-          "warn: relationship type does not exist. The relationship type `B` does not exist. Verify that the spelling is correct.",
+          "warn: relationship type does not exist. The relationship type `B` does not exist in database `neo4j`. Verify that the spelling is correct.",
           SeverityLevel.WARNING,
           NotificationClassification.UNRECOGNIZED
         ),
         TestGqlStatusObject(
           STATUS_01N51.getStatusString,
-          "warn: relationship type does not exist. The relationship type `C` does not exist. Verify that the spelling is correct.",
+          "warn: relationship type does not exist. The relationship type `C` does not exist in database `neo4j`. Verify that the spelling is correct.",
           SeverityLevel.WARNING,
           NotificationClassification.UNRECOGNIZED
         ),
@@ -523,7 +524,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         ),
         TestGqlStatusObject(
           STATUS_01N51.getStatusString,
-          "warn: relationship type does not exist. The relationship type `TYPE` does not exist. Verify that the spelling is correct.",
+          "warn: relationship type does not exist. The relationship type `TYPE` does not exist in database `neo4j`. Verify that the spelling is correct.",
           SeverityLevel.WARNING,
           NotificationClassification.UNRECOGNIZED
         ),
@@ -664,7 +665,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
   private val propWarning =
     TestGqlStatusObject(
       STATUS_01N52.getStatusString,
-      "warn: property key does not exist. The property `prop` does not exist. Verify that the spelling is correct.",
+      "warn: property key does not exist. The property `prop` does not exist in database `neo4j`. Verify that the spelling is correct.",
       SeverityLevel.WARNING,
       NotificationClassification.UNRECOGNIZED
     )
@@ -845,7 +846,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
   private def labelWarning(label: String) =
     TestGqlStatusObject(
       STATUS_01N50.getStatusString,
-      s"warn: label does not exist. The label `$label` does not exist. Verify that the spelling is correct.",
+      s"warn: label does not exist. The label `$label` does not exist in database `neo4j`. Verify that the spelling is correct.",
       SeverityLevel.WARNING,
       NotificationClassification.UNRECOGNIZED
     )
@@ -925,7 +926,8 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         assertNotification(
           Seq(query),
           shouldContainNotification = true,
-          (ip: InputPosition) => missingLabel(ip, NotificationDetail.missingLabel(labels.head), labels.head),
+          (ip: InputPosition) =>
+            missingLabel(ip, NotificationDetail.missingLabel(labels.head), labels.head, DEFAULT_DATABASE_NAME),
           (labels.map(labelWarning) :+ testOmittedResult).toList,
           cypherVersions = Set(CypherVersion.cypher5)
         )

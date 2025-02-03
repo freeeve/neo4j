@@ -19,6 +19,8 @@
  */
 package org.neo4j.cypher.internal.compiler.test_helpers
 
+import org.mockito.Mockito.when
+import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.ExecutionModel
@@ -81,7 +83,7 @@ object ContextHelper extends MockitoSugar {
       CypherStatefulShortestPlanningModeOption.default,
     planVarExpandInto: CypherPlanVarExpandInto = CypherPlanVarExpandInto.default,
     databaseReferenceRepository: DatabaseReferenceRepository = mockDatabaseReferenceRepository,
-    databaseId: NamedDatabaseId = mock[NamedDatabaseId],
+    databaseId: NamedDatabaseId = mockDatabaseId,
     internalNotificationStats: InternalNotificationStats = new InternalNotificationStats(),
     internalSyntaxUsageStats: InternalSyntaxUsageStats = InternalSyntaxUsageStats.newImpl(),
     labelInferenceStrategy: LabelInferenceStrategy = NoInference,
@@ -115,6 +117,12 @@ object ContextHelper extends MockitoSugar {
       labelInferenceStrategy,
       sessionDatabase
     )
+  }
+
+  def mockDatabaseId: NamedDatabaseId = {
+    val mockDbId = mock[NamedDatabaseId]
+    when(mockDbId.name()).thenReturn(DEFAULT_DATABASE_NAME)
+    mockDbId
   }
 
   def mockDatabaseReferenceRepository: DatabaseReferenceRepository =

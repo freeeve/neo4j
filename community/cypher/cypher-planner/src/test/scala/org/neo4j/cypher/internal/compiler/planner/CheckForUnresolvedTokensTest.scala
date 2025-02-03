@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner
 
 import org.mockito.Mockito.when
+import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionHelpers.equalInAllVersions
 import org.neo4j.cypher.internal.CypherVersionTestSupport
@@ -76,8 +77,8 @@ class CheckForUnresolvedTokensTest extends CypherFunSuite
     val notifications = checkForTokens(ast, semanticTable)
 
     notifications should equal(Set(
-      MissingLabelNotification(InputPosition(9, 1, 10), "A"),
-      MissingLabelNotification(InputPosition(17, 1, 18), "B")
+      MissingLabelNotification(InputPosition(9, 1, 10), "A", DEFAULT_DATABASE_NAME),
+      MissingLabelNotification(InputPosition(17, 1, 18), "B", DEFAULT_DATABASE_NAME)
     ))
   }
 
@@ -111,8 +112,8 @@ class CheckForUnresolvedTokensTest extends CypherFunSuite
 
     // then
     checkForTokens(ast, semanticTable) should equal(Set(
-      MissingRelTypeNotification(InputPosition(15, 1, 16), "R1"),
-      MissingRelTypeNotification(InputPosition(18, 1, 19), "R2")
+      MissingRelTypeNotification(InputPosition(15, 1, 16), "R1", DEFAULT_DATABASE_NAME),
+      MissingRelTypeNotification(InputPosition(18, 1, 19), "R2", DEFAULT_DATABASE_NAME)
     ))
   }
 
@@ -145,7 +146,7 @@ class CheckForUnresolvedTokensTest extends CypherFunSuite
 
     // then
     checkForTokens(ast, semanticTable) should equal(Set(
-      MissingPropertyNameNotification(InputPosition(18, 1, 19), "prop")
+      MissingPropertyNameNotification(InputPosition(18, 1, 19), "prop", DEFAULT_DATABASE_NAME)
     ))
   }
 
@@ -171,7 +172,7 @@ class CheckForUnresolvedTokensTest extends CypherFunSuite
 
     // then
     checkForTokens(ast, semanticTable) should equal(Set(
-      MissingPropertyNameNotification(InputPosition(25, 1, 26), "prop")
+      MissingPropertyNameNotification(InputPosition(25, 1, 26), "prop", DEFAULT_DATABASE_NAME)
     ))
   }
 

@@ -589,18 +589,22 @@ public enum NotificationCodeWithDescription {
         return LARGE_LABEL_LOAD_CSV.notificationWithParameters(position, new String[] {}, new String[] {labelName});
     }
 
-    public static NotificationImplementation missingLabel(InputPosition position, String oldDetail, String labelName) {
-        return MISSING_LABEL.notificationWithParameters(position, new String[] {oldDetail}, new String[] {labelName});
+    public static NotificationImplementation missingLabel(
+            InputPosition position, String oldDetail, String labelName, String db) {
+        return MISSING_LABEL.notificationWithParameters(
+                position, new String[] {oldDetail}, new String[] {labelName, db});
     }
 
-    public static NotificationImplementation missingRelType(InputPosition position, String oldDetail, String relType) {
-        return MISSING_REL_TYPE.notificationWithParameters(position, new String[] {oldDetail}, new String[] {relType});
+    public static NotificationImplementation missingRelType(
+            InputPosition position, String oldDetail, String relType, String db) {
+        return MISSING_REL_TYPE.notificationWithParameters(
+                position, new String[] {oldDetail}, new String[] {relType, db});
     }
 
     public static NotificationImplementation missingPropertyName(
-            InputPosition position, String oldDetails, String property) {
+            InputPosition position, String oldDetails, String property, String db) {
         return MISSING_PROPERTY_NAME.notificationWithParameters(
-                position, new String[] {oldDetails}, new String[] {property});
+                position, new String[] {oldDetails}, new String[] {property, db});
     }
 
     public static NotificationImplementation unboundedShortestPath(InputPosition position, String pattern) {

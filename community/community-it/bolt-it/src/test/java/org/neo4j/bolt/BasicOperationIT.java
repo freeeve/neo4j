@@ -346,7 +346,7 @@ public class BasicOperationIT {
                 .receivesSuccess()
                 .receivesSuccessWithStatus(
                         GqlStatusInfoCodes.STATUS_01N50,
-                        "The label `THIS_IS_NOT_A_LABEL` does not exist. Verify that the spelling is correct.",
+                        "The label `THIS_IS_NOT_A_LABEL` does not exist in database `neo4j`. Verify that the spelling is correct.",
                         "One of the labels in your query is not available in the database, "
                                 + "make sure you didn't misspell it or that the label is available when "
                                 + "you run this statement in your application (the missing label name is: "
@@ -356,7 +356,7 @@ public class BasicOperationIT {
                         BoltConnectionAssertions.assertDiagnosticRecord(
                                 SeverityLevel.WARNING,
                                 NotificationCategory.UNRECOGNIZED,
-                                Map.of("label", "THIS_IS_NOT_A_LABEL"),
+                                Map.of("label", "THIS_IS_NOT_A_LABEL", "db", "neo4j"),
                                 diagnosticRecordPosition(18L, 1L, 17L)));
     }
 

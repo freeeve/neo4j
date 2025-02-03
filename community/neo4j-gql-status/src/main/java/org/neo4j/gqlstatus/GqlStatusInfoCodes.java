@@ -269,8 +269,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_01N50(
             new GqlStatus("01N50"),
             """
-                    The label { %s } does not exist. Verify that the spelling is correct.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.label},
+                    The label { %s } does not exist in database { %s }. Verify that the spelling is correct.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.label, GqlParams.StringParam.db},
             emptyMap(),
             Condition.WARNING,
             "label does not exist",
@@ -278,8 +278,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_01N51(
             new GqlStatus("01N51"),
             """
-                    The relationship type { %s } does not exist. Verify that the spelling is correct.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.relType},
+                    The relationship type { %s } does not exist in database { %s }. Verify that the spelling is correct.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.relType, GqlParams.StringParam.db},
             emptyMap(),
             Condition.WARNING,
             "relationship type does not exist",
@@ -287,8 +287,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_01N52(
             new GqlStatus("01N52"),
             """
-                    The property { %s } does not exist. Verify that the spelling is correct.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.propKey},
+                    The property { %s } does not exist in database { %s }. Verify that the spelling is correct.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.propKey, GqlParams.StringParam.db},
             emptyMap(),
             Condition.WARNING,
             "property key does not exist",

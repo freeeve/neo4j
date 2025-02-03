@@ -48,11 +48,12 @@ case object EagerLoadCsvNotification extends InternalNotification
 
 case class LargeLabelWithLoadCsvNotification(labelName: String) extends InternalNotification
 
-case class MissingLabelNotification(position: InputPosition, label: String) extends InternalNotification
+case class MissingLabelNotification(position: InputPosition, label: String, db: String) extends InternalNotification
 
-case class MissingRelTypeNotification(position: InputPosition, relType: String) extends InternalNotification
+case class MissingRelTypeNotification(position: InputPosition, relType: String, db: String) extends InternalNotification
 
-case class MissingPropertyNameNotification(position: InputPosition, name: String) extends InternalNotification
+case class MissingPropertyNameNotification(position: InputPosition, name: String, db: String)
+    extends InternalNotification
 
 case class ExhaustiveShortestPathForbiddenNotification(position: InputPosition, pathPredicates: Set[String])
     extends InternalNotification

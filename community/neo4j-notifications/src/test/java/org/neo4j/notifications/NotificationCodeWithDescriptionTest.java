@@ -783,7 +783,7 @@ class NotificationCodeWithDescriptionTest {
     @Test
     void shouldConstructNotificationsFor_MISSING_LABEL() {
         NotificationImplementation notification =
-                missingLabel(InputPosition.empty, NotificationDetail.missingLabel("Label"), "Label");
+                missingLabel(InputPosition.empty, NotificationDetail.missingLabel("Label"), "Label", "myDb");
 
         verifyNotification(
                 notification,
@@ -796,15 +796,20 @@ class NotificationCodeWithDescriptionTest {
                 NotificationClassification.UNRECOGNIZED,
                 "01N50",
                 new DiagnosticRecord(
-                                warning, NotificationClassification.UNRECOGNIZED, -1, -1, -1, Map.of("label", "Label"))
+                                warning,
+                                NotificationClassification.UNRECOGNIZED,
+                                -1,
+                                -1,
+                                -1,
+                                Map.of("label", "Label", "db", "myDb"))
                         .asMap(),
-                "warn: label does not exist. The label `Label` does not exist. Verify that the spelling is correct.");
+                "warn: label does not exist. The label `Label` does not exist in database `myDb`. Verify that the spelling is correct.");
     }
 
     @Test
     void shouldConstructNotificationsFor_MISSING_REL_TYPE() {
         NotificationImplementation notification =
-                missingRelType(InputPosition.empty, NotificationDetail.missingRelationshipType("Rel"), "Rel");
+                missingRelType(InputPosition.empty, NotificationDetail.missingRelationshipType("Rel"), "Rel", "neo4j");
 
         verifyNotification(
                 notification,
@@ -817,15 +822,20 @@ class NotificationCodeWithDescriptionTest {
                 NotificationClassification.UNRECOGNIZED,
                 "01N51",
                 new DiagnosticRecord(
-                                warning, NotificationClassification.UNRECOGNIZED, -1, -1, -1, Map.of("relType", "Rel"))
+                                warning,
+                                NotificationClassification.UNRECOGNIZED,
+                                -1,
+                                -1,
+                                -1,
+                                Map.of("relType", "Rel", "db", "neo4j"))
                         .asMap(),
-                "warn: relationship type does not exist. The relationship type `Rel` does not exist. Verify that the spelling is correct.");
+                "warn: relationship type does not exist. The relationship type `Rel` does not exist in database `neo4j`. Verify that the spelling is correct.");
     }
 
     @Test
     void shouldConstructNotificationsFor_MISSING_PROPERTY_NAME() {
         NotificationImplementation notification =
-                missingPropertyName(InputPosition.empty, NotificationDetail.propertyName("prop"), "prop");
+                missingPropertyName(InputPosition.empty, NotificationDetail.propertyName("prop"), "prop", "myDb");
 
         verifyNotification(
                 notification,
@@ -839,9 +849,14 @@ class NotificationCodeWithDescriptionTest {
                 NotificationClassification.UNRECOGNIZED,
                 "01N52",
                 new DiagnosticRecord(
-                                warning, NotificationClassification.UNRECOGNIZED, -1, -1, -1, Map.of("propKey", "prop"))
+                                warning,
+                                NotificationClassification.UNRECOGNIZED,
+                                -1,
+                                -1,
+                                -1,
+                                Map.of("propKey", "prop", "db", "myDb"))
                         .asMap(),
-                "warn: property key does not exist. The property `prop` does not exist. Verify that the spelling is correct.");
+                "warn: property key does not exist. The property `prop` does not exist in database `myDb`. Verify that the spelling is correct.");
     }
 
     @Test
@@ -2120,7 +2135,7 @@ class NotificationCodeWithDescriptionTest {
                         .setMessageParameters(new String[] {})
                         .build())
                 .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Expected parameterKeys: [relType] and parameterValues: [] to have the same length.");
+                .hasMessage("Expected parameterKeys: [relType, db] and parameterValues: [] to have the same length.");
     }
 
     @Test
@@ -2129,10 +2144,11 @@ class NotificationCodeWithDescriptionTest {
                 new NotificationImplementation.NotificationBuilder(NotificationCodeWithDescription.MISSING_REL_TYPE);
 
         assertThatThrownBy(() -> notificationBuilder
-                        .setMessageParameters(new String[] {"A", "B"})
+                        .setMessageParameters(new String[] {"A", "B", "C"})
                         .build())
                 .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Expected parameterKeys: [relType] and parameterValues: [A, B] to have the same length.");
+                .hasMessage(
+                        "Expected parameterKeys: [relType, db] and parameterValues: [A, B, C] to have the same length.");
     }
 
     /**
@@ -2163,8 +2179,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            -115, 41, 121, -48, -121, 47, -47, 36, 55, -65, -13, -57, -112, -89, 39, 124, 7, 81, 116, 11, 108, -57, -74,
-            118, -95, -88, -120, 60, -40, -61, 10, 46
+            -99, -45, -62, 121, -109, -76, 86, 104, -86, 87, 7, -123, -59, 84, 123, 121, 113, -83, 114, -1, -114, 111,
+            -65, -17, -52, -78, -30, 60, -19, -52, 67, -34
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {

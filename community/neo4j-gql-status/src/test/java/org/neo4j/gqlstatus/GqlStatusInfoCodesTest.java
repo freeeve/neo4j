@@ -358,7 +358,8 @@ public class GqlStatusInfoCodesTest {
         String[] params = {"Deleting nodes", "Person", "A*B"};
         String[] expectedMessages = {
             "Deleting nodes is deprecated and will be removed without a replacement.",
-            "The label `Person` does not exist. Verify that the spelling is correct.",
+            // Second parameter $db not sent in so will fallback to print out the parameter name
+            "The label `Person` does not exist in database `$db`. Verify that the spelling is correct.",
             "The disconnected pattern 'A*B' builds a cartesian product. A cartesian product may produce a large amount of data and slow down query processing."
         };
         for (int i = 0; i < gqlCodes.length; i++) {

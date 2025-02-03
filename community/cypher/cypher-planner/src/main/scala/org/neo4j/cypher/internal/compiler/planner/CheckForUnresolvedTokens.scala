@@ -22,12 +22,12 @@ package org.neo4j.cypher.internal.compiler.planner
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.phases.CompilationContains
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
+import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
-import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.LOGICAL_PLANNING
 import org.neo4j.cypher.internal.frontend.phases.VisitorPhase
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
@@ -45,11 +45,11 @@ import org.neo4j.notifications.MissingRelTypeNotification
 /**
  * Find labels, relationships types and property keys that do not exist in the db and issue warnings.
  */
-case object CheckForUnresolvedTokens extends VisitorPhase[BaseContext, LogicalPlanState] with StepSequencer.Step
+case object CheckForUnresolvedTokens extends VisitorPhase[PlannerContext, LogicalPlanState] with StepSequencer.Step
     with DefaultPostCondition
     with PlanPipelineTransformerFactory {
 
-  override def visit(value: LogicalPlanState, context: BaseContext): Unit = {
+  override def visit(value: LogicalPlanState, context: PlannerContext): Unit = {
     if (value.query.readOnly) {
       val table = value.semanticTable()
       def isEmptyLabel(label: String) = !table.resolvedLabelNames.contains(label)
@@ -61,16 +61,28 @@ case object CheckForUnresolvedTokens extends VisitorPhase[BaseContext, LogicalPl
       val notifications = value.statement().folder.treeFold(Seq.empty[InternalNotification]) {
         case label @ LabelName(name) if isEmptyLabel(name) =>
           acc =>
-            TraverseChildren(acc :+ MissingLabelNotification(label.position, name))
+            TraverseChildren(acc :+ MissingLabelNotification(
+              label.position,
+              name,
+              context.databaseId.name()
+            ))
 
         case rel @ RelTypeName(name) if isEmptyRelType(name) =>
           acc =>
-            TraverseChildren(acc :+ MissingRelTypeNotification(rel.position, name))
+            TraverseChildren(acc :+ MissingRelTypeNotification(
+              rel.position,
+              name,
+              context.databaseId.name()
+            ))
 
         case Property(variable, prop @ PropertyKeyName(name))
           if isNodeOrRelationship(variable) && isEmptyPropertyName(name) =>
           acc =>
-            TraverseChildren(acc :+ MissingPropertyNameNotification(prop.position, name))
+            TraverseChildren(acc :+ MissingPropertyNameNotification(
+              prop.position,
+              name,
+              context.databaseId.name()
+            ))
       }
 
       notifications foreach context.notificationLogger.log
@@ -92,5 +104,5 @@ case object CheckForUnresolvedTokens extends VisitorPhase[BaseContext, LogicalPl
   override def getTransformer(
     pushdownPropertyReads: Boolean,
     semanticFeatures: Seq[SemanticFeature]
-  ): VisitorPhase[BaseContext, LogicalPlanState] = this
+  ): VisitorPhase[PlannerContext, LogicalPlanState] = this
 }

@@ -147,23 +147,26 @@ object NotificationWrapping {
         graphdb.InputPosition.empty,
         labelName
       )
-    case MissingLabelNotification(pos, label) =>
+    case MissingLabelNotification(pos, label, db) =>
       NotificationCodeWithDescription.missingLabel(
         pos.withOffset(offset).asInputPosition,
         NotificationDetail.missingLabel(label),
-        label
+        label,
+        db
       )
-    case MissingRelTypeNotification(pos, relType) =>
+    case MissingRelTypeNotification(pos, relType, db) =>
       NotificationCodeWithDescription.missingRelType(
         pos.withOffset(offset).asInputPosition,
         NotificationDetail.missingRelationshipType(relType),
-        relType
+        relType,
+        db
       )
-    case MissingPropertyNameNotification(pos, name) =>
+    case MissingPropertyNameNotification(pos, name, db) =>
       NotificationCodeWithDescription.missingPropertyName(
         pos.withOffset(offset).asInputPosition,
         NotificationDetail.propertyName(name),
-        name
+        name,
+        db
       )
     case UnboundedShortestPathNotification(pos, pattern) =>
       NotificationCodeWithDescription.unboundedShortestPath(pos.withOffset(offset).asInputPosition, pattern)
