@@ -24,7 +24,9 @@ import io.cucumber.datatable.DataTable
 import io.cucumber.scala.Scenario
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.fail
 import org.neo4j.configuration.Config
+import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.cucumber.glue.prettifier.PrettifierSteps.preParser
 import org.neo4j.cypher.cucumber.glue.prettifier.PrettifierSteps.prettifier
 import org.neo4j.cypher.cucumber.glue.regular.GuiceObjectFactory
@@ -43,6 +45,7 @@ import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
+import org.neo4j.internal.helpers.Exceptions
 
 import scala.util.Failure
 import scala.util.Success
@@ -53,15 +56,21 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
 
   // Mutable state
   private[this] var atLeastOneSuccess = false
+  private[this] var lastParseFailure: Throwable = _
 
   After { scenario: Scenario =>
     val expectFailure = PrettifierSteps.expectFailure(scenario)
     // Do not quietly pass if nothing parse, if that happens something is probably wrong with the test implementation.
     // We ignore partial parsing failures and rely on the regular feature tests to catch those.
-    assertTrue(
-      atLeastOneSuccess || expectFailure,
-      s"The scenario had no query that parse in at least one version (you can mark this scenario as expected to fail in ${getClass.getName})"
-    )
+    if (!atLeastOneSuccess && !expectFailure) {
+      fail(
+        s"""
+           |The scenario had no query that parse in at least one version
+           |(you can mark this scenario as expected to fail in ${getClass.getName}).
+           |Last failure:
+           |${Exceptions.stringify(lastParseFailure)}""".stripMargin
+      )
+    }
     assertTrue(atLeastOneSuccess != expectFailure, s"Scenario expected to fail but passed: ${scenario.getName}")
   }
 
@@ -70,8 +79,9 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
       case Success(parsed) =>
         atLeastOneSuccess = true
         roundTripCheck(version, cypher, parsed)
-      case Failure(_) =>
-      // Ignore test if individual versions do not parse, let the regular feature tests handle that case.
+      case Failure(throwable) =>
+        // Ignore test if individual versions do not parse, let the regular feature tests handle that case.
+        lastParseFailure = throwable
     }
   }
 
@@ -83,8 +93,9 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
   }
 
   private def parse(version: CypherVersion, cypher: String): Statement = {
+    val preparsed = preParser.preParse(cypher, version)
     AstParserFactory(version)
-      .apply(preParser.preParse(cypher).statement, Neo4jCypherExceptionFactory(cypher, None), None)
+      .apply(preparsed.statement, Neo4jCypherExceptionFactory(cypher, None), None)
       .singleStatement()
       .endoRewrite(testRewriter)
   }
@@ -123,7 +134,11 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
 }
 
 object PrettifierSteps {
-  val preParser = new PreParser(CypherConfiguration.fromConfig(Config.defaults()))
+
+  val preParser = new PreParser(CypherConfiguration.fromConfig(Config.defaults(
+    GraphDatabaseInternalSettings.enable_experimental_cypher_versions,
+    java.lang.Boolean.TRUE
+  )))
 
   val prettifier: Prettifier = Prettifier(ExpressionStringifier(
     alwaysParens = true,

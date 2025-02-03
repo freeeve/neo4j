@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.preparser
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CachingPreParser
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.PreParser
 import org.neo4j.cypher.internal.cache.LFUCache
 import org.neo4j.cypher.internal.cache.TestExecutorCaffeineCacheFactory
@@ -190,30 +191,52 @@ class CypherPreParserTest extends CypherFunSuite with TableDrivenPropertyChecks 
   test("run the tests") {
     forAll(queries) {
       case (query, (options, pos)) =>
-        val preParsedQuery =
-          PreParsedQuery(
-            query.substring(pos.offset),
-            query,
-            PreParser.queryOptions(options, pos, CypherConfiguration.fromConfig(Config.defaults())),
-            Seq.empty
-          )
-        withClue(s"Failed on query: $query\n") {
-          parse(query) should equal(preParsedQuery)
+        for {
+          dbDefaultVersion <- CypherVersion.values()
+          explicitVersion <- CypherVersion.values().map(Some.apply) :+ Option.empty[CypherVersion]
+        } {
+          val extraOptions = explicitVersion.map(v => PreParserOption.version(v.versionName, InputPosition(0, 1, 1)))
+          val extraPrefix = explicitVersion.map(_.description + "\n").getOrElse("")
+          val addedOffset = extraPrefix.length
+          val addedLines = extraPrefix.count(_ == '\n')
+          val queryWithExtra = extraPrefix + query
+          val newPos =
+            if (addedOffset == 0) pos else InputPosition(pos.offset + addedOffset, pos.line + addedLines, pos.column)
+          withClue(s"Failed on query: $query\nTransformed query: $queryWithExtra\n") {
+            parse(queryWithExtra, dbDefaultVersion) shouldBe PreParsedQuery(
+              queryWithExtra.substring(newPos.offset),
+              queryWithExtra,
+              PreParser.queryOptions(
+                PreParsedStatement(queryWithExtra, options ++ extraOptions, newPos),
+                CypherConfiguration.fromConfig(Config.defaults(
+                  GraphDatabaseInternalSettings.enable_experimental_cypher_versions,
+                  java.lang.Boolean.TRUE
+                )),
+                dbDefaultVersion
+              ),
+              Seq.empty
+            )
+          }
         }
     }
   }
 
   private def preParserWith(settings: (Setting[_], AnyRef)*) = new CachingPreParser(
     CypherConfiguration.fromConfig(Config.defaults(settings.toMap.asJava)),
-    new LFUCache[String, PreParsedQuery](TestExecutorCaffeineCacheFactory, 0)
+    new LFUCache[PreParsedQuery.CacheKey, PreParsedQuery](TestExecutorCaffeineCacheFactory, 0)
   )
 
-  private def parse(queryText: String): PreParsedQuery = {
+  private def parse(queryText: String, version: CypherVersion): PreParsedQuery = {
     // JavaCc Preparser
-    preParserWith(GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE)
-      .preParse(queryText)
+    preParserWith(
+      GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE,
+      GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
+    )
+      .preParse(queryText, version)
     // Antlr Preparser
-    preParserWith().preParse(queryText)
+    preParserWith(
+      GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
+    ).preParse(queryText, version)
   }
 
   implicit private def lift(pos: (Int, Int, Int)): InputPosition = InputPosition(pos._3, pos._1, pos._2)

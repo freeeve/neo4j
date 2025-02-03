@@ -207,7 +207,7 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
       logicalPlanResult.queryObfuscator,
       contextManager.config.renderPlanDescription,
       kernelMonitors,
-      query.options.queryOptions.cypherVersion.actualVersion,
+      query.resolvedLanguage,
       executionPlanCacheKeyHash
     )
   }
@@ -222,7 +222,7 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
     executionPlanCacheKeyHash: Int
   ): CachedExecutionPlan = {
     val runtimeContext = contextManager.create(
-      query.options.queryOptions.cypherVersion.actualVersion,
+      query.resolvedLanguage,
       logicalPlanResult.plannerContext.planContext,
       transactionalContext.kernelTransaction().schemaRead(),
       transactionalContext.kernelTransaction().procedures(),

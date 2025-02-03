@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.helpers.ParameterValueTypeHelper
 import org.neo4j.cypher.internal.compiler.phases.BaseContextImpl
@@ -35,7 +36,6 @@ import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.macros.AssertMacros
-import org.neo4j.cypher.internal.options.CypherVersion
 import org.neo4j.cypher.internal.parser.v25.Cypher25ParserUtil
 import org.neo4j.cypher.internal.parser.v5.Cypher5ParserUtil
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
@@ -69,7 +69,7 @@ class CypherParsing(
     val plannerName = PlannerNameFor(plannerNameText)
     val startState = InitialState(queryText, plannerName, new AnonymousVariableNameGenerator)
     val context = BaseContextImpl(
-      cypherVersion.actualVersion,
+      cypherVersion,
       tracer,
       notificationLogger,
       rawQueryText,

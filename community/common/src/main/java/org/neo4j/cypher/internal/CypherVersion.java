@@ -23,7 +23,7 @@ public enum CypherVersion {
     Cypher5("5", "CYPHER 5", false, "cypher-5"),
     Cypher25("25", "CYPHER 25", true, "cypher-25");
 
-    public static final CypherVersion Default = Cypher5;
+    public static final CypherVersion Default = Cypher5; // TODO Remove
 
     public final String versionName;
     public final String description;

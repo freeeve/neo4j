@@ -185,8 +185,8 @@ class CypherConfiguration private (val config: Config) {
   val cachePropertiesForEntitiesWithFilter: Boolean =
     config.get(GraphDatabaseInternalSettings.push_predicates_into_remote_batch_properties)
 
-  def defaultCypherVersionFromConfig: org.neo4j.cypher.internal.options.CypherVersion =
-    org.neo4j.cypher.internal.options.CypherVersion.fromConfig(config)
+  def defaultCypherVersionFromConfig: org.neo4j.cypher.internal.options.CypherVersionOption =
+    org.neo4j.cypher.internal.options.CypherVersionOption.fromConfig(config)
 
   val antlrPreparserEnabled: Boolean =
     config.get(GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled)

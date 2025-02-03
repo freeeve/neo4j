@@ -39,22 +39,22 @@ class InputQueryTest extends CypherFunSuite {
   private val preParser =
     new CachingPreParser(
       CypherConfiguration.fromConfig(Config.defaults()),
-      new LFUCache[String, PreParsedQuery](TestExecutorCaffeineCacheFactory, 0)
+      new LFUCache[PreParsedQuery.CacheKey, PreParsedQuery](TestExecutorCaffeineCacheFactory, 0)
     )
 
   private def parser =
     CompilationPhases.parsing(ParsingConfig())
 
-  private def toPreParsedQuery(queryString: String) =
-    preParser.preParseQuery(queryString, devNullLogger)
+  private def toPreParsedQuery(queryString: String, version: CypherVersion) =
+    preParser.preParseQuery(queryString, devNullLogger, version)
 
   // Note, only parse in default version
-  private def toFullyParsedQuery(queryString: String) = FullyParsedQuery(
+  private def toFullyParsedQuery(queryString: String, version: CypherVersion) = FullyParsedQuery(
     state = parser.transform(
       from = InitialState(queryString, IDPPlannerName, new AnonymousVariableNameGenerator),
-      context = ContextHelper.create(CypherVersion.Default)
+      context = ContextHelper.create(version)
     ),
-    options = QueryOptions.default
+    options = QueryOptions.default(version)
   )
 
   test("same input string should have same cache keys (FullyParsedQuery)") {
@@ -65,8 +65,8 @@ class InputQueryTest extends CypherFunSuite {
         |RETURN x, a, b
         |""".stripMargin
 
-    val a = toFullyParsedQuery(queryString)
-    val b = toFullyParsedQuery(queryString)
+    val a = toFullyParsedQuery(queryString, CypherVersion.Default)
+    val b = toFullyParsedQuery(queryString, CypherVersion.Default)
 
     a.cacheKey shouldEqual b.cacheKey
     a.cacheKey.hashCode() shouldEqual b.cacheKey.hashCode()
@@ -80,8 +80,8 @@ class InputQueryTest extends CypherFunSuite {
         |RETURN x, a, b
         |""".stripMargin
 
-    val a = toPreParsedQuery(queryString)
-    val b = toPreParsedQuery(queryString)
+    val a = toPreParsedQuery(queryString, CypherVersion.Default)
+    val b = toPreParsedQuery(queryString, CypherVersion.Default)
 
     a.cacheKey shouldEqual b.cacheKey
     a.cacheKey.hashCode() shouldEqual b.cacheKey.hashCode()

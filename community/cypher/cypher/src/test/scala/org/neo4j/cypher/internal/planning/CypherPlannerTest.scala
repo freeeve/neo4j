@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.planning
 
 import org.neo4j.common
 import org.neo4j.configuration.Config
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.InterpretedRuntime
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
@@ -296,7 +297,7 @@ class CypherPlannerTest extends CypherFunSuite {
         |MATCH (a)-[r]-(b)-[q*]-(c)
         |RETURN result
         |""".stripMargin
-    val preParserQuery = PreParsedQuery(query, query, QueryOptions.default)
+    val preParserQuery = PreParsedQuery(query, query, QueryOptions.default(CypherVersion.Default))
 
     val tc = mock[TransactionalContext](org.mockito.Mockito.RETURNS_DEEP_STUBS)
 

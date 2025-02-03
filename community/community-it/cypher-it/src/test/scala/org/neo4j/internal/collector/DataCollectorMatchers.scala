@@ -47,7 +47,7 @@ object DataCollectorMatchers {
 
   private val preParser = new CachingPreParser(
     CypherConfiguration.fromConfig(Config.defaults()),
-    new LFUCache[String, PreParsedQuery](TestExecutorCaffeineCacheFactory, 0)
+    new LFUCache[PreParsedQuery.CacheKey, PreParsedQuery](TestExecutorCaffeineCacheFactory, 0)
   )
 
   /**
@@ -283,15 +283,17 @@ object DataCollectorMatchers {
   def beCypher(text: String): BeCypherMatcher = BeCypherMatcher(text)
 
   case class BeCypherMatcher(expected: String) extends Matcher[AnyRef] {
+    // TODO Multi version support
+    val version = CypherVersion.Default
 
     private def parse(version: CypherVersion, query: String, exceptionFactory: CypherExceptionFactory): Statement = {
       AstParserFactory(version)(query, exceptionFactory, None).singleStatement()
     }
 
-    private val preParsedQuery: PreParsedQuery = preParser.preParseQuery(expected, devNullLogger)
+    private val preParsedQuery: PreParsedQuery = preParser.preParseQuery(expected, devNullLogger, version)
 
     private val expectedAst = parse(
-      preParsedQuery.options.queryOptions.cypherVersion.actualVersion,
+      preParsedQuery.resolvedLanguage,
       preParsedQuery.statement,
       Neo4jCypherExceptionFactory(expected, Some(preParsedQuery.options.offset))
     )
@@ -300,9 +302,9 @@ object DataCollectorMatchers {
       MatchResult(
         matches = left match {
           case text: String =>
-            val preParsedQuery1 = preParser.preParseQuery(text, devNullLogger)
+            val preParsedQuery1 = preParser.preParseQuery(text, devNullLogger, version)
             parse(
-              preParsedQuery1.options.queryOptions.cypherVersion.actualVersion,
+              preParsedQuery1.resolvedLanguage,
               preParsedQuery1.statement,
               Neo4jCypherExceptionFactory(text, Some(preParsedQuery1.options.offset))
             ) == expectedAst

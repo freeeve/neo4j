@@ -84,8 +84,7 @@ public class SchemaCommandReader {
         var semanticState = SemanticState.clean();
 
         final var preParsedQuery = preParser.preParse(cypherText);
-        final var cypherVersion =
-                preParsedQuery.options().queryOptions().cypherVersion().actualVersion();
+        final var cypherVersion = preParsedQuery.resolvedLanguage();
 
         final var exceptionFactory = new Neo4jCypherExceptionFactory(
                 cypherText, Option.apply(preParsedQuery.options().offset()));

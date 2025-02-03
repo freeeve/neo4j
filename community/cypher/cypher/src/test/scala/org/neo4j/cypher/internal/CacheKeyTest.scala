@@ -36,7 +36,7 @@ import org.neo4j.cypher.internal.options.CypherReplanOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
 import org.neo4j.cypher.internal.options.CypherUpdateStrategy
-import org.neo4j.cypher.internal.options.CypherVersion
+import org.neo4j.cypher.internal.options.CypherVersionOption
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class CacheKeyTest extends CypherFunSuite {
@@ -57,7 +57,7 @@ class CacheKeyTest extends CypherFunSuite {
 
   test("All non-default options should be part of cache key, except replan") {
     val options = CypherQueryOptions(
-      cypherVersion = CypherVersion.cypher5,
+      cypherVersion = CypherVersionOption.cypher5,
       executionMode = CypherExecutionMode.profile,
       planner = CypherPlannerOption.dp,
       runtime = CypherRuntimeOption.pipelined,
@@ -83,7 +83,7 @@ class CacheKeyTest extends CypherFunSuite {
 
   test("Only certain non-default options should be part of logical plan cache key") {
     val options = CypherQueryOptions(
-      cypherVersion = CypherVersion.cypher5,
+      cypherVersion = CypherVersionOption.cypher5,
       executionMode = CypherExecutionMode.profile,
       planner = CypherPlannerOption.dp,
       runtime = CypherRuntimeOption.pipelined,

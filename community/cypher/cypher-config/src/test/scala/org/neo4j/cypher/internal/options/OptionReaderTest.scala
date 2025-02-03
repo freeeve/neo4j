@@ -154,7 +154,7 @@ class OptionReaderTest extends CypherFunSuite {
         intercept[InvalidCypherOption](defaultOptions("cypher version" -> experimentalVersion.versionName)) should
           have message s"$experimentalVersion is not a valid option for cypher version. Valid options are: 5"
       case version =>
-        defaultOptions("cypher version" -> version.versionName).cypherVersion.actualVersion shouldBe version
+        defaultOptions("cypher version" -> version.versionName).cypherVersion.explicitVersion shouldBe Some(version)
     }
   }
 
@@ -163,14 +163,14 @@ class OptionReaderTest extends CypherFunSuite {
       options(
         Map(GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE),
         "cypher version" -> version.versionName
-      ).cypherVersion.actualVersion shouldBe version
+      ).cypherVersion.explicitVersion shouldBe Some(version)
     }
   }
 
   test("Cypher version can be read with experimental versions and default setting") {
     for {
       versionSetting <- GraphDatabaseInternalSettings.CypherVersion.values()
-      preparserOption <- CypherVersion.values
+      preparserOption <- CypherVersionOption.values
     } {
       withClue(s"setting=$versionSetting, preparserOption=${preparserOption.render}") {
         options(
@@ -179,7 +179,7 @@ class OptionReaderTest extends CypherFunSuite {
             GraphDatabaseInternalSettings.default_cypher_version -> versionSetting
           ),
           "cypher version" -> preparserOption.render
-        ).cypherVersion.actualVersion shouldBe preparserOption.actualVersion
+        ).cypherVersion.explicitVersion shouldBe preparserOption.explicitVersion
       }
     }
 
@@ -187,14 +187,14 @@ class OptionReaderTest extends CypherFunSuite {
       versionSetting <- GraphDatabaseInternalSettings.CypherVersion.values()
     } {
       val expected = versionSetting match {
-        case GraphDatabaseInternalSettings.CypherVersion.Default  => internal.CypherVersion.Cypher5
-        case GraphDatabaseInternalSettings.CypherVersion.Cypher5  => internal.CypherVersion.Cypher5
-        case GraphDatabaseInternalSettings.CypherVersion.Cypher25 => internal.CypherVersion.Cypher25
+        case GraphDatabaseInternalSettings.CypherVersion.Default  => None
+        case GraphDatabaseInternalSettings.CypherVersion.Cypher5  => Some(internal.CypherVersion.Cypher5)
+        case GraphDatabaseInternalSettings.CypherVersion.Cypher25 => Some(internal.CypherVersion.Cypher25)
       }
       options(Map(
         GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE,
         GraphDatabaseInternalSettings.default_cypher_version -> versionSetting
-      )).cypherVersion.actualVersion shouldBe expected
+      )).cypherVersion.explicitVersion shouldBe expected
     }
   }
 

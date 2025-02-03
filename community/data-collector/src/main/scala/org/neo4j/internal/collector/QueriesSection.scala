@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.collector
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.graphdb.ExecutionPlanDescription
 import org.neo4j.values.virtual.MapValue
 
@@ -49,7 +50,12 @@ object QueriesSection {
 
   case class ProfileData(dbHits: util.ArrayList[Long], rows: util.ArrayList[Long], params: util.Map[String, AnyRef])
 
-  case class QueryKey(queryText: String, fullQueryTextHash: Int, plan: ExecutionPlanDescription)
+  case class QueryKey(
+    queryText: String,
+    queryLang: CypherVersion,
+    fullQueryTextHash: Int,
+    plan: ExecutionPlanDescription
+  )
 
   class QueryData() {
     val invocations = new ArrayBuffer[SingleInvocation]
@@ -68,7 +74,8 @@ object QueriesSection {
       val snapshot = querySnapshots.next()
       val queryString = snapshot.queryText
       if (QUERY_FILTER.findFirstMatchIn(queryString).isEmpty) {
-        val queryKey = QueryKey(queryString, snapshot.fullQueryTextHash, snapshot.queryPlanSupplier.get())
+        val queryKey =
+          QueryKey(queryString, snapshot.queryLanguage, snapshot.fullQueryTextHash, snapshot.queryPlanSupplier.get())
         val snapshotList = queries.getOrElseUpdate(queryKey, new QueryData())
         snapshotList.invocations += SingleInvocation(
           snapshot.queryParameters,
@@ -82,7 +89,7 @@ object QueriesSection {
     asRetrieveStream(queries.toIterator.map({
       case (queryKey, queryData) =>
         val data = new util.HashMap[String, AnyRef]()
-        data.put("query", anonymizer.queryText(queryKey.queryText))
+        data.put("query", anonymizer.queryText(queryKey.queryText, queryKey.queryLang))
 
         val estimatedRows = new util.ArrayList[Double]
         data.put("queryExecutionPlan", planToMap(queryKey.plan, estimatedRows))

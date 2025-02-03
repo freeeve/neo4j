@@ -22,7 +22,7 @@ package org.neo4j.cypher
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.cypher.internal.javacompat.NotificationTestSupport.TestFunctions
 import org.neo4j.cypher.internal.javacompat.NotificationTestSupport.TestProcedures
-import org.neo4j.cypher.internal.options.CypherVersion
+import org.neo4j.cypher.internal.options.CypherVersionOption
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_01N00
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_01N01
@@ -413,7 +413,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         ),
         testOmittedResult
       ),
-      cypherVersions = Set(CypherVersion.cypher5)
+      cypherVersions = Set(CypherVersionOption.cypher5)
     )
 
     assertNotification(
@@ -429,7 +429,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         ),
         testOmittedResult
       ),
-      cypherVersions = Set(CypherVersion.cypher5)
+      cypherVersions = Set(CypherVersionOption.cypher5)
     )
 
     assertNotification(
@@ -445,7 +445,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         ),
         testOmittedResult
       ),
-      cypherVersions = Set(CypherVersion.cypher5)
+      cypherVersions = Set(CypherVersionOption.cypher5)
     )
 
     assertNotification(
@@ -461,7 +461,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         ),
         testOmittedResult
       ),
-      cypherVersions = Set(CypherVersion.cypher5)
+      cypherVersions = Set(CypherVersionOption.cypher5)
     )
   }
 
@@ -711,7 +711,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
             propWarning,
             testOmittedResult
           ),
-          cypherVersions = Set(CypherVersion.cypher5)
+          cypherVersions = Set(CypherVersionOption.cypher5)
         )
     }
     queriesWithoutProp.foreach {
@@ -724,7 +724,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
             whereWarning(prop),
             testOmittedResult
           ),
-          cypherVersions = Set(CypherVersion.cypher5)
+          cypherVersions = Set(CypherVersionOption.cypher5)
         )
     }
   }
@@ -771,7 +771,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
             propWarning,
             testOmittedResult
           ),
-          cypherVersions = Set(CypherVersion.cypher5)
+          cypherVersions = Set(CypherVersionOption.cypher5)
         )
     }
     queriesWithoutProp.foreach {
@@ -784,7 +784,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
             whereWarning(prop),
             testOmittedResult
           ),
-          cypherVersions = Set(CypherVersion.cypher5)
+          cypherVersions = Set(CypherVersionOption.cypher5)
         )
     }
   }
@@ -894,7 +894,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
             ),
             testOmittedResult
           ) ++ labels.map(labelWarning),
-          cypherVersions = Set(CypherVersion.cypher5)
+          cypherVersions = Set(CypherVersionOption.cypher5)
         )
     }
   }
@@ -929,7 +929,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
           (ip: InputPosition) =>
             missingLabel(ip, NotificationDetail.missingLabel(labels.head), labels.head, DEFAULT_DATABASE_NAME),
           (labels.map(labelWarning) :+ testOmittedResult).toList,
-          cypherVersions = Set(CypherVersion.cypher5)
+          cypherVersions = Set(CypherVersionOption.cypher5)
         )
     }
   }
@@ -981,7 +981,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
             gqlStatusObject,
             testOmittedResult
           ),
-          cypherVersions = Set(CypherVersion.cypher5)
+          cypherVersions = Set(CypherVersionOption.cypher5)
         )
     }
   }
@@ -1143,7 +1143,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         ),
         testOmittedResult
       ),
-      cypherVersions = Set(CypherVersion.cypher5)
+      cypherVersions = Set(CypherVersionOption.cypher5)
     )
 
     assertNoDeprecations(notDeprecated)
@@ -1179,7 +1179,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         ),
         testOmittedResult
       ),
-      cypherVersions = Set(CypherVersion.cypher5)
+      cypherVersions = Set(CypherVersionOption.cypher5)
     )
 
     assertNoDeprecations(notDeprecated)
@@ -1211,7 +1211,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         ),
         testOmittedResult
       ),
-      Set(CypherVersion.cypher5)
+      Set(CypherVersionOption.cypher5)
     )
 
     assertNoDeprecations(notDeprecated)
@@ -1288,7 +1288,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         shouldContainNotification = true,
         deprecatedIdentifierUnicode(_, deprecateQueries._1, s"a${deprecateQueries._1}bc"),
         expectedGqlStatuses(deprecateQueries._1),
-        Set(CypherVersion.cypher5)
+        Set(CypherVersionOption.cypher5)
       )
     }
   }
@@ -1325,7 +1325,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         shouldContainNotification = true,
         deprecatedIdentifierUnicode(_, deprecateQueries._1, s"a${deprecateQueries._1}bc"),
         expectedGqlStatuses(deprecateQueries._1),
-        Set(CypherVersion.cypher5)
+        Set(CypherVersionOption.cypher5)
       )
     }
   }
@@ -1374,7 +1374,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         s"${deprecatedStartUnicodeChar}b${deprecatedExtendedUnicodeChar}c"
       ),
       expectedGqlStatuses,
-      Set(CypherVersion.cypher5)
+      Set(CypherVersionOption.cypher5)
     )
 
     assertNotification(
@@ -1386,7 +1386,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         s"${deprecatedStartUnicodeChar}b${deprecatedExtendedUnicodeChar}c"
       ),
       expectedGqlStatuses,
-      Set(CypherVersion.cypher5)
+      Set(CypherVersionOption.cypher5)
     )
   }
 
@@ -1427,7 +1427,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         s"${deprecatedStartUnicodeChar}b${deprecatedExtendedUnicodeChar}c"
       ),
       expectedGqlStatuses,
-      Set(CypherVersion.cypher5)
+      Set(CypherVersionOption.cypher5)
     )
 
     assertNotification(
@@ -1439,7 +1439,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         s"${deprecatedStartUnicodeChar}b${deprecatedExtendedUnicodeChar}c"
       ),
       expectedGqlStatuses,
-      Set(CypherVersion.cypher5)
+      Set(CypherVersionOption.cypher5)
     )
   }
 
@@ -1472,7 +1472,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         ),
         testOmittedResult
       ),
-      Set(CypherVersion.cypher5)
+      Set(CypherVersionOption.cypher5)
     )
   }
 
@@ -1499,7 +1499,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         ),
         testOmittedResult
       ),
-      Set(CypherVersion.cypher5)
+      Set(CypherVersionOption.cypher5)
     )
   }
 

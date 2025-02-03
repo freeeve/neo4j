@@ -25,6 +25,7 @@ import static scala.jdk.javaapi.OptionConverters.toJava;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.PreParser;
 import org.neo4j.cypher.internal.ast.AdministrationCommand;
 import org.neo4j.cypher.internal.ast.CatalogName;
@@ -97,7 +98,9 @@ public class QueryProcessorImpl implements QueryProcessor {
 
     @Override
     public PreParsedQuery preParse(Query query) {
-        return preParser.preParse(query.text());
+        // We use this temporarily, to be replaced by db specific default version.
+        final var defaultLanguage = CypherVersion.Default;
+        return preParser.preParse(query.text(), defaultLanguage);
     }
 
     @Override
@@ -175,9 +178,7 @@ public class QueryProcessorImpl implements QueryProcessor {
             CancellationChecker cancellationChecker,
             DatabaseReference sessionDatabase) {
         var queryTracer = tracer.compileQuery(query.text());
-        var resolver = SignatureResolver.from(
-                globalProcedures.getCurrentView(),
-                preParsedQuery.options().queryOptions().cypherVersion());
+        var resolver = SignatureResolver.from(globalProcedures.getCurrentView(), preParsedQuery.resolvedLanguage());
         var parsedQuery = parse(
                 query, queryTracer, preParsedQuery, resolver, notificationLogger, cancellationChecker, sessionDatabase);
         var catalogInfo = resolveCatalogInfo(
@@ -293,7 +294,7 @@ public class QueryProcessorImpl implements QueryProcessor {
         return parsing.parseQuery(
                 preParsedQuery.statement(),
                 preParsedQuery.rawStatement(),
-                preParsedQuery.options().queryOptions().cypherVersion(),
+                preParsedQuery.resolvedLanguage(),
                 notificationLogger,
                 preParsedQuery.options().queryOptions().planner().name(),
                 Option.apply(preParsedQuery.options().offset()),

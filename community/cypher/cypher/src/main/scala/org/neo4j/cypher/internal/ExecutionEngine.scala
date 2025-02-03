@@ -184,12 +184,14 @@ abstract class ExecutionEngine(
     closing(context, queryTracer) {
       val couldContainSensitiveFields = isOutermostQuery && masterCompiler.supportsAdministrativeCommands()
       val notificationLogger = new RecordingNotificationLogger()
+
       val preParsedQuery = preParser.preParseQuery(
-        query,
-        notificationLogger,
-        profile,
-        couldContainSensitiveFields,
-        DatabaseMode.COMPOSITE.equals(context.databaseMode())
+        queryText = query,
+        notificationLogger = notificationLogger,
+        defaultLanguage = CypherVersion.Default, // To be replaced with db specific default
+        profile = profile,
+        couldContainSensitiveFields = couldContainSensitiveFields,
+        targetsComposite = DatabaseMode.COMPOSITE.equals(context.databaseMode())
       )
       doExecute(
         preParsedQuery,
@@ -233,7 +235,7 @@ abstract class ExecutionEngine(
     subscriber: QuerySubscriber,
     notificationLogger: InternalNotificationLogger
   ): QueryExecution = {
-    context.executingQuery().onPreparseReady(query.options.queryOptions.cypherVersion.actualVersion.description)
+    context.executingQuery().onPreparseReady(query.resolvedLanguage)
     val executableQuery =
       try {
         getOrCompile(context, query, tracer, params, notificationLogger)
@@ -470,13 +472,12 @@ abstract class ExecutionEngine(
     masterCompiler.clearCaches()
 
   def insertIntoCache(
-    queryText: String,
     preParsedQuery: PreParsedQuery,
     params: MapValue,
     parsedQuery: BaseState,
     parsingNotifications: Set[InternalNotification]
   ): Unit = {
-    preParser.insertIntoCache(queryText, preParsedQuery)
+    preParser.insertIntoCache(preParsedQuery)
     masterCompiler.insertIntoCache(preParsedQuery, params, parsedQuery, parsingNotifications)
   }
 

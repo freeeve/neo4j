@@ -44,7 +44,7 @@ class TruncatedQuerySnapshotTest {
     @Test
     void shouldTruncateNode() {
         // when
-        TruncatedQuerySnapshot x = new TruncatedQuerySnapshot(null, "", null, map("n", NODE), -1L, -1L, -1L, 100);
+        TruncatedQuerySnapshot x = new TruncatedQuerySnapshot(null, "", null, map("n", NODE), -1L, -1L, -1L, 100, null);
 
         // then
         AnyValue truncatedNode = x.queryParameters.get("n");
@@ -56,7 +56,7 @@ class TruncatedQuerySnapshotTest {
     void shouldTruncateRelationship() {
         // when
         TruncatedQuerySnapshot x =
-                new TruncatedQuerySnapshot(null, "", null, map("r", RELATIONSHIP), -1L, -1L, -1L, 100);
+                new TruncatedQuerySnapshot(null, "", null, map("r", RELATIONSHIP), -1L, -1L, -1L, 100, null);
 
         // then
         AnyValue truncatedRelationship = x.queryParameters.get("r");

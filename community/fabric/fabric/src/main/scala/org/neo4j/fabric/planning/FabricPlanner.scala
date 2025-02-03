@@ -19,6 +19,7 @@
  */
 package org.neo4j.fabric.planning
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.CatalogName
 import org.neo4j.cypher.internal.cache.CacheSize
 import org.neo4j.cypher.internal.cache.CaffeineCacheFactory
@@ -90,11 +91,14 @@ case class FabricPlanner(
     cancellationChecker: CancellationChecker
   ): PlannerInstance = {
     val notificationLogger = new RecordingNotificationLogger()
-    val query = frontend.preParsing.preParse(queryString, notificationLogger)
+
+    val defaultLanguage = CypherVersion.Default // Temporary default to be replaced with db specific default
+    val query = frontend.preParsing.preParse(queryString, notificationLogger, defaultLanguage)
+
     PlannerInstance(
       ScopedProcedureSignatureResolver.from(
         signatureResolver,
-        QueryLanguage.from(query.options.queryOptions.cypherVersion.actualVersion)
+        QueryLanguage.from(query.resolvedLanguage)
       ),
       query,
       queryParams,
@@ -160,7 +164,7 @@ case class FabricPlanner(
         FabricStitcher(
           query.statement,
           compositeContext,
-          query.options.queryOptions.cypherVersion.actualVersion,
+          query.resolvedLanguage,
           pipeline,
           useHelper
         )
@@ -183,16 +187,17 @@ case class FabricPlanner(
       !QueryType.sensitive(plan.query)
 
     private def optionsFor(fragment: Fragment) =
-      if (useHelper.fragmentTargetsCompositeContext(fragment))
-        QueryOptions.default.copy(
-          queryOptions = QueryOptions.default.queryOptions.copy(
+      if (useHelper.fragmentTargetsCompositeContext(fragment)) {
+        val defaultOptions = QueryOptions.default(query.resolvedLanguage)
+        defaultOptions.copy(
+          queryOptions = defaultOptions.queryOptions.copy(
             runtime = CypherRuntimeOption.slotted,
             expressionEngine = CypherExpressionEngineOption.interpreted,
             cypherVersion = query.options.queryOptions.cypherVersion
           ),
           materializedEntitiesMode = true
         )
-      else
+      } else
         query.options
 
     private def trace(compute: => FabricPlan): FabricPlan = {

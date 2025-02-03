@@ -167,9 +167,7 @@ public class QueryStatementLifecycles {
 
         @Override
         public void donePreParsing(PreParsedQuery preParsedQuery) {
-            final var version =
-                    preParsedQuery.options().queryOptions().cypherVersion().actualVersion();
-            executingQuery.onPreparseReady(version.description);
+            executingQuery.onPreparseReady(preParsedQuery.resolvedLanguage());
         }
 
         @Override

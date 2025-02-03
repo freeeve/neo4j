@@ -208,7 +208,6 @@ public class ExecutionEngine implements InternalQueryExecutionEngine {
             BaseState parsedQuery,
             Set<InternalNotification> parsingNotifications) {
         cypherExecutionEngine.insertIntoCache(
-                queryText,
                 preParsedQuery,
                 params,
                 parsedQuery,

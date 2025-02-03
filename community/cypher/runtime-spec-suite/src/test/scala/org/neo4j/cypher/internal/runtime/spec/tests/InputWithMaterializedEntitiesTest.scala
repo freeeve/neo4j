@@ -20,12 +20,13 @@
 package org.neo4j.cypher.internal.runtime.spec.tests
 
 import org.neo4j.cypher.internal.CypherRuntime
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.MasterCompiler
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
 import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
-import org.neo4j.cypher.internal.options.CypherVersion
+import org.neo4j.cypher.internal.options.CypherVersionOption
 import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
@@ -244,9 +245,12 @@ abstract class InputWithMaterializedEntitiesTest[CONTEXT <: RuntimeContext](
   ): RuntimeTestSupport[CONTEXT] = {
     new RuntimeTestSupport[CONTEXT](graphDb, edition, runtime, workloadMode, logProvider) {
 
-      override protected def newRuntimeContext(queryContext: QueryContext): CONTEXT = {
+      override protected def newRuntimeContext(
+        queryContext: QueryContext,
+        dbDefaultLanguage: CypherVersion
+      ): CONTEXT = {
         runtimeContextManager.create(
-          CypherVersion.default.actualVersion,
+          dbDefaultLanguage,
           queryContext,
           queryContext.transactionalContext.schemaRead,
           queryContext.transactionalContext.procedures,

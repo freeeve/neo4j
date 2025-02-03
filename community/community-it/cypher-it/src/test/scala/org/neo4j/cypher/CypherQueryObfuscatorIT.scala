@@ -19,7 +19,8 @@
  */
 package org.neo4j.cypher
 
-import org.neo4j.cypher.internal.options.CypherVersion
+import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.options.CypherVersionOption
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.Transaction
 import org.neo4j.internal.kernel.api.security.SecurityContext
@@ -66,11 +67,11 @@ class CypherQueryObfuscatorIT extends CypherFunSuite {
 
     for {
       (rawText, obfuscatedText) <- literalTests
-      version <- CypherVersion.values + CypherVersion.default
+      version <- CypherVersionOption.values + CypherVersionOption.default
     } {
-      val renderedVersion = if (version == CypherVersion.default) "" else "CYPHER " + version.render + " "
+      val renderedVersion = if (version == CypherVersionOption.default) "" else "CYPHER " + version.render + " "
       test(s"$renderedVersion$rawText [text]") {
-        obfuscatorFactory.obfuscatorForQuery(renderedVersion + rawText)
+        obfuscatorFactory.obfuscatorForQuery(renderedVersion + rawText, CypherVersion.Default)
           .obfuscateText(rawText, 0) should equal(obfuscatedText)
       }
     }
@@ -118,13 +119,13 @@ class CypherQueryObfuscatorIT extends CypherFunSuite {
 
   for {
     ParameterTest(rawText, obfuscatedText, rawParameters, obfuscatedParameters) <- parameterTests
-    version <- CypherVersion.values
+    version <- CypherVersionOption.values
   } {
-    val renderedVersion = if (version == CypherVersion.default) "" else "CYPHER " + version.render + " "
+    val renderedVersion = if (version == CypherVersionOption.default) "" else "CYPHER " + version.render + " "
     test(s"$renderedVersion$rawText [params]") {
       val params = ValueUtils.asMapValue(rawParameters.asJava)
       val expectedParams = ValueUtils.asMapValue(obfuscatedParameters.asJava)
-      val ob = obfuscatorFactory.obfuscatorForQuery(renderedVersion + rawText)
+      val ob = obfuscatorFactory.obfuscatorForQuery(renderedVersion + rawText, CypherVersion.Default)
       ob.obfuscateText(rawText, 0) should equal(obfuscatedText)
       ob.obfuscateParameters(params) should equal(expectedParams)
     }

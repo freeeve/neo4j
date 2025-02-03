@@ -34,6 +34,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.config.CypherConfiguration;
 import org.neo4j.cypher.internal.options.CypherQueryOptions;
 import org.neo4j.cypher.internal.preparser.QueryOptions;
@@ -151,7 +152,8 @@ class ConstituentTransactionFactoryImplTest {
         when(context.sessionDatabaseReference()).thenReturn(sessionDatabase);
 
         QueryProcessor queryProcessor = mock(QueryProcessor.class);
-        QueryOptions queryOptions = QueryOptions.apply(InputPosition.NONE(), cypherQueryOptions, false, false);
+        QueryOptions queryOptions =
+                QueryOptions.apply(InputPosition.NONE(), cypherQueryOptions, false, false, CypherVersion.Default);
         StatementType statementType = StatementType.of(StatementType.Query());
         QueryProcessor.ProcessedQueryInfo processedQueryInfo = mock(QueryProcessor.ProcessedQueryInfo.class);
         when(queryProcessor.processQuery(any(), any(), any(), any(), any(), any()))

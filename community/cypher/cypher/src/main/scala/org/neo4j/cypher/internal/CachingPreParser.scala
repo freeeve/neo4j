@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal
 
 import org.antlr.v4.runtime.BailErrorStrategy
 import org.antlr.v4.runtime.CommonTokenStream
+import org.neo4j.cypher.internal.PreParser.queryOptions
 import org.neo4j.cypher.internal.cache.LFUCache
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.options.CypherConnectComponentsPlannerOption
@@ -29,12 +30,12 @@ import org.neo4j.cypher.internal.options.CypherExecutionMode
 import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
 import org.neo4j.cypher.internal.options.CypherQueryOptions
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
+import org.neo4j.cypher.internal.options.CypherVersionOption
 import org.neo4j.cypher.internal.parser.SyntaxErrorListener
 import org.neo4j.cypher.internal.parser.lexer.UnicodeEscapeReplacementReader.InvalidUnicodeLiteral
 import org.neo4j.cypher.internal.preparser.CypherPreparserParser
 import org.neo4j.cypher.internal.preparser.PreParsedQuery
 import org.neo4j.cypher.internal.preparser.PreParsedStatement
-import org.neo4j.cypher.internal.preparser.PreParserOption
 import org.neo4j.cypher.internal.preparser.PreparserCypherLexer
 import org.neo4j.cypher.internal.preparser.PreparserUtil
 import org.neo4j.cypher.internal.preparser.QueryOptions
@@ -48,6 +49,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
+import org.neo4j.exceptions.InvalidCypherOption
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlHelper
 
@@ -74,7 +76,7 @@ import scala.jdk.CollectionConverters.ListHasAsScala
  */
 class CachingPreParser(
   configuration: CypherConfiguration,
-  preParserCache: LFUCache[String, PreParsedQuery]
+  preParserCache: LFUCache[PreParsedQuery.CacheKey, PreParsedQuery]
 ) extends PreParser(configuration) {
 
   /**
@@ -87,8 +89,8 @@ class CachingPreParser(
     preParserCache.clear()
   }
 
-  def insertIntoCache(queryText: String, preParsedQuery: PreParsedQuery): Unit = {
-    preParserCache.put(queryText, preParsedQuery)
+  def insertIntoCache(preParsedQuery: PreParsedQuery): Unit = {
+    preParserCache.put(preParsedQuery.preParserCacheKey, preParsedQuery)
   }
 
   /**
@@ -96,6 +98,7 @@ class CachingPreParser(
    *
    * @param queryText                   the query
    * @param notificationLogger          records notifications during pre parsing
+   * @param defaultLanguage             database specific default query language version
    * @param profile                     true if the query should be profiled even if profile is not given as a pre-parser option
    * @param couldContainSensitiveFields true if the query might contain passwords, like some administrative commands can
    * @param targetsComposite            true if the query targets a composite database
@@ -106,15 +109,17 @@ class CachingPreParser(
   def preParseQuery(
     queryText: String,
     notificationLogger: InternalNotificationLogger,
+    defaultLanguage: CypherVersion,
     profile: Boolean = false,
     couldContainSensitiveFields: Boolean = false,
     targetsComposite: Boolean = false
   ): PreParsedQuery = {
     val preParsedQuery =
       if (couldContainSensitiveFields) { // This is potentially any outer query running on the system database
-        preParse(queryText)
+        preParse(queryText, defaultLanguage)
       } else {
-        preParserCache.computeIfAbsent(queryText, preParse(queryText))
+        val key = PreParsedQuery.CacheKey(queryText, defaultLanguage)
+        preParserCache.computeIfAbsent(key, preParse(queryText, defaultLanguage))
       }
     preParsedQuery.notifications.foreach(notificationLogger.log)
     if (profile) {
@@ -141,14 +146,32 @@ class PreParser(
 
   private val EMPTY_QUERY_PARSER_EXCEPTION_MSG = "Unexpected end of input: expected CYPHER, EXPLAIN, PROFILE or Query"
 
-  @Deprecated
-  def preParse(query: String, notifications: InternalNotificationLogger): PreParsedQuery = preParse(query)
+  @Deprecated // To be removed soon
+  def preParse(query: String, notifications: InternalNotificationLogger): PreParsedQuery =
+    preParse(query, CypherVersion.Default)
 
+  @Deprecated // To be removed soon
   def preParse(query: String): PreParsedQuery =
-    if (configuration.antlrPreparserEnabled) preParseAntlr(query)
-    else preParseJavaCc(query)
+    preParse(query, CypherVersion.Default)
 
-  def preParseJavaCc(queryText: String): PreParsedQuery = {
+  def preParse(query: String, defaultLanguage: CypherVersion): PreParsedQuery = {
+    val preParsedStatement =
+      if (configuration.antlrPreparserEnabled) preParseQuery(query)
+      else preParseJavaCc(query)
+    val notifications = preParserOptionsNotifications(preParsedStatement)
+    val options = queryOptions(preParsedStatement, configuration, defaultLanguage)
+    val preparsed = PreParsedQuery(preParsedStatement.statement, query, options, notifications)
+    if (preparsed.resolvedLanguage.experimental && !configuration.enableExperimentalCypherVersions) {
+      throw InvalidCypherOption.invalidOption(
+        preparsed.resolvedLanguage.versionName,
+        CypherVersionOption.name,
+        CypherVersionOption.supportedValues.map(_.name): _*
+      )
+    }
+    preparsed
+  }
+
+  private def preParseJavaCc(queryText: String): PreParsedStatement = {
     val exceptionFactory = new Neo4jASTExceptionFactory(Neo4jCypherExceptionFactory(queryText, None))
     if (queryText.isEmpty) {
       val gql = GqlHelper.getGql42001_42N45(0, 1, 1)
@@ -161,36 +184,14 @@ class PreParser(
       )
     }
     val preParserResult = new CypherPreParser(exceptionFactory, new PreParserCharStream(queryText)).parse()
-    val preParsedStatement = PreParsedStatement(
+    PreParsedStatement(
       queryText.substring(preParserResult.position.offset),
       preParserResult.options.asScala.toList,
       preParserResult.position
     )
-
-    val notifications = preParserOptionsNotifications(preParsedStatement)
-
-    val options = PreParser.queryOptions(
-      preParsedStatement.options,
-      preParsedStatement.offset,
-      configuration
-    )
-
-    PreParsedQuery(preParsedStatement.statement, queryText, options, notifications)
   }
 
-  def preParseAntlr(queryText: String): PreParsedQuery = {
-    val preParsedStatement = preParseQuery(queryText)
-    val notifications = preParserOptionsNotifications(preParsedStatement)
-
-    PreParsedQuery(
-      preParsedStatement.statement,
-      queryText,
-      PreParser.queryOptions(preParsedStatement.options, preParsedStatement.offset, configuration),
-      notifications
-    )
-  }
-
-  def preParseQuery(queryText: String): PreParsedStatement = {
+  private def preParseQuery(queryText: String): PreParsedStatement = {
     val exceptionFactory = Neo4jCypherExceptionFactory(queryText, None)
 
     val tokenStream =
@@ -267,19 +268,20 @@ class PreParser(
 
 object PreParser {
 
+  /**
+   *
+   * @param preparsed pre-parsed statement
+   * @param configuration dbms configuration
+   * @param defaultVersion database specific default query language version
+   * @return
+   */
   def queryOptions(
-    preParsedOptions: List[PreParserOption],
-    offset: InputPosition,
-    configuration: CypherConfiguration
-  ): QueryOptions = {
-
-    val preParsedOptionsSet = preParsedOptions.map(o => (o.key, o.value)).toSet
-
-    val options = CypherQueryOptions.fromValues(configuration, preParsedOptionsSet)
-
-    QueryOptions(
-      offset,
-      options
-    )
-  }
+    preparsed: PreParsedStatement,
+    configuration: CypherConfiguration,
+    defaultVersion: CypherVersion
+  ): QueryOptions = QueryOptions(
+    offset = preparsed.offset,
+    queryOptions = CypherQueryOptions.fromValues(configuration, preparsed.options.map(o => (o.key, o.value)).toSet),
+    defaultLanguage = defaultVersion
+  )
 }

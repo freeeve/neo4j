@@ -133,7 +133,8 @@ class QueryCollector extends CollectorStateMachine<Iterator<TruncatedQuerySnapsh
                         snapshot.elapsedTimeMicros(),
                         snapshot.compilationTimeMicros(),
                         snapshot.startTimestampMillis(),
-                        maxQueryTextSize));
+                        maxQueryTextSize,
+                        snapshot.queryLanguage()));
             }
         }
     }

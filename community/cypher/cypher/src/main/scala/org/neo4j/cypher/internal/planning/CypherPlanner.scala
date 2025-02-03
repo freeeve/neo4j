@@ -234,7 +234,7 @@ case class CypherPlanner(
       val parsedQuery = planner.parseQuery(
         preParsedQuery.statement,
         preParsedQuery.rawStatement,
-        preParsedQuery.options.queryOptions.cypherVersion,
+        preParsedQuery.resolvedLanguage,
         notificationLogger,
         preParsedQuery.options.queryOptions.planner.name,
         Some(offset),
@@ -357,7 +357,7 @@ case class CypherPlanner(
         transactionalContextWrapper,
         notificationLogger,
         log,
-        options.queryOptions.cypherVersion.actualVersion
+        options.resolvedLanguage
       ))
 
     val inferredRuntime: CypherRuntimeOption = options.queryOptions.runtime match {
@@ -379,7 +379,7 @@ case class CypherPlanner(
 
     // Context used to create logical plans
     val plannerContext = PlannerContext(
-      options.queryOptions.cypherVersion.actualVersion,
+      options.resolvedLanguage,
       tracer,
       notificationLogger,
       planContext,

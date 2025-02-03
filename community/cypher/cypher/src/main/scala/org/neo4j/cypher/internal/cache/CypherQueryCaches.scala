@@ -200,7 +200,7 @@ object CypherQueryCaches {
   // --- Cache types ------------------------------------------------
 
   object PreParserCache extends CacheCompanion("preparser") with CacheMonitorHelpers {
-    type Key = String
+    type Key = PreParsedQuery.CacheKey
     type Value = PreParsedQuery
 
     class Cache(

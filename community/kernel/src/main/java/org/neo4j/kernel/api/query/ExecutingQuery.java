@@ -34,6 +34,7 @@ import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.graphdb.InputPosition;
 import org.neo4j.internal.kernel.api.ExecutionStatistics;
@@ -86,7 +87,7 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
     private DeprecationNotificationsProvider deprecationNotificationsProvider;
     private DeprecationNotificationsProvider fabricDeprecationNotificationsProvider;
     private int executionPlanCacheKeyHash;
-    private String queryLanguage;
+    private CypherVersion queryLanguage;
     private volatile ExecutingQueryStatus status = SimpleState.parsing();
     private volatile ExecutingQuery previousQuery;
 
@@ -307,7 +308,7 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
         this.status = SimpleState.planning();
     }
 
-    public void onPreparseReady(String queryLanguage) {
+    public void onPreparseReady(CypherVersion queryLanguage) {
         this.queryLanguage = queryLanguage;
     }
 

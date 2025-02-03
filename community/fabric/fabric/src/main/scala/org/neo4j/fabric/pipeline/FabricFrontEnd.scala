@@ -21,6 +21,7 @@ package org.neo4j.fabric.pipeline
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CachingPreParser
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleGraphs
@@ -88,8 +89,12 @@ case class FabricFrontEnd(
         case CypherExecutionMode.profile => FabricPlan.PROFILE
       }
 
-    def preParse(queryString: String, notificationLogger: InternalNotificationLogger): PreParsedQuery = {
-      preParser.preParseQuery(queryString, notificationLogger)
+    def preParse(
+      queryString: String,
+      notificationLogger: InternalNotificationLogger,
+      defaultLanguage: CypherVersion
+    ): PreParsedQuery = {
+      preParser.preParseQuery(queryString, notificationLogger, defaultLanguage)
     }
 
   }
@@ -108,7 +113,7 @@ case class FabricFrontEnd(
       compilationTracer.compileQuery(query.description)
 
     private val context: BaseContext = BaseContextImpl(
-      query.options.queryOptions.cypherVersion.actualVersion,
+      query.resolvedLanguage,
       CompilationPhaseTracer.NO_TRACING,
       notificationLogger,
       query.rawStatement,

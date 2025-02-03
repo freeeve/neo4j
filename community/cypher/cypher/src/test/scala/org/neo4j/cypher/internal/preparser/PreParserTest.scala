@@ -23,11 +23,12 @@ import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CachingPreParser
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.cache.LFUCache
 import org.neo4j.cypher.internal.cache.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.options.CypherRuntimeOption.slotted
-import org.neo4j.cypher.internal.options.CypherVersion.cypher5
+import org.neo4j.cypher.internal.options.CypherVersionOption.cypher5
 import org.neo4j.cypher.internal.options._
 import org.neo4j.cypher.internal.util.DeprecatedConnectComponentsPlannerPreParserOption
 import org.neo4j.cypher.internal.util.DeprecatedEagerAnalyzerPreParserOption
@@ -46,7 +47,7 @@ class PreParserTest extends CypherFunSuite {
 
   private def preParserWith(settings: (Setting[_], AnyRef)*) = new CachingPreParser(
     CypherConfiguration.fromConfig(Config.defaults(settings.toMap.asJava)),
-    new LFUCache[String, PreParsedQuery](TestExecutorCaffeineCacheFactory, 0)
+    new LFUCache[PreParsedQuery.CacheKey, PreParsedQuery](TestExecutorCaffeineCacheFactory, 0)
   )
 
   private val preParser = preParserWith()
@@ -55,8 +56,8 @@ class PreParserTest extends CypherFunSuite {
     preParserWith(GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE)
 
   def preParse(queryText: String): PreParsedQuery = {
-    preParserJavaCc.preParseQuery(queryText, devNullLogger)
-    preParser.preParseQuery(queryText, devNullLogger)
+    preParserJavaCc.preParseQuery(queryText, devNullLogger, CypherVersion.Default)
+    preParser.preParseQuery(queryText, devNullLogger, CypherVersion.Default)
   }
 
   test("should not allow inconsistent runtime options") {
@@ -122,28 +123,28 @@ class PreParserTest extends CypherFunSuite {
       CypherQueryOptions.defaultOptions
 
     preParse("CYPHER 5 RETURN 42").options.queryOptions shouldBe
-      CypherQueryOptions.defaultOptions.copy(cypherVersion = CypherVersion.cypher5)
+      CypherQueryOptions.defaultOptions.copy(cypherVersion = CypherVersionOption.cypher5)
     preParse("CYPHER 5 CYPHER 5 RETURN 42").options.queryOptions shouldBe
-      CypherQueryOptions.defaultOptions.copy(cypherVersion = CypherVersion.cypher5)
+      CypherQueryOptions.defaultOptions.copy(cypherVersion = CypherVersionOption.cypher5)
     preParse("CYPHER 5 runtime=slotted RETURN 42").options.queryOptions shouldBe
       CypherQueryOptions.defaultOptions.copy(
-        cypherVersion = CypherVersion.cypher5,
+        cypherVersion = CypherVersionOption.cypher5,
         runtime = CypherRuntimeOption.slotted
       )
     preParse("CYPHER 5 runtime=slotted replan=skip RETURN 42").options.queryOptions shouldBe
       CypherQueryOptions.defaultOptions.copy(
-        cypherVersion = CypherVersion.cypher5,
+        cypherVersion = CypherVersionOption.cypher5,
         runtime = CypherRuntimeOption.slotted,
         replan = CypherReplanOption.skip
       )
     preParse("EXPLAIN CYPHER 5 RETURN 42").options.queryOptions shouldBe
       CypherQueryOptions.defaultOptions.copy(
-        cypherVersion = CypherVersion.cypher5,
+        cypherVersion = CypherVersionOption.cypher5,
         executionMode = CypherExecutionMode.explain
       )
     preParse("PROFILE CYPHER 5 RETURN 42").options.queryOptions shouldBe
       CypherQueryOptions.defaultOptions.copy(
-        cypherVersion = CypherVersion.cypher5,
+        cypherVersion = CypherVersionOption.cypher5,
         executionMode = CypherExecutionMode.profile
       )
 
@@ -248,7 +249,8 @@ class PreParserTest extends CypherFunSuite {
     val notificationLogger = new RecordingNotificationLogger()
     val preParsedQuery = preParser.preParseQuery(
       "CYPHER connectComponentsPlanner=idp RETURN 42",
-      notificationLogger
+      notificationLogger,
+      CypherVersion.Default
     )
     notificationLogger.notifications should equal(Set(
       DeprecatedConnectComponentsPlannerPreParserOption(InputPosition(7, 1, 8))
@@ -262,7 +264,8 @@ class PreParserTest extends CypherFunSuite {
     val notificationLogger = new RecordingNotificationLogger()
     val preParsedQuery = preParser.preParseQuery(
       "CYPHER cOnnectcomPONentsPlanner=idp RETURN 42",
-      notificationLogger
+      notificationLogger,
+      CypherVersion.Default
     )
     notificationLogger.notifications should equal(Set(
       DeprecatedConnectComponentsPlannerPreParserOption(InputPosition(7, 1, 8))
@@ -276,7 +279,8 @@ class PreParserTest extends CypherFunSuite {
     val notificationLogger = new RecordingNotificationLogger()
     val preParsedQuery = preParser.preParseQuery(
       "CYPHER eagerAnalyzer=ir RETURN 42",
-      notificationLogger
+      notificationLogger,
+      CypherVersion.Default
     )
     notificationLogger.notifications shouldEqual Set(
       DeprecatedEagerAnalyzerPreParserOption(InputPosition(7, 1, 8))
@@ -290,7 +294,8 @@ class PreParserTest extends CypherFunSuite {
     val notificationLogger = new RecordingNotificationLogger()
     val preParsedQuery = preParser.preParseQuery(
       "CYPHER eagerAnalyzer=lp RETURN 42",
-      notificationLogger
+      notificationLogger,
+      CypherVersion.Default
     )
     notificationLogger.notifications shouldEqual Set(
       DeprecatedEagerAnalyzerPreParserOption(InputPosition(7, 1, 8))
@@ -354,74 +359,66 @@ class PreParserTest extends CypherFunSuite {
     preParserWith(
       GraphDatabaseSettings.cypher_planner -> GraphDatabaseSettings.CypherPlanner.COST
     )
-      .preParseQuery("RETURN 1", devNullLogger).options.queryOptions.planner shouldEqual CypherPlannerOption.cost
+      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default).options.queryOptions.planner shouldEqual
+      CypherPlannerOption.cost
 
     preParserWith(GraphDatabaseInternalSettings.cypher_runtime -> GraphDatabaseInternalSettings.CypherRuntime.PIPELINED)
-      .preParseQuery("RETURN 1", devNullLogger).options.queryOptions.runtime shouldEqual CypherRuntimeOption.pipelined
+      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default).options.queryOptions.runtime shouldEqual
+      CypherRuntimeOption.pipelined
 
     preParserWith(
       GraphDatabaseInternalSettings.cypher_expression_engine -> GraphDatabaseInternalSettings.CypherExpressionEngine.COMPILED
     )
-      .preParseQuery(
-        "RETURN 1",
-        devNullLogger
-      ).options.queryOptions.expressionEngine shouldEqual CypherExpressionEngineOption.compiled
+      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default).options.queryOptions.expressionEngine shouldEqual
+      CypherExpressionEngineOption.compiled
 
     preParserWith(
       GraphDatabaseInternalSettings.cypher_operator_engine -> GraphDatabaseInternalSettings.CypherOperatorEngine.COMPILED
     )
-      .preParseQuery(
-        "RETURN 1",
-        devNullLogger
-      ).options.queryOptions.operatorEngine shouldEqual CypherOperatorEngineOption.compiled
+      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default).options.queryOptions.operatorEngine shouldEqual
+      CypherOperatorEngineOption.compiled
 
     preParserWith(
       GraphDatabaseInternalSettings.cypher_pipelined_interpreted_pipes_fallback -> GraphDatabaseInternalSettings.CypherPipelinedInterpretedPipesFallback.ALL
     )
-      .preParseQuery(
-        "RETURN 1",
-        devNullLogger
-      ).options.queryOptions.interpretedPipesFallback shouldEqual CypherInterpretedPipesFallbackOption.allPossiblePlans
+      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default)
+      .options.queryOptions.interpretedPipesFallback shouldEqual CypherInterpretedPipesFallbackOption.allPossiblePlans
 
     // JavaCc preparser
     preParserWith(
       GraphDatabaseSettings.cypher_planner -> GraphDatabaseSettings.CypherPlanner.COST,
       GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE
     )
-      .preParseQuery("RETURN 1", devNullLogger).options.queryOptions.planner shouldEqual CypherPlannerOption.cost
+      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default).options.queryOptions.planner shouldEqual
+      CypherPlannerOption.cost
 
     preParserWith(
       GraphDatabaseInternalSettings.cypher_runtime -> GraphDatabaseInternalSettings.CypherRuntime.PIPELINED,
       GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE
     )
-      .preParseQuery("RETURN 1", devNullLogger).options.queryOptions.runtime shouldEqual CypherRuntimeOption.pipelined
+      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default)
+      .options.queryOptions.runtime shouldEqual CypherRuntimeOption.pipelined
 
     preParserWith(
       GraphDatabaseInternalSettings.cypher_expression_engine -> GraphDatabaseInternalSettings.CypherExpressionEngine.COMPILED,
       GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE
     )
-      .preParseQuery(
-        "RETURN 1",
-        devNullLogger
-      ).options.queryOptions.expressionEngine shouldEqual CypherExpressionEngineOption.compiled
+      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default).options.queryOptions.expressionEngine shouldEqual
+      CypherExpressionEngineOption.compiled
 
     preParserWith(
       GraphDatabaseInternalSettings.cypher_operator_engine -> GraphDatabaseInternalSettings.CypherOperatorEngine.COMPILED,
       GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE
     )
-      .preParseQuery(
-        "RETURN 1",
-        devNullLogger
-      ).options.queryOptions.operatorEngine shouldEqual CypherOperatorEngineOption.compiled
+      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default).options.queryOptions.operatorEngine shouldEqual
+      CypherOperatorEngineOption.compiled
 
     preParserWith(
       GraphDatabaseInternalSettings.cypher_pipelined_interpreted_pipes_fallback -> GraphDatabaseInternalSettings.CypherPipelinedInterpretedPipesFallback.ALL,
       GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE
     )
-      .preParseQuery(
-        "RETURN 1",
-        devNullLogger
-      ).options.queryOptions.interpretedPipesFallback shouldEqual CypherInterpretedPipesFallbackOption.allPossiblePlans
+      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default)
+      .options.queryOptions.interpretedPipesFallback shouldEqual CypherInterpretedPipesFallbackOption.allPossiblePlans
   }
 
   test("should not accept illegal combinations") {
@@ -479,7 +476,7 @@ class PreParserTest extends CypherFunSuite {
     def shouldFail(query: String, settings: (Setting[_], AnyRef)*) =
       withClue(s"query: $query, settings: $settings") {
         intercept[InvalidArgumentException](
-          preParserWith(settings: _*).preParseQuery(query, devNullLogger)
+          preParserWith(settings: _*).preParseQuery(query, devNullLogger, CypherVersion.Default)
         )
       }
 
@@ -522,7 +519,7 @@ class PreParserTest extends CypherFunSuite {
   // Will fail in query parsing
   test("version as key") {
     preParse("cypher 5=slotted return 1").options.queryOptions shouldBe
-      CypherQueryOptions.defaultOptions.copy(cypherVersion = CypherVersion.cypher5)
+      CypherQueryOptions.defaultOptions.copy(cypherVersion = CypherVersionOption.cypher5)
   }
 
   test("invalid key in option") {
@@ -539,7 +536,7 @@ class PreParserTest extends CypherFunSuite {
       "\u0063\u0079\u0070\u0068\u0065\u0072\u0020\u0035\u0020\u0072\u0075\u006E\u0074\u0069\u006D\u0065\u003D\u0073\u006C\u006F\u0074\u0074\u0065\u0064\u0020\u0072\u0065\u0074\u0075\u0072\u006E\u0020\u0031"
     preParse(query).options.queryOptions shouldBe
       CypherQueryOptions.defaultOptions.copy(
-        cypherVersion = CypherVersion.cypher5,
+        cypherVersion = CypherVersionOption.cypher5,
         runtime = CypherRuntimeOption.slotted
       )
   }
@@ -557,7 +554,7 @@ class PreParserTest extends CypherFunSuite {
   test("option with comment and linebreak") {
     preParse("cypher 5 runtime=//hej\nslotted return 1").options.queryOptions shouldBe
       CypherQueryOptions.defaultOptions.copy(
-        cypherVersion = CypherVersion.cypher5,
+        cypherVersion = CypherVersionOption.cypher5,
         runtime = CypherRuntimeOption.slotted
       )
   }
@@ -567,7 +564,7 @@ class PreParserTest extends CypherFunSuite {
       "/*hej*/cypher/*hej*/5/*hej*/runtime/*hej*/=/*hej*/slotted/*hej*/return/*hej*/1"
     ).options.queryOptions shouldBe
       CypherQueryOptions.defaultOptions.copy(
-        cypherVersion = CypherVersion.cypher5,
+        cypherVersion = CypherVersionOption.cypher5,
         runtime = CypherRuntimeOption.slotted
       )
   }

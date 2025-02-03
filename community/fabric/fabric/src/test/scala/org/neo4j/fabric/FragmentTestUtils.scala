@@ -20,7 +20,9 @@
 package org.neo4j.fabric
 
 import org.neo4j.configuration.Config
+import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.Query
@@ -62,14 +64,17 @@ import org.neo4j.fabric.util.Rewritten.RewritingOps
 import org.neo4j.kernel.database.DatabaseIdFactory
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.DatabaseReferenceImpl
+import org.neo4j.kernel.database.NamedDatabaseId
 import org.neo4j.kernel.database.NormalizedDatabaseName
 import org.neo4j.monitoring.Monitors
 import org.neo4j.values.virtual.MapValue
 
+import java.util.Optional
 import java.util.UUID
 import java.util.concurrent.Executors
 
 import scala.reflect.ClassTag
+import scala.util.Random
 
 trait FragmentTestUtils {
 
@@ -155,27 +160,33 @@ trait FragmentTestUtils {
   def signatures: ProcedureSignatureResolver
   def scopedSignatures: ScopedProcedureSignatureResolver
 
-  val cypherConfig: CypherConfiguration = CypherConfiguration.fromConfig(Config.defaults())
+  val cypherConfig: CypherConfiguration = CypherConfiguration.fromConfig(Config.defaults(
+    GraphDatabaseInternalSettings.enable_experimental_cypher_versions,
+    java.lang.Boolean.TRUE
+  ))
 
   val cypherConfigWithQueryObfuscation: CypherConfiguration =
     CypherConfiguration.fromConfig(Config.newBuilder()
       .set(GraphDatabaseSettings.log_queries_obfuscate_literals, java.lang.Boolean.TRUE)
+      .set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, java.lang.Boolean.TRUE)
       .build())
   val monitors: Monitors = new Monitors
 
   val cacheFactory = new ExecutorBasedCaffeineCacheFactory(Executors.newWorkStealingPool)
   val frontend: FabricFrontEnd = FabricFrontEnd(cypherConfig, monitors, cacheFactory)
 
-  def pipeline(query: String): frontend.Pipeline =
+  def pipeline(query: String, defaultLanguage: CypherVersion): frontend.Pipeline =
     frontend.Pipeline(
       scopedSignatures,
-      frontend.preParsing.preParse(query, devNullLogger),
+      frontend.preParsing.preParse(query, devNullLogger, defaultLanguage),
       params,
       CancellationChecker.NeverCancelled,
       devNullLogger,
       InternalSyntaxUsageStatsNoOp,
       null
     )
+
+  def pipeline(query: String): frontend.Pipeline = pipeline(query, CypherVersion.Default)
 
   def fragment(query: String): Fragment = {
     val state = pipeline(query).parseAndPrepare.process()
@@ -186,8 +197,8 @@ trait FragmentTestUtils {
   def parse(query: String): Statement =
     pipeline(query).parseAndPrepare.process().statement()
 
-  def preParse(query: String): PreParsedQuery =
-    frontend.preParsing.preParse(query, devNullLogger)
+  def preParse(query: String, defaultLanguage: CypherVersion = CypherVersion.Default): PreParsedQuery =
+    frontend.preParsing.preParse(query, devNullLogger, defaultLanguage)
 
   implicit class FragmentOps[F <: Fragment](fragment: F) {
 

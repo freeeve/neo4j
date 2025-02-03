@@ -23,6 +23,7 @@ import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.planPipeLine
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.prepareForCaching
@@ -40,7 +41,6 @@ import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
-import org.neo4j.cypher.internal.options.CypherVersion
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InputPosition

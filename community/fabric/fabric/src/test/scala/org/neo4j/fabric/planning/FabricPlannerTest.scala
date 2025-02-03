@@ -21,6 +21,7 @@ package org.neo4j.fabric.planning
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.CypherParallelRuntimeSupport
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.CreateIndex
 import org.neo4j.cypher.internal.ast.CreateRole
@@ -49,7 +50,7 @@ import org.neo4j.cypher.internal.options.CypherReplanOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
 import org.neo4j.cypher.internal.options.CypherUpdateStrategy
-import org.neo4j.cypher.internal.options.CypherVersion
+import org.neo4j.cypher.internal.options.CypherVersionOption
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery
 import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.tracing.TimingCompilationTracer
@@ -67,6 +68,7 @@ import org.neo4j.fabric.util.Folded.FoldableOps
 import org.neo4j.kernel.database.DatabaseIdFactory
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.DatabaseReferenceImpl
+import org.neo4j.kernel.database.NamedDatabaseId
 import org.neo4j.kernel.database.NormalizedDatabaseName
 import org.neo4j.string.UTF8
 import org.neo4j.values.storable.Values
@@ -574,7 +576,8 @@ class FabricPlannerTest
     }
 
     "cache hit on equal input with query-obfuscation" in {
-      val newPlanner = FabricPlanner(config, cypherConfigWithQueryObfuscation, monitors, cacheFactory)
+      val newPlanner =
+        FabricPlanner(config, cypherConfigWithQueryObfuscation, monitors, cacheFactory)
 
       val q =
         """WITH [1, "2", "three"] AS a, "A literal" AS b
@@ -996,7 +999,7 @@ class FabricPlannerTest
       val expectedInner = QueryOptions(
         offset = InputPosition.NONE,
         queryOptions = CypherQueryOptions(
-          cypherVersion = CypherVersion.default,
+          cypherVersion = CypherVersionOption.default,
           executionMode = CypherExecutionMode.default,
           planner = CypherPlannerOption.cost,
           runtime = CypherRuntimeOption.parallel,
@@ -1012,11 +1015,12 @@ class FabricPlannerTest
           inferSchemaParts = CypherInferSchemaPartsOption.default,
           statefulShortestPlanningModeOption = CypherStatefulShortestPlanningModeOption.default,
           planVarExpandInto = CypherPlanVarExpandInto.default
-        )
+        ),
+        defaultLanguage = CypherVersion.Default
       )
 
-      val expectedLast = QueryOptions.default.copy(
-        queryOptions = QueryOptions.default.queryOptions.copy(
+      val expectedLast = QueryOptions.default(CypherVersion.Default).copy(
+        queryOptions = QueryOptions.default(CypherVersion.Default).queryOptions.copy(
           runtime = CypherRuntimeOption.slotted,
           expressionEngine = CypherExpressionEngineOption.interpreted
         ),
@@ -1058,11 +1062,12 @@ class FabricPlannerTest
 
       val expectedInner = QueryOptions(
         offset = InputPosition.NONE,
-        queryOptions = CypherQueryOptions.defaultOptions
+        queryOptions = CypherQueryOptions.defaultOptions,
+        defaultLanguage = CypherVersion.Default
       )
 
-      val expectedLast = QueryOptions.default.copy(
-        queryOptions = QueryOptions.default.queryOptions.copy(
+      val expectedLast = QueryOptions.default(CypherVersion.Default).copy(
+        queryOptions = QueryOptions.default(CypherVersion.Default).queryOptions.copy(
           runtime = CypherRuntimeOption.slotted,
           expressionEngine = CypherExpressionEngineOption.interpreted
         ),

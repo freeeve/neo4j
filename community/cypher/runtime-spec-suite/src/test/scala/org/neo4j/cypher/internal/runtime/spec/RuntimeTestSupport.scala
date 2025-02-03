@@ -32,10 +32,13 @@ import org.neo4j.cypher.internal.RuntimeContextManager
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
 import org.neo4j.cypher.internal.options.CypherDebugOptions
+import org.neo4j.cypher.internal.options.CypherQueryOptions
 import org.neo4j.cypher.internal.plandescription.InternalPlanDescription
 import org.neo4j.cypher.internal.plandescription.PlanDescriptionBuilder
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttributes
+import org.neo4j.cypher.internal.preparser.PreParsedStatement
+import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.runtime.InputDataStream
 import org.neo4j.cypher.internal.runtime.InputValues
 import org.neo4j.cypher.internal.runtime.NoInput
@@ -936,8 +939,9 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
       executableQuery.runtimeName.name,
       Collections.emptyList()
     ))
+    val defaultLanguage = CypherVersion.Default
     val queryContext = newQueryContext(txContext, executableQuery.threadSafeExecutionResources())
-    val runtimeContext = newRuntimeContext(queryContext)
+    val runtimeContext = newRuntimeContext(queryContext, defaultLanguage)
 
     val executionMode = if (profile) ProfileMode else NormalMode
     val (keys, values) =
@@ -965,7 +969,8 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
     queryContext: QueryContext,
     testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = Set.empty[TestPlanCombinationRewriterHint]
   ): (ExecutionPlan, CONTEXT) = {
-    val runtimeContext = newRuntimeContext(queryContext)
+    val defaultLanguage = CypherVersion.Default // To be replaced with db specific default
+    val runtimeContext = newRuntimeContext(queryContext, defaultLanguage)
     val rewrittenLogicalQuery =
       rewriteLogicalQuery(logicalQuery, runtimeContext.anonymousVariableNameGenerator, testPlanCombinationRewriterHints)
     (runtime.compileToExecutable(rewrittenLogicalQuery, runtimeContext, txContext.databaseMode()), runtimeContext)
@@ -992,14 +997,18 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
 
   protected def wrapTransactionContext(ctx: TransactionalContext): TransactionalContext = ctx
 
-  protected def newRuntimeContext(queryContext: QueryContext): CONTEXT = {
+  protected def newRuntimeContext(queryContext: QueryContext, dbDefaultLanguage: CypherVersion): CONTEXT = {
 
     val cypherConfiguration: CypherConfiguration = edition.cypherConfig
 
-    val queryOptions = PreParser.queryOptions(List.empty, InputPosition.NONE, cypherConfiguration)
+    val queryOptions = QueryOptions(
+      offset = InputPosition.NONE,
+      queryOptions = CypherQueryOptions.fromValues(cypherConfiguration, Set.empty),
+      defaultLanguage = dbDefaultLanguage
+    )
 
     runtimeContextManager.create(
-      queryOptions.queryOptions.cypherVersion.actualVersion,
+      queryOptions.resolvedLanguage,
       queryContext,
       queryContext.transactionalContext.schemaRead,
       queryContext.transactionalContext.procedures,

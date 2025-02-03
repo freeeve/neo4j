@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.CommunityRuntimeFactory
 import org.neo4j.cypher.internal.Compiler
 import org.neo4j.cypher.internal.CompilerLibrary
 import org.neo4j.cypher.internal.CypherCurrentCompiler
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.LastCommittedTxIdProvider
 import org.neo4j.cypher.internal.MasterCompiler
 import org.neo4j.cypher.internal.RuntimeContext
@@ -143,10 +144,10 @@ class LogicalPlanCacheAcceptanceTest extends CypherFunSuite with GraphDatabaseTe
 
     val preParser = new CachingPreParser(
       CypherConfiguration.fromConfig(Config.defaults()),
-      new LFUCache[String, PreParsedQuery](TestExecutorCaffeineCacheFactory, 1)
+      new LFUCache[PreParsedQuery.CacheKey, PreParsedQuery](TestExecutorCaffeineCacheFactory, 1)
     )
 
-    val preParsedQuery = preParser.preParseQuery(query, devNullLogger)
+    val preParsedQuery = preParser.preParseQuery(query, devNullLogger, CypherVersion.Default)
 
     graph.withTx { tx =>
       val noTracing = CompilationPhaseTracer.NO_TRACING

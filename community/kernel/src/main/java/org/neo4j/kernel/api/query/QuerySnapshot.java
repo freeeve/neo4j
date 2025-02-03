@@ -27,6 +27,7 @@ import java.util.OptionalLong;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.graphdb.InputPosition;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
@@ -51,7 +52,7 @@ public class QuerySnapshot {
     private final Optional<String> obfuscatedQueryText;
     private final Optional<Function<InputPosition, InputPosition>> obfuscatePosition;
     private final Optional<MapValue> obfuscatedQueryParameters;
-    private final String queryLanguage;
+    private final CypherVersion queryLanguage;
     private final long transactionSequenceNumber;
     private final long parentTransactionSequenceNumber;
     private final String parentDbName;
@@ -76,7 +77,7 @@ public class QuerySnapshot {
             Optional<String> obfuscatedQueryText,
             Optional<Function<InputPosition, InputPosition>> obfuscatePosition,
             Optional<MapValue> obfuscatedQueryParameters,
-            String queryLanguage,
+            CypherVersion queryLanguage,
             long outerTransactionSequenceNumber,
             String parentDbName,
             long parentTransactionSequenceNumber,
@@ -136,7 +137,7 @@ public class QuerySnapshot {
         return obfuscatedQueryParameters;
     }
 
-    public String queryLanguage() {
+    public CypherVersion queryLanguage() {
         return queryLanguage;
     }
 

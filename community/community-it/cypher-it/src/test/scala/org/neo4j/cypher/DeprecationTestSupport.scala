@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher
 
-import org.neo4j.cypher.internal.options.CypherVersion
+import org.neo4j.cypher.internal.options.CypherVersionOption
 import org.neo4j.cypher.testing.impl.FeatureDatabaseManagementService
 import org.neo4j.gqlstatus.NotificationClassification
 import org.neo4j.graphdb.GqlStatusObject
@@ -41,7 +41,7 @@ trait DeprecationTestSupport extends Suite with Matchers {
     details: String,
     createNotification: (InputPosition, String) => Notification,
     expectedGqlStatusObjects: List[TestGqlStatusObject],
-    cypherVersions: Set[CypherVersion] = CypherVersion.values
+    cypherVersions: Set[CypherVersionOption] = CypherVersionOption.values
   ): Unit = {
     cypherVersions.foreach { version =>
       queries.foreach(query => {
@@ -86,7 +86,7 @@ trait DeprecationTestSupport extends Suite with Matchers {
       "",
       (pos, _) => createNotification(pos),
       expectedGqlStatusObjects,
-      CypherVersion.values
+      CypherVersionOption.values
     )
   }
 
@@ -95,7 +95,7 @@ trait DeprecationTestSupport extends Suite with Matchers {
     shouldContainNotification: Boolean,
     createNotification: InputPosition => Notification,
     expectedGqlStatusObjects: List[TestGqlStatusObject],
-    cypherVersions: Set[CypherVersion]
+    cypherVersions: Set[CypherVersionOption]
   ): Unit = {
     assertNotification(
       queries,
@@ -115,7 +115,7 @@ trait DeprecationTestSupport extends Suite with Matchers {
 
   def assertNoDeprecations(
     queries: Seq[String],
-    cypherVersions: Set[CypherVersion] = CypherVersion.values
+    cypherVersions: Set[CypherVersionOption] = CypherVersionOption.values
   ): Unit = {
     cypherVersions.foreach { version =>
       queries.foreach(query =>

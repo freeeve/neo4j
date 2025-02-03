@@ -46,7 +46,7 @@ class FabricFragmenterTest
     with FragmentTestUtils
     with AstConstructionTestSupport {
 
-  val resolveStrictly: Boolean = !(CypherVersion.Default == CypherVersion.Cypher5)
+  val resolveStrictly: Boolean = CypherVersion.Default != CypherVersion.Cypher5
 
   "USE handling: " - {
 
@@ -289,7 +289,7 @@ class FabricFragmenterTest
         case Leaf(Apply(_, inner: Leaf, _), _, _) =>
           inner.use.shouldEqual(Declared(use(
             useClauseFunction(Seq("graph"), "byName", varFor("x")),
-            parseStringGraphReferences = false
+            parseStringGraphReferences = resolveStrictly
           )))
       }
     }
@@ -310,7 +310,7 @@ class FabricFragmenterTest
         case Leaf(Apply(_, inner: Leaf, _), _, _) =>
           inner.use.shouldEqual(Declared(use(
             useClauseFunction(Seq("graph"), "byName", varFor("x")),
-            parseStringGraphReferences = false
+            parseStringGraphReferences = resolveStrictly
           )))
       }
     }

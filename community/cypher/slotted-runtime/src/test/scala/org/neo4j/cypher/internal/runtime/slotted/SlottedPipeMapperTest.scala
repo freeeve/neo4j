@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.runtime.slotted
 
 import org.mockito.Mockito
 import org.mockito.Mockito.when
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.CachableSemanticTable
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
@@ -61,7 +62,6 @@ import org.neo4j.cypher.internal.logical.plans.Sort
 import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
 import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.logical.plans.VarExpand
-import org.neo4j.cypher.internal.options.CypherVersion
 import org.neo4j.cypher.internal.physicalplanning.LongSlot
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanner
 import org.neo4j.cypher.internal.physicalplanning.RefSlot
@@ -161,7 +161,7 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
     )
 
     val fallback = InterpretedPipeMapper(
-      CypherVersion.default.actualVersion,
+      CypherVersion.Default,
       true,
       converters,
       tokenContext,

@@ -20,6 +20,7 @@
 package org.neo4j.internal.collector;
 
 import java.util.function.Supplier;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.memory.HeapEstimator;
@@ -62,6 +63,7 @@ public class TruncatedQuerySnapshot {
     final long compilationTimeMicros;
     final long startTimestampMillis;
     final long estimatedHeap;
+    final CypherVersion queryLanguage;
 
     static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(TruncatedQuerySnapshot.class)
             + HeapEstimator.shallowSizeOfInstance(Supplier.class);
@@ -74,7 +76,8 @@ public class TruncatedQuerySnapshot {
             long elapsedTimeMicros,
             long compilationTimeMicros,
             long startTimestampMillis,
-            int maxQueryTextLength) {
+            int maxQueryTextLength,
+            CypherVersion queryLanguage) {
         this.databaseId = databaseId;
         this.fullQueryTextHash = fullQueryText.hashCode();
         this.queryText = truncateQueryText(fullQueryText, maxQueryTextLength);
@@ -85,6 +88,7 @@ public class TruncatedQuerySnapshot {
         this.startTimestampMillis = startTimestampMillis;
         this.estimatedHeap =
                 SHALLOW_SIZE + HeapEstimator.sizeOf(this.queryText) + this.queryParameters.estimatedHeapUsage();
+        this.queryLanguage = queryLanguage;
     }
 
     private static String truncateQueryText(String queryText, int maxLength) {

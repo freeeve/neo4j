@@ -54,8 +54,8 @@ import org.neo4j.procedure.impl.GlobalProceduresRegistry
 
 class CypherQueryObfuscatorFactory {
 
-  def obfuscatorForQuery(query: String): QueryObfuscator = {
-    val preParsedQuery = preParser.preParseQuery(query, devNullLogger)
+  def obfuscatorForQuery(query: String, defaultLanguage: CypherVersion): QueryObfuscator = {
+    val preParsedQuery = preParser.preParseQuery(query, devNullLogger, defaultLanguage)
     val state = InitialState(
       preParsedQuery.statement,
       null,
@@ -63,7 +63,7 @@ class CypherQueryObfuscatorFactory {
     )
     val res = pipeline.transform(
       state,
-      plannerContext(preParsedQuery.options.queryOptions.cypherVersion.actualVersion, query)
+      plannerContext(preParsedQuery.resolvedLanguage, query)
     )
     CypherQueryObfuscator(res.obfuscationMetadata())
   }
@@ -81,7 +81,10 @@ class CypherQueryObfuscatorFactory {
       GraphDatabaseInternalSettings.enable_experimental_cypher_versions,
       java.lang.Boolean.TRUE
     )),
-    new LFUCache[String, PreParsedQuery](new ExecutorBasedCaffeineCacheFactory((r: Runnable) => r.run()), 1)
+    new LFUCache[PreParsedQuery.CacheKey, PreParsedQuery](
+      new ExecutorBasedCaffeineCacheFactory((r: Runnable) => r.run()),
+      1
+    )
   )
 
   private val pipeline =

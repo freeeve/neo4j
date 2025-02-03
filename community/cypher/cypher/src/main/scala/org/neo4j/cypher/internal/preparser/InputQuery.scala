@@ -19,8 +19,13 @@
  */
 package org.neo4j.cypher.internal.preparser
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.frontend.phases.BaseState
-import org.neo4j.cypher.internal.options._
+import org.neo4j.cypher.internal.options.CypherExecutionMode
+import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
+import org.neo4j.cypher.internal.options.CypherQueryOptions
+import org.neo4j.cypher.internal.options.CypherReplanOption
+import org.neo4j.cypher.internal.options.CypherRuntimeOption
 import org.neo4j.cypher.internal.util.DeprecatedRuntimeNotification
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InternalNotification
@@ -30,7 +35,7 @@ import org.neo4j.cypher.internal.util.InternalNotification
  */
 sealed trait InputQuery {
   def options: QueryOptions
-
+  final def resolvedLanguage: CypherVersion = options.resolvedLanguage
   def description: String
 
   /**
@@ -74,6 +79,7 @@ case class PreParsedQuery(
 ) extends InputQuery {
 
   override def cacheKey: InputQuery.CacheKey = InputQuery.CacheKey(options.cacheKey, statement)
+  def preParserCacheKey: PreParsedQuery.CacheKey = PreParsedQuery.CacheKey(rawStatement, options.defaultLanguage)
 
   def cacheKeyWithRawStatement: InputQuery.CacheKey = InputQuery.CacheKey(options.cacheKey, rawStatement)
 
@@ -88,6 +94,15 @@ case class PreParsedQuery(
   )
 
   override def notifications: Seq[InternalNotification] = super.notifications ++ additionalNotifications
+}
+
+object PreParsedQuery {
+
+  /**
+   * @param statement statement, including preparser options
+   * @param defaultLanguage the db default version, NOT the actual version to use for this query
+   */
+  case class CacheKey(statement: String, defaultLanguage: CypherVersion)
 }
 
 /**
@@ -114,8 +129,10 @@ case class QueryOptions(
   offset: InputPosition,
   queryOptions: CypherQueryOptions,
   recompilationLimitReached: Boolean = false,
-  materializedEntitiesMode: Boolean = false
+  materializedEntitiesMode: Boolean = false,
+  private[preparser] val defaultLanguage: CypherVersion // The db default language (NOT the version to use)
 ) {
+  val resolvedLanguage = queryOptions.cypherVersion.explicitVersion.getOrElse(defaultLanguage)
 
   def compileWhenHot: Boolean =
     queryOptions.expressionEngine == CypherExpressionEngineOption.onlyWhenHot || queryOptions.expressionEngine == CypherExpressionEngineOption.default
@@ -169,9 +186,10 @@ case class QueryOptions(
 
 object QueryOptions {
 
-  val default: QueryOptions = QueryOptions(
+  def default(defaultLanguage: CypherVersion): QueryOptions = QueryOptions(
     offset = InputPosition.NONE,
-    queryOptions = CypherQueryOptions.defaultOptions
+    queryOptions = CypherQueryOptions.defaultOptions,
+    defaultLanguage = defaultLanguage
   )
 
 }

@@ -42,12 +42,12 @@ import org.neo4j.values.virtual.MapValue
 import scala.collection.mutable
 
 trait QueryAnonymizer {
-  def queryText(queryText: String): String
+  def queryText(queryText: String, queryLang: CypherVersion): String
   def queryParams(params: MapValue): Object
 }
 
 case class PlainText(valueMapper: ValueMapper.JavaMapper) extends QueryAnonymizer {
-  def queryText(queryText: String): String = queryText
+  def queryText(queryText: String, queryLang: CypherVersion): String = queryText
   def queryParams(params: MapValue): Object = params.map(valueMapper)
 }
 
@@ -55,7 +55,7 @@ object IdAnonymizer {
 
   private val preParser = new CachingPreParser(
     CypherConfiguration.fromConfig(Config.defaults()),
-    new LFUCache[String, PreParsedQuery](
+    new LFUCache[PreParsedQuery.CacheKey, PreParsedQuery](
       cacheFactory = new ExecutorBasedCaffeineCacheFactory((_: Runnable).run()),
       initialSize = 0
     )
@@ -70,10 +70,10 @@ case class IdAnonymizer(tokens: TokenRead) extends QueryAnonymizer {
 
   private val prettifier = Prettifier(ExpressionStringifier(_.asCanonicalStringVal))
 
-  override def queryText(queryText: String): String = {
-    val preParsedQuery = IdAnonymizer.preParser.preParseQuery(queryText, devNullLogger)
+  override def queryText(queryText: String, queryLang: CypherVersion): String = {
+    val preParsedQuery = IdAnonymizer.preParser.preParseQuery(queryText, devNullLogger, queryLang)
     val originalAst = parse(
-      preParsedQuery.options.queryOptions.cypherVersion.actualVersion,
+      preParsedQuery.resolvedLanguage,
       preParsedQuery.statement,
       Neo4jCypherExceptionFactory(queryText, Some(preParsedQuery.options.offset))
     )

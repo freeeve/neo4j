@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.helpers
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.frontend.phases.DeprecationInfo
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureAccessMode
@@ -33,7 +34,6 @@ import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage.toKernelScope
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
-import org.neo4j.cypher.internal.options.CypherVersion
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTDate
@@ -105,8 +105,8 @@ object SignatureResolver {
     override def signatureVersion: Long = p.signatureVersion()
   })
 
-  def from(p: ProcedureView, v: CypherVersion): ScopedProcedureSignatureResolver =
-    ScopedProcedureSignatureResolver.from(from(p), QueryLanguage.from(v.actualVersion))
+  def from(p: ProcedureView, version: CypherVersion): ScopedProcedureSignatureResolver =
+    ScopedProcedureSignatureResolver.from(from(p), QueryLanguage.from(version))
 
   def toCypherProcedure(handle: ProcedureHandle): ProcedureSignature = {
     val signature = handle.signature()

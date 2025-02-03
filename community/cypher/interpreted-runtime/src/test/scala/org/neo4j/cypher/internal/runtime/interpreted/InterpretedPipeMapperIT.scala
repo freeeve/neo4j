@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.runtime.interpreted
 import org.mockito.Mockito.atLeastOnce
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.when
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.expressions.Expression
@@ -43,7 +44,6 @@ import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.logical.plans.OptionalExpand
 import org.neo4j.cypher.internal.logical.plans.Projection
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipByIdSeek
-import org.neo4j.cypher.internal.options.CypherVersion
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planner.spi.ReadTokenContext
 import org.neo4j.cypher.internal.runtime.CypherRuntimeConfiguration
@@ -102,7 +102,7 @@ class InterpretedPipeMapperIT extends CypherFunSuite with AstConstructionTestSup
 
   private val pipeMapper =
     InterpretedPipeMapper(
-      CypherVersion.default.actualVersion,
+      CypherVersion.Default,
       readOnly = true,
       converters,
       planContext,

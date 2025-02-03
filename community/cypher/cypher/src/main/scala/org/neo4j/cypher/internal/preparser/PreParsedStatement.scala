@@ -20,7 +20,7 @@
 package org.neo4j.cypher.internal.preparser
 
 import org.neo4j.cypher.internal.options.CypherExecutionMode
-import org.neo4j.cypher.internal.options.CypherVersion
+import org.neo4j.cypher.internal.options.CypherVersionOption
 import org.neo4j.cypher.internal.util.InputPosition
 
 final case class PreParserOption(key: String, value: String, position: InputPosition)
@@ -33,7 +33,7 @@ object PreParserOption {
     PreParserOption(key, value, position)
 
   def version(version: String, position: InputPosition): PreParserOption =
-    PreParserOption(CypherVersion.name, version, position)
+    PreParserOption(CypherVersionOption.name, version, position)
 }
 
 final case class PreParsedStatement(statement: String, options: List[PreParserOption], offset: InputPosition)
