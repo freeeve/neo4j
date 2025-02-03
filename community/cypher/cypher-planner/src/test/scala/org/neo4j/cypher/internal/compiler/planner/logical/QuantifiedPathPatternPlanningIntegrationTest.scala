@@ -1549,7 +1549,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationshipGroups = Set("r2"),
       reverseGroupVariableProjections = true,
       endNodePredicate = Some(EndNodePredicates(
-        ands(hasLabels("e", "A"), hasLabels("n", "N")),
+        ands(hasLabels("a", "A"), hasLabels("a", "N")),
         ands(hasLabels("n", "A"), hasLabels("n", "N"))
       ))
     )
@@ -1568,7 +1568,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
       endNodePredicate = Some(EndNodePredicates(
-        ands(hasLabels("b", "B"), hasLabels("q", "Q")),
+        ands(hasLabels("b", "B"), hasLabels("b", "Q")),
         ands(hasLabels("q", "B"), hasLabels("q", "Q"))
       ))
     )
