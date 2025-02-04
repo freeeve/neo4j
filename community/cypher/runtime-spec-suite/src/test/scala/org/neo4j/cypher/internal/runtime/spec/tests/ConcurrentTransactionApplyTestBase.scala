@@ -68,7 +68,9 @@ import org.scalatest.LoneElement
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.LockSupport
 
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.MILLISECONDS
+import scala.concurrent.duration.SECONDS
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
 object ConcurrentTransactionApplyTestBase
@@ -883,12 +885,13 @@ abstract class ConcurrentTransactionApplyTestBase[CONTEXT <: RuntimeContext](
   private def createErrorTestQuery(
     batchSize: Int,
     errorProbe: Prober.Probe,
-    onErrorBehaviour: InTransactionsOnErrorBehaviour
+    onErrorBehaviour: InTransactionsOnErrorBehaviour,
+    maybeRetryTimeout: Option[FiniteDuration] = None
   ): LogicalQuery = {
     new LogicalQueryBuilder(this)
       .produceResults("i", "u")
       .projection("a.u AS u")
-      .transactionApply(batchSize = batchSize, concurrency = concurrency, onErrorBehaviour = onErrorBehaviour)
+      .transactionApplyWithRetry(batchSize = batchSize, concurrency = concurrency, onErrorBehaviour = onErrorBehaviour, maybeRetryTimeout = maybeRetryTimeout)
       .|.setProperty("a", "u", "i * 1000")
       .|.prober(errorProbe)
       .|.argument("a", "i")
@@ -922,7 +925,8 @@ abstract class ConcurrentTransactionApplyTestBase[CONTEXT <: RuntimeContext](
       getRowNumberByVariable("i")
     )
 
-    val query = createErrorTestQuery(batchSize, errorProbe, OnErrorRetryThenContinue)
+    val retryTimeout = Some(FiniteDuration(10, SECONDS))
+    val query = createErrorTestQuery(batchSize, errorProbe, OnErrorRetryThenContinue, retryTimeout)
 
     // then
     val runtimeResult: RecordingRuntimeResult = execute(query, runtime)
@@ -957,7 +961,8 @@ abstract class ConcurrentTransactionApplyTestBase[CONTEXT <: RuntimeContext](
       getRowNumberByVariable("i")
     )
 
-    val query = createErrorTestQuery(batchSize = 2, errorProbe, OnErrorRetryThenFail)
+    val retryTimeout = Some(FiniteDuration(10, SECONDS))
+    val query = createErrorTestQuery(batchSize = 2, errorProbe, OnErrorRetryThenFail, retryTimeout)
 
     // then
     val exception = intercept[StatusWrapCypherException] {

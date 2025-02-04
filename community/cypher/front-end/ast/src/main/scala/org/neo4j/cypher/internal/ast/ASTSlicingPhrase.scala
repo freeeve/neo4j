@@ -167,20 +167,19 @@ object ASTSlicingPhrase extends SemanticAnalysisTooling {
         case lit: Literal =>
           val accepted = (acceptsZero, acceptsNegative) match {
             case (true, true)   => ""
-            case (true, false)  => "non-negative"
-            case (false, true)  => "non-zero"
-            case (false, false) => "positive"
+            case (true, false)  => " non-negative"
+            case (false, true)  => " non-zero"
+            case (false, false) => " positive"
           }
-          // TODO: This range doesn't make sense for Double
           val lowerBound =
-            if (acceptsNegative) Long.MinValue else if (acceptsZero) 0 else 1
+            if (acceptsNegative) Double.MinValue else if (acceptsZero) 0 else 1
           SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
             name,
             "NUMBER",
             lowerBound,
-            Long.MaxValue,
+            Double.MaxValue,
             lit.asCanonicalStringVal,
-            s"Invalid input. '${lit.asCanonicalStringVal}' is not a valid value. Must be a $accepted integer.",
+            s"Invalid input. '${lit.asCanonicalStringVal}' is not a valid value. Must be a$accepted number.",
             lit.position
           )
         case _ => SemanticCheck.success

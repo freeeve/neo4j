@@ -88,7 +88,7 @@ object PipeHelper {
     if (d < minValue) {
       fail(d, number)
     }
-    // TODO: Make overflow safe?
+    // NOTE: If the double overflows it becomes Infinity, which will convert to Long.MaxValue
     (d * TimeUnit.SECONDS.toNanos(1).toDouble).toLong
   }
 }
