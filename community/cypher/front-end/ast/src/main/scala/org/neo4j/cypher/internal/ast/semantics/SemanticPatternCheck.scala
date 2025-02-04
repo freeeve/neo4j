@@ -89,6 +89,8 @@ import org.neo4j.cypher.internal.util.topDown
 
 object SemanticPatternCheck extends SemanticAnalysisTooling {
 
+  // Clauses like CREATE, MERGE, patternComprehension call this method.
+  // Explicit match modes is not supported for them, therefore they always have the default: DIFFERENT RELATIONSHIPS
   def check(ctx: SemanticContext, pattern: Pattern): SemanticCheck =
     check(ctx, pattern, requireDifferentRelationships = true)
 
