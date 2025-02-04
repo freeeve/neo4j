@@ -64,17 +64,14 @@ import org.neo4j.fabric.util.Rewritten.RewritingOps
 import org.neo4j.kernel.database.DatabaseIdFactory
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.DatabaseReferenceImpl
-import org.neo4j.kernel.database.NamedDatabaseId
 import org.neo4j.kernel.database.NormalizedDatabaseName
 import org.neo4j.monitoring.Monitors
 import org.neo4j.values.virtual.MapValue
 
-import java.util.Optional
 import java.util.UUID
 import java.util.concurrent.Executors
 
 import scala.reflect.ClassTag
-import scala.util.Random
 
 trait FragmentTestUtils {
 
