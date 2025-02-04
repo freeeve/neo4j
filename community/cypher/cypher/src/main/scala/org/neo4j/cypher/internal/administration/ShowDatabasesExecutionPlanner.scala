@@ -26,7 +26,8 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.userLabel
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userNamePropKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.AdministrationShowCommandUtils
-import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersion.Cypher25
+import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.administration.ShowDatabaseExecutionPlanner.accessibleDbsKey
@@ -42,6 +43,7 @@ import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_SECONDARIES_COUNT_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_STATUS_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.DATABASE_ID_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.DEFAULT_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.DEFAULT_LANGUAGE_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.HOME_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.LAST_COMMITTED_TX_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.LAST_START_TIME_COL
@@ -64,6 +66,7 @@ import org.neo4j.dbms.database.TopologyInfoService
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.COMPOSITE_DATABASE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_CREATED_AT_PROPERTY
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_LANGUAGE_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_LABEL
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME
@@ -107,6 +110,14 @@ case class ShowDatabasesExecutionPlanner(
 
     val verboseColumns =
       if (verbose) {
+        // Added null as default so we get a warning about needing to update this when we add new Cypher versions
+        val defaultLanguage =
+          s"""CASE d.$DATABASE_DEFAULT_LANGUAGE_PROPERTY
+             |WHEN '${Cypher5.persistedValue}' THEN '${Cypher5.description}'
+             |WHEN '${Cypher25.persistedValue}' THEN '${Cypher25.description}'
+             |ELSE NULL
+             |END""".stripMargin
+
         s""", props.$DATABASE_ID_COL as $DATABASE_ID_COL,
            |props.$CURRENT_PRIMARIES_COUNT_COL as $CURRENT_PRIMARIES_COUNT_COL,
            |props.$CURRENT_SECONDARIES_COUNT_COL as $CURRENT_SECONDARIES_COUNT_COL,
@@ -119,7 +130,8 @@ case class ShowDatabasesExecutionPlanner(
            |d.$DATABASE_STOPPED_AT_PROPERTY as $LAST_STOP_TIME_COL,
            |props.$STORE_COL as $STORE_COL,
            |props.$OPTIONS_COL as $OPTIONS_COL,
-           |d:$COMPOSITE_DATABASE as $isCompositeKey
+           |d:$COMPOSITE_DATABASE as $isCompositeKey,
+           |$defaultLanguage as $DEFAULT_LANGUAGE_COL
            |with *, CASE WHEN $isCompositeKey THEN NULL ELSE $OPTIONS_COL END as $OPTIONS_COL
            |""".stripMargin
       } else {
@@ -129,15 +141,15 @@ case class ShowDatabasesExecutionPlanner(
       if (verbose) {
         s", $DATABASE_ID_COL, $SERVER_ID_COL, $REQUESTED_PRIMARIES_COUNT_COL, $REQUESTED_SECONDARIES_COUNT_COL, $CURRENT_PRIMARIES_COUNT_COL, " +
           s"$CURRENT_SECONDARIES_COUNT_COL, $CREATION_TIME_COL, $LAST_START_TIME_COL, $LAST_STOP_TIME_COL, $STORE_COL, $LAST_COMMITTED_TX_COL, $REPLICATION_LAG_COL, " +
-          s"$OPTIONS_COL"
+          s"$DEFAULT_LANGUAGE_COL, $OPTIONS_COL"
       } else {
         ""
       }
     val returnClause = AdministrationShowCommandUtils.generateReturnClause(symbols, yields, returns, Seq("name"))
 
     val displayNameProperty = context.runtimeContext.cypherVersion match {
-      case CypherVersion.Cypher5 => DISPLAY_NAME_PROPERTY
-      case _                     => QUOTED_DISPLAY_NAME_PROPERTY
+      case Cypher5 => DISPLAY_NAME_PROPERTY
+      case _       => QUOTED_DISPLAY_NAME_PROPERTY
     }
 
     val query = Predef.augmentString(

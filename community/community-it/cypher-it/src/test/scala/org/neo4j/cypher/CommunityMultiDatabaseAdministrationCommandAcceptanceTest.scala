@@ -295,7 +295,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
     val db = managementService.database(DEFAULT_DATABASE_NAME).asInstanceOf[GraphDatabaseAPI]
     val format =
       db.getDependencyResolver.resolveDependency(classOf[MetadataProvider]).getStoreId.getStoreVersionUserString
-    result should have size 26
+    result should have size 27
     result should contain.allOf(
       "name" -> DEFAULT_DATABASE_NAME,
       "type" -> "standard",
@@ -314,6 +314,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
       "lastCommittedTxn" -> null,
       "replicationLag" -> 0,
       "constituents" -> Seq.empty,
+      "defaultLanguage" -> "CYPHER 5", // default value for db.query.default_language
       "options" -> Map()
     )
   }

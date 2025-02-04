@@ -1425,6 +1425,7 @@ object ShowDatabase {
   val LAST_START_TIME_COL = "lastStartTime"
   val LAST_STOP_TIME_COL = "lastStopTime"
   val CONSTITUENTS_COL = "constituents"
+  val DEFAULT_LANGUAGE_COL = "defaultLanguage"
 
   // Provided by TopologyInfoService - same for every row for a database
   val NAME_COL = "name"
@@ -1480,6 +1481,7 @@ object ShowDatabase {
       (ShowColumn(LAST_COMMITTED_TX_COL, CTInteger)(position), false),
       (ShowColumn(REPLICATION_LAG_COL, CTInteger)(position), false),
       (ShowColumn(CONSTITUENTS_COL, CTList(CTString))(position), true),
+      (ShowColumn(DEFAULT_LANGUAGE_COL)(position), false),
       (ShowColumn(OPTIONS_COL, CTMap)(position), false)
     )
 
