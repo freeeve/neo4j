@@ -563,7 +563,11 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
         exceptionFactory = TestClientErrorFactory
       )
       val result = runTest(config)
-      TestCaseExpectation.expectFailedBatchesNonRetryable(config, testClientErrorPrefix, failedBatchNumber).verify(result)
+      TestCaseExpectation.expectFailedBatchesNonRetryable(
+        config,
+        testClientErrorPrefix,
+        failedBatchNumber
+      ).verify(result)
     }
   }
 
@@ -589,7 +593,13 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
     exceptionFactory: String => Throwable = TestTransientErrorFactory
   ): Prober.Probe = {
     if (batchSize == 1) {
-      new ErrorInjectionProbe(nRows, errorsToThrowForBatch, delayInNanosForBatch, getRowNumberByVariable(inputVarName), exceptionFactory)
+      new ErrorInjectionProbe(
+        nRows,
+        errorsToThrowForBatch,
+        delayInNanosForBatch,
+        getRowNumberByVariable(inputVarName),
+        exceptionFactory
+      )
     } else {
       val middleIndex = (batchSize + 1) / 2
       val errorsToThrowForRow = (row: Int) => {
@@ -606,7 +616,13 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
           0
         }
       }
-      new ErrorInjectionProbe(nRows, errorsToThrowForRow, delayInNanosForRow, getRowNumberByVariable(inputVarName), exceptionFactory)
+      new ErrorInjectionProbe(
+        nRows,
+        errorsToThrowForRow,
+        delayInNanosForRow,
+        getRowNumberByVariable(inputVarName),
+        exceptionFactory
+      )
     }
   }
 
@@ -716,7 +732,8 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
         if (tc < ec) {
           tc += 1
           thrownCounts(i) = tc
-          val messageSuffix = s"Error on row $i ($tc thrown, ${ec - tc} left) on thread ${Thread.currentThread().getName}"
+          val messageSuffix =
+            s"Error on row $i ($tc thrown, ${ec - tc} left) on thread ${Thread.currentThread().getName}"
           // print(message + "\n")
           throw exceptionFactory(messageSuffix)
         }

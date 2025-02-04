@@ -61,6 +61,9 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsConcurrencyParam
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.UnionAll
 import org.neo4j.cypher.internal.ast.UnionDistinct
@@ -573,7 +576,7 @@ trait StatementBuilder extends Cypher5ParserListener {
       case Cypher5Parser.BREAK    => OnErrorBreak
       case Cypher5Parser.FAIL     => OnErrorFail
     }
-    ctx.ast = SubqueryCall.InTransactionsErrorParameters(behaviour)(pos(ctx))
+    ctx.ast = SubqueryCall.InTransactionsErrorParameters(behaviour, None)(pos(ctx))
   }
 
   final override def exitSubqueryInTransactionsReportParameters(

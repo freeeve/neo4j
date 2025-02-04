@@ -570,7 +570,7 @@ trait StatementBuilder extends Cypher25ParserListener {
       case Cypher25Parser.BREAK    => OnErrorBreak
       case Cypher25Parser.FAIL     => OnErrorFail
     }
-    ctx.ast = SubqueryCall.InTransactionsErrorParameters(behaviour)(pos(ctx))
+    ctx.ast = SubqueryCall.InTransactionsErrorParameters(behaviour, None)(pos(ctx))
   }
 
   final override def exitSubqueryInTransactionsReportParameters(
