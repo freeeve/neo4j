@@ -851,7 +851,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     try {
       runtimeResult should beColumns("y").withRows(singleColumn(List(false, false, false)))
     } catch {
-      case org.neo4j.exceptions.ArithmeticException => // ignore, this is fine
+      case _: org.neo4j.exceptions.ArithmeticException => // ignore, this is fine
     }
   }
 

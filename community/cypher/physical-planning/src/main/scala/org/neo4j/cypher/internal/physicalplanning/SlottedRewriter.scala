@@ -22,9 +22,11 @@ package org.neo4j.cypher.internal.physicalplanning
 import org.neo4j.cypher.internal.expressions
 import org.neo4j.cypher.internal.expressions.ASTCachedProperty
 import org.neo4j.cypher.internal.expressions.And
+import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.Equals
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.False
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.GetDegree
@@ -91,6 +93,8 @@ import org.neo4j.cypher.internal.physicalplanning.ast.NullCheck
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckReferenceProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckVariable
+import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveAnds
+import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveComparison
 import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveEquals
 import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveNotEquals
 import org.neo4j.cypher.internal.physicalplanning.ast.ReferenceFromSlot
@@ -110,6 +114,7 @@ import org.neo4j.cypher.internal.util.RewriterStopper
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.attribution.SameId
 import org.neo4j.cypher.internal.util.bottomUp
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.topDown
@@ -265,6 +270,12 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
 
       case prop: CachedProperty =>
         rewriteCachedProperies(slotConfiguration, prop, needsValue = true)
+
+      case and @ And(lhs, rhs) =>
+        makePrimitiveAnds(slotConfiguration, and, ListSet(lhs, rhs))
+
+      case ands @ Ands(predicates) =>
+        makePrimitiveAnds(slotConfiguration, ands, predicates)
 
       case e @ Equals(Variable(k1), Variable(k2)) =>
         primitiveEqualityChecks(slotConfiguration, e, k1, k2, positiveCheck = true)
@@ -625,6 +636,34 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
     val maybeTokens = types.map(l => (tokenContext.getOptRelTypeId(l.name), l.name))
     val (resolvedTypeTokens, lateTypes) = maybeTokens.partition(_._1.isDefined)
     (resolvedTypeTokens.flatMap(_._1), lateTypes.map(_._2))
+  }
+
+  private def makePrimitiveAnds(
+    slotConfiguration: SlotConfigurationBuilder,
+    e: Expression,
+    predicates: ListSet[Expression]
+  ) = {
+    val rewrittenPredicates = rewriteToPrimitiveEqualities(predicates, slotConfiguration)
+    val (primitive: ListSet[Expression], nonPrimitive: ListSet[Expression]) = rewrittenPredicates.partition {
+      case _: PrimitiveComparison => true
+      case _                      => false
+    }
+    if (primitive.size > 1) {
+      Ands(ListSet(PrimitiveAnds(primitive.toSeq.map(_.asInstanceOf[PrimitiveComparison]))) ++ nonPrimitive)(e.position)
+    } else {
+      Ands(rewrittenPredicates)(e.position)
+    }
+  }
+
+  private def rewriteToPrimitiveEqualities(
+    predicates: ListSet[Expression],
+    slotConfiguration: SlotConfigurationBuilder
+  ) = predicates.map {
+    case e @ Equals(Variable(k1), Variable(k2)) =>
+      primitiveEqualityChecks(slotConfiguration, e, k1, k2, positiveCheck = true)
+    case Not(e @ Equals(Variable(k1), Variable(k2))) =>
+      primitiveEqualityChecks(slotConfiguration, e, k1, k2, positiveCheck = false)
+    case other => other
   }
 
   private def primitiveEqualityChecks(

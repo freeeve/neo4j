@@ -290,6 +290,8 @@ case class SlottedExpressionConverters(physicalPlan: PhysicalPlan, maybeOwningPi
         Some(slotted.expressions.PrimitiveEquals(a, b))
       case physicalplanning.ast.PrimitiveNotEquals(a, b) =>
         Some(slotted.expressions.PrimitiveNotEquals(a, b))
+      case physicalplanning.ast.PrimitiveAnds(predicates) =>
+        Some(slotted.expressions.PrimitiveAnds.create(predicates))
       case physicalplanning.ast.GetDegreePrimitive(offset, typ, direction) =>
         typ match {
           case None               => Some(slotted.expressions.GetDegreePrimitive(offset, direction))

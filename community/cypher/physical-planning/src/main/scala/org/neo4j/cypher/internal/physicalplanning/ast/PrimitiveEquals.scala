@@ -21,10 +21,14 @@ package org.neo4j.cypher.internal.physicalplanning.ast
 
 import org.neo4j.cypher.internal.runtime.ast.BooleanRuntimeExpression
 
-case class PrimitiveEquals(offset1: Int, offset2: Int) extends BooleanRuntimeExpression {
+sealed trait PrimitiveComparison extends BooleanRuntimeExpression {
   override def isConstantForQuery: Boolean = false
 }
 
-case class PrimitiveNotEquals(offset1: Int, offset2: Int) extends BooleanRuntimeExpression {
+case class PrimitiveEquals(offset1: Int, offset2: Int) extends PrimitiveComparison
+
+case class PrimitiveNotEquals(offset1: Int, offset2: Int) extends PrimitiveComparison
+
+case class PrimitiveAnds(predicates: Seq[PrimitiveComparison]) extends BooleanRuntimeExpression {
   override def isConstantForQuery: Boolean = false
 }

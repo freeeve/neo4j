@@ -51,6 +51,7 @@ import org.neo4j.cypher.internal.physicalplanning.ast.NullCheck
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckReferenceProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckVariable
+import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveAnds
 import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveEquals
 import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveNotEquals
 import org.neo4j.cypher.internal.physicalplanning.ast.ReferenceFromSlot
@@ -306,6 +307,43 @@ class SlottedRewriterTest extends CypherFunSuite with AstConstructionTestSupport
     val argVars: Set[LogicalVariable] = argVarSet.map(v => runtimeVarFor(v.name, slots))
     result should equal(Selection(
       Seq(PrimitiveEquals(2, 4)),
+      Argument(argVars)
+    ))
+    lookup(result.id) should equal(slots)
+  }
+
+  test("comparing more than two ids simpler") {
+    // match (a)-[r1]->b-[r2]->(c) where r1 <> r2 AND a <> c
+    // given
+    val node1 = varFor("a")
+    val node2 = varFor("b")
+    val node3 = varFor("c")
+    val rel1 = varFor("r1")
+    val rel2 = varFor("r2")
+    val argVarSet: Set[LogicalVariable] = Set(node1, node2, node3, rel1, rel2)
+    val argument = Argument(argVarSet)
+    val predicate = ands(not(equals(rel1, rel2)), not(equals(node1, node3)))
+    val selection = Selection(predicate, argument)
+    val slots =
+      SlotConfigurationBuilder.empty.newLong("a", nullable = false, CTNode)
+        .newLong("b", nullable = false, CTNode)
+        .newLong("r1", nullable = false, CTRelationship)
+        .newLong("c", nullable = false, CTNode)
+        .newLong("r2", nullable = false, CTRelationship)
+
+    val lookup = new SlotConfigurations
+    lookup.set(argument.id, slots)
+    lookup.set(selection.id, slots)
+    val tokenContext = mock[ReadTokenContext]
+    val rewriter = new SlottedRewriter(tokenContext)
+
+    // when
+    val result = rewriter(selection, lookup, new TrailPlans)
+
+    // then
+    val argVars: Set[LogicalVariable] = argVarSet.map(v => runtimeVarFor(v.name, slots))
+    result should equal(Selection(
+      ands(PrimitiveAnds(Seq(PrimitiveNotEquals(2, 4), PrimitiveNotEquals(0, 3)))),
       Argument(argVars)
     ))
     lookup(result.id) should equal(slots)
