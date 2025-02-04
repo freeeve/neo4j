@@ -916,7 +916,7 @@ public class ImportCommand {
                 fallbackValue = "true",
                 defaultValue = "false",
                 description = "If one relationship data entry matches multiple existing relationships, "
-                        + "this decides whether to update all matching, or to instead log as error.")
+                        + "this decides whether to update all matching or to log as an error.")
         boolean updateAllMatchingRelationships;
 
         public Incremental(ExecutionContext ctx) {
