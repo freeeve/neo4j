@@ -101,7 +101,7 @@ class ConnectedComponentsTest extends CypherFunSuite {
     ))
   }
 
-  test("(a)-[r]->(b), (c)-[r]->(d) has one connected components") {
+  test("(a)-[r]->(b), (c)-[r]->(d) has one connected component") {
     val connected = connectedComponents(Vector(
       ComponentPart(varFor("a"), varFor("r"), varFor("b")),
       ComponentPart(varFor("c"), varFor("r"), varFor("d"))
