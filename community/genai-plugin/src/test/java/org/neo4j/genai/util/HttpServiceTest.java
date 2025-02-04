@@ -33,19 +33,23 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Map;
-import org.junit.jupiter.api.Test;
+import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.test.ports.PortAuthority;
 
 class HttpServiceTest {
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(ints = {1, 4, 5, 8, 10, 14, 15, 16})
     @Timeout(value = 30, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
-    void pipeShouldNotBlock() throws IOException {
+    void pipeShouldNotBlock(int size) throws IOException {
         var port = PortAuthority.allocatePort();
 
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         try {
+            var maxSleepInMillis = 1000;
             server.createContext("/test", exchange -> {
                 var response = (String) JsonUtils.getObjectMapper()
                         .readValue(exchange.getRequestBody(), JsonUtils.TYPE_REF_MAP_STRING_OBJECT)
@@ -54,6 +58,11 @@ class HttpServiceTest {
                 exchange.sendResponseHeaders(HttpURLConnection.HTTP_OK, bytes.length);
                 var outputStream = exchange.getResponseBody();
                 outputStream.write(bytes);
+                try {
+                    Thread.sleep(ThreadLocalRandom.current().nextInt(maxSleepInMillis));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
                 outputStream.flush();
                 outputStream.close();
             });
@@ -61,7 +70,7 @@ class HttpServiceTest {
             server.start();
 
             var secureRandom = new SecureRandom();
-            var buffer = new byte[(int) Math.pow(2, 16)];
+            var buffer = new byte[(int) Math.pow(2, size)];
             secureRandom.nextBytes(buffer);
             var body = Base64.getUrlEncoder().withoutPadding().encodeToString(buffer);
 
@@ -72,8 +81,11 @@ class HttpServiceTest {
                         HttpRequest.BodyPublisher pipe = HttpService.pipe(outputStream -> {
                             try {
                                 JsonUtils.getObjectMapper().writeValue(outputStream, Map.of("key", body));
+                                Thread.sleep(ThreadLocalRandom.current().nextInt(maxSleepInMillis));
                             } catch (IOException e) {
                                 throw new UncheckedIOException(e);
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
                             }
                         });
                         return builder.POST(pipe).build();

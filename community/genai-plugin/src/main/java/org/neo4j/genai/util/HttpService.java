@@ -19,11 +19,11 @@
  */
 package org.neo4j.genai.util;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -36,6 +36,7 @@ import java.net.http.HttpResponse.BodySubscriber;
 import java.net.http.HttpResponse.ResponseInfo;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -71,13 +72,21 @@ public final class HttpService {
      */
     public static BodyPublisher pipe(Consumer<OutputStream> outputStreamConsumer) {
         return HttpRequest.BodyPublishers.ofInputStream(() -> {
-            try (var out = new ByteArrayOutputStream()) {
-                outputStreamConsumer.accept(out);
-                out.flush();
-                return new ByteArrayInputStream(out.toByteArray());
+            var in = new PipedInputStream();
+            var out = new PipedOutputStream();
+            try {
+                out.connect(in);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
+            Thread.ofVirtual().start(() -> {
+                try (out) {
+                    outputStreamConsumer.accept(out);
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            });
+            return in;
         });
     }
 
@@ -164,6 +173,7 @@ public final class HttpService {
             BiFunction<Integer, String, Optional<GenAIProcedureException>> providerSpecificStatusHandler) {
         try (var httpClient = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NORMAL)
+                .executor(Executors.newVirtualThreadPerTaskExecutor())
                 .build()) {
             var request =
                     requestCustomizer.apply(HttpRequest.newBuilder().uri(target).header("User-Agent", USER_AGENT));
