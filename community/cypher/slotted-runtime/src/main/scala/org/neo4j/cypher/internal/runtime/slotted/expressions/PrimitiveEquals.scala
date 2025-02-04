@@ -57,7 +57,7 @@ case class PrimitiveEquals(slot1: Int, slot2: Int) extends PrimitiveRuntimeCompa
 
 case class PrimitiveNotEquals(slot1: Int, slot2: Int) extends PrimitiveRuntimeComparison {
 
-  override def compare(row: ReadableRow): Boolean = row.getLongAt(slot1) == row.getLongAt(slot2)
+  override def compare(row: ReadableRow): Boolean = row.getLongAt(slot1) != row.getLongAt(slot2)
   override def rewrite(f: Expression => Expression): Expression = f(PrimitiveNotEquals(slot1, slot2))
 }
 
