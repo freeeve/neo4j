@@ -25,16 +25,33 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expres
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.IsMatchResult
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.Predicate
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
+import org.neo4j.values.storable.Value
+import org.neo4j.values.storable.Values.booleanValue
 
-case class PrimitiveEquals(a: Expression, b: Expression) extends Predicate with SlottedExpression {
+case class PrimitiveEquals(slot1: Int, slot2: Int) extends Predicate with SlottedExpression {
 
   override def isMatch(ctx: ReadableRow, state: QueryState): IsMatchResult = {
-    val value1 = a(ctx, state)
-    val value2 = b(ctx, state)
-    IsMatchResult(value1 == value2)
+    IsMatchResult(ctx.getLongAt(slot1) == ctx.getLongAt(slot2))
   }
 
-  override def rewrite(f: Expression => Expression): Expression = f(PrimitiveEquals(a.rewrite(f), b.rewrite(f)))
+  override def apply(row: ReadableRow, state: QueryState): Value =
+    booleanValue(row.getLongAt(slot1) == row.getLongAt(slot2))
 
-  override def children: Seq[AstNode[_]] = Seq(a, b)
+  override def rewrite(f: Expression => Expression): Expression = f(PrimitiveEquals(slot1, slot2))
+
+  override def children: Seq[AstNode[_]] = Seq.empty
+}
+
+case class PrimitiveNotEquals(slot1: Int, slot2: Int) extends Predicate with SlottedExpression {
+
+  override def isMatch(ctx: ReadableRow, state: QueryState): IsMatchResult = {
+    IsMatchResult(ctx.getLongAt(slot1) != ctx.getLongAt(slot2))
+  }
+
+  override def apply(row: ReadableRow, state: QueryState): Value =
+    booleanValue(row.getLongAt(slot1) != row.getLongAt(slot2))
+
+  override def rewrite(f: Expression => Expression): Expression = f(PrimitiveNotEquals(slot1, slot2))
+
+  override def children: Seq[AstNode[_]] = Seq.empty
 }

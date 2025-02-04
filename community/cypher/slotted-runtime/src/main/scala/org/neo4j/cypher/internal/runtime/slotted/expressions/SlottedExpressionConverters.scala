@@ -287,9 +287,9 @@ case class SlottedExpressionConverters(physicalPlan: PhysicalPlan, maybeOwningPi
       case physicalplanning.ast.PropertyProjection(map, properties) =>
         Some(slotted.expressions.PropertyProjection(self.toCommandExpression(id, map), properties))
       case physicalplanning.ast.PrimitiveEquals(a, b) =>
-        val lhs = self.toCommandExpression(id, a)
-        val rhs = self.toCommandExpression(id, b)
-        Some(slotted.expressions.PrimitiveEquals(lhs, rhs))
+        Some(slotted.expressions.PrimitiveEquals(a, b))
+      case physicalplanning.ast.PrimitiveNotEquals(a, b) =>
+        Some(slotted.expressions.PrimitiveNotEquals(a, b))
       case physicalplanning.ast.GetDegreePrimitive(offset, typ, direction) =>
         typ match {
           case None               => Some(slotted.expressions.GetDegreePrimitive(offset, direction))

@@ -52,6 +52,7 @@ import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckReferenceProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckVariable
 import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveEquals
+import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveNotEquals
 import org.neo4j.cypher.internal.physicalplanning.ast.ReferenceFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipPropertyLate
@@ -267,7 +268,44 @@ class SlottedRewriterTest extends CypherFunSuite with AstConstructionTestSupport
     // then
     val argVars: Set[LogicalVariable] = argVarSet.map(v => runtimeVarFor(v.name, slots))
     result should equal(Selection(
-      Seq(not(PrimitiveEquals(IdFromSlot(2), IdFromSlot(4)))),
+      Seq(PrimitiveNotEquals(2, 4)),
+      Argument(argVars)
+    ))
+    lookup(result.id) should equal(slots)
+  }
+
+  test("comparing two relationship ids simpler 2") {
+    // match (a)-[r1]->b-[r2]->(c) where r1 = r2
+    // given
+    val node1 = varFor("a")
+    val node2 = varFor("b")
+    val node3 = varFor("c")
+    val rel1 = varFor("r1")
+    val rel2 = varFor("r2")
+    val argVarSet: Set[LogicalVariable] = Set(node1, node2, node3, rel1, rel2)
+    val argument = Argument(argVarSet)
+    val predicate = equals(rel1, rel2)
+    val selection = Selection(Seq(predicate), argument)
+    val slots =
+      SlotConfigurationBuilder.empty.newLong("a", nullable = false, CTNode)
+        .newLong("b", nullable = false, CTNode)
+        .newLong("r1", nullable = false, CTRelationship)
+        .newLong("c", nullable = false, CTNode)
+        .newLong("r2", nullable = false, CTRelationship)
+
+    val lookup = new SlotConfigurations
+    lookup.set(argument.id, slots)
+    lookup.set(selection.id, slots)
+    val tokenContext = mock[ReadTokenContext]
+    val rewriter = new SlottedRewriter(tokenContext)
+
+    // when
+    val result = rewriter(selection, lookup, new TrailPlans)
+
+    // then
+    val argVars: Set[LogicalVariable] = argVarSet.map(v => runtimeVarFor(v.name, slots))
+    result should equal(Selection(
+      Seq(PrimitiveEquals(2, 4)),
       Argument(argVars)
     ))
     lookup(result.id) should equal(slots)
@@ -312,12 +350,7 @@ class SlottedRewriterTest extends CypherFunSuite with AstConstructionTestSupport
         2,
         NullCheck(
           4,
-          not(
-            PrimitiveEquals(
-              IdFromSlot(2),
-              IdFromSlot(4)
-            )
-          )
+          PrimitiveNotEquals(2, 4)
         )
       )
     result should equal(Selection(

@@ -92,6 +92,7 @@ import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckReferenceProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckVariable
 import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveEquals
+import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveNotEquals
 import org.neo4j.cypher.internal.physicalplanning.ast.ReferenceFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipProperty
@@ -654,15 +655,16 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
         shortcutWhenDifferentTypes
 
       case (LongSlot(_, false, typ1), LongSlot(_, false, typ2)) if typ1 == typ2 =>
-        val eq = PrimitiveEquals(IdFromSlot(slot1.offset), IdFromSlot(slot2.offset))
-        makeNegativeIfNeeded(eq)
+        if (positiveCheck) PrimitiveEquals(slot1.offset, slot2.offset)
+        else PrimitiveNotEquals(slot1.offset, slot2.offset)
 
       case (LongSlot(_, null1, typ1), LongSlot(_, null2, typ2)) if (null1 || null2) && (typ1 != typ2) =>
         makeNullChecksExplicit(slot1, slot2, shortcutWhenDifferentTypes)
 
       case (LongSlot(_, null1, typ1), LongSlot(_, null2, typ2)) if (null1 || null2) && (typ1 == typ2) =>
-        val eq = PrimitiveEquals(IdFromSlot(slot1.offset), IdFromSlot(slot2.offset))
-        makeNullChecksExplicit(slot1, slot2, makeNegativeIfNeeded(eq))
+        val eq = if (positiveCheck) PrimitiveEquals(slot1.offset, slot2.offset)
+        else PrimitiveNotEquals(slot1.offset, slot2.offset)
+        makeNullChecksExplicit(slot1, slot2, eq)
 
       case _ =>
         makeNegativeIfNeeded(e)
