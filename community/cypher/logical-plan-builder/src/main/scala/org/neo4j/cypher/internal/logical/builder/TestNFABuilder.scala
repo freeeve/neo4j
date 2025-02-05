@@ -160,6 +160,7 @@ object TestNFABuilder {
  */
 class TestNFABuilder(startStateId: Int, startStateName: String) extends NFABuilder(startStateId, startStateName) {
 
+  // Note! Parses with default language.
   def addTransition(
     fromId: Int,
     toId: Int,
@@ -214,7 +215,8 @@ class TestNFABuilder(startStateId: Int, startStateName: String) extends NFABuild
           )
         }
         val (from, rels, nodes, to) = unnestRelationshipChain(chain)
-        val compoundPred = if (compoundPredicate == "") None else Some(Parser.parseExpression(compoundPredicate))
+        val compoundPred =
+          if (compoundPredicate == "") None else Some(Parser.Latest.parseExpression(compoundPredicate))
         val fromState = getOrCreateState(fromId, from.nodeVariable)
         assertFromNameMatchesFromId(fromState, from.nodeVariable.name, fromId, pattern)
         val transition = MultiRelationshipExpansionTransition(rels, nodes, compoundPred, toId)
@@ -251,13 +253,15 @@ class TestNFABuilder(startStateId: Int, startStateName: String) extends NFABuild
   ): TestNFABuilder =
     addMultiRelationshipTransitionWithPredicate(fromId, toId, pattern, compoundPredicate)
 
+  // Note! Parses with default language.
   private def addMultiRelationshipTransitionWithPredicate(
     fromId: Int,
     toId: Int,
     pattern: String,
     compoundPredicate: String
   ): TestNFABuilder = {
-    val compoundPred = if (compoundPredicate.trim.isEmpty) None else Some(Parser.parseExpression(compoundPredicate))
+    val compoundPred = if (compoundPredicate.trim.isEmpty) None
+    else Some(Parser.Latest.parseExpression(compoundPredicate))
     addMultiRelationshipTransitionWithExpression(fromId, toId, pattern, compoundPred)
   }
 
@@ -301,9 +305,10 @@ class TestNFABuilder(startStateId: Int, startStateName: String) extends NFABuild
     }
   }
 
+  // Note! Parses with default language.
   private def parsePattern(pattern: String) =
     try {
-      Parser.parsePatternElement(pattern)
+      Parser.Latest.parsePatternElement(pattern)
     } catch {
       case NonFatal(e) =>
         println("Error parsing pattern: " + pattern)

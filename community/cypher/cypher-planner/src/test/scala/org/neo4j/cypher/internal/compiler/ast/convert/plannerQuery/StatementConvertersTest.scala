@@ -3113,9 +3113,16 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     }
   }
 
+  // Note! Parses with default language.
   private def createNodeIr(node: String, properties: Option[String] = None): org.neo4j.cypher.internal.ir.CreateNode =
-    org.neo4j.cypher.internal.ir.CreateNode(varFor(node), Set.empty, Set.empty, properties.map(Parser.parseExpression))
+    org.neo4j.cypher.internal.ir.CreateNode(
+      varFor(node),
+      Set.empty,
+      Set.empty,
+      properties.map(Parser.Latest.parseExpression)
+    )
 
+  // Note! Parses with default language.
   private def createRelationshipIr(
     relationship: String,
     left: String,
@@ -3124,7 +3131,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     direction: SemanticDirection = OUTGOING,
     properties: Option[String]
   ): org.neo4j.cypher.internal.ir.CreateRelationship = {
-    val props = properties.map(Parser.parseExpression)
+    val props = properties.map(Parser.Latest.parseExpression)
     if (props.exists(!_.isInstanceOf[MapExpression]))
       throw new IllegalArgumentException("Property must be a Map Expression")
     org.neo4j.cypher.internal.ir.CreateRelationship(
@@ -3133,7 +3140,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       RelTypeName(typ)(pos),
       varFor(right),
       direction,
-      properties.map(Parser.parseExpression)
+      properties.map(Parser.Latest.parseExpression)
     )
   }
 

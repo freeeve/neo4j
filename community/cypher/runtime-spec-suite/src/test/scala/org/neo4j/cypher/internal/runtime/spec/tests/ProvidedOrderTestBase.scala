@@ -58,7 +58,8 @@ abstract class ProvidedOrderTestBase[CONTEXT <: RuntimeContext](
 trait NonParallelProvidedOrderTestBase[CONTEXT <: RuntimeContext] {
   self: ProvidedOrderTestBase[CONTEXT] =>
 
-  private[this] val parse: String => Expression = Parser.parseExpression
+  // Note! Parses with default version.
+  private[this] val parse: String => Expression = Parser.Latest.parseExpression
   private[this] val asc: Expression => ProvidedOrder = DefaultProvidedOrderFactory.asc(_: Expression)
   private[this] val desc: Expression => ProvidedOrder = DefaultProvidedOrderFactory.desc(_: Expression)
 
@@ -1154,7 +1155,8 @@ trait NonParallelProvidedOrderTestBase[CONTEXT <: RuntimeContext] {
 trait CartesianProductProvidedOrderTestBase[CONTEXT <: RuntimeContext] {
   self: ProvidedOrderTestBase[CONTEXT] =>
 
-  private[this] val parse: String => Expression = Parser.parseExpression
+  // Note! Parses with default language.
+  private[this] val parse: String => Expression = Parser.Latest.parseExpression
   private[this] val asc: Expression => ProvidedOrder = DefaultProvidedOrderFactory.asc(_: Expression)
   private[this] val desc: Expression => ProvidedOrder = DefaultProvidedOrderFactory.desc(_: Expression)
 

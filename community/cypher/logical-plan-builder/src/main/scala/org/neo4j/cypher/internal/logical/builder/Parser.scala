@@ -28,6 +28,9 @@ import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
+import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentAsc
+import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentDesc
+import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentUnordered
 import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.Namespace
@@ -43,6 +46,7 @@ import org.neo4j.cypher.internal.logical.plans.Ascending
 import org.neo4j.cypher.internal.logical.plans.CoerceToPredicate
 import org.neo4j.cypher.internal.logical.plans.ColumnOrder
 import org.neo4j.cypher.internal.logical.plans.Descending
+import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.parser.v25.ast.factory.Cypher25AstParser
 import org.neo4j.cypher.internal.parser.v5.ast.factory.Cypher5AstParser
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.LabelExpressionPredicateNormalizer
@@ -58,129 +62,164 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-object Parser {
+trait Parser {
 
-  val injectCachedProperties: Rewriter = topDown(Rewriter.lift {
-    case ContainerIndex(Variable(name), Property(v: Variable, pkn: PropertyKeyName))
-      if name == "cache" || name == "cacheN" =>
-      CachedProperty(v, v, pkn, NODE_TYPE)(AbstractLogicalPlanBuilder.pos)
-    case ContainerIndex(Variable(name), Property(v: Variable, pkn: PropertyKeyName))
-      if name == "cacheFromStore" || name == "cacheNFromStore" =>
-      CachedProperty(v, v, pkn, NODE_TYPE, knownToAccessStore = true)(AbstractLogicalPlanBuilder.pos)
-    case ContainerIndex(Variable("cacheR"), Property(v: Variable, pkn: PropertyKeyName)) =>
-      CachedProperty(v, v, pkn, RELATIONSHIP_TYPE)(AbstractLogicalPlanBuilder.pos)
-    case ContainerIndex(Variable("cacheRFromStore"), Property(v: Variable, pkn: PropertyKeyName)) =>
-      CachedProperty(v, v, pkn, RELATIONSHIP_TYPE, knownToAccessStore = true)(AbstractLogicalPlanBuilder.pos)
-    case ContainerIndex(Variable(name), Property(v: Variable, pkn: PropertyKeyName))
-      if name == "cacheNHasProperty" =>
-      CachedHasProperty(v, v, pkn, NODE_TYPE)(AbstractLogicalPlanBuilder.pos)
-    case ContainerIndex(Variable(name), Property(v: Variable, pkn: PropertyKeyName))
-      if name == "cacheRHasProperty" =>
-      CachedHasProperty(v, v, pkn, RELATIONSHIP_TYPE)(AbstractLogicalPlanBuilder.pos)
-    case ContainerIndex(Variable(name), Property(v: Variable, pkn: PropertyKeyName))
-      if name == "cacheNHasPropertyFromStore" =>
-      CachedHasProperty(v, v, pkn, NODE_TYPE, knownToAccessStore = true)(AbstractLogicalPlanBuilder.pos)
-    case ContainerIndex(Variable(name), Property(v: Variable, pkn: PropertyKeyName))
-      if name == "cacheRHasPropertyFromStore" =>
-      CachedHasProperty(v, v, pkn, RELATIONSHIP_TYPE, knownToAccessStore = true)(AbstractLogicalPlanBuilder.pos)
+  protected def astParser: Parser.AstParser
 
-  })
-
-  val invalidateInputPositions: Rewriter = topDown(Rewriter.lift {
-    // Special handling of PatternPartWithSelector because it happens to not include an argument for InputPosition.
-    // If more cases ends up being added this should probably be refactored. But that is left as an exercise to the reader.
-    case x: PatternPartWithSelector => x
-    case a: ASTNode                 => a.dup(a.treeChildren.toSeq :+ AbstractLogicalPlanBuilder.pos)
-  })
-
-  val replaceWrongFunctionInvocation: Rewriter = topDown(Rewriter.lift {
-    case FunctionInvocation(FunctionName(Namespace(List()), "CoerceToPredicate"), _, Seq(expression), _, _) =>
-      CoerceToPredicate(expression)
-  })
-
-  def cleanup[T <: ASTNode](in: T): T = inSequence(
-    RemoveSyntaxTracking.instance,
-    injectCachedProperties,
-    invalidateInputPositions,
-    replaceWrongFunctionInvocation,
-    LabelExpressionPredicateNormalizer.instance,
-    // Flattening boolean operators otherwise it is impossible to create instances of Ands / Ors
-    flattenBooleanOperators.instance(CancellationChecker.NeverCancelled)
-  )(in).asInstanceOf[T]
-
-  private val regex = s"(.+) [Aa][Ss] (.+)".r
+  private def cleanup[T <: ASTNode](in: T): T = in.endoRewrite(Parser.Cleanup.cleanupRewriter)
 
   def parseProjections(projections: String*): Map[String, Expression] = {
     projections.map {
-      case regex(Parser(expression), VariableParser(alias)) => (alias, expression)
+      case Parser.RegExps.asRegex(expString, VariableParser(alias)) => (alias, parseExpression(expString))
       case x => throw new IllegalArgumentException(s"'$x' cannot be parsed as a projection")
     }.toMap
   }
 
-  def parseAggregationProjections(projections: String*): Map[String, Expression] = {
-    projections.map {
-      case regex(AggregationParser(expression), VariableParser(alias)) => (alias, expression)
-      case x => throw new IllegalArgumentException(s"'$x' cannot be parsed as an aggregation projection")
-    }.toMap
+  def parseAggregationProjections(projections: String*): Map[String, Expression] = projections.map {
+    case Parser.RegExps.asRegex(expString, VariableParser(alias)) => (alias, parseAggregation(expString))
+    case x => throw new IllegalArgumentException(s"'$x' cannot be parsed as an aggregation projection")
+  }.toMap
+
+  def parseExpression(text: String): Expression = Try(astParser.expression(text)) match {
+    case Success(expression) => cleanup(expression)
+    case Failure(exception)  => throw new RuntimeException(s"Failed parsing expression `$text``", exception)
   }
 
-  // Note, only supports cypher 5 for now.
-  def cypher5AstParser(cypher: String) = new Cypher5AstParser(cypher, Neo4jCypherExceptionFactory(cypher, None), None)
+  def parsePatternElement(text: String): PatternElement = Try(astParser.patternElement(text)) match {
+    case Success(patternElement) => cleanup(patternElement)
+    case Failure(exception)      => throw new RuntimeException(s"Failed parsing pattern element `$text``", exception)
+  }
 
-  def parseExpression(text: String): Expression = {
-    Try(cypher5AstParser(text).expression()) match {
-      case Success(expression) =>
-        Parser.cleanup(expression)
-      case Failure(exception) =>
-        println(s"Failed parsing expression `$text``")
-        throw exception
+  def parseProcedureCall(text: String): UnresolvedCall = astParser.callClause(s"CALL $text") match {
+    case u: UnresolvedCall => cleanup(u)
+    case c                 => throw new IllegalArgumentException(s"Expected UnresolvedCall but got: $c")
+  }
+
+  def parseAggregation(cypher: String): Expression = cypher match {
+    case Parser.RegExps.aggregationRegex(expString, direction) => parseExpression(expString) match {
+        case f: FunctionInvocation =>
+          val order =
+            if ("ASC".equalsIgnoreCase(direction)) ArgumentAsc
+            else if ("DESC".equalsIgnoreCase(direction)) ArgumentDesc
+            else ArgumentUnordered
+          f.withOrder(order)
+        case e: Expression => e
+        case e             => throw new IllegalArgumentException(s"Unexpected aggregation expression: $e")
+      }
+    case x => throw new IllegalArgumentException(s"'$x' cannot be parsed as an aggregation expression")
+  }
+
+  def parseSort(text: Seq[String]): Seq[ColumnOrder] = text.map(parseSort)
+
+  def parseSort(text: String): ColumnOrder = text match {
+    case Parser.RegExps.sortRegex(VariableParser(variable), direction) =>
+      if ("ASC".equalsIgnoreCase(direction)) Ascending(varFor(variable))
+      else if ("DESC".equalsIgnoreCase(direction)) Descending(varFor(variable))
+      else throw new IllegalArgumentException(s"Invalid direction $direction")
+    case x => throw new IllegalArgumentException(s"'$x' cannot be parsed as a sort item")
+  }
+
+  def parseGraphReference(text: String): GraphReference = astParser.useClause(s"USE $text").graphReference
+}
+
+object Parser {
+
+  def apply(language: CypherVersion): Parser = language match {
+    case CypherVersion.Cypher5  => Cypher5
+    case CypherVersion.Cypher25 => Cypher25
+  }
+
+  val Latest: Parser = apply(CypherVersion.Default)
+
+  trait AstParser {
+    def expression(cypher: String): Expression
+    def patternElement(cypher: String): PatternElement
+    def callClause(cypher: String): ASTNode
+    def useClause(cypher: String): UseGraph
+  }
+
+  private object Cypher5 extends Parser {
+
+    override val astParser: AstParser = new AstParser {
+      override def expression(cypher: String): Expression = parser(cypher).expression()
+      override def patternElement(cypher: String): PatternElement = parser(cypher).parse(_.patternElement())
+      override def callClause(cypher: String): ASTNode = parser(cypher).parse(_.callClause())
+      override def useClause(cypher: String): UseGraph = parser(cypher).parse(_.useClause())
+
+      private def parser(cypher: String) =
+        AstParserFactory(CypherVersion.Cypher5)(cypher, Neo4jCypherExceptionFactory(cypher, None), None)
+          .asInstanceOf[Cypher5AstParser]
     }
   }
 
-  def parsePatternElement(text: String): PatternElement = {
-    Try(cypher5AstParser(text).parse[PatternElement](_.patternElement())) match {
-      case Success(patternElement) =>
-        Parser.cleanup(patternElement)
-      case Failure(exception) =>
-        println(s"Failed parsing pattern element `$text``")
-        throw exception
+  private object Cypher25 extends Parser {
+
+    override val astParser: AstParser = new AstParser {
+      override def expression(cypher: String): Expression = parser(cypher).expression()
+      override def patternElement(cypher: String): PatternElement = parser(cypher).parse(_.patternElement())
+      override def callClause(cypher: String): ASTNode = parser(cypher).parse(_.callClause())
+      override def useClause(cypher: String): UseGraph = parser(cypher).parse(_.useClause())
+
+      private def parser(cypher: String) =
+        AstParserFactory(CypherVersion.Cypher25)(cypher, Neo4jCypherExceptionFactory(cypher, None), None)
+          .asInstanceOf[Cypher25AstParser]
     }
   }
 
-  def parseProcedureCall(text: String): UnresolvedCall = {
-    cypher5AstParser(s"CALL $text").parse[ASTNode](_.callClause()) match {
-      case u: UnresolvedCall => Parser.cleanup(u)
-      case c                 => throw new IllegalArgumentException(s"Expected UnresolvedCall but got: $c")
-    }
+  private object RegExps {
+    val asRegex = s"(.+) [Aa][Ss] (.+)".r
+    val aggregationRegex = "(.+?)(?i)(ASC|DESC)?".r
+    val sortRegex = "(.+) (?i)(ASC|DESC)".r
   }
 
-  private val sortRegex = "(.+) (?i)(ASC|DESC)".r
+  private object Cleanup {
 
-  def parseSort(text: Seq[String]): Seq[ColumnOrder] = {
-    text.map(parseSort)
+    private val injectCachedProperties: Rewriter = topDown(Rewriter.lift {
+      case ContainerIndex(Variable(name), Property(v: Variable, pkn: PropertyKeyName))
+        if name == "cache" || name == "cacheN" =>
+        CachedProperty(v, v, pkn, NODE_TYPE)(AbstractLogicalPlanBuilder.pos)
+      case ContainerIndex(Variable(name), Property(v: Variable, pkn: PropertyKeyName))
+        if name == "cacheFromStore" || name == "cacheNFromStore" =>
+        CachedProperty(v, v, pkn, NODE_TYPE, knownToAccessStore = true)(AbstractLogicalPlanBuilder.pos)
+      case ContainerIndex(Variable("cacheR"), Property(v: Variable, pkn: PropertyKeyName)) =>
+        CachedProperty(v, v, pkn, RELATIONSHIP_TYPE)(AbstractLogicalPlanBuilder.pos)
+      case ContainerIndex(Variable("cacheRFromStore"), Property(v: Variable, pkn: PropertyKeyName)) =>
+        CachedProperty(v, v, pkn, RELATIONSHIP_TYPE, knownToAccessStore = true)(AbstractLogicalPlanBuilder.pos)
+      case ContainerIndex(Variable(name), Property(v: Variable, pkn: PropertyKeyName))
+        if name == "cacheNHasProperty" =>
+        CachedHasProperty(v, v, pkn, NODE_TYPE)(AbstractLogicalPlanBuilder.pos)
+      case ContainerIndex(Variable(name), Property(v: Variable, pkn: PropertyKeyName))
+        if name == "cacheRHasProperty" =>
+        CachedHasProperty(v, v, pkn, RELATIONSHIP_TYPE)(AbstractLogicalPlanBuilder.pos)
+      case ContainerIndex(Variable(name), Property(v: Variable, pkn: PropertyKeyName))
+        if name == "cacheNHasPropertyFromStore" =>
+        CachedHasProperty(v, v, pkn, NODE_TYPE, knownToAccessStore = true)(AbstractLogicalPlanBuilder.pos)
+      case ContainerIndex(Variable(name), Property(v: Variable, pkn: PropertyKeyName))
+        if name == "cacheRHasPropertyFromStore" =>
+        CachedHasProperty(v, v, pkn, RELATIONSHIP_TYPE, knownToAccessStore = true)(AbstractLogicalPlanBuilder.pos)
+
+    })
+
+    private val invalidateInputPositions: Rewriter = topDown(Rewriter.lift {
+      // Special handling of PatternPartWithSelector because it happens to not include an argument for InputPosition.
+      // If more cases ends up being added this should probably be refactored. But that is left as an exercise to the reader.
+      case x: PatternPartWithSelector => x
+      case a: ASTNode                 => a.dup(a.treeChildren.toSeq :+ AbstractLogicalPlanBuilder.pos)
+    })
+
+    private val replaceWrongFunctionInvocation: Rewriter = topDown(Rewriter.lift {
+      case FunctionInvocation(FunctionName(Namespace(List()), "CoerceToPredicate"), _, Seq(expression), _, _) =>
+        CoerceToPredicate(expression)
+    })
+
+    val cleanupRewriter = inSequence(
+      RemoveSyntaxTracking.instance,
+      injectCachedProperties,
+      invalidateInputPositions,
+      replaceWrongFunctionInvocation,
+      LabelExpressionPredicateNormalizer.instance,
+      // Flattening boolean operators otherwise it is impossible to create instances of Ands / Ors
+      flattenBooleanOperators.instance(CancellationChecker.NeverCancelled)
+    )
   }
-
-  def parseSort(text: String): ColumnOrder = {
-    text match {
-      case sortRegex(VariableParser(variable), direction) =>
-        if ("ASC".equalsIgnoreCase(direction)) Ascending(varFor(variable))
-        else if ("DESC".equalsIgnoreCase(direction)) Descending(varFor(variable))
-        else throw new IllegalArgumentException(s"Invalid direction $direction")
-      case x => throw new IllegalArgumentException(s"'$x' cannot be parsed as a sort item")
-    }
-  }
-
-  def parseGraphReference(text: String): GraphReference = {
-    if (CypherVersion.Default == CypherVersion.Cypher5) {
-      cypher5AstParser(s"USE $text").parse[UseGraph](_.useClause()).graphReference
-    } else {
-      new Cypher25AstParser(
-        s"USE $text",
-        Neo4jCypherExceptionFactory(s"USE $text", None),
-        None
-      ).parse[UseGraph](_.useClause()).graphReference
-    }
-  }
-
-  def unapply(arg: String): Option[Expression] = Some(parseExpression(arg))
 }

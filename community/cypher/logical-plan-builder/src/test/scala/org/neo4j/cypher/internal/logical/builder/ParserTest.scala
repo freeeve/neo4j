@@ -45,12 +45,12 @@ import org.neo4j.cypher.internal.util.test_helpers.TestName
 class ParserTest extends CypherFunSuite with TestName with AstConstructionTestSupport {
 
   test("a AS b") {
-    Parser.parseProjections(testName) should be(Map("b" -> varFor("a")))
+    Parser.Latest.parseProjections(testName) should be(Map("b" -> varFor("a")))
   }
 
   // Finds cached property
   test("cache[n.prop] AS b") {
-    Parser.parseProjections(testName) should be(Map("b" -> CachedProperty(
+    Parser.Latest.parseProjections(testName) should be(Map("b" -> CachedProperty(
       varFor("n"),
       varFor("n"),
       PropertyKeyName("prop")(pos),
@@ -59,7 +59,7 @@ class ParserTest extends CypherFunSuite with TestName with AstConstructionTestSu
   }
 
   test("b.foo + 5 AS abc09") {
-    Parser.parseProjections(testName) should be(Map("abc09" -> Add(
+    Parser.Latest.parseProjections(testName) should be(Map("abc09" -> Add(
       Property(varFor("b"), PropertyKeyName("foo")(pos))(pos),
       SignedDecimalIntegerLiteral("5")(pos)
     )(pos)))
@@ -67,25 +67,25 @@ class ParserTest extends CypherFunSuite with TestName with AstConstructionTestSu
 
   // Finds nested cached property
   test("cache[b.foo] + 5 AS abc09") {
-    Parser.parseProjections(testName) should be(Map("abc09" -> Add(
+    Parser.Latest.parseProjections(testName) should be(Map("abc09" -> Add(
       CachedProperty(varFor("b"), varFor("b"), PropertyKeyName("foo")(pos), NODE_TYPE)(pos),
       SignedDecimalIntegerLiteral("5")(pos)
     )(pos)))
   }
 
   test("n:Label") {
-    Parser.parseExpression(testName) should be(HasLabelsOrTypes(
+    Parser.Latest.parseExpression(testName) should be(HasLabelsOrTypes(
       varFor("n"),
       Seq(LabelOrRelTypeName("Label")(pos))
     )(pos))
   }
 
   test("`  n@31`") {
-    Parser.parseExpression(testName) should be(varFor("  n@31"))
+    Parser.Latest.parseExpression(testName) should be(varFor("  n@31"))
   }
 
   test("All(rel in relationships(path) WHERE id(rel) <> 5)") {
-    Parser.parseExpression(testName) should be(
+    Parser.Latest.parseExpression(testName) should be(
       AllIterablePredicate(
         FilterScope(
           varFor("rel"),
@@ -118,6 +118,6 @@ class ParserTest extends CypherFunSuite with TestName with AstConstructionTestSu
       ))(pos))
     )(pos)
 
-    Parser.parseProcedureCall("db.my.proc(1) YIELD foo, bar AS boo") should be(expected)
+    Parser.Latest.parseProcedureCall("db.my.proc(1) YIELD foo, bar AS boo") should be(expected)
   }
 }

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.logical.builder
 
 import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
@@ -324,12 +325,14 @@ trait Resolver {
 abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[T, IMPL]](
   protected val resolver: Resolver,
   wholePlan: Boolean = true,
-  initialId: Int = 0
+  initialId: Int = 0,
+  language: CypherVersion = CypherVersion.Default
 ) {
 
   self: IMPL =>
 
   val patternParser = new PatternParser
+  val parser = Parser(language)
   protected var semanticTable = new SemanticTable()
 
   sealed protected trait OperatorBuilder
@@ -463,7 +466,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   def procedureCall(call: String, withFakedFullDeclarations: Boolean = false): IMPL = {
-    val unresolvedCall = Parser.parseProcedureCall(call)
+    val unresolvedCall = parser.parseProcedureCall(call)
     appendAtCurrentIndent(UnaryOperator(lp => {
       val resolvedCall =
         ResolvedCall(resolver.procedureSignature)(unresolvedCall)
@@ -977,7 +980,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   def partialSort(alreadySortedPrefix: Seq[String], stillToSortSuffix: Seq[String]): IMPL =
-    partialSortColumns(Parser.parseSort(alreadySortedPrefix), Parser.parseSort(stillToSortSuffix))
+    partialSortColumns(parser.parseSort(alreadySortedPrefix), parser.parseSort(stillToSortSuffix))
 
   def partialSortColumns(alreadySortedPrefix: Seq[ColumnOrder], stillToSortSuffix: Seq[ColumnOrder]): IMPL = {
     appendAtCurrentIndent(UnaryOperator(lp => PartialSort(lp, alreadySortedPrefix, stillToSortSuffix, None)(_)))
@@ -1002,7 +1005,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   ): IMPL = {
     val skipSort = if (skipSortingPrefixLength == 0) None else Some(literalInt(skipSortingPrefixLength))
     appendAtCurrentIndent(UnaryOperator(lp =>
-      PartialSort(lp, Parser.parseSort(alreadySortedPrefix), Parser.parseSort(stillToSortSuffix), skipSort)(_)
+      PartialSort(lp, parser.parseSort(alreadySortedPrefix), parser.parseSort(stillToSortSuffix), skipSort)(_)
     ))
     self
   }
@@ -1012,9 +1015,9 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     self
   }
 
-  def sort(sortItems: String*): IMPL = sortColumns(Parser.parseSort(sortItems))
+  def sort(sortItems: String*): IMPL = sortColumns(parser.parseSort(sortItems))
 
-  def top(limit: Long, sortItems: String*): IMPL = top(Parser.parseSort(sortItems), limit)
+  def top(limit: Long, sortItems: String*): IMPL = top(parser.parseSort(sortItems), limit)
 
   def top(sortItems: Seq[ColumnOrder], limit: Long): IMPL =
     top(sortItems, literalInt(limit))
@@ -1024,7 +1027,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     self
   }
 
-  def top1WithTies(sortItems: String*): IMPL = top1WithTiesColumns(Parser.parseSort(sortItems))
+  def top1WithTies(sortItems: String*): IMPL = top1WithTiesColumns(parser.parseSort(sortItems))
 
   def top1WithTiesColumns(sortItems: Seq[ColumnOrder]): IMPL = {
     appendAtCurrentIndent(UnaryOperator(lp => Top1WithTies(lp, sortItems)(_)))
@@ -1039,7 +1042,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   def partialTop(limit: Long, alreadySortedPrefix: Seq[String], stillToSortSuffix: Seq[String]): IMPL = {
-    partialTop(Parser.parseSort(alreadySortedPrefix), Parser.parseSort(stillToSortSuffix), limit)
+    partialTop(parser.parseSort(alreadySortedPrefix), parser.parseSort(stillToSortSuffix), limit)
   }
 
   def partialTop(
@@ -1084,8 +1087,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     stillToSortSuffix: Seq[String]
   ): IMPL = {
     partialTop(
-      Parser.parseSort(alreadySortedPrefix),
-      Parser.parseSort(stillToSortSuffix),
+      parser.parseSort(alreadySortedPrefix),
+      parser.parseSort(stillToSortSuffix),
       limit,
       skipSortingPrefixLength
     )
@@ -1162,14 +1165,14 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         lp,
         varFor(nodeVariable),
         labelNames.map(l => LabelName(l)(InputPosition.NONE)).toSet,
-        labelExpressions.map(l => Parser.parseExpression(l)).toSet
+        labelExpressions.map(l => parser.parseExpression(l)).toSet
       )(_)
     ))
   }
 
   def setDynamicLabels(nodeVariable: String, labels: String*): IMPL = {
     appendAtCurrentIndent(UnaryOperator(lp =>
-      SetLabels(lp, varFor(nodeVariable), Set.empty, labels.map(l => Parser.parseExpression(l)).toSet)(_)
+      SetLabels(lp, varFor(nodeVariable), Set.empty, labels.map(l => parser.parseExpression(l)).toSet)(_)
     ))
   }
 
@@ -1190,14 +1193,14 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         lp,
         varFor(nodeVariable),
         labelNames.map(l => LabelName(l)(InputPosition.NONE)).toSet,
-        labelExpressions.map(l => Parser.parseExpression(l)).toSet
+        labelExpressions.map(l => parser.parseExpression(l)).toSet
       )(_)
     ))
   }
 
   def removeDynamicLabels(nodeVariable: String, labels: String*): IMPL = {
     appendAtCurrentIndent(UnaryOperator(lp =>
-      RemoveLabels(lp, varFor(nodeVariable), Set.empty, labels.map(l => Parser.parseExpression(l)).toSet)(_)
+      RemoveLabels(lp, varFor(nodeVariable), Set.empty, labels.map(l => parser.parseExpression(l)).toSet)(_)
     ))
   }
 
@@ -1208,13 +1211,13 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   def unwind(projectionString: String): IMPL = {
-    val (name, expression) = toVarMap(Parser.parseProjections(projectionString)).head
+    val (name, expression) = toVarMap(parser.parseProjections(projectionString)).head
     appendAtCurrentIndent(UnaryOperator(lp => UnwindCollection(lp, name, expression)(_)))
     self
   }
 
   def partitionedUnwind(projectionString: String): IMPL = {
-    val (name, expression) = toVarMap(Parser.parseProjections(projectionString)).head
+    val (name, expression) = toVarMap(parser.parseProjections(projectionString)).head
     appendAtCurrentIndent(UnaryOperator(lp => PartitionedUnwindCollection(lp, name, expression)(_)))
     self
   }
@@ -1234,7 +1237,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       RunQueryAt(
         source,
         query,
-        Parser.parseGraphReference(graphReference),
+        parser.parseGraphReference(graphReference),
         properParameters,
         properImports,
         columns.map(varFor)
@@ -1269,14 +1272,14 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   def distinct(projectionStrings: String*): IMPL = {
-    val projections = Parser.parseProjections(projectionStrings: _*)
+    val projections = parser.parseProjections(projectionStrings: _*)
     appendAtCurrentIndent(UnaryOperator(lp => Distinct(lp, toVarMap(projections))(_)))
     self
   }
 
   def orderedDistinct(orderToLeverage: Seq[String], projectionStrings: String*): IMPL = {
     val order = orderToLeverage.map(parseExpression)
-    val projections = Parser.parseProjections(projectionStrings: _*)
+    val projections = parser.parseProjections(projectionStrings: _*)
     appendAtCurrentIndent(UnaryOperator(lp => OrderedDistinct(lp, toVarMap(projections), order)(_)))
     self
   }
@@ -1689,7 +1692,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
           // the caller would have to quote elementIds all the time.
           case x: String =>
             try {
-              Parser.parseExpression(x)
+              parser.parseExpression(x)
             } catch {
               case _: Exception => StringLiteral(x)(pos.withInputLength(0))
             }
@@ -2477,7 +2480,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(UnaryOperator(lp => {
       Aggregation(
         lp,
-        toVarMap(Parser.parseProjections(groupingExpressions: _*)),
+        toVarMap(parser.parseProjections(groupingExpressions: _*)),
         parseAggregationProjections(aggregationExpression: _*)
       )(_)
     }))
@@ -2501,7 +2504,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(UnaryOperator(lp =>
       OrderedAggregation(
         lp,
-        toVarMap(Parser.parseProjections(groupingExpressions: _*)),
+        toVarMap(parser.parseProjections(groupingExpressions: _*)),
         parseAggregationProjections(aggregationExpression: _*),
         order
       )(_)
@@ -2601,7 +2604,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(BinaryOperator((lhs, rhs) => AssertSameRelationship(varFor(idName), lhs, rhs)(_)))
 
   def orderedUnion(sortedOn: String*): IMPL =
-    orderedUnionColumns(Parser.parseSort(sortedOn))
+    orderedUnionColumns(parser.parseSort(sortedOn))
 
   def orderedUnionColumns(sortedOn: Seq[ColumnOrder]): IMPL =
     appendAtCurrentIndent(BinaryOperator((lhs, rhs) => OrderedUnion(lhs, rhs, sortedOn)(_)))
@@ -3235,7 +3238,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
 
   // HELPERS
   private def parseExpression(expression: String): Expression = {
-    (Parser.parseExpression(expression) match {
+    (parser.parseExpression(expression) match {
       case f: FunctionInvocation if f.needsToBeResolved =>
         ResolvedFunctionInvocation(resolver.functionSignature)(f).coerceArguments
       case e => e
@@ -3243,7 +3246,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   private def parseProjections(projections: String*): Map[LogicalVariable, Expression] = {
-    toVarMap(Parser.parseProjections(projections: _*)).view.mapValues {
+    toVarMap(parser.parseProjections(projections: _*)).view.mapValues {
       case f: FunctionInvocation if f.needsToBeResolved =>
         ResolvedFunctionInvocation(resolver.functionSignature)(f).coerceArguments
       case e => e
@@ -3251,7 +3254,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   private def parseAggregationProjections(projections: String*): Map[LogicalVariable, Expression] = {
-    toVarMap(Parser.parseAggregationProjections(projections: _*)).view.mapValues {
+    toVarMap(parser.parseAggregationProjections(projections: _*)).view.mapValues {
       case f: FunctionInvocation if f.needsToBeResolved =>
         ResolvedFunctionInvocation(resolver.functionSignature)(f).coerceArguments
       case e => e
@@ -3317,8 +3320,9 @@ object AbstractLogicalPlanBuilder {
 
   case class Predicate(entity: String, predicate: String) {
 
+    // Note! Parses with default language.
     def asVariablePredicate: VariablePredicate =
-      VariablePredicate(Variable(entity)(pos, Variable.isIsolatedDefault), Parser.parseExpression(predicate))
+      VariablePredicate(Variable(entity)(pos, Variable.isIsolatedDefault), Parser.Latest.parseExpression(predicate))
   }
 
   case class TrailParameters(
@@ -3361,12 +3365,14 @@ object AbstractLogicalPlanBuilder {
   def createNodeWithDynamicLabels(node: String, dynamicLabels: Expression*): CreateNode =
     createNodeFullExpression(node, dynamicLabels = dynamicLabels)
 
+  // Note! Parses with default language.
   def createNodeWithProperties(node: String, labels: Seq[String], properties: String): CreateNode =
-    createNodeFullExpression(node, labels, properties = Some(Parser.parseExpression(properties)))
+    createNodeFullExpression(node, labels, properties = Some(Parser.Latest.parseExpression(properties)))
 
   def createNodeWithProperties(node: String, labels: Seq[String], properties: MapExpression): CreateNode =
     createNodeFullExpression(node, labels, properties = Some(properties))
 
+  // Note! Parses with default language.
   def createNodeFull(
     node: String,
     labels: Seq[String] = Seq.empty,
@@ -3376,8 +3382,8 @@ object AbstractLogicalPlanBuilder {
     createNodeFullExpression(
       node,
       labels = labels,
-      dynamicLabels = dynamicLabels.map(Parser.parseExpression),
-      properties = properties.map(Parser.parseExpression)
+      dynamicLabels = dynamicLabels.map(Parser.Latest.parseExpression),
+      properties = properties.map(Parser.Latest.parseExpression)
     )
 
   def createNodeFullExpression(
@@ -3393,6 +3399,7 @@ object AbstractLogicalPlanBuilder {
       properties
     )
 
+  // Note! Parses with default language.
   def createRelationship(
     relationship: String,
     left: String,
@@ -3401,7 +3408,7 @@ object AbstractLogicalPlanBuilder {
     direction: SemanticDirection = OUTGOING,
     properties: Option[String] = None
   ): CreateRelationship = {
-    val props = properties.map(Parser.parseExpression)
+    val props = properties.map(Parser.Latest.parseExpression)
     if (props.exists(!_.isInstanceOf[MapExpression]))
       throw new IllegalArgumentException("Property must be a Map Expression")
     createRelationshipFull(
@@ -3414,6 +3421,7 @@ object AbstractLogicalPlanBuilder {
     )
   }
 
+  // Note! Parses with default language.
   def createRelationshipWithDynamicType(
     relationship: String,
     left: String,
@@ -3422,8 +3430,8 @@ object AbstractLogicalPlanBuilder {
     direction: SemanticDirection = OUTGOING,
     properties: Option[String] = None
   ): CreateRelationship = {
-    val dynamicType = Parser.parseExpression(typeExpr)
-    val props = properties.map(Parser.parseExpression)
+    val dynamicType = Parser.Latest.parseExpression(typeExpr)
+    val props = properties.map(Parser.Latest.parseExpression)
     if (props.exists(!_.isInstanceOf[MapExpression]))
       throw new IllegalArgumentException("Property must be a Map Expression")
     createRelationshipFull(
@@ -3472,89 +3480,109 @@ object AbstractLogicalPlanBuilder {
     )
   }
 
+  // Note! Parses with default language.
   def setNodeProperty(node: String, key: String, value: String): SetMutatingPattern =
-    SetNodePropertyPattern(varFor(node), PropertyKeyName(key)(InputPosition.NONE), Parser.parseExpression(value))
+    SetNodePropertyPattern(varFor(node), PropertyKeyName(key)(InputPosition.NONE), Parser.Latest.parseExpression(value))
 
+  // Note! Parses with default language.
   def setNodeProperties(node: String, items: (String, String)*): SetMutatingPattern =
     SetNodePropertiesPattern(
       varFor(node),
-      items.map(i => (PropertyKeyName(i._1)(InputPosition.NONE), Parser.parseExpression(i._2)))
+      items.map(i => (PropertyKeyName(i._1)(InputPosition.NONE), Parser.Latest.parseExpression(i._2)))
     )
 
+  // Note! Parses with default language.
   def setNodePropertiesFromMap(node: String, map: String, removeOtherProps: Boolean = true): SetMutatingPattern =
-    SetNodePropertiesFromMapPattern(varFor(node), Parser.parseExpression(map), removeOtherProps)
+    SetNodePropertiesFromMapPattern(varFor(node), Parser.Latest.parseExpression(map), removeOtherProps)
 
+  // Note! Parses with default language.
   def setRelationshipProperty(relationship: String, key: String, value: String): SetMutatingPattern =
     SetRelationshipPropertyPattern(
       varFor(relationship),
       PropertyKeyName(key)(InputPosition.NONE),
-      Parser.parseExpression(value)
+      Parser.Latest.parseExpression(value)
     )
 
+  // Note! Parses with default language.
   def setRelationshipProperties(rel: String, items: (String, String)*): SetMutatingPattern =
     SetRelationshipPropertiesPattern(
       varFor(rel),
-      items.map(i => (PropertyKeyName(i._1)(InputPosition.NONE), Parser.parseExpression(i._2)))
+      items.map(i => (PropertyKeyName(i._1)(InputPosition.NONE), Parser.Latest.parseExpression(i._2)))
     )
 
+  // Note! Parses with default language.
   def setRelationshipPropertiesFromMap(
     node: String,
     map: String,
     removeOtherProps: Boolean = true
   ): SetMutatingPattern =
-    SetRelationshipPropertiesFromMapPattern(varFor(node), Parser.parseExpression(map), removeOtherProps)
+    SetRelationshipPropertiesFromMapPattern(varFor(node), Parser.Latest.parseExpression(map), removeOtherProps)
 
+  // Note! Parses with default language.
   def setProperty(entity: String, key: String, value: String): SetMutatingPattern =
     SetPropertyPattern(
-      Parser.parseExpression(entity),
+      Parser.Latest.parseExpression(entity),
       PropertyKeyName(key)(InputPosition.NONE),
-      Parser.parseExpression(value)
+      Parser.Latest.parseExpression(value)
     )
 
+  // Note! Parses with default language.
   def setDynamicProperty(entity: String, key: String, value: String): SetMutatingPattern =
-    SetDynamicPropertyPattern(varFor(entity), Parser.parseExpression(key), Parser.parseExpression(value))
+    SetDynamicPropertyPattern(varFor(entity), Parser.Latest.parseExpression(key), Parser.Latest.parseExpression(value))
 
+  // Note! Parses with default language.
   def setProperties(entity: String, items: (String, String)*): SetMutatingPattern =
     SetPropertiesPattern(
-      Parser.parseExpression(entity),
-      items.map(i => (PropertyKeyName(i._1)(InputPosition.NONE), Parser.parseExpression(i._2)))
+      Parser.Latest.parseExpression(entity),
+      items.map(i => (PropertyKeyName(i._1)(InputPosition.NONE), Parser.Latest.parseExpression(i._2)))
     )
 
+  // Note! Parses with default language.
   def setPropertyFromMap(entity: String, map: String, removeOtherProps: Boolean = true): SetMutatingPattern =
-    SetPropertiesFromMapPattern(Parser.parseExpression(entity), Parser.parseExpression(map), removeOtherProps)
+    SetPropertiesFromMapPattern(
+      Parser.Latest.parseExpression(entity),
+      Parser.Latest.parseExpression(map),
+      removeOtherProps
+    )
 
   def setLabel(node: String, labels: String*): SetMutatingPattern =
     SetLabelPattern(varFor(node), labels.map(l => LabelName(l)(InputPosition.NONE)), Seq.empty)
 
+  // Note! Parses with default language.
   def setLabel(node: String, staticLabels: Seq[String], dynamicLabelExpressions: Seq[String]): SetMutatingPattern =
     SetLabelPattern(
       varFor(node),
       staticLabels.map(l => LabelName(l)(InputPosition.NONE)),
-      dynamicLabelExpressions.map(e => Parser.parseExpression(e))
+      dynamicLabelExpressions.map(e => Parser.Latest.parseExpression(e))
     )
 
+  // Note! Parses with default language.
   def setDynamicLabel(node: String, labels: String*): SetMutatingPattern =
-    SetLabelPattern(varFor(node), Seq.empty, labels.map(l => Parser.parseExpression(l)))
+    SetLabelPattern(varFor(node), Seq.empty, labels.map(l => Parser.Latest.parseExpression(l)))
 
   def removeLabel(node: String, labels: String*): RemoveLabelPattern =
     RemoveLabelPattern(varFor(node), labels.map(l => LabelName(l)(InputPosition.NONE)), Seq.empty)
 
+  // Note! Parses with default language.
   def removeLabel(node: String, staticLabels: Seq[String], dynamicLabelExpressions: Seq[String]): SetMutatingPattern =
     RemoveLabelPattern(
       varFor(node),
       staticLabels.map(l => LabelName(l)(InputPosition.NONE)),
-      dynamicLabelExpressions.map(e => Parser.parseExpression(e))
+      dynamicLabelExpressions.map(e => Parser.Latest.parseExpression(e))
     )
 
+  // Note! Parses with default language.
   def removeDynamicLabel(node: String, labels: String*): SetMutatingPattern =
-    RemoveLabelPattern(varFor(node), Seq.empty, labels.map(l => Parser.parseExpression(l)))
+    RemoveLabelPattern(varFor(node), Seq.empty, labels.map(l => Parser.Latest.parseExpression(l)))
 
+  // Note! Parses with default language.
   def delete(entity: String, forced: Boolean = false): org.neo4j.cypher.internal.ir.DeleteExpression =
-    org.neo4j.cypher.internal.ir.DeleteExpression(Parser.parseExpression(entity), forced)
+    org.neo4j.cypher.internal.ir.DeleteExpression(Parser.Latest.parseExpression(entity), forced)
 
+  // Note! Parses with default language.
   def andsReorderable(predicateExpressionsOrStrings: AnyRef*): AndsReorderable = {
     val predicates = predicateExpressionsOrStrings.map {
-      case s: String     => Parser.parseExpression(s)
+      case s: String     => Parser.Latest.parseExpression(s)
       case e: Expression => e
       case other => throw new IllegalArgumentException(
           s"Expected Expression or String, got [${other.getClass.getSimpleName}] $other}"
@@ -3563,9 +3591,14 @@ object AbstractLogicalPlanBuilder {
     AndsReorderable(ListSet.from(predicates))(pos)
   }
 
+  // Note! Parses with default language.
   def column(name: String, cachedProperties: String*): Column = {
-    Column(varFor(name), cachedProperties.map(cp => Parser.parseExpression(cp).asInstanceOf[ASTCachedProperty]).toSet)
+    Column(
+      varFor(name),
+      cachedProperties.map(cp => Parser.Latest.parseExpression(cp).asInstanceOf[ASTCachedProperty]).toSet
+    )
   }
 
-  def coerceToPredicate(expression: String) = CoerceToPredicate(Parser.parseExpression(expression))
+  // Note! Parses with default language.
+  def coerceToPredicate(expression: String) = CoerceToPredicate(Parser.Latest.parseExpression(expression))
 }
