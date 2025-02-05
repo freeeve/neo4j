@@ -122,7 +122,7 @@ class CommunityRoutingServiceTest {
     void shouldReturnConfigValues() throws RoutingException {
         // given
         var socketAddress = new SocketAddress(UUID.randomUUID().toString(), 1024 + new Random().nextInt(64512));
-        var ttl = Duration.ofMillis(10 + new Random().nextInt(60000));
+        var ttl = Duration.ofMillis(1000 + new Random().nextInt(60000));
         var config = Config.newBuilder()
                 .set(BoltConnector.enabled, true)
                 .set(BoltConnector.advertised_address, socketAddress)
