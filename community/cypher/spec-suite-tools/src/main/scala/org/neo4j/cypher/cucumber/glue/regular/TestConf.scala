@@ -178,8 +178,7 @@ object TestConf {
         "server.routing.listen_address" -> "127.0.0.1:0",
         "server.routing.advertised_address" -> "127.0.0.1:0",
         "internal.dbms.sharded_property_database.shard_count" -> "3",
-        "internal.dbms.sharded_property_database.read_only" -> "false",
-        "internal.dbms.include_dev_format_versions" -> "true"
+        "internal.dbms.sharded_property_database.read_only" -> "false"
       ),
       useBolt = true,
       useSpd = true,
@@ -197,8 +196,7 @@ object TestConf {
         "server.routing.listen_address" -> "127.0.0.1:0",
         "server.routing.advertised_address" -> "127.0.0.1:0",
         "internal.dbms.sharded_property_database.shard_count" -> "3",
-        "internal.dbms.sharded_property_database.read_only" -> "false",
-        "internal.dbms.include_dev_format_versions" -> "true"
+        "internal.dbms.sharded_property_database.read_only" -> "false"
       ),
       preparserOptions = Map("runtime" -> "parallel"),
       useSpd = true,

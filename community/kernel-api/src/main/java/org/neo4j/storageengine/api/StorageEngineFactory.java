@@ -43,7 +43,6 @@ import org.neo4j.batchimport.api.ReadBehaviour;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Input;
 import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.consistency.checking.ConsistencyCheckIncompleteException;
 import org.neo4j.consistency.checking.ConsistencyFlags;
@@ -211,19 +210,17 @@ public interface StorageEngineFactory {
      * Check if a format is supported by the factory
      *
      * @param format format to check if it is supported
-     * @param includeFormatsUnderDevelopment true if this check should include formats under development
      * @return true if supported, false otherwise
      */
-    default boolean supportedFormat(String format, boolean includeFormatsUnderDevelopment) {
-        return supportedFormats(includeFormatsUnderDevelopment).contains(format);
+    default boolean supportedFormat(String format) {
+        return supportedFormats(true).contains(format);
     }
 
     /**
      * Get the name of all the supported formats
-     * @param includeFormatsUnderDevelopment true if this check should include formats under development
      * @return a Set of format names
      */
-    Set<String> supportedFormats(boolean includeFormatsUnderDevelopment);
+    Set<String> supportedFormats(boolean includeDevelopmentFormats);
 
     /**
      * Checks if the given store format is deprecated
@@ -236,12 +233,10 @@ public interface StorageEngineFactory {
     /**
      * Get the id limits supported by a format
      * @param formatName format to check limits for
-     * @param includeFormatsUnderDevelopment true if this check should include formats under development
      * @return The limits for the format
      * @throws IllegalStateException on unsupported format for engine
      */
-    StoreFormatLimits limitsForFormat(String formatName, boolean includeFormatsUnderDevelopment)
-            throws IllegalStateException;
+    StoreFormatLimits limitsForFormat(String formatName) throws IllegalStateException;
 
     /**
      * Check if the database fits within the provided id limits. This is best effort and not all limits are checked.
@@ -602,7 +597,7 @@ public interface StorageEngineFactory {
      */
     static boolean isFormatDeprecated(String formatName) {
         try {
-            return findEngineForFormatOrThrow(formatName, true).isDeprecated(formatName);
+            return findEngineForFormatOrThrow(formatName).isDeprecated(formatName);
         } catch (IllegalArgumentException ignored) {
             // No storage engine found/loaded on the classpath for the given format.
             // Likely a test scenario with fake formats, or format not on classpath.
@@ -613,17 +608,17 @@ public interface StorageEngineFactory {
 
     private static StorageEngineFactory findEngineForFormatOrThrow(Configuration configuration) {
         String name = configuration.get(GraphDatabaseSettings.db_format);
-        boolean includeDevFormats = configuration.get(GraphDatabaseInternalSettings.include_versions_under_development);
-        return findEngineForFormatOrThrow(name, includeDevFormats);
+        return findEngineForFormatOrThrow(name);
     }
 
-    private static StorageEngineFactory findEngineForFormatOrThrow(String name, boolean includeDevFormats) {
+    private static StorageEngineFactory findEngineForFormatOrThrow(String name) {
+
         return allAvailableStorageEngines().stream()
-                .filter(engine -> engine.supportedFormat(name, includeDevFormats))
+                .filter(engine -> engine.supportedFormat(name))
                 .findFirst()
                 .orElseThrow(() -> {
                     String allFormats = allAvailableStorageEngines().stream()
-                            .flatMap(sef -> sef.supportedFormats(includeDevFormats).stream())
+                            .flatMap(sef -> sef.supportedFormats(false).stream())
                             .distinct()
                             .collect(Collectors.joining("', '", "'", "'"));
                     return new IllegalArgumentException(String.format(

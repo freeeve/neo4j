@@ -80,7 +80,7 @@ public abstract class BaseRecordFormats implements RecordFormats {
     public String toString() {
         return String.format(
                 "RecordFormat:%s[%s-%d.%d]",
-                getClass().getSimpleName(), getFormatFamily().name(), majorFormatVersion, minorFormatVersion);
+                getClass().getSimpleName(), getFormatFamily().name(), majorVersion(), minorVersion());
     }
 
     @Override

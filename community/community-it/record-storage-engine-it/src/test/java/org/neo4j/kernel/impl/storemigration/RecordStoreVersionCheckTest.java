@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.neo4j.configuration.GraphDatabaseInternalSettings.include_versions_under_development;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
@@ -181,7 +180,7 @@ class RecordStoreVersionCheckTest {
     }
 
     @Test
-    void tracePageCacheAccessOnMigrationCheck() throws IOException {
+    void tracePageCacheAccessOnMigrationCheck() {
         RecordStoreVersionCheck storeVersionCheck = newStoreVersionCheck();
 
         doTestTraceOnCheck(cursorContext -> {
@@ -254,8 +253,7 @@ class RecordStoreVersionCheckTest {
     }
 
     private RecordStoreVersionCheck newStoreVersionCheck() {
-        return new RecordStoreVersionCheck(
-                pageCache, databaseLayout, Config.defaults(include_versions_under_development, false));
+        return new RecordStoreVersionCheck(pageCache, databaseLayout, Config.defaults());
     }
 
     private Path createMetaDataStore(RecordFormats recordFormats) {

@@ -207,10 +207,8 @@ public class StoreInfoCommand extends AbstractAdminCommand {
             var recoveryRequired =
                     checkRecoveryState(fs, pageCache, databaseLayout, config, memoryTracker, storageEngineFactory);
             var txIdStore = new ReadOnlyTransactionIdStore(logTail);
-            var lastTxId =
-                    txIdStore.getLastCommittedTransactionId(); // Latest committed tx id found in metadata store. May be
-            // behind
-            // if recovery is required.
+            // Latest committed tx id found in metadata store. May be behind if recovery is required.
+            var lastTxId = txIdStore.getLastCommittedTransactionId();
             var successorVersion =
                     versionInformation.successorStoreVersion(config).orElse(null);
             var storeInfo = StoreInfo.notInUseResult(

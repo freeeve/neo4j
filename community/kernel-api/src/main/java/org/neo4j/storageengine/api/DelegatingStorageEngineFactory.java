@@ -210,13 +210,13 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
     }
 
     @Override
-    public boolean supportedFormat(String format, boolean includeFormatsUnderDevelopment) {
-        return delegate.supportedFormat(format, includeFormatsUnderDevelopment);
+    public boolean supportedFormat(String format) {
+        return delegate.supportedFormat(format);
     }
 
     @Override
-    public Set<String> supportedFormats(boolean includeFormatsUnderDevelopment) {
-        return delegate.supportedFormats(includeFormatsUnderDevelopment);
+    public Set<String> supportedFormats(boolean includeDevelopmentFormats) {
+        return delegate.supportedFormats(includeDevelopmentFormats);
     }
 
     @Override
@@ -225,9 +225,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
     }
 
     @Override
-    public StoreFormatLimits limitsForFormat(String formatName, boolean includeFormatsUnderDevelopment)
-            throws IllegalStateException {
-        return delegate.limitsForFormat(formatName, includeFormatsUnderDevelopment);
+    public StoreFormatLimits limitsForFormat(String formatName) throws IllegalStateException {
+        return delegate.limitsForFormat(formatName);
     }
 
     @Override

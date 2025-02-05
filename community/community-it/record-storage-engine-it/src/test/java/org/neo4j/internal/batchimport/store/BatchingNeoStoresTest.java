@@ -726,7 +726,6 @@ class BatchingNeoStoresTest {
     private static Config configForForcedSecondaryUnitRecordFormats() {
         return Config.newBuilder()
                 .set(GraphDatabaseSettings.db_format, ForcedSecondaryUnitRecordFormats.DEFAULT_RECORD_FORMATS.name())
-                .set(GraphDatabaseInternalSettings.include_versions_under_development, false)
                 .build();
     }
 

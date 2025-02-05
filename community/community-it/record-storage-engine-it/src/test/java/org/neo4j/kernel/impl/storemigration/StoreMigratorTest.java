@@ -48,7 +48,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mockito;
 import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.function.Suppliers;
 import org.neo4j.internal.recordstorage.RecordStorageEngineFactory;
@@ -110,7 +109,6 @@ class StoreMigratorTest {
         databaseLayout = RecordDatabaseLayout.of(neo4jLayout, DEFAULT_DATABASE_NAME);
         var dbms = new TestDatabaseManagementServiceBuilder(neo4jLayout.homeDirectory())
                 .setConfig(GraphDatabaseSettings.db_format, FormatFamily.STANDARD.name())
-                .setConfig(GraphDatabaseInternalSettings.include_versions_under_development, false)
                 .build();
         dbms.shutdown();
     }
@@ -126,7 +124,7 @@ class StoreMigratorTest {
         when(participant.getName()).thenReturn(RecordStorageMigrator.NAME);
 
         mockParticipantAddition(participant);
-        var storeMigrator = createMigrator();
+        var storeMigrator = createDefaultMigrator();
 
         var exception = assertThrows(
                 IllegalStateException.class,
@@ -138,7 +136,7 @@ class StoreMigratorTest {
 
     @Test
     void shouldContinueMovingFilesIfInterruptedDuringMovingPhase() throws Exception {
-        var storeMigrator = createMigrator();
+        var storeMigrator = createDefaultMigrator();
         // a participant that will fail during the moving phase
         var failingParticipant = mock(StoreMigrationParticipant.class);
         when(failingParticipant.getName()).thenReturn("Failing");
@@ -176,7 +174,7 @@ class StoreMigratorTest {
 
     @Test
     void shouldRedoTheEntireMigrationIfInterruptedDuringMigrationPhase() throws Exception {
-        var storeMigrator = createMigrator();
+        var storeMigrator = createDefaultMigrator();
         // a participant that will fail during the migration phase
         var failingParticipant = mock(StoreMigrationParticipant.class);
         when(failingParticipant.getName()).thenReturn("Failing");
@@ -209,7 +207,7 @@ class StoreMigratorTest {
 
     @Test
     void shouldHandleNewMigrationIfInterruptedDuringMigrationPhase() throws Exception {
-        var storeMigrator = createMigratorWithDevFormats();
+        var storeMigrator = createCustomMigrator(StandardFormatWithMinorVersionBump.RECORD_FORMATS.name());
         // a participant that will fail during the migration phase
         var failingParticipant = mock(StoreMigrationParticipant.class);
         when(failingParticipant.getName()).thenReturn("Failing");
@@ -238,20 +236,20 @@ class StoreMigratorTest {
                         any(),
                         any(),
                         argThat(new VersionMatcher(Standard.LATEST_RECORD_FORMATS)),
-                        argThat(new VersionMatcher(PageAlignedTestFormat.WithMajorVersionBump.RECORD_FORMATS)),
+                        argThat(new VersionMatcher(PageAligned.LATEST_RECORD_FORMATS)),
                         any(),
                         any());
         verify(observingParticipant).moveMigratedFiles(any(), any(), any(), any(), any());
         verify(observingParticipant).cleanup(any(DatabaseLayout.class));
 
-        verifyDbStartAndFormat(PageAlignedTestFormat.WithMajorVersionBump.RECORD_FORMATS);
+        verifyDbStartAndFormat(PageAligned.LATEST_RECORD_FORMATS);
 
         assertFalse(migrationDirPresent());
     }
 
     @Test
     void shouldHandleNewMigrationIfInterruptedDuringMovingPhase() throws Exception {
-        var storeMigrator = createMigratorWithDevFormats();
+        var storeMigrator = createCustomMigrator(StandardFormatWithMinorVersionBump.RECORD_FORMATS.name());
         // a participant that will fail during the migration phase
         var failingParticipant = mock(StoreMigrationParticipant.class);
         when(failingParticipant.getName()).thenReturn("Failing");
@@ -282,7 +280,7 @@ class StoreMigratorTest {
                         any(),
                         any(),
                         argThat(new VersionMatcher(StandardFormatWithMinorVersionBump.RECORD_FORMATS)),
-                        argThat(new VersionMatcher(PageAlignedTestFormat.WithMajorVersionBump.RECORD_FORMATS)),
+                        argThat(new VersionMatcher(PageAligned.LATEST_RECORD_FORMATS)),
                         any());
         verify(observingParticipant)
                 .migrate(
@@ -290,7 +288,7 @@ class StoreMigratorTest {
                         any(),
                         any(),
                         argThat(new VersionMatcher(StandardFormatWithMinorVersionBump.RECORD_FORMATS)),
-                        argThat(new VersionMatcher(PageAlignedTestFormat.WithMajorVersionBump.RECORD_FORMATS)),
+                        argThat(new VersionMatcher(PageAligned.LATEST_RECORD_FORMATS)),
                         any(),
                         any());
         verify(observingParticipant)
@@ -298,18 +296,18 @@ class StoreMigratorTest {
                         any(),
                         any(),
                         argThat(new VersionMatcher(StandardFormatWithMinorVersionBump.RECORD_FORMATS)),
-                        argThat(new VersionMatcher(PageAlignedTestFormat.WithMajorVersionBump.RECORD_FORMATS)),
+                        argThat(new VersionMatcher(PageAligned.LATEST_RECORD_FORMATS)),
                         any());
         verify(observingParticipant, times(2)).cleanup(any(DatabaseLayout.class));
 
-        verifyDbStartAndFormat(PageAlignedTestFormat.WithMajorVersionBump.RECORD_FORMATS);
+        verifyDbStartAndFormat(PageAligned.LATEST_RECORD_FORMATS);
 
         assertFalse(migrationDirPresent());
     }
 
     @Test
     void shouldHandleNewUpgradeIfInterruptedDuringMigrationPhase() throws Exception {
-        var storeMigrator = createMigratorWithDevFormats();
+        var storeMigrator = createCustomMigrator(StandardFormatWithMinorVersionBump.RECORD_FORMATS.name());
         // a participant that will fail during the migration phase
         var failingParticipant = mock(StoreMigrationParticipant.class);
         when(failingParticipant.getName()).thenReturn("Failing");
@@ -352,7 +350,7 @@ class StoreMigratorTest {
 
     @Test
     void shouldAbortNewUpgradeIfOtherInterruptedDuringMovingPhase() throws Exception {
-        var storeMigrator = createMigrator();
+        var storeMigrator = createDefaultMigrator();
         // a participant that will fail during the migration phase
         var failingParticipant = mock(StoreMigrationParticipant.class);
         when(failingParticipant.getName()).thenReturn("Failing");
@@ -372,7 +370,7 @@ class StoreMigratorTest {
 
         assertTrue(migrationDirPresent());
 
-        var newStoreMigrator = createMigratorWithDevFormats();
+        var newStoreMigrator = createCustomMigrator(PageAlignedTestFormat.WithMinorVersionBump.RECORD_FORMATS.name());
         StoreMigrationParticipant observingParticipant = Mockito.mock(StoreMigrationParticipant.class);
         mockParticipantAddition(observingParticipant);
 
@@ -391,7 +389,7 @@ class StoreMigratorTest {
         when(participant.getName()).thenReturn(RecordStorageMigrator.NAME);
 
         mockParticipantAddition(participant);
-        var storeMigrator = createMigrator();
+        var storeMigrator = createDefaultMigrator();
 
         assertThatThrownBy(() -> storeMigrator.migrateIfNeeded("foo", false, false))
                 .isInstanceOf(UnableToMigrateException.class)
@@ -431,7 +429,7 @@ class StoreMigratorTest {
         when(logService.getInternalLogProvider()).thenReturn(logProvider);
         when(logService.getInternalLog(any())).thenReturn(logProvider.getLog("something"));
 
-        var storeMigrator = createMigrator(logService);
+        var storeMigrator = createMigrator(logService, Config.defaults());
         storeMigrator.migrateIfNeeded(PageAligned.LATEST_NAME, false, false);
 
         assertThat(logProvider)
@@ -452,7 +450,7 @@ class StoreMigratorTest {
                 .build();
         var txIdBeforeMigration =
                 logFiles.getTailMetadata().getLastCommittedTransaction().id();
-        var storeMigrator = createMigrator();
+        var storeMigrator = createDefaultMigrator();
         var participant = mock(StoreMigrationParticipant.class);
         when(participant.getName()).thenReturn("Me");
         mockParticipantAddition(participant);
@@ -478,7 +476,7 @@ class StoreMigratorTest {
         var txIdBeforeMigration =
                 logFiles.getTailMetadata().getLastCommittedTransaction().id();
 
-        var storeMigrator = createMigrator();
+        var storeMigrator = createDefaultMigrator();
         var participant = mock(StoreMigrationParticipant.class);
         when(participant.getName()).thenReturn("Me");
         mockParticipantAddition(participant);
@@ -501,9 +499,7 @@ class StoreMigratorTest {
     }
 
     private void verifyDbStartAndFormat(RecordFormats expectedStoreFormat) throws IOException {
-        var dbms = new TestDatabaseManagementServiceBuilder(neo4jLayout.homeDirectory())
-                .setConfig(GraphDatabaseInternalSettings.include_versions_under_development, false)
-                .build();
+        var dbms = new TestDatabaseManagementServiceBuilder(neo4jLayout.homeDirectory()).build();
         try {
             var db = dbms.database(DEFAULT_DATABASE_NAME);
             // let's check the DB is operational
@@ -543,19 +539,13 @@ class StoreMigratorTest {
                 .thenReturn(participant);
     }
 
-    private StoreMigrator createMigrator() throws IOException {
-        return createMigrator(NullLogService.getInstance());
+    private StoreMigrator createCustomMigrator(String formatName) throws IOException {
+        return createMigrator(
+                NullLogService.getInstance(), Config.defaults(GraphDatabaseSettings.db_format, formatName));
     }
 
-    private StoreMigrator createMigrator(LogService logService) throws IOException {
-        return createMigrator(
-                logService, Config.defaults(GraphDatabaseInternalSettings.include_versions_under_development, false));
-    }
-
-    private StoreMigrator createMigratorWithDevFormats() throws IOException {
-        return createMigrator(
-                NullLogService.getInstance(),
-                Config.defaults(GraphDatabaseInternalSettings.include_versions_under_development, true));
+    private StoreMigrator createDefaultMigrator() throws IOException {
+        return createMigrator(NullLogService.getInstance(), Config.defaults());
     }
 
     private StoreMigrator createMigrator(LogService logService, Config config) throws IOException {

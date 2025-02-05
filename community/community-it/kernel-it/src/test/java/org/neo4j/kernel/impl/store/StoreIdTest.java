@@ -31,7 +31,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.internal.recordstorage.RecordStorageEngineFactory;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -65,7 +64,6 @@ class StoreIdTest {
         var dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
                 .setFileSystem(fileSystem)
                 .setConfig(GraphDatabaseSettings.db_format, format)
-                .setConfig(GraphDatabaseInternalSettings.include_versions_under_development, false)
                 .build();
         dbms.shutdown();
 

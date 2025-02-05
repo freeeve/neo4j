@@ -308,9 +308,9 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
     }
 
     @Override
-    public Set<String> supportedFormats(boolean includeFormatsUnderDevelopment) {
+    public Set<String> supportedFormats(boolean includeDevelopmentFormats) {
         return Iterables.stream(RecordFormatSelector.allFormats())
-                .filter(f -> includeFormatsUnderDevelopment || !f.formatUnderDevelopment())
+                .filter(f -> includeDevelopmentFormats || !f.formatUnderDevelopment())
                 .filter(not(RecordFormats::onlyForMigration))
                 .map(RecordFormats::name)
                 .collect(Collectors.toUnmodifiableSet());
@@ -327,10 +327,9 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
     }
 
     @Override
-    public StoreFormatLimits limitsForFormat(String formatName, boolean includeFormatsUnderDevelopment) {
+    public StoreFormatLimits limitsForFormat(String formatName) {
         // Including only for migration formats
         Optional<RecordFormats> format = Iterables.stream(RecordFormatSelector.allFormats())
-                .filter(f -> includeFormatsUnderDevelopment || !f.formatUnderDevelopment())
                 .filter(formats -> formats.name().equals(formatName))
                 .findFirst();
 

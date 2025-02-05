@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.optionsmap
 
 import org.neo4j.configuration.Config
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.MapValueOps.Ops
 import org.neo4j.dbms.systemgraph.SeedRestoreUntil
@@ -33,7 +32,6 @@ import org.neo4j.values.AnyValue
 import org.neo4j.values.storable._
 import org.neo4j.values.virtual.MapValue
 
-import java.lang.Boolean.FALSE
 import java.util.Locale
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -136,11 +134,8 @@ object StoreFormatOption extends StringOptionValidator {
   override protected def validateContent(value: String, config: Option[Config])(implicit operation: String): Unit = {
     try {
       // Validate the format by looking for a storage engine that supports it - will throw if none was found
-      val versionsUnderDev =
-        config.fold(FALSE)(_.get(GraphDatabaseInternalSettings.include_versions_under_development))
       val selectEngineConfig = Config.newBuilder()
         .set(GraphDatabaseSettings.db_format, value)
-        .set(GraphDatabaseInternalSettings.include_versions_under_development, versionsUnderDev)
         .build()
       StorageEngineFactory.selectStorageEngine(selectEngineConfig)
     } catch {

@@ -19,9 +19,7 @@
  */
 package org.neo4j.test.format;
 
-import static org.neo4j.configuration.GraphDatabaseInternalSettings.include_versions_under_development;
 import static org.neo4j.configuration.GraphDatabaseSettings.db_format;
-import static org.neo4j.configuration.SettingValueParsers.TRUE;
 
 import java.util.Map;
 import org.neo4j.annotations.service.ServiceProvider;
@@ -38,7 +36,6 @@ public class FormatOverrideMigrator implements SettingMigrator {
         if (overrideStoreFormat != null && !values.containsKey(db_format.name())) {
             try {
                 defaultValues.put(db_format.name(), overrideStoreFormat);
-                defaultValues.put(include_versions_under_development.name(), TRUE);
             } catch (RuntimeException ex) {
                 log.warn("Unable to override the database format to " + overrideStoreFormat, ex);
             }

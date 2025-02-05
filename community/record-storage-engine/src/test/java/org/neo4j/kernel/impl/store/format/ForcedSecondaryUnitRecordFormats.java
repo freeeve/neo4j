@@ -88,6 +88,11 @@ public class ForcedSecondaryUnitRecordFormats implements RecordFormats {
     }
 
     @Override
+    public boolean formatUnderDevelopment() {
+        return true;
+    }
+
+    @Override
     public RecordFormat<RelationshipRecord> relationship() {
         return withForcedSecondaryUnit(actual.relationship());
     }

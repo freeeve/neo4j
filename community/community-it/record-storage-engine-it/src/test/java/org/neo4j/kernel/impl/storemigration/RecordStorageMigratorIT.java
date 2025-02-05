@@ -49,7 +49,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.counts.CountsUpdater;
 import org.neo4j.exceptions.KernelException;
@@ -296,7 +295,6 @@ class RecordStorageMigratorIT {
         RecordStoreVersion versionToMigrateTo = new RecordStoreVersion(toFormat);
 
         Config config = Config.defaults(GraphDatabaseSettings.pagecache_memory, ByteUnit.mebiBytes(8));
-        config.set(GraphDatabaseInternalSettings.include_versions_under_development, true);
 
         StorageEngineFactory storageEngine = StorageEngineFactory.defaultStorageEngine();
         FileSystemAbstraction fs = testDirectory.getFileSystem();
