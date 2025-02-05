@@ -35,6 +35,7 @@ import org.neo4j.kernel.api.QueryLanguage
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.DatabaseReferenceImpl
 import org.neo4j.kernel.database.DatabaseReferenceImpl.External
+import org.neo4j.kernel.database.NormalizedCatalogEntry
 import org.neo4j.kernel.database.NormalizedDatabaseName
 import org.neo4j.notifications.NotificationImplementation
 import org.neo4j.values.AnyValue
@@ -260,6 +261,16 @@ case class Catalog(
   def resolveGraphByNameString(name: String): Catalog.Graph =
     resolveGraphOptionByNameString(name)
       .getOrElse(throw EntityNotFoundException.databaseNotFound("Graph", name))
+
+  def resolveGraphByCatalogEntry(name: NormalizedCatalogEntry): Catalog.Graph = {
+    val catalogName = if (name.compositeDb().isPresent) {
+      CatalogName(List(name.compositeDb().get(), name.databaseAlias()), resolveStrictly = true)
+    } else {
+      CatalogName(List(name.databaseAlias()), resolveStrictly = true)
+    }
+    resolveGraphOption(catalogName)
+      .getOrElse(throw EntityNotFoundException.databaseNotFound("Graph", name.stringRepresentation()))
+  }
 
   def resolveGraphByNameString(name: String, securityContext: SecurityContext, cypherVersion: QueryLanguage): Graph =
     resolveGraphOptionByNameString(name, securityContext, cypherVersion)

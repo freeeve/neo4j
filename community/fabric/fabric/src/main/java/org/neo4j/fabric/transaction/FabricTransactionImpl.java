@@ -98,8 +98,7 @@ public class FabricTransactionImpl extends AbstractCompoundTransaction<SingleDbT
             localTransactionContext = localExecutor.startTransactionContext(this, transactionInfo, bookmarkManager);
             DatabaseReference sessionDatabaseReference = getSessionDatabaseReference();
             if (inCompositeContext) {
-                var graph = catalogSnapshot.resolveGraphByNameString(
-                        sessionDatabaseReference.alias().name());
+                var graph = catalogSnapshot.resolveGraphByCatalogEntry(sessionDatabaseReference.catalogEntry());
                 var location = this.locationOf(graph, false);
                 kernelTransaction = localTransactionContext.getOrCreateTx(
                         (Location.Local) location, TransactionMode.DEFINITELY_READ, true);
