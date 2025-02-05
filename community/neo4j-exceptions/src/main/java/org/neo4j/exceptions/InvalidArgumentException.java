@@ -907,4 +907,12 @@ public class InvalidArgumentException extends Neo4jException {
                         "Invalid option type for ALTER USER, expected PasswordExpression, Boolean, String or Parameter but got: %s",
                         actualType));
     }
+
+    public static InvalidArgumentException atLeastOneTemporalUnitRequired() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22007)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N30)
+                        .build())
+                .build();
+        return new InvalidArgumentException(gql, "At least one temporal unit must be specified.");
+    }
 }

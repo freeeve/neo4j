@@ -30,7 +30,7 @@ public interface StructureBuilder<Input, Result> {
 
     static <T> T build(final StructureBuilder<AnyValue, T> builder, MapValue map) {
         if (map.isEmpty()) {
-            throw new InvalidArgumentException("At least one temporal unit must be specified.");
+            throw InvalidArgumentException.atLeastOneTemporalUnitRequired();
         }
         map.foreach(builder::add);
 
