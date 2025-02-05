@@ -1948,18 +1948,6 @@
           </exclusion>
         </exclusions>
       </dependency>
-      <dependency>
-        <groupId>io.cucumber</groupId>
-        <artifactId>cucumber-bom</artifactId>
-        <version>${cucumber.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.cucumber</groupId>
-        <artifactId>cucumber-scala_${scala.binary.version}</artifactId>
-        <version>${cucumber.scala.version}</version>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 </project>

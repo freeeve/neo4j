@@ -30,6 +30,18 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>io.cucumber</groupId>
+                <artifactId>cucumber-bom</artifactId>
+                <version>${cucumber.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.cucumber</groupId>
+                <artifactId>cucumber-scala_${scala.binary.version}</artifactId>
+                <version>${cucumber.scala.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>jakarta.inject</groupId>
                 <artifactId>jakarta.inject-api</artifactId>
                 <version>2.0.1</version>
