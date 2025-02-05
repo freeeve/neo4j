@@ -43,6 +43,7 @@ import static org.neo4j.configuration.SettingConstraints.min;
 import static org.neo4j.configuration.SettingConstraints.noDuplicates;
 import static org.neo4j.configuration.SettingConstraints.range;
 import static org.neo4j.configuration.SettingConstraints.resolution;
+import static org.neo4j.configuration.SettingConstraints.valueDependency;
 import static org.neo4j.configuration.SettingValueParsers.BOOL;
 import static org.neo4j.configuration.SettingValueParsers.BYTES;
 import static org.neo4j.configuration.SettingValueParsers.CIDR_IP;
@@ -858,6 +859,38 @@ class SettingTest {
                 assertThrows(IllegalArgumentException.class, () -> setting.validate(List.of("a", "b", "b"), EMPTY));
         assertEquals(
                 "Failed to validate '[a, b, b]' for 'setting': items should not have duplicates: a,b,b",
+                exception.getMessage());
+    }
+
+    @Test
+    void testValueDependencyConstraint() {
+        var booleanSetting =
+                (SettingImpl<Boolean>) settingBuilder("bool-setting", BOOL).build();
+        Map<Setting<?>, Object> settings = new HashMap<>();
+        Configuration simpleConfig = new Configuration() {
+            @Override
+            public <T> T get(Setting<T> setting) {
+                return (T) settings.get(setting);
+            }
+        };
+
+        var setting = (SettingImpl<Integer>) settingBuilder("setting", INT)
+                .addConstraint(valueDependency(List.of(2, 3), booleanSetting))
+                .build();
+
+        // When
+        settings.put(booleanSetting, java.lang.Boolean.TRUE);
+        // Then
+        assertDoesNotThrow(() -> setting.validate(1, simpleConfig));
+        assertDoesNotThrow(() -> setting.validate(2, simpleConfig));
+
+        // When
+        settings.put(booleanSetting, java.lang.Boolean.FALSE);
+        // Then
+        assertDoesNotThrow(() -> setting.validate(1, simpleConfig));
+        var exception = assertThrows(IllegalArgumentException.class, () -> setting.validate(2, simpleConfig));
+        assertEquals(
+                "Failed to validate '2' for 'setting': the [2, 3] values acceptance depend on 'bool-setting'. 2 is not allowed since 'bool-setting' was false",
                 exception.getMessage());
     }
 

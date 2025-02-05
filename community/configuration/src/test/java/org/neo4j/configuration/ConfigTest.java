@@ -45,6 +45,7 @@ import static org.neo4j.configuration.SettingConstraints.dependency;
 import static org.neo4j.configuration.SettingConstraints.is;
 import static org.neo4j.configuration.SettingConstraints.max;
 import static org.neo4j.configuration.SettingConstraints.unconstrained;
+import static org.neo4j.configuration.SettingConstraints.valueDependency;
 import static org.neo4j.configuration.SettingImpl.newBuilder;
 import static org.neo4j.configuration.SettingValueParsers.BOOL;
 import static org.neo4j.configuration.SettingValueParsers.FALSE;
@@ -1096,6 +1097,37 @@ class ConfigTest {
     }
 
     @Test
+    void shouldCorrectlyValidateValueDependenciesInConstraints() {
+        // Given
+        Config.Builder builder = Config.emptyBuilder().addSettingsClass(ConstraintValueDependency.class);
+
+        // Then
+        assertDoesNotThrow(builder::build);
+
+        // When
+        builder.set(ConstraintValueDependency.setting1, Boolean.TRUE);
+
+        // Then
+        builder.set(ConstraintValueDependency.setting2, 1);
+        assertDoesNotThrow(builder::build);
+
+        builder.set(ConstraintValueDependency.setting2, 2);
+        assertDoesNotThrow(builder::build);
+
+        // When
+        builder.set(ConstraintValueDependency.setting1, Boolean.FALSE);
+
+        // Then
+        builder.set(ConstraintValueDependency.setting2, 1);
+        assertDoesNotThrow(builder::build);
+
+        builder.set(ConstraintValueDependency.setting2, 2);
+        String msg =
+                assertThrows(IllegalArgumentException.class, builder::build).getMessage();
+        assertThat(msg).contains("2 is not allowed since 'dbms.test.setting.1' was false");
+    }
+
+    @Test
     void shouldFindCircularDependenciesInConstraints() {
         // Given
         Config.Builder builder = Config.emptyBuilder().addSettingsClass(CircularConstraints.class);
@@ -1715,6 +1747,14 @@ class ConfigTest {
                 newBuilder("dbms.test.setting.1", INT, 1).build();
         static final Setting<Integer> setting2 = newBuilder("dbms.test.setting.2", INT, 1)
                 .addConstraint(dependency(max(3), unconstrained(), setting1, is(5)))
+                .build();
+    }
+
+    private static final class ConstraintValueDependency implements SettingsDeclaration {
+        static final Setting<Boolean> setting1 =
+                newBuilder("dbms.test.setting.1", BOOL, Boolean.TRUE).build();
+        static final Setting<Integer> setting2 = newBuilder("dbms.test.setting.2", INT, 1)
+                .addConstraint(valueDependency(List.of(2), setting1))
                 .build();
     }
 

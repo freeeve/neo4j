@@ -516,4 +516,27 @@ public final class SettingConstraints {
             }
         };
     }
+
+    public static <T> SettingConstraint<T> valueDependency(List<T> restrictedValues, Setting<Boolean> dependency) {
+        return new SettingConstraint<>() {
+            @Override
+            public void validate(T value, Configuration config) {
+                // Only allow the restricted values if the dependency setting valuates to true
+                if (restrictedValues.contains(value)) {
+                    Boolean allowRestrictedValue = config.get(dependency);
+                    if (!allowRestrictedValue) {
+                        throw new IllegalArgumentException(getDescription()
+                                + format(
+                                        ". %s is not allowed since '%s' was %b",
+                                        value, dependency.name(), allowRestrictedValue));
+                    }
+                }
+            }
+
+            @Override
+            public String getDescription() {
+                return format("the %s values acceptance depend on '%s'", restrictedValues, dependency.name());
+            }
+        };
+    }
 }

@@ -65,6 +65,10 @@ object SemanticFeature {
     override def name: String = "`GRAPH TYPE` schema management"
   }
 
+  case object ExperimentalCypherVersions extends SemanticFeature with FeatureToString {
+    override def name: String = "experimental cypher versions"
+  }
+
   private val allSemanticFeatures = Set(
     MultipleDatabases,
     MultipleGraphs,
@@ -73,7 +77,8 @@ object SemanticFeature {
     ShowSetting,
     MatchModes,
     ComposableCommands,
-    GraphTypes
+    GraphTypes,
+    ExperimentalCypherVersions
   )
 
   def fromString(str: String): SemanticFeature =

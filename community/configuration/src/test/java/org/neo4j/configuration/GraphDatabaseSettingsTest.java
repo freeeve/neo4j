@@ -19,13 +19,17 @@
  */
 package org.neo4j.configuration;
 
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.enable_experimental_cypher_versions;
 import static org.neo4j.configuration.GraphDatabaseSettings.default_advertised_address;
+import static org.neo4j.configuration.GraphDatabaseSettings.default_language;
 import static org.neo4j.configuration.GraphDatabaseSettings.default_listen_address;
 import static org.neo4j.configuration.GraphDatabaseSettings.keep_logical_logs;
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_sampling_percentage;
@@ -315,12 +319,29 @@ class GraphDatabaseSettingsTest {
             Path cfg = directory.file("cfg");
             Files.writeString(
                     cfg,
-                    GraphDatabaseSettings.default_language.name() + "=" + cv.toString(),
+                    default_language.name() + "=" + cv.toString(),
                     StandardOpenOption.WRITE,
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING);
-            Config config = Config.newBuilder().fromFile(cfg).build();
-            assertThat(config.get(GraphDatabaseSettings.default_language)).isEqualTo(cv);
+            Config.Builder baseConfig = Config.newBuilder().fromFile(cfg);
+
+            // All versions allowed
+            Config configAllowAllValues =
+                    baseConfig.set(enable_experimental_cypher_versions, TRUE).build();
+            assertThat(configAllowAllValues.get(default_language)).isEqualTo(cv);
+
+            // Cypher 25 is blocked and will fail when building the config
+            Config.Builder configDisallowCypher25 = baseConfig.set(enable_experimental_cypher_versions, FALSE);
+            if (cv == GraphDatabaseSettings.CypherVersion.Cypher25) {
+                var exception = assertThrows(IllegalArgumentException.class, configDisallowCypher25::build);
+                assertEquals(
+                        "Error evaluating value for setting 'db.query.default_language'. "
+                                + "Failed to validate 'CYPHER_25' for 'db.query.default_language': the [CYPHER_25] values acceptance depend on 'internal.dbms.cypher.enable_experimental_versions'. "
+                                + "CYPHER_25 is not allowed since 'internal.dbms.cypher.enable_experimental_versions' was false",
+                        exception.getMessage());
+            } else {
+                assertThat(configDisallowCypher25.build().get(default_language)).isEqualTo(cv);
+            }
         }
     }
 }

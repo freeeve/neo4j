@@ -243,6 +243,20 @@ sealed trait WriteAdministrationCommand extends AdministrationCommand {
         numSecondaryPositive(topology)
     }).getOrElse(SemanticCheck.success)
   }
+
+  protected def defaultLanguageVersionCheck(defaultVersion: Option[CypherVersion], command: String): SemanticCheck = {
+    defaultVersion.map(version =>
+      if (version.experimental) {
+        requireFeatureSupport(
+          s"`${version.description}` as default language for `$command`",
+          SemanticFeature.ExperimentalCypherVersions,
+          position
+        )
+      } else {
+        SemanticCheck.success
+      }
+    ).getOrElse(SemanticCheck.success)
+  }
 }
 
 // User commands
@@ -1513,6 +1527,7 @@ final case class CreateDatabase(
         SemanticState.recordCurrentScope(this)
   })
     .chain(topologyCheck(topology, name))
+    .chain(defaultLanguageVersionCheck(defaultVersion, name))
 }
 
 case class Topology(primaries: Option[Either[Int, Parameter]], secondaries: Option[Either[Int, Parameter]])
@@ -1585,7 +1600,8 @@ final case class AlterDatabase(
   override def semanticCheck: SemanticCheck =
     super.semanticCheck chain
       SemanticState.recordCurrentScope(this) chain
-      topologyCheck(topology, name)
+      topologyCheck(topology, name) chain
+      defaultLanguageVersionCheck(defaultVersion, name)
 }
 
 final case class StartDatabase(dbName: DatabaseName, waitUntilComplete: WaitUntilComplete)(

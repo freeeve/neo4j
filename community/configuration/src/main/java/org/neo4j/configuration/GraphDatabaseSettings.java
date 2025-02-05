@@ -26,6 +26,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Map.entry;
 import static org.neo4j.configuration.Config.DEFAULT_CONFIG_DIR_NAME;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.enable_experimental_cypher_versions;
 import static org.neo4j.configuration.SettingConstraints.ABSOLUTE_PATH;
 import static org.neo4j.configuration.SettingConstraints.HOSTNAME_ONLY;
 import static org.neo4j.configuration.SettingConstraints.NO_ALL_INTERFACES_ADDRESS;
@@ -33,6 +34,7 @@ import static org.neo4j.configuration.SettingConstraints.any;
 import static org.neo4j.configuration.SettingConstraints.is;
 import static org.neo4j.configuration.SettingConstraints.min;
 import static org.neo4j.configuration.SettingConstraints.range;
+import static org.neo4j.configuration.SettingConstraints.valueDependency;
 import static org.neo4j.configuration.SettingImpl.newBuilder;
 import static org.neo4j.configuration.SettingValueParsers.BOOL;
 import static org.neo4j.configuration.SettingValueParsers.BYTES;
@@ -64,7 +66,6 @@ import java.util.Set;
 import org.neo4j.annotations.api.PublicApi;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.configuration.helpers.SocketAddress;
-import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.kernel.database.NamedDatabaseId;
@@ -374,6 +375,7 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
                     "db.query.default_language",
                     ofEnum(GraphDatabaseSettings.CypherVersion.class),
                     CypherVersion.Cypher5)
+            .addConstraint(valueDependency(List.of(CypherVersion.Cypher25), enable_experimental_cypher_versions))
             .build();
 
     @Description("Determines if Cypher will allow using file URLs when loading data using `LOAD CSV`. Setting this "
