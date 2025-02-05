@@ -250,7 +250,7 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
 
       val expectedBatchParams = Some(InTransactionsBatchParameters(literalInt(50))(pos))
       val expectedConcurrencyParams = Some(InTransactionsConcurrencyParameters(Some(literalInt(7)))(pos))
-      val expectedErrorParams = Some(InTransactionsErrorParameters(errorBehaviour)(pos))
+      val expectedErrorParams = Some(InTransactionsErrorParameters(errorBehaviour, None)(pos))
       val expectedStatusParams = Some(InTransactionsReportParameters(varFor("status"))(pos))
 
       test(s"CALL { CREATE (n) } IN TRANSACTIONS $errorString") {

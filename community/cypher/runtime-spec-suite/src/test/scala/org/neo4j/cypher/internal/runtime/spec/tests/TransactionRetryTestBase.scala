@@ -78,14 +78,13 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
   runtime: CypherRuntime[CONTEXT],
   val sizeHint: Int
 ) extends StaticGraphRuntimeTestSuite[CONTEXT](edition, runtime, testPlanCombinationRewriterHints = Set(NoRewrites))
-    // with LoneElement
     with TimeLimitedCypherTest {
 
   // Interactive test case
-  test("debug me") {
+  test("debug me - expect failed batch retry aborted") {
     val params = TestCaseParameters(
       concurrency = Concurrent(None),
-      onErrorBehaviour = OnErrorRetryThenFail,
+      onErrorBehaviour = OnErrorRetryThenContinue,
       applyOrForeach = ApplyOrForeach.Apply,
       reportStatus = true,
       batchSize = 10
@@ -98,7 +97,7 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
       params,
       nBatches,
       retryTimeoutSeconds,
-      errorsForBatch = (b: Int) => if (b == failedBatchNumber) nErrors else 0 // A batch in the middle has one error
+      errorsForBatch = (b: Int) => if (b == failedBatchNumber) nErrors else 0 // A batch in the middle has errors
     )
     val result = runTest(config)
     TestCaseExpectation.expectFailedBatchesAtLeastOneRetry(
@@ -108,7 +107,7 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
     ).verify(result)
   }
 
-  test("click me") {
+  test("debug me - expect no errors no retries") {
     val params = TestCaseParameters(
       concurrency = Concurrent(None),
       onErrorBehaviour = OnErrorRetryThenContinue,
@@ -471,7 +470,7 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
     onErrorBehaviour <- Seq(OnErrorRetryThenFail, OnErrorRetryThenContinue, OnErrorRetryThenBreak)
     applyOrForeach <- Seq(ApplyOrForeach.Apply, ApplyOrForeach.Foreach)
     reportStatus <- if (onErrorBehaviour != OnErrorRetryThenFail) Seq(true, false) else Seq(false)
-    batchSize <- Random.shuffle(Seq(1, 2, 10)).take(2)
+    batchSize <- random.shuffle(Seq(1, 2, 10)).take(2)
     params = TestCaseParameters(concurrency, onErrorBehaviour, applyOrForeach, reportStatus, batchSize)
   } yield {
 
@@ -690,7 +689,6 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
     override def status: Status = Status.Transaction.Outdated
   }
 
-  // TODO: Test with non-retryable error
   final private class TestClientError(message: String) extends RuntimeException(message) with HasStatus {
     override def status: Status = Status.Statement.SyntaxError
   }
@@ -734,7 +732,7 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
           thrownCounts(i) = tc
           val messageSuffix =
             s"Error on row $i ($tc thrown, ${ec - tc} left) on thread ${Thread.currentThread().getName}"
-          // print(message + "\n")
+          // print(messageSuffix + "\n")
           throw exceptionFactory(messageSuffix)
         }
       }
