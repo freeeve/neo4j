@@ -39,7 +39,7 @@ public interface IndexMonitor {
 
     void populationCancelled(IndexDescriptor[] indexDescriptors, boolean storeScanHadStated);
 
-    void populationJobCompleted(long peakDirectMemoryUsage);
+    void populationJobCompleted(long peakDirectMemoryUsage, IndexDescriptor[] indexDescriptors);
 
     void queried(IndexDescriptor descriptor);
 
@@ -81,7 +81,8 @@ public interface IndexMonitor {
         }
 
         @Override
-        public void populationJobCompleted(long peakDirectMemoryUsage) { // Do nothing
+        public void populationJobCompleted(
+                long peakDirectMemoryUsage, IndexDescriptor[] indexDescriptors) { // Do nothing
         }
 
         @Override

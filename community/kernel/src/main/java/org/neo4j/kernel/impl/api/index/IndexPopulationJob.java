@@ -130,8 +130,8 @@ public class IndexPopulationJob implements Runnable {
     }
 
     private void doRun(boolean emptyStore) {
+        var indexDescriptors = multiPopulator.indexDescriptors();
         try (var cursorContext = contextFactory.create(INDEX_POPULATION_TAG)) {
-            var indexDescriptors = multiPopulator.indexDescriptors();
             monitor.indexPopulationJobStarting(indexDescriptors);
             if (!multiPopulator.hasPopulators() || stopped) { // Don't start if asked to stop
                 return;
@@ -169,7 +169,7 @@ public class IndexPopulationJob implements Runnable {
                     "Failed to close resources in IndexPopulationJob",
                     multiPopulator::close,
                     bufferFactory::close,
-                    () -> monitor.populationJobCompleted(memoryAllocationTracker.peakMemoryUsage()),
+                    () -> monitor.populationJobCompleted(memoryAllocationTracker.peakMemoryUsage(), indexDescriptors),
                     doneSignal::countDown);
         }
     }

@@ -34,6 +34,7 @@ import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.IndexMonitor;
+import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -132,7 +133,7 @@ class BlockBasedIndexPopulationMemoryUsageIT {
         private final CountDownLatch called = new CountDownLatch(1);
 
         @Override
-        public void populationJobCompleted(long peakDirectMemoryUsage) {
+        public void populationJobCompleted(long peakDirectMemoryUsage, IndexDescriptor[] indexDescriptors) {
             this.peakDirectMemoryUsage = peakDirectMemoryUsage;
             // We need a count on this one because index will come online slightly before we get a call to this method
             called.countDown();
