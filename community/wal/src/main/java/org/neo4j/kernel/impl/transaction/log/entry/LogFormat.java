@@ -32,12 +32,14 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.EnumMap;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.StoreIdSerialization;
+import org.neo4j.util.VisibleForTesting;
 
 public enum LogFormat {
     /**
@@ -205,12 +207,7 @@ public enum LogFormat {
         }
     },
 
-    V9(
-            (byte) 9,
-            128,
-            KernelVersion.V5_20,
-            KernelVersion.getLatestVersion(Config.defaults()),
-            UNKNOWN_LOG_SEGMENT_SIZE) {
+    V9((byte) 9, 128, KernelVersion.V5_20, getLastVersionPreEnvelopeFormat(), UNKNOWN_LOG_SEGMENT_SIZE) {
         @Override
         public LogHeader deserializeHeader(long logVersion, ByteBuffer buffer) throws IOException {
             long ignored = buffer.getLong();
@@ -292,7 +289,7 @@ public enum LogFormat {
     V10(
             (byte) 10,
             128,
-            KernelVersion.GLORIOUS_FUTURE,
+            KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED,
             KernelVersion.GLORIOUS_FUTURE,
             LogSegments.DEFAULT_LOG_SEGMENT_SIZE) {
         @Override
@@ -362,6 +359,22 @@ public enum LogFormat {
         }
     };
 
+    public static KernelVersion getLastVersionPreEnvelopeFormat() {
+        Config config = Config.defaults();
+        KernelVersion latestVersion = KernelVersion.getLatestVersion(config);
+        if (config.get(GraphDatabaseInternalSettings.envelope_log_format_on)) {
+            // Envelopes will be latest, so need the one before
+            KernelVersion highestLowerThanLatest = KernelVersion.EARLIEST;
+            for (KernelVersion value : KernelVersion.VERSIONS) {
+                if (value.isLessThan(latestVersion) && value.isAtLeast(highestLowerThanLatest)) {
+                    highestLowerThanLatest = value;
+                }
+            }
+            return highestLowerThanLatest;
+        }
+        return latestVersion;
+    }
+
     public static final int BIGGEST_HEADER;
     static final long LOG_VERSION_BITS = 56;
     static final long LOG_VERSION_MASK = 0x00FF_FFFF_FFFF_FFFFL;
@@ -420,6 +433,11 @@ public enum LogFormat {
 
     public KernelVersion getFromKernelVersion() {
         return fromKernelVersion;
+    }
+
+    @VisibleForTesting
+    public KernelVersion getToKernelVersion() {
+        return toKernelVersion;
     }
 
     public int getDefaultSegmentBlockSize() {

@@ -91,6 +91,7 @@
     <test.runner.jvm/>
     <test.runner.jvm.settings.additional/>
     <test.runner.jvm.settings.db.format/>
+    <test.runner.jvm.settings.log.format/>
     <test.runner.jvm.settings>
       ${test.runner.mockito.agent}
       -Xmx${test.vm.heap.size}
@@ -131,6 +132,7 @@
       ${jdk.custom.options}
       ${test.runner.jvm.settings.db.format}
       ${test.runner.jvm.settings.additional}
+      ${test.runner.jvm.settings.log.format}
     </test.runner.jvm.settings>
     <default.jupiter.test.timeout>20m</default.jupiter.test.timeout>
     <default.jupiter.test.mode>same_thread</default.jupiter.test.mode>
@@ -1076,6 +1078,17 @@
         <test.runner.jvm.settings.db.format>
           -DNEO4J_OVERRIDE_STORE_FORMAT=block
         </test.runner.jvm.settings.db.format>
+      </properties>
+    </profile>
+    <profile>
+      <id>test-envelopes</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <properties>
+        <test.runner.jvm.settings.log.format>
+          -DNEO4J_OVERRIDE_LOG_FORMAT=envelopes
+        </test.runner.jvm.settings.log.format>
       </properties>
     </profile>
     <profile>

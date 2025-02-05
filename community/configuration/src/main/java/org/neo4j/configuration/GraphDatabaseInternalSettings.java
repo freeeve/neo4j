@@ -1311,6 +1311,11 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             newBuilder("internal.dbms.latest_kernel_version", BYTE, null).build();
 
     @Internal
+    @Description("Just to be used in tests: A way to make envelope log format the current format")
+    public static final Setting<Boolean> envelope_log_format_on =
+            newBuilder("internal.dbms.envelope_log_format_on", BOOL, false).build();
+
+    @Internal
     @Description(
             """
                     Ask page cache to close memory allocator on shutdown to clear native memory allocated for page cache pages.

@@ -90,7 +90,9 @@ public enum KernelVersion {
     public static final KernelVersion VERSION_CDC_USER_METADATA_INTRODUCED = V5_12;
     public static final KernelVersion CLUSTER_FALLBACK_IN_RAW = V5_12;
     public static final KernelVersion VERSION_CDC_LOGICAL_KEY_CHANGES = V5_15;
-    public static final KernelVersion VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED = GLORIOUS_FUTURE;
+    // Special handling to be able to make envelope format the current log format for tests
+    public static final KernelVersion VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED =
+            Config.defaults().get(GraphDatabaseInternalSettings.envelope_log_format_on) ? LATEST : GLORIOUS_FUTURE;
     public static final KernelVersion VERSION_VECTOR_2_INTRODUCED = V5_18;
     public static final KernelVersion VERSION_CDC_CHECKSUMS_INTRODUCED = V5_19;
     public static final KernelVersion VERSION_APPEND_INDEX_INTRODUCED = V5_20;
