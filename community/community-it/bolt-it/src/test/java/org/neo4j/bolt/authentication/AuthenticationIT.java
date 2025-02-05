@@ -66,7 +66,7 @@ import org.neo4j.values.virtual.VirtualValues;
 @EphemeralTestDirectoryExtension
 @Neo4jWithSocketExtension
 @BoltTestExtension
-@ExcludeWire({@Version(major = 4), @Version(major = 5, minor = 0)})
+@ExcludeWire(until = @Version(major = 5, minor = 0))
 public class AuthenticationIT {
 
     protected final AssertableLogProvider userLogProvider = new AssertableLogProvider();
@@ -92,8 +92,7 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    void shouldRespondWithCredentialsExpiredOnFirstUse(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws InterruptedException {
+    void shouldRespondWithCredentialsExpiredOnFirstUse(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
         BoltConnectionAssertions.assertThat(connection)
@@ -111,9 +110,8 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailIfWrongCredentialsV40(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailIfWrongCredentialsV40(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
         BoltConnectionAssertions.assertThat(connection)
@@ -148,9 +146,8 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailIfWrongCredentials(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailIfWrongCredentials(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
         BoltConnectionAssertions.assertThat(connection)
@@ -188,9 +185,9 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldFailIfWrongCredentialsFollowingSuccessfulLoginV40(
-            BoltWire wire, @VersionSelected BoltTestConnection connection) throws IOException {
+            BoltWire wire, @VersionSelected BoltTestConnection connection) {
 
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
@@ -245,7 +242,7 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldFailIfWrongCredentialsFollowingSuccessfulLogin(
             BoltWire wire, @VersionSelected ConnectionProvider connectionProvider) {
         try (var connection = connectionProvider.create()) {
@@ -304,9 +301,8 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailIfMalformedAuthTokenWrongTypeV40(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailIfMalformedAuthTokenWrongTypeV40(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
         BoltConnectionAssertions.assertThat(connection)
@@ -325,7 +321,7 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldFailIfMalformedAuthTokenWrongType(BoltWire wire, @VersionSelected BoltTestConnection connection)
             throws IOException {
         connection.send(wire.hello());
@@ -348,7 +344,7 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldFailIfMalformedAuthTokenMissingKeyV40(BoltWire wire, @VersionSelected BoltTestConnection connection)
             throws IOException {
         connection.send(wire.hello());
@@ -368,7 +364,7 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldFailIfMalformedAuthTokenMissingKey(BoltWire wire, @VersionSelected BoltTestConnection connection)
             throws IOException {
         connection.send(wire.hello());
@@ -391,7 +387,7 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldFailIfMalformedAuthTokenMissingSchemeV40(BoltWire wire, @VersionSelected BoltTestConnection connection)
             throws IOException {
         connection.send(wire.hello());
@@ -410,7 +406,7 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldFailIfMalformedAuthTokenMissingScheme(BoltWire wire, @VersionSelected BoltTestConnection connection)
             throws IOException {
         connection.send(wire.hello());
@@ -432,7 +428,7 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(until = @Version(major = 5, minor = 6))
     protected void shouldFailIfMalformedAuthTokenUnknownSchemeV40(
             BoltWire wire, @VersionSelected BoltTestConnection connection) throws IOException {
         connection.send(wire.hello());
@@ -453,7 +449,7 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(since = @Version(major = 5, minor = 7))
     protected void shouldFailIfMalformedAuthTokenUnknownScheme(
             BoltWire wire, @VersionSelected BoltTestConnection connection) throws InterruptedException {
         connection.send(wire.hello());
@@ -476,7 +472,7 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldFailDifferentlyIfTooManyFailedAuthAttemptsV40(
             BoltWire wire, @Connected ConnectionProvider connectionProvider) {
         awaitUntilAsserted(() -> {
@@ -504,7 +500,7 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldFailDifferentlyIfTooManyFailedAuthAttempts(
             BoltWire wire, @Connected ConnectionProvider connectionProvider) {
         awaitUntilAsserted(() -> {
@@ -533,9 +529,8 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenReusingTheSamePasswordV40(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenReusingTheSamePasswordV40(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
         BoltConnectionAssertions.assertThat(connection)
@@ -580,9 +575,8 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenReusingTheSamePassword(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenReusingTheSamePassword(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
         BoltConnectionAssertions.assertThat(connection)
@@ -636,9 +630,8 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenSubmittingEmptyPasswordV40(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenSubmittingEmptyPasswordV40(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
         BoltConnectionAssertions.assertThat(connection)
@@ -673,9 +666,8 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenSubmittingEmptyPassword(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenSubmittingEmptyPassword(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
         BoltConnectionAssertions.assertThat(connection)
@@ -714,9 +706,9 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldNotBeAbleToReadWhenPasswordChangeRequiredV40(
-            BoltWire wire, @VersionSelected BoltTestConnection connection) throws IOException {
+            BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
         BoltConnectionAssertions.assertThat(connection)
@@ -752,9 +744,9 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldNotBeAbleToReadWhenPasswordChangeRequired(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldNotBeAbleToReadWhenPasswordChangeRequired(
+            BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
         BoltConnectionAssertions.assertThat(connection)
@@ -811,7 +803,7 @@ public class AuthenticationIT {
 
     @ProtocolTest
     void shouldBeAbleToLogoffAfterBeingAuthenticatedThenLogBackOn(
-            BoltWire wire, @VersionSelected BoltTestConnection connection) throws InterruptedException {
+            BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
         BoltConnectionAssertions.assertThat(connection)
@@ -838,9 +830,8 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldNotBeAbleToAuthenticateOnHelloMessageV40(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldNotBeAbleToAuthenticateOnHelloMessageV40(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         // authenticate normally using the preset credentials and update the password to a new value
         connection.send(wire.hello(x -> x.withBasicAuth("neo4j", "neo4j")));
 
@@ -855,9 +846,8 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldNotBeAbleToAuthenticateOnHelloMessage(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldNotBeAbleToAuthenticateOnHelloMessage(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         // authenticate normally using the preset credentials and update the password to a new value
         connection.send(wire.hello(x -> x.withBasicAuth("neo4j", "neo4j")));
 
@@ -875,7 +865,7 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 7, range = 6)})
+    @IncludeWire(since = @Version(major = 5, minor = 1), until = @Version(major = 5, minor = 7))
     void shouldNotReturnAdvertiseAddressOnLogonMessageSuccess(
             BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
@@ -895,7 +885,7 @@ public class AuthenticationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 7, range = 7), @Version(major = 4)})
+    @IncludeWire(since = @Version(major = 5, minor = 8))
     void shouldReturnAdvertiseAddressOnLogonMessageSuccess(
             BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());

@@ -37,27 +37,70 @@ public class FilteredBoltWireSelector implements BoltWireSelector {
 
     @Override
     public Stream<BoltWire> select(ExtensionContext context) {
-        var explicitIncludes = AnnotationUtil.findAnnotation(context, IncludeWire.class)
-                .map(annotation ->
-                        Stream.of(annotation.value()).map(this::decodeVersion).toList())
+        var includeAnnotation = AnnotationUtil.findAnnotation(context, IncludeWire.class);
+        var excludeAnnotation = AnnotationUtil.findAnnotation(context, ExcludeWire.class);
+
+        var firstIncluded = includeAnnotation
+                .map(IncludeWire::since)
+                .map(this::decodeVersion)
+                .filter(it -> !ProtocolVersion.INVALID.equals(it))
+                .orElse(null);
+        var lastIncluded = includeAnnotation
+                .map(IncludeWire::until)
+                .map(this::decodeVersion)
+                .filter(it -> !ProtocolVersion.INVALID.equals(it))
+                .orElse(null);
+
+        var firstExcluded = excludeAnnotation
+                .map(ExcludeWire::since)
+                .map(this::decodeVersion)
+                .filter(it -> !ProtocolVersion.INVALID.equals(it))
+                .orElse(null);
+        var lastExcluded = excludeAnnotation
+                .map(ExcludeWire::until)
+                .map(this::decodeVersion)
+                .filter(it -> !ProtocolVersion.INVALID.equals(it))
+                .orElse(null);
+
+        var explicitIncludes = includeAnnotation
+                .map(annotation -> Stream.of(annotation.value())
+                        .map(this::decodeVersionRange)
+                        .toList())
                 .orElseGet(Collections::emptyList);
-        var explicitExcludes = AnnotationUtil.findAnnotation(context, ExcludeWire.class)
-                .map(annotation ->
-                        Stream.of(annotation.value()).map(this::decodeVersion).toList())
+        var explicitExcludes = excludeAnnotation
+                .map(annotation -> Stream.of(annotation.value())
+                        .map(this::decodeVersionRange)
+                        .toList())
                 .orElseGet(Collections::emptyList);
 
         return BoltWire.versions()
+                .filter(wire ->
+                        firstIncluded == null || wire.getProtocolVersion().isAtLeast(firstIncluded))
+                .filter(wire ->
+                        lastIncluded == null || wire.getProtocolVersion().isAtMost(lastIncluded))
+                .filter(wire ->
+                        firstExcluded == null || wire.getProtocolVersion().isOlderThan(firstExcluded))
+                .filter(wire ->
+                        lastExcluded == null || wire.getProtocolVersion().isNewerThan(lastExcluded))
                 .filter(wire -> (explicitIncludes.isEmpty()
                         || explicitIncludes.stream().anyMatch(range -> range.matches(wire.getProtocolVersion()))))
                 .filter(wire -> explicitExcludes.stream().noneMatch(range -> range.matches(wire.getProtocolVersion())));
     }
 
-    private ProtocolVersion decodeVersion(Version annotation) {
+    private ProtocolVersion decodeVersionRange(Version annotation) {
         if (annotation.minor() == -1) {
             return new ProtocolVersion(
                     annotation.major(), ProtocolVersion.MAX_MINOR_BIT, ProtocolVersion.MAX_MINOR_BIT);
         }
 
         return new ProtocolVersion(annotation.major(), annotation.minor(), annotation.range());
+    }
+
+    private ProtocolVersion decodeVersion(Version annotation) {
+        if (annotation.range() != 0) {
+            throw new IllegalArgumentException("Cannot specify range in until/since");
+        }
+
+        return new ProtocolVersion(annotation.major(), annotation.minor());
     }
 }

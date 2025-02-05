@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Timeout;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.Authenticated;
 import org.neo4j.bolt.test.annotation.test.ProtocolTest;
-import org.neo4j.bolt.test.annotation.wire.selector.ExcludeWire;
 import org.neo4j.bolt.test.annotation.wire.selector.IncludeWire;
 import org.neo4j.bolt.testing.annotation.Version;
 import org.neo4j.bolt.testing.client.BoltTestConnection;
@@ -64,7 +63,7 @@ public class TransactionTerminationIT {
 
     @Timeout(15)
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(until = @Version(major = 5, minor = 6))
     void killTxViaResetV40(BoltWire wire, @Authenticated BoltTestConnection connection) throws Exception {
         connection.send(wire.begin()).send(wire.run("UNWIND range(1, 2000000) AS i CREATE (n)"));
 
@@ -80,7 +79,7 @@ public class TransactionTerminationIT {
 
     @Timeout(15)
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(since = @Version(major = 5, minor = 7))
     void killTxViaReset(BoltWire wire, @Authenticated BoltTestConnection connection) throws Exception {
         connection.send(wire.begin()).send(wire.run("UNWIND range(1, 2000000) AS i CREATE (n)"));
 
@@ -98,7 +97,7 @@ public class TransactionTerminationIT {
 
     @Timeout(15)
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(until = @Version(major = 5, minor = 6))
     void killTxThenTryToUseItTestV40(BoltWire wire, @Authenticated BoltTestConnection connection) throws Exception {
         connection
                 .send(wire.begin())
@@ -137,7 +136,7 @@ public class TransactionTerminationIT {
 
     @Timeout(15)
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(since = @Version(major = 5, minor = 7))
     void killTxThenTryToUseItTest(BoltWire wire, @Authenticated BoltTestConnection connection) throws Exception {
         connection
                 .send(wire.begin())
@@ -178,7 +177,7 @@ public class TransactionTerminationIT {
 
     @Timeout(20)
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(until = @Version(major = 5, minor = 6))
     void killedTxShouldNotDestroyConnectionV40(BoltWire wire, @Authenticated BoltTestConnection connection)
             throws Exception {
         connection
@@ -228,7 +227,7 @@ public class TransactionTerminationIT {
 
     @Timeout(20)
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(since = @Version(major = 5, minor = 7))
     void killedTxShouldNotDestroyConnection(BoltWire wire, @Authenticated BoltTestConnection connection)
             throws Exception {
         connection

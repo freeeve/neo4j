@@ -19,7 +19,6 @@
  */
 package org.neo4j.bolt;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,7 +26,6 @@ import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.VersionSelected;
 import org.neo4j.bolt.test.annotation.setup.SettingsFunction;
 import org.neo4j.bolt.test.annotation.test.ProtocolTest;
-import org.neo4j.bolt.test.annotation.wire.selector.ExcludeWire;
 import org.neo4j.bolt.test.annotation.wire.selector.IncludeWire;
 import org.neo4j.bolt.testing.annotation.Version;
 import org.neo4j.bolt.testing.assertions.BoltConnectionAssertions;
@@ -54,17 +52,15 @@ public class ResetMessageIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 4), @Version(major = 5, minor = 0)})
-    void shouldFailAResetWhenInUnauthenticatedState(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 1))
+    void shouldFailAResetWhenInUnauthenticatedState(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.reset());
         BoltConnectionAssertions.assertThat(connection).receivesFailure();
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 4), @Version(major = 5, minor = 0)})
-    void shouldFailAResetWhenInAuthenticationState(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 1))
+    void shouldFailAResetWhenInAuthenticationState(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello()); // This will take us to authentication state.
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
 
@@ -73,9 +69,8 @@ public class ResetMessageIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 4), @Version(major = 5, minor = 0)})
-    void shouldResetToReadyStateWhenAuthenticated(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 1))
+    void shouldResetToReadyStateWhenAuthenticated(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello()); // This will take us to authentication state.
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
         connection.send(wire.logon());
@@ -93,9 +88,8 @@ public class ResetMessageIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 4), @Version(major = 5, minor = 0)})
-    void shouldResetToReadyStateWhenAuthenticatedLegacy(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 0))
+    void shouldResetToReadyStateWhenAuthenticatedLegacy(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello()); // This will take us to Ready state.
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
 
@@ -109,9 +103,9 @@ public class ResetMessageIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 4), @Version(major = 5, minor = 0)})
-    void shouldFailAResetWhenInUnauthenticatedStateLegacy(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 0))
+    void shouldFailAResetWhenInUnauthenticatedStateLegacy(
+            BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.reset());
         BoltConnectionAssertions.assertThat(connection).receivesFailure();
     }

@@ -28,13 +28,11 @@ import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.diagnos
 import static org.neo4j.values.storable.Values.longValue;
 import static org.neo4j.values.storable.Values.stringValue;
 
-import java.io.IOException;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.Authenticated;
 import org.neo4j.bolt.test.annotation.test.ProtocolTest;
-import org.neo4j.bolt.test.annotation.wire.selector.ExcludeWire;
 import org.neo4j.bolt.test.annotation.wire.selector.IncludeWire;
 import org.neo4j.bolt.testing.annotation.Version;
 import org.neo4j.bolt.testing.assertions.BoltConnectionAssertions;
@@ -64,7 +62,7 @@ public class BasicOperationIT {
             "\\d+:[\\da-f]{8}\\-[\\da-f]{4}\\-[\\da-f]{4}\\-[\\da-f]{4}\\-[\\da-f]{12}:\\d+";
 
     @ProtocolTest
-    void shouldRunSimpleStatement(BoltWire wire, @Authenticated BoltTestConnection connection) throws IOException {
+    void shouldRunSimpleStatement(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // When
         connection
                 .send(wire.run("UNWIND [1,2,3] AS a RETURN a, a * a AS a_squared"))
@@ -86,8 +84,7 @@ public class BasicOperationIT {
     }
 
     @ProtocolTest
-    void shouldRespondWithMetadataToDiscardAll(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    void shouldRespondWithMetadataToDiscardAll(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // When
         connection
                 .send(wire.run("UNWIND [1,2,3] AS a RETURN a, a * a AS a_squared"))
@@ -106,9 +103,8 @@ public class BasicOperationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldBeAbleToRunQueryAfterAckFailureV40(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldBeAbleToRunQueryAfterAckFailureV40(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // Given
         connection.send(wire.run("QINVALID")).send(wire.pull());
 
@@ -128,9 +124,8 @@ public class BasicOperationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldBeAbleToRunQueryAfterAckFailure(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldBeAbleToRunQueryAfterAckFailure(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // Given
         connection.send(wire.run("QINVALID")).send(wire.pull());
 
@@ -162,7 +157,7 @@ public class BasicOperationIT {
     }
 
     @ProtocolTest
-    void shouldRunProcedure(BoltWire wire, @Authenticated BoltTestConnection connection) throws IOException {
+    void shouldRunProcedure(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // Given
         connection
                 .send(wire.run("CREATE (n:Test {age: 2}) RETURN n.age AS age"))
@@ -194,7 +189,7 @@ public class BasicOperationIT {
     }
 
     @ProtocolTest
-    void shouldHandleDeletedNodes(BoltWire wire, @Authenticated BoltTestConnection connection) throws IOException {
+    void shouldHandleDeletedNodes(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // When
         connection.send(wire.run("CREATE (n:Test) DELETE n RETURN n")).send(wire.pull());
 
@@ -238,8 +233,7 @@ public class BasicOperationIT {
     }
 
     @ProtocolTest
-    void shouldHandleDeletedRelationships(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    void shouldHandleDeletedRelationships(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // When
         connection
                 .send(wire.run("CREATE (a)-[r:T {prop: 42}]->(b) DELETE r RETURN r"))
@@ -291,8 +285,7 @@ public class BasicOperationIT {
     }
 
     @ProtocolTest
-    void shouldNotLeakStatsToNextStatement(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    void shouldNotLeakStatsToNextStatement(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // Given
         connection.send(wire.run("CREATE (n)")).send(wire.pull());
 
@@ -310,8 +303,8 @@ public class BasicOperationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 4, range = 4), @Version(major = 4)})
-    void shouldSendNotifications(BoltWire wire, @Authenticated BoltTestConnection connection) throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 5))
+    void shouldSendNotifications(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // When
         connection
                 .send(wire.run("EXPLAIN MATCH (a:THIS_IS_NOT_A_LABEL) RETURN count(*)"))
@@ -334,8 +327,8 @@ public class BasicOperationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 4, range = 4), @Version(major = 4)})
-    void shouldSendGqlStatus(BoltWire wire, @Authenticated BoltTestConnection connection) throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 5))
+    void shouldSendGqlStatus(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // When
         connection
                 .send(wire.run("EXPLAIN MATCH (a:THIS_IS_NOT_A_LABEL) RETURN count(*)"))
@@ -361,9 +354,8 @@ public class BasicOperationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailNicelyWhenDroppingUnknownIndexV40(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailNicelyWhenDroppingUnknownIndexV40(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // When
         connection.send(wire.run("DROP INDEX my_index")).send(wire.pull());
 
@@ -376,9 +368,8 @@ public class BasicOperationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailNicelyWhenDroppingUnknownIndex(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailNicelyWhenDroppingUnknownIndex(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // When
         connection.send(wire.run("DROP INDEX my_index")).send(wire.pull());
 
@@ -399,18 +390,17 @@ public class BasicOperationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailNicelyWhenSubmittingInvalidStatementV40(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailNicelyWhenSubmittingInvalidStatementV40(
+            BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection.send(wire.run("MATCH (:Movie{title:'"));
 
         assertThat(connection).receivesFailureFuzzyV40(Status.Statement.SyntaxError, "Failed to parse string literal");
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailNicelyWhenSubmittingInvalidStatement(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailNicelyWhenSubmittingInvalidStatement(BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection.send(wire.run("MATCH (:Movie{title:'"));
 
         assertThat(connection)

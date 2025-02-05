@@ -19,7 +19,6 @@
  */
 package org.neo4j.bolt;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,9 +65,8 @@ public class KeepAliveIT {
     }
 
     @ProtocolTest
-    @ExcludeWire(@Version(major = 4, minor = 2, range = 2))
-    void shouldSendNoOpForLongRunningTx(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    @ExcludeWire(until = @Version(major = 4, minor = 2))
+    void shouldSendNoOpForLongRunningTx(BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection.send(wire.run("CALL boltissue.sleep(100)")).send(wire.pull());
 
         BoltConnectionAssertions.assertThat(connection)
@@ -79,8 +77,8 @@ public class KeepAliveIT {
 
     @ProtocolTest
     @IncludeWire(@Version(major = 4, minor = 0))
-    void shouldNotSendNoOpForLongRunningTxInLegacyVersions(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    void shouldNotSendNoOpForLongRunningTxInLegacyVersions(
+            BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection.send(wire.run("CALL boltissue.sleep(100)")).send(wire.pull());
 
         BoltConnectionAssertions.assertThat(connection)

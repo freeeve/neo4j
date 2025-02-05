@@ -140,6 +140,14 @@ public record ProtocolVersion(short major, short minor, short range) implements 
         return other.minor >= lowerBound && other.minor <= this.minor;
     }
 
+    public boolean isOlderThan(ProtocolVersion other) {
+        return this.compareTo(other) < 0;
+    }
+
+    public boolean isNewerThan(ProtocolVersion other) {
+        return this.compareTo(other) > 0;
+    }
+
     public boolean isAtLeast(ProtocolVersion version) {
         return this.compareTo(version) >= 0;
     }

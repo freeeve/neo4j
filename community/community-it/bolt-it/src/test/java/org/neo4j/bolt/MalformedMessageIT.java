@@ -19,14 +19,12 @@
  */
 package org.neo4j.bolt;
 
-import java.io.IOException;
 import org.neo4j.bolt.protocol.common.message.request.transaction.RunMessage;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.Connected;
 import org.neo4j.bolt.test.annotation.connection.initializer.VersionSelected;
 import org.neo4j.bolt.test.annotation.test.ProtocolTest;
 import org.neo4j.bolt.test.annotation.test.TransportTest;
-import org.neo4j.bolt.test.annotation.wire.selector.ExcludeWire;
 import org.neo4j.bolt.test.annotation.wire.selector.IncludeWire;
 import org.neo4j.bolt.testing.annotation.Version;
 import org.neo4j.bolt.testing.assertions.BoltConnectionAssertions;
@@ -48,7 +46,7 @@ import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
 public class MalformedMessageIT {
 
     @TransportTest
-    void shouldHandleIncorrectFraming(BoltWire wire, @Connected BoltTestConnection connection) throws Exception {
+    void shouldHandleIncorrectFraming(BoltWire wire, @Connected BoltTestConnection connection) {
         // Given I have a message that gets truncated in the chunking, so part of it is missing
         var msg = wire.run("UNWIND [1,2,3] AS a RETURN a, a * a AS a_squared");
         var truncated = msg.readSlice(msg.readableBytes() - 12);
@@ -63,8 +61,8 @@ public class MalformedMessageIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldHandleMessagesWithIncorrectFieldsV40(@VersionSelected BoltTestConnection connection) throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldHandleMessagesWithIncorrectFieldsV40(@VersionSelected BoltTestConnection connection) {
         // Given I send a message with the wrong types in its fields
         var msg = PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(3, RunMessage.SIGNATURE))
@@ -83,8 +81,8 @@ public class MalformedMessageIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldHandleMessagesWithIncorrectFields(@VersionSelected BoltTestConnection connection) throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldHandleMessagesWithIncorrectFields(@VersionSelected BoltTestConnection connection) {
         // Given I send a message with the wrong types in its fields
         var msg = PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(3, RunMessage.SIGNATURE))
@@ -120,8 +118,8 @@ public class MalformedMessageIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldHandleUnknownMarkerBytesV40(@VersionSelected BoltTestConnection connection) throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldHandleUnknownMarkerBytesV40(@VersionSelected BoltTestConnection connection) {
         // Given I send a message with an invalid type
         var msg = PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(3, RunMessage.SIGNATURE))
@@ -140,8 +138,8 @@ public class MalformedMessageIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldHandleUnknownMarkerBytes(@VersionSelected BoltTestConnection connection) throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldHandleUnknownMarkerBytes(@VersionSelected BoltTestConnection connection) {
         // Given I send a message with an invalid type
         var msg = PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(3, RunMessage.SIGNATURE))
@@ -177,7 +175,7 @@ public class MalformedMessageIT {
     }
 
     @TransportTest
-    void shouldCloseConnectionOnInvalidHandshake(@Connected BoltTestConnection connection) throws IOException {
+    void shouldCloseConnectionOnInvalidHandshake(@Connected BoltTestConnection connection) {
 
         // GIVEN
         connection.sendRaw(new byte[] {

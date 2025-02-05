@@ -46,5 +46,17 @@ public @interface IncludeWire {
      *
      * @return a set of versions.
      */
-    Version[] value();
+    Version[] value() default {};
+
+    /**
+     * Selects all versions released since the specified version (including the specified version).
+     * @return a minimum version.
+     */
+    Version since() default @Version(major = 0, minor = 0);
+
+    /**
+     * Selects all versions released until the given version (including the specified version).
+     * @return a maximum version.
+     */
+    Version until() default @Version(major = 0, minor = 0);
 }

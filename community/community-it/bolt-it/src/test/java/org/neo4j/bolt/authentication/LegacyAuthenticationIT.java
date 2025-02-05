@@ -63,7 +63,7 @@ import org.neo4j.values.virtual.VirtualValues;
 @EphemeralTestDirectoryExtension
 @Neo4jWithSocketExtension
 @BoltTestExtension
-@IncludeWire({@Version(major = 4), @Version(major = 5, minor = 0)})
+@IncludeWire(until = @Version(major = 5, minor = 0))
 public class LegacyAuthenticationIT {
 
     protected final AssertableLogProvider userLogProvider = new AssertableLogProvider();

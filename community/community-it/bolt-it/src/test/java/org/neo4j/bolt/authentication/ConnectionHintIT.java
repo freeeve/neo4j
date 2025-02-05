@@ -19,7 +19,6 @@
  */
 package org.neo4j.bolt.authentication;
 
-import java.io.IOException;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -27,7 +26,6 @@ import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.VersionSelected;
 import org.neo4j.bolt.test.annotation.setup.SettingsFunction;
 import org.neo4j.bolt.test.annotation.test.ProtocolTest;
-import org.neo4j.bolt.test.annotation.wire.selector.ExcludeWire;
 import org.neo4j.bolt.test.annotation.wire.selector.IncludeWire;
 import org.neo4j.bolt.testing.annotation.Version;
 import org.neo4j.bolt.testing.assertions.BoltConnectionAssertions;
@@ -51,9 +49,8 @@ public class ConnectionHintIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 4), @Version(major = 5, minor = 3, range = 3)})
-    void shouldIncludeTelemetryHintOnCompatibleVersions(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 4))
+    void shouldIncludeTelemetryHintOnCompatibleVersions(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
 
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(meta -> Assertions.assertThat(meta)
@@ -63,9 +60,8 @@ public class ConnectionHintIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 4), @Version(major = 5, minor = 3, range = 3)})
-    void shouldExcludeTelemetryHintOnLegacyVersions(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 3))
+    void shouldExcludeTelemetryHintOnLegacyVersions(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
 
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(meta -> Assertions.assertThat(meta)
@@ -75,9 +71,8 @@ public class ConnectionHintIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 4), @Version(major = 5, minor = 7, range = 7)})
-    void shouldIncludeSSRHintOnCompatibleVersions(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 8))
+    void shouldIncludeSSRHintOnCompatibleVersions(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
 
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(meta -> Assertions.assertThat(meta)
@@ -87,9 +82,8 @@ public class ConnectionHintIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 4), @Version(major = 5, minor = 7, range = 7)})
-    void shouldExcludeSSRHintOnLegacyVersions(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 7))
+    void shouldExcludeSSRHintOnLegacyVersions(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
 
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(meta -> Assertions.assertThat(meta)

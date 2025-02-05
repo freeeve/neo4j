@@ -19,14 +19,12 @@
  */
 package org.neo4j.bolt.struct;
 
-import java.io.IOException;
 import org.neo4j.bolt.protocol.common.connector.connection.Feature;
 import org.neo4j.bolt.protocol.io.StructType;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.Authenticated;
 import org.neo4j.bolt.test.annotation.test.ProtocolTest;
 import org.neo4j.bolt.test.annotation.wire.initializer.EnableFeature;
-import org.neo4j.bolt.test.annotation.wire.selector.ExcludeWire;
 import org.neo4j.bolt.test.annotation.wire.selector.IncludeWire;
 import org.neo4j.bolt.testing.annotation.Version;
 import org.neo4j.bolt.testing.assertions.BoltConnectionAssertions;
@@ -43,9 +41,8 @@ import org.neo4j.values.storable.CoordinateReferenceSystem;
 public class StructArgumentIT extends AbstractStructArgumentIT {
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenPoint2DIsSentWithInvalidCrsIdV40(@Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenPoint2DIsSentWithInvalidCrsIdV40(@Authenticated BoltTestConnection connection) {
         testFailureWithUnpackableValueV40(
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(3, StructType.POINT_2D.getTag()))
@@ -56,9 +53,8 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenPoint2DIsSentWithInvalidCrsId(@Authenticated BoltTestConnection connection) throws IOException {
-
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenPoint2DIsSentWithInvalidCrsId(@Authenticated BoltTestConnection connection) {
         testFailureWithUnpackableValue(
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(3, StructType.POINT_2D.getTag()))
@@ -73,9 +69,8 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenPoint3DIsSentWithInvalidCrsIdV40(@Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenPoint3DIsSentWithInvalidCrsIdV40(@Authenticated BoltTestConnection connection) {
         testFailureWithUnpackableValueV40(
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(4, StructType.POINT_3D.getTag()))
@@ -87,9 +82,8 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenPoint3DIsSentWithInvalidCrsId(@Authenticated BoltTestConnection connection) throws IOException {
-
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenPoint3DIsSentWithInvalidCrsId(@Authenticated BoltTestConnection connection) {
         testFailureWithUnpackableValue(
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(4, StructType.POINT_3D.getTag()))
@@ -105,8 +99,8 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenPoint2DDimensionsDoNotMatchV40(@Authenticated BoltTestConnection connection) throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenPoint2DDimensionsDoNotMatchV40(@Authenticated BoltTestConnection connection) {
         testFailureWithUnpackableValueV40(
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(3, StructType.POINT_2D.getTag()))
@@ -117,8 +111,8 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenPoint2DDimensionsDoNotMatch(@Authenticated BoltTestConnection connection) throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenPoint2DDimensionsDoNotMatch(@Authenticated BoltTestConnection connection) {
         testFailureWithUnpackableValue(
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(3, StructType.POINT_2D.getTag()))
@@ -143,8 +137,8 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenPoint3DDimensionsDoNotMatchV40(@Authenticated BoltTestConnection connection) throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenPoint3DDimensionsDoNotMatchV40(@Authenticated BoltTestConnection connection) {
         testFailureWithUnpackableValueV40(
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(4, StructType.POINT_3D.getTag()))
@@ -156,8 +150,8 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenPoint3DDimensionsDoNotMatch(@Authenticated BoltTestConnection connection) throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenPoint3DDimensionsDoNotMatch(@Authenticated BoltTestConnection connection) {
         testFailureWithUnpackableValue(
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(4, StructType.POINT_3D.getTag()))
@@ -184,9 +178,8 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
 
     @ProtocolTest
     @EnableFeature(Feature.UTC_DATETIME)
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenZonedDateTimeZoneIdIsNotKnownV40(@Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenZonedDateTimeZoneIdIsNotKnownV40(@Authenticated BoltTestConnection connection) {
         testFailureWithUnpackableValueV40(
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(3, StructType.DATE_TIME_ZONE_ID.getTag()))
@@ -198,8 +191,8 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
 
     @ProtocolTest
     @EnableFeature(Feature.UTC_DATETIME)
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenZonedDateTimeZoneIdIsNotKnown(@Authenticated BoltTestConnection connection) throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenZonedDateTimeZoneIdIsNotKnown(@Authenticated BoltTestConnection connection) {
         testFailureWithUnpackableValue(
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(3, StructType.DATE_TIME_ZONE_ID.getTag()))

@@ -22,7 +22,6 @@ package org.neo4j.bolt.struct;
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertThat;
 
 import io.netty.buffer.ByteBuf;
-import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.neo4j.bolt.testing.assertions.BoltConnectionAssertions;
@@ -36,14 +35,14 @@ import org.neo4j.packstream.struct.StructHeader;
 public abstract class AbstractStructArgumentIT {
 
     protected void testFailureWithUnpackableValueV40(
-            BoltTestConnection connection, Consumer<PackstreamBuf> packer, String expectedMessage) throws IOException {
+            BoltTestConnection connection, Consumer<PackstreamBuf> packer, String expectedMessage) {
         connection.send(createRunWith(packer));
 
         assertThat(connection).receivesFailureV40(Status.Request.Invalid, expectedMessage);
     }
 
     protected void testFailureWithUnpackableValue(
-            BoltTestConnection connection, Consumer<PackstreamBuf> packer, String expectedMessage) throws IOException {
+            BoltTestConnection connection, Consumer<PackstreamBuf> packer, String expectedMessage) {
         connection.send(createRunWith(packer));
 
         assertThat(connection)
@@ -58,8 +57,7 @@ public abstract class AbstractStructArgumentIT {
             BoltTestConnection connection,
             Consumer<PackstreamBuf> packer,
             String expectedMessage,
-            Consumer<Map<String, Object>> causeAssertion)
-            throws IOException {
+            Consumer<Map<String, Object>> causeAssertion) {
         connection.send(createRunWith(packer));
 
         assertThat(connection)

@@ -19,7 +19,6 @@
  */
 package org.neo4j.bolt.authentication;
 
-import java.io.IOException;
 import java.util.Map;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
@@ -44,18 +43,18 @@ import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
 @Neo4jWithSocketExtension
 @BoltTestExtension
 @ExtendWith(OtherThreadExtension.class)
-@ExcludeWire({@Version(major = 4), @Version(major = 5, minor = 2, range = 2)})
+@ExcludeWire(until = @Version(major = 5, minor = 2))
 public class BoltAgentIT {
+
     @ProtocolTest
-    void shouldSucceedWhenAddingExtraValues(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    void shouldSucceedWhenAddingExtraValues(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello(x -> x.withBoltAgent(Map.of("product", "test-agent", "extra", "included"))));
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenBoltAgentIsOmittedV40(@VersionSelected BoltTestConnection connection) throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenBoltAgentIsOmittedV40(@VersionSelected BoltTestConnection connection) {
         connection.send(PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(1, AbstractBoltWire.MESSAGE_TAG_HELLO))
                 .writeMap(Map.of("scheme", "none", "user_agent", "ignore"))
@@ -68,8 +67,8 @@ public class BoltAgentIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenBoltAgentIsOmitted(@VersionSelected BoltTestConnection connection) throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenBoltAgentIsOmitted(@VersionSelected BoltTestConnection connection) {
         connection.send(PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(1, AbstractBoltWire.MESSAGE_TAG_HELLO))
                 .writeMap(Map.of("scheme", "none", "user_agent", "ignore"))
@@ -99,9 +98,8 @@ public class BoltAgentIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenInvalidBoltAgentIsGivenV40(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenInvalidBoltAgentIsGivenV40(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello(x -> x.withScheme("none").withBadBoltAgent("42L")));
 
         BoltConnectionAssertions.assertThat(connection)
@@ -111,9 +109,8 @@ public class BoltAgentIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenInvalidBoltAgentIsGiven(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenInvalidBoltAgentIsGiven(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello(x -> x.withScheme("none").withBadBoltAgent("42L")));
 
         BoltConnectionAssertions.assertThat(connection)
@@ -140,9 +137,8 @@ public class BoltAgentIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenBoltAgentInvalidValuesV40(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenBoltAgentInvalidValuesV40(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello(x -> x.withScheme("none").withBadBoltAgent(Map.of("product", 1))));
 
         BoltConnectionAssertions.assertThat(connection)
@@ -152,9 +148,8 @@ public class BoltAgentIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenBoltAgentInvalidValues(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenBoltAgentInvalidValues(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello(x -> x.withScheme("none").withBadBoltAgent(Map.of("product", 1))));
 
         BoltConnectionAssertions.assertThat(connection)
@@ -181,9 +176,8 @@ public class BoltAgentIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenBoltAgentMissingProductV40(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenBoltAgentMissingProductV40(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello(x -> x.withScheme("none").withBadBoltAgent(Map.of("invalid", "value"))));
 
         BoltConnectionAssertions.assertThat(connection)
@@ -193,9 +187,8 @@ public class BoltAgentIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenBoltAgentMissingProduct(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenBoltAgentMissingProduct(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello(x -> x.withScheme("none").withBadBoltAgent(Map.of("invalid", "value"))));
 
         BoltConnectionAssertions.assertThat(connection)

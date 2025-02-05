@@ -21,7 +21,6 @@ package org.neo4j.bolt.streaming;
 
 import static org.neo4j.values.storable.Values.longValue;
 
-import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -61,8 +60,7 @@ import org.neo4j.values.virtual.MapValueBuilder;
 public class StreamingIT {
 
     @ProtocolTest
-    void shouldStreamWhenStatementIdNotProvided(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    void shouldStreamWhenStatementIdNotProvided(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // begin a transaction
         connection.send(wire.begin());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
@@ -111,7 +109,7 @@ public class StreamingIT {
     }
 
     @ProtocolTest
-    void shouldDiscardNResults(BoltWire wire, @Authenticated BoltTestConnection connection) throws IOException {
+    void shouldDiscardNResults(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // begin a transaction
         connection.send(wire.begin());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
@@ -157,8 +155,7 @@ public class StreamingIT {
     }
 
     @ProtocolTest
-    void shouldSendAndReceiveStatementIds(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    void shouldSendAndReceiveStatementIds(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // begin a transaction
         connection.send(wire.begin());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
@@ -247,7 +244,7 @@ public class StreamingIT {
     }
 
     @ProtocolTest
-    void shouldAcceptTransactionType(BoltWire wire, @Authenticated BoltTestConnection connection) throws Exception {
+    void shouldAcceptTransactionType(BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection
                 .send(wire.begin(x -> x.withDatabase("neo4j").withTransactionType("implicit")))
                 .send(wire.run("RETURN 1"))
@@ -272,8 +269,7 @@ public class StreamingIT {
     }
 
     @ProtocolTest
-    void shouldReturnDatabaseNameOnCompletionViaPull(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    void shouldReturnDatabaseNameOnCompletionViaPull(BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection.send(wire.begin());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
 
@@ -296,8 +292,7 @@ public class StreamingIT {
     }
 
     @ProtocolTest
-    void shouldReturnDatabaseNameOnCompletionViaDiscard(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    void shouldReturnDatabaseNameOnCompletionViaDiscard(BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection.send(wire.begin());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
 
@@ -330,8 +325,8 @@ public class StreamingIT {
     }
 
     @ProtocolTest
-    @ExcludeWire(@Version(major = 4))
-    void shouldReturnElementIdForNodes(BoltWire wire, @Authenticated BoltTestConnection connection) throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 0))
+    void shouldReturnElementIdForNodes(BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection
                 .send(wire.run("CREATE (m:Movie{title:\"The Matrix\"}) RETURN m"))
                 .send(wire.pull());
@@ -365,9 +360,8 @@ public class StreamingIT {
     }
 
     @ProtocolTest
-    @ExcludeWire(@Version(major = 4))
-    void shouldReturnElementIdForRelationships(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 0))
+    void shouldReturnElementIdForRelationships(BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection
                 .send(
                         wire.run(
@@ -396,8 +390,8 @@ public class StreamingIT {
     }
 
     @ProtocolTest
-    @ExcludeWire(@Version(major = 4))
-    void shouldReturnElementIdForPaths(BoltWire wire, @Authenticated BoltTestConnection connection) throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 0))
+    void shouldReturnElementIdForPaths(BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection
                 .send(
                         wire.run(
@@ -429,8 +423,8 @@ public class StreamingIT {
     }
 
     @ProtocolTest
-    @ExcludeWire(@Version(major = 4))
-    void shouldNotNegotiateUTCPatch(BoltWire wire, @VersionSelected BoltTestConnection connection) throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 0))
+    void shouldNotNegotiateUTCPatch(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         wire.enable(Feature.UTC_DATETIME);
         connection.send(wire.hello());
 
@@ -440,8 +434,7 @@ public class StreamingIT {
 
     @ProtocolTest
     @EnableFeature(Feature.UTC_DATETIME)
-    void shouldAcceptUTCOffsetDateTimes(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    void shouldAcceptUTCOffsetDateTimes(BoltWire wire, @Authenticated BoltTestConnection connection) {
         var input =
                 DateTimeValue.datetime(OffsetDateTime.of(1995, 6, 14, 12, 50, 35, 556000000, ZoneOffset.ofHours(1)));
 
@@ -466,7 +459,7 @@ public class StreamingIT {
 
     @ProtocolTest
     @EnableFeature(Feature.UTC_DATETIME)
-    void shouldAcceptUTCZoneDateTimes(BoltWire wire, @Authenticated BoltTestConnection connection) throws IOException {
+    void shouldAcceptUTCZoneDateTimes(BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection
                 .send(wire.run("RETURN datetime('1995-06-14T12:50:35.556+02:00[Europe/Berlin]')"))
                 .send(wire.pull());
@@ -487,9 +480,9 @@ public class StreamingIT {
 
     @ProtocolTest
     @EnableFeature(Feature.UTC_DATETIME)
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldRejectLegacyOffsetDatesWhenUTCIsAvailableV40(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldRejectLegacyOffsetDatesWhenUTCIsAvailableV40(
+            BoltWire wire, @Authenticated BoltTestConnection connection) {
         // switch back to a legacy wire revision in order to easily transmit an invalid struct to the server
         if (wire.getProtocolVersion().major() >= 5) {
             wire = new BoltV44Wire();
@@ -510,9 +503,8 @@ public class StreamingIT {
 
     @ProtocolTest
     @EnableFeature(Feature.UTC_DATETIME)
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldRejectLegacyOffsetDatesWhenUTCIsAvailable(@Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldRejectLegacyOffsetDatesWhenUTCIsAvailable(@Authenticated BoltTestConnection connection) {
         // switch back to a legacy wire revision in order to easily transmit an invalid struct to the server
         var wire = new BoltV44Wire();
 
@@ -569,7 +561,7 @@ public class StreamingIT {
 
     @ProtocolTest
     @ExcludeWire(@Version(major = 4))
-    void shouldReturnUniqueNodeIds(BoltWire wire, @Authenticated BoltTestConnection connection) throws IOException {
+    void shouldReturnUniqueNodeIds(BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection
                 .send(wire.run("CREATE (a), (b), (c), (d), (e) RETURN a,b,c,d,e"))
                 .send(wire.pull());

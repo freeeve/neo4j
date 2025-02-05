@@ -22,14 +22,12 @@ package org.neo4j.bolt;
 import static org.neo4j.values.storable.Values.longValue;
 import static org.neo4j.values.storable.Values.stringValue;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.function.Consumer;
 import org.neo4j.bolt.protocol.io.StructType;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.Authenticated;
 import org.neo4j.bolt.test.annotation.test.ProtocolTest;
-import org.neo4j.bolt.test.annotation.wire.selector.ExcludeWire;
 import org.neo4j.bolt.test.annotation.wire.selector.IncludeWire;
 import org.neo4j.bolt.testing.annotation.Version;
 import org.neo4j.bolt.testing.assertions.BoltConnectionAssertions;
@@ -49,7 +47,7 @@ import org.neo4j.values.virtual.MapValueBuilder;
 @BoltTestExtension
 public class ProtocolViolationIT {
 
-    private static void sendRun(BoltTestConnection connection, Consumer<PackstreamBuf> packer) throws IOException {
+    private static void sendRun(BoltTestConnection connection, Consumer<PackstreamBuf> packer) {
         var buf = PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(3, BoltV40Wire.MESSAGE_TAG_RUN))
                 .writeString("RETURN $x") // statement
@@ -63,8 +61,8 @@ public class ProtocolViolationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenNullKeyIsSentV40(@Authenticated BoltTestConnection connection) throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenNullKeyIsSentV40(@Authenticated BoltTestConnection connection) {
         sendRun(connection, buf -> buf.writeMapHeader(1).writeNull().writeString("foo"));
 
         BoltConnectionAssertions.assertThat(connection)
@@ -74,8 +72,8 @@ public class ProtocolViolationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenNullKeyIsSent(@Authenticated BoltTestConnection connection) throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenNullKeyIsSent(@Authenticated BoltTestConnection connection) {
         sendRun(connection, buf -> buf.writeMapHeader(1).writeNull().writeString("foo"));
 
         BoltConnectionAssertions.assertThat(connection)
@@ -102,8 +100,8 @@ public class ProtocolViolationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenDuplicateKeyIsSentV40(@Authenticated BoltTestConnection connection) throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenDuplicateKeyIsSentV40(@Authenticated BoltTestConnection connection) {
         sendRun(connection, buf -> buf.writeMapHeader(2)
                 .writeString("foo")
                 .writeString("bar")
@@ -116,8 +114,8 @@ public class ProtocolViolationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenDuplicateKeyIsSent(@Authenticated BoltTestConnection connection) throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenDuplicateKeyIsSent(@Authenticated BoltTestConnection connection) {
         sendRun(connection, buf -> buf.writeMapHeader(2)
                 .writeString("foo")
                 .writeString("bar")
@@ -139,9 +137,8 @@ public class ProtocolViolationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenNodeIsSentWithRunV40(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenNodeIsSentWithRunV40(BoltWire wire, @Authenticated BoltTestConnection connection) {
         var properties = new MapValueBuilder();
         properties.add("the_answer", longValue(42));
         properties.add("one_does_not_simply", stringValue("break_decoding"));
@@ -154,9 +151,8 @@ public class ProtocolViolationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenNodeIsSentWithRun(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenNodeIsSentWithRun(BoltWire wire, @Authenticated BoltTestConnection connection) {
         var properties = new MapValueBuilder();
         properties.add("the_answer", longValue(42));
         properties.add("one_does_not_simply", stringValue("break_decoding"));
@@ -184,9 +180,8 @@ public class ProtocolViolationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenRelationshipIsSentWithRunV40(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenRelationshipIsSentWithRunV40(BoltWire wire, @Authenticated BoltTestConnection connection) {
         var properties = new MapValueBuilder();
         properties.add("the_answer", longValue(42));
         properties.add("one_does_not_simply", stringValue("break_decoding"));
@@ -199,9 +194,8 @@ public class ProtocolViolationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenRelationshipIsSentWithRun(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenRelationshipIsSentWithRun(BoltWire wire, @Authenticated BoltTestConnection connection) {
         var properties = new MapValueBuilder();
         properties.add("the_answer", longValue(42));
         properties.add("one_does_not_simply", stringValue("break_decoding"));
@@ -229,9 +223,8 @@ public class ProtocolViolationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenPathIsSentWithRunV40(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenPathIsSentWithRunV40(BoltWire wire, @Authenticated BoltTestConnection connection) {
         sendRun(connection, buf -> {
             buf.writeStructHeader(new StructHeader(3, StructType.PATH.getTag()));
 
@@ -257,9 +250,8 @@ public class ProtocolViolationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenPathIsSentWithRun(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenPathIsSentWithRun(BoltWire wire, @Authenticated BoltTestConnection connection) {
         sendRun(connection, buf -> {
             buf.writeStructHeader(new StructHeader(3, StructType.PATH.getTag()));
 
@@ -300,8 +292,7 @@ public class ProtocolViolationIT {
     }
 
     @ProtocolTest
-    void shouldTerminateConnectionWhenUnknownMessageIsSent(@Authenticated BoltTestConnection connection)
-            throws IOException {
+    void shouldTerminateConnectionWhenUnknownMessageIsSent(@Authenticated BoltTestConnection connection) {
         connection.send(PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(1, (short) 0x42))
                 .writeListHeader(1)
@@ -311,9 +302,8 @@ public class ProtocolViolationIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenTryToStartTransactionInFailedStateV40(@Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailWhenTryToStartTransactionInFailedStateV40(@Authenticated BoltTestConnection connection) {
         // Failing
         var buf = PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(3, BoltV40Wire.MESSAGE_TAG_RUN))
@@ -344,9 +334,8 @@ public class ProtocolViolationIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailWhenTryToStartTransactionInFailedState(@Authenticated BoltTestConnection connection)
-            throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailWhenTryToStartTransactionInFailedState(@Authenticated BoltTestConnection connection) {
         // Failing
         var buf = PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(3, BoltV40Wire.MESSAGE_TAG_RUN))
@@ -377,6 +366,5 @@ public class ProtocolViolationIT {
                         "error: connection exception - protocol error. General network protocol error.",
                         GqlStatusInfoCodes.STATUS_08N10.getGqlStatus(),
                         "error: connection exception - invalid server state. Message BeginMessage{bookmarks=[], txTimeout=null, accessMode=WRITE, txMetadata=null, databaseName='null', impersonatedUser='null', notificationsConfig=Default, type=EXPLICIT} cannot be handled by session in the 'READY' state.");
-        ;
     }
 }

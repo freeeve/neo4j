@@ -21,7 +21,6 @@ package org.neo4j.bolt.authentication;
 
 import static java.time.Duration.ofSeconds;
 
-import java.io.IOException;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +31,6 @@ import org.neo4j.bolt.test.annotation.connection.initializer.VersionSelected;
 import org.neo4j.bolt.test.annotation.setup.FactoryFunction;
 import org.neo4j.bolt.test.annotation.setup.SettingsFunction;
 import org.neo4j.bolt.test.annotation.test.ProtocolTest;
-import org.neo4j.bolt.test.annotation.wire.selector.ExcludeWire;
 import org.neo4j.bolt.test.annotation.wire.selector.IncludeWire;
 import org.neo4j.bolt.test.util.ServerUtil;
 import org.neo4j.bolt.testing.annotation.Version;
@@ -91,9 +89,8 @@ public class PreAuthLimitIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailDueToMessageBeingTooLargeInUnauthenticatedStateV40(
-            BoltWire wire, @VersionSelected BoltTestConnection connection) throws IOException {
+    @IncludeWire(until = @Version(major = 5, minor = 6))
+    void shouldFailDueToMessageBeingTooLargeInUnauthenticatedStateV40(@VersionSelected BoltTestConnection connection) {
         connection.send(createValidBufferOf1023bytes(BoltV51Wire.MESSAGE_TAG_HELLO));
 
         BoltConnectionAssertions.assertThat(connection)
@@ -102,9 +99,8 @@ public class PreAuthLimitIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
-    void shouldFailDueToMessageBeingTooLargeInUnauthenticatedState(
-            BoltWire wire, @VersionSelected BoltTestConnection connection) throws IOException {
+    @IncludeWire(since = @Version(major = 5, minor = 7))
+    void shouldFailDueToMessageBeingTooLargeInUnauthenticatedState(@VersionSelected BoltTestConnection connection) {
         connection.send(createValidBufferOf1023bytes(BoltV51Wire.MESSAGE_TAG_HELLO));
 
         BoltConnectionAssertions.assertThat(connection)
@@ -118,9 +114,9 @@ public class PreAuthLimitIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 5)})
+    @IncludeWire(since = @Version(major = 5, minor = 1), until = @Version(major = 5, minor = 6))
     void shouldFailDueToMessageBeingTooLargeInAuthenticationStateV40(
-            BoltWire wire, @VersionSelected BoltTestConnection connection) throws IOException {
+            BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
 
@@ -131,9 +127,9 @@ public class PreAuthLimitIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldFailDueToMessageBeingTooLargeInAuthenticationState(
-            BoltWire wire, @VersionSelected BoltTestConnection connection) throws IOException {
+            BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
 
@@ -149,9 +145,9 @@ public class PreAuthLimitIT {
     }
 
     @ProtocolTest
-    @IncludeWire({@Version(major = 5, minor = 6, range = 5)})
+    @IncludeWire(since = @Version(major = 5, minor = 1), until = @Version(major = 5, minor = 6))
     void shouldFailDueToMessageBeingTooLargeInAuthenticationStateAfterLoggingOutV40(
-            BoltWire wire, @Authenticated BoltTestConnection connection) throws IOException {
+            BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection.send(wire.logoff());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
 
@@ -163,9 +159,9 @@ public class PreAuthLimitIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 5, minor = 6, range = 6), @Version(major = 4)})
+    @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldFailDueToMessageBeingTooLargeInAuthenticationStateAfterLoggingOut(
-            BoltWire wire, @Authenticated BoltTestConnection connection) throws IOException {
+            BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection.send(wire.logoff());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
 
@@ -182,8 +178,7 @@ public class PreAuthLimitIT {
     }
 
     @ProtocolTest
-    void whenAuthenticatedShouldBeNoLimitOnMessageSize(BoltWire wire, @Authenticated BoltTestConnection connection)
-            throws IOException {
+    void whenAuthenticatedShouldBeNoLimitOnMessageSize(BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection.send(createValidBufferOf1023bytes(BoltV51Wire.MESSAGE_TAG_BEGIN));
 
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
@@ -206,7 +201,7 @@ public class PreAuthLimitIT {
 
     @ProtocolTest
     void whenInUnauthenticatedStateShouldErrorIfConnectionOpenTooLong(
-            BoltWire wire, @VersionSelected BoltTestConnection connection) throws IOException, InterruptedException {
+            BoltWire wire, @VersionSelected BoltTestConnection connection) throws InterruptedException {
         BoltConnectionAssertions.assertThat(connection).isEventuallyTerminated();
 
         Thread.sleep(1000); // This is to ensure the log contains the message before it runs.
@@ -218,9 +213,9 @@ public class PreAuthLimitIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 4), @Version(major = 5, minor = 0)})
+    @IncludeWire(since = @Version(major = 5, minor = 1))
     void whenInAuthenticationStateShouldErrorIfConnectionOpenTooLong(
-            BoltWire wire, @VersionSelected BoltTestConnection connection) throws IOException, InterruptedException {
+            BoltWire wire, @VersionSelected BoltTestConnection connection) throws InterruptedException {
         connection.send(wire.hello());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
 
@@ -234,9 +229,9 @@ public class PreAuthLimitIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 4), @Version(major = 5, minor = 0)})
+    @IncludeWire(since = @Version(major = 5, minor = 1))
     void whenInAuthenticationStateAfterLogoffShouldErrorIfConnectionOpenTooLong(
-            BoltWire wire, @Authenticated BoltTestConnection connection) throws IOException, InterruptedException {
+            BoltWire wire, @Authenticated BoltTestConnection connection) throws InterruptedException {
         connection.send(wire.logoff());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
 
@@ -249,9 +244,9 @@ public class PreAuthLimitIT {
     }
 
     @ProtocolTest
-    @ExcludeWire({@Version(major = 4), @Version(major = 5, minor = 0)})
+    @IncludeWire(since = @Version(major = 5, minor = 1))
     void whenLoggedInShouldBeNoAuthenticationTimout(BoltWire wire, @VersionSelected BoltTestConnection connection)
-            throws IOException, InterruptedException {
+            throws InterruptedException {
         connection.send(wire.hello());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
 

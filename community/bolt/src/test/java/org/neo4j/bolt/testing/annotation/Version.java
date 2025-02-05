@@ -64,6 +64,8 @@ public @interface Version {
      * the protocol negotiation. As such, it will <em>subtract</em> from the {@link #minor()} version component.
      *
      * @return a range of versions.
+     * @deprecated Use the `since` and `until` properties of the desired annotation for improved readability.
      */
+    @Deprecated
     int range() default 0;
 }
