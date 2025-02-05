@@ -104,13 +104,21 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
   private val invalidSyntaxStatus =
     gqlStatus(GqlStatusInfoCodes.STATUS_42001, "error: syntax error or access rule violation - invalid syntax")
 
-  def withSyntaxErrorContaining(message: String, causeGql: GqlStatusInfoCodes, causeStatusDescription: String): Self = {
+  def withSyntaxErrorContaining(
+    message: String,
+    causeGql: GqlStatusInfoCodes,
+    causeStatusDescription: String,
+    position: Option[InputPosition] = None
+  ): Self = {
     throws[SyntaxException]
-    withError(throwable =>
-      throwable.asInstanceOf[Exception] should be(
-        gqlException(message, invalidSyntaxStatus.withCause(causeGql, causeStatusDescription), fuzzyMsg = true)
-      )
-    )
+      .withError(throwable => {
+        val gqlMatcher = invalidSyntaxStatus.withCause(causeGql, causeStatusDescription)
+        val gqlMatcherWithMaybePos =
+          position.map(pos => gqlMatcher.withPosition(pos.offset, pos.line, pos.column)).getOrElse(gqlMatcher)
+        throwable.asInstanceOf[Exception] should be(
+          gqlException(message, gqlMatcherWithMaybePos, fuzzyMsg = true)
+        )
+      })
   }
 
   def withOldSyntax(message: String): Self = {

@@ -33,6 +33,9 @@ public class SyntaxException extends Neo4jException {
     private final transient Optional<Integer> offset;
     private final String query;
 
+    public static final String QUOTE_MISMATCH_ERROR_MESSAGE =
+            "Failed to parse string literal. The query must contain an even number of non-escaped quotes.";
+
     @Deprecated
     public SyntaxException(String message, String query, Optional<Integer> offset, Throwable cause) {
         super(message, cause);
@@ -153,6 +156,14 @@ public class SyntaxException extends Neo4jException {
                         .build())
                 .build();
         return new SyntaxException(gql, legacyMessage, query, offset);
+    }
+
+    public static SyntaxException stringLiteralWithInvalidQuotes() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I19)
+                        .build())
+                .build();
+        return new SyntaxException(gql, QUOTE_MISMATCH_ERROR_MESSAGE);
     }
 
     @Override

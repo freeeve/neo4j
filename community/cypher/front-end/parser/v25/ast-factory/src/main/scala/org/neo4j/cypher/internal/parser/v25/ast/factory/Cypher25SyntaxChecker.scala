@@ -101,10 +101,7 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
     isParam: Boolean
   ): Unit = {
     if (isParam) {
-      _errors :+= exceptionFactory.syntaxException(
-        s"Duplicated $description parameters",
-        inputPosition(token)
-      )
+      _errors :+= exceptionFactory.duplicateClauseParameter(description, inputPosition(token))
     } else {
       _errors :+= exceptionFactory.syntaxException(
         s"Duplicate $description clause",
@@ -494,20 +491,15 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
       functionName.namespace.parts.isEmpty &&
       ctx.functionArgument().size == 2
     ) {
-      _errors :+= exceptionFactory.syntaxException(
-        "Invalid normal form, expected NFC, NFD, NFKC, NFKD",
-        ctx.functionArgument(1).expression().ast[Expression]().position
-      )
+      val normalForm = ctx.functionArgument(1).expression().ast[Expression]()
+      _errors :+= exceptionFactory.invalidNormalForm(normalForm)
     }
   }
 
   private def checkTypePart(ctx: Cypher25Parser.TypePartContext): Unit = {
     val cypherType = ctx.typeName().ast
     if (cypherType.isInstanceOf[ClosedDynamicUnionType] && ctx.typeNullability() != null) {
-      _errors :+= exceptionFactory.syntaxException(
-        "Closed Dynamic Union Types can not be appended with `NOT NULL`, specify `NOT NULL` on all inner types instead.",
-        pos(ctx.typeNullability())
-      )
+      _errors :+= exceptionFactory.invalidNotNullClosedDynamicUnion(pos(ctx.typeNullability()))
     }
   }
 

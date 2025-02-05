@@ -31,7 +31,6 @@ import org.neo4j.cypher.internal.expressions.SignedOctalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.True
 import org.neo4j.cypher.internal.parser.AstRuleCtx
-import org.neo4j.cypher.internal.parser.CypherErrorStrategy
 import org.neo4j.cypher.internal.parser.ast.util.Util.astSeq
 import org.neo4j.cypher.internal.parser.ast.util.Util.lastChild
 import org.neo4j.cypher.internal.parser.ast.util.Util.pos
@@ -119,7 +118,7 @@ object LiteralBuilder {
       var builder: java.lang.StringBuilder = null
       while (pos != -1) {
         if (pos == length - 1)
-          throw exceptionFactory.syntaxException(CypherErrorStrategy.quoteMismatchErrorMessage, p)
+          throw exceptionFactory.stringLiteralWithInvalidQuotes(p)
         val replacement: Char = input.charAt(pos + 1) match {
           case 't'  => '\t'
           case 'b'  => '\b'

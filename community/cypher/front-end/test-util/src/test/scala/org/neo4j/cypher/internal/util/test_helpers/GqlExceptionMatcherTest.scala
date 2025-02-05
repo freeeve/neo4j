@@ -1129,4 +1129,132 @@ class GqlExceptionMatcherTest extends CypherFunSuite {
       )
     }
   }
+
+  test("should pass on correct position") {
+    expectSuccess {
+      val gqlStatusObject = the[ErrorGqlStatusObject] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .atPosition(15, 2, 3)
+          .build()
+        throw MyException(gql, "oops")
+      }
+
+      gqlStatusObject should be(
+        homeDatabaseDoesNotExistStatus.withPosition(15, 2, 3)
+      )
+    }
+  }
+
+  test("should not pass negation on correct position") {
+    expectFailure {
+      val gqlStatusObject = the[ErrorGqlStatusObject] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .atPosition(15, 2, 3)
+          .build()
+        throw MyException(gql, "oops")
+      }
+
+      gqlStatusObject should not be homeDatabaseDoesNotExistStatus.withPosition(15, 2, 3)
+    }
+  }
+
+  test("should not pass on wrong offset") {
+    expectFailure {
+      val gqlStatusObject = the[ErrorGqlStatusObject] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .atPosition(14, 2, 3)
+          .build()
+        throw MyException(gql, "oops")
+      }
+
+      gqlStatusObject should be(
+        homeDatabaseDoesNotExistStatus.withPosition(15, 2, 3)
+      )
+    }
+  }
+
+  test("should pass negative on wrong offset") {
+    expectSuccess {
+      val gqlStatusObject = the[ErrorGqlStatusObject] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .atPosition(14, 2, 3)
+          .build()
+        throw MyException(gql, "oops")
+      }
+
+      gqlStatusObject should not be homeDatabaseDoesNotExistStatus.withPosition(15, 2, 3)
+    }
+  }
+
+  test("should not pass on wrong line") {
+    expectFailure {
+      val gqlStatusObject = the[ErrorGqlStatusObject] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .atPosition(15, 3, 3)
+          .build()
+        throw MyException(gql, "oops")
+      }
+
+      gqlStatusObject should be(
+        homeDatabaseDoesNotExistStatus.withPosition(15, 2, 3)
+      )
+    }
+  }
+
+  test("should pass negative on wrong line") {
+    expectSuccess {
+      val gqlStatusObject = the[ErrorGqlStatusObject] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .atPosition(15, 3, 3)
+          .build()
+        throw MyException(gql, "oops")
+      }
+
+      gqlStatusObject should not be homeDatabaseDoesNotExistStatus.withPosition(15, 2, 3)
+    }
+  }
+
+  test("should not pass on wrong column") {
+    expectFailure {
+      val gqlStatusObject = the[ErrorGqlStatusObject] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .atPosition(15, 2, 5)
+          .build()
+        throw MyException(gql, "oops")
+      }
+
+      gqlStatusObject should be(
+        homeDatabaseDoesNotExistStatus.withPosition(15, 2, 3)
+      )
+    }
+  }
+
+  test("should pass negative on wrong column") {
+    expectSuccess {
+      val gqlStatusObject = the[ErrorGqlStatusObject] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .atPosition(15, 2, 5)
+          .build()
+        throw MyException(gql, "oops")
+      }
+
+      gqlStatusObject should not be homeDatabaseDoesNotExistStatus.withPosition(15, 2, 3)
+    }
+  }
 }

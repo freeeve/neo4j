@@ -19,6 +19,8 @@ package org.neo4j.cypher.internal.ast.factory.query
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class NormalizeFunctionParserTest extends AstParsingTestBase {
 
@@ -65,26 +67,35 @@ class NormalizeFunctionParserTest extends AstParsingTestBase {
 
   // Failing tests
   test("RETURN normalize(\"hello\", \"NFC\")") {
-    failsParsing[Statements].withMessage(
+    failsParsing[Statements].withSyntaxErrorContaining(
       """Invalid normal form, expected NFC, NFD, NFKC, NFKD (line 1, column 27 (offset: 26))
         |"RETURN normalize("hello", "NFC")"
-        |                           ^""".stripMargin
+        |                           ^""".stripMargin,
+      GqlStatusInfoCodes.STATUS_42N49,
+      "error: syntax error or access rule violation - unsupported normal form. Unknown Normal Form: 'NFC'.",
+      position = Some(InputPosition(26, 1, 27))
     )
   }
 
   test("RETURN normalize(\"hello\", null)") {
-    failsParsing[Statements].withSyntaxError(
+    failsParsing[Statements].withSyntaxErrorContaining(
       """Invalid normal form, expected NFC, NFD, NFKC, NFKD (line 1, column 27 (offset: 26))
         |"RETURN normalize("hello", null)"
-        |                           ^""".stripMargin
+        |                           ^""".stripMargin,
+      GqlStatusInfoCodes.STATUS_42N49,
+      "error: syntax error or access rule violation - unsupported normal form. Unknown Normal Form: 'NULL'.",
+      position = Some(InputPosition(26, 1, 27))
     )
   }
 
   test("RETURN normalize(\"hello\", NFF)") {
-    failsParsing[Statements].withSyntaxError(
+    failsParsing[Statements].withSyntaxErrorContaining(
       """Invalid normal form, expected NFC, NFD, NFKC, NFKD (line 1, column 27 (offset: 26))
         |"RETURN normalize("hello", NFF)"
-        |                           ^""".stripMargin
+        |                           ^""".stripMargin,
+      GqlStatusInfoCodes.STATUS_42N49,
+      "error: syntax error or access rule violation - unsupported normal form. Unknown Normal Form: 'NFF'.",
+      position = Some(InputPosition(26, 1, 27))
     )
   }
 

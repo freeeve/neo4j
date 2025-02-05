@@ -89,6 +89,70 @@ trait CypherExceptionFactory {
       position
     )
   }
+
+  def invalidNormalForm(normalForm: ASTNode): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(normalForm.position.offset, normalForm.position.line, normalForm.position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N49)
+        .atPosition(normalForm.position.offset, normalForm.position.line, normalForm.position.column)
+        .withParam(GqlParams.StringParam.input, normalForm.asCanonicalStringVal)
+        .build)
+      .build
+
+    syntaxException(
+      gql,
+      "Invalid normal form, expected NFC, NFD, NFKC, NFKD",
+      normalForm.position
+    )
+  }
+
+  def invalidNotNullClosedDynamicUnion(position: InputPosition): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I33)
+        .atPosition(position.offset, position.line, position.column)
+        .build())
+      .build()
+
+    syntaxException(
+      gql,
+      "Closed Dynamic Union Types can not be appended with `NOT NULL`, specify `NOT NULL` on all inner types instead.",
+      position
+    )
+  }
+
+  def duplicateClauseParameter(description: String, position: InputPosition): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N19)
+          .withParam(GqlParams.StringParam.syntax, description)
+          .atPosition(position.offset, position.line, position.column)
+          .build()
+      ).build()
+
+    syntaxException(
+      gql,
+      s"Duplicated $description parameters",
+      position
+    )
+  }
+
+  def stringLiteralWithInvalidQuotes(position: InputPosition): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I19)
+          .atPosition(position.offset, position.line, position.column)
+          .build()
+      ).build()
+
+    syntaxException(
+      gql,
+      SyntaxException.QUOTE_MISMATCH_ERROR_MESSAGE,
+      position
+    )
+  }
 }
 
 case class Neo4jCypherExceptionFactory(queryText: String, preParserOffset: Option[InputPosition])

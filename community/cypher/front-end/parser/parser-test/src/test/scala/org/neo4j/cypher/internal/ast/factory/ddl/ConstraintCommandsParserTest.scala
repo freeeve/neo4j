@@ -45,6 +45,7 @@ import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
 import org.neo4j.exceptions.SyntaxException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 /* Tests for creating and dropping constraints */
 class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserTestBase {
@@ -2740,10 +2741,11 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("CREATE CONSTRAINT my_constraint FOR (n:L) REQUIRE n.p IS :: ANY<BOOLEAN | STRING> NOT NULL") {
     failsParsing[ast.Statements]
-      .withMessageStart(
-        "Closed Dynamic Union Types can not be appended with `NOT NULL`, specify `NOT NULL` on all inner types instead."
+      .withSyntaxErrorContaining(
+        "Closed Dynamic Union Types can not be appended with `NOT NULL`, specify `NOT NULL` on all inner types instead.",
+        GqlStatusInfoCodes.STATUS_42I33,
+        "error: syntax error or access rule violation - invalid use of NOT NULL. Closed Dynamic Union types cannot be appended with 'NOT NULL', specify 'NOT NULL' on inner types instead."
       )
-      .throws[SyntaxException]
   }
 
   test("CREATE CONSTRAINT my_constraint FOR (n:L) REQUIRE n.p IS :: BOOLEAN LIST NOT NULL NOT NULL") {

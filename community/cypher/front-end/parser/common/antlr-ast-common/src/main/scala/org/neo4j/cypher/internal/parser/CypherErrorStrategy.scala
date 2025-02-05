@@ -40,6 +40,7 @@ import org.neo4j.cypher.internal.parser.CypherErrorStrategy.ParameterRule
 import org.neo4j.cypher.internal.parser.CypherErrorStrategy.RelationshipPatternRule
 import org.neo4j.cypher.internal.parser.CypherErrorStrategy.StringLiteralRule
 import org.neo4j.cypher.internal.parser.CypherErrorStrategy.VariableRule
+import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
@@ -85,7 +86,7 @@ final class CypherErrorStrategy(conf: CypherErrorStrategy.Conf) extends ANTLRErr
   ): (String, ErrorGqlStatusObjectImplementation.Builder) = {
     // println("Error at " + e.getCtx.getClass.getSimpleName)
     if (isUnclosedQuote(e.getOffendingToken)) {
-      val legacyMessage = CypherErrorStrategy.quoteMismatchErrorMessage
+      val legacyMessage = SyntaxException.QUOTE_MISMATCH_ERROR_MESSAGE
       val gqlCauseBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I19)
       (legacyMessage, gqlCauseBuilder)
     } else if (isUnclosedComment(e.getOffendingToken, parser)) {
@@ -207,8 +208,6 @@ object CypherErrorStrategy {
   case object NodePatternRule extends CypherRuleGroup
   case object RelationshipPatternRule extends CypherRuleGroup
 
-  val quoteMismatchErrorMessage =
-    "Failed to parse string literal. The query must contain an even number of non-escaped quotes."
   val commentMismatchErrorMessage = "Failed to parse comment. A comment starting on `/*` must have a closing `*/`."
 }
 

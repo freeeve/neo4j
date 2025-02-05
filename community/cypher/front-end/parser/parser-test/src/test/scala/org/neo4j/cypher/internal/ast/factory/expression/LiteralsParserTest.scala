@@ -43,6 +43,7 @@ import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropertyChecks
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.scalacheck.Gen
 import org.scalacheck.Shrink
 
@@ -207,10 +208,14 @@ class LiteralsParserTest extends AstParsingTestBase
     }
 
     "'\\'" should notParse[Literal].withSyntaxErrorContaining(
-      "Failed to parse string literal. The query must contain an even number of non-escaped quotes."
+      "Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
+      GqlStatusInfoCodes.STATUS_42I19,
+      "error: syntax error or access rule violation - invalid string literal. Failed to parse string literal. The query must contain an even number of non-escaped quotes."
     )
     "'\\\\\\'" should notParse[Literal].withSyntaxErrorContaining(
-      "Failed to parse string literal. The query must contain an even number of non-escaped quotes."
+      "Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
+      GqlStatusInfoCodes.STATUS_42I19,
+      "error: syntax error or access rule violation - invalid string literal. Failed to parse string literal. The query must contain an even number of non-escaped quotes."
     )
   }
 
@@ -226,7 +231,10 @@ class LiteralsParserTest extends AstParsingTestBase
 
     s"RETURN '${toCypherHex('\\')}'" should notParse[Statements]
     s"RETURN '${toCypherHex('\'')}'" should notParse[Statements].withSyntaxErrorContaining(
-      """Failed to parse string literal. The query must contain an even number of non-escaped quotes. (line 1, column 15 (offset: 14))"""
+      """Failed to parse string literal. The query must contain an even number of non-escaped quotes. (line 1, column 15 (offset: 14))""",
+      GqlStatusInfoCodes.STATUS_42I19,
+      "error: syntax error or access rule violation - invalid string literal. Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
+      position = Some(InputPosition(14, 1, 15))
     )
 
     "'\\U1'" should parseTo[Literal](literalString("\\U1"))

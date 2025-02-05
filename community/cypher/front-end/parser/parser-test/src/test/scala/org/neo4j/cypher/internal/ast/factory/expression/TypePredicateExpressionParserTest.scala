@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.expression.TypePredicateExpressionParserTest.allCombinations
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
+import org.neo4j.cypher.internal.ast.test.util.Parses
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.AnyType
@@ -45,7 +46,7 @@ import org.neo4j.cypher.internal.util.symbols.RelationshipType
 import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
-import org.neo4j.exceptions.SyntaxException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.prop.TableFor2
 import org.scalatest.prop.Tables
@@ -150,67 +151,35 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
   }
 
   test("x :: ANY<BOOLEAN> NOT NULL") {
-    failsParsing[Expression]
-      .withMessageStart(
-        "Closed Dynamic Union Types can not be appended with `NOT NULL`, specify `NOT NULL` on all inner types instead."
-      )
-      .throws[SyntaxException]
+    failsWithClosedDynamicUnionNotNullError
   }
 
   test("x :: ANY<BOOLEAN>!") {
-    failsParsing[Expression]
-      .withMessageStart(
-        "Closed Dynamic Union Types can not be appended with `NOT NULL`, specify `NOT NULL` on all inner types instead."
-      )
-      .throws[SyntaxException]
+    failsWithClosedDynamicUnionNotNullError
   }
 
   test("x :: ANY VALUE<BOOLEAN> NOT NULL") {
-    failsParsing[Expression]
-      .withMessageStart(
-        "Closed Dynamic Union Types can not be appended with `NOT NULL`, specify `NOT NULL` on all inner types instead."
-      )
-      .throws[SyntaxException]
+    failsWithClosedDynamicUnionNotNullError
   }
 
   test("x :: ANY VALUE<BOOLEAN>!") {
-    failsParsing[Expression]
-      .withMessageStart(
-        "Closed Dynamic Union Types can not be appended with `NOT NULL`, specify `NOT NULL` on all inner types instead."
-      )
-      .throws[SyntaxException]
+    failsWithClosedDynamicUnionNotNullError
   }
 
   test("x :: ANY<ANY <BOOLEAN> NOT NULL>") {
-    failsParsing[Expression]
-      .withMessageStart(
-        "Closed Dynamic Union Types can not be appended with `NOT NULL`, specify `NOT NULL` on all inner types instead."
-      )
-      .throws[SyntaxException]
+    failsWithClosedDynamicUnionNotNullError
   }
 
   test("x :: ANY<ANY <BOOLEAN>> NOT NULL") {
-    failsParsing[Expression]
-      .withMessageStart(
-        "Closed Dynamic Union Types can not be appended with `NOT NULL`, specify `NOT NULL` on all inner types instead."
-      )
-      .throws[SyntaxException]
+    failsWithClosedDynamicUnionNotNullError
   }
 
   test("x :: ANY<ANY <BOOLEAN> NOT NULL> NOT NULL") {
-    failsParsing[Expression]
-      .withMessageStart(
-        "Closed Dynamic Union Types can not be appended with `NOT NULL`, specify `NOT NULL` on all inner types instead."
-      )
-      .throws[SyntaxException]
+    failsWithClosedDynamicUnionNotNullError
   }
 
   test("x :: ANY<STRING|BOOLEAN> NOT NULL") {
-    failsParsing[Expression]
-      .withMessageStart(
-        "Closed Dynamic Union Types can not be appended with `NOT NULL`, specify `NOT NULL` on all inner types instead."
-      )
-      .throws[SyntaxException]
+    failsWithClosedDynamicUnionNotNullError
   }
 
   test("RETURN x :: ANY VALUE<>") {
@@ -358,6 +327,15 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
             }
         }
     }
+  }
+
+  private def failsWithClosedDynamicUnionNotNullError: Parses[Expression] = {
+    failsParsing[Expression]
+      .withSyntaxErrorContaining(
+        "Closed Dynamic Union Types can not be appended with `NOT NULL`, specify `NOT NULL` on all inner types instead.",
+        GqlStatusInfoCodes.STATUS_42I33,
+        "error: syntax error or access rule violation - invalid use of NOT NULL. Closed Dynamic Union types cannot be appended with 'NOT NULL', specify 'NOT NULL' on inner types instead."
+      )
   }
 }
 

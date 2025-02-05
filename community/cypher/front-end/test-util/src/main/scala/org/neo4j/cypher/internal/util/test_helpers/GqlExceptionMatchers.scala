@@ -24,6 +24,7 @@ import org.scalatest.matchers.Matcher
 import org.scalatest.matchers.should.Matchers.a
 import org.scalatest.matchers.should.Matchers.be
 
+import scala.annotation.nowarn
 import scala.jdk.OptionConverters.RichOptional
 
 trait GqlExceptionMatchers {
@@ -33,6 +34,9 @@ trait GqlExceptionMatchers {
   case class GqlExceptionMatcher(
     code: GqlStatusInfoCodes,
     statusDescription: String,
+    offset: Option[Int] = None,
+    line: Option[Int] = None,
+    column: Option[Int] = None,
     causeMatcher: Option[GqlExceptionMatcher] = None
   ) extends BeMatcher[ErrorGqlStatusObject] {
 
@@ -47,6 +51,7 @@ trait GqlExceptionMatchers {
       invalidCode(left)
         .orElse(invalidStatusDescription(left))
         .orElse(causeExistenceCheck(left))
+        .orElse(positionCheck(left))
     }
 
     private def invalidCode(left: ErrorGqlStatusObject): Option[MatchResult] = {
@@ -116,6 +121,68 @@ trait GqlExceptionMatchers {
         )
     }
 
+    @nowarn("msg=eliminated by erasure")
+    private def positionCheck(left: ErrorGqlStatusObject): Option[MatchResult] = {
+      if (offset.nonEmpty || line.nonEmpty || column.nonEmpty) {
+        left.diagnosticRecord().get("_position") match {
+          case position: java.util.Map[String, Int] =>
+            offset.flatMap(validateOffset(position)).orElse(
+              line.flatMap(validateLine(position)).orElse(
+                column.flatMap(validateColumn(position))
+              )
+            )
+          case null => Some(MatchResult(
+              matches = false,
+              s"Expected diagnosticRecord().get(\"_position\") to produce a java.util.Map[String, Int] but was null",
+              "Unreachable"
+            ))
+          case position => Some(MatchResult(
+              matches = false,
+              s"Expected diagnosticRecord().get(\"_position\") to produce a java.util.Map[String, Int] but was ${position.getClass}",
+              "Unreachable"
+            ))
+        }
+      } else {
+        None
+      }
+    }
+
+    private def validateOffset(position: java.util.Map[String, Int])(offset: Int): Option[MatchResult] = {
+      if (position.get("offset") != offset) {
+        Some(MatchResult(
+          matches = false,
+          s"Expected offset $offset but found ${position.get("offset")}",
+          "Unreachable"
+        ))
+      } else {
+        None
+      }
+    }
+
+    private def validateLine(position: java.util.Map[String, Int])(line: Int): Option[MatchResult] = {
+      if (position.get("line") != line) {
+        Some(MatchResult(
+          matches = false,
+          s"Expected line $line but found ${position.get("line")}",
+          "Unreachable"
+        ))
+      } else {
+        None
+      }
+    }
+
+    private def validateColumn(position: java.util.Map[String, Int])(column: Int): Option[MatchResult] = {
+      if (position.get("column") != column) {
+        Some(MatchResult(
+          matches = false,
+          s"Expected column $column but found ${position.get("column")}",
+          "Unreachable"
+        ))
+      } else {
+        None
+      }
+    }
+
     private def validGqlStatusObject(): MatchResult = {
       MatchResult(
         matches = true,
@@ -145,6 +212,10 @@ trait GqlExceptionMatchers {
 
     def withCause(code: GqlStatusInfoCodes, statusDescription: String): GqlExceptionMatcher = {
       withCause(GqlExceptionMatcher(code, statusDescription))
+    }
+
+    def withPosition(offset: Int, line: Int, column: Int): GqlExceptionMatcher = {
+      this.copy(offset = Some(offset), line = Some(line), column = Some(column))
     }
 
   }

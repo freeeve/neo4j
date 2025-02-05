@@ -66,6 +66,7 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.exceptions.SyntaxException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class MiscParserTest extends AstParsingTestBase {
 
@@ -495,12 +496,14 @@ class MiscParserTest extends AstParsingTestBase {
   }
 
   test("RETURN 'hell") {
-    failsParsing[Statements].throws[SyntaxException]
-      .withMessage(
-        """Failed to parse string literal. The query must contain an even number of non-escaped quotes. (line 1, column 8 (offset: 7))
-          |"RETURN 'hell"
-          |        ^""".stripMargin
-      )
+    failsParsing[Statements].withSyntaxErrorContaining(
+      """Failed to parse string literal. The query must contain an even number of non-escaped quotes. (line 1, column 8 (offset: 7))
+        |"RETURN 'hell"
+        |        ^""".stripMargin,
+      GqlStatusInfoCodes.STATUS_42I19,
+      "error: syntax error or access rule violation - invalid string literal. Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
+      position = Some(InputPosition(7, 1, 8))
+    )
   }
 
   test("correct positions in errors with unicode escapes and comments") {
@@ -521,51 +524,69 @@ class MiscParserTest extends AstParsingTestBase {
   }
 
   test("MATCH (n) WHERE n.prop = 'ab + 1") {
-    failsParsing[Statements].withSyntaxError(
+    failsParsing[Statements].withSyntaxErrorContaining(
       """Failed to parse string literal. The query must contain an even number of non-escaped quotes. (line 1, column 26 (offset: 25))
         |"MATCH (n) WHERE n.prop = 'ab + 1"
-        |                          ^""".stripMargin
+        |                          ^""".stripMargin,
+      GqlStatusInfoCodes.STATUS_42I19,
+      "error: syntax error or access rule violation - invalid string literal. Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
+      position = Some(InputPosition(25, 1, 26))
     )
   }
 
   test("MATCH (n) WHERE n.prop = 'ab'' + 1") {
-    failsParsing[Statements].withSyntaxError(
+    failsParsing[Statements].withSyntaxErrorContaining(
       """Failed to parse string literal. The query must contain an even number of non-escaped quotes. (line 1, column 30 (offset: 29))
         |"MATCH (n) WHERE n.prop = 'ab'' + 1"
-        |                              ^""".stripMargin
+        |                              ^""".stripMargin,
+      GqlStatusInfoCodes.STATUS_42I19,
+      "error: syntax error or access rule violation - invalid string literal. Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
+      position = Some(InputPosition(29, 1, 30))
     )
   }
 
   test("MATCH (n) WHERE n.prop = '") {
-    failsParsing[Statements].withSyntaxError(
+    failsParsing[Statements].withSyntaxErrorContaining(
       """Failed to parse string literal. The query must contain an even number of non-escaped quotes. (line 1, column 26 (offset: 25))
         |"MATCH (n) WHERE n.prop = '"
-        |                          ^""".stripMargin
+        |                          ^""".stripMargin,
+      GqlStatusInfoCodes.STATUS_42I19,
+      "error: syntax error or access rule violation - invalid string literal. Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
+      position = Some(InputPosition(25, 1, 26))
     )
   }
 
   test("MATCH (n) WHERE n.'prop") {
-    failsParsing[Statements].withSyntaxError(
+    failsParsing[Statements].withSyntaxErrorContaining(
       """Failed to parse string literal. The query must contain an even number of non-escaped quotes. (line 1, column 19 (offset: 18))
         |"MATCH (n) WHERE n.'prop"
-        |                   ^""".stripMargin
+        |                   ^""".stripMargin,
+      GqlStatusInfoCodes.STATUS_42I19,
+      "error: syntax error or access rule violation - invalid string literal. Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
+      position = Some(InputPosition(18, 1, 19))
     )
   }
 
   test("SHOW SETTING 'a', 'b''") {
-    failsParsing[Statements].withSyntaxError(
+    failsParsing[Statements].withSyntaxErrorContaining(
       """Failed to parse string literal. The query must contain an even number of non-escaped quotes. (line 1, column 22 (offset: 21))
         |"SHOW SETTING 'a', 'b''"
-        |                      ^""".stripMargin
+        |                      ^""".stripMargin,
+      GqlStatusInfoCodes.STATUS_42I19,
+      "error: syntax error or access rule violation - invalid string literal. Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
+      position = Some(InputPosition(21, 1, 22))
     )
 
   }
 
   test("MATCH (n) WHERE n.prop = 'ab\\'c' AND 'b\\'c' AND 'c\\'") {
-    failsParsing[Statements].withSyntaxError(
+    failsParsing[Statements].withSyntaxErrorContaining(
       """Failed to parse string literal. The query must contain an even number of non-escaped quotes. (line 1, column 49 (offset: 48))
         |"MATCH (n) WHERE n.prop = 'ab\'c' AND 'b\'c' AND 'c\'"
-        |                                                 ^""".stripMargin
+        |                                                 ^""".stripMargin,
+      GqlStatusInfoCodes.STATUS_42I19,
+      "error: syntax error or access rule violation - invalid string literal. Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
+      position = Some(InputPosition(48, 1, 49))
     )
   }
 

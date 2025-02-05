@@ -31,7 +31,7 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsReportParameters
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
 import org.neo4j.cypher.internal.util.symbols.CTAny
-import org.neo4j.exceptions.SyntaxException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport {
 
@@ -372,18 +372,28 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
 
   test("CALL { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK REPORT STATUS AS status ON ERROR CONTINUE") {
     failsParsing[Statements]
-      .withMessageStart("Duplicated ON ERROR parameter")
+      .withSyntaxErrorContaining(
+        "Duplicated ON ERROR parameter",
+        GqlStatusInfoCodes.STATUS_42N19,
+        "error: syntax error or access rule violation - duplicate clause. Duplicate `ON ERROR` clause."
+      )
   }
 
   test("CALL { CREATE (n) } IN TRANSACTIONS REPORT STATUS AS status REPORT STATUS AS other") {
     failsParsing[Statements]
-      .withMessageStart("Duplicated REPORT STATUS parameter")
-      .throws[SyntaxException]
+      .withSyntaxErrorContaining(
+        "Duplicated REPORT STATUS parameter",
+        GqlStatusInfoCodes.STATUS_42N19,
+        "error: syntax error or access rule violation - duplicate clause. Duplicate `REPORT STATUS` clause."
+      )
   }
 
   test("CALL { CREATE (n) } IN TRANSACTIONS OF 5 ROWS ON ERROR BREAK REPORT STATUS AS status OF 42 ROWS") {
     failsParsing[Statements]
-      .withMessageStart("Duplicated OF ROWS parameter")
-      .throws[SyntaxException]
+      .withSyntaxErrorContaining(
+        "Duplicated OF ROWS parameter",
+        GqlStatusInfoCodes.STATUS_42N19,
+        "error: syntax error or access rule violation - duplicate clause. Duplicate `OF ROWS` clause."
+      )
   }
 }

@@ -406,9 +406,7 @@ class LiteralInterpreterBuilder implements ParseTreeListener {
             var length = input.length();
             StringBuilder builder = null;
             while (pos != -1) {
-                if (pos == length - 1)
-                    throw new SyntaxException(
-                            "Failed to parse string literal. The query must contain an even number of non-escaped quotes.");
+                if (pos == length - 1) throw SyntaxException.stringLiteralWithInvalidQuotes();
                 char replacement =
                         switch (input.charAt(pos + 1)) {
                             case 't' -> '\t';
