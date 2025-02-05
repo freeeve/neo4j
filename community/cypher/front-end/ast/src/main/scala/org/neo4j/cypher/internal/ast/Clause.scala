@@ -95,6 +95,7 @@ import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
 import org.neo4j.cypher.internal.expressions.SimplePattern
 import org.neo4j.cypher.internal.expressions.StartsWith
 import org.neo4j.cypher.internal.expressions.StringLiteral
+import org.neo4j.cypher.internal.expressions.SubqueryExpression
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.containsAggregate
 import org.neo4j.cypher.internal.expressions.functions.Function.isIdFunction
@@ -1235,6 +1236,12 @@ case class Merge(pattern: NonPrefixedPatternPart, actions: Seq[MergeAction], whe
     }
   }
 
+  private def checkNoPatternComprehensionInMergeSubClause: SemanticCheck = {
+    actions.folder.treeFindByClass[SubqueryExpression]
+      .map(subquery => SemanticCheck.error(SemanticError.invalidSubqueryInMerge(subquery.position)))
+      .getOrElse(success)
+  }
+
   override def clauseSpecificSemanticCheck: SemanticCheck = {
     val updatePattern = Pattern.ForUpdate(Seq(pattern))(pattern.position)
     SemanticPatternCheck.check(Pattern.SemanticContext.Merge, updatePattern) chain
@@ -1247,6 +1254,7 @@ case class Merge(pattern: NonPrefixedPatternPart, actions: Seq[MergeAction], whe
         if (state.semanticCheckHasRunOnce) success
         else checkNoSubqueryInMerge
       } chain
+      checkNoPatternComprehensionInMergeSubClause chain
       SemanticState.recordCurrentScope(updatePattern)
   }
 }

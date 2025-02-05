@@ -1492,7 +1492,10 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("should not allow subquery expressions in MERGE ON CREATE") {
     run("MERGE (n) ON CREATE SET n.prop = EXISTS { MATCH () } RETURN 1")
-      .hasError(
+      .hasErrors(
+        GqlHelper.getGql42001_42I48(33, 1, 34),
+        "Subquery expressions are not allowed in a MERGE clause.",
+        p(33, 1, 34),
         GqlHelper.getGql42001_42I48(33, 1, 34),
         "Subquery expressions are not allowed in a MERGE clause.",
         p(33, 1, 34)
@@ -1510,7 +1513,10 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("should not allow subquery expressions in MERGE ON SET") {
     run("MERGE (n) ON CREATE SET n.prop = COUNT { MATCH () } RETURN 1")
-      .hasError(
+      .hasErrors(
+        GqlHelper.getGql42001_42I48(33, 1, 34),
+        "Subquery expressions are not allowed in a MERGE clause.",
+        p(33, 1, 34),
         GqlHelper.getGql42001_42I48(33, 1, 34),
         "Subquery expressions are not allowed in a MERGE clause.",
         p(33, 1, 34)
