@@ -46,6 +46,7 @@ import org.neo4j.cypher.internal.expressions.IsRepeatTrailUnique
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.Not
+import org.neo4j.cypher.internal.expressions.NotEquals
 import org.neo4j.cypher.internal.expressions.Or
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -661,6 +662,8 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
   ) = predicates.map {
     case e @ Equals(Variable(k1), Variable(k2)) =>
       primitiveEqualityChecks(slotConfiguration, e, k1, k2, positiveCheck = true)
+    case e @ NotEquals(Variable(k1), Variable(k2)) =>
+      primitiveEqualityChecks(slotConfiguration, e, k1, k2, positiveCheck = false)
     case Not(e @ Equals(Variable(k1), Variable(k2))) =>
       primitiveEqualityChecks(slotConfiguration, e, k1, k2, positiveCheck = false)
     case other => other
@@ -668,7 +671,7 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
 
   private def primitiveEqualityChecks(
     slots: SlotConfigurationBuilder,
-    e: Equals,
+    e: Expression,
     k1: String,
     k2: String,
     positiveCheck: Boolean
