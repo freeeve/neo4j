@@ -389,7 +389,7 @@ public class ImportIndexBuilder implements Closeable {
         IndexBuilder(IndexPopulator populator, IndexAccessor accessor) {
             this.populator = populator;
             this.changes = ThreadLocal.withInitial(() -> {
-                var indexUpdatesBatch = new IndexUpdatesBatch(accessor);
+                var indexUpdatesBatch = new IndexUpdatesBatch(populator, accessor);
                 allChanges.add(indexUpdatesBatch);
                 return indexUpdatesBatch;
             });
@@ -397,16 +397,7 @@ public class ImportIndexBuilder implements Closeable {
         }
 
         void add(IndexEntryUpdate indexUpdate) {
-            if (indexUpdate.updateMode() == UpdateMode.ADDED) {
-                try {
-                    populator.add(List.of(indexUpdate), NULL_CONTEXT);
-                    populator.includeSample(indexUpdate);
-                } catch (IndexEntryConflictException e) {
-                    throw new RuntimeException(e);
-                }
-            } else {
-                changes.get().add(indexUpdate);
-            }
+            changes.get().add(indexUpdate);
         }
 
         boolean addDirect(IndexEntryUpdate indexUpdate) {
@@ -421,7 +412,7 @@ public class ImportIndexBuilder implements Closeable {
 
         void flush() {
             for (IndexUpdatesBatch batch : allChanges) {
-                batch.flushChanges();
+                batch.flush();
             }
         }
 
@@ -432,19 +423,46 @@ public class ImportIndexBuilder implements Closeable {
     }
 
     private static class IndexUpdatesBatch {
-        private static final int BATCH_SIZE = 100;
+        private static final int BATCH_SIZE = 2_000;
 
         private final List<IndexEntryUpdate> changes = new ArrayList<>();
+        private List<IndexEntryUpdate> additions = new ArrayList<>(BATCH_SIZE);
+        private final IndexPopulator populator;
         private final IndexAccessor accessor;
 
-        IndexUpdatesBatch(IndexAccessor accessor) {
+        IndexUpdatesBatch(IndexPopulator populator, IndexAccessor accessor) {
+            this.populator = populator;
             this.accessor = accessor;
         }
 
         void add(IndexEntryUpdate indexUpdate) {
-            changes.add(indexUpdate);
-            if (changes.size() == BATCH_SIZE) {
-                flushChanges();
+            if (indexUpdate.updateMode() == UpdateMode.ADDED) {
+                additions.add(indexUpdate);
+                populator.includeSample(indexUpdate);
+                if (additions.size() == BATCH_SIZE) {
+                    flushAdditions();
+                }
+            } else {
+                changes.add(indexUpdate);
+                if (changes.size() == BATCH_SIZE) {
+                    flushChanges();
+                }
+            }
+        }
+
+        private void flush() {
+            flushAdditions();
+            flushChanges();
+        }
+
+        private void flushAdditions() {
+            try {
+                if (!additions.isEmpty()) {
+                    populator.add(additions, NULL_CONTEXT);
+                    additions = new ArrayList<>(BATCH_SIZE);
+                }
+            } catch (IndexEntryConflictException e) {
+                throw new RuntimeException(e);
             }
         }
 
