@@ -570,10 +570,14 @@ class IndexRecoveryIT {
 
         @Override
         public IndexUpdater newUpdater(final IndexUpdateMode mode, CursorContext cursorContext, boolean parallel) {
-            return new CollectingIndexUpdater(updates -> {
+            return new CollectingIndexUpdater(CursorContext.NULL_CONTEXT, updates -> {
                 switch (mode) {
-                    case ONLINE -> regularUpdates.addAll(updates);
-                    case RECOVERY -> batchedUpdates.addAll(updates);
+                    case ONLINE -> regularUpdates.addAll(updates.stream()
+                            .map(CollectingIndexUpdater.VersionedUpdate::update)
+                            .toList());
+                    case RECOVERY -> batchedUpdates.addAll(updates.stream()
+                            .map(CollectingIndexUpdater.VersionedUpdate::update)
+                            .toList());
                     default -> throw new UnsupportedOperationException();
                 }
             });

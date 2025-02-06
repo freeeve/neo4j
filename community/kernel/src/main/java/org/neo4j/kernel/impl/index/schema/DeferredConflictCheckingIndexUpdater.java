@@ -62,18 +62,13 @@ public class DeferredConflictCheckingIndexUpdater implements IndexUpdater {
     private final IndexUpdater actual;
     private final Supplier<ValueIndexReader> readerSupplier;
     private final IndexDescriptor indexDescriptor;
-    private final CursorContext cursorContext;
     private final Set<ValueTuple> touchedTuples = new HashSet<>();
 
     public DeferredConflictCheckingIndexUpdater(
-            IndexUpdater actual,
-            Supplier<ValueIndexReader> readerSupplier,
-            IndexDescriptor indexDescriptor,
-            CursorContext cursorContext) {
+            IndexUpdater actual, Supplier<ValueIndexReader> readerSupplier, IndexDescriptor indexDescriptor) {
         this.actual = actual;
         this.readerSupplier = readerSupplier;
         this.indexDescriptor = indexDescriptor;
-        this.cursorContext = cursorContext;
     }
 
     @Override

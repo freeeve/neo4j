@@ -69,8 +69,7 @@ public class TentativeConstraintIndexProxy extends AbstractDelegatingIndexProxy 
             case ONLINE, RECOVERY -> new DeferredConflictCheckingIndexUpdater(
                     target.accessor.newUpdater(mode, cursorContext, parallel),
                     target::newValueReader,
-                    target.getDescriptor(),
-                    cursorContext) {
+                    target.getDescriptor()) {
                 @Override
                 public void process(IndexEntryUpdate update) {
                     try {

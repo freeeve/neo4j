@@ -234,7 +234,11 @@ class IndexCRUDIT {
 
         @Override
         public IndexUpdater newUpdater(final IndexUpdateMode mode, CursorContext cursorContext, boolean parallel) {
-            return new CollectingIndexUpdater(updatesCommitted::addAll);
+            return new CollectingIndexUpdater(
+                    NULL_CONTEXT,
+                    updates -> updatesCommitted.addAll(updates.stream()
+                            .map(CollectingIndexUpdater.VersionedUpdate::update)
+                            .toList()));
         }
 
         @Override

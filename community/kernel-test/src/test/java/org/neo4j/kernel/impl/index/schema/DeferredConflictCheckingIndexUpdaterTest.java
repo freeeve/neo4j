@@ -27,7 +27,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.storageengine.api.IndexEntryUpdate.add;
 import static org.neo4j.storageengine.api.IndexEntryUpdate.change;
 import static org.neo4j.storageengine.api.IndexEntryUpdate.remove;
@@ -67,7 +66,7 @@ class DeferredConflictCheckingIndexUpdaterTest {
         updates.add(change(nodeId++, descriptor, tuple((byte) 2, (byte) 3), tuple((byte) 4, (byte) 5)));
         updates.add(add(nodeId, descriptor, tuple(5, "5")));
         try (DeferredConflictCheckingIndexUpdater updater =
-                new DeferredConflictCheckingIndexUpdater(actual, () -> reader, descriptor, NULL_CONTEXT)) {
+                new DeferredConflictCheckingIndexUpdater(actual, () -> reader, descriptor)) {
             // when
             for (ValueIndexEntryUpdate update : updates) {
                 updater.process(update);
@@ -99,7 +98,7 @@ class DeferredConflictCheckingIndexUpdaterTest {
                 .when(reader)
                 .query(any(), any(), any(), any(), any(PropertyIndexQuery[].class));
         DeferredConflictCheckingIndexUpdater updater =
-                new DeferredConflictCheckingIndexUpdater(actual, () -> reader, descriptor, NULL_CONTEXT);
+                new DeferredConflictCheckingIndexUpdater(actual, () -> reader, descriptor);
 
         // when
         updater.process(add(0, descriptor, tuple(10, 11)));

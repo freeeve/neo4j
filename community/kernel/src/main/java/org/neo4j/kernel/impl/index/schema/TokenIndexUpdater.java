@@ -21,7 +21,9 @@ package org.neo4j.kernel.impl.index.schema;
 
 import static org.neo4j.index.internal.gbptree.ValueMerger.MergeResult.MERGED;
 import static org.neo4j.index.internal.gbptree.ValueMerger.MergeResult.REMOVED;
+import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import org.eclipse.collections.impl.list.mutable.FastList;
@@ -126,22 +128,29 @@ class TokenIndexUpdater implements IndexUpdater {
     private boolean closed = true;
     private boolean parallel;
 
+    private CursorContext cursorContext;
+    private CursorContext writerCursorContext;
+    private long lastVersion;
+
     TokenIndexUpdater(int batchSize, TokenIndexIdLayout idLayout) {
         this.pendingUpdates = new LogicalTokenUpdates[batchSize];
         this.idLayout = idLayout;
     }
 
-    TokenIndexUpdater initialize(Writer<TokenScanKey, TokenScanValue> writer, boolean parallel) {
-        this.parallel = parallel;
+    TokenIndexUpdater initialize(TokenWriterFactory writerFactory, boolean parallel, CursorContext cursorContext)
+            throws IOException {
         if (!closed) {
             throw new IllegalStateException("Updater still open");
         }
-
-        this.writer = writer;
+        this.cursorContext = cursorContext;
+        this.writerCursorContext = cursorContext.createRelatedContext("TOKEN_INDEX_UPDATER_APPLY");
+        this.writer = writerFactory.create(writerCursorContext);
+        this.parallel = parallel;
+        this.lastVersion = cursorContext.getVersionContext().committingTransactionId();
         this.pendingUpdatesCursor = 0;
         this.addition = false;
         this.lowestTokenId = Integer.MAX_VALUE;
-        closed = false;
+        this.closed = false;
         return this;
     }
 
@@ -154,10 +163,11 @@ class TokenIndexUpdater implements IndexUpdater {
     @Override
     public void process(IndexEntryUpdate update) throws IndexEntryConflictException {
         assertOpen();
-        if (pendingUpdatesCursor == pendingUpdates.length) {
-            flushPendingChanges();
+        long committingTransactionId = cursorContext.getVersionContext().committingTransactionId();
+        if (pendingUpdatesCursor == pendingUpdates.length || lastVersion != committingTransactionId) {
+            flushPendingChanges(lastVersion);
         }
-
+        lastVersion = committingTransactionId;
         var tokenUpdate = asTokenUpdate(update);
         LogicalTokenUpdates logicalTokenUpdate =
                 PhysicalToLogicalTokenChanges.convertToAdditionsAndRemovals(tokenUpdate);
@@ -177,7 +187,15 @@ class TokenIndexUpdater implements IndexUpdater {
         }
     }
 
-    private void flushPendingChanges() {
+    private void flushPendingChanges(long lastVersion) {
+        if (pendingUpdatesCursor == 0) {
+            return;
+        }
+        if (lastVersion >= BASE_TX_ID) {
+            // this updater can be called from popuplating thread with no version context, this is expected, and we
+            // don't need to reset writer version in this case
+            writerCursorContext.getVersionContext().initWrite(lastVersion);
+        }
         Arrays.sort(pendingUpdates, 0, pendingUpdatesCursor);
         int currentTokenId = lowestTokenId;
         value.clear();
@@ -281,7 +299,7 @@ class TokenIndexUpdater implements IndexUpdater {
     @Override
     public void close() {
         try {
-            flushPendingChanges();
+            flushPendingChanges(lastVersion);
         } finally {
             closed = true;
             IOUtils.closeAllUnchecked(writer);
@@ -295,4 +313,9 @@ class TokenIndexUpdater implements IndexUpdater {
     }
 
     record Change(TokenScanKey key, TokenScanValue value, boolean addition) {}
+
+    @FunctionalInterface
+    interface TokenWriterFactory {
+        Writer<TokenScanKey, TokenScanValue> create(CursorContext cursorContext) throws IOException;
+    }
 }

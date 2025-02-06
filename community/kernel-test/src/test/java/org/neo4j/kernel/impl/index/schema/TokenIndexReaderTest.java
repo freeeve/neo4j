@@ -41,6 +41,7 @@ import org.neo4j.index.internal.gbptree.GBPTreeBuilder;
 import org.neo4j.internal.kernel.api.TokenPredicate;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
+import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
@@ -88,7 +89,8 @@ class TokenIndexReaderTest {
         int labelId = 1;
         var idLayout = new DefaultTokenIndexIdLayout();
         try (TokenIndexUpdater writer = new TokenIndexUpdater(expectedNodes, idLayout)) {
-            writer.initialize(tree.writer(W_BATCHED_SINGLE_THREADED, NULL_CONTEXT), false);
+            writer.initialize(
+                    context -> tree.writer(W_BATCHED_SINGLE_THREADED, NULL_CONTEXT), false, CursorContext.NULL_CONTEXT);
             for (int i = 0; i < expectedNodes; i++) {
                 writer.process(TokenIndexEntryUpdate.change(i, null, EMPTY_INT_ARRAY, new int[] {labelId}));
             }
@@ -139,7 +141,8 @@ class TokenIndexReaderTest {
         BitSet expected = new BitSet(highNodeId);
         var idLayout = new DefaultTokenIndexIdLayout();
         try (TokenIndexUpdater writer = new TokenIndexUpdater(highNodeId, idLayout)) {
-            writer.initialize(tree.writer(W_BATCHED_SINGLE_THREADED, NULL_CONTEXT), false);
+            writer.initialize(
+                    context -> tree.writer(W_BATCHED_SINGLE_THREADED, NULL_CONTEXT), false, CursorContext.NULL_CONTEXT);
             int updates = highNodeId / sparsity;
             for (int i = 0; i < updates; i++) {
                 int nodeId = random.nextInt(highNodeId);

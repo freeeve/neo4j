@@ -75,9 +75,10 @@ public class TokenIndexAccessor extends TokenIndex implements IndexAccessor {
         try {
             if (parallel) {
                 TokenIndexUpdater parallelUpdater = new TokenIndexUpdater(1_000, idLayout);
-                return parallelUpdater.initialize(index.writer(cursorContext), true);
+                return parallelUpdater.initialize(context -> index.writer(context), true, cursorContext);
             } else {
-                return singleUpdater.initialize(index.writer(W_BATCHED_SINGLE_THREADED, cursorContext), false);
+                return singleUpdater.initialize(
+                        context -> index.writer(W_BATCHED_SINGLE_THREADED, context), false, cursorContext);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);

@@ -26,6 +26,7 @@ import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
 import static org.neo4j.internal.helpers.collection.Iterables.stream;
 import static org.neo4j.io.pagecache.PageCacheOpenOptions.MULTI_VERSIONED;
+import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.io.pagecache.context.OldestTransactionIdFactory.EMPTY_OLDEST_ID_FACTORY;
 import static org.neo4j.io.pagecache.context.TransactionIdSnapshotFactory.EMPTY_SNAPSHOT_FACTORY;
 import static org.neo4j.kernel.impl.api.TransactionVisibilityProvider.EMPTY_VISIBILITY_PROVIDER;
@@ -528,7 +529,8 @@ public final class Recovery {
         DatabaseAvailabilityGuard guard = new RecoveryAvailabilityGuard(namedDatabaseId, clock, recoveryLog);
         recoveryLife.add(guard);
 
-        TransactionVersionContextSupplier versionContextSupplier = new TransactionVersionContextSupplier();
+        boolean multiversion = detectMultiversion(fs, databaseLayout, storageEngineFactory, databasePageCache);
+        var versionContextSupplier = multiversion ? new TransactionVersionContextSupplier() : EMPTY_CONTEXT_SUPPLIER;
         versionContextSupplier.init(EMPTY_SNAPSHOT_FACTORY, EMPTY_OLDEST_ID_FACTORY);
         CursorContextFactory cursorContextFactory =
                 new CursorContextFactory(tracers.getPageCacheTracer(), versionContextSupplier);
@@ -620,7 +622,7 @@ public final class Recovery {
                 StoreIdGenerator.UNIQUE_ID);
 
         // multi versioned stores recovery does not support format mode atm
-        if (storageEngine.getOpenOptions().contains(MULTI_VERSIONED)) {
+        if (multiversion) {
             mode = RecoveryMode.FULL;
         } else {
             rollbackIncompleteTransactions = true;
@@ -784,6 +786,16 @@ public final class Recovery {
             throw new IllegalStateException(databaseHealth.causeOfPanic());
         }
         return true;
+    }
+
+    private static boolean detectMultiversion(
+            FileSystemAbstraction fs,
+            DatabaseLayout databaseLayout,
+            StorageEngineFactory storageEngineFactory,
+            DatabasePageCache databasePageCache) {
+        return storageEngineFactory
+                .getStoreOpenOptions(fs, databasePageCache, databaseLayout, CursorContextFactory.NULL_CONTEXT_FACTORY)
+                .contains(MULTI_VERSIONED);
     }
 
     private static void awaitIndexesOnline(IndexingService indexingService, long awaitIndexesOnlineMillis) {

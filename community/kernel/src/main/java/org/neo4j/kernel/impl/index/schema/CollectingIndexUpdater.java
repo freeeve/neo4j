@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.index.schema;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
@@ -29,19 +30,22 @@ import org.neo4j.storageengine.api.IndexEntryUpdate;
  * Collects updates from {@link #process(IndexEntryUpdate)} and passes them to the {@link Applier} on {@link #close()}.
  */
 public class CollectingIndexUpdater implements IndexUpdater {
+    private final CursorContext cursorContext;
     private final Applier applier;
 
     private boolean closed;
-    private final Collection<IndexEntryUpdate> updates = new ArrayList<>();
+    private final Collection<VersionedUpdate> updates = new ArrayList<>();
 
-    public CollectingIndexUpdater(Applier applier) {
+    public CollectingIndexUpdater(CursorContext cursorContext, Applier applier) {
+        this.cursorContext = cursorContext;
         this.applier = applier;
     }
 
     @Override
     public void process(IndexEntryUpdate update) {
         assertOpen();
-        updates.add(update);
+        updates.add(
+                new VersionedUpdate(update, cursorContext.getVersionContext().committingTransactionId()));
     }
 
     @Override
@@ -60,7 +64,9 @@ public class CollectingIndexUpdater implements IndexUpdater {
         }
     }
 
+    public record VersionedUpdate(IndexEntryUpdate update, long version) {}
+
     public interface Applier {
-        void accept(Collection<IndexEntryUpdate> updates) throws IndexEntryConflictException;
+        void accept(Collection<VersionedUpdate> updates) throws IndexEntryConflictException;
     }
 }

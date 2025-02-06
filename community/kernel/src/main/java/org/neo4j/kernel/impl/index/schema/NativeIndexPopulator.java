@@ -54,8 +54,9 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>> exte
     public static final byte BYTE_FAILED = 0;
     static final byte BYTE_ONLINE = 1;
     static final byte BYTE_POPULATING = 2;
-    protected final IndexUpdateIgnoreStrategy ignoreStrategy;
+    private static final String NATIVE_POPULATOR_UPDATES = "NATIVE_POPULATOR_UPDATES";
 
+    protected final IndexUpdateIgnoreStrategy ignoreStrategy;
     private final KEY treeKey;
     private final UniqueIndexSampler uniqueSampler;
 
@@ -124,19 +125,30 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>> exte
     @Override
     public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext)
             throws IndexEntryConflictException {
-        processUpdates(updates, mainConflictDetector, cursorContext);
+        try (Writer<KEY, NullValue> writer = tree.writer(W_BATCHED_SINGLE_THREADED, cursorContext)) {
+            for (IndexEntryUpdate indexEntryUpdate : updates) {
+                NativeIndexUpdater.processUpdate(
+                        treeKey,
+                        (ValueIndexEntryUpdate) indexEntryUpdate,
+                        writer,
+                        mainConflictDetector,
+                        ignoreStrategy);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
     public IndexUpdater newPopulatingUpdater(CursorContext cursorContext) {
-        IndexUpdater updater =
-                new CollectingIndexUpdater(updates -> processUpdates(updates, updatesConflictDetector, cursorContext));
-        if (descriptor.isUnique()) {
-            // The index population detects conflicts on the fly, however for updates coming in we're in a position
-            // where we cannot detect conflicts while applying, but instead afterwards.
-            updater = new DeferredConflictCheckingIndexUpdater(updater, this::newReader, descriptor, cursorContext);
+        var updater = new CollectingIndexUpdater(
+                cursorContext, updates -> processVersionedUpdates(updates, updatesConflictDetector, cursorContext));
+        if (!descriptor.isUnique()) {
+            return updater;
         }
-        return updater;
+        // The index population detects conflicts on the fly, however for updates coming in we're in a position
+        // where we cannot detect conflicts while applying, but instead afterwards.
+        return new DeferredConflictCheckingIndexUpdater(updater, this::newReader, descriptor);
     }
 
     @Override
@@ -203,15 +215,21 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>> exte
         tree.checkpoint(new FailureHeaderWriter(failureBytes), flushEvent, cursorContext);
     }
 
-    private void processUpdates(
-            Iterable<? extends IndexEntryUpdate> indexEntryUpdates,
+    private void processVersionedUpdates(
+            Iterable<CollectingIndexUpdater.VersionedUpdate> indexEntryUpdates,
             ConflictDetectingValueMerger<KEY, Value[]> conflictDetector,
             CursorContext cursorContext)
             throws IndexEntryConflictException {
-        try (Writer<KEY, NullValue> writer = tree.writer(W_BATCHED_SINGLE_THREADED, cursorContext)) {
-            for (IndexEntryUpdate indexEntryUpdate : indexEntryUpdates) {
+        try (var localContext = cursorContext.createRelatedContext(NATIVE_POPULATOR_UPDATES);
+                Writer<KEY, NullValue> writer = tree.writer(W_BATCHED_SINGLE_THREADED, localContext)) {
+            for (var indexEntryUpdate : indexEntryUpdates) {
+                localContext.getVersionContext().initWrite(indexEntryUpdate.version());
                 NativeIndexUpdater.processUpdate(
-                        treeKey, (ValueIndexEntryUpdate) indexEntryUpdate, writer, conflictDetector, ignoreStrategy);
+                        treeKey,
+                        (ValueIndexEntryUpdate) indexEntryUpdate.update(),
+                        writer,
+                        conflictDetector,
+                        ignoreStrategy);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
