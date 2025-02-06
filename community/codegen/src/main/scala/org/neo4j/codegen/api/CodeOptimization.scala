@@ -28,13 +28,43 @@ import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.RewriterStopper
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.BooleanArray
 import org.neo4j.values.storable.BooleanValue
+import org.neo4j.values.storable.ByteArray
+import org.neo4j.values.storable.ByteValue
+import org.neo4j.values.storable.CharArray
+import org.neo4j.values.storable.DateArray
+import org.neo4j.values.storable.DateTimeArray
+import org.neo4j.values.storable.DateTimeValue
+import org.neo4j.values.storable.DateValue
+import org.neo4j.values.storable.DurationValue
+import org.neo4j.values.storable.IntArray
 import org.neo4j.values.storable.IntValue
+import org.neo4j.values.storable.LocalDateTimeArray
+import org.neo4j.values.storable.LocalDateTimeValue
+import org.neo4j.values.storable.LocalTimeArray
+import org.neo4j.values.storable.LocalTimeValue
+import org.neo4j.values.storable.LongArray
 import org.neo4j.values.storable.LongValue
 import org.neo4j.values.storable.NoValue
+import org.neo4j.values.storable.PointArray
+import org.neo4j.values.storable.PointValue
+import org.neo4j.values.storable.ShortArray
+import org.neo4j.values.storable.ShortValue
+import org.neo4j.values.storable.StringArray
+import org.neo4j.values.storable.StringValue
+import org.neo4j.values.storable.TimeArray
+import org.neo4j.values.storable.TimeValue
+import org.neo4j.values.storable.UTF8StringValue
 import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
 import org.neo4j.values.utils.ValueBooleanLogic
+import org.neo4j.values.virtual.NodeIdReference
+import org.neo4j.values.virtual.NodeValue.DirectNodeValue
+import org.neo4j.values.virtual.PathReference
+import org.neo4j.values.virtual.PathValue.DirectPathValue
+import org.neo4j.values.virtual.RelationshipReference
+import org.neo4j.values.virtual.RelationshipValue.DirectRelationshipValue
 
 object CodeOptimization {
 
@@ -46,6 +76,52 @@ object CodeOptimization {
   val ANY_VALUE_TYPE: TypeReference = typeRefOf[AnyValue]
   val VALUES_TYPE: TypeReference = typeRefOf[Values]
   val VALUE_BOOLEAN_LOGIC_TYPE: TypeReference = typeRefOf[ValueBooleanLogic]
+
+  // A deny list would have been more efficient but it is scarier since if we add new things and get it wrong
+  // we might get the wrong results. But basically this list contains everything except NoValue, floats, lists,
+  // and maps.
+  private val safeToEqual =
+    Set(
+      // NOTE: floats aren't here because of NaN
+      typeRefOf[LongValue],
+      typeRefOf[IntValue],
+      typeRefOf[ShortValue],
+      typeRefOf[ByteValue],
+      typeRefOf[StringValue],
+      typeRefOf[UTF8StringValue],
+      typeRefOf[NodeIdReference],
+      typeRefOf[DirectNodeValue],
+      typeRefOf[RelationshipReference],
+      typeRefOf[DirectRelationshipValue],
+      typeRefOf[PathReference],
+      typeRefOf[DirectPathValue],
+      typeRefOf[DateValue],
+      typeRefOf[DateTimeValue],
+      typeRefOf[LocalDateTimeValue],
+      typeRefOf[LocalTimeValue],
+      typeRefOf[TimeValue],
+      typeRefOf[DurationValue],
+      typeRefOf[PointValue],
+      typeRefOf[BooleanArray],
+      typeRefOf[ByteArray],
+      typeRefOf[CharArray],
+      typeRefOf[DateArray],
+      typeRefOf[DateTimeArray],
+      typeRefOf[IntArray],
+      typeRefOf[LocalDateTimeArray],
+      typeRefOf[LocalTimeArray],
+      typeRefOf[LongArray],
+      typeRefOf[PointArray],
+      typeRefOf[ShortArray],
+      typeRefOf[StringArray],
+      typeRefOf[TimeArray]
+    )
+
+  // Checks if instances of the given type can produce a NO_VALUE when executing
+  // l.ternaryEquals(r)
+  def equalityCannotProduceNoValue(l: IntermediateRepresentation, r: IntermediateRepresentation): Boolean = {
+    Seq(l.typeReference, r.typeReference).forall(safeToEqual)
+  }
 
   object LongValueFcn {
 
@@ -103,6 +179,26 @@ object CodeOptimization {
         if owner == VALUE_BOOLEAN_LOGIC_TYPE && returnType == VALUE_TYPE && inType == ANY_VALUE_TYPE =>
         Some(in)
       case _ => None
+    }
+  }
+
+  object ValueEqualsFcn {
+
+    def unapply(arg: IntermediateRepresentation): Boolean = arg match {
+      case InvokeStatic(Method(owner, returnType, "equals", Seq(in1, in2)), _)
+        if owner == VALUE_BOOLEAN_LOGIC_TYPE && returnType == VALUE_TYPE && in1 == ANY_VALUE_TYPE && in2 == ANY_VALUE_TYPE =>
+        true
+      case _ => false
+    }
+  }
+
+  object ValueNotEqualsFcn {
+
+    def unapply(arg: IntermediateRepresentation): Boolean = arg match {
+      case InvokeStatic(Method(owner, returnType, "equals", Seq(in1, in2)), _)
+        if owner == VALUE_BOOLEAN_LOGIC_TYPE && returnType == VALUE_TYPE && in1 == ANY_VALUE_TYPE && in2 == ANY_VALUE_TYPE =>
+        true
+      case _ => false
     }
   }
 

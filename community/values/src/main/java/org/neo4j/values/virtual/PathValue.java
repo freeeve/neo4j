@@ -179,7 +179,7 @@ public abstract class PathValue extends VirtualPathValue {
 
     private static final long DIRECT_PATH_SHALLOW_SIZE = shallowSizeOfInstance(DirectPathValue.class);
 
-    static class DirectPathValue extends PathValue {
+    public static class DirectPathValue extends PathValue {
         private final NodeValue[] nodes;
         private final RelationshipValue[] edges;
         private final long payloadSize;
