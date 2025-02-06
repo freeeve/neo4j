@@ -777,8 +777,12 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
             for (EntityUpdates update : entityUpdates) {
                 for (var indexUpdate : update.valueUpdatesForIndexKeys(descriptors)) {
                     IndexPopulation population = populations.get(indexUpdate.indexKey());
-                    population.populator.includeSample(indexUpdate);
-                    updates.computeIfAbsent(population, p -> new ArrayList<>()).add(indexUpdate);
+                    // population could be cancelled concurrently and removed from the map
+                    if (population != null) {
+                        population.populator.includeSample(indexUpdate);
+                        updates.computeIfAbsent(population, p -> new ArrayList<>())
+                                .add(indexUpdate);
+                    }
                 }
             }
             for (Map.Entry<IndexPopulation, List<IndexEntryUpdate>> entry : updates.entrySet()) {
