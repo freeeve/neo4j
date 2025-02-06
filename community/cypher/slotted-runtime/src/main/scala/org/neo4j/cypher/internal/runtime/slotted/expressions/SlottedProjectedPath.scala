@@ -282,13 +282,13 @@ object SlottedProjectedPath {
           case x if x eq NO_VALUE => VirtualValues.EMPTY_LIST
           case value: Value =>
             throw CypherTypeException.expectedListValue(
-              value.getTypeName,
+              if (value == null) "NULL" else value.getTypeName,
               value.prettyPrint(),
               CypherTypeValueMapper.valueType(value)
             )
           case other =>
             throw CypherTypeException.expectedListValue(
-              other.getTypeName,
+              if (other == null) "NULL" else other.getTypeName,
               String.valueOf(other),
               CypherTypeValueMapper.valueType(other)
             )
