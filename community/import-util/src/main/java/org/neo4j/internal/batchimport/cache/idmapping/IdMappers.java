@@ -199,13 +199,19 @@ public final class IdMappers {
     }
 
     public static LongPredicate combineSkipFilter(LongPredicate duplicateIds, LongSet otherViolatingIds) {
-        return duplicateIds == null
+        boolean emptyDuplicateIds = duplicateIds == null;
+        boolean emptyOtherViolatingIds = otherViolatingIds == null || otherViolatingIds.isEmpty();
+        if (emptyDuplicateIds && emptyOtherViolatingIds) {
+            return null;
+        }
+
+        return emptyDuplicateIds
                 ? otherViolatingIds::contains
                 : (nodeId -> otherViolatingIds.contains(nodeId) || duplicateIds.test(nodeId));
     }
 
     public static LongIterator combineSkipListSorted(LongIterator duplicateIds, LongSet otherViolatingIds) {
-        if (otherViolatingIds.isEmpty()) {
+        if (otherViolatingIds == null || otherViolatingIds.isEmpty()) {
             return duplicateIds;
         }
         var sortedViolations = otherViolatingIds.toSortedList().longIterator();

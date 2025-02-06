@@ -120,6 +120,14 @@ class IdMappersTest {
         }
     }
 
+    @Test
+    void shouldReturnNullSkipFilterOnBothEmpty() {
+        // when/then
+        assertThat(IdMappers.combineSkipFilter(null, null)).isNull();
+        assertThat(IdMappers.combineSkipFilter(null, LongSets.immutable.empty()))
+                .isNull();
+    }
+
     private LongList toList(LongIterator iterator) {
         var list = LongLists.mutable.empty();
         while (iterator.hasNext()) {
