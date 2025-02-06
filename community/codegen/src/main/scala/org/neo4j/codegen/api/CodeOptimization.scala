@@ -172,6 +172,14 @@ object CodeOptimization {
     }
   }
 
+  object IsFalseValue {
+
+    def unapply(arg: IntermediateRepresentation): Boolean = arg match {
+      case GetStatic(Some(owner), t, "FALSE") => owner == VALUES_TYPE && t == BOOLEAN_VALUE_TYPE
+      case _                                  => false
+    }
+  }
+
   object NotFcn {
 
     def unapply(arg: IntermediateRepresentation): Option[IntermediateRepresentation] = arg match {
@@ -235,9 +243,28 @@ object CodeOptimization {
         // booleanValue(a) == Values.TRUE -> a
         case Eq(BooleanValueFcn(in), IsTrueValue())                  => in
         case Eq(Block(others :+ BooleanValueFcn(in)), IsTrueValue()) => Block(others :+ in)
+        // booleanValue(a) != Values.TRUE -> !a
+        case NotEq(BooleanValueFcn(in), IsTrueValue())                  => not(in)
+        case NotEq(Block(others :+ BooleanValueFcn(in)), IsTrueValue()) => Block(others :+ not(in))
         // Values.TRUE == booleanValue(a) -> a
         case Eq(IsTrueValue(), BooleanValueFcn(in))                  => in
         case Eq(IsTrueValue(), Block(others :+ BooleanValueFcn(in))) => Block(others :+ in)
+        // Values.TRUE != booleanValue(a) ->! a
+        case NotEq(IsTrueValue(), BooleanValueFcn(in))                  => not(in)
+        case NotEq(IsTrueValue(), Block(others :+ BooleanValueFcn(in))) => Block(others :+ not(in))
+
+        // booleanValue(a) == Values.FALSE -> !a
+        case Eq(BooleanValueFcn(in), IsFalseValue())                  => not(in)
+        case Eq(Block(others :+ BooleanValueFcn(in)), IsFalseValue()) => Block(others :+ not(in))
+        // booleanValue(a) != Values.FALSE -> a
+        case NotEq(BooleanValueFcn(in), IsFalseValue())                  => in
+        case NotEq(Block(others :+ BooleanValueFcn(in)), IsFalseValue()) => Block(others :+ in)
+        // Values.FALSE == booleanValue(a) -> !a
+        case Eq(IsFalseValue(), BooleanValueFcn(in))                  => not(in)
+        case Eq(IsFalseValue(), Block(others :+ BooleanValueFcn(in))) => Block(others :+ not(in))
+        // Values.FALSE != booleanValue(a) -> a
+        case NotEq(IsFalseValue(), BooleanValueFcn(in))                  => in
+        case NotEq(IsFalseValue(), Block(others :+ BooleanValueFcn(in))) => Block(others :+ in)
         // ValueBooleanLogic.not(booleanValue(a)) -> booleanValue(!a)
         case NotFcn(BooleanValueFcn(in)) => booleanValue(not(in))
         // !true -> false
