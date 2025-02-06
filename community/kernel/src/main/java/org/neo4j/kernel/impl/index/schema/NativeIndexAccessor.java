@@ -57,6 +57,7 @@ import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobHandle;
+import org.neo4j.scheduler.JobHandles;
 import org.neo4j.scheduler.JobMonitoringParams;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.values.storable.Value;
@@ -127,7 +128,7 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
         var o = (NativeIndexAccessor<KEY>) other;
         var readers = o.newAllEntriesValueReader(threads, NULL_CONTEXT);
         try {
-            List<JobHandle<?>> handles = new ArrayList<>();
+            List<JobHandle<Void>> handles = new ArrayList<>();
             var updaterFlags = readers.length == 1 ? W_BATCHED_SINGLE_THREADED : 0;
             for (var reader : readers) {
                 handles.add(jobScheduler.schedule(
@@ -166,12 +167,12 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
                         }));
             }
 
-            var e = awaitCompletionOfAll(handles);
-            if (e instanceof IndexEntryConflictException exception) {
-                throw exception;
-            } else if (e instanceof RuntimeException exception) {
-                throw exception;
-            } else if (e != null) {
+            try {
+                JobHandles.getAllResults(handles);
+            } catch (ExecutionException e) {
+                var cause = e.getCause();
+                Exceptions.throwIfInstanceOf(cause, IndexEntryConflictException.class);
+                Exceptions.throwIfUnchecked(cause);
                 throw new RuntimeException(e);
             }
         } finally {
@@ -189,7 +190,7 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
         var o = (NativeIndexAccessor<KEY>) other;
         var readers = o.newAllEntriesValueReader(threads, NULL_CONTEXT);
         try {
-            List<JobHandle<?>> handles = new ArrayList<>();
+            List<JobHandle<Void>> handles = new ArrayList<>();
             for (var fromReader : readers) {
                 handles.add(jobScheduler.schedule(
                         Group.INDEX_POPULATION_WORK,
@@ -222,29 +223,16 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
                         }));
             }
 
-            var e = awaitCompletionOfAll(handles);
-            if (e instanceof RuntimeException exception) {
-                throw exception;
-            } else if (e != null) {
+            try {
+                JobHandles.getAllResults(handles);
+            } catch (ExecutionException e) {
+                var cause = e.getCause();
+                Exceptions.throwIfUnchecked(cause);
                 throw new RuntimeException(e);
             }
         } finally {
             IOUtils.closeAllUnchecked(readers);
         }
-    }
-
-    private Throwable awaitCompletionOfAll(List<JobHandle<?>> handles) {
-        Throwable e = null;
-        for (var handle : handles) {
-            try {
-                handle.get();
-            } catch (ExecutionException ex) {
-                e = Exceptions.chain(e, ex.getCause());
-            } catch (InterruptedException ex) {
-                e = Exceptions.chain(e, ex);
-            }
-        }
-        return e;
     }
 
     /**

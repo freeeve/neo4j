@@ -22,8 +22,10 @@ package org.neo4j.kernel.api.impl.index;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongPredicate;
 import java.util.function.ToLongFunction;
@@ -31,15 +33,17 @@ import java.util.stream.Collectors;
 import org.apache.lucene.document.Document;
 import org.eclipse.collections.api.block.function.primitive.LongToLongFunction;
 import org.neo4j.annotations.documented.ReporterFactory;
+import org.neo4j.common.Subject;
 import org.neo4j.graphdb.ResourceIterator;
+import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.io.IOUtils;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
-import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.impl.schema.LuceneIndexReaderAcquisitionException;
 import org.neo4j.kernel.api.impl.schema.reader.LuceneAllEntriesIndexAccessorReader;
 import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
@@ -51,6 +55,10 @@ import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.index.schema.IndexUpdateIgnoreStrategy;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
+import org.neo4j.scheduler.Group;
+import org.neo4j.scheduler.JobHandle;
+import org.neo4j.scheduler.JobHandles;
+import org.neo4j.scheduler.JobMonitoringParams;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
@@ -89,8 +97,7 @@ public abstract class AbstractLuceneIndexAccessor<READER extends ValueIndexReade
             LongPredicate entityFilter,
             int threads,
             JobScheduler jobScheduler,
-            ProgressListener progress)
-            throws IndexEntryConflictException {
+            ProgressListener progress) {
         // NB entityIdConverter not used at the moment but this test would be required when doing incremental updates
         // during the build phase rather than the merge phase - keeping commented code as an aide-mémoire
         // Preconditions.checkArgument(entityIdConverter == null, "Unable to modify document IDs");
@@ -103,22 +110,44 @@ public abstract class AbstractLuceneIndexAccessor<READER extends ValueIndexReade
         }
         refresh();
 
+        // If there's a filter then merge the index and then remove those that should be filtered out
         if (entityFilter != null) {
-            // If there's a filter then merge the index and then remove those that should be filtered out
-            // TODO come on, make this parallel! Use the threads arg
-            try (var reader = newAllEntriesValueReader(1, CursorContext.NULL_CONTEXT)[0];
-                    var updater = newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
-                while (reader.hasNext()) {
-                    var candidate = reader.next();
-                    if (!entityFilter.test(candidate)) {
-                        var values = new Value[descriptor.schema().getPropertyIds().length];
-                        for (int i = 0; i < values.length; i++) {
-                            values[i] = Values.stringValue("");
-                        }
-                        updater.process(IndexEntryUpdate.remove(candidate, descriptor, values));
-                        progress.add(1);
+            var partitions = newAllEntriesValueReader(threads, CursorContext.NULL_CONTEXT);
+            try {
+                List<JobHandle<Void>> handles = new ArrayList<>();
+                for (var partition : partitions) {
+                    handles.add(jobScheduler.schedule(
+                            Group.INDEX_POPULATION_WORK,
+                            new JobMonitoringParams(Subject.AUTH_DISABLED, "db", "insertFrom"),
+                            () -> {
+                                try (var updater =
+                                        newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
+                                    while (partition.hasNext()) {
+                                        var candidate = partition.next();
+                                        if (!entityFilter.test(candidate)) {
+                                            var values = new Value
+                                                    [descriptor.schema().getPropertyIds().length];
+                                            for (int i = 0; i < values.length; i++) {
+                                                values[i] = Values.stringValue("");
+                                            }
+                                            updater.process(IndexEntryUpdate.remove(candidate, descriptor, values));
+                                            progress.add(1);
+                                        }
+                                    }
+                                }
+                                return null;
+                            }));
+
+                    try {
+                        JobHandles.getAllResults(handles);
+                    } catch (ExecutionException e) {
+                        var cause = e.getCause();
+                        Exceptions.throwIfUnchecked(cause);
+                        throw new RuntimeException(cause);
                     }
                 }
+            } finally {
+                IOUtils.closeAllUnchecked(partitions);
             }
         }
     }
