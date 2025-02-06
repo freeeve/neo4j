@@ -126,6 +126,15 @@ class DumpThreadDumpOnTimeout {
         throw exception;
     }
 
+    @Test
+    void doNotCrashOnCircularExceptions() {
+        RuntimeException e1 = new RuntimeException();
+        RuntimeException e2 = new RuntimeException(e1);
+        e1.addSuppressed(e2);
+        e1.addSuppressed(new TimeoutException());
+        throw e1;
+    }
+
     @Nested
     class Before {
         @BeforeEach

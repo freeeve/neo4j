@@ -48,6 +48,7 @@ class VerboseTimeoutExceptionExtensionTest {
         assertTestGetsThreadDump("dumpOnDeepCauseTimeout");
         assertTestGetsThreadDump("dumpOnDeepSuppressedTimeout");
         assertTestGetsThreadDump("dumpOnAssertEventually");
+        assertTestGetsThreadDump("doNotCrashOnCircularExceptions");
     }
 
     @Test

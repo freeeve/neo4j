@@ -23,7 +23,9 @@ import static java.lang.String.format;
 import static org.neo4j.internal.utils.DumpUtils.threadDump;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.core.ConditionTimeoutException;
@@ -74,18 +76,18 @@ public class VerboseTimeoutExceptionExtension
         throw throwable;
     }
 
-    private static boolean isTimeout(Throwable throwable) {
+    private static boolean isTimeout(Throwable throwable, Set<Throwable> seen) {
         return throwable != null
+                && seen.add(throwable)
                 && (throwable instanceof TimeoutException
                         || throwable instanceof ConditionTimeoutException
                         || StringUtils.contains(throwable.getMessage(), "timed out")
-                        || (!Objects.equals(throwable, throwable.getCause()) && isTimeout(throwable.getCause()))
-                        || Arrays.stream(throwable.getSuppressed())
-                                .anyMatch(VerboseTimeoutExceptionExtension::isTimeout));
+                        || (!Objects.equals(throwable, throwable.getCause()) && isTimeout(throwable.getCause(), seen))
+                        || Arrays.stream(throwable.getSuppressed()).anyMatch(t -> isTimeout(t, seen)));
     }
 
     private static void handleFailure(ExtensionContext context, String testMethod, Throwable cause) {
-        if (isEnabled(context) && isTimeout(cause)) {
+        if (isEnabled(context) && isTimeout(cause, new HashSet<>())) {
             var displayName = context.getDisplayName();
             cause.addSuppressed(new ThreadDump(format("Test %s-%s timed out. ", displayName, testMethod)));
         }
