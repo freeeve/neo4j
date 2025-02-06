@@ -59,6 +59,8 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 sealed trait SchemaCommand extends StatementWithGraph with SemanticAnalysisTooling {
 
+  def fromCypher5: Boolean
+
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand
 
   override def returnColumns: List[LogicalVariable] = List.empty
@@ -66,16 +68,36 @@ sealed trait SchemaCommand extends StatementWithGraph with SemanticAnalysisTooli
   override def containsUpdates: Boolean = true
 
   // The validation of the values (provider, config keys and config values) are done at runtime.
-  protected def checkOptionsMap(schemaString: String, options: Options): SemanticCheck = options match {
-    case OptionsMap(ops) =>
-      val invalidKeys = ops.view.filterKeys(k =>
-        !k.equalsIgnoreCase("indexProvider") && !k.equalsIgnoreCase("indexConfig")
-      )
-      if (invalidKeys.isEmpty)
-        SemanticCheck.success
-      else
-        SemanticCheck.error(SemanticError.invalidOption(schemaString, invalidKeys.keys.mkString(" and "), position))
-    case _ => SemanticCheck.success
+  protected def checkOptionsMap(schemaString: String, options: Options): SemanticCheck = {
+
+    val (validOptions, errorMessageOverride) =
+      if (fromCypher5)
+        (
+          Seq("indexProvider", "indexConfig"),
+          Some(
+            s"Failed to create $schemaString: Invalid option provided, valid options are `indexProvider` and `indexConfig`."
+          )
+        )
+      else (Seq("indexConfig"), None)
+
+    options match {
+      case OptionsMap(ops) =>
+        val invalidKeys = ops.view.filterKeys(k =>
+          !validOptions.exists(_.equalsIgnoreCase(k))
+        )
+
+        if (invalidKeys.isEmpty)
+          SemanticCheck.success
+        else
+          SemanticCheck.error(SemanticError.invalidOption(
+            invalidKeys.keys.mkString(" and "),
+            validOptions,
+            errorMessageOverride,
+            position
+          ))
+
+      case _ => SemanticCheck.success
+    }
   }
 
   protected def checkSingleProperty(schemaString: String, properties: List[Property]): SemanticCheck =
@@ -125,6 +147,7 @@ object CreateIndex {
     name: Option[Either[String, Parameter]],
     ifExistsDo: IfExistsDo,
     options: Options,
+    fromCypher5: Boolean,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateIndex =
     CreateFulltextIndexCommand(
@@ -134,6 +157,7 @@ object CreateIndex {
       name,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -144,6 +168,7 @@ object CreateIndex {
     name: Option[Either[String, Parameter]],
     ifExistsDo: IfExistsDo,
     options: Options,
+    fromCypher5: Boolean,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateIndex =
     CreateFulltextIndexCommand(
@@ -153,6 +178,7 @@ object CreateIndex {
       name,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -163,6 +189,7 @@ object CreateIndex {
     name: Option[Either[String, Parameter]],
     ifExistsDo: IfExistsDo,
     options: Options,
+    fromCypher5: Boolean,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateIndex =
     CreateLookupIndexCommand(
@@ -172,6 +199,7 @@ object CreateIndex {
       name,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -182,6 +210,7 @@ object CreateIndex {
     name: Option[Either[String, Parameter]],
     ifExistsDo: IfExistsDo,
     options: Options,
+    fromCypher5: Boolean,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateIndex =
     CreateSingleLabelPropertyIndexCommand(
@@ -192,6 +221,7 @@ object CreateIndex {
       indexType = PointCreateIndex,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -202,6 +232,7 @@ object CreateIndex {
     name: Option[Either[String, Parameter]],
     ifExistsDo: IfExistsDo,
     options: Options,
+    fromCypher5: Boolean,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateIndex =
     CreateSingleLabelPropertyIndexCommand(
@@ -212,6 +243,7 @@ object CreateIndex {
       indexType = PointCreateIndex,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -223,6 +255,7 @@ object CreateIndex {
     ifExistsDo: IfExistsDo,
     options: Options,
     fromDefault: Boolean,
+    fromCypher5: Boolean,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateIndex =
     CreateSingleLabelPropertyIndexCommand(
@@ -233,6 +266,7 @@ object CreateIndex {
       indexType = RangeCreateIndex(fromDefault),
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -244,6 +278,7 @@ object CreateIndex {
     ifExistsDo: IfExistsDo,
     options: Options,
     fromDefault: Boolean,
+    fromCypher5: Boolean,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateIndex =
     CreateSingleLabelPropertyIndexCommand(
@@ -254,6 +289,7 @@ object CreateIndex {
       indexType = RangeCreateIndex(fromDefault),
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -264,6 +300,7 @@ object CreateIndex {
     name: Option[Either[String, Parameter]],
     ifExistsDo: IfExistsDo,
     options: Options,
+    fromCypher5: Boolean,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateIndex =
     CreateSingleLabelPropertyIndexCommand(
@@ -274,6 +311,7 @@ object CreateIndex {
       indexType = TextCreateIndex,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -284,6 +322,7 @@ object CreateIndex {
     name: Option[Either[String, Parameter]],
     ifExistsDo: IfExistsDo,
     options: Options,
+    fromCypher5: Boolean,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateIndex =
     CreateSingleLabelPropertyIndexCommand(
@@ -294,6 +333,7 @@ object CreateIndex {
       indexType = TextCreateIndex,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -304,6 +344,7 @@ object CreateIndex {
     name: Option[Either[String, Parameter]],
     ifExistsDo: IfExistsDo,
     options: Options,
+    fromCypher5: Boolean,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateIndex =
     CreateSingleLabelPropertyIndexCommand(
@@ -314,6 +355,7 @@ object CreateIndex {
       indexType = VectorCreateIndex,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -324,6 +366,7 @@ object CreateIndex {
     name: Option[Either[String, Parameter]],
     ifExistsDo: IfExistsDo,
     options: Options,
+    fromCypher5: Boolean,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateIndex =
     CreateSingleLabelPropertyIndexCommand(
@@ -334,6 +377,7 @@ object CreateIndex {
       indexType = VectorCreateIndex,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -449,6 +493,7 @@ private case class CreateSingleLabelPropertyIndexCommand(
   indexType: CreateIndexType,
   ifExistsDo: IfExistsDo,
   options: Options,
+  fromCypher5: Boolean,
   useGraph: Option[GraphSelection] = None
 )(val position: InputPosition) extends CreateSingleLabelPropertyIndex {
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
@@ -464,6 +509,7 @@ private case class CreateFulltextIndexCommand(
   override val name: Option[Either[String, Parameter]],
   ifExistsDo: IfExistsDo,
   options: Options,
+  fromCypher5: Boolean,
   useGraph: Option[GraphSelection] = None
 )(val position: InputPosition) extends CreateFulltextIndex {
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
@@ -479,13 +525,19 @@ private case class CreateLookupIndexCommand(
   override val name: Option[Either[String, Parameter]],
   ifExistsDo: IfExistsDo,
   options: Options,
+  fromCypher5: Boolean,
   useGraph: Option[GraphSelection] = None
 )(val position: InputPosition) extends CreateLookupIndex {
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
   override def withName(name: Option[Either[String, Parameter]]): CreateLookupIndexCommand = copy(name = name)(position)
 }
 
-case class DropIndexOnName(name: Either[String, Parameter], ifExists: Boolean, useGraph: Option[GraphSelection] = None)(
+case class DropIndexOnName(
+  name: Either[String, Parameter],
+  ifExists: Boolean,
+  fromCypher5: Boolean,
+  useGraph: Option[GraphSelection] = None
+)(
   val position: InputPosition
 ) extends SchemaCommand {
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
@@ -663,6 +715,7 @@ object CreateConstraint {
       constraintType = if (fromCypher5) NodeKey.cypher5 else NodeKey.cypher25,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -684,6 +737,7 @@ object CreateConstraint {
       constraintType = if (fromCypher5) RelationshipKey.cypher5 else RelationshipKey.cypher25,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -705,6 +759,7 @@ object CreateConstraint {
       constraintType = if (fromCypher5) NodePropertyUniqueness.cypher5 else NodePropertyUniqueness.cypher25,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -727,6 +782,7 @@ object CreateConstraint {
         if (fromCypher5) RelationshipPropertyUniqueness.cypher5 else RelationshipPropertyUniqueness.cypher25,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -737,6 +793,7 @@ object CreateConstraint {
     name: Option[Either[String, Parameter]],
     ifExistsDo: IfExistsDo,
     options: Options,
+    fromCypher5: Boolean,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateConstraint =
     CreateConstraintCommand(
@@ -747,6 +804,7 @@ object CreateConstraint {
       constraintType = NodePropertyExistence,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -757,6 +815,7 @@ object CreateConstraint {
     name: Option[Either[String, Parameter]],
     ifExistsDo: IfExistsDo,
     options: Options,
+    fromCypher5: Boolean,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateConstraint =
     CreateConstraintCommand(
@@ -767,6 +826,7 @@ object CreateConstraint {
       constraintType = RelationshipPropertyExistence,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -778,6 +838,7 @@ object CreateConstraint {
     name: Option[Either[String, Parameter]],
     ifExistsDo: IfExistsDo,
     options: Options,
+    fromCypher5: Boolean,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateConstraint =
     CreatePropertyTypeConstraint(
@@ -788,6 +849,7 @@ object CreateConstraint {
       name,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 
@@ -799,6 +861,7 @@ object CreateConstraint {
     name: Option[Either[String, Parameter]],
     ifExistsDo: IfExistsDo,
     options: Options,
+    fromCypher5: Boolean,
     useGraph: Option[GraphSelection] = None
   )(position: InputPosition): CreateConstraint =
     CreatePropertyTypeConstraint(
@@ -809,6 +872,7 @@ object CreateConstraint {
       name,
       ifExistsDo,
       options,
+      fromCypher5,
       useGraph
     )(position)
 }
@@ -821,6 +885,7 @@ private case class CreateConstraintCommand(
   constraintType: CreateConstraintType,
   ifExistsDo: IfExistsDo,
   options: Options,
+  fromCypher5: Boolean,
   useGraph: Option[GraphSelection] = None
 )(val position: InputPosition) extends CreateConstraint {
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
@@ -850,6 +915,7 @@ private case class CreatePropertyTypeConstraint(
   override val name: Option[Either[String, Parameter]],
   ifExistsDo: IfExistsDo,
   options: Options,
+  fromCypher5: Boolean,
   useGraph: Option[GraphSelection] = None
 )(val position: InputPosition) extends CreateConstraint {
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
@@ -878,6 +944,7 @@ private case class CreatePropertyTypeConstraint(
 case class DropConstraintOnName(
   name: Either[String, Parameter],
   ifExists: Boolean,
+  fromCypher5: Boolean,
   useGraph: Option[GraphSelection] = None
 )(val position: InputPosition) extends SchemaCommand {
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)

@@ -166,15 +166,12 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
                 oldMsg);
     }
 
-    public static InvalidArgumentsException invalidIndexOptionValue(String providedOption, String schemaType) {
-        var validOptions = List.of("indexProvider", "indexConfig");
+    public static InvalidArgumentsException invalidIndexOptionValue(
+            String providedOption, List<String> validOptions, String errorMessageOverride) {
         var gql = GqlHelper.getGql42001_22N04(
                 providedOption, GqlParams.StringParam.input.process("OPTIONS"), validOptions);
         return new InvalidArgumentsException(
-                gql,
-                String.format(
-                        "Failed to create %s: Invalid option provided, valid options are `indexProvider` and `indexConfig`.",
-                        schemaType));
+                gql, errorMessageOverride == null ? GqlHelper.getCompleteMessage(gql) : errorMessageOverride);
     }
 
     public static InvalidArgumentsException invalidIndexProviderSuggestIndex(

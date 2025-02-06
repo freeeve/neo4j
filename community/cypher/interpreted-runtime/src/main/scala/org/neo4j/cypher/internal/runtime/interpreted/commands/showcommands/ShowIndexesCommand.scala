@@ -188,7 +188,7 @@ case class ShowIndexesCommand(
           case `trackedSinceColumn` => trackedSinceColumn -> trackedSince
           // The options for this index, shows index provider and config
           case `optionsColumn` =>
-            optionsColumn -> extractOptionsMap(indexType, provider, indexDescriptor.getIndexConfig)
+            optionsColumn -> extractOptionsMap(indexType, provider, indexDescriptor.getIndexConfig, cypherVersion)
           // Message of failure should the index be in a failed state
           case `failureMessageColumn` =>
             failureMessageColumn -> Values.stringValue(indexInfo.indexStatus.failureMessage)

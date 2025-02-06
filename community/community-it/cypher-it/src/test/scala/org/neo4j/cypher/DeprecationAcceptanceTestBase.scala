@@ -533,7 +533,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
     )
   }
 
-  test("deprecate explicit use of old text index provider") {
+  test("deprecate explicit use of old text index provider for cypher 5") {
     val deprecatedProvider = AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR.name()
     val deprecatedProviderQueries = Seq(
       s"CREATE TEXT INDEX FOR (n:Label) ON (n.prop) OPTIONS {indexProvider : '$deprecatedProvider'}",
@@ -551,7 +551,8 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
           NotificationClassification.DEPRECATION
         ),
         testOmittedResult
-      )
+      ),
+      cypherVersions = Set(CypherVersionOption.cypher5)
     )
 
     val validProvider = AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR.name()
@@ -559,7 +560,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
       s"CREATE TEXT INDEX FOR (n:Label) ON (n.prop) OPTIONS {indexProvider : '$validProvider'}",
       s"CREATE TEXT INDEX FOR ()-[r:TYPE]-() ON (r.prop) OPTIONS {indexProvider : '$validProvider'}"
     )
-    assertNoDeprecations(validProviderQueries)
+    assertNoDeprecations(validProviderQueries, cypherVersions = Set(CypherVersionOption.cypher5))
   }
 
   test("do not deprecate using the same variable name for several variable length relationships in the same pattern") {

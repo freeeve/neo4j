@@ -173,7 +173,8 @@ class FabricPlannerTest
             Some(Left("myIndex")),
             IfExistsThrowError,
             NoOptions,
-            fromDefault = true
+            fromDefault = true,
+            fromCypher5 = CypherVersion.Default == CypherVersion.Cypher5
           )(pos)
         )
     }

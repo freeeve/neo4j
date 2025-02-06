@@ -50,18 +50,23 @@ object SemanticError {
 
   def unapply(errorDef: SemanticErrorDef): Option[(String, InputPosition)] = Some((errorDef.msg, errorDef.position))
 
-  def invalidOption(schemaString: String, invalidOptions: String, position: InputPosition): SemanticError = {
+  def invalidOption(
+    invalidOptionsString: String,
+    validOptions: Seq[String],
+    errorMessageOverride: Option[String],
+    position: InputPosition
+  ): SemanticError = {
     val gql = GqlHelper.getGql42001_22N04(
-      invalidOptions,
+      invalidOptionsString,
       GqlParams.StringParam.input.process("OPTIONS"),
-      java.util.List.of("indexProvider", "indexConfig"),
+      validOptions.asJava,
       position.offset,
       position.line,
       position.column
     )
     SemanticError(
       gql,
-      s"Failed to create $schemaString: Invalid option provided, valid options are `indexProvider` and `indexConfig`.",
+      errorMessageOverride.getOrElse(GqlHelper.getCompleteMessage(gql)),
       position
     )
   }

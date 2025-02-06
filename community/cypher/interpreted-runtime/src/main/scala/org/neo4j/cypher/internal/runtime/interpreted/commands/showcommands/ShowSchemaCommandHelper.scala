@@ -19,12 +19,14 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.internal.helpers.NameUtil
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.SettingsAccessor.IndexConfigAccessor
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion
+import org.neo4j.values.AnyValue
 import org.neo4j.values.AnyValueWriter.EntityMode
 import org.neo4j.values.storable.TextValue
 import org.neo4j.values.storable.Value
@@ -121,7 +123,12 @@ object ShowSchemaCommandHelper {
     s"CREATE CONSTRAINT $escapedName FOR $nodeOrRelPattern REQUIRE ($escapedProperties) $predicate"
   }
 
-  def extractOptionsMap(indexType: IndexType, provider: IndexProviderDescriptor, indexConfig: IndexConfig): MapValue = {
+  def extractOptionsMap(
+    indexType: IndexType,
+    provider: IndexProviderDescriptor,
+    indexConfig: IndexConfig,
+    cypherVersion: CypherVersion
+  ): MapValue = {
     val completedIndexConfig = indexType match {
       case IndexType.VECTOR =>
         val settingsValidator = VectorIndexVersion.fromDescriptor(provider).indexSettingValidator
@@ -130,9 +137,20 @@ object ShowSchemaCommandHelper {
     }
 
     val (configKeys, configValues) = completedIndexConfig.asMap().asScala.toSeq.unzip
-    val optionKeys = Array("indexConfig", "indexProvider")
-    val optionValues =
-      Array(VirtualValues.map(configKeys.toArray, configValues.toArray), Values.stringValue(provider.name))
+    val isCypher5 = cypherVersion == CypherVersion.Cypher5
+
+    val (optionKeys, optionValues) =
+      if (isCypher5)
+        (
+          Array("indexConfig", "indexProvider"),
+          Array(VirtualValues.map(configKeys.toArray, configValues.toArray), Values.stringValue(provider.name))
+        )
+      else
+        (
+          Array("indexConfig"),
+          Array(VirtualValues.map(configKeys.toArray, configValues.toArray)).asInstanceOf[Array[AnyValue]]
+        )
+
     VirtualValues.map(optionKeys, optionValues)
   }
 

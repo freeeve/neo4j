@@ -2205,9 +2205,29 @@ class AstGenerator(
     fromDefault <- boolean
     use <- option(_use)
     rangeNodeIndex =
-      CreateIndex.createRangeNodeIndex(variable, labelName, props, name, ifExistsDo, options, fromDefault, use)(pos)
+      CreateIndex.createRangeNodeIndex(
+        variable,
+        labelName,
+        props,
+        name,
+        ifExistsDo,
+        options,
+        fromDefault,
+        whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
+        use
+      )(pos)
     rangeRelIndex =
-      CreateIndex.createRangeRelationshipIndex(variable, relType, props, name, ifExistsDo, options, fromDefault, use)(
+      CreateIndex.createRangeRelationshipIndex(
+        variable,
+        relType,
+        props,
+        name,
+        ifExistsDo,
+        options,
+        fromDefault,
+        whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
+        use
+      )(
         pos
       )
     lookupNodeIndex = CreateIndex.createLookupIndex(
@@ -2217,6 +2237,7 @@ class AstGenerator(
       name,
       ifExistsDo,
       options,
+      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
       use
     )(pos)
     lookupRelIndex = CreateIndex.createLookupIndex(
@@ -2226,21 +2247,94 @@ class AstGenerator(
       name,
       ifExistsDo,
       options,
+      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
       use
     )(pos)
     fulltextNodeIndex =
-      CreateIndex.createFulltextNodeIndex(variable, labels, props, name, ifExistsDo, options, use)(pos)
+      CreateIndex.createFulltextNodeIndex(
+        variable,
+        labels,
+        props,
+        name,
+        ifExistsDo,
+        options,
+        whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
+        use
+      )(pos)
     fulltextRelIndex =
-      CreateIndex.createFulltextRelationshipIndex(variable, types, props, name, ifExistsDo, options, use)(pos)
-    textNodeIndex = CreateIndex.createTextNodeIndex(variable, labelName, props, name, ifExistsDo, options, use)(pos)
+      CreateIndex.createFulltextRelationshipIndex(
+        variable,
+        types,
+        props,
+        name,
+        ifExistsDo,
+        options,
+        whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
+        use
+      )(pos)
+    textNodeIndex = CreateIndex.createTextNodeIndex(
+      variable,
+      labelName,
+      props,
+      name,
+      ifExistsDo,
+      options,
+      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
+      use
+    )(pos)
     textRelIndex =
-      CreateIndex.createTextRelationshipIndex(variable, relType, props, name, ifExistsDo, options, use)(pos)
-    pointNodeIndex = CreateIndex.createPointNodeIndex(variable, labelName, props, name, ifExistsDo, options, use)(pos)
+      CreateIndex.createTextRelationshipIndex(
+        variable,
+        relType,
+        props,
+        name,
+        ifExistsDo,
+        options,
+        whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
+        use
+      )(pos)
+    pointNodeIndex = CreateIndex.createPointNodeIndex(
+      variable,
+      labelName,
+      props,
+      name,
+      ifExistsDo,
+      options,
+      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
+      use
+    )(pos)
     pointRelIndex =
-      CreateIndex.createPointRelationshipIndex(variable, relType, props, name, ifExistsDo, options, use)(pos)
-    vectorNodeIndex = CreateIndex.createVectorNodeIndex(variable, labelName, props, name, ifExistsDo, options, use)(pos)
+      CreateIndex.createPointRelationshipIndex(
+        variable,
+        relType,
+        props,
+        name,
+        ifExistsDo,
+        options,
+        whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
+        use
+      )(pos)
+    vectorNodeIndex = CreateIndex.createVectorNodeIndex(
+      variable,
+      labelName,
+      props,
+      name,
+      ifExistsDo,
+      options,
+      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
+      use
+    )(pos)
     vectorRelIndex =
-      CreateIndex.createVectorRelationshipIndex(variable, relType, props, name, ifExistsDo, options, use)(pos)
+      CreateIndex.createVectorRelationshipIndex(
+        variable,
+        relType,
+        props,
+        name,
+        ifExistsDo,
+        options,
+        whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
+        use
+      )(pos)
     command <- oneOf(
       rangeNodeIndex,
       rangeRelIndex,
@@ -2261,7 +2355,7 @@ class AstGenerator(
     name <- _nameAsEither
     ifExists <- boolean
     use <- option(_use)
-  } yield DropIndexOnName(name, ifExists, use)(pos)
+  } yield DropIndexOnName(name, ifExists, whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5), use)(pos)
 
   def _createConstraint: Gen[CreateConstraint] = for {
     variable <- _variable
@@ -2331,6 +2425,7 @@ class AstGenerator(
       name,
       ifExistsDo,
       options,
+      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
       use
     )(pos)
     relExistence = CreateConstraint.createRelationshipPropertyExistenceConstraint(
@@ -2340,6 +2435,7 @@ class AstGenerator(
       name,
       ifExistsDo,
       options,
+      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
       use
     )(pos)
     nodePropType = CreateConstraint.createNodePropertyTypeConstraint(
@@ -2350,6 +2446,7 @@ class AstGenerator(
       name,
       ifExistsDo,
       options,
+      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
       use
     )(pos)
     relPropType = CreateConstraint.createRelationshipPropertyTypeConstraint(
@@ -2360,6 +2457,7 @@ class AstGenerator(
       name,
       ifExistsDo,
       options,
+      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
       use
     )(pos)
     command <- oneOf(
@@ -2379,7 +2477,7 @@ class AstGenerator(
     name <- _nameAsEither
     ifExists <- boolean
     use <- option(_use)
-  } yield DropConstraintOnName(name, ifExists, use)(pos)
+  } yield DropConstraintOnName(name, ifExists, whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5), use)(pos)
 
   def _indexCommand: Gen[SchemaCommand] = oneOf(_createIndex, _dropIndex)
 

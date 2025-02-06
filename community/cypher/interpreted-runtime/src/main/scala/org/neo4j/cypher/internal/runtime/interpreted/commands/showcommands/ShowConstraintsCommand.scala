@@ -249,7 +249,7 @@ case class ShowConstraintsCommand(
           s"Expected to find an index for index backed constraint ${constraintDescriptor.getName}"
         )
       )
-      extractOptionsMap(index.getIndexType, index.getIndexProvider, index.getIndexConfig)
+      extractOptionsMap(index.getIndexType, index.getIndexProvider, index.getIndexConfig, cypherVersion)
     } else Values.NO_VALUE
   }
 

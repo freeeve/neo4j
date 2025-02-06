@@ -75,7 +75,7 @@ case object SchemaCommandPlanBuilder extends Phase[PlannerContext, BaseState, Lo
         Some(plans.CreateConstraint(source, constraintType, entityName, props, name, options))
 
       // DROP CONSTRAINT name [IF EXISTS]
-      case DropConstraintOnName(name, ifExists, _) =>
+      case DropConstraintOnName(name, ifExists, _, _) =>
         Some(plans.DropConstraintOnName(name, ifExists))
 
       // CREATE [POINT| RANGE | TEXT | VECTOR] INDEX ...
@@ -119,7 +119,7 @@ case object SchemaCommandPlanBuilder extends Phase[PlannerContext, BaseState, Lo
         Some(plans.CreateFulltextIndex(source, entityNames, propKeys, name, options))
 
       // DROP INDEX name [IF EXISTS]
-      case DropIndexOnName(name, ifExists, _) =>
+      case DropIndexOnName(name, ifExists, _, _) =>
         Some(plans.DropIndexOnName(name, ifExists))
 
       case _ => None

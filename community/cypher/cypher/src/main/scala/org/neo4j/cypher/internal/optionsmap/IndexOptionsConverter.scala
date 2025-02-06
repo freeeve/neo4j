@@ -66,15 +66,29 @@ trait IndexOptionsConverter[T] extends OptionsConverter[T] {
     indexType: IndexType,
     version: CypherVersion
   ): (Option[IndexProviderDescriptor], IndexConfig, Set[InternalNotification]) = {
-    var optionName = ""
-    if (
-      options.exists { case (k, _) =>
-        optionName = k
-        !optionName.equalsIgnoreCase("indexProvider") && !optionName.equalsIgnoreCase("indexConfig")
-      }
-    ) {
-      throw InvalidArgumentsException.invalidIndexOptionValue(optionName, schemaType)
+
+    val (validOptions, errorMessageOverride) =
+      if (version == CypherVersion.Cypher5)
+        (
+          Seq("indexProvider", "indexConfig"),
+          Some(
+            s"Failed to create $schemaType: Invalid option provided, valid options are `indexProvider` and `indexConfig`."
+          )
+        )
+      else (Seq("indexConfig"), None)
+
+    val invalidOption: Option[String] = options.collectFirst {
+      case (k, _) if !validOptions.exists(_.equalsIgnoreCase(k)) => k
     }
+
+    invalidOption.foreach(k =>
+      throw InvalidArgumentsException.invalidIndexOptionValue(
+        k,
+        validOptions.asJava,
+        errorMessageOverride.orNull
+      )
+    )
+
     val maybeIndexProvider = options.getOption("indexprovider")
     // If there are mandatory options we should call convert with empty options to throw expected errors
     val maybeConfig = options.getOption("indexconfig").orElse(Option.when(hasMandatoryOptions)(VirtualValues.EMPTY_MAP))

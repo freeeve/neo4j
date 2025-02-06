@@ -504,6 +504,59 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       lastRead = Values.NO_VALUE,
       readCount = Values.NO_VALUE,
       trackedSince = Values.NO_VALUE,
+      options = Map("indexConfig" -> VirtualValues.EMPTY_MAP),
+      failureMessage = "",
+      createStatement = s"CREATE RANGE INDEX `index00` FOR (n:`$label`) ON (n.`$prop`)"
+    )
+    checkResult(
+      result.last,
+      id = 1L,
+      name = "index01",
+      state = "ONLINE",
+      population = 100.0f,
+      indexType = "RANGE",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = rangeProvider,
+      constraint = Some(null),
+      lastRead = Values.NO_VALUE,
+      readCount = Values.NO_VALUE,
+      trackedSince = Values.NO_VALUE,
+      options = Map("indexConfig" -> VirtualValues.EMPTY_MAP),
+      failureMessage = "",
+      createStatement = s"CREATE RANGE INDEX `index01` FOR ()-[r:`$relType`]-() ON (r.`$prop`)"
+    )
+  }
+
+  test("show indexes should give back correct full values - Cypher 5") {
+    // Set-up which indexes to return:
+    when(ctx.getAllIndexes()).thenReturn(Map(
+      rangeNodeIndexDescriptor -> nodeIndexInfo,
+      rangeRelIndexDescriptor -> relIndexInfo
+    ))
+
+    // When
+    val showIndexes = ShowIndexesCommand(AllIndexes, allColumns, List.empty, CypherVersion.Cypher5)
+    val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    result should have size 2
+    checkResult(
+      result.head,
+      id = 0L,
+      name = "index00",
+      state = "ONLINE",
+      population = 100.0f,
+      indexType = "RANGE",
+      entityType = "NODE",
+      labelsOrTypes = List(label),
+      properties = List(prop),
+      provider = rangeProvider,
+      constraint = Some(null),
+      lastRead = Values.NO_VALUE,
+      readCount = Values.NO_VALUE,
+      trackedSince = Values.NO_VALUE,
       options = Map("indexProvider" -> Values.stringValue(rangeProvider), "indexConfig" -> VirtualValues.EMPTY_MAP),
       failureMessage = "",
       createStatement = s"CREATE RANGE INDEX `index00` FOR (n:`$label`) ON (n.`$prop`)"
@@ -850,6 +903,173 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       labelsOrTypes = List(label),
       properties = List(prop),
       provider = rangeProvider,
+      options = Map("indexConfig" -> VirtualValues.EMPTY_MAP),
+      createStatement = s"CREATE RANGE INDEX `index00` FOR (n:`$label`) ON (n.`$prop`)"
+    )
+    checkResult(
+      result(1),
+      name = "index01",
+      indexType = "RANGE",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = rangeProvider,
+      options = Map("indexConfig" -> VirtualValues.EMPTY_MAP),
+      createStatement = s"CREATE RANGE INDEX `index01` FOR ()-[r:`$relType`]-() ON (r.`$prop`)"
+    )
+    checkResult(
+      result(2),
+      name = "index02",
+      indexType = "LOOKUP",
+      entityType = "NODE",
+      labelsOrTypes = Some(null),
+      properties = Some(null),
+      provider = lookupProvider,
+      options = Map("indexConfig" -> VirtualValues.EMPTY_MAP),
+      createStatement = "CREATE LOOKUP INDEX `index02` FOR (n) ON EACH labels(n)"
+    )
+    checkResult(
+      result(3),
+      name = "index03",
+      indexType = "LOOKUP",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = Some(null),
+      properties = Some(null),
+      provider = lookupProvider,
+      options = Map("indexConfig" -> VirtualValues.EMPTY_MAP),
+      createStatement = "CREATE LOOKUP INDEX `index03` FOR ()-[r]-() ON EACH type(r)"
+    )
+    checkResult(
+      result(4),
+      name = "index04",
+      indexType = "POINT",
+      entityType = "NODE",
+      labelsOrTypes = List(label),
+      properties = List(prop),
+      provider = pointProvider,
+      options = Map("indexConfig" -> nodePointConfigMap),
+      createStatement = s"CREATE POINT INDEX `index04` FOR (n:`$label`) ON (n.`$prop`) " +
+        s"OPTIONS {indexConfig: $nodePointConfigMapString}"
+    )
+    checkResult(
+      result(5),
+      name = "index05",
+      indexType = "POINT",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = pointProvider,
+      options = Map("indexConfig" -> relPointConfigMap),
+      createStatement = s"CREATE POINT INDEX `index05` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
+        s"OPTIONS {indexConfig: $relPointConfigMapString}"
+    )
+    checkResult(
+      result(6),
+      name = "index06",
+      indexType = "TEXT",
+      entityType = "NODE",
+      labelsOrTypes = List(label),
+      properties = List(prop),
+      provider = textV2Provider,
+      options = Map("indexConfig" -> VirtualValues.EMPTY_MAP),
+      createStatement = s"CREATE TEXT INDEX `index06` FOR (n:`$label`) ON (n.`$prop`)"
+    )
+    checkResult(
+      result(7),
+      name = "index07",
+      indexType = "TEXT",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = textV1Provider,
+      options = Map("indexConfig" -> VirtualValues.EMPTY_MAP),
+      createStatement = s"CREATE TEXT INDEX `index07` FOR ()-[r:`$relType`]-() ON (r.`$prop`)"
+    )
+    checkResult(
+      result(8),
+      name = "index08",
+      indexType = "FULLTEXT",
+      entityType = "NODE",
+      labelsOrTypes = List(label),
+      properties = List(prop),
+      provider = fulltextProvider,
+      options = Map("indexConfig" -> nodeFulltextConfigMap),
+      createStatement = s"CREATE FULLTEXT INDEX `index08` FOR (n:`$label`) ON EACH [n.`$prop`] " +
+        s"OPTIONS {indexConfig: $nodeFulltextConfigMapString}"
+    )
+    checkResult(
+      result(9),
+      name = "index09",
+      indexType = "FULLTEXT",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = fulltextProvider,
+      options = Map("indexConfig" -> relFulltextConfigMap),
+      createStatement = s"CREATE FULLTEXT INDEX `index09` FOR ()-[r:`$relType`]-() ON EACH [r.`$prop`] " +
+        s"OPTIONS {indexConfig: $relFulltextConfigMapString}"
+    )
+    checkResult(
+      result(10),
+      name = "index10",
+      indexType = "VECTOR",
+      entityType = "NODE",
+      labelsOrTypes = List(label),
+      properties = List(prop),
+      provider = vectorV1Provider,
+      options = Map(
+        "indexConfig" -> vectorConfigMap(VectorIndexVersion.V1_0)
+      ),
+      createStatement = s"CREATE VECTOR INDEX `index10` FOR (n:`$label`) ON (n.`$prop`) " +
+        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V1_0)}}"
+    )
+    checkResult(
+      result(11),
+      name = "index11",
+      indexType = "VECTOR",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = vectorV2Provider,
+      options = Map(
+        "indexConfig" -> vectorConfigMap(VectorIndexVersion.V2_0)
+      ),
+      createStatement = s"CREATE VECTOR INDEX `index11` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
+        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V2_0)}}"
+    )
+  }
+
+  test("show indexes should show all index types - Cypher 5") {
+    // Set-up which indexes the context returns:
+    when(ctx.getAllIndexes()).thenReturn(Map(
+      rangeNodeIndexDescriptor -> nodeIndexInfo,
+      rangeRelIndexDescriptor -> relIndexInfo,
+      lookupNodeIndexDescriptor -> nodeIndexInfo,
+      lookupRelIndexDescriptor -> relIndexInfo,
+      pointNodeIndexDescriptor -> nodeIndexInfo,
+      pointRelIndexDescriptor -> relIndexInfo,
+      textNodeIndexDescriptor -> nodeIndexInfo,
+      textRelIndexDescriptor -> relIndexInfo,
+      fulltextNodeIndexDescriptor -> nodeIndexInfo,
+      fulltextRelIndexDescriptor -> relIndexInfo,
+      vectorNodeIndexDescriptor -> nodeIndexInfo,
+      vectorRelIndexDescriptor -> relIndexInfo
+    ))
+
+    // When
+    val showIndexes = ShowIndexesCommand(AllIndexes, allColumns, List.empty, CypherVersion.Cypher5)
+    val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    result should have size 12
+    checkResult(
+      result.head,
+      name = "index00",
+      indexType = "RANGE",
+      entityType = "NODE",
+      labelsOrTypes = List(label),
+      properties = List(prop),
+      provider = rangeProvider,
       options = Map("indexProvider" -> Values.stringValue(rangeProvider), "indexConfig" -> VirtualValues.EMPTY_MAP),
       createStatement = s"CREATE RANGE INDEX `index00` FOR (n:`$label`) ON (n.`$prop`)"
     )
@@ -1019,6 +1239,53 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       labelsOrTypes = List(label),
       properties = List(prop),
       provider = rangeProvider,
+      options = Map("indexConfig" -> VirtualValues.EMPTY_MAP),
+      createStatement = s"CREATE RANGE INDEX `index00` FOR (n:`$label`) ON (n.`$prop`)"
+    )
+    checkResult(
+      result.last,
+      name = "index01",
+      indexType = "RANGE",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = rangeProvider,
+      options = Map("indexConfig" -> VirtualValues.EMPTY_MAP),
+      createStatement = s"CREATE RANGE INDEX `index01` FOR ()-[r:`$relType`]-() ON (r.`$prop`)"
+    )
+  }
+
+  test("show range indexes should only show range indexes - Cypher 5") {
+    // Set-up which indexes the context returns:
+    when(ctx.getAllIndexes()).thenReturn(Map(
+      rangeNodeIndexDescriptor -> nodeIndexInfo,
+      rangeRelIndexDescriptor -> relIndexInfo,
+      lookupNodeIndexDescriptor -> nodeIndexInfo,
+      lookupRelIndexDescriptor -> relIndexInfo,
+      pointNodeIndexDescriptor -> nodeIndexInfo,
+      pointRelIndexDescriptor -> relIndexInfo,
+      textNodeIndexDescriptor -> nodeIndexInfo,
+      textRelIndexDescriptor -> relIndexInfo,
+      fulltextNodeIndexDescriptor -> nodeIndexInfo,
+      fulltextRelIndexDescriptor -> relIndexInfo,
+      vectorNodeIndexDescriptor -> nodeIndexInfo,
+      vectorRelIndexDescriptor -> relIndexInfo
+    ))
+
+    // When
+    val showIndexes = ShowIndexesCommand(RangeIndexes, allColumns, List.empty, CypherVersion.Cypher5)
+    val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    result should have size 2
+    checkResult(
+      result.head,
+      name = "index00",
+      indexType = "RANGE",
+      entityType = "NODE",
+      labelsOrTypes = List(label),
+      properties = List(prop),
+      provider = rangeProvider,
       options = Map("indexProvider" -> Values.stringValue(rangeProvider), "indexConfig" -> VirtualValues.EMPTY_MAP),
       createStatement = s"CREATE RANGE INDEX `index00` FOR (n:`$label`) ON (n.`$prop`)"
     )
@@ -1066,6 +1333,53 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       labelsOrTypes = Some(null),
       properties = Some(null),
       provider = lookupProvider,
+      options = Map("indexConfig" -> VirtualValues.EMPTY_MAP),
+      createStatement = "CREATE LOOKUP INDEX `index02` FOR (n) ON EACH labels(n)"
+    )
+    checkResult(
+      result.last,
+      name = "index03",
+      indexType = "LOOKUP",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = Some(null),
+      properties = Some(null),
+      provider = lookupProvider,
+      options = Map("indexConfig" -> VirtualValues.EMPTY_MAP),
+      createStatement = "CREATE LOOKUP INDEX `index03` FOR ()-[r]-() ON EACH type(r)"
+    )
+  }
+
+  test("show lookup indexes should only show lookup indexes - Cypher 5") {
+    // Set-up which indexes the context returns:
+    when(ctx.getAllIndexes()).thenReturn(Map(
+      rangeNodeIndexDescriptor -> nodeIndexInfo,
+      rangeRelIndexDescriptor -> relIndexInfo,
+      lookupNodeIndexDescriptor -> nodeIndexInfo,
+      lookupRelIndexDescriptor -> relIndexInfo,
+      pointNodeIndexDescriptor -> nodeIndexInfo,
+      pointRelIndexDescriptor -> relIndexInfo,
+      textNodeIndexDescriptor -> nodeIndexInfo,
+      textRelIndexDescriptor -> relIndexInfo,
+      fulltextNodeIndexDescriptor -> nodeIndexInfo,
+      fulltextRelIndexDescriptor -> relIndexInfo,
+      vectorNodeIndexDescriptor -> nodeIndexInfo,
+      vectorRelIndexDescriptor -> relIndexInfo
+    ))
+
+    // When
+    val showIndexes = ShowIndexesCommand(LookupIndexes, allColumns, List.empty, CypherVersion.Cypher5)
+    val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    result should have size 2
+    checkResult(
+      result.head,
+      name = "index02",
+      indexType = "LOOKUP",
+      entityType = "NODE",
+      labelsOrTypes = Some(null),
+      properties = Some(null),
+      provider = lookupProvider,
       options = Map("indexProvider" -> Values.stringValue(lookupProvider), "indexConfig" -> VirtualValues.EMPTY_MAP),
       createStatement = "CREATE LOOKUP INDEX `index02` FOR (n) ON EACH labels(n)"
     )
@@ -1101,6 +1415,55 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
 
     // When
     val showIndexes = ShowIndexesCommand(PointIndexes, allColumns, List.empty, CypherVersion.Cypher25)
+    val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    result should have size 2
+    checkResult(
+      result.head,
+      name = "index04",
+      indexType = "POINT",
+      entityType = "NODE",
+      labelsOrTypes = List(label),
+      properties = List(prop),
+      provider = pointProvider,
+      options = Map("indexConfig" -> nodePointConfigMap),
+      createStatement = s"CREATE POINT INDEX `index04` FOR (n:`$label`) ON (n.`$prop`) " +
+        s"OPTIONS {indexConfig: $nodePointConfigMapString}"
+    )
+    checkResult(
+      result.last,
+      name = "index05",
+      indexType = "POINT",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = pointProvider,
+      options = Map("indexConfig" -> relPointConfigMap),
+      createStatement = s"CREATE POINT INDEX `index05` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
+        s"OPTIONS {indexConfig: $relPointConfigMapString}"
+    )
+  }
+
+  test("show point indexes should only show point indexes - Cypher 5") {
+    // Set-up which indexes the context returns:
+    when(ctx.getAllIndexes()).thenReturn(Map(
+      rangeNodeIndexDescriptor -> nodeIndexInfo,
+      rangeRelIndexDescriptor -> relIndexInfo,
+      lookupNodeIndexDescriptor -> nodeIndexInfo,
+      lookupRelIndexDescriptor -> relIndexInfo,
+      pointNodeIndexDescriptor -> nodeIndexInfo,
+      pointRelIndexDescriptor -> relIndexInfo,
+      textNodeIndexDescriptor -> nodeIndexInfo,
+      textRelIndexDescriptor -> relIndexInfo,
+      fulltextNodeIndexDescriptor -> nodeIndexInfo,
+      fulltextRelIndexDescriptor -> relIndexInfo,
+      vectorNodeIndexDescriptor -> nodeIndexInfo,
+      vectorRelIndexDescriptor -> relIndexInfo
+    ))
+
+    // When
+    val showIndexes = ShowIndexesCommand(PointIndexes, allColumns, List.empty, CypherVersion.Cypher5)
     val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1162,6 +1525,53 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       labelsOrTypes = List(label),
       properties = List(prop),
       provider = textV2Provider,
+      options = Map("indexConfig" -> VirtualValues.EMPTY_MAP),
+      createStatement = s"CREATE TEXT INDEX `index06` FOR (n:`$label`) ON (n.`$prop`)"
+    )
+    checkResult(
+      result.last,
+      name = "index07",
+      indexType = "TEXT",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = textV1Provider,
+      options = Map("indexConfig" -> VirtualValues.EMPTY_MAP),
+      createStatement = s"CREATE TEXT INDEX `index07` FOR ()-[r:`$relType`]-() ON (r.`$prop`)"
+    )
+  }
+
+  test("show text indexes should only show text indexes - Cypher 5") {
+    // Set-up which indexes the context returns:
+    when(ctx.getAllIndexes()).thenReturn(Map(
+      rangeNodeIndexDescriptor -> nodeIndexInfo,
+      rangeRelIndexDescriptor -> relIndexInfo,
+      lookupNodeIndexDescriptor -> nodeIndexInfo,
+      lookupRelIndexDescriptor -> relIndexInfo,
+      pointNodeIndexDescriptor -> nodeIndexInfo,
+      pointRelIndexDescriptor -> relIndexInfo,
+      textNodeIndexDescriptor -> nodeIndexInfo,
+      textRelIndexDescriptor -> relIndexInfo,
+      fulltextNodeIndexDescriptor -> nodeIndexInfo,
+      fulltextRelIndexDescriptor -> relIndexInfo,
+      vectorNodeIndexDescriptor -> nodeIndexInfo,
+      vectorRelIndexDescriptor -> relIndexInfo
+    ))
+
+    // When
+    val showIndexes = ShowIndexesCommand(TextIndexes, allColumns, List.empty, CypherVersion.Cypher5)
+    val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    result should have size 2
+    checkResult(
+      result.head,
+      name = "index06",
+      indexType = "TEXT",
+      entityType = "NODE",
+      labelsOrTypes = List(label),
+      properties = List(prop),
+      provider = textV2Provider,
       options = Map("indexProvider" -> Values.stringValue(textV2Provider), "indexConfig" -> VirtualValues.EMPTY_MAP),
       createStatement = s"CREATE TEXT INDEX `index06` FOR (n:`$label`) ON (n.`$prop`)"
     )
@@ -1197,6 +1607,55 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
 
     // When
     val showIndexes = ShowIndexesCommand(FulltextIndexes, allColumns, List.empty, CypherVersion.Cypher25)
+    val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    result should have size 2
+    checkResult(
+      result.head,
+      name = "index08",
+      indexType = "FULLTEXT",
+      entityType = "NODE",
+      labelsOrTypes = List(label),
+      properties = List(prop),
+      provider = fulltextProvider,
+      options = Map("indexConfig" -> nodeFulltextConfigMap),
+      createStatement = s"CREATE FULLTEXT INDEX `index08` FOR (n:`$label`) ON EACH [n.`$prop`] " +
+        s"OPTIONS {indexConfig: $nodeFulltextConfigMapString}"
+    )
+    checkResult(
+      result.last,
+      name = "index09",
+      indexType = "FULLTEXT",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = fulltextProvider,
+      options = Map("indexConfig" -> relFulltextConfigMap),
+      createStatement = s"CREATE FULLTEXT INDEX `index09` FOR ()-[r:`$relType`]-() ON EACH [r.`$prop`] " +
+        s"OPTIONS {indexConfig: $relFulltextConfigMapString}"
+    )
+  }
+
+  test("show fulltext indexes should only show fulltext indexes - Cypher 5") {
+    // Set-up which indexes the context returns:
+    when(ctx.getAllIndexes()).thenReturn(Map(
+      rangeNodeIndexDescriptor -> nodeIndexInfo,
+      rangeRelIndexDescriptor -> relIndexInfo,
+      lookupNodeIndexDescriptor -> nodeIndexInfo,
+      lookupRelIndexDescriptor -> relIndexInfo,
+      pointNodeIndexDescriptor -> nodeIndexInfo,
+      pointRelIndexDescriptor -> relIndexInfo,
+      textNodeIndexDescriptor -> nodeIndexInfo,
+      textRelIndexDescriptor -> relIndexInfo,
+      fulltextNodeIndexDescriptor -> nodeIndexInfo,
+      fulltextRelIndexDescriptor -> relIndexInfo,
+      vectorNodeIndexDescriptor -> nodeIndexInfo,
+      vectorRelIndexDescriptor -> relIndexInfo
+    ))
+
+    // When
+    val showIndexes = ShowIndexesCommand(FulltextIndexes, allColumns, List.empty, CypherVersion.Cypher5)
     val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -1246,6 +1705,55 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
 
     // When
     val showIndexes = ShowIndexesCommand(VectorIndexes, allColumns, List.empty, CypherVersion.Cypher25)
+    val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    result should have size 2
+    checkResult(
+      result.head,
+      name = "index10",
+      indexType = "VECTOR",
+      entityType = "NODE",
+      labelsOrTypes = List(label),
+      properties = List(prop),
+      provider = vectorV1Provider,
+      options = Map("indexConfig" -> vectorConfigMap(VectorIndexVersion.V1_0)),
+      createStatement = s"CREATE VECTOR INDEX `index10` FOR (n:`$label`) ON (n.`$prop`) " +
+        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V1_0)}}"
+    )
+    checkResult(
+      result.last,
+      name = "index11",
+      indexType = "VECTOR",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = vectorV2Provider,
+      options = Map("indexConfig" -> vectorConfigMap(VectorIndexVersion.V2_0)),
+      createStatement = s"CREATE VECTOR INDEX `index11` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
+        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V2_0)}}"
+    )
+  }
+
+  test("show vector indexes should only show vector indexes - Cypher 5") {
+    // Set-up which indexes the context returns:
+    when(ctx.getAllIndexes()).thenReturn(Map(
+      rangeNodeIndexDescriptor -> nodeIndexInfo,
+      rangeRelIndexDescriptor -> relIndexInfo,
+      lookupNodeIndexDescriptor -> nodeIndexInfo,
+      lookupRelIndexDescriptor -> relIndexInfo,
+      pointNodeIndexDescriptor -> nodeIndexInfo,
+      pointRelIndexDescriptor -> relIndexInfo,
+      textNodeIndexDescriptor -> nodeIndexInfo,
+      textRelIndexDescriptor -> relIndexInfo,
+      fulltextNodeIndexDescriptor -> nodeIndexInfo,
+      fulltextRelIndexDescriptor -> relIndexInfo,
+      vectorNodeIndexDescriptor -> nodeIndexInfo,
+      vectorRelIndexDescriptor -> relIndexInfo
+    ))
+
+    // When
+    val showIndexes = ShowIndexesCommand(VectorIndexes, allColumns, List.empty, CypherVersion.Cypher5)
     val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
 
     // Then

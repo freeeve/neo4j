@@ -175,7 +175,7 @@ trait DdlBuilder extends Cypher5ParserListener {
     val p = pos(ctx.getParent)
     val constraintName = ctx.symbolicNameOrStringParameter()
     if (constraintName != null) {
-      ctx.ast = DropConstraintOnName(constraintName.ast(), ctx.EXISTS() != null)(p)
+      ctx.ast = DropConstraintOnName(constraintName.ast(), ctx.EXISTS() != null, fromCypher5 = true)(p)
     } else {
       // old drop constraint by schema, errors in SyntaxChecker
     }
@@ -186,7 +186,11 @@ trait DdlBuilder extends Cypher5ParserListener {
   ): Unit = {
     val indexName = ctx.symbolicNameOrStringParameter()
     if (indexName != null)
-      ctx.ast = DropIndexOnName(indexName.ast[Either[String, Parameter]](), ctx.EXISTS() != null)(pos(ctx.getParent))
+      ctx.ast = DropIndexOnName(
+        indexName.ast[Either[String, Parameter]](),
+        ctx.EXISTS() != null,
+        fromCypher5 = true
+      )(pos(ctx.getParent))
     else {
       // old drop index by schema, errors in SyntaxChecker
     }

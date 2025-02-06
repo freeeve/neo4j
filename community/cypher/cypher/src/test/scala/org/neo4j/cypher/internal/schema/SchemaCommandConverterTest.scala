@@ -2170,7 +2170,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       prop,
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def existenceRelConstraint(
@@ -2185,7 +2186,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       prop,
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def propertyNodeConstraint(
@@ -2201,7 +2203,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       CTString,
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def propertyRelConstraint(
@@ -2217,7 +2220,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       CTString,
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def keyNodeConstraint(
@@ -2279,7 +2283,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       name,
       ifExistsDo,
       options,
-      fromDefault = true
+      fromDefault = true,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def rangeRelIndex(
@@ -2295,7 +2300,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       name,
       ifExistsDo,
       options,
-      fromDefault = true
+      fromDefault = true,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   type CreateLookupIndexFunction =
@@ -2312,7 +2318,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       function(Labels.name, v),
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def lookupRelIndex(
@@ -2326,7 +2333,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       function(Type.name, v),
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   type CreateFulltextIndexFunction = (
@@ -2350,7 +2358,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       props,
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def fulltextRelIndex(
@@ -2366,7 +2375,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       props,
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def textNodeIndex(
@@ -2381,7 +2391,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       props,
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def textRelIndex(
@@ -2396,7 +2407,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       props,
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def pointNodeIndex(
@@ -2411,7 +2423,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       props,
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def pointRelIndex(
@@ -2426,7 +2439,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       props,
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def vectorNodeIndex(
@@ -2441,7 +2455,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       props,
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def vectorRelIndex(
@@ -2456,7 +2471,8 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       props,
       name,
       ifExistsDo,
-      options
+      options,
+      fromCypher5 = false
     )(InputPosition.NONE)
 
   private def indexName(name: String) = if (name.isBlank) None else Some(Left(name))

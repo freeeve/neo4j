@@ -117,9 +117,9 @@ class SchemaCommandConverter(
 
   @throws[SchemaCommandReaderException]
   def apply(command: org.neo4j.cypher.internal.ast.SchemaCommand): SchemaCommand = command match {
-    case DropConstraintOnName(name, ifExists, None) =>
+    case DropConstraintOnName(name, ifExists, _, None) =>
       new ConstraintCommand.Drop(checkName(name, "constraint name"), ifExists);
-    case DropIndexOnName(name, ifExists, None) => new IndexCommand.Drop(checkName(name, "index name"), ifExists);
+    case DropIndexOnName(name, ifExists, _, None) => new IndexCommand.Drop(checkName(name, "index name"), ifExists);
     case CreateLookupIndex(_, isNodeIndex, _, indexName, indexType, ifExistsDo, options) =>
       val desc = if (isNodeIndex) indexType.nodeDescription else indexType.relDescription
       val name = indexName.map(n => checkName(n, desc + " name")).orNull
