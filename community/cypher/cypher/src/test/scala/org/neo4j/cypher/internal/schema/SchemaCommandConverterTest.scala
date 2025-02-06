@@ -84,8 +84,19 @@ import scala.jdk.CollectionConverters.IterableHasAsJava
 
 class SchemaCommandConverterTest extends CypherFunSuite {
 
-  private val v1VectorConverter = new SchemaCommandConverter(CypherVersion.Default, VectorIndexVersion.V1_0)
-  private val converter = new SchemaCommandConverter(CypherVersion.Default, VectorIndexVersion.V2_0)
+  private val cypher5InvalidOptionMessage =
+    "Invalid option provided, valid options are `indexProvider` and `indexConfig`"
+  private val cypher25InvalidOptionMessage = "22N04: Invalid input 'duff' for 'OPTIONS'. Expected 'indexConfig'"
+
+  private val v1VectorConverterForDefaultCypherVersion =
+    new SchemaCommandConverter(CypherVersion.Default, VectorIndexVersion.V1_0)
+  private val v1VectorConverterForCypher5 = new SchemaCommandConverter(CypherVersion.Cypher5, VectorIndexVersion.V1_0)
+  private val v1VectorConverterForCypher25 = new SchemaCommandConverter(CypherVersion.Cypher25, VectorIndexVersion.V1_0)
+
+  private val converterForDefaultCypherVersion =
+    new SchemaCommandConverter(CypherVersion.Default, VectorIndexVersion.V2_0)
+  private val converterForCypher5 = new SchemaCommandConverter(CypherVersion.Cypher5, VectorIndexVersion.V2_0)
+  private val converterForCypher25 = new SchemaCommandConverter(CypherVersion.Cypher25, VectorIndexVersion.V2_0)
 
   private val VECTOR_CONFIG_V1 = IndexConfig.`with`(util.Map.of(
     "vector.dimensions",
@@ -133,7 +144,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
   Seq("", "my_index").foreach {
     ixName =>
       test(s"CREATE INDEX $ixName FOR (v:L) ON (v.name)") {
-        assert(converter.apply(rangeNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(rangeNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -142,7 +153,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE INDEX $ixName IF NOT EXISTS FOR (v:L) ON (v.name)") {
-        assert(converter.apply(rangeNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(rangeNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsDoNothing,
@@ -151,7 +162,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {}") {
-        assert(converter.apply(rangeNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(rangeNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -160,7 +171,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE INDEX $ixName FOR (v:L) ON (v.name1, v.name2)") {
-        assert(converter.apply(rangeNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(rangeNodeIndex(
           List(prop("name1"), prop("name2")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -168,8 +179,9 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         )) == new NodeRange(commandName(ixName), label.name, asList("name1", "name2"), false))
       }
 
-      test(s"CREATE INDEX $ixName IF NOT EXISTS FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'range-1.0'}") {
-        assert(converter.apply(rangeNodeIndex(
+      test(s"CYPHER 5 CREATE INDEX $ixName IF NOT EXISTS FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'range-1.0'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
+        assert(converterForCypher5.apply(rangeNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsDoNothing,
@@ -178,7 +190,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE LOOKUP INDEX $ixName FOR (v) ON EACH labels(v)") {
-        assert(converter.apply(lookupNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(lookupNodeIndex(
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.NoOptions
@@ -186,7 +198,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE LOOKUP INDEX $ixName IF NOT EXISTS FOR (v) ON EACH labels(v)") {
-        assert(converter.apply(lookupNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(lookupNodeIndex(
           indexName(ixName),
           ast.IfExistsDoNothing,
           ast.NoOptions
@@ -194,15 +206,18 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE LOOKUP INDEX $ixName FOR (v) ON EACH labels(v) OPTIONS {}") {
-        assert(converter.apply(lookupNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(lookupNodeIndex(
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map.empty)
         )) == new NodeLookup(commandName(ixName), false))
       }
 
-      test(s"CREATE LOOKUP INDEX $ixName FOR (v) ON EACH labels(v) OPTIONS {indexProvider : 'token-lookup-1.0'}") {
-        assert(converter.apply(lookupNodeIndex(
+      test(
+        s"CYPHER 5 CREATE LOOKUP INDEX $ixName FOR (v) ON EACH labels(v) OPTIONS {indexProvider : 'token-lookup-1.0'}"
+      ) {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
+        assert(converterForCypher5.apply(lookupNodeIndex(
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map("indexProvider" -> literalString("token-lookup-1.0")))
@@ -210,7 +225,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE TEXT INDEX $ixName FOR (v:L) ON (v.name)") {
-        assert(converter.apply(textNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(textNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -219,7 +234,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE TEXT INDEX $ixName IF NOT EXISTS FOR (v:L) ON (v.name)") {
-        assert(converter.apply(textNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(textNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsDoNothing,
@@ -228,7 +243,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE TEXT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {}") {
-        assert(converter.apply(textNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(textNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -236,8 +251,9 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         )) == new NodeText(commandName(ixName), label.name, "name", false))
       }
 
-      test(s"CREATE TEXT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'text-1.0'}") {
-        assert(converter.apply(textNodeIndex(
+      test(s"CYPHER 5 CREATE TEXT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'text-1.0'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
+        assert(converterForCypher5.apply(textNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -245,8 +261,9 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         )) == new NodeText(commandName(ixName), label.name, "name", false))
       }
 
-      test(s"CREATE TEXT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'text-2.0'}") {
-        assert(converter.apply(textNodeIndex(
+      test(s"CYPHER 5 CREATE TEXT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'text-2.0'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
+        assert(converterForCypher5.apply(textNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -255,7 +272,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE POINT INDEX $ixName FOR (v:L) ON (v.name)") {
-        assert(converter.apply(pointNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(pointNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -264,7 +281,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE POINT INDEX $ixName IF NOT EXISTS FOR (v:L) ON (v.name)") {
-        assert(converter.apply(pointNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(pointNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsDoNothing,
@@ -273,7 +290,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE POINT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {}") {
-        assert(converter.apply(pointNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(pointNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -281,8 +298,9 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         )) == new NodePoint(commandName(ixName), label.name, "name", false, IndexConfig.empty()))
       }
 
-      test(s"CREATE POINT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'point-1.0'}") {
-        assert(converter.apply(pointNodeIndex(
+      test(s"CYPHER 5 CREATE POINT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'point-1.0'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
+        assert(converterForCypher5.apply(pointNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -299,7 +317,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       test(
         s"CREATE POINT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexConfig : {`spatial.wgs-84.max`: [60.0,60.0], `spatial.wgs-84.min`: [-40.0,-40.0]}}"
       ) {
-        assert(converter.apply(pointNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(pointNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -316,31 +334,41 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         ))
       }
 
-      test(
-        s"CREATE POINT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'point-1.0', indexConfig : {`spatial.wgs-84.max`: [60.0,60.0], `spatial.wgs-84.min`: [-40.0,-40.0]}}"
-      ) {
-        assert(converter.apply(pointNodeIndex(
-          List(prop("name")),
-          indexName(ixName),
-          ast.IfExistsThrowError,
-          ast.OptionsMap(Map(
-            "indexProvider" -> literalString("point-1.0"),
-            "indexConfig" -> mapOf(
-              "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
-              "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
-            )
+      Seq(
+        (
+          converterForCypher5,
+          s"CYPHER 5 CREATE POINT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'point-1.0', indexConfig : {`spatial.wgs-84.max`: [60.0,60.0], `spatial.wgs-84.min`: [-40.0,-40.0]}}",
+          Some("point-1.0")
+        ),
+        (
+          converterForCypher25,
+          s"CYPHER 25 CREATE POINT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexConfig : {`spatial.wgs-84.max`: [60.0,60.0], `spatial.wgs-84.min`: [-40.0,-40.0]}}",
+          None
+        )
+      ).foreach { case (conv, query, ixProvider) =>
+        test(query) {
+          assert(conv.apply(pointNodeIndex(
+            List(prop("name")),
+            indexName(ixName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexConfig" -> mapOf(
+                "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
+                "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
+              )
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+          )) == new NodePoint(
+            commandName(ixName),
+            label.name,
+            "name",
+            false,
+            IndexConfig.`with`(util.Map.of("spatial.wgs-84.max", array60, "spatial.wgs-84.min", array40))
           ))
-        )) == new NodePoint(
-          commandName(ixName),
-          label.name,
-          "name",
-          false,
-          IndexConfig.`with`(util.Map.of("spatial.wgs-84.max", array60, "spatial.wgs-84.min", array40))
-        ))
+        }
       }
 
       test(s"CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.name)") {
-        assert(converter.apply(vectorNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(vectorNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -349,7 +377,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE VECTOR INDEX $ixName IF NOT EXISTS FOR (v:L) ON (v.name)") {
-        assert(converter.apply(vectorNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(vectorNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsDoNothing,
@@ -358,7 +386,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {}") {
-        assert(converter.apply(vectorNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(vectorNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -367,7 +395,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexConfig : {`vector.dimensions`: 1536}}") {
-        assert(converter.apply(vectorNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(vectorNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -386,7 +414,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       test(
         s"CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexConfig : {`vector.dimensions`: 768, `vector.hnsw.m`:8}}"
       ) {
-        assert(converter.apply(vectorNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(vectorNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -403,54 +431,75 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         ))
       }
 
-      test(
-        s"CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.v1name) OPTIONS {indexProvider : 'vector-1.0',indexConfig : {`vector.dimensions`: 768, `vector.similarity_function`:'COSINE'}}"
-      ) {
-        assert(v1VectorConverter.apply(vectorNodeIndex(
-          List(prop("v1name")),
-          indexName(ixName),
-          ast.IfExistsThrowError,
-          ast.OptionsMap(Map(
-            "indexProvider" -> literalString("vector-1.0"),
-            "indexConfig" -> mapOf(
-              "vector.dimensions" -> literalInt(768),
-              "vector.similarity_function" -> literalString("COSINE")
-            )
+      Seq(
+        (
+          v1VectorConverterForCypher5,
+          s"CYPHER 5 CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.v1name) OPTIONS {indexProvider : 'vector-1.0',indexConfig : {`vector.dimensions`: 768, `vector.similarity_function`:'COSINE'}}",
+          Some("vector-1.0")
+        ),
+        (
+          v1VectorConverterForCypher25,
+          s"CYPHER 25 CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.v1name) OPTIONS {indexConfig : {`vector.dimensions`: 768, `vector.similarity_function`:'COSINE'}}",
+          None
+        )
+      ).foreach { case (conv, query, ixProvider) =>
+        test(query) {
+          assert(conv.apply(vectorNodeIndex(
+            List(prop("v1name")),
+            indexName(ixName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexConfig" -> mapOf(
+                "vector.dimensions" -> literalInt(768),
+                "vector.similarity_function" -> literalString("COSINE")
+              )
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+          )) == new NodeVector(
+            commandName(ixName),
+            label.name,
+            "v1name",
+            false,
+            VECTOR_CONFIG_V1
           ))
-        )) == new NodeVector(
-          commandName(ixName),
-          label.name,
-          "v1name",
-          false,
-          VECTOR_CONFIG_V1
-        ))
+        }
       }
 
-      test(
-        s"CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.v2name) OPTIONS {indexProvider : 'vector-1.0',indexConfig : {`vector.dimensions`: 768, `vector.similarity_function`:'COSINE'}}"
-      ) {
-        assert(converter.apply(vectorNodeIndex(
-          List(prop("v2name")),
-          indexName(ixName),
-          ast.IfExistsThrowError,
-          ast.OptionsMap(Map(
-            "indexProvider" -> literalString("vector-1.0"),
-            "indexConfig" -> mapOf(
-              "vector.dimensions" -> literalInt(768),
-              "vector.similarity_function" -> literalString("COSINE")
-            )
+      Seq(
+        (
+          v1VectorConverterForCypher5,
+          s"CYPHER 5 CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.v2name) OPTIONS {indexProvider : 'vector-1.0',indexConfig : {`vector.dimensions`: 768, `vector.similarity_function`:'COSINE'}}",
+          Some("vector-1.0")
+        ),
+        (
+          v1VectorConverterForCypher25,
+          s"CYPHER 25 CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.v2name) OPTIONS {indexConfig : {`vector.dimensions`: 768, `vector.similarity_function`:'COSINE'}}",
+          None
+        )
+      ).foreach { case (conv, query, ixProvider) =>
+        test(query) {
+          assert(conv.apply(vectorNodeIndex(
+            List(prop("v2name")),
+            indexName(ixName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexConfig" -> mapOf(
+                "vector.dimensions" -> literalInt(768),
+                "vector.similarity_function" -> literalString("COSINE")
+              )
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+          )) == new NodeVector(
+            commandName(ixName),
+            label.name,
+            "v2name",
+            false,
+            VECTOR_CONFIG_V1
           ))
-        )) == new NodeVector(
-          commandName(ixName),
-          label.name,
-          "v2name",
-          false,
-          VECTOR_CONFIG_V1
-        ))
+        }
       }
 
-      test(s"CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'vector-2.0'}") {
-        assert(converter.apply(vectorNodeIndex(
+      test(s"CYPHER 5 CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'vector-2.0'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
+        assert(converterForCypher5.apply(vectorNodeIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -465,7 +514,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE FULLTEXT INDEX $ixName FOR (v:L) ON EACH [v.name]") {
-        assert(converter.apply(fulltextNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(fulltextNodeIndex(
           List(prop("name")),
           List(label.name),
           indexName(ixName),
@@ -481,7 +530,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE FULLTEXT INDEX $ixName IF NOT EXISTS FOR (v:L) ON EACH [v.name]") {
-        assert(converter.apply(fulltextNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(fulltextNodeIndex(
           List(prop("name")),
           List(label.name),
           indexName(ixName),
@@ -497,7 +546,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE FULLTEXT INDEX $ixName IF NOT EXISTS FOR (v:L1|L2) ON EACH [v.name]") {
-        assert(converter.apply(fulltextNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(fulltextNodeIndex(
           List(prop("name")),
           List("L1", "L2"),
           indexName(ixName),
@@ -513,7 +562,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE FULLTEXT INDEX $ixName FOR (v:L) ON EACH [v.name1, v.name2]") {
-        assert(converter.apply(fulltextNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(fulltextNodeIndex(
           List(prop("name1"), prop("name2")),
           List(label.name),
           indexName(ixName),
@@ -529,7 +578,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE FULLTEXT INDEX $ixName IF NOT EXISTS FOR (v:L1|L2) ON EACH [v.name1, v.name2]") {
-        assert(converter.apply(fulltextNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(fulltextNodeIndex(
           List(prop("name1"), prop("name2")),
           List("L1", "L2"),
           indexName(ixName),
@@ -545,7 +594,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE FULLTEXT INDEX $ixName FOR (v:L) ON EACH [v.name] OPTIONS {}") {
-        assert(converter.apply(fulltextNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(fulltextNodeIndex(
           List(prop("name")),
           List(label.name),
           indexName(ixName),
@@ -563,7 +612,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       test(
         s"CREATE FULLTEXT INDEX $ixName FOR (v:L) ON EACH [v.name] OPTIONS {indexConfig : {`fulltext.eventually_consistent`: false}}"
       ) {
-        assert(converter.apply(fulltextNodeIndex(
+        assert(converterForDefaultCypherVersion.apply(fulltextNodeIndex(
           List(prop("name")),
           List(label.name),
           indexName(ixName),
@@ -580,32 +629,42 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         ))
       }
 
-      test(
-        s"CREATE FULLTEXT INDEX $ixName FOR (v:L) ON EACH [v.name] OPTIONS {indexProvider : 'fulltext-1.0', indexConfig : {`fulltext.eventually_consistent`: true}}"
-      ) {
-        assert(converter.apply(fulltextNodeIndex(
-          List(prop("name")),
-          List(label.name),
-          indexName(ixName),
-          ast.IfExistsThrowError,
-          ast.OptionsMap(Map(
-            "indexProvider" -> literalString("fulltext-1.0"),
-            "indexConfig" -> mapOf(
-              "fulltext.eventually_consistent" -> literalBoolean(true)
-            )
+      Seq(
+        (
+          converterForCypher5,
+          s"CYPHER 5 CREATE FULLTEXT INDEX $ixName FOR (v:L) ON EACH [v.name] OPTIONS {indexProvider : 'fulltext-1.0', indexConfig : {`fulltext.eventually_consistent`: true}}",
+          Some("fulltext-1.0")
+        ),
+        (
+          converterForCypher25,
+          s"CYPHER 25 CREATE FULLTEXT INDEX $ixName FOR (v:L) ON EACH [v.name] OPTIONS {indexConfig : {`fulltext.eventually_consistent`: true}}",
+          None
+        )
+      ).foreach { case (conv, query, ixProvider) =>
+        test(query) {
+          assert(conv.apply(fulltextNodeIndex(
+            List(prop("name")),
+            List(label.name),
+            indexName(ixName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexConfig" -> mapOf(
+                "fulltext.eventually_consistent" -> literalBoolean(true)
+              )
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+          )) == new NodeFulltext(
+            commandName(ixName),
+            asList(label.name),
+            asList("name"),
+            false,
+            IndexConfig.empty().withIfAbsent("fulltext.eventually_consistent", Values.booleanValue(true))
           ))
-        )) == new NodeFulltext(
-          commandName(ixName),
-          asList(label.name),
-          asList("name"),
-          false,
-          IndexConfig.empty().withIfAbsent("fulltext.eventually_consistent", Values.booleanValue(true))
-        ))
+        }
       }
 
       test(s"CREATE FULLTEXT INDEX $ixName FOR (v:L) ON EACH [v.name,v.name]") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(fulltextNodeIndex(
+          converterForDefaultCypherVersion.apply(fulltextNodeIndex(
             List(prop("name"), prop("name")),
             List(label.name),
             indexName(ixName),
@@ -620,7 +679,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
       test(s"CREATE FULLTEXT INDEX $ixName FOR (v:L|L) ON EACH [v.name]") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(fulltextNodeIndex(
+          converterForDefaultCypherVersion.apply(fulltextNodeIndex(
             List(prop("name")),
             List(label.name, label.name),
             indexName(ixName),
@@ -634,7 +693,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE INDEX $ixName FOR ()-[v:R]-() ON (v.name)") {
-        assert(converter.apply(rangeRelIndex(
+        assert(converterForDefaultCypherVersion.apply(rangeRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -643,7 +702,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE INDEX $ixName IF NOT EXISTS FOR ()-[v:R]-() ON (v.name)") {
-        assert(converter.apply(rangeRelIndex(
+        assert(converterForDefaultCypherVersion.apply(rangeRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsDoNothing,
@@ -652,7 +711,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {}") {
-        assert(converter.apply(rangeRelIndex(
+        assert(converterForDefaultCypherVersion.apply(rangeRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -661,7 +720,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE INDEX $ixName FOR ()-[v:R]-() ON (v.name1, v.nam2)") {
-        assert(converter.apply(rangeRelIndex(
+        assert(converterForDefaultCypherVersion.apply(rangeRelIndex(
           List(prop("name1"), prop("name2")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -674,8 +733,9 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         ))
       }
 
-      test(s"CREATE INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {indexProvider : 'range-1.0'}") {
-        assert(converter.apply(rangeRelIndex(
+      test(s"CYPHER 5 CREATE INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {indexProvider : 'range-1.0'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
+        assert(converterForCypher5.apply(rangeRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -689,7 +749,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE TEXT INDEX $ixName FOR ()-[v:R]-() ON (v.name)") {
-        assert(converter.apply(textRelIndex(
+        assert(converterForDefaultCypherVersion.apply(textRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -698,7 +758,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE TEXT INDEX $ixName IF NOT EXISTS FOR ()-[v:R]-() ON (v.name)") {
-        assert(converter.apply(textRelIndex(
+        assert(converterForDefaultCypherVersion.apply(textRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsDoNothing,
@@ -707,7 +767,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE TEXT INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {}") {
-        assert(converter.apply(textRelIndex(
+        assert(converterForDefaultCypherVersion.apply(textRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -715,8 +775,9 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         )) == new RelationshipText(commandName(ixName), relType.name, "name", false))
       }
 
-      test(s"CREATE TEXT INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {indexProvider : 'text-1.0'}") {
-        assert(converter.apply(textRelIndex(
+      test(s"CYPHER 5 CREATE TEXT INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {indexProvider : 'text-1.0'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
+        assert(converterForCypher5.apply(textRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -729,8 +790,9 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         ))
       }
 
-      test(s"CREATE TEXT INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {indexProvider : 'text-2.0'}") {
-        assert(converter.apply(textRelIndex(
+      test(s"CYPHER 5 CREATE TEXT INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {indexProvider : 'text-2.0'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
+        assert(converterForCypher5.apply(textRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -744,7 +806,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE POINT INDEX $ixName FOR ()-[v:R]-() ON (v.name)") {
-        assert(converter.apply(pointRelIndex(
+        assert(converterForDefaultCypherVersion.apply(pointRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -759,7 +821,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE POINT INDEX $ixName IF NOT EXISTS FOR ()-[v:R]-() ON (v.name)") {
-        assert(converter.apply(pointRelIndex(
+        assert(converterForDefaultCypherVersion.apply(pointRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsDoNothing,
@@ -774,7 +836,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE POINT INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {}") {
-        assert(converter.apply(pointRelIndex(
+        assert(converterForDefaultCypherVersion.apply(pointRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -788,8 +850,9 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         ))
       }
 
-      test(s"CREATE POINT INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {indexProvider : 'point-1.0'}") {
-        assert(converter.apply(pointRelIndex(
+      test(s"CYPHER 5 CREATE POINT INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {indexProvider : 'point-1.0'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
+        assert(converterForCypher5.apply(pointRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -806,7 +869,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       test(
         s"CREATE POINT INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {indexConfig : {`spatial.wgs-84.max`: [60.0,60.0], `spatial.wgs-84.min`: [-40.0,-40.0]}}"
       ) {
-        assert(converter.apply(pointRelIndex(
+        assert(converterForDefaultCypherVersion.apply(pointRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -823,31 +886,41 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         ))
       }
 
-      test(
-        s"CREATE POINT INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {indexProvider : 'point-1.0', indexConfig : {`spatial.wgs-84.max`: [60.0,60.0], `spatial.wgs-84.min`: [-40.0,-40.0]}}"
-      ) {
-        assert(converter.apply(pointRelIndex(
-          List(prop("name")),
-          indexName(ixName),
-          ast.IfExistsThrowError,
-          ast.OptionsMap(Map(
-            "indexProvider" -> literalString("point-1.0"),
-            "indexConfig" -> mapOf(
-              "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
-              "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
-            )
+      Seq(
+        (
+          converterForCypher5,
+          s"CYPHER 5 CREATE POINT INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {indexProvider : 'point-1.0', indexConfig : {`spatial.wgs-84.max`: [60.0,60.0], `spatial.wgs-84.min`: [-40.0,-40.0]}}",
+          Some("point-1.0")
+        ),
+        (
+          converterForCypher25,
+          s"CYPHER 25 CREATE POINT INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {indexConfig : {`spatial.wgs-84.max`: [60.0,60.0], `spatial.wgs-84.min`: [-40.0,-40.0]}}",
+          None
+        )
+      ).foreach { case (conv, query, ixProvider) =>
+        test(query) {
+          assert(conv.apply(pointRelIndex(
+            List(prop("name")),
+            indexName(ixName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexConfig" -> mapOf(
+                "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
+                "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
+              )
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+          )) == new RelationshipPoint(
+            commandName(ixName),
+            relType.name,
+            "name",
+            false,
+            IndexConfig.`with`(util.Map.of("spatial.wgs-84.max", array60, "spatial.wgs-84.min", array40))
           ))
-        )) == new RelationshipPoint(
-          commandName(ixName),
-          relType.name,
-          "name",
-          false,
-          IndexConfig.`with`(util.Map.of("spatial.wgs-84.max", array60, "spatial.wgs-84.min", array40))
-        ))
+        }
       }
 
       test(s"CREATE VECTOR INDEX $ixName FOR ()-[v:R]-() ON (v.name)") {
-        assert(converter.apply(vectorRelIndex(
+        assert(converterForDefaultCypherVersion.apply(vectorRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -862,7 +935,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE VECTOR INDEX $ixName IF NOT EXISTS FOR ()-[v:R]-() ON (v.name)") {
-        assert(converter.apply(vectorRelIndex(
+        assert(converterForDefaultCypherVersion.apply(vectorRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsDoNothing,
@@ -877,7 +950,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE VECTOR INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {}") {
-        assert(converter.apply(vectorRelIndex(
+        assert(converterForDefaultCypherVersion.apply(vectorRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -894,7 +967,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       test(
         s"CREATE VECTOR INDEX $ixName FOR ()-[v:R]-() ON (v.name) OPTIONS {indexConfig : {`vector.dimensions`: 1536}}"
       ) {
-        assert(converter.apply(vectorRelIndex(
+        assert(converterForDefaultCypherVersion.apply(vectorRelIndex(
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -910,54 +983,74 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         ))
       }
 
-      test(
-        s"CREATE VECTOR INDEX $ixName FOR ()-[v:R]-() ON (v.v1name) OPTIONS {indexProvider : 'vector-1.0',indexConfig : {`vector.dimensions`: 768, `vector.similarity_function`:'COSINE'}}"
-      ) {
-        assert(v1VectorConverter.apply(vectorRelIndex(
-          List(prop("v1name")),
-          indexName(ixName),
-          ast.IfExistsThrowError,
-          ast.OptionsMap(Map(
-            "indexProvider" -> literalString("vector-1.0"),
-            "indexConfig" -> mapOf(
-              "vector.dimensions" -> literalInt(768),
-              "vector.similarity_function" -> literalString("COSINE")
-            )
+      Seq(
+        (
+          v1VectorConverterForCypher5,
+          s"CYPHER 5 CREATE VECTOR INDEX $ixName FOR ()-[v:R]-() ON (v.v1name) OPTIONS {indexProvider : 'vector-1.0',indexConfig : {`vector.dimensions`: 768, `vector.similarity_function`:'COSINE'}}",
+          Some("vector-1.0")
+        ),
+        (
+          v1VectorConverterForCypher25,
+          s"CYPHER 25 CREATE VECTOR INDEX $ixName FOR ()-[v:R]-() ON (v.v1name) OPTIONS {indexConfig : {`vector.dimensions`: 768, `vector.similarity_function`:'COSINE'}}",
+          None
+        )
+      ).foreach { case (conv, query, ixProvider) =>
+        test(query) {
+          assert(conv.apply(vectorRelIndex(
+            List(prop("v1name")),
+            indexName(ixName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexConfig" -> mapOf(
+                "vector.dimensions" -> literalInt(768),
+                "vector.similarity_function" -> literalString("COSINE")
+              )
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+          )) == new RelationshipVector(
+            commandName(ixName),
+            relType.name,
+            "v1name",
+            false,
+            VECTOR_CONFIG_V1
           ))
-        )) == new RelationshipVector(
-          commandName(ixName),
-          relType.name,
-          "v1name",
-          false,
-          VECTOR_CONFIG_V1
-        ))
+        }
       }
 
-      test(
-        s"CREATE VECTOR INDEX $ixName FOR ()-[v:R]-() ON (v.v2name) OPTIONS {indexProvider : 'vector-1.0',indexConfig : {`vector.dimensions`: 768, `vector.similarity_function`:'COSINE'}}"
-      ) {
-        assert(converter.apply(vectorRelIndex(
-          List(prop("v2name")),
-          indexName(ixName),
-          ast.IfExistsThrowError,
-          ast.OptionsMap(Map(
-            "indexProvider" -> literalString("vector-1.0"),
-            "indexConfig" -> mapOf(
-              "vector.dimensions" -> literalInt(768),
-              "vector.similarity_function" -> literalString("COSINE")
-            )
+      Seq(
+        (
+          v1VectorConverterForCypher5,
+          s"CYPHER 5 CREATE VECTOR INDEX $ixName FOR ()-[v:R]-() ON (v.v2name) OPTIONS {indexProvider : 'vector-1.0',indexConfig : {`vector.dimensions`: 768, `vector.similarity_function`:'COSINE'}}",
+          Some("vector-1.0")
+        ),
+        (
+          v1VectorConverterForCypher25,
+          s"CYPHER 25 CREATE VECTOR INDEX $ixName FOR ()-[v:R]-() ON (v.v2name) OPTIONS {indexConfig : {`vector.dimensions`: 768, `vector.similarity_function`:'COSINE'}}",
+          None
+        )
+      ).foreach { case (conv, query, ixProvider) =>
+        test(query) {
+          assert(conv.apply(vectorRelIndex(
+            List(prop("v2name")),
+            indexName(ixName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexConfig" -> mapOf(
+                "vector.dimensions" -> literalInt(768),
+                "vector.similarity_function" -> literalString("COSINE")
+              )
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+          )) == new RelationshipVector(
+            commandName(ixName),
+            relType.name,
+            "v2name",
+            false,
+            VECTOR_CONFIG_V1
           ))
-        )) == new RelationshipVector(
-          commandName(ixName),
-          relType.name,
-          "v2name",
-          false,
-          VECTOR_CONFIG_V1
-        ))
+        }
       }
 
       test(s"CREATE FULLTEXT INDEX $ixName FOR ()-[v:R]-() ON EACH [v.name]") {
-        assert(converter.apply(fulltextRelIndex(
+        assert(converterForDefaultCypherVersion.apply(fulltextRelIndex(
           List(prop("name")),
           List(relType.name),
           indexName(ixName),
@@ -973,7 +1066,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE FULLTEXT INDEX $ixName IF NOT EXISTS FOR ()-[v:R]-() ON EACH [v.name]") {
-        assert(converter.apply(fulltextRelIndex(
+        assert(converterForDefaultCypherVersion.apply(fulltextRelIndex(
           List(prop("name")),
           List(relType.name),
           indexName(ixName),
@@ -989,7 +1082,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE FULLTEXT INDEX $ixName FOR ()-[v:R]-() ON EACH [v.name1, v.name2]") {
-        assert(converter.apply(fulltextRelIndex(
+        assert(converterForDefaultCypherVersion.apply(fulltextRelIndex(
           List(prop("name1"), prop("name2")),
           List(relType.name),
           indexName(ixName),
@@ -1005,7 +1098,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE FULLTEXT INDEX $ixName FOR ()-[v:R]-() ON EACH [v.name] OPTIONS {}") {
-        assert(converter.apply(fulltextRelIndex(
+        assert(converterForDefaultCypherVersion.apply(fulltextRelIndex(
           List(prop("name")),
           List(relType.name),
           indexName(ixName),
@@ -1023,7 +1116,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       test(
         s"CREATE FULLTEXT INDEX $ixName FOR ()-[v:R]-() ON EACH [v.name] OPTIONS {indexConfig : {`fulltext.eventually_consistent`: false}}"
       ) {
-        assert(converter.apply(fulltextRelIndex(
+        assert(converterForDefaultCypherVersion.apply(fulltextRelIndex(
           List(prop("name")),
           List(relType.name),
           indexName(ixName),
@@ -1040,31 +1133,41 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         ))
       }
 
-      test(
-        s"CREATE FULLTEXT INDEX $ixName FOR ()-[v:R]-() ON EACH [v.name] OPTIONS {indexProvider : 'fulltext-1.0', indexConfig : {`fulltext.eventually_consistent`: true}}"
-      ) {
-        assert(converter.apply(fulltextRelIndex(
-          List(prop("name")),
-          List(relType.name),
-          indexName(ixName),
-          ast.IfExistsThrowError,
-          ast.OptionsMap(Map(
-            "indexProvider" -> literalString("fulltext-1.0"),
-            "indexConfig" -> mapOf(
-              "fulltext.eventually_consistent" -> literalBoolean(true)
-            )
+      Seq(
+        (
+          v1VectorConverterForCypher5,
+          s"CYPHER 5 CREATE FULLTEXT INDEX $ixName FOR ()-[v:R]-() ON EACH [v.name] OPTIONS {indexProvider : 'fulltext-1.0', indexConfig : {`fulltext.eventually_consistent`: true}}",
+          Some("fulltext-1.0")
+        ),
+        (
+          v1VectorConverterForCypher25,
+          s"CYPHER 25 CREATE FULLTEXT INDEX $ixName FOR ()-[v:R]-() ON EACH [v.name] OPTIONS {indexConfig : {`fulltext.eventually_consistent`: true}}",
+          None
+        )
+      ).foreach { case (conv, query, ixProvider) =>
+        test(query) {
+          assert(conv.apply(fulltextRelIndex(
+            List(prop("name")),
+            List(relType.name),
+            indexName(ixName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexConfig" -> mapOf(
+                "fulltext.eventually_consistent" -> literalBoolean(true)
+              )
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+          )) == new RelationshipFulltext(
+            commandName(ixName),
+            asList(relType.name),
+            asList("name"),
+            false,
+            IndexConfig.empty().withIfAbsent("fulltext.eventually_consistent", Values.booleanValue(true))
           ))
-        )) == new RelationshipFulltext(
-          commandName(ixName),
-          asList(relType.name),
-          asList("name"),
-          false,
-          IndexConfig.empty().withIfAbsent("fulltext.eventually_consistent", Values.booleanValue(true))
-        ))
+        }
       }
 
       test(s"CREATE FULLTEXT INDEX $ixName FOR ()-[v:R1|R2]-() ON EACH [v.name]") {
-        converter.apply(fulltextRelIndex(
+        converterForDefaultCypherVersion.apply(fulltextRelIndex(
           List(prop("name")),
           List("R1", "R2"),
           indexName(ixName),
@@ -1080,7 +1183,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE FULLTEXT INDEX $ixName FOR ()-[v:R1|R2]-() ON EACH [v.name1,v.name1]") {
-        converter.apply(fulltextRelIndex(
+        converterForDefaultCypherVersion.apply(fulltextRelIndex(
           List(prop("name1"), prop("name2")),
           List("R1", "R2"),
           indexName(ixName),
@@ -1097,7 +1200,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
       test(s"CREATE FULLTEXT INDEX $ixName FOR ()-[v:R]-() ON EACH [v.name,v.name]") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(fulltextRelIndex(
+          converterForDefaultCypherVersion.apply(fulltextRelIndex(
             List(prop("name"), prop("name")),
             List(relType.name),
             indexName(ixName),
@@ -1112,7 +1215,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
       test(s"CREATE FULLTEXT INDEX $ixName FOR ()-[v:R|R]-() ON EACH [v.name]") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(fulltextRelIndex(
+          converterForDefaultCypherVersion.apply(fulltextRelIndex(
             List(prop("name")),
             List(relType.name, relType.name),
             indexName(ixName),
@@ -1126,7 +1229,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE LOOKUP INDEX $ixName FOR ()-[v:R]-() ON EACH type(v)") {
-        assert(converter.apply(lookupRelIndex(
+        assert(converterForDefaultCypherVersion.apply(lookupRelIndex(
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.NoOptions
@@ -1134,7 +1237,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE LOOKUP INDEX $ixName IF NOT EXISTS FOR ()-[v:R]-() ON EACH type(v)") {
-        assert(converter.apply(lookupRelIndex(
+        assert(converterForDefaultCypherVersion.apply(lookupRelIndex(
           indexName(ixName),
           ast.IfExistsDoNothing,
           ast.NoOptions
@@ -1142,7 +1245,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE LOOKUP INDEX $ixName FOR ()-[v:R]-() ON EACH type(v) OPTIONS {}") {
-        assert(converter.apply(lookupRelIndex(
+        assert(converterForDefaultCypherVersion.apply(lookupRelIndex(
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map.empty)
@@ -1150,9 +1253,10 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(
-        s"CREATE LOOKUP INDEX $ixName FOR ()-[v:R]-() ON EACH type(v) OPTIONS {indexProvider : 'token-lookup-1.0'}"
+        s"CYPHER 5 CREATE LOOKUP INDEX $ixName FOR ()-[v:R]-() ON EACH type(v) OPTIONS {indexProvider : 'token-lookup-1.0'}"
       ) {
-        assert(converter.apply(lookupRelIndex(
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
+        assert(converterForCypher5.apply(lookupRelIndex(
           indexName(ixName),
           ast.IfExistsThrowError,
           ast.OptionsMap(Map("indexProvider" -> literalString("token-lookup-1.0")))
@@ -1167,7 +1271,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
     case (pattern, suffix, entityType, createIndex: CreateLookupIndexFunction) =>
       test(s"CREATE LOOKUP INDEX $$boom FOR $pattern ON EACH $suffix") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(createIndex(
+          converterForDefaultCypherVersion.apply(createIndex(
             Some(Right(parameter)),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -1180,9 +1284,10 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         )
       }
 
-      test(s"CREATE LOOKUP INDEX FOR $pattern ON EACH $suffix OPTIONS {indexProvider : 'duff'}") {
+      test(s"CYPHER 5 CREATE LOOKUP INDEX FOR $pattern ON EACH $suffix OPTIONS {indexProvider : 'duff'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
         val error = intercept[IndexProviderNotFoundException] {
-          converter.apply(createIndex(
+          converterForCypher5.apply(createIndex(
             None,
             ast.IfExistsThrowError,
             ast.OptionsMap(Map("indexProvider" -> literalString("duff")))
@@ -1199,9 +1304,10 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         ("FULLTEXT", "fulltext-1.0")
       ).foreach {
         case (indexType, indexName) =>
-          test(s"CREATE LOOKUP INDEX FOR $pattern ON EACH $suffix OPTIONS {indexProvider : '$indexName'}") {
+          test(s"CYPHER 5 CREATE LOOKUP INDEX FOR $pattern ON EACH $suffix OPTIONS {indexProvider : '$indexName'}") {
+            // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
             val error = intercept[SchemaCommandReaderException] {
-              converter.apply(createIndex(
+              converterForCypher5.apply(createIndex(
                 None,
                 ast.IfExistsThrowError,
                 ast.OptionsMap(Map("indexProvider" -> literalString(indexName)))
@@ -1217,19 +1323,30 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           }
       }
 
-      test(s"CREATE LOOKUP INDEX FOR $pattern ON EACH $suffix OPTIONS {duff : 13}") {
-        val error = intercept[InvalidArgumentsException] {
-          converter.apply(createIndex(
-            None,
-            ast.IfExistsThrowError,
-            ast.OptionsMap(Map(
-              "duff" -> literalInt(13)
-            ))
-          ))
-        }
-        error.getMessage should includeAllOf(
-          "Failed to create token lookup index: Invalid option provided, valid options are `indexProvider` and `indexConfig`"
+      Seq(
+        (
+          CypherVersion.Cypher5,
+          converterForCypher5,
+          Seq("Failed to create token lookup index", cypher5InvalidOptionMessage)
+        ),
+        (
+          CypherVersion.Cypher25,
+          converterForCypher25,
+          Seq(cypher25InvalidOptionMessage)
         )
+      ).foreach { case (version, conv, expectedErrors) =>
+        test(s"${version.description} CREATE LOOKUP INDEX FOR $pattern ON EACH $suffix OPTIONS {duff : 13}") {
+          val error = intercept[InvalidArgumentsException] {
+            conv.apply(createIndex(
+              None,
+              ast.IfExistsThrowError,
+              ast.OptionsMap(Map(
+                "duff" -> literalInt(13)
+              ))
+            ))
+          }
+          error.getMessage should includeAllOf(expectedErrors: _*)
+        }
       }
 
       Seq(
@@ -1240,7 +1357,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       ).foreach { optionsText =>
         test(s"CREATE LOOKUP INDEX FOR $pattern ON EACH $suffix OPTIONS $optionsText") {
           val error = intercept[SchemaCommandReaderException] {
-            converter.apply(createIndex(
+            converterForDefaultCypherVersion.apply(createIndex(
               None,
               ast.IfExistsThrowError,
               ast.OptionsParam(parameterMap)
@@ -1258,7 +1375,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
     case (pattern, entityType, createIndex: CreateIndexFunction) =>
       test(s"CREATE INDEX $$boom FOR $pattern ON (v.name)") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(createIndex(
+          converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name")),
             Some(Right(parameter)),
             ast.IfExistsThrowError,
@@ -1274,7 +1391,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
       test(s"CREATE INDEX FOR $pattern ON (v.name, v.name)") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(createIndex(
+          converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name"), prop("name")),
             None,
             ast.IfExistsThrowError,
@@ -1288,9 +1405,10 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         )
       }
 
-      test(s"CREATE INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : 'duff'}") {
+      test(s"CYPHER 5 CREATE INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : 'duff'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
         val error = intercept[IndexProviderNotFoundException] {
-          converter.apply(createIndex(
+          converterForCypher5.apply(createIndex(
             List(prop("name")),
             None,
             ast.IfExistsThrowError,
@@ -1308,9 +1426,10 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         ("LOOKUP", "token-lookup-1.0")
       ).foreach {
         case (indexType, indexName) =>
-          test(s"CREATE INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : '$indexName'}") {
+          test(s"CYPHER 5 CREATE INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : '$indexName'}") {
+            // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
             val error = intercept[SchemaCommandReaderException] {
-              converter.apply(createIndex(
+              converterForCypher5.apply(createIndex(
                 List(prop("name")),
                 None,
                 ast.IfExistsThrowError,
@@ -1331,7 +1450,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         s"CREATE INDEX FOR $pattern ON (v.name) OPTIONS {indexConfig : {`spatial.cartesian.max`: [100.0,100.0], `spatial.cartesian.min`: [-100.0,-100.0] }}"
       ) {
         val error = intercept[InvalidArgumentsException] {
-          converter.apply(createIndex(
+          converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name")),
             None,
             ast.IfExistsThrowError,
@@ -1351,22 +1470,31 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         )
       }
 
-      test(s"CREATE INDEX FOR $pattern ON (v.name) OPTIONS {duff : 13}") {
-        val error = intercept[InvalidArgumentsException] {
-          converter.apply(createIndex(
-            List(prop("name")),
-            None,
-            ast.IfExistsThrowError,
-            ast.OptionsMap(Map(
-              "duff" -> literalInt(13)
-            ))
-          ))
-        }
-        error.getMessage should includeAllOf(
-          "Failed to create range",
-          entityType,
-          "property index: Invalid option provided, valid options are `indexProvider` and `indexConfig`"
+      Seq(
+        (
+          CypherVersion.Cypher5,
+          converterForCypher5,
+          Seq("Failed to create range", entityType, cypher5InvalidOptionMessage)
+        ),
+        (
+          CypherVersion.Cypher25,
+          converterForCypher25,
+          Seq(cypher25InvalidOptionMessage)
         )
+      ).foreach { case (version, conv, expectedErrors) =>
+        test(s"${version.description} CREATE INDEX FOR $pattern ON (v.name) OPTIONS {duff : 13}") {
+          val error = intercept[InvalidArgumentsException] {
+            conv.apply(createIndex(
+              List(prop("name")),
+              None,
+              ast.IfExistsThrowError,
+              ast.OptionsMap(Map(
+                "duff" -> literalInt(13)
+              ))
+            ))
+          }
+          error.getMessage should includeAllOf(expectedErrors: _*)
+        }
       }
 
       Seq(
@@ -1377,7 +1505,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       ).foreach { optionsText =>
         test(s"CREATE INDEX FOR $pattern ON (v.name) OPTIONS $optionsText") {
           val error = intercept[SchemaCommandReaderException] {
-            converter.apply(createIndex(
+            converterForDefaultCypherVersion.apply(createIndex(
               List(prop("name")),
               None,
               ast.IfExistsThrowError,
@@ -1396,7 +1524,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
     case (pattern, entityType, createIndex: CreateIndexFunction) =>
       test(s"CREATE POINT INDEX $$boom FOR $pattern ON (v.name)") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(createIndex(
+          converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name")),
             Some(Right(parameter)),
             ast.IfExistsThrowError,
@@ -1412,7 +1540,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
       test(s"CREATE POINT INDEX FOR $pattern ON (v.name, v.name)") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(createIndex(
+          converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name"), prop("name")),
             None,
             ast.IfExistsThrowError,
@@ -1424,7 +1552,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
       test(s"CREATE POINT INDEX FOR $pattern ON (v.name1, v.name2)") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(createIndex(
+          converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name1"), prop("name2")),
             None,
             ast.IfExistsThrowError,
@@ -1434,9 +1562,10 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         error.getMessage should includeAllOf("Expected only a single property")
       }
 
-      test(s"CREATE POINT INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : 'duff'}") {
+      test(s"CYPHER 5 CREATE POINT INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : 'duff'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
         val error = intercept[IndexProviderNotFoundException] {
-          converter.apply(createIndex(
+          converterForCypher5.apply(createIndex(
             List(prop("name")),
             None,
             ast.IfExistsThrowError,
@@ -1454,9 +1583,10 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         ("LOOKUP", "token-lookup-1.0")
       ).foreach {
         case (indexType, indexName) =>
-          test(s"CREATE POINT INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : '$indexName'}") {
+          test(s"CYPHER 5 CREATE POINT INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : '$indexName'}") {
+            // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
             val error = intercept[SchemaCommandReaderException] {
-              converter.apply(createIndex(
+              converterForCypher5.apply(createIndex(
                 List(prop("name")),
                 None,
                 ast.IfExistsThrowError,
@@ -1473,20 +1603,31 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           }
       }
 
-      test(s"CREATE POINT INDEX FOR $pattern ON (v.name) OPTIONS {duff : 13}") {
-        val error = intercept[InvalidArgumentsException] {
-          converter.apply(createIndex(
-            List(prop("name")),
-            None,
-            ast.IfExistsThrowError,
-            ast.OptionsMap(Map(
-              "duff" -> literalInt(13)
-            ))
-          ))
-        }
-        error.getMessage should includeAllOf(
-          "Failed to create point index: Invalid option provided, valid options are `indexProvider` and `indexConfig`"
+      Seq(
+        (
+          CypherVersion.Cypher5,
+          converterForCypher5,
+          Seq("Failed to create point index", cypher5InvalidOptionMessage)
+        ),
+        (
+          CypherVersion.Cypher25,
+          converterForCypher25,
+          Seq(cypher25InvalidOptionMessage)
         )
+      ).foreach { case (version, conv, expectedErrors) =>
+        test(s"${version.description} CREATE POINT INDEX FOR $pattern ON (v.name) OPTIONS {duff : 13}") {
+          val error = intercept[InvalidArgumentsException] {
+            conv.apply(createIndex(
+              List(prop("name")),
+              None,
+              ast.IfExistsThrowError,
+              ast.OptionsMap(Map(
+                "duff" -> literalInt(13)
+              ))
+            ))
+          }
+          error.getMessage should includeAllOf(expectedErrors: _*)
+        }
       }
 
       Seq(
@@ -1497,7 +1638,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       ).foreach { optionsText =>
         test(s"CREATE POINT INDEX FOR $pattern ON (v.name) OPTIONS $optionsText") {
           val error = intercept[SchemaCommandReaderException] {
-            converter.apply(createIndex(
+            converterForDefaultCypherVersion.apply(createIndex(
               List(prop("name")),
               None,
               ast.IfExistsThrowError,
@@ -1516,7 +1657,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
     case (pattern, entityType, createIndex: CreateIndexFunction) =>
       test(s"CREATE TEXT INDEX $$boom FOR $pattern ON (v.name)") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(createIndex(
+          converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name")),
             Some(Right(parameter)),
             ast.IfExistsThrowError,
@@ -1532,7 +1673,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
       test(s"CREATE TEXT INDEX FOR $pattern ON (v.name, v.name)") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(createIndex(
+          converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name"), prop("name")),
             None,
             ast.IfExistsThrowError,
@@ -1544,7 +1685,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
       test(s"CREATE TEXT INDEX FOR $pattern ON (v.name1, v.name2)") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(createIndex(
+          converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name1"), prop("name2")),
             None,
             ast.IfExistsThrowError,
@@ -1554,9 +1695,10 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         error.getMessage should includeAllOf("Expected only a single property")
       }
 
-      test(s"CREATE TEXT INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : 'duff'}") {
+      test(s"CYPHER 5 CREATE TEXT INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : 'duff'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
         val error = intercept[IndexProviderNotFoundException] {
-          converter.apply(createIndex(
+          converterForCypher5.apply(createIndex(
             List(prop("name")),
             None,
             ast.IfExistsThrowError,
@@ -1574,9 +1716,10 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         ("LOOKUP", "token-lookup-1.0")
       ).foreach {
         case (indexType, indexName) =>
-          test(s"CREATE TEXT INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : '$indexName'}") {
+          test(s"CYPHER 5 CREATE TEXT INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : '$indexName'}") {
+            // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
             val error = intercept[SchemaCommandReaderException] {
-              converter.apply(createIndex(
+              converterForCypher5.apply(createIndex(
                 List(prop("name")),
                 None,
                 ast.IfExistsThrowError,
@@ -1593,20 +1736,31 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           }
       }
 
-      test(s"CREATE TEXT INDEX FOR $pattern ON (v.name) OPTIONS {duff : 13}") {
-        val error = intercept[InvalidArgumentsException] {
-          converter.apply(createIndex(
-            List(prop("name")),
-            None,
-            ast.IfExistsThrowError,
-            ast.OptionsMap(Map(
-              "duff" -> literalInt(13)
-            ))
-          ))
-        }
-        error.getMessage should includeAllOf(
-          "Failed to create text index: Invalid option provided, valid options are `indexProvider` and `indexConfig`"
+      Seq(
+        (
+          CypherVersion.Cypher5,
+          converterForCypher5,
+          Seq("Failed to create text index", cypher5InvalidOptionMessage)
+        ),
+        (
+          CypherVersion.Cypher25,
+          converterForCypher25,
+          Seq(cypher25InvalidOptionMessage)
         )
+      ).foreach { case (version, conv, expectedErrors) =>
+        test(s"${version.description} CREATE TEXT INDEX FOR $pattern ON (v.name) OPTIONS {duff : 13}") {
+          val error = intercept[InvalidArgumentsException] {
+            conv.apply(createIndex(
+              List(prop("name")),
+              None,
+              ast.IfExistsThrowError,
+              ast.OptionsMap(Map(
+                "duff" -> literalInt(13)
+              ))
+            ))
+          }
+          error.getMessage should includeAllOf(expectedErrors: _*)
+        }
       }
 
       Seq(
@@ -1617,7 +1771,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       ).foreach { optionsText =>
         test(s"CREATE TEXT INDEX FOR $pattern ON (v.name) OPTIONS $optionsText") {
           val error = intercept[SchemaCommandReaderException] {
-            converter.apply(createIndex(
+            converterForDefaultCypherVersion.apply(createIndex(
               List(prop("name")),
               None,
               ast.IfExistsThrowError,
@@ -1636,7 +1790,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
     case (pattern, entityType, createIndex: CreateIndexFunction) =>
       test(s"CREATE VECTOR INDEX $$boom FOR $pattern ON (v.name)") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(createIndex(
+          converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name")),
             Some(Right(parameter)),
             ast.IfExistsThrowError,
@@ -1652,7 +1806,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON (v.name, v.name)") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(createIndex(
+          converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name"), prop("name")),
             None,
             ast.IfExistsThrowError,
@@ -1664,7 +1818,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON (v.name1, v.name2)") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(createIndex(
+          converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name1"), prop("name2")),
             None,
             ast.IfExistsThrowError,
@@ -1674,9 +1828,10 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         error.getMessage should includeAllOf("Expected only a single property")
       }
 
-      test(s"CREATE VECTOR INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : 'duff'}") {
+      test(s"CYPHER 5 CREATE VECTOR INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : 'duff'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
         val error = intercept[IndexProviderNotFoundException] {
-          converter.apply(createIndex(
+          converterForCypher5.apply(createIndex(
             List(prop("name")),
             None,
             ast.IfExistsThrowError,
@@ -1694,9 +1849,10 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         ("LOOKUP", "token-lookup-1.0")
       ).foreach {
         case (indexType, indexName) =>
-          test(s"CREATE VECTOR INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : '$indexName'}") {
+          test(s"CYPHER 5 CREATE VECTOR INDEX FOR $pattern ON (v.name) OPTIONS {indexProvider : '$indexName'}") {
+            // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
             val error = intercept[SchemaCommandReaderException] {
-              converter.apply(createIndex(
+              converterForCypher5.apply(createIndex(
                 List(prop("name")),
                 None,
                 ast.IfExistsThrowError,
@@ -1713,20 +1869,31 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           }
       }
 
-      test(s"CREATE VECTOR INDEX FOR $pattern ON (v.name) OPTIONS {duff : 13}") {
-        val error = intercept[InvalidArgumentsException] {
-          converter.apply(createIndex(
-            List(prop("name")),
-            None,
-            ast.IfExistsThrowError,
-            ast.OptionsMap(Map(
-              "duff" -> literalInt(13)
-            ))
-          ))
-        }
-        error.getMessage should includeAllOf(
-          "Failed to create vector index: Invalid option provided, valid options are `indexProvider` and `indexConfig`"
+      Seq(
+        (
+          CypherVersion.Cypher5,
+          converterForCypher5,
+          Seq("Failed to create vector index", cypher5InvalidOptionMessage)
+        ),
+        (
+          CypherVersion.Cypher25,
+          converterForCypher25,
+          Seq(cypher25InvalidOptionMessage)
         )
+      ).foreach { case (version, conv, expectedErrors) =>
+        test(s"${version.description} CREATE VECTOR INDEX FOR $pattern ON (v.name) OPTIONS {duff : 13}") {
+          val error = intercept[InvalidArgumentsException] {
+            conv.apply(createIndex(
+              List(prop("name")),
+              None,
+              ast.IfExistsThrowError,
+              ast.OptionsMap(Map(
+                "duff" -> literalInt(13)
+              ))
+            ))
+          }
+          error.getMessage should includeAllOf(expectedErrors: _*)
+        }
       }
 
       Seq(
@@ -1737,7 +1904,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       ).foreach { optionsText =>
         test(s"CREATE VECTOR INDEX FOR $pattern ON (v.name) OPTIONS $optionsText") {
           val error = intercept[SchemaCommandReaderException] {
-            converter.apply(createIndex(
+            converterForDefaultCypherVersion.apply(createIndex(
               List(prop("name")),
               None,
               ast.IfExistsThrowError,
@@ -1752,7 +1919,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         s"CREATE VECTOR INDEX FOR $pattern ON (v.name) OPTIONS { indexConfig : {`vector.dimensions`: 50, `vector.quantization.enabled`: true }"
       ) {
         val error = intercept[InvalidArgumentsException] {
-          v1VectorConverter.apply(createIndex(
+          v1VectorConverterForDefaultCypherVersion.apply(createIndex(
             List(prop("name")),
             None,
             ast.IfExistsThrowError,
@@ -1778,7 +1945,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
     case (pattern, entity, entityType, createIndex: CreateFulltextIndexFunction) =>
       test(s"CREATE FULLTEXT INDEX $$boom FOR $pattern ON EACH [v.name]") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(createIndex(
+          converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name")),
             List(entity),
             Some(Right(parameter)),
@@ -1793,9 +1960,10 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         )
       }
 
-      test(s"CREATE FULLTEXT INDEX FOR $pattern ON EACH [v.name] OPTIONS {indexProvider : 'duff'}") {
+      test(s"CYPHER 5 CREATE FULLTEXT INDEX FOR $pattern ON EACH [v.name] OPTIONS {indexProvider : 'duff'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
         val error = intercept[IndexProviderNotFoundException] {
-          converter.apply(createIndex(
+          converterForCypher5.apply(createIndex(
             List(prop("name")),
             List(entity),
             None,
@@ -1814,9 +1982,10 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         ("LOOKUP", "token-lookup-1.0")
       ).foreach {
         case (indexType, indexName) =>
-          test(s"CREATE FULLTEXT INDEX FOR $pattern ON EACH [v.name] OPTIONS {indexProvider : '$indexName'}") {
+          test(s"CYPHER 5 CREATE FULLTEXT INDEX FOR $pattern ON EACH [v.name] OPTIONS {indexProvider : '$indexName'}") {
+            // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
             val error = intercept[SchemaCommandReaderException] {
-              converter.apply(createIndex(
+              converterForCypher5.apply(createIndex(
                 List(prop("name")),
                 List(entity),
                 None,
@@ -1833,22 +2002,32 @@ class SchemaCommandConverterTest extends CypherFunSuite {
             )
           }
       }
-
-      test(s"CREATE FULLTEXT INDEX FOR $pattern ON EACH [v.name] OPTIONS {duff : 13}") {
-        val error = intercept[InvalidArgumentsException] {
-          converter.apply(createIndex(
-            List(prop("name")),
-            List(entity),
-            None,
-            ast.IfExistsThrowError,
-            ast.OptionsMap(Map(
-              "duff" -> literalInt(13)
-            ))
-          ))
-        }
-        error.getMessage should includeAllOf(
-          "Failed to create fulltext index: Invalid option provided, valid options are `indexProvider` and `indexConfig`"
+      Seq(
+        (
+          CypherVersion.Cypher5,
+          converterForCypher5,
+          Seq("Failed to create fulltext index", cypher5InvalidOptionMessage)
+        ),
+        (
+          CypherVersion.Cypher25,
+          converterForCypher25,
+          Seq(cypher25InvalidOptionMessage)
         )
+      ).foreach { case (version, conv, expectedErrors) =>
+        test(s"${version.description} CREATE FULLTEXT INDEX FOR $pattern ON EACH [v.name] OPTIONS {duff : 13}") {
+          val error = intercept[InvalidArgumentsException] {
+            conv.apply(createIndex(
+              List(prop("name")),
+              List(entity),
+              None,
+              ast.IfExistsThrowError,
+              ast.OptionsMap(Map(
+                "duff" -> literalInt(13)
+              ))
+            ))
+          }
+          error.getMessage should includeAllOf(expectedErrors: _*)
+        }
       }
 
       Seq(
@@ -1859,7 +2038,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       ).foreach { optionsText =>
         test(s"CREATE FULLTEXT INDEX FOR $pattern ON EACH [v.name] OPTIONS $optionsText") {
           val error = intercept[SchemaCommandReaderException] {
-            converter.apply(createIndex(
+            converterForDefaultCypherVersion.apply(createIndex(
               List(prop("name")),
               List(entity),
               None,
@@ -1946,7 +2125,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
   ).foreach {
     case (pattern, ixName, suffix, constraintType, createConstraint: CreateConstraintFunction) =>
       test(s"CREATE CONSTRAINT $ixName FOR $pattern REQUIRE v.name IS $suffix") {
-        assert(converter.apply(createConstraint(
+        assert(converterForDefaultCypherVersion.apply(createConstraint(
           prop("name"),
           indexName(ixName),
           ast.IfExistsThrowError,
@@ -2009,7 +2188,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       }
 
       test(s"CREATE CONSTRAINT $ixName IF NOT EXISTS FOR $pattern REQUIRE v.name IS $suffix") {
-        assert(converter.apply(createConstraint(
+        assert(converterForDefaultCypherVersion.apply(createConstraint(
           prop("name"),
           indexName(ixName),
           ast.IfExistsDoNothing,
@@ -2085,7 +2264,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
     case (pattern, suffix, constraintType, createConstraint: CreateConstraintFunction) =>
       test(s"CREATE CONSTRAINT $$boom FOR $pattern REQUIRE v.name IS $suffix") {
         val error = intercept[SchemaCommandReaderException] {
-          converter.apply(createConstraint(
+          converterForDefaultCypherVersion.apply(createConstraint(
             prop("name"),
             Some(Right(parameter)),
             ast.IfExistsThrowError,
@@ -2107,7 +2286,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       ).foreach { optionsText =>
         test(s"CREATE CONSTRAINT my_index FOR $pattern REQUIRE v.name IS $suffix OPTIONS $optionsText") {
           val error = intercept[SchemaCommandReaderException] {
-            converter.apply(createConstraint(
+            converterForDefaultCypherVersion.apply(createConstraint(
               prop("name"),
               indexName("my_index"),
               ast.IfExistsThrowError,

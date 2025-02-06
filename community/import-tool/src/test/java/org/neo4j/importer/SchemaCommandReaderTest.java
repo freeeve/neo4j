@@ -34,6 +34,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.exceptions.SyntaxException;
 import org.neo4j.importer.SchemaCommandReader.ReaderConfig;
 import org.neo4j.internal.schema.IndexConfig;
@@ -72,7 +73,8 @@ import org.neo4j.values.storable.Values;
 
 @TestDirectoryExtension
 class SchemaCommandReaderTest {
-
+    private static final String INVALID_OPTION_CYPHER_5 =
+            "Invalid option provided, valid options are `indexProvider` and `indexConfig`";
     private static final IndexConfig VECTOR_CONFIG_V1 =
             IndexConfig.with(Map.of("vector.similarity_function", Values.stringValue("COSINE")));
     private static final IndexConfig VECTOR_DIMENSIONS_V1 =
@@ -123,8 +125,10 @@ class SchemaCommandReaderTest {
     @ParameterizedTest()
     @MethodSource
     void createsCorrectChanges(String cypherText, List<SchemaCommand> expectedChanges) throws IOException {
-        final var reader = new SchemaCommandReader(
-                fs, Config.defaults(), new ReaderConfig(true, true, true, VECTOR_INDEX_VERSION));
+        final var config = Config.defaults();
+        config.set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, true);
+        final var reader =
+                new SchemaCommandReader(fs, config, new ReaderConfig(true, true, true, VECTOR_INDEX_VERSION));
         assertThat(reader.parse(createCypher(cypherText))).isEqualTo(expectedChanges);
     }
 
@@ -132,8 +136,10 @@ class SchemaCommandReaderTest {
     @MethodSource
     void handlesIncorrectChanges(String cypherText, String... errors) throws IOException {
         final var cypher = createCypher(cypherText);
-        final var reader = new SchemaCommandReader(
-                fs, Config.defaults(), new ReaderConfig(true, true, true, VECTOR_INDEX_VERSION));
+        final var config = Config.defaults();
+        config.set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, true);
+        final var reader =
+                new SchemaCommandReader(fs, config, new ReaderConfig(true, true, true, VECTOR_INDEX_VERSION));
         assertThatThrownBy(() -> reader.parse(cypher)).hasMessageContainingAll(errors);
     }
 
@@ -291,10 +297,18 @@ class SchemaCommandReaderTest {
                         new NodeRange("testing", "LabelName", List.of("propertyName"), true)),
                 arguments(
                         """
-                    CREATE INDEX testing
+                    CYPHER 5 CREATE INDEX testing
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     OPTIONS { indexProvider: 'range-1.0' }
+                    """,
+                        new NodeRange("testing", "LabelName", List.of("propertyName"), false)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE INDEX testing
+                    FOR (n:LabelName)
+                    ON (n.propertyName)
+                    OPTIONS { }
                     """,
                         new NodeRange("testing", "LabelName", List.of("propertyName"), false)),
                 arguments(
@@ -372,10 +386,18 @@ class SchemaCommandReaderTest {
                         new RelationshipRange("testing", "RelName", List.of("propertyName"), true)),
                 arguments(
                         """
-                    CREATE INDEX testing
+                    CYPHER 5 CREATE INDEX testing
                     FOR ()-[r:RelName]-()
                     ON (r.propertyName)
                     OPTIONS { indexProvider: 'range-1.0' }
+                    """,
+                        new RelationshipRange("testing", "RelName", List.of("propertyName"), false)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE INDEX testing
+                    FOR ()-[r:RelName]-()
+                    ON (r.propertyName)
+                    OPTIONS { }
                     """,
                         new RelationshipRange("testing", "RelName", List.of("propertyName"), false)),
                 arguments(
@@ -425,10 +447,18 @@ class SchemaCommandReaderTest {
                         new NodeText("testing", "LabelName", "propertyName", true)),
                 arguments(
                         """
-                    CREATE TEXT INDEX testing
+                    CYPHER 5 CREATE TEXT INDEX testing
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     OPTIONS { indexProvider: 'text-2.0' }
+                    """,
+                        new NodeText("testing", "LabelName", "propertyName", false)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE TEXT INDEX testing
+                    FOR (n:LabelName)
+                    ON (n.propertyName)
+                    OPTIONS { }
                     """,
                         new NodeText("testing", "LabelName", "propertyName", false)),
                 // REL TEXT INDEX
@@ -471,10 +501,18 @@ class SchemaCommandReaderTest {
                         new RelationshipText("testing", "RelName", "propertyName", true)),
                 arguments(
                         """
-                    CREATE TEXT INDEX testing
+                    CYPHER 5 CREATE TEXT INDEX testing
                     FOR ()-[r:RelName]-()
                     ON (r.propertyName)
                     OPTIONS { indexProvider: 'text-2.0' }
+                    """,
+                        new RelationshipText("testing", "RelName", "propertyName", false)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE TEXT INDEX testing
+                    FOR ()-[r:RelName]-()
+                    ON (r.propertyName)
+                    OPTIONS { }
                     """,
                         new RelationshipText("testing", "RelName", "propertyName", false)),
                 // NODE POINT INDEX
@@ -517,10 +555,18 @@ class SchemaCommandReaderTest {
                         new NodePoint("testing", "LabelName", "propertyName", true, IndexConfig.empty())),
                 arguments(
                         """
-                    CREATE POINT INDEX testing
+                    CYPHER 5 CREATE POINT INDEX testing
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     OPTIONS { indexProvider: 'point-1.0' }
+                    """,
+                        new NodePoint("testing", "LabelName", "propertyName", false, IndexConfig.empty())),
+                arguments(
+                        """
+                    CYPHER 25 CREATE POINT INDEX testing
+                    FOR (n:LabelName)
+                    ON (n.propertyName)
+                    OPTIONS { }
                     """,
                         new NodePoint("testing", "LabelName", "propertyName", false, IndexConfig.empty())),
                 arguments(
@@ -571,10 +617,18 @@ class SchemaCommandReaderTest {
                         new RelationshipPoint("testing", "RelName", "propertyName", true, IndexConfig.empty())),
                 arguments(
                         """
-                    CREATE POINT INDEX testing
+                    CYPHER 5 CREATE POINT INDEX testing
                     FOR ()-[r:RelName]-()
                     ON (r.propertyName)
                     OPTIONS { indexProvider: 'point-1.0' }
+                    """,
+                        new RelationshipPoint("testing", "RelName", "propertyName", false, IndexConfig.empty())),
+                arguments(
+                        """
+                    CYPHER 25 CREATE POINT INDEX testing
+                    FOR ()-[r:RelName]-()
+                    ON (r.propertyName)
+                    OPTIONS { }
                     """,
                         new RelationshipPoint("testing", "RelName", "propertyName", false, IndexConfig.empty())),
                 arguments(
@@ -609,10 +663,18 @@ class SchemaCommandReaderTest {
                         new NodeLookup("testing", true)),
                 arguments(
                         """
-                    CREATE LOOKUP INDEX testing
+                    CYPHER 5 CREATE LOOKUP INDEX testing
                     FOR (n)
                     ON EACH labels(n)
                     OPTIONS { indexProvider: 'token-lookup-1.0' }
+                    """,
+                        new NodeLookup("testing", false)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE LOOKUP INDEX testing
+                    FOR (n)
+                    ON EACH labels(n)
+                    OPTIONS { }
                     """,
                         new NodeLookup("testing", false)),
                 // REL LOOKUP INDEX
@@ -639,10 +701,18 @@ class SchemaCommandReaderTest {
                         new RelationshipLookup("testing", true)),
                 arguments(
                         """
-                    CREATE LOOKUP INDEX testing
+                    CYPHER 5 CREATE LOOKUP INDEX testing
                     FOR ()-[r]-()
                     ON EACH type(r)
                     OPTIONS { indexProvider: 'token-lookup-1.0' }
+                    """,
+                        new RelationshipLookup("testing", false)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE LOOKUP INDEX testing
+                    FOR ()-[r]-()
+                    ON EACH type(r)
+                    OPTIONS { }
                     """,
                         new RelationshipLookup("testing", false)),
                 // NODE FULLTEXT INDEX
@@ -717,10 +787,19 @@ class SchemaCommandReaderTest {
                                 "testing", List.of("LabelName"), List.of("propertyName"), false, FULLTEXT_CONFIG)),
                 arguments(
                         """
-                    CREATE FULLTEXT INDEX testing
+                    CYPHER 5 CREATE FULLTEXT INDEX testing
                     FOR (n:LabelName)
                     ON EACH [n.propertyName]
                     OPTIONS { indexProvider: 'fulltext-1.0' }
+                    """,
+                        new NodeFulltext(
+                                "testing", List.of("LabelName"), List.of("propertyName"), false, IndexConfig.empty())),
+                arguments(
+                        """
+                    CYPHER 25 CREATE FULLTEXT INDEX testing
+                    FOR (n:LabelName)
+                    ON EACH [n.propertyName]
+                    OPTIONS { }
                     """,
                         new NodeFulltext(
                                 "testing", List.of("LabelName"), List.of("propertyName"), false, IndexConfig.empty())),
@@ -796,10 +875,19 @@ class SchemaCommandReaderTest {
                                 "testing", List.of("RelType"), List.of("propertyName"), false, FULLTEXT_CONFIG)),
                 arguments(
                         """
-                    CREATE FULLTEXT INDEX testing
+                    CYPHER 5 CREATE FULLTEXT INDEX testing
                     FOR ()-[r:RelType]-()
                     ON EACH [r.propertyName]
                     OPTIONS { indexProvider: 'fulltext-1.0' }
+                    """,
+                        new RelationshipFulltext(
+                                "testing", List.of("RelType"), List.of("propertyName"), false, IndexConfig.empty())),
+                arguments(
+                        """
+                    CYPHER 25 CREATE FULLTEXT INDEX testing
+                    FOR ()-[r:RelType]-()
+                    ON EACH [r.propertyName]
+                    OPTIONS { }
                     """,
                         new RelationshipFulltext(
                                 "testing", List.of("RelType"), List.of("propertyName"), false, IndexConfig.empty())),
@@ -845,7 +933,7 @@ class SchemaCommandReaderTest {
                         new NodeVector("testing", "LabelName", "propertyName", true, VECTOR_DIMENSIONS_V2)),
                 arguments(
                         """
-                    CREATE VECTOR INDEX testing
+                    CYPHER 5 CREATE VECTOR INDEX testing
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     OPTIONS {
@@ -857,6 +945,19 @@ class SchemaCommandReaderTest {
                     }
                     """,
                         new NodeVector("testing", "LabelName", "propertyName", false, VECTOR_DIMENSIONS_V1)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE VECTOR INDEX testing
+                    FOR (n:LabelName)
+                    ON (n.propertyName)
+                    OPTIONS {
+                      indexConfig: {
+                        `vector.dimensions`: 1536,
+                        `vector.similarity_function`: 'COSINE'
+                      }
+                    }
+                    """,
+                        new NodeVector("testing", "LabelName", "propertyName", false, VECTOR_DIMENSIONS_V2)),
                 // REL VECTOR INDEX
                 arguments(
                         """
@@ -904,7 +1005,7 @@ class SchemaCommandReaderTest {
                         new RelationshipVector("testing", "RelName", "propertyName", true, VECTOR_DIMENSIONS_V2)),
                 arguments(
                         """
-                    CREATE VECTOR INDEX testing
+                    CYPHER 5 CREATE VECTOR INDEX testing
                     FOR ()-[r:RelName]-()
                     ON (r.propertyName)
                     OPTIONS {
@@ -912,6 +1013,18 @@ class SchemaCommandReaderTest {
                         `vector.dimensions`: 1536
                       },
                       indexProvider: 'vector-2.0'
+                    }
+                    """,
+                        new RelationshipVector("testing", "RelName", "propertyName", false, VECTOR_DIMENSIONS_V2)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE VECTOR INDEX testing
+                    FOR ()-[r:RelName]-()
+                    ON (r.propertyName)
+                    OPTIONS {
+                      indexConfig: {
+                        `vector.dimensions`: 1536
+                      }
                     }
                     """,
                         new RelationshipVector("testing", "RelName", "propertyName", false, VECTOR_DIMENSIONS_V2)),
@@ -991,10 +1104,18 @@ class SchemaCommandReaderTest {
                         new NodeKey("testing", "LabelName", List.of("prop1", "prop2"), false)),
                 arguments(
                         """
-                    CREATE CONSTRAINT testing IF NOT EXISTS
+                    CYPHER 5 CREATE CONSTRAINT testing IF NOT EXISTS
                     FOR (c:LabelName)
                     REQUIRE c.prop IS NODE KEY
                     OPTIONS { indexProvider: 'range-1.0' }
+                    """,
+                        new NodeKey("testing", "LabelName", List.of("prop"), true)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
+                    FOR (c:LabelName)
+                    REQUIRE c.prop IS NODE KEY
+                    OPTIONS { }
                     """,
                         new NodeKey("testing", "LabelName", List.of("prop"), true)),
                 arguments(
@@ -1027,10 +1148,18 @@ class SchemaCommandReaderTest {
                         new NodeUniqueness("testing", "LabelName", List.of("prop1", "prop2"), false)),
                 arguments(
                         """
-                    CREATE CONSTRAINT testing IF NOT EXISTS
+                    CYPHER 5 CREATE CONSTRAINT testing IF NOT EXISTS
                     FOR (c:LabelName)
                     REQUIRE c.prop IS UNIQUE
                     OPTIONS { indexProvider: 'range-1.0' }
+                    """,
+                        new NodeUniqueness("testing", "LabelName", List.of("prop"), true)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
+                    FOR (c:LabelName)
+                    REQUIRE c.prop IS UNIQUE
+                    OPTIONS { }
                     """,
                         new NodeUniqueness("testing", "LabelName", List.of("prop"), true)),
                 arguments(
@@ -1108,10 +1237,18 @@ class SchemaCommandReaderTest {
                         new RelationshipKey("testing", "RelName", List.of("prop1", "prop2"), false)),
                 arguments(
                         """
-                    CREATE CONSTRAINT testing IF NOT EXISTS
+                    CYPHER 5 CREATE CONSTRAINT testing IF NOT EXISTS
                     FOR ()-[c:RelName]-()
                     REQUIRE c.prop IS REL KEY
                     OPTIONS { indexProvider: 'range-1.0' }
+                    """,
+                        new RelationshipKey("testing", "RelName", List.of("prop"), true)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
+                    FOR ()-[c:RelName]-()
+                    REQUIRE c.prop IS REL KEY
+                    OPTIONS { }
                     """,
                         new RelationshipKey("testing", "RelName", List.of("prop"), true)),
                 arguments(
@@ -1144,10 +1281,18 @@ class SchemaCommandReaderTest {
                         new RelationshipUniqueness("testing", "RelName", List.of("prop1", "prop2"), false)),
                 arguments(
                         """
-                    CREATE CONSTRAINT testing IF NOT EXISTS
+                    CYPHER 5 CREATE CONSTRAINT testing IF NOT EXISTS
                     FOR ()-[c:RelName]-()
                     REQUIRE c.prop IS UNIQUE
                     OPTIONS { indexProvider: 'range-1.0' }
+                    """,
+                        new RelationshipUniqueness("testing", "RelName", List.of("prop"), true)),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
+                    FOR ()-[c:RelName]-()
+                    REQUIRE c.prop IS UNIQUE
+                    OPTIONS { }
                     """,
                         new RelationshipUniqueness("testing", "RelName", List.of("prop"), true)),
 
@@ -1262,7 +1407,7 @@ class SchemaCommandReaderTest {
                 // invalid options
                 arguments(
                         """
-                    CREATE TEXT INDEX testing
+                    CYPHER 5 CREATE TEXT INDEX testing
                     FOR (n:LabelName1)
                     ON (n.propertyName)
                     OPTIONS { indexProvider: 'vector-1.0' }
@@ -1270,7 +1415,7 @@ class SchemaCommandReaderTest {
                         "The provider 'vector-1.0' of type VECTOR does not match the expected type of TEXT"),
                 arguments(
                         """
-                    CREATE INDEX testing
+                    CYPHER 5 CREATE INDEX testing
                     FOR (n:LabelName1)
                     ON (n.propertyName)
                     OPTIONS { indexProvider: 'point-1.0' }
@@ -1278,16 +1423,25 @@ class SchemaCommandReaderTest {
                         "The provider 'point-1.0' of type POINT does not match the expected type of RANGE"),
                 arguments(
                         """
-                    CREATE INDEX testing
+                    CYPHER 5 CREATE INDEX testing
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     OPTIONS { provider: 'duff' }
                     """,
                         "Unable to parse the Cypher",
-                        "Invalid option provided, valid options are `indexProvider` and `indexConfig`"),
+                        INVALID_OPTION_CYPHER_5),
                 arguments(
                         """
-                    CREATE INDEX boom
+                    CYPHER 25 CREATE INDEX testing
+                    FOR (n:LabelName)
+                    ON (n.propertyName)
+                    OPTIONS { provider: 'duff' }
+                    """,
+                        "Unable to parse the Cypher",
+                        "22N04: Invalid input 'provider' for 'OPTIONS'. Expected 'indexConfig'"),
+                arguments(
+                        """
+                    CYPHER 5 CREATE INDEX boom
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     OPTIONS { indexProvider: ['duff'] }
@@ -1296,31 +1450,58 @@ class SchemaCommandReaderTest {
                         "Expected String value"),
                 arguments(
                         """
-                    CREATE INDEX testing
+                    CYPHER 5 CREATE INDEX testing
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     OPTIONS { config: 'duff' }
                     """,
                         "Unable to parse the Cypher",
-                        "Invalid option provided, valid options are `indexProvider` and `indexConfig`"),
+                        INVALID_OPTION_CYPHER_5),
                 arguments(
                         """
-                    CREATE INDEX boom
+                    CYPHER 25 CREATE INDEX testing
+                    FOR (n:LabelName)
+                    ON (n.propertyName)
+                    OPTIONS { config: 'duff' }
+                    """,
+                        "Unable to parse the Cypher",
+                        "22N04: Invalid input 'config' for 'OPTIONS'. Expected 'indexConfig'"),
+                arguments(
+                        """
+                    CYPHER 5 CREATE INDEX boom
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     OPTIONS { config: {go:['boom']} }
                     """,
                         "Unable to parse the Cypher",
-                        "Invalid option provided, valid options are `indexProvider` and `indexConfig`"),
+                        INVALID_OPTION_CYPHER_5),
                 arguments(
                         """
-                    CREATE INDEX boom
+                    CYPHER 25 CREATE INDEX boom
+                    FOR (n:LabelName)
+                    ON (n.propertyName)
+                    OPTIONS { config: {go:['boom']} }
+                    """,
+                        "Unable to parse the Cypher",
+                        "22N04: Invalid input 'config' for 'OPTIONS'. Expected 'indexConfig'"),
+                arguments(
+                        """
+                    CYPHER 5 CREATE INDEX boom
                     FOR (n:LabelName)
                     ON (n.propertyName)
                     OPTIONS { indexProvider: 'range-1.0', config: ['boom'] }
                     """,
                         "Unable to parse the Cypher",
-                        "Invalid option provided, valid options are `indexProvider` and `indexConfig`"),
+                        INVALID_OPTION_CYPHER_5),
+                arguments(
+                        """
+                    CYPHER 25 CREATE INDEX boom
+                    FOR (n:LabelName)
+                    ON (n.propertyName)
+                    OPTIONS { config: ['boom'] }
+                    """,
+                        "Unable to parse the Cypher",
+                        "22N04: Invalid input 'config' for 'OPTIONS'. Expected 'indexConfig'"),
                 arguments(
                         """
                     CREATE INDEX boom
@@ -1473,13 +1654,21 @@ class SchemaCommandReaderTest {
                         "Variable `x` not defined"),
                 arguments(
                         """
-                    CREATE CONSTRAINT boom
+                    CYPHER 5 CREATE CONSTRAINT boom
                     FOR (n:LabelName)
                     REQUIRE n.prop IS UNIQUE
                     OPTIONS { duff:13 }
                     """,
                         "Failed to create uniqueness constraint",
-                        "Invalid option provided, valid options are `indexProvider` and `indexConfig`"),
+                        INVALID_OPTION_CYPHER_5),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT boom
+                    FOR (n:LabelName)
+                    REQUIRE n.prop IS UNIQUE
+                    OPTIONS { duff:13 }
+                    """,
+                        "22N04: Invalid input 'duff' for 'OPTIONS'. Expected 'indexConfig'"),
                 arguments(
                         """
                     CREATE CONSTRAINT boom
@@ -1512,13 +1701,21 @@ class SchemaCommandReaderTest {
                         "Variable `x` not defined"),
                 arguments(
                         """
-                    CREATE CONSTRAINT boom
+                    CYPHER 5 CREATE CONSTRAINT boom
                     FOR (n:LabelName)
                     REQUIRE n.prop IS NODE KEY
                     OPTIONS { duff:13 }
                     """,
                         "Failed to create node key constraint",
-                        "Invalid option provided, valid options are `indexProvider` and `indexConfig`"),
+                        INVALID_OPTION_CYPHER_5),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT boom
+                    FOR (n:LabelName)
+                    REQUIRE n.prop IS NODE KEY
+                    OPTIONS { duff:13 }
+                    """,
+                        "22N04: Invalid input 'duff' for 'OPTIONS'. Expected 'indexConfig'"),
                 arguments(
                         """
                     CREATE CONSTRAINT boom
@@ -1551,13 +1748,21 @@ class SchemaCommandReaderTest {
                         "Variable `x` not defined"),
                 arguments(
                         """
-                    CREATE CONSTRAINT boom
+                    CYPHER 5 CREATE CONSTRAINT boom
                     FOR ()-[r:RelName]-()
                     REQUIRE r.prop IS UNIQUE
                     OPTIONS { duff:13 }
                     """,
                         "Failed to create relationship uniqueness constraint",
-                        "Invalid option provided, valid options are `indexProvider` and `indexConfig`"),
+                        INVALID_OPTION_CYPHER_5),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT boom
+                    FOR ()-[r:RelName]-()
+                    REQUIRE r.prop IS UNIQUE
+                    OPTIONS { duff:13 }
+                    """,
+                        "22N04: Invalid input 'duff' for 'OPTIONS'. Expected 'indexConfig'"),
                 arguments(
                         """
                     CREATE CONSTRAINT boom
@@ -1590,13 +1795,21 @@ class SchemaCommandReaderTest {
                         "Variable `x` not defined"),
                 arguments(
                         """
-                    CREATE CONSTRAINT boom
+                    CYPHER 5 CREATE CONSTRAINT boom
                     FOR ()-[r:RelName]-()
                     REQUIRE r.prop IS REL KEY
                     OPTIONS { duff:13 }
                     """,
                         "Failed to create relationship key constraint",
-                        "Invalid option provided, valid options are `indexProvider` and `indexConfig`"),
+                        INVALID_OPTION_CYPHER_5),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT boom
+                    FOR ()-[r:RelName]-()
+                    REQUIRE r.prop IS REL KEY
+                    OPTIONS { duff:13 }
+                    """,
+                        "22N04: Invalid input 'duff' for 'OPTIONS'. Expected 'indexConfig'"),
                 arguments(
                         """
                     CREATE CONSTRAINT boom
