@@ -72,7 +72,7 @@ object CodeGeneration {
   final val MAX_METHOD_LIMIT: Int = 65535
 
   // Use these options for Debugging. They will print generated code to stdout
-  private val DEBUG_PRINT_SOURCE = false
+  val DEBUG_PRINT_SOURCE = false
   private val DEBUG_PRINT_BYTECODE = false
 
   final val GENERATE_JAVA_SOURCE_DEBUG_OPTION = CypherDebugOption.generateJavaSource.name
