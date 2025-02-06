@@ -35,7 +35,7 @@ abstract class PrefetchingIterator[T] extends ClosingIterator[T] {
       throw new NoSuchElementException("next on empty iterator")
     else {
       val current = buffer.get
-      pullNextElementFromSource()
+      buffer = null
       current
     }
   }
