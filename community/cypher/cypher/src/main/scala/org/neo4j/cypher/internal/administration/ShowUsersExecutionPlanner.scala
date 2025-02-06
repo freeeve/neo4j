@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userLabel
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userNamePropKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userPwChangeReqPropKey
+import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.AdministrationShowCommandUtils
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
@@ -50,7 +51,8 @@ case class ShowUsersExecutionPlanner(
     withAuth: Boolean,
     yields: Option[Yield],
     returns: Option[Return],
-    sourcePlan: Option[ExecutionPlan]
+    sourcePlan: Option[ExecutionPlan],
+    context: AdministrationCommandRuntimeContext
   ): ExecutionPlan = {
 
     // Community should only have native auth,
@@ -68,14 +70,16 @@ case class ShowUsersExecutionPlanner(
          |${AdministrationShowCommandUtils.generateReturnClause(symbols, yields, returns, Seq("user"))}
          |""".stripMargin,
       VirtualValues.EMPTY_MAP,
-      source = sourcePlan
+      source = sourcePlan,
+      cypherVersion = Some(context.runtimeContext.cypherVersion)
     )
   }
 
   def planShowCurrentUser(
     symbols: List[LogicalVariable],
     yields: Option[Yield],
-    returns: Option[Return]
+    returns: Option[Return],
+    context: AdministrationCommandRuntimeContext
   ): ExecutionPlan = {
     val currentUserKey = internalKey("currentUser")
     SystemCommandExecutionPlan(
@@ -93,7 +97,8 @@ case class ShowUsersExecutionPlanner(
           Array(currentUserKey),
           Array(Values.utf8Value(securityContext.subject().executingUser()))
         )
-      )
+      ),
+      cypherVersion = Some(context.runtimeContext.cypherVersion)
     )
   }
 }

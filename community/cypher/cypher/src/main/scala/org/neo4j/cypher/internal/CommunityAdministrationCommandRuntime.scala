@@ -255,15 +255,17 @@ case class CommunityAdministrationCommandRuntime(
           withAuth,
           yields,
           returns,
-          sourcePlan
+          sourcePlan,
+          context
         )
 
     // SHOW CURRENT USER
-    case ShowCurrentUser(symbols, yields, returns) => _ =>
+    case ShowCurrentUser(symbols, yields, returns) => context =>
         ShowUsersExecutionPlanner(normalExecutionEngine, securityAuthorizationHandler).planShowCurrentUser(
           symbols,
           yields,
-          returns
+          returns,
+          context
         )
 
     // CREATE [OR REPLACE] USER foo [IF NOT EXISTS] SET [PLAINTEXT | ENCRYPTED] PASSWORD 'password'
@@ -442,22 +444,20 @@ case class CommunityAdministrationCommandRuntime(
 
     // Non-administration commands that are allowed on system database, e.g. SHOW PROCEDURES
     case AllowedNonAdministrationCommands(statement) => context =>
-        // While running against system will override most pre-parser options.
-        // However, we shouldn't override the Cypher version,
-        // so let's prepend the inner query with the relevant Cypher version.
-        val versionName = context.runtimeContext.cypherVersion.versionName
-        val versionString = s"CYPHER $versionName "
-
         SystemCommandExecutionPlan(
           "AllowedNonAdministrationCommand",
           normalExecutionEngine,
           securityAuthorizationHandler,
-          versionString + QueryRenderer.render(statement),
+          QueryRenderer.render(statement),
           MapValue.EMPTY,
           // If we have a non admin command executing in the system database, forbid it to make reads / writes
           // from the system graph. This is to prevent queries such as SHOW PROCEDURES YIELD * RETURN ()--()
           // from leaking nodes from the system graph: the ()--() would return empty results
-          modeConverter = s => s.withMode(new RestrictedAccessMode(s.mode(), AccessMode.Static.ACCESS))
+          modeConverter = s => s.withMode(new RestrictedAccessMode(s.mode(), AccessMode.Static.ACCESS)),
+          // While running against system will override most pre-parser options.
+          // However, we shouldn't override the Cypher version,
+          // so let's prepend the inner query with the relevant Cypher version.
+          cypherVersion = Some(context.runtimeContext.cypherVersion)
         )
 
     // Ignore the log command in community

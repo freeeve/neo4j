@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.procs
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.RuntimeName
 import org.neo4j.cypher.internal.SystemCommandRuntimeName
@@ -112,6 +113,9 @@ abstract class AdministrationChainedExecutionPlan(source: Option[ExecutionPlan])
     extends ChainedExecutionPlan[SystemUpdateCountingQueryContext](source) {
   // To avoid code generation for administration commands
   protected val queryPrefix: String = "CYPHER operatorEngine=interpreted expressionEngine=interpreted "
+
+  def queryPrefix(cypherVersion: CypherVersion) =
+    s"CYPHER $cypherVersion operatorEngine=interpreted expressionEngine=interpreted "
 
   override def createContext(originalCtx: QueryContext): SystemUpdateCountingQueryContext =
     SystemUpdateCountingQueryContext.from(originalCtx)

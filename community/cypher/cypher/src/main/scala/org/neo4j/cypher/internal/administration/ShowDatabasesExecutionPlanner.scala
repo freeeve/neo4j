@@ -216,7 +216,8 @@ case class ShowDatabasesExecutionPlanner(
         verbose,
         scope,
         context
-      )
+      ),
+      cypherVersion = Some(context.runtimeContext.cypherVersion)
     )
   }
 }

@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.procs
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.RuntimeName
@@ -52,7 +53,8 @@ case class SystemCommandExecutionPlan(
   source: Option[ExecutionPlan] = None,
   checkCredentialsExpired: Boolean = true,
   parameterTransformer: ParameterTransformerFunction = ParameterTransformer(),
-  modeConverter: SecurityContext => SecurityContext = s => s.withMode(AccessMode.Static.READ)
+  modeConverter: SecurityContext => SecurityContext = s => s.withMode(AccessMode.Static.READ),
+  cypherVersion: Option[CypherVersion] = None
 ) extends AdministrationChainedExecutionPlan(source) {
 
   override def runSpecific(
@@ -74,7 +76,7 @@ case class SystemCommandExecutionPlan(
 
       val systemSubscriber = new SystemCommandQuerySubscriber(ctx, subscriber, new QueryHandler(), updatedParams)
       val execution = normalExecutionEngine.executeSubquery(
-        queryPrefix + query,
+        cypherVersion.map(queryPrefix(_)).getOrElse(queryPrefix) + query,
         updatedParams,
         tc,
         isOutermostQuery = false,
