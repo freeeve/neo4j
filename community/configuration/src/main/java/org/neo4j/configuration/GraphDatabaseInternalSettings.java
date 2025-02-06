@@ -1575,30 +1575,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     public static final Setting<Boolean> prefetch_on_commit =
             newBuilder("internal.dbms.prefetch_on_commit", BOOL, false).build();
 
-    public enum CypherVersion {
-        Default("default"),
-        Cypher5("5"),
-        Cypher25("25");
-
-        public final String versionName;
-
-        CypherVersion(String versionName) {
-            this.versionName = versionName;
-        }
-
-        @Override
-        public String toString() {
-            return versionName;
-        }
-    }
-
-    @Internal
-    @Description(
-            "Sets default cypher version for full dbms. Only for testing and should be removed once we can set default cypher version per database.")
-    public static final Setting<CypherVersion> default_cypher_version = newBuilder(
-                    "internal.dbms.cypher.version", ofEnum(CypherVersion.class), CypherVersion.Default)
-            .build();
-
     @Internal
     @Description("The maximum amount of time to wait for terminated transactions to start closing before allowing "
             + "initiated database shutdown to continue")

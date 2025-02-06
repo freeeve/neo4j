@@ -1,6 +1,7 @@
 org.neo4j.cypher.cucumber.glue.regular.TestConf$Default$ObjectFactory
 org.neo4j.cypher.cucumber.glue.regular.TestConf$DefaultBolt$ObjectFactory
 org.neo4j.cypher.cucumber.glue.regular.TestConf$Cypher25Bolt$ObjectFactory
+org.neo4j.cypher.cucumber.glue.regular.TestConf$Cypher25$ObjectFactory
 org.neo4j.cypher.cucumber.glue.regular.TestConf$Pipelined$ObjectFactory
 org.neo4j.cypher.cucumber.glue.regular.TestConf$PipelinedFallback$ObjectFactory
 org.neo4j.cypher.cucumber.glue.regular.TestConf$Slotted$ObjectFactory

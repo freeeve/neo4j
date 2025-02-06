@@ -35,7 +35,7 @@ import java.util.Locale
  * Collects all cypher options that can be set on query basis (pre-parser options)
  */
 case class CypherQueryOptions(
-  cypherVersion: CypherVersionOption,
+  cypherVersion: CypherVersionOption, // This is NOT the resolved query language, only the pre-parser option.
   executionMode: CypherExecutionMode,
   planner: CypherPlannerOption,
   runtime: CypherRuntimeOption,
@@ -194,11 +194,18 @@ case object CypherExecutionMode extends CypherOptionCompanion[CypherExecutionMod
   implicit val reader: OptionReader[CypherExecutionMode] = singleOptionReader()
 }
 
+/**
+ * The pre-parser option to select query language, NOT the actual language to use.
+ * The final resolved language for a query depend on:
+ * - The pre-parser option (this class).
+ * - The database default language (persisted in system db).
+ * - The system default language setting, `db.query.default_language`.
+ */
 sealed abstract class CypherVersionOption(val version: String) extends CypherOption(version) {
   override def companion: CypherExecutionMode.type = CypherExecutionMode
   override def render: String = super.render.toUpperCase(Locale.ROOT)
-  override def cacheKey: String = super.cacheKey.toUpperCase(Locale.ROOT)
-  override def relevantForLogicalPlanCacheKey: Boolean = true
+  override def cacheKey: String = "" // We include the resolved version in the cache key
+  override def relevantForLogicalPlanCacheKey: Boolean = false // We include the resolved version in the cache key
   def fromPreParserOption: Boolean
   def explicitVersion: Option[CypherVersion]
 
@@ -206,11 +213,7 @@ sealed abstract class CypherVersionOption(val version: String) extends CypherOpt
   def actualVersion: CypherVersion = explicitVersion.getOrElse(CypherVersion.Default)
 }
 
-case object CypherVersionOption extends CypherOptionCompanion[CypherVersionOption](
-      name = "cypher version",
-      setting = Some(GraphDatabaseInternalSettings.default_cypher_version),
-      cypherConfigField = Some(_.defaultCypherVersionFromConfig)
-    ) {
+case object CypherVersionOption extends CypherOptionCompanion[CypherVersionOption](name = "cypher version") {
 
   /** No cypher version specified in pre-parser options => we should use the db default version. */
   case object default extends CypherVersionOption("") {

@@ -25,7 +25,6 @@ import static scala.jdk.javaapi.OptionConverters.toJava;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
-import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.PreParser;
 import org.neo4j.cypher.internal.ast.AdministrationCommand;
 import org.neo4j.cypher.internal.ast.CatalogName;
@@ -98,9 +97,7 @@ public class QueryProcessorImpl implements QueryProcessor {
 
     @Override
     public PreParsedQuery preParse(Query query) {
-        // We use this temporarily, to be replaced by db specific default version.
-        final var defaultLanguage = CypherVersion.Default;
-        return preParser.preParse(query.text(), defaultLanguage);
+        return preParser.preParse(query.text());
     }
 
     @Override

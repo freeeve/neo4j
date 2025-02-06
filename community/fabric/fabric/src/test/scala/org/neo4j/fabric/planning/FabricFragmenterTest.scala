@@ -46,7 +46,7 @@ class FabricFragmenterTest
     with FragmentTestUtils
     with AstConstructionTestSupport {
 
-  val resolveStrictly: Boolean = CypherVersion.Default != CypherVersion.Cypher5
+  val resolveStrictly: Boolean = cypherConfig.systemDefaultLanguage != CypherVersion.Cypher5
 
   "USE handling: " - {
 

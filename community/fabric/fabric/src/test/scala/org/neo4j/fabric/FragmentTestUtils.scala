@@ -186,7 +186,7 @@ trait FragmentTestUtils {
       null
     )
 
-  def pipeline(query: String): frontend.Pipeline = pipeline(query, CypherVersion.Default)
+  def pipeline(query: String): frontend.Pipeline = pipeline(query, cypherConfig.systemDefaultLanguage)
 
   def fragment(query: String): Fragment = {
     val state = pipeline(query).parseAndPrepare.process()
@@ -197,8 +197,9 @@ trait FragmentTestUtils {
   def parse(query: String): Statement =
     pipeline(query).parseAndPrepare.process().statement()
 
-  def preParse(query: String, defaultLanguage: CypherVersion = CypherVersion.Default): PreParsedQuery =
-    frontend.preParsing.preParse(query, devNullLogger, defaultLanguage)
+  def preParse(query: String, dbDefaultVersion: CypherVersion): PreParsedQuery =
+    frontend.preParsing.preParse(query, devNullLogger, dbDefaultVersion)
+  def preParse(query: String): PreParsedQuery = preParse(query, cypherConfig.systemDefaultLanguage)
 
   implicit class FragmentOps[F <: Fragment](fragment: F) {
 

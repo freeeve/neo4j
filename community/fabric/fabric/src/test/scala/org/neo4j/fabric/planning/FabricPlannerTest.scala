@@ -999,7 +999,10 @@ class FabricPlannerTest
       val expectedInner = QueryOptions(
         offset = InputPosition.NONE,
         queryOptions = CypherQueryOptions(
-          cypherVersion = CypherVersionOption.default,
+          cypherVersion = cypherConfig.systemDefaultLanguage match {
+            case CypherVersion.Cypher5  => CypherVersionOption.cypher5
+            case CypherVersion.Cypher25 => CypherVersionOption.cypher25
+          },
           executionMode = CypherExecutionMode.default,
           planner = CypherPlannerOption.cost,
           runtime = CypherRuntimeOption.parallel,
@@ -1016,13 +1019,17 @@ class FabricPlannerTest
           statefulShortestPlanningModeOption = CypherStatefulShortestPlanningModeOption.default,
           planVarExpandInto = CypherPlanVarExpandInto.default
         ),
-        defaultLanguage = CypherVersion.Default
+        defaultLanguage = cypherConfig.systemDefaultLanguage
       )
 
-      val expectedLast = QueryOptions.default(CypherVersion.Default).copy(
-        queryOptions = QueryOptions.default(CypherVersion.Default).queryOptions.copy(
+      val expectedLast = QueryOptions.default(cypherConfig.systemDefaultLanguage).copy(
+        queryOptions = QueryOptions.default(cypherConfig.systemDefaultLanguage).queryOptions.copy(
           runtime = CypherRuntimeOption.slotted,
-          expressionEngine = CypherExpressionEngineOption.interpreted
+          expressionEngine = CypherExpressionEngineOption.interpreted,
+          cypherVersion = cypherConfig.systemDefaultLanguage match {
+            case CypherVersion.Cypher5  => CypherVersionOption.cypher5
+            case CypherVersion.Cypher25 => CypherVersionOption.cypher25
+          }
         ),
         materializedEntitiesMode = true
       )
@@ -1062,20 +1069,29 @@ class FabricPlannerTest
 
       val expectedInner = QueryOptions(
         offset = InputPosition.NONE,
-        queryOptions = CypherQueryOptions.defaultOptions,
-        defaultLanguage = CypherVersion.Default
+        queryOptions = CypherQueryOptions.defaultOptions.copy(
+          cypherVersion = cypherConfig.systemDefaultLanguage match {
+            case CypherVersion.Cypher5  => CypherVersionOption.cypher5
+            case CypherVersion.Cypher25 => CypherVersionOption.cypher25
+          }
+        ),
+        defaultLanguage = cypherConfig.systemDefaultLanguage
       )
 
-      val expectedLast = QueryOptions.default(CypherVersion.Default).copy(
-        queryOptions = QueryOptions.default(CypherVersion.Default).queryOptions.copy(
+      val expectedLast = QueryOptions.default(cypherConfig.systemDefaultLanguage).copy(
+        queryOptions = QueryOptions.default(cypherConfig.systemDefaultLanguage).queryOptions.copy(
           runtime = CypherRuntimeOption.slotted,
-          expressionEngine = CypherExpressionEngineOption.interpreted
+          expressionEngine = CypherExpressionEngineOption.interpreted,
+          cypherVersion = cypherConfig.systemDefaultLanguage match {
+            case CypherVersion.Cypher5  => CypherVersionOption.cypher5
+            case CypherVersion.Cypher25 => CypherVersionOption.cypher25
+          }
         ),
         materializedEntitiesMode = true
       )
 
       val remote = inst.asRemote(inner).query
-      remote.should(not(include("CYPHER")))
+      remote.should(not(include("interpretedPipesFallback")))
 
       preParse(remote).options.copy(offset = InputPosition.NONE)
         .shouldEqual(expectedInner)

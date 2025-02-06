@@ -60,7 +60,7 @@ sealed trait InputQuery {
 
 object InputQuery {
 
-  case class CacheKey(optionsCacheKey: String, statementCacheKey: String) {
+  case class CacheKey(optionsCacheKey: String, statementCacheKey: String, resolvedLanguage: CypherVersion) {
 
     override def toString: String =
       if (optionsCacheKey.isEmpty) statementCacheKey
@@ -78,10 +78,11 @@ case class PreParsedQuery(
   additionalNotifications: Seq[InternalNotification] = Seq.empty
 ) extends InputQuery {
 
-  override def cacheKey: InputQuery.CacheKey = InputQuery.CacheKey(options.cacheKey, statement)
+  override def cacheKey: InputQuery.CacheKey = InputQuery.CacheKey(options.cacheKey, statement, resolvedLanguage)
   def preParserCacheKey: PreParsedQuery.CacheKey = PreParsedQuery.CacheKey(rawStatement, options.defaultLanguage)
 
-  def cacheKeyWithRawStatement: InputQuery.CacheKey = InputQuery.CacheKey(options.cacheKey, rawStatement)
+  def cacheKeyWithRawStatement: InputQuery.CacheKey =
+    InputQuery.CacheKey(options.cacheKey, rawStatement, resolvedLanguage)
 
   def rawPreparserOptions: String = rawStatement.take(rawStatement.length - statement.length)
 
@@ -114,7 +115,7 @@ case class FullyParsedQuery(state: BaseState, options: QueryOptions) extends Inp
 
   override def withRecompilationLimitReached: FullyParsedQuery = copy(options = options.withRecompilationLimitReached)
 
-  override val cacheKey: InputQuery.CacheKey = InputQuery.CacheKey(options.cacheKey, state.queryText)
+  override val cacheKey: InputQuery.CacheKey = InputQuery.CacheKey(options.cacheKey, state.queryText, resolvedLanguage)
 
   override def withReplanOption(replanOption: CypherReplanOption): FullyParsedQuery = copy(
     options = options.copy(queryOptions = options.queryOptions.copy(replan = replanOption))

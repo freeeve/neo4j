@@ -168,7 +168,8 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
     val executionPlanCacheKey = ExecutionPlanCacheKey(
       query.options.executionPlanCacheKey,
       logicalPlan,
-      planState.planningAttributes.cacheKey
+      planState.planningAttributes.cacheKey,
+      query.resolvedLanguage
     )
     val executionPlanCacheKeyHash = executionPlanCacheKey.hashCode()
     val cachedExecutionPlan =

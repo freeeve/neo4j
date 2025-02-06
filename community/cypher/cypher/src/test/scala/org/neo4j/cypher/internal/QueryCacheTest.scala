@@ -562,7 +562,8 @@ object QueryCacheTest extends MockitoSugar {
         } else None
     }
 
-  def newKey(string: String): Key = CacheKey(string, ParameterTypeMap.empty, txStateHasChanges = false)
+  def newKey(string: String): Key =
+    CacheKey(string, ParameterTypeMap.empty, txStateHasChanges = false, CypherVersion.Cypher25)
 
   def newCache(
     tracer: Tracer = newTracer(),

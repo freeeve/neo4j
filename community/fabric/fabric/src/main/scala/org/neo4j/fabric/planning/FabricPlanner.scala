@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
+import org.neo4j.cypher.internal.options.CypherVersionOption
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery
 import org.neo4j.cypher.internal.preparser.PreParsedQuery
 import org.neo4j.cypher.internal.preparser.QueryOptions
@@ -92,8 +93,8 @@ case class FabricPlanner(
   ): PlannerInstance = {
     val notificationLogger = new RecordingNotificationLogger()
 
-    val defaultLanguage = CypherVersion.Default // Temporary default to be replaced with db specific default
-    val query = frontend.preParsing.preParse(queryString, notificationLogger, defaultLanguage)
+    val dbDefaultLanguage = cypherConfig.systemDefaultLanguage // TODO Replace with db specific default
+    val query = frontend.preParsing.preParse(queryString, notificationLogger, dbDefaultLanguage)
 
     PlannerInstance(
       ScopedProcedureSignatureResolver.from(
@@ -186,19 +187,29 @@ case class FabricPlanner(
     private def shouldCache(plan: FabricPlan): Boolean =
       !QueryType.sensitive(plan.query)
 
-    private def optionsFor(fragment: Fragment) =
+    private def optionsFor(fragment: Fragment) = {
+      val languageOption = query.resolvedLanguage match {
+        case CypherVersion.Cypher5  => CypherVersionOption.cypher5
+        case CypherVersion.Cypher25 => CypherVersionOption.cypher25
+      }
       if (useHelper.fragmentTargetsCompositeContext(fragment)) {
         val defaultOptions = QueryOptions.default(query.resolvedLanguage)
         defaultOptions.copy(
           queryOptions = defaultOptions.queryOptions.copy(
             runtime = CypherRuntimeOption.slotted,
             expressionEngine = CypherExpressionEngineOption.interpreted,
-            cypherVersion = query.options.queryOptions.cypherVersion
+            cypherVersion = languageOption
           ),
-          materializedEntitiesMode = true
+          materializedEntitiesMode = true,
+          defaultLanguage = query.resolvedLanguage
         )
-      } else
-        query.options
+      } else {
+        query.options.copy(
+          queryOptions = query.options.queryOptions.copy(cypherVersion = languageOption),
+          defaultLanguage = query.resolvedLanguage
+        )
+      }
+    }
 
     private def trace(compute: => FabricPlan): FabricPlan = {
       val event = pipeline.traceStart()

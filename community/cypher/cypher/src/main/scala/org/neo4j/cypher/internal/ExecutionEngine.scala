@@ -188,7 +188,7 @@ abstract class ExecutionEngine(
       val preParsedQuery = preParser.preParseQuery(
         queryText = query,
         notificationLogger = notificationLogger,
-        defaultLanguage = CypherVersion.Default, // To be replaced with db specific default
+        defaultLanguage = config.systemDefaultLanguage, // To be replaced with db specific default
         profile = profile,
         couldContainSensitiveFields = couldContainSensitiveFields,
         targetsComposite = DatabaseMode.COMPOSITE.equals(context.databaseMode())
@@ -367,9 +367,10 @@ abstract class ExecutionEngine(
     var inputQuery = initialInputQuery
 
     val cacheKey = CacheKey(
-      initialInputQuery.cacheKey,
+      inputQuery.cacheKey,
       QueryCache.extractParameterTypeMap(params, config.useParameterSizeHint),
-      tc.kernelTransaction().dataRead().transactionStateHasChanges()
+      tc.kernelTransaction().dataRead().transactionStateHasChanges(),
+      inputQuery.resolvedLanguage
     )
 
     try {

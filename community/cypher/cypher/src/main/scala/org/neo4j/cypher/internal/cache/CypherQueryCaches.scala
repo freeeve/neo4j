@@ -28,6 +28,7 @@ import org.neo4j.cypher.ExecutionPlanCacheMetricsMonitor
 import org.neo4j.cypher.LogicalPlanCacheMetricsMonitor
 import org.neo4j.cypher.PreParserCacheMetricsMonitor
 import org.neo4j.cypher.internal.CacheabilityInfo
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.DefaultPlanStalenessCaller
 import org.neo4j.cypher.internal.ExecutableQuery
 import org.neo4j.cypher.internal.ExecutingQueryTracer
@@ -255,7 +256,8 @@ object CypherQueryCaches {
       CacheKey(
         KeyParams(statement, queryOptions.logicalPlanCacheKey),
         QueryCache.extractParameterTypeMap(params, useParameterSizeHint),
-        txStateHasChanges
+        txStateHasChanges,
+        queryOptions.resolvedLanguage
       )
 
     type Key = CacheKey[LogicalPlanCache.KeyParams]
@@ -307,7 +309,8 @@ object CypherQueryCaches {
   case class ExecutionPlanCacheKey(
     runtimeKey: String,
     logicalPlan: LogicalPlan,
-    planningAttributesCacheKey: PlanningAttributesCacheKey
+    planningAttributesCacheKey: PlanningAttributesCacheKey,
+    resolvedLanguage: CypherVersion
   )
 
   case class CachedExecutionPlan(

@@ -647,7 +647,8 @@ object QueryCache {
   final case class CacheKey[QUERY_REP](
     queryRep: QUERY_REP,
     parameterTypeMap: ParameterTypeMap,
-    txStateHasChanges: Boolean
+    txStateHasChanges: Boolean,
+    resolvedLanguage: CypherVersion
   )
 
   val NOT_PRESENT: ExecutableQuery = null

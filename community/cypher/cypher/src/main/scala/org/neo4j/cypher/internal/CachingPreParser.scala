@@ -98,7 +98,7 @@ class CachingPreParser(
    *
    * @param queryText                   the query
    * @param notificationLogger          records notifications during pre parsing
-   * @param defaultLanguage             database specific default query language version
+   * @param defaultLanguage             the database specific default query language
    * @param profile                     true if the query should be profiled even if profile is not given as a pre-parser option
    * @param couldContainSensitiveFields true if the query might contain passwords, like some administrative commands can
    * @param targetsComposite            true if the query targets a composite database
@@ -148,12 +148,18 @@ class PreParser(
 
   @Deprecated // To be removed soon
   def preParse(query: String, notifications: InternalNotificationLogger): PreParsedQuery =
-    preParse(query, CypherVersion.Default)
+    preParse(query, configuration.systemDefaultLanguage)
 
   @Deprecated // To be removed soon
-  def preParse(query: String): PreParsedQuery =
-    preParse(query, CypherVersion.Default)
+  def preParse(query: String): PreParsedQuery = preParse(query, configuration.systemDefaultLanguage)
 
+  /**
+   * Pre-parse query.
+   *
+   * @param query the query
+   * @param defaultLanguage the database specific default query language
+   * @return
+   */
   def preParse(query: String, defaultLanguage: CypherVersion): PreParsedQuery = {
     val preParsedStatement =
       if (configuration.antlrPreparserEnabled) preParseQuery(query)

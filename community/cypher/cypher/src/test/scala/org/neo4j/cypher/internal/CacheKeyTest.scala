@@ -55,7 +55,7 @@ class CacheKeyTest extends CypherFunSuite {
       .shouldEqual("")
   }
 
-  test("All non-default options should be part of cache key, except replan") {
+  test("All non-default options should be part of cache key, except replan and cypher version") {
     val options = CypherQueryOptions(
       cypherVersion = CypherVersionOption.cypher5,
       executionMode = CypherExecutionMode.profile,
@@ -77,7 +77,7 @@ class CacheKeyTest extends CypherFunSuite {
 
     options.cacheKey
       .shouldEqual(
-        """5 PROFILE planner=dp runtime=pipelined updateStrategy=eager expressionEngine=interpreted operatorEngine=interpreted interpretedPipesFallback=all connectComponentsPlanner=idp debug=querygraph debug=tostring parallelRuntimeSupport=disabled eagerAnalyzer=ir inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost"""
+        """PROFILE planner=dp runtime=pipelined updateStrategy=eager expressionEngine=interpreted operatorEngine=interpreted interpretedPipesFallback=all connectComponentsPlanner=idp debug=querygraph debug=tostring parallelRuntimeSupport=disabled eagerAnalyzer=ir inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost"""
       )
   }
 
@@ -103,7 +103,7 @@ class CacheKeyTest extends CypherFunSuite {
 
     options.logicalPlanCacheKey
       .shouldEqual(
-        """5 updateStrategy=eager connectComponentsPlanner=idp eagerAnalyzer=ir inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost"""
+        """updateStrategy=eager connectComponentsPlanner=idp eagerAnalyzer=ir inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost"""
       )
   }
 }

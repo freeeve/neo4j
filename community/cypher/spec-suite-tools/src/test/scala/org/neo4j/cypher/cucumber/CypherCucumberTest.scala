@@ -224,9 +224,10 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       .toMap
 
     // It's important that the ObjectFactoryName match the correct config.
-    testConfs.toMap shouldBe Map(
+    testConfs shouldBe Map(
       classOf[CypherCucumberTest.TestConfiguration.ObjectFactory].getName -> CypherCucumberTest.TestConfiguration.conf,
       TestConf.Cypher25Bolt.ObjectFactoryName -> TestConf.Cypher25Bolt.conf,
+      TestConf.Cypher25.ObjectFactoryName -> TestConf.Cypher25.conf,
       TestConf.Default.ObjectFactoryName -> TestConf.Default.conf,
       TestConf.DefaultBolt.ObjectFactoryName -> TestConf.DefaultBolt.conf,
       TestConf.Legacy.ObjectFactoryName -> TestConf.Legacy.conf,
@@ -244,6 +245,7 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
     testConfs.view.mapValues(_.preparserPrefix.trim).toMap shouldBe Map(
       classOf[CypherCucumberTest.TestConfiguration.ObjectFactory].getName -> "CYPHER runtime=legacy",
       TestConf.Cypher25Bolt.ObjectFactoryName -> "",
+      TestConf.Cypher25.ObjectFactoryName -> "",
       TestConf.Default.ObjectFactoryName -> "",
       TestConf.DefaultBolt.ObjectFactoryName -> "",
       TestConf.Legacy.ObjectFactoryName -> "CYPHER runtime=legacy",

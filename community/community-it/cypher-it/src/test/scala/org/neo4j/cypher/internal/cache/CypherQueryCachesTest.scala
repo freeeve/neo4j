@@ -21,11 +21,14 @@ package org.neo4j.cypher.internal.cache
 
 import org.neo4j.collection.ResourceRawIterator
 import org.neo4j.configuration.GraphDatabaseInternalSettings
+import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.ExecutionEngineTestSupport
 import org.neo4j.cypher.GraphDatabaseTestSupport
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.util.CacheCountsTestSupport
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_01N02
+import org.neo4j.graphdb.QueryExecutionException
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException
 import org.neo4j.internal.kernel.api.procs.Neo4jTypes
 import org.neo4j.internal.kernel.api.procs.ProcedureSignature
@@ -344,5 +347,74 @@ class CypherQueryCachesTest extends CypherFunSuite with GraphDatabaseTestSupport
     val result2 = execute("CYPHER 5 CREATE (a {`f\\u0085oo`:1})")
     result2.notifications should be(empty)
     result2.gqlStatusObjects should be(List(StandardGqlStatusObject.OMITTED_RESULT))
+  }
+
+  test("query language") {
+    val query1 = "return 1 as x"
+    val query2 = "return 2 as x"
+    val systemDefaultLanguages = GraphDatabaseSettings.CypherVersion.values()
+    val dbDefaultLanguages = CypherVersion.values()
+    val explicitLanguages = CypherVersion.values().map(Some.apply) :+ Option.empty[CypherVersion]
+
+    systemDefaultLanguages.foreach { systemDefaultLanguage =>
+      restartWithConfig(Map(
+        GraphDatabaseSettings.default_language -> systemDefaultLanguage,
+        GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
+      ))
+      val stats = eengine.queryCaches.statistics()
+
+      execute(query1)
+      execute(query2)
+
+      stats.preParserCacheEntries().shouldEqual(2)
+      stats.astCacheEntries().shouldEqual(2)
+      stats.logicalPlanCacheEntries().shouldEqual(1)
+      stats.executionPlanCacheEntries().shouldEqual(1)
+      stats.executableQueryCacheEntries().shouldEqual(2)
+
+      dbDefaultLanguages.foreach { dbDefaultLanguage =>
+        val setDefaultLang = s"alter database $$db set default language cypher ${dbDefaultLanguage.versionName} wait"
+        val failureToSetDefault = intercept[QueryExecutionException](
+          managementService.database("system").executeTransactionally(setDefaultLang, java.util.Map.of("db", "neo4j"))
+        )
+        // Currently unsupported in community,
+        // added this assertion just to not forget to include set default language here when it is supported.
+        failureToSetDefault.getMessage should include("Unsupported administration command: alter database")
+
+        execute(query1)
+        execute(query2)
+      }
+
+      stats.preParserCacheEntries().shouldEqual(2)
+      stats.astCacheEntries().shouldEqual(2)
+      stats.logicalPlanCacheEntries().shouldEqual(1)
+      stats.executionPlanCacheEntries().shouldEqual(1)
+      stats.executableQueryCacheEntries().shouldEqual(2)
+
+      val notSystemLanguage = systemDefaultLanguages.find(_ != systemDefaultLanguage).get match {
+        case GraphDatabaseSettings.CypherVersion.Cypher5  => CypherVersion.Cypher5
+        case GraphDatabaseSettings.CypherVersion.Cypher25 => CypherVersion.Cypher25
+      }
+      execute(s"${notSystemLanguage.description} $query1")
+      execute(s"${notSystemLanguage.description} $query2")
+
+      stats.preParserCacheEntries().shouldEqual(4)
+      stats.astCacheEntries().shouldEqual(4)
+      stats.logicalPlanCacheEntries().shouldEqual(2)
+      stats.executionPlanCacheEntries().shouldEqual(2)
+      stats.executableQueryCacheEntries().shouldEqual(4)
+
+      explicitLanguages.foreach { explicitLanguage =>
+        val prefix = explicitLanguage.map(_.description + " ").getOrElse("")
+        execute(prefix + query1)
+        execute(prefix + query2)
+      }
+
+      stats.preParserCacheEntries().shouldEqual(6)
+      stats.astCacheEntries().shouldEqual(4)
+      stats.logicalPlanCacheEntries().shouldEqual(2)
+      stats.executionPlanCacheEntries().shouldEqual(2)
+      stats.executableQueryCacheEntries().shouldEqual(4)
+    }
   }
 }

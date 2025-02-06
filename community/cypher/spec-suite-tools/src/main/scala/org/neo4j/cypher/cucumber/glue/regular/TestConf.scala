@@ -86,13 +86,26 @@ object TestConf {
     final class ObjectFactory extends GuiceObjectFactory(injector)
   }
 
+  object Cypher25 extends InjectedTestConf {
+    final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Cypher25$ObjectFactory"
+
+    final override val conf: TestConf = TestConf(
+      neo4jConf = Map(
+        "db.query.default_language" -> "cypher_25",
+        "internal.dbms.cypher.enable_experimental_versions" -> "true"
+      ),
+      tagContext = Set("cypher-25")
+    )
+    final class ObjectFactory extends GuiceObjectFactory(injector)
+  }
+
   object Cypher25Bolt extends InjectedTestConf {
     final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Cypher25Bolt$ObjectFactory"
 
     final override val conf: TestConf = TestConf(
       neo4jConf = Map(
         "server.bolt.enabled" -> "true",
-        "internal.dbms.cypher.version" -> "25",
+        "db.query.default_language" -> "cypher_25",
         "internal.dbms.cypher.enable_experimental_versions" -> "true"
       ),
       useBolt = true,

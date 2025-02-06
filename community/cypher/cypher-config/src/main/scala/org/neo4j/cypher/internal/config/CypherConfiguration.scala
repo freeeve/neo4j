@@ -24,6 +24,7 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.config.CypherConfiguration.statsDivergenceFromConfig
 import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
@@ -68,6 +69,18 @@ class CypherConfiguration private (val config: Config) {
   // static configurations
   def enableExperimentalCypherVersions: Boolean =
     config.get(GraphDatabaseInternalSettings.enable_experimental_cypher_versions)
+
+  /**
+   * The system default query language, NOT the actual language to use.
+   * The final resolved language for a query depend on:
+   * - The pre-parser options.
+   * - The database default language (persisted in system db).
+   * - The system default language setting, `db.query.default_language` (this value).
+   */
+  val systemDefaultLanguage: CypherVersion = config.get(GraphDatabaseSettings.default_language) match {
+    case GraphDatabaseSettings.CypherVersion.Cypher5  => CypherVersion.Cypher5
+    case GraphDatabaseSettings.CypherVersion.Cypher25 => CypherVersion.Cypher25
+  }
 
   val planner: CypherPlannerOption = CypherPlannerOption.fromConfig(config)
   val runtime: CypherRuntimeOption = CypherRuntimeOption.fromConfig(config)
@@ -184,9 +197,6 @@ class CypherConfiguration private (val config: Config) {
 
   val cachePropertiesForEntitiesWithFilter: Boolean =
     config.get(GraphDatabaseInternalSettings.push_predicates_into_remote_batch_properties)
-
-  def defaultCypherVersionFromConfig: org.neo4j.cypher.internal.options.CypherVersionOption =
-    org.neo4j.cypher.internal.options.CypherVersionOption.fromConfig(config)
 
   val antlrPreparserEnabled: Boolean =
     config.get(GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled)
