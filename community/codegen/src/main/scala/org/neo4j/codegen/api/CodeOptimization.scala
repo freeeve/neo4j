@@ -221,11 +221,11 @@ object CodeOptimization {
 
   object CoerceToBooleanFcn {
 
-    def unapply(arg: IntermediateRepresentation): Option[IntermediateRepresentation] = arg match {
+    def unapply(arg: IntermediateRepresentation): Boolean = arg match {
       case InvokeStatic(Method(owner, returnType, "coerceToBoolean", Seq(inType)), Seq(in, state))
         if returnType == VALUE_TYPE && inType == ANY_VALUE_TYPE =>
-        Some(in)
-      case _ => None
+        true
+      case _ => false
     }
   }
 
