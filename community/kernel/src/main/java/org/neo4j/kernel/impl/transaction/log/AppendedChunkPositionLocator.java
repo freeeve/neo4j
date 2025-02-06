@@ -50,13 +50,13 @@ public class AppendedChunkPositionLocator implements LogFile.LogFileVisitor {
         LogPosition lastStartPosition = null;
         LogEntry logEntry;
 
+        LogPosition logPosition = channel.getCurrentLogPosition();
         // Envelope channels can have half an entry from the previous channel, let's align to the start of a tx/chunk
         if (channel instanceof EnvelopeReadChannel ch) {
-            ch.alignWithStartEntry();
+            logPosition = new LogPosition(logPosition.getLogVersion(), ch.alignWithStartEntry());
         }
 
         do {
-            var logPosition = channel.getCurrentLogPosition();
             logEntry = logEntryReader.readLogEntry(channel);
             if (logEntry != null) {
                 switch (logEntry.getType()) {
@@ -97,6 +97,7 @@ public class AppendedChunkPositionLocator implements LogFile.LogFileVisitor {
                     }
                     default -> {} // just skip commands
                 }
+                logPosition = channel.getCurrentLogPosition();
             }
         } while (logEntry != null);
 
