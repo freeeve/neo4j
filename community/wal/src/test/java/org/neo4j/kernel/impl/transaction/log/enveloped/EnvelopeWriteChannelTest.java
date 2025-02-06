@@ -1446,13 +1446,13 @@ class EnvelopeWriteChannelTest {
     private static Stream<Arguments> provideStartOffsetParameters() {
         return Stream.of(
                 // segmentSize, offsetFullLength (header + length)
-                Arguments.of(128, 32, 128),
-                Arguments.of(256, 32, 256),
+                Arguments.of(128, 33, 128),
+                Arguments.of(256, 33, 256),
                 // Test with bufferSize other than segmentLength
                 Arguments.of(256, 32, 512),
-                // Minimum START_OFFSET, containing just the size of the header.
-                Arguments.of(128, HEADER_SIZE, 128),
-                Arguments.of(256, HEADER_SIZE, 256),
+                // Minimum START_OFFSET + 1, containing just the size of the header + 1.
+                Arguments.of(128, HEADER_SIZE + 1, 128),
+                Arguments.of(256, HEADER_SIZE + 1, 256),
                 // Maximum START_OFFSET, spawning the whole segment but enough space for a small (header + 4 bytes)
                 // envelope after.
                 Arguments.of(128, 128 - HEADER_SIZE - Integer.BYTES, 128),
@@ -1602,7 +1602,11 @@ class EnvelopeWriteChannelTest {
                     .as("trying to use a zero size for offset will be rejected")
                     .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL.formatted(HEADER_SIZE));
             assertThatThrownBy(() -> channel.insertStartOffset(HEADER_SIZE - 1))
-                    .as("trying to use less than the size of an envelope header will be rejected")
+                    .as("trying to use less than or equal to the size of an envelope header will be rejected")
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL.formatted(HEADER_SIZE));
+            assertThatThrownBy(() -> channel.insertStartOffset(HEADER_SIZE))
+                    .as("trying to use less than or equal to the size of an envelope header will be rejected")
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL.formatted(HEADER_SIZE));
 

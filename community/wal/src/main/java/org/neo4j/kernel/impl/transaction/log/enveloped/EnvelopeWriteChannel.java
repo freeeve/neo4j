@@ -654,7 +654,7 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
      *             and must leave enough space for another envelope to be added after it in the current segment.
      */
     public void insertStartOffset(int size) throws IOException {
-        checkArgument(size >= HEADER_SIZE, ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL, HEADER_SIZE);
+        checkArgument(size > HEADER_SIZE, ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL, HEADER_SIZE);
         checkArgument(
                 size < segmentBlockSize - HEADER_SIZE, ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_LARGE, segmentBlockSize);
         checkState(
