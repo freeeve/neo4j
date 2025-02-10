@@ -807,49 +807,57 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
 
       // EXISTS
       case x: ExistsExpression =>
-        SemanticState.recordCurrentScope(x) chain
-          withScopedState {
+        withScopedState {
+          importValuesFromParentInSubqueryExpression(x) chain
             x.query.semanticCheckInSubqueryExpressionContext(canOmitReturn = true) chain
-              when(x.query.containsUpdates) {
-                SemanticError.anExpressionCannotContainUpdates("Exists", x.position)
-              } chain
-              when(x.query.endsWithFinish) {
-                SemanticError("An Exists Expression cannot contain a query ending with FINISH.", x.position)
-              } chain
-              checkForShadowedVariables(x.query.folder.findAllByClass[SubqueryCall]) chain
-              SemanticState.recordCurrentScope(x.query)
-          } chain specifyType(CTBoolean, x)
+            when(x.query.containsUpdates) {
+              SemanticError.anExpressionCannotContainUpdates("Exists", x.position)
+            } chain
+            when(x.query.endsWithFinish) {
+              SemanticError("An Exists Expression cannot contain a query ending with FINISH.", x.position)
+            } chain
+            checkForShadowedVariables(x.query.folder.findAllByClass[SubqueryCall]) chain
+            SemanticState.recordCurrentScope(x.query)
+        } chain
+          SemanticState.recordCurrentScope(x) chain
+          specifyType(CTBoolean, x)
 
       // COUNT
       case x: CountExpression =>
-        SemanticState.recordCurrentScope(x) chain
-          withScopedState {
-            x.query.semanticCheckInSubqueryExpressionContext(canOmitReturn = !x.query.isInstanceOf[UnionDistinct]) chain
-              when(x.query.containsUpdates) {
-                SemanticError.aExpressionCannotContainUpdates("Count", x.position)
-              } chain
-              when(x.query.endsWithFinish) {
-                SemanticError("A Count Expression cannot contain a query ending with FINISH.", x.position)
-              } chain
-              checkForShadowedVariables(x.query.folder.findAllByClass[SubqueryCall]) chain
-              SemanticState.recordCurrentScope(x.query)
-          } chain specifyType(CTInteger, x)
+        withScopedState {
+          importValuesFromParentInSubqueryExpression(x) chain
+            x.query.semanticCheckInSubqueryExpressionContext(canOmitReturn =
+              !x.query.isInstanceOf[UnionDistinct]
+            ) chain
+            when(x.query.containsUpdates) {
+              SemanticError.aExpressionCannotContainUpdates("Count", x.position)
+            } chain
+            when(x.query.endsWithFinish) {
+              SemanticError("A Count Expression cannot contain a query ending with FINISH.", x.position)
+            } chain
+            checkForShadowedVariables(x.query.folder.findAllByClass[SubqueryCall]) chain
+            SemanticState.recordCurrentScope(x.query)
+        } chain
+          SemanticState.recordCurrentScope(x) chain
+          specifyType(CTInteger, x)
 
       // COLLECT
       case x: CollectExpression =>
-        SemanticState.recordCurrentScope(x) chain
-          withScopedState {
+        withScopedState {
+          importValuesFromParentInSubqueryExpression(x) chain
             x.query.semanticCheckInSubqueryExpressionContext(canOmitReturn = false) chain
-              when(x.query.containsUpdates) {
-                SemanticError.aExpressionCannotContainUpdates("Collect", x.position)
-              } chain
-              when(x.query.returnVariables.includeExisting || x.query.returnColumns.size != 1) {
-                SemanticError.singleReturnColumnRequired(x.position)
-                // by implication this also ensures that "A Collect Expression cannot contain a query ending with FINISH"
-              } chain
-              checkForShadowedVariables(x.query.folder.findAllByClass[SubqueryCall]) chain
-              SemanticState.recordCurrentScope(x.query)
-          } chain specifyType(CTList(CTAny).covariant, x)
+            when(x.query.containsUpdates) {
+              SemanticError.aExpressionCannotContainUpdates("Collect", x.position)
+            } chain
+            when(x.query.returnVariables.includeExisting || x.query.returnColumns.size != 1) {
+              SemanticError.singleReturnColumnRequired(x.position)
+              // by implication this also ensures that "A Collect Expression cannot contain a query ending with FINISH"
+            } chain
+            checkForShadowedVariables(x.query.folder.findAllByClass[SubqueryCall]) chain
+            SemanticState.recordCurrentScope(x.query)
+        } chain
+          SemanticState.recordCurrentScope(x) chain
+          specifyType(CTList(CTAny).covariant, x)
 
       case x: Expression => semanticCheckFallback(ctx, x)
     }

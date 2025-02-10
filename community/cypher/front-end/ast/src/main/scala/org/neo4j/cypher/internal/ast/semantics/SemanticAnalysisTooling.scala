@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck.TypeMismatchContext
 import org.neo4j.cypher.internal.expressions.DoubleLiteral
 import org.neo4j.cypher.internal.expressions.Expression
@@ -366,6 +367,21 @@ trait SemanticAnalysisTooling {
   def importValuesFromRecordedScope(astNode: ASTNode): SemanticCheck = { (state: SemanticState) =>
     val scopeToImportFrom = state.scope(astNode).get
     SemanticCheckResult.success(state.importValuesFromScope(scopeToImportFrom))
+  }
+
+  /**
+   * If the subquery expression is a property in a creating pattern
+   * the created variable should not be imported into the subquery expression.
+   * In [[SemanticPatternCheck.declareVariablesInSeparateScope]] we store the
+   * newly created variables to access and escape them from the import here.
+   */
+  def importValuesFromParentInSubqueryExpression(subExpr: FullSubqueryExpression): SemanticCheck = {
+    (state: SemanticState) =>
+      val outerLoc = state.currentScope.parent.get
+      val outerParentScope = outerLoc.parent.fold(Scope.empty)(_.scope)
+      val escapedSymbols = state.recordedScopes.get(subExpr).fold(Set.empty[String])(_.scope.symbolNames)
+      SemanticCheckResult.success(state.importValuesFromScope(outerLoc.scope, escapedSymbols)
+        .importValuesFromScope(outerParentScope, escapedSymbols ++ outerLoc.scope.symbolNames))
   }
 
   def importValuesFromScope(scope: Scope): SemanticCheck = {

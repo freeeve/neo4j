@@ -296,6 +296,15 @@ object SemanticState {
     ): ScopeLocation =
       location.replace(scope.updateVariable(variable, types, definition, uses, unionVariable))
 
+    def declarationsAndDependenciesForExpressions: DeclarationsAndDependencies = {
+      val allDefinitions = scope.children.flatMap(_.allSymbolDefinitions.values.flatten).toSet
+      val parentDefinitions = parent.get.availableSymbolDefinitions
+      val (dependencies, declarations) = allDefinitions.partition { definition =>
+        parentDefinitions.contains(definition)
+      }
+      DeclarationsAndDependencies(declarations, dependencies)
+    }
+
     def declarationsAndDependencies: DeclarationsAndDependencies = {
       val allDefinitions = scope.allSymbolDefinitions.values.flatten.toSet
       val parentDefinitions = parent.get.availableSymbolDefinitions

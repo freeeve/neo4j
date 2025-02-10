@@ -95,7 +95,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
     check(ctx, pattern, requireDifferentRelationships = true)
 
   def check(ctx: SemanticContext, pattern: Pattern, requireDifferentRelationships: Boolean): SemanticCheck =
-    semanticCheckFold(pattern.patternParts)(declareVariables(ctx)) chain
+    declareVariablesInSeparateScope(ctx, pattern.patternParts) chain
       semanticCheckFold(pattern.patternParts)(check(ctx)) ifOkChain
       semanticCheckFold(pattern.patternParts)(checkMinimumNodeCount) ifOkChain
       when(ctx != SemanticContext.Create && ctx != SemanticContext.Insert) {
@@ -110,6 +110,27 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
 
         checkPipeline
       }
+
+  private def declareVariablesInSeparateScope(ctx: SemanticContext, parts: Seq[PatternPart]): SemanticCheck = {
+    when(parts.folder.findAllByClass[FullSubqueryExpression].nonEmpty) {
+      withScopedState {
+        collectDeclaredVariables(ctx, parts)
+      }
+    } chain semanticCheckFold(parts)(declareVariables(ctx))
+  }
+
+  private def collectDeclaredVariables(ctx: SemanticContext, parts: Seq[PatternPart]): SemanticCheck =
+    for {
+      declared <- parts.foldSemanticCheck(declareVariables(ctx))
+      sibling <- SemanticCheck.setState(declared.state.newSiblingScope)
+      _ <- SemanticCheck.setState(sibling.state.importValuesFromScope(
+        declared.state.currentScope.scope,
+        sibling.state.currentScope.parent.get.symbolNames.intersect(
+          declared.state.currentScope.symbolNames
+        )
+      ))
+      recordedScopes <- parts.folder.findAllByClass[FullSubqueryExpression].foldSemanticCheck(recordCurrentScope(_))
+    } yield recordedScopes
 
   def check(ctx: SemanticContext, pattern: RelationshipsPattern): SemanticCheck =
     check(ctx, pattern, requireDifferentRelationships = true)

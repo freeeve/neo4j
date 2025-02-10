@@ -30,7 +30,7 @@ case class computeDependenciesForExpressions(semanticState: SemanticState) exten
   private val instance: Rewriter = topDown(Rewriter.lift {
     case x: ExpressionWithComputedDependencies =>
       val DeclarationsAndDependencies(declarations, dependencies) = semanticState.recordedScopes(x.subqueryAstNode)
-        .declarationsAndDependencies
+        .declarationsAndDependenciesForExpressions
       x.withComputedIntroducedVariables(declarations.map(_.asVariable))
         .withComputedScopeDependencies(dependencies.map(_.asVariable))
   })
