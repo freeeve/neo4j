@@ -41,4 +41,13 @@ public enum CypherVersion {
     public String toString() {
         return versionName;
     }
+
+    public static CypherVersion fromStoredValue(String storedValue) {
+        for (CypherVersion version : CypherVersion.values()) {
+            if (version.persistedValue.equals(storedValue)) {
+                return version;
+            }
+        }
+        throw new IllegalArgumentException(storedValue + " is not a valid CypherVersion");
+    }
 }
