@@ -148,6 +148,17 @@ class OptionReaderTest extends CypherFunSuite {
     )
   }
 
+  test("Fails on parallel runtime config with slotted runtime") {
+    val exception = intercept[InvalidCypherOption](CypherQueryOptions.fromValues(
+      config = CypherConfiguration.fromConfig(Config.defaults()),
+      keyValues = Set("runtime" -> "slotted", "parallelRuntimeConfig" -> "leverageOrder")
+    ))
+
+    exception.getMessage.should(
+      be("Cannot combine PARALLEL RUNTIME CONFIG 'leverageorder' with RUNTIME 'slotted'")
+    )
+  }
+
   test("Cypher version can be read") {
     org.neo4j.cypher.internal.CypherVersion.values().foreach {
       case experimentalVersion if experimentalVersion.experimental =>

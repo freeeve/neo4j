@@ -71,7 +71,7 @@ object distinct {
         )
       }
     } else if (orderToLeverageForGrouping.isEmpty || !context.settings.executionModel.providedOrderPreserving) {
-      // Parallel runtime does currently not support OrderedDistinct
+      // OrderedDistinct requires runtime to be preserve order
       context.staticComponents.logicalPlanProducer.planDistinct(
         plan,
         newGroupingExpressionsMap,

@@ -456,6 +456,27 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
   }
 
   test(
+    "should use ordered aggregation when configured, if directly after sort"
+  ) {
+    val query = "MATCH (a:A) WITH a ORDER BY a.foo RETURN a.foo, count(a.foo)"
+    val planner = plannerBuilder()
+      .setExecutionModel(BatchedParallel(1, 2, providedOrderPreserving = true))
+      .build()
+    val plan = planner.plan(query).stripProduceResults
+
+    plan should equal(planner.subPlanBuilder()
+      .orderedAggregation(
+        Seq("cacheN[a.foo] AS `a.foo`"),
+        Seq("count(cacheN[a.foo]) AS `count(a.foo)`"),
+        Seq("cacheN[a.foo]")
+      )
+      .sort("`a.foo` ASC")
+      .projection("cacheFromStore[a.foo] AS `a.foo`")
+      .nodeByLabelScan("a", "A")
+      .build())
+  }
+
+  test(
     "should - for now not - use ordered aggregation even if the execution model does not preserve order, if not directly after sort"
   ) {
     val query = "MATCH (a:A) WITH a, a.foo AS foo ORDER BY foo WHERE foo > 10 RETURN foo, count(foo)"
@@ -466,6 +487,24 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
 
     plan should equal(planner.subPlanBuilder()
       .aggregation(Seq("foo AS foo"), Seq("count(foo) AS `count(foo)`"))
+      .filter("foo > 10")
+      .sort("foo ASC")
+      .projection("a.foo AS foo")
+      .nodeByLabelScan("a", "A")
+      .build())
+  }
+
+  test(
+    "should use ordered aggregation when configured, if not directly after sort"
+  ) {
+    val query = "MATCH (a:A) WITH a, a.foo AS foo ORDER BY foo WHERE foo > 10 RETURN foo, count(foo)"
+    val planner = plannerBuilder()
+      .setExecutionModel(BatchedParallel(1, 2, providedOrderPreserving = true))
+      .build()
+    val plan = planner.plan(query).stripProduceResults
+
+    plan should equal(planner.subPlanBuilder()
+      .orderedAggregation(Seq("foo AS foo"), Seq("count(foo) AS `count(foo)`"), Seq("foo"))
       .filter("foo > 10")
       .sort("foo ASC")
       .projection("a.foo AS foo")
@@ -624,6 +663,23 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
   }
 
   test(
+    "should use ordered distinct when configured, if directly after sort"
+  ) {
+    val query = "MATCH (a:A) WITH a ORDER BY a.foo RETURN DISTINCT a.foo"
+    val planner = plannerBuilder()
+      .setExecutionModel(BatchedParallel(1, 2, providedOrderPreserving = true))
+      .build()
+    val plan = planner.plan(query).stripProduceResults
+
+    plan should equal(planner.subPlanBuilder()
+      .orderedDistinct(Seq("cacheN[a.foo]"), "cacheN[a.foo] AS `a.foo`")
+      .sort("`a.foo` ASC")
+      .projection("cacheNFromStore[a.foo] AS `a.foo`")
+      .nodeByLabelScan("a", "A")
+      .build())
+  }
+
+  test(
     "should - for now not - use ordered distinct even if the execution model does not preserve order, if not directly after sort"
   ) {
     val query = "MATCH (a:A) WITH a, a.foo AS foo ORDER BY foo WHERE foo > 10 RETURN DISTINCT foo"
@@ -634,6 +690,24 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
 
     plan should equal(planner.subPlanBuilder()
       .distinct("foo AS foo")
+      .filter("foo > 10")
+      .sort("foo ASC")
+      .projection("a.foo AS foo")
+      .nodeByLabelScan("a", "A")
+      .build())
+  }
+
+  test(
+    "should use ordered distinct when configured, if not directly after sort"
+  ) {
+    val query = "MATCH (a:A) WITH a, a.foo AS foo ORDER BY foo WHERE foo > 10 RETURN DISTINCT foo"
+    val planner = plannerBuilder()
+      .setExecutionModel(BatchedParallel(1, 2, providedOrderPreserving = true))
+      .build()
+    val plan = planner.plan(query).stripProduceResults
+
+    plan should equal(planner.subPlanBuilder()
+      .orderedDistinct(Seq("foo"), "foo AS foo")
       .filter("foo > 10")
       .sort("foo ASC")
       .projection("a.foo AS foo")
@@ -716,6 +790,27 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .nodeIndexOperator(
         "a:A(foo)",
         indexOrder = IndexOrderNone,
+        getValue = _ => GetValue,
+        indexType = IndexType.RANGE
+      )
+      .build())
+  }
+
+  test(
+    "should use ordered distinct with index order when configured"
+  ) {
+    val query = "MATCH (a:A) WHERE a.foo IS NOT NULL WITH a ORDER BY a.foo RETURN DISTINCT a.foo AS x"
+    val planner = plannerBuilder()
+      .setExecutionModel(BatchedParallel(1, 2, providedOrderPreserving = true))
+      .addNodeIndex("A", Seq("foo"), 1.0, 0.01)
+      .build()
+    val plan = planner.plan(query).stripProduceResults
+
+    plan should equal(planner.subPlanBuilder()
+      .orderedDistinct(Seq("cacheN[a.foo]"), "cacheN[a.foo] AS x")
+      .nodeIndexOperator(
+        "a:A(foo)",
+        indexOrder = IndexOrderAscending,
         getValue = _ => GetValue,
         indexType = IndexType.RANGE
       )
@@ -2780,6 +2875,24 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
   }
 
   test(
+    "should use partial sort when configured, if directly after sort"
+  ) {
+    val query = "MATCH (a:A) WITH a ORDER BY a.foo RETURN a.foo, a.bar ORDER BY a.foo, a.bar"
+    val planner = plannerBuilder()
+      .setExecutionModel(BatchedParallel(1, 2, providedOrderPreserving = true))
+      .build()
+    val plan = planner.plan(query).stripProduceResults
+
+    plan should equal(planner.subPlanBuilder()
+      .partialSort(Seq("`a.foo` ASC"), Seq("`a.bar` ASC"))
+      .projection("cacheN[a.foo] AS `a.foo`", "a.bar AS `a.bar`")
+      .sort("`a.foo` ASC")
+      .projection("cacheFromStore[a.foo] AS `a.foo`")
+      .nodeByLabelScan("a", "A")
+      .build())
+  }
+
+  test(
     "should - for now not - use partial sort even if the execution model does not preserve order, if not directly after sort"
   ) {
     val query = "MATCH (a:A) WITH a, a.foo AS foo ORDER BY foo WHERE foo > 10 RETURN foo, a.bar ORDER BY foo, a.bar"
@@ -2790,6 +2903,25 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
 
     plan should equal(planner.subPlanBuilder()
       .sort("foo ASC", "`a.bar` ASC")
+      .projection("a.bar AS `a.bar`")
+      .filter("foo > 10")
+      .sort("foo ASC")
+      .projection("a.foo AS foo")
+      .nodeByLabelScan("a", "A")
+      .build())
+  }
+
+  test(
+    "should use partial sort when configured, if not directly after sort"
+  ) {
+    val query = "MATCH (a:A) WITH a, a.foo AS foo ORDER BY foo WHERE foo > 10 RETURN foo, a.bar ORDER BY foo, a.bar"
+    val planner = plannerBuilder()
+      .setExecutionModel(BatchedParallel(1, 2, providedOrderPreserving = true))
+      .build()
+    val plan = planner.plan(query).stripProduceResults
+
+    plan should equal(planner.subPlanBuilder()
+      .partialSort(Seq("foo ASC"), Seq("`a.bar` ASC"))
       .projection("a.bar AS `a.bar`")
       .filter("foo > 10")
       .sort("foo ASC")

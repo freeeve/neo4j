@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
 import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
 import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
+import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
 import org.neo4j.cypher.internal.options.CypherParallelRuntimeSupportOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherPlannerOption
@@ -197,6 +198,9 @@ class CypherConfiguration private (val config: Config) {
 
   val cachePropertiesForEntitiesWithFilter: Boolean =
     config.get(GraphDatabaseInternalSettings.push_predicates_into_remote_batch_properties)
+
+  val parallel_runtime_config: CypherParallelRuntimeConfigOption =
+    CypherParallelRuntimeConfigOption.fromConfig(config)
 
   val antlrPreparserEnabled: Boolean =
     config.get(GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled)

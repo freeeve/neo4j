@@ -143,7 +143,8 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
       // Only used on read-only queries, until rewriter is tested to work with cleanUpEager
       Option.when(readOnly)(bfsAggregationRemover),
       // Only used on read-only queries, until rewriter is tested to work with cleanUpEager
-      // Parallel runtime does currently not support PartialSort/PartialTop, which is introduced in bfsDepthOrderer
+      // To support PartialSort/PartialTop, which is introduced in bfsDepthOrderer the runtime needs
+      // to be able to preserve order
       Option.when(context.executionModel.providedOrderPreserving && readOnly)(bfsDepthOrderer),
       Some(useTop),
       Some(skipInPartialSort),

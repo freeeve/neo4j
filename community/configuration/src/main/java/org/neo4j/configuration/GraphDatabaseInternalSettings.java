@@ -271,6 +271,19 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
                     "internal.cypher.enable_multi_relationship_expansion", BOOL, false)
             .build();
 
+    public enum ParallelRuntimeConfig {
+        NONE,
+        LEVERAGE_ORDER
+    }
+
+    @Internal
+    @Description("Set this to specify parallel runtime features to enable.")
+    public static final Setting<ParallelRuntimeConfig> parallel_runtime_config = newBuilder(
+                    "internal.cypher.parallel_runtime_config",
+                    ofEnum(ParallelRuntimeConfig.class),
+                    ParallelRuntimeConfig.NONE)
+            .build();
+
     @Internal
     @Description("Any quantifier in a selective path pattern above this limit gets removed and instead expressed "
             + "as a predicate. This is done to limit the size of the NFA. Note that for a QPP, the limit "

@@ -369,7 +369,13 @@ case class CypherPlanner(
       case CypherRuntimeOption.pipelined =>
         BatchedSingleThreaded(plannerConfig.pipelinedBatchSizeSmall(), plannerConfig.pipelinedBatchSizeBig())
       case CypherRuntimeOption.parallel if !containsUpdates =>
-        BatchedParallel(plannerConfig.pipelinedBatchSizeSmall(), plannerConfig.pipelinedBatchSizeBig())
+        val inferredRuntimeConfig = options.queryOptions.parallelRuntimeConfigOption
+
+        BatchedParallel(
+          plannerConfig.pipelinedBatchSizeSmall(),
+          plannerConfig.pipelinedBatchSizeBig(),
+          inferredRuntimeConfig.leverageOrder
+        )
       case _ => Volcano
     }
     val maybeUpdateStrategy: Option[UpdateStrategy] = options.queryOptions.updateStrategy match {

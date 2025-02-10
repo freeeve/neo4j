@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.options.CypherQueryOptions.ILLEGAL_EXPRESSION_ENGINE_RUNTIME_COMBINATIONS
 import org.neo4j.cypher.internal.options.CypherQueryOptions.ILLEGAL_INTERPRETED_PIPES_FALLBACK_RUNTIME_COMBINATIONS
 import org.neo4j.cypher.internal.options.CypherQueryOptions.ILLEGAL_OPERATOR_ENGINE_RUNTIME_COMBINATIONS
+import org.neo4j.cypher.internal.options.CypherQueryOptions.ILLEGAL_PARALLEL_CONFIG_COMBINATIONS
 import org.neo4j.cypher.internal.options.CypherQueryOptions.ILLEGAL_PARALLEL_RUNTIME_COMBINATIONS
 import org.neo4j.exceptions.InvalidCypherOption
 
@@ -47,6 +48,7 @@ case class CypherQueryOptions(
   connectComponentsPlanner: CypherConnectComponentsPlannerOption,
   debugOptions: CypherDebugOptions,
   parallelRuntimeSupportOption: CypherParallelRuntimeSupportOption,
+  parallelRuntimeConfigOption: CypherParallelRuntimeConfigOption,
   eagerAnalyzer: CypherEagerAnalyzerOption,
   inferSchemaParts: CypherInferSchemaPartsOption,
   statefulShortestPlanningModeOption: CypherStatefulShortestPlanningModeOption,
@@ -66,6 +68,15 @@ case class CypherQueryOptions(
       "RUNTIME",
       runtime.name
     )
+
+  if (ILLEGAL_PARALLEL_CONFIG_COMBINATIONS((parallelRuntimeConfigOption, runtime))) {
+    throw InvalidCypherOption.invalidCombination(
+      "PARALLEL RUNTIME CONFIG",
+      parallelRuntimeConfigOption.name,
+      "RUNTIME",
+      runtime.name
+    )
+  }
 
   if (ILLEGAL_PARALLEL_RUNTIME_COMBINATIONS((parallelRuntimeSupportOption, runtime))) {
     throw InvalidCypherOption.parallelRuntimeIsDisabled()
@@ -154,6 +165,12 @@ object CypherQueryOptions {
     : Set[(CypherParallelRuntimeSupportOption, CypherRuntimeOption)] =
     Set(
       (CypherParallelRuntimeSupportOption.disabled, CypherRuntimeOption.parallel)
+    )
+
+  final private def ILLEGAL_PARALLEL_CONFIG_COMBINATIONS
+    : Set[(CypherParallelRuntimeConfigOption, CypherRuntimeOption)] =
+    Set(
+      (CypherParallelRuntimeConfigOption.leverageOrder, CypherRuntimeOption.slotted)
     )
 }
 
@@ -452,6 +469,43 @@ case object CypherParallelRuntimeSupportOption extends CypherOptionCompanion[Cyp
   implicit val logicalPlanCacheKey: OptionLogicalPlanCacheKey[CypherParallelRuntimeSupportOption] =
     OptionLogicalPlanCacheKey.create(_.logicalPlanCacheKey)
   implicit val reader: OptionReader[CypherParallelRuntimeSupportOption] = singleOptionReader()
+}
+
+sealed abstract class CypherParallelRuntimeConfigOption(selection: String) extends CypherKeyValueOption(selection) {
+  override def companion: CypherParallelRuntimeConfigOption.type = CypherParallelRuntimeConfigOption
+
+  def leverageOrder: Boolean
+
+  /**
+   * Allowing for leveraged order will change the logical plan.
+   */
+  override def relevantForLogicalPlanCacheKey: Boolean = true
+}
+
+case object CypherParallelRuntimeConfigOption extends CypherOptionCompanion[CypherParallelRuntimeConfigOption](
+      name = "parallelRuntimeConfig",
+      setting = Some(GraphDatabaseInternalSettings.parallel_runtime_config),
+      cypherConfigField = Some(_.parallel_runtime_config)
+    ) {
+
+  case object none extends CypherParallelRuntimeConfigOption("none") {
+    override def leverageOrder: Boolean = false
+  }
+
+  case object leverageOrder extends CypherParallelRuntimeConfigOption("leverageOrder") {
+    override def leverageOrder: Boolean = true
+  }
+  override def default: CypherParallelRuntimeConfigOption = none
+
+  override def values: Set[CypherParallelRuntimeConfigOption] = Set(none, leverageOrder)
+
+  implicit val hasDefault: OptionDefault[CypherParallelRuntimeConfigOption] = OptionDefault.create(default)
+  implicit val renderer: OptionRenderer[CypherParallelRuntimeConfigOption] = OptionRenderer.create(_.render)
+  implicit val cacheKey: OptionCacheKey[CypherParallelRuntimeConfigOption] = OptionCacheKey.create(_.cacheKey)
+
+  implicit val logicalPlanCacheKey: OptionLogicalPlanCacheKey[CypherParallelRuntimeConfigOption] =
+    OptionLogicalPlanCacheKey.create(_.logicalPlanCacheKey)
+  implicit val reader: OptionReader[CypherParallelRuntimeConfigOption] = singleOptionReader()
 }
 
 sealed abstract class CypherInterpretedPipesFallbackOption(mode: String) extends CypherKeyValueOption(mode) {

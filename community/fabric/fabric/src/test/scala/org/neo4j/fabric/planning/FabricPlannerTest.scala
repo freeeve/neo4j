@@ -42,6 +42,7 @@ import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
 import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
 import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
+import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
 import org.neo4j.cypher.internal.options.CypherParallelRuntimeSupportOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherPlannerOption
@@ -1015,6 +1016,7 @@ class FabricPlannerTest
           connectComponentsPlanner = CypherConnectComponentsPlannerOption.greedy,
           debugOptions = CypherDebugOptions(Set(CypherDebugOption.tostring)),
           parallelRuntimeSupportOption = CypherParallelRuntimeSupportOption.all,
+          parallelRuntimeConfigOption = CypherParallelRuntimeConfigOption.none,
           eagerAnalyzer = CypherEagerAnalyzerOption.lp,
           inferSchemaParts = CypherInferSchemaPartsOption.default,
           statefulShortestPlanningModeOption = CypherStatefulShortestPlanningModeOption.default,

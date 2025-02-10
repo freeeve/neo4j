@@ -251,7 +251,7 @@ object SortPlanner {
       val fullSortRequired =
         satisfiedPrefix.isEmpty ||
           providedOrderAfterProjections.isEmpty || // order was invalidated, likely by a subquery expression
-          !context.settings.executionModel.providedOrderPreserving // Parallel runtime does currently not support PartialSort
+          !context.settings.executionModel.providedOrderPreserving // PartialSort requires order to be preserved
       if (fullSortRequired) {
         Some(context.staticComponents.logicalPlanProducer.planSort(
           projected2,

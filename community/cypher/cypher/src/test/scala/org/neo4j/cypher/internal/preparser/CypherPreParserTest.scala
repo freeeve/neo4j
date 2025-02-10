@@ -81,6 +81,16 @@ class CypherPreParserTest extends CypherFunSuite with TableDrivenPropertyChecks 
       (List(PreParserOption.generic("runtime", "interpreted", (1, 8, 7))), (1, 28, 27))
     ),
     (
+      "CYPHER runtime=parallel parallelRuntimeConfig=leverageOrder RETURN",
+      (
+        List(
+          PreParserOption.generic("runtime", "parallel", (1, 8, 7)),
+          PreParserOption.generic("parallelRuntimeConfig", "leverageOrder", (1, 25, 24))
+        ),
+        (1, 61, 60)
+      )
+    ),
+    (
       "CYPHER planner=cost runtime=interpreted RETURN",
       (
         List(

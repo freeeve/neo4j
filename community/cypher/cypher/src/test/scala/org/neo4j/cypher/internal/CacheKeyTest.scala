@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
 import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
 import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
+import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
 import org.neo4j.cypher.internal.options.CypherParallelRuntimeSupportOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherPlannerOption
@@ -69,6 +70,7 @@ class CacheKeyTest extends CypherFunSuite {
       connectComponentsPlanner = CypherConnectComponentsPlannerOption.idp,
       debugOptions = CypherDebugOptions(Set(CypherDebugOption.queryGraph, CypherDebugOption.tostring)),
       parallelRuntimeSupportOption = CypherParallelRuntimeSupportOption.disabled,
+      parallelRuntimeConfigOption = CypherParallelRuntimeConfigOption.none,
       eagerAnalyzer = CypherEagerAnalyzerOption.ir,
       inferSchemaParts = CypherInferSchemaPartsOption.mostSelectiveLabel,
       statefulShortestPlanningModeOption = CypherStatefulShortestPlanningModeOption.allIfPossible,
@@ -95,6 +97,7 @@ class CacheKeyTest extends CypherFunSuite {
       connectComponentsPlanner = CypherConnectComponentsPlannerOption.idp,
       debugOptions = CypherDebugOptions(Set(CypherDebugOption.queryGraph, CypherDebugOption.tostring)),
       parallelRuntimeSupportOption = CypherParallelRuntimeSupportOption.disabled,
+      parallelRuntimeConfigOption = CypherParallelRuntimeConfigOption.none,
       eagerAnalyzer = CypherEagerAnalyzerOption.ir,
       inferSchemaParts = CypherInferSchemaPartsOption.mostSelectiveLabel,
       statefulShortestPlanningModeOption = CypherStatefulShortestPlanningModeOption.allIfPossible,

@@ -117,7 +117,7 @@ object aggregation {
           plan.availableSymbols
         )
 
-      // Parallel runtime does currently not support OrderedAggregation
+      // OrderedAggregation requires runtime to be order preserving
       if (orderToLeverageForGrouping.isEmpty || !context.settings.executionModel.providedOrderPreserving) {
         context.staticComponents.logicalPlanProducer.planAggregation(
           plan,

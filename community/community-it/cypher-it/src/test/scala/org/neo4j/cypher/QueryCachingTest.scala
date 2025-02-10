@@ -669,6 +669,34 @@ abstract class QueryCachingTest(executionPlanCacheSize: Int =
     ))
   }
 
+  test("Different parallelRuntimeConfig should use different executableQuery and logicalPlan") {
+    val cacheListener = new LoggingTracer()
+
+    graph.withTx { tx =>
+      tx.execute("CYPHER runtime=parallel MATCH (n:L) RETURN n ORDER BY n").resultAsString()
+      tx.execute(
+        "CYPHER runtime=parallel parallelRuntimeConfig=leverageOrder MATCH (n:L) RETURN n ORDER BY n"
+      ).resultAsString()
+    }
+
+    cacheListener.expectTrace(List(
+      "String: cacheFlushDetected",
+      "AST:    cacheFlushDetected",
+      // 1st run
+      "AST:    cacheMiss",
+      "AST:    cacheCompile",
+      executionPlanCacheKeyMiss,
+      s"String: cacheMiss: CacheKey(CYPHER runtime=parallel MATCH (n:L) RETURN n ORDER BY n,Map(),false,5)",
+      s"String: cacheCompile: CacheKey(CYPHER runtime=parallel MATCH (n:L) RETURN n ORDER BY n,Map(),false,5)",
+      // 2nd run
+      "AST:    cacheMiss",
+      "AST:    cacheCompile",
+      executionPlanCacheKeyMiss,
+      s"String: cacheMiss: CacheKey(CYPHER runtime=parallel parallelRuntimeConfig=leverageorder MATCH (n:L) RETURN n ORDER BY n,Map(),false,5)",
+      s"String: cacheCompile: CacheKey(CYPHER runtime=parallel parallelRuntimeConfig=leverageorder MATCH (n:L) RETURN n ORDER BY n,Map(),false,5)"
+    ))
+  }
+
   test("Different runtime in query should not use same plan") {
     val cacheListener = new LoggingTracer()
 
