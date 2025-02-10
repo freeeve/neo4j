@@ -838,7 +838,14 @@ class Neo4jTransactionalContextIT {
                 .procedure(new QualifiedName("tx", "setMetaData"), QueryLanguage.CYPHER_5);
         var id = txSetMetaData.id();
         var procContext = new ProcedureCallContext(
-                id, EMPTY_STRING_ARRAY, false, "", false, "runtimeUsed", EmptyMemoryTracker.INSTANCE);
+                id,
+                EMPTY_STRING_ARRAY,
+                false,
+                "",
+                false,
+                "runtimeUsed",
+                EmptyMemoryTracker.INSTANCE,
+                QueryLanguage.CYPHER_5);
 
         // When
         AnyValue[] arguments = {VirtualValues.map(new String[] {"foo"}, new AnyValue[] {Values.stringValue("bar")})};

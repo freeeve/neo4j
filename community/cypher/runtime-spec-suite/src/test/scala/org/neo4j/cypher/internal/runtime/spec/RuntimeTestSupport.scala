@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.LogicalQuery
 import org.neo4j.cypher.internal.MasterCompiler
-import org.neo4j.cypher.internal.PreParser
 import org.neo4j.cypher.internal.ResourceManagerFactory
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.RuntimeContextManager
@@ -37,7 +36,6 @@ import org.neo4j.cypher.internal.plandescription.InternalPlanDescription
 import org.neo4j.cypher.internal.plandescription.PlanDescriptionBuilder
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttributes
-import org.neo4j.cypher.internal.preparser.PreParsedStatement
 import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.runtime.InputDataStream
 import org.neo4j.cypher.internal.runtime.InputValues
@@ -934,12 +932,13 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
     txContext: TransactionalContext,
     prePopulateResults: Boolean
   ): RESULT = {
+    val defaultLanguage = CypherVersion.Default
     txContext.executingQuery().setCompilerInfoForTesting(new CompilerInfo(
       "NO PLANNER",
       executableQuery.runtimeName.name,
-      Collections.emptyList()
+      Collections.emptyList(),
+      defaultLanguage
     ))
-    val defaultLanguage = CypherVersion.Default
     val queryContext = newQueryContext(txContext, executableQuery.threadSafeExecutionResources())
     val runtimeContext = newRuntimeContext(queryContext, defaultLanguage)
 

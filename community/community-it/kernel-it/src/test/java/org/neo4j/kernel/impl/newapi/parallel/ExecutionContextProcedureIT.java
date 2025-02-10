@@ -81,6 +81,7 @@ import org.neo4j.values.virtual.VirtualValues;
 class ExecutionContextProcedureIT {
 
     private static final String RUNTIME_USED = "TEST";
+    private static final QueryLanguage CYPHER_VERSION = QueryLanguage.CYPHER_5;
 
     @Inject
     private GraphDatabaseAPI db;
@@ -407,7 +408,7 @@ class ExecutionContextProcedureIT {
 
     private ProcedureCallContext procedureCtx(int id) {
         return new ProcedureCallContext(
-                id, EMPTY_STRING_ARRAY, false, "", false, RUNTIME_USED, EmptyMemoryTracker.INSTANCE);
+                id, EMPTY_STRING_ARRAY, false, "", false, RUNTIME_USED, EmptyMemoryTracker.INSTANCE, CYPHER_VERSION);
     }
 
     private interface ExecutionContextLogic {

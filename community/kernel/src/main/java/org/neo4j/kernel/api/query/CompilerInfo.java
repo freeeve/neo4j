@@ -22,6 +22,7 @@ package org.neo4j.kernel.api.query;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import org.neo4j.cypher.internal.CypherVersion;
 
 public class CompilerInfo {
     private final String planner;
@@ -29,22 +30,25 @@ public class CompilerInfo {
     private final List<SchemaIndexUsage> indexes;
     private final List<RelationshipTypeIndexUsage> relationshipTypeIndexes;
     private final List<LookupIndexUsage> lookupIndexes;
+    private final CypherVersion cypherVersion;
 
     public CompilerInfo(
             String planner,
             String runtime,
             List<SchemaIndexUsage> indexes,
             List<RelationshipTypeIndexUsage> relationshipTypeIndexes,
-            List<LookupIndexUsage> lookupIndexes) {
+            List<LookupIndexUsage> lookupIndexes,
+            CypherVersion cypherVersion) {
         this.planner = planner;
         this.runtime = runtime;
         this.indexes = indexes;
         this.relationshipTypeIndexes = relationshipTypeIndexes;
         this.lookupIndexes = lookupIndexes;
+        this.cypherVersion = cypherVersion;
     }
 
-    public CompilerInfo(String planner, String runtime, List<SchemaIndexUsage> indexes) {
-        this(planner, runtime, indexes, Collections.emptyList(), Collections.emptyList());
+    public CompilerInfo(String planner, String runtime, List<SchemaIndexUsage> indexes, CypherVersion cypherVersion) {
+        this(planner, runtime, indexes, Collections.emptyList(), Collections.emptyList(), cypherVersion);
     }
 
     public String planner() {
@@ -65,5 +69,9 @@ public class CompilerInfo {
 
     public List<LookupIndexUsage> lookupIndexes() {
         return lookupIndexes;
+    }
+
+    public CypherVersion getCypherVersion() {
+        return cypherVersion;
     }
 }

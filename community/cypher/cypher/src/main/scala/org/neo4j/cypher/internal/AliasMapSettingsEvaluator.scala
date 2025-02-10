@@ -43,8 +43,8 @@ import java.util.Locale
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-class AliasMapSettingsEvaluator(procedures: Procedures) {
-  private val evaluator = StaticEvaluation.from(procedures)
+class AliasMapSettingsEvaluator(procedures: Procedures, cypherVersion: CypherVersion) {
+  private val evaluator = StaticEvaluation.from(procedures, cypherVersion)
 
   private type ExpressionMapOrParamValue = Either[Map[String, Expression], AnyValue]
 

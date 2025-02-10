@@ -282,7 +282,7 @@ class ExecutionContextFunctionIT {
                 ExecutionContext executionContext = createExecutionContext(transaction)) {
             try {
                 var handle = executionContext.procedures().functionGet(getName("plus"), QueryLanguage.CYPHER_5);
-                var procContext = procedureCtx(handle.id());
+                var procContext = procedureCtx(handle.id(), QueryLanguage.CYPHER_5);
 
                 transaction.rollback();
                 assertThatThrownBy(() -> executionContext
@@ -349,7 +349,7 @@ class ExecutionContextFunctionIT {
     void testBuiltInFunction() throws ProcedureException {
         doWithExecutionContext(executionContext -> {
             var handle = executionContext.procedures().functionGet(new QualifiedName("date"), QueryLanguage.CYPHER_5);
-            var procContext = procedureCtx(handle.id());
+            var procContext = procedureCtx(handle.id(), QueryLanguage.CYPHER_5);
 
             AnyValue result = executionContext
                     .procedures()
@@ -365,7 +365,7 @@ class ExecutionContextFunctionIT {
             var handle = executionContext
                     .procedures()
                     .functionGet(new QualifiedName("datetime", "realtime"), QueryLanguage.CYPHER_5);
-            var procContext = procedureCtx(handle.id());
+            var procContext = procedureCtx(handle.id(), QueryLanguage.CYPHER_5);
 
             AnyValue result =
                     executionContext.procedures().builtInFunctionCall(handle.id(), new AnyValue[0], procContext);
@@ -382,7 +382,7 @@ class ExecutionContextFunctionIT {
             var handle = executionContext
                     .procedures()
                     .functionGet(new QualifiedName("datetime", "transaction"), QueryLanguage.CYPHER_5);
-            var procContext = procedureCtx(handle.id());
+            var procContext = procedureCtx(handle.id(), QueryLanguage.CYPHER_5);
 
             AnyValue result =
                     executionContext.procedures().builtInFunctionCall(handle.id(), new AnyValue[0], procContext);
@@ -398,7 +398,7 @@ class ExecutionContextFunctionIT {
             var handle = executionContext
                     .procedures()
                     .functionGet(new QualifiedName("datetime", "statement"), QueryLanguage.CYPHER_5);
-            var procContext = procedureCtx(handle.id());
+            var procContext = procedureCtx(handle.id(), QueryLanguage.CYPHER_5);
 
             AnyValue result =
                     executionContext.procedures().builtInFunctionCall(handle.id(), new AnyValue[0], procContext);
@@ -413,7 +413,7 @@ class ExecutionContextFunctionIT {
         doWithExecutionContext((ktx, executionContext) -> {
             var handle =
                     executionContext.procedures().functionGet(new QualifiedName("datetime"), QueryLanguage.CYPHER_5);
-            var procContext = procedureCtx(handle.id());
+            var procContext = procedureCtx(handle.id(), QueryLanguage.CYPHER_5);
 
             AnyValue result =
                     executionContext.procedures().builtInFunctionCall(handle.id(), new AnyValue[0], procContext);
@@ -456,7 +456,7 @@ class ExecutionContextFunctionIT {
     private AnyValue invokeUserFunction(ExecutionContext executionContext, String name, AnyValue... args)
             throws ProcedureException {
         var handle = executionContext.procedures().functionGet(getName(name), QueryLanguage.CYPHER_5);
-        var procContext = procedureCtx(handle.id());
+        var procContext = procedureCtx(handle.id(), QueryLanguage.CYPHER_5);
 
         return executionContext.procedures().functionCall(handle.id(), args, procContext);
     }
@@ -496,8 +496,9 @@ class ExecutionContextFunctionIT {
                 throws ProcedureException;
     }
 
-    private ProcedureCallContext procedureCtx(int id) {
-        return new ProcedureCallContext(id, new String[0], false, "", false, RUNTIME_USED, EmptyMemoryTracker.INSTANCE);
+    private ProcedureCallContext procedureCtx(int id, QueryLanguage queryLanguage) {
+        return new ProcedureCallContext(
+                id, new String[0], false, "", false, RUNTIME_USED, EmptyMemoryTracker.INSTANCE, queryLanguage);
     }
 
     public static class BasicTestFunctions {

@@ -200,7 +200,12 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
       logicalPlanResult.reusability,
       logicalPlanResult.paramNames.toArray,
       logicalPlanResult.extractedParams,
-      buildCompilerInfo(logicalPlan, planState.plannerName, cachedExecutionPlan.executionPlan.runtimeName),
+      buildCompilerInfo(
+        logicalPlan,
+        planState.plannerName,
+        cachedExecutionPlan.executionPlan.runtimeName,
+        query.resolvedLanguage
+      ),
       planState.plannerName,
       queryType,
       logicalPlanResult.shouldBeCached,
@@ -279,7 +284,12 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
     }
   }
 
-  private def buildCompilerInfo(logicalPlan: LogicalPlan, plannerName: PlannerName, runtimeName: RuntimeName) = {
+  private def buildCompilerInfo(
+    logicalPlan: LogicalPlan,
+    plannerName: PlannerName,
+    runtimeName: RuntimeName,
+    cypherVersion: CypherVersion
+  ) = {
     val schemaIndexUsage = ListBuffer.empty[SchemaIndexUsage]
     val relationshipTypeIndexUsage = ListBuffer.empty[RelationshipTypeIndexUsage]
     val lookupIndexUsage = ListBuffer.empty[LookupIndexUsage]
@@ -312,7 +322,8 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
       runtimeName.name,
       schemaIndexUsage.asJava,
       relationshipTypeIndexUsage.asJava,
-      lookupIndexUsage.asJava
+      lookupIndexUsage.asJava,
+      cypherVersion
     )
   }
 

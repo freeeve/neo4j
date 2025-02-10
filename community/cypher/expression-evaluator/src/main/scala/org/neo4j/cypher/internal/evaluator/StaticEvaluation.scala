@@ -70,6 +70,7 @@ import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.kernel.api.KernelTransaction
+import org.neo4j.kernel.api.QueryLanguage
 import org.neo4j.kernel.api.exceptions.Status.HasStatus
 import org.neo4j.kernel.api.index.IndexUsageStats
 import org.neo4j.kernel.impl.query.FunctionInformation
@@ -90,7 +91,8 @@ import java.net.URI
 
 object StaticEvaluation {
 
-  def from(procedures: Procedures) = new StaticEvaluator(() => new SimplifiedStaticQueryContext(procedures))
+  def from(procedures: Procedures, cypherVersion: CypherVersion) =
+    new StaticEvaluator(() => new SimplifiedStaticQueryContext(procedures, cypherVersion))
 
   class StaticEvaluator(makeQueryContext: () => QueryContext) extends SimpleInternalExpressionEvaluator {
 
@@ -137,13 +139,43 @@ object StaticEvaluation {
     }
   }
 
-  private class SimplifiedStaticQueryContext(procedures: Procedures) extends EmptyQueryContext {
+  private class SimplifiedStaticQueryContext(procedures: Procedures, cypherVersion: CypherVersion)
+      extends EmptyQueryContext {
 
     override def callFunction(id: Int, args: Array[AnyValue], ctx: ProcedureCallContext): AnyValue =
       procedures.functionCall(id, args, ctx)
 
     override def callBuiltInFunction(id: Int, args: Array[AnyValue], ctx: ProcedureCallContext): AnyValue = {
       procedures.builtInFunctionCall(id, args, ctx)
+    }
+
+    override def procedureCallContext(fcnId: Int, memoryTracker: MemoryTracker): ProcedureCallContext = {
+      new ProcedureCallContext(
+        fcnId,
+        true,
+        "",
+        false,
+        "",
+        memoryTracker,
+        if (cypherVersion.equals(CypherVersion.Cypher5)) QueryLanguage.CYPHER_5 else QueryLanguage.CYPHER_25
+      )
+    }
+
+    override def procedureCallContext(
+      procId: Int,
+      outputFields: Array[String],
+      m: MemoryTracker
+    ): ProcedureCallContext = {
+      new ProcedureCallContext(
+        procId,
+        outputFields,
+        true,
+        "",
+        false,
+        "",
+        m,
+        if (cypherVersion.equals(CypherVersion.Cypher5)) QueryLanguage.CYPHER_5 else QueryLanguage.CYPHER_25
+      )
     }
   }
 
@@ -660,18 +692,6 @@ object StaticEvaluation {
     override def getConfig: Config = notAvailable()
 
     override def entityTransformer: EntityTransformer = notAvailable()
-
-    override def procedureCallContext(fcnId: Int, memoryTracker: MemoryTracker): ProcedureCallContext = {
-      new ProcedureCallContext(fcnId, true, "", false, "", memoryTracker)
-    }
-
-    override def procedureCallContext(
-      procId: Int,
-      outputFields: Array[String],
-      m: MemoryTracker
-    ): ProcedureCallContext = {
-      new ProcedureCallContext(procId, outputFields, true, "", false, "", m)
-    }
   }
 
 }

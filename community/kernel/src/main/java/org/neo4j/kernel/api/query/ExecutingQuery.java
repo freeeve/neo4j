@@ -39,6 +39,7 @@ import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.graphdb.InputPosition;
 import org.neo4j.internal.kernel.api.ExecutionStatistics;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
+import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.lock.ActiveLock;
 import org.neo4j.lock.LockTracer;
@@ -312,6 +313,15 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
         this.queryLanguage = queryLanguage;
     }
 
+    public QueryLanguage cypherVersion() {
+        assert this.queryLanguage != null; // Break in testing but not production
+        if (this.queryLanguage == null) return null;
+        return switch (this.queryLanguage) {
+            case Cypher5 -> QueryLanguage.CYPHER_5;
+            case Cypher25 -> QueryLanguage.CYPHER_25;
+        };
+    }
+
     public void onFabricDeprecationNotificationsProviderReady(
             DeprecationNotificationsProvider deprecationNotificationsProvider) {
         this.fabricDeprecationNotificationsProvider = deprecationNotificationsProvider;
@@ -325,6 +335,9 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
         assertExpectedStatus(SimpleState.planning());
 
         this.compilerInfo = compilerInfo;
+        if (compilerInfo != null) {
+            this.queryLanguage = compilerInfo.getCypherVersion();
+        }
         this.compilationCompletedNanos = clock.nanos();
         this.planDescriptionSupplier = planDescriptionSupplier;
         this.deprecationNotificationsProvider = deprecationNotificationsProvider;
@@ -360,6 +373,9 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
     @VisibleForTesting
     public void setCompilerInfoForTesting(CompilerInfo compilerInfo) {
         this.compilerInfo = compilerInfo;
+        if (this.compilerInfo != null) {
+            this.queryLanguage = compilerInfo.getCypherVersion();
+        }
     }
 
     public LockTracer lockTracer() {

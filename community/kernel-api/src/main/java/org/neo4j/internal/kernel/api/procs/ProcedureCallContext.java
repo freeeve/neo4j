@@ -20,6 +20,7 @@
 package org.neo4j.internal.kernel.api.procs;
 
 import java.util.stream.Stream;
+import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.memory.MemoryTracker;
 
 /**
@@ -37,6 +38,7 @@ public class ProcedureCallContext {
     private final String database;
     private final boolean isSystemDatabase;
     private final MemoryTracker memoryTracker;
+    private final QueryLanguage queryLanguage;
 
     private final String runtimeUsed;
 
@@ -46,8 +48,17 @@ public class ProcedureCallContext {
             String database,
             boolean isSystemDatabase,
             String runtimeUsed,
-            MemoryTracker memoryTracker) {
-        this(id, EMPTY_OUTPUT_FIELDNAMES, calledFromCypher, database, isSystemDatabase, runtimeUsed, memoryTracker);
+            MemoryTracker memoryTracker,
+            QueryLanguage queryLanguage) {
+        this(
+                id,
+                EMPTY_OUTPUT_FIELDNAMES,
+                calledFromCypher,
+                database,
+                isSystemDatabase,
+                runtimeUsed,
+                memoryTracker,
+                queryLanguage);
     }
 
     public ProcedureCallContext(
@@ -57,7 +68,8 @@ public class ProcedureCallContext {
             String database,
             boolean isSystemDatabase,
             String runtimeUsed,
-            MemoryTracker memoryTracker) {
+            MemoryTracker memoryTracker,
+            QueryLanguage queryLanguage) {
         this.id = id;
         this.outputFieldNames = outputFieldNames;
         this.calledFromCypher = calledFromCypher;
@@ -65,6 +77,7 @@ public class ProcedureCallContext {
         this.isSystemDatabase = isSystemDatabase;
         this.runtimeUsed = runtimeUsed;
         this.memoryTracker = memoryTracker;
+        this.queryLanguage = queryLanguage;
     }
 
     /*
@@ -91,9 +104,13 @@ public class ProcedureCallContext {
         return isSystemDatabase;
     }
 
+    public QueryLanguage calledwithQueryLanguage() {
+        return queryLanguage;
+    }
+
     /* should only be used for testing purposes */
     public static final ProcedureCallContext EMPTY =
-            new ProcedureCallContext(-1, EMPTY_OUTPUT_FIELDNAMES, false, "", false, "", null);
+            new ProcedureCallContext(-1, EMPTY_OUTPUT_FIELDNAMES, false, "", false, "", null, QueryLanguage.CYPHER_25);
 
     public int id() {
         return id;

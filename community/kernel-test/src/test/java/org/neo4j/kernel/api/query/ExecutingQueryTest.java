@@ -38,6 +38,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.internal.helpers.MathUtil;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorCounters;
@@ -80,7 +81,8 @@ class ExecutingQueryTest {
         assertEquals("planning", query.snapshot().status());
 
         // when
-        query.onCompilationCompleted(new CompilerInfo("the-planner", "the-runtime", emptyList()), null, null, 0);
+        query.onCompilationCompleted(
+                new CompilerInfo("the-planner", "the-runtime", emptyList(), CypherVersion.Default), null, null, 0);
 
         // then
         assertEquals("planned", query.snapshot().status());
@@ -112,7 +114,8 @@ class ExecutingQueryTest {
 
         // when
         clock.forward(16, TimeUnit.MICROSECONDS);
-        query.onCompilationCompleted(new CompilerInfo("the-planner", "the-runtime", emptyList()), null, null, 0);
+        query.onCompilationCompleted(
+                new CompilerInfo("the-planner", "the-runtime", emptyList(), CypherVersion.Default), null, null, 0);
         clock.forward(200, TimeUnit.MICROSECONDS);
 
         // then
@@ -125,7 +128,8 @@ class ExecutingQueryTest {
     void shouldReportWaitTime() {
         // given
         query.onObfuscatorReady(null, 0);
-        query.onCompilationCompleted(new CompilerInfo("the-planner", "the-runtime", emptyList()), null, null, 0);
+        query.onCompilationCompleted(
+                new CompilerInfo("the-planner", "the-runtime", emptyList(), CypherVersion.Default), null, null, 0);
         query.onExecutionStarted(new FakeMemoryTracker());
 
         // then

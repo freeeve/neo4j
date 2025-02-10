@@ -45,7 +45,7 @@ trait OptionsConverter[T] {
     params: MapValue,
     procedures: Option[Procedures]
   ): AnyValue = {
-    procedures.map(StaticEvaluation.from(_).evaluate(expression, params))
+    procedures.map(StaticEvaluation.from(_, version).evaluate(expression, params))
       .getOrElse(expressionEvaluator(version).evaluate(expression, params))
   }
 

@@ -23,12 +23,13 @@ import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import org.neo4j.cypher.internal.CypherVersion;
 
 class CompilerInfoTest {
     @Test
     void plannerInfoShouldBeInSmallCase() {
         // given
-        CompilerInfo compilerInfo = new CompilerInfo("PLANNER", "RUNTIME", emptyList());
+        CompilerInfo compilerInfo = new CompilerInfo("PLANNER", "RUNTIME", emptyList(), CypherVersion.Default);
 
         // then
         assertThat(compilerInfo.planner()).isEqualTo("planner");
