@@ -90,6 +90,7 @@ object RememberToUpdateAstGeneratorTest {
     "org.neo4j.cypher.internal.ast.SetDynamicPropertyItem",
     "org.neo4j.cypher.internal.ast.SetPropertyItems",
     "org.neo4j.cypher.internal.ast.Statements",
+    "org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters", // Temporary, until parser changes are merged
     "org.neo4j.cypher.internal.ast.UsingStatefulShortestPathAll",
     "org.neo4j.cypher.internal.ast.UsingStatefulShortestPathInto",
     "org.neo4j.cypher.internal.expressions.AndedPropertyInequalities",
