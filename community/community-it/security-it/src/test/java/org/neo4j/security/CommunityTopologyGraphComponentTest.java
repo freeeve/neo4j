@@ -25,6 +25,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.dbms.database.ComponentVersion.COMMUNITY_TOPOLOGY_GRAPH_COMPONENT;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_ACCESS_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_LANGUAGE_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY;
@@ -46,6 +47,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.database.DefaultSystemGraphComponent;
 import org.neo4j.dbms.database.SystemGraphComponent;
@@ -306,9 +309,7 @@ class CommunityTopologyGraphComponentTest {
         inTx(tx -> {
             // Remove any quotedDisplayNames to get old behaviour
             try (ResourceIterator<Node> nodes = tx.findNodes(DATABASE_NAME_LABEL)) {
-                nodes.forEachRemaining(node -> {
-                    node.removeProperty(QUOTED_DISPLAY_NAME_PROPERTY);
-                });
+                nodes.forEachRemaining(node -> node.removeProperty(QUOTED_DISPLAY_NAME_PROPERTY));
             }
         });
         setComponentVersionTo(0);
@@ -323,6 +324,40 @@ class CommunityTopologyGraphComponentTest {
                     String name = (String) node.getProperty(NAME_PROPERTY);
                     assertThat(node.getProperty(QUOTED_DISPLAY_NAME_PROPERTY)).isEqualTo(Stringifier.backtick(name));
                 });
+            }
+        });
+    }
+
+    @Test
+    void shouldHaveDefaultLanguageOnUpgradeToV1() throws Exception {
+        // GIVEN
+        initializeSystem();
+        CommunityTopologyGraphComponent component = new CommunityTopologyGraphComponent(
+                Config.defaults(Map.of(
+                        // to show we don't pick up on the config value when upgrading
+                        GraphDatabaseSettings.default_language,
+                        GraphDatabaseSettings.CypherVersion.Cypher25,
+                        GraphDatabaseInternalSettings.enable_experimental_cypher_versions,
+                        Boolean.TRUE)),
+                NullLogProvider.getInstance());
+        component.initializeSystemGraph(system, true);
+
+        inTx(tx -> {
+            // Remove any defaultLanguage to get old behaviour
+            try (ResourceIterator<Node> nodes = tx.findNodes(DATABASE_LABEL)) {
+                nodes.forEachRemaining(node -> node.removeProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY));
+            }
+        });
+        setComponentVersionTo(0);
+
+        // WHEN
+        component.upgradeToCurrent(system);
+
+        // THEN
+        inTx(tx -> {
+            try (ResourceIterator<Node> nodes = tx.findNodes(DATABASE_LABEL)) {
+                nodes.forEachRemaining(node -> assertThat(node.getProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY))
+                        .isEqualTo(CypherVersion.Cypher5.persistedValue));
             }
         });
     }

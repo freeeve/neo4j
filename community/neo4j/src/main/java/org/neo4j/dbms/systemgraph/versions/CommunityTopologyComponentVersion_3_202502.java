@@ -20,12 +20,15 @@
 package org.neo4j.dbms.systemgraph.versions;
 
 import static org.neo4j.dbms.systemgraph.CommunityTopologyGraphVersion.COMMUNITY_TOPOLOGY_202502;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_LANGUAGE_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.QUOTED_DISPLAY_NAME_PROPERTY;
 
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.util.Stringifier;
 
@@ -47,6 +50,7 @@ public class CommunityTopologyComponentVersion_3_202502 extends KnownCommunityTo
             previous.upgradeTopologyGraph(tx, fromVersion);
             this.setVersionProperty(tx, version);
             this.addDisplayPropToDatabaseName(tx);
+            this.addDefaultLanguageToDatabase(tx);
         }
     }
 
@@ -62,5 +66,12 @@ public class CommunityTopologyComponentVersion_3_202502 extends KnownCommunityTo
                             : Stringifier.backtick(namespace) + "." + backtickedName;
                     node.setProperty(QUOTED_DISPLAY_NAME_PROPERTY, displayName);
                 });
+    }
+
+    private void addDefaultLanguageToDatabase(Transaction tx) {
+        tx.findNodes(DATABASE_LABEL).stream()
+                .filter(node -> node.getProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY, null) == null)
+                .forEach(node ->
+                        node.setProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY, CypherVersion.Cypher5.persistedValue));
     }
 }
