@@ -121,8 +121,8 @@ public class RandomExtension extends StatefulFieldExtension<RandomSupport>
     }
 
     private void handleException(ExtensionContext context, Throwable t) {
-        if (t instanceof TestAbortedException) {
-            return;
+        if (t instanceof TestAbortedException aborted) {
+            throw aborted;
         }
 
         var random = getStoredValue(context);
