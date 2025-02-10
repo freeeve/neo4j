@@ -34,7 +34,7 @@ public interface SchemaMonitors extends Closeable {
         }
 
         @Override
-        public void writeToTarget(LongPredicate skippedEntityIds) {}
+        public void writeToTarget(LongPredicate violatingIdMapperEntityIds, boolean skipViolatingEntities) {}
 
         @Override
         public LongSet affectedIndexes() {
@@ -52,7 +52,7 @@ public interface SchemaMonitors extends Closeable {
 
     LongSet validate(Collector collector) throws IOException;
 
-    void writeToTarget(LongPredicate skippedEntityIds) throws IOException;
+    void writeToTarget(LongPredicate violatingIdMapperEntityIds, boolean skipViolatingEntities) throws IOException;
 
     LongSet affectedIndexes();
 

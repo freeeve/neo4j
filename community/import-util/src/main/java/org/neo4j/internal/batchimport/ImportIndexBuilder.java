@@ -280,12 +280,13 @@ public class ImportIndexBuilder implements Closeable {
         return violatingEntities;
     }
 
-    public void writeToTarget(LongPredicate skippedEntityIds) {
+    public void writeToTarget(LongPredicate violatingIdMapperEntityIds, boolean skipViolatingEntities) {
         try {
             // When all violations are known then merge all increment indexes
-            LongPredicate filter = skippedEntityIds == null && violatingEntities.isEmpty()
+            LongPredicate filter = violatingIdMapperEntityIds == null && violatingEntities.isEmpty()
                     ? null
-                    : indexEntityId -> (skippedEntityIds == null || !skippedEntityIds.test(indexEntityId))
+                    : indexEntityId -> (violatingIdMapperEntityIds == null
+                                    || !violatingIdMapperEntityIds.test(indexEntityId))
                             && !violatingEntities.contains(entityIdFromIndexIdConverter.applyAsLong(indexEntityId));
             var indexSamplingConfig = new IndexSamplingConfig(Config.defaults());
             for (var population : indexBuilders.entrySet()) {
@@ -310,7 +311,7 @@ public class ImportIndexBuilder implements Closeable {
                                 null,
                                 false,
                                 IndexEntryConflictHandler.THROW,
-                                filter,
+                                skipViolatingEntities ? filter : null,
                                 configuration.maxNumberOfWorkerThreads(),
                                 workScheduler.jobScheduler(),
                                 ProgressListener.NONE);
@@ -410,14 +411,19 @@ public class ImportIndexBuilder implements Closeable {
             return true;
         }
 
-        void flush() {
+        boolean flush() {
+            boolean hasChanges = false;
             for (IndexUpdatesBatch batch : allChanges) {
-                batch.flush();
+                hasChanges |= batch.flush();
             }
+            return hasChanges;
         }
 
         @Override
         public void close() {
+            if (flush()) {
+                accessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
+            }
             accessor.close();
         }
     }
@@ -450,28 +456,37 @@ public class ImportIndexBuilder implements Closeable {
             }
         }
 
-        private void flush() {
-            flushAdditions();
-            flushChanges();
+        private boolean flush() {
+            boolean hasChanges = false;
+            hasChanges |= flushAdditions();
+            hasChanges |= flushChanges();
+            return hasChanges;
         }
 
-        private void flushAdditions() {
+        private boolean flushAdditions() {
             try {
                 if (!additions.isEmpty()) {
                     populator.add(additions, NULL_CONTEXT);
                     additions = new ArrayList<>(BATCH_SIZE);
+                    return true;
                 }
+                return false;
             } catch (IndexEntryConflictException e) {
                 throw new RuntimeException(e);
             }
         }
 
-        private void flushChanges() {
+        private boolean flushChanges() {
+            if (changes.isEmpty()) {
+                return false;
+            }
+
             try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, true)) {
                 for (var change : changes) {
                     updater.process(change);
                 }
                 changes.clear();
+                return true;
             } catch (IndexEntryConflictException e) {
                 throw new RuntimeException(e);
             }
