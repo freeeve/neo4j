@@ -29,8 +29,6 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.values.storable.Values
 
-import java.util.concurrent.TimeUnit
-
 sealed trait TransactionRetryPolicy
 
 object TransactionRetryPolicy {
