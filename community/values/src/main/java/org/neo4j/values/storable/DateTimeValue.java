@@ -188,7 +188,7 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
 
     public static DateTimeValue truncate(
             TemporalUnit unit, TemporalValue input, MapValue fields, Supplier<ZoneId> defaultZone) {
-        Pair<LocalDate, LocalTime> pair = getTruncatedDateAndTime(unit, input, "date time");
+        Pair<LocalDate, LocalTime> pair = getTruncatedDateAndTime(unit, input, "date time", "ZONED DATETIME");
 
         LocalDate truncatedDate = pair.first();
         LocalTime truncatedTime = pair.other();
@@ -538,8 +538,9 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
                         List<String> validOffsets = zone.getRules().getValidOffsets(local).stream()
                                 .map(String::valueOf)
                                 .toList();
+                        String context = String.format("%s[%s]", local, zoneName);
                         throw InvalidArgumentException.timezoneAndOffsetMismatch(
-                                zoneName, actualOffset, validOffsets, matcher.group());
+                                context, actualOffset, validOffsets, matcher.group());
                     }
                 } catch (ZoneRulesException e) {
                     throw TemporalParseException.cannotProcessCause(matcher.group(), e);

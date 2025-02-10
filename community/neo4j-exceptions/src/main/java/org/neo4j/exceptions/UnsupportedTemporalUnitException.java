@@ -61,7 +61,7 @@ public class UnsupportedTemporalUnitException extends CypherTypeException {
     }
 
     public static UnsupportedTemporalUnitException cannotSelectDatetime(String dateTime) {
-        var gql = GqlHelper.getGql22G05_22N15("DATETIME", dateTime);
+        var gql = GqlHelper.getGql22G05_22N15("ZONED DATETIME", dateTime);
         return new UnsupportedTemporalUnitException(gql, "Cannot select datetime from: " + dateTime);
     }
 
@@ -93,8 +93,9 @@ public class UnsupportedTemporalUnitException extends CypherTypeException {
         return new UnsupportedTemporalUnitException(gql, String.format("Cannot get the date of: %s", value));
     }
 
-    public static UnsupportedTemporalUnitException cannotTruncateWithTimeBasedUnit(String input, String type) {
-        var gql = GqlHelper.getGql22G05_22N15(type, input);
+    public static UnsupportedTemporalUnitException cannotTruncateWithTimeBasedUnit(
+            String input, String type, String prettifiedType) {
+        var gql = GqlHelper.getGql22G05_22N15(prettifiedType, input);
         return new UnsupportedTemporalUnitException(
                 gql, String.format("Cannot truncate %s to %s with a time based unit.", input, type));
     }
@@ -105,7 +106,7 @@ public class UnsupportedTemporalUnitException extends CypherTypeException {
     }
 
     public static UnsupportedTemporalUnitException noSuchField(String fieldName, String fieldType) {
-        var gql = GqlHelper.getGql22G05_22N15(fieldType, fieldName);
+        var gql = GqlHelper.getGql22G05_22N15(fieldName, fieldType);
         return new UnsupportedTemporalUnitException(gql, String.format("No such field: %s", fieldName));
     }
 }

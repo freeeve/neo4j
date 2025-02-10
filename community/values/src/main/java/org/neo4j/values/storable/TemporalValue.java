@@ -285,7 +285,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
             return Values.intValue(getZoneOffset().getTotalSeconds());
         }
         if (field == null || field.field == null) {
-            throw UnsupportedTemporalUnitException.noSuchField(fieldName, "ZONED TIME/ZONED DATETIME");
+            throw UnsupportedTemporalUnitException.noSuchField(fieldName, "temporal");
         }
         return Values.intValue(get(field.field));
     }
@@ -1165,17 +1165,17 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         long ms = safeCastIntegral("millisecond", millisecond, TemporalFields.millisecond.defaultValue);
         long us = safeCastIntegral("microsecond", microsecond, TemporalFields.microsecond.defaultValue);
         long ns = safeCastIntegral("nanosecond", nanosecond, TemporalFields.nanosecond.defaultValue);
-        if (ms < 0 || ms >= 1000) {
-            final long milliLimit = 1000L;
-            throw InvalidArgumentException.invalidMillisecondValue(milliLimit, ms);
+        final long milliLimit = 1000L;
+        if (ms < 0 || ms >= milliLimit) {
+            throw InvalidArgumentException.invalidMillisecondValue(milliLimit - 1, ms);
         }
         final long microLimit = (millisecond != null ? 1000L : 1000_000L);
         if (us < 0 || us >= microLimit) {
-            throw InvalidArgumentException.invalidMicrosecondValue(microLimit, us);
+            throw InvalidArgumentException.invalidMicrosecondValue(microLimit - 1, us);
         }
         final long nanoLimit = (microsecond != null ? 1000L : millisecond != null ? 1000_000L : 1000_000_000L);
         if (ns < 0 || ns >= nanoLimit) {
-            throw InvalidArgumentException.invalidNanosecondValue(nanoLimit, ns);
+            throw InvalidArgumentException.invalidNanosecondValue(nanoLimit - 1, ns);
         }
         return (int) (ms * 1000_000 + us * 1000 + ns);
     }
@@ -1257,9 +1257,11 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         }
     }
 
-    static Pair<LocalDate, LocalTime> getTruncatedDateAndTime(TemporalUnit unit, TemporalValue input, String type) {
+    static Pair<LocalDate, LocalTime> getTruncatedDateAndTime(
+            TemporalUnit unit, TemporalValue input, String type, String prettifiedType) {
         if (unit.isTimeBased() && !(input instanceof DateTimeValue || input instanceof LocalDateTimeValue)) {
-            throw UnsupportedTemporalUnitException.cannotTruncateWithTimeBasedUnit(String.valueOf(input), type);
+            throw UnsupportedTemporalUnitException.cannotTruncateWithTimeBasedUnit(
+                    String.valueOf(input), type, prettifiedType);
         }
         LocalDate localDate = input.getDatePart();
         LocalTime localTime = input.hasTime() ? input.getLocalTimePart() : LocalTimeValue.DEFAULT_LOCAL_TIME;

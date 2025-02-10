@@ -122,7 +122,7 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
 
     public static LocalDateTimeValue truncate(
             TemporalUnit unit, TemporalValue input, MapValue fields, Supplier<ZoneId> defaultZone) {
-        Pair<LocalDate, LocalTime> pair = getTruncatedDateAndTime(unit, input, "local date time");
+        Pair<LocalDate, LocalTime> pair = getTruncatedDateAndTime(unit, input, "local date time", "LOCAL DATETIME");
 
         LocalDate truncatedDate = pair.first();
         LocalTime truncatedTime = pair.other();
